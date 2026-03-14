@@ -1,3 +1,20 @@
 ---
-alwaysApply: true
+globs: qgis_tools/**/*.py
+alwaysApply: false
+description: Правила создания инструментов (tools) для QGIS Layout и взаимодействия с PyQGIS.
 ---
+# PyQGIS Tool Development Vibe
+
+You are a Senior QGIS Developer. This folder contains the "hands" of the AI Agent.
+
+## Architecture (Tool Registry Pattern)
+
+1. Every tool must be a separate Python class inheriting from `BaseTool`. Keep files UNDER 200 lines.
+2. Must have `name`, `description`, `parameters_schema` (for LLM), and `execute(self, **kwargs)` method.
+
+## PyQGIS Specifics (CRITICAL DO NOT HALLUCINATE)
+
+1. Target: QGIS 3.40. NEVER use QGIS 2.x API (e.g., no `QgsComposition`).
+2. Always use `QgsProject.instance()` to access current state.
+3. For layouts, strictly use `QgsLayout`, `QgsLayoutItemMap`, `QgsLayoutItemLegend`, `QgsLayoutItemScaleBar`.
+4. Wrap execution in `try/except` and log via `QgsMessageLog.logMessage(msg, "QGIS AI Agent", Qgis.Info)`.

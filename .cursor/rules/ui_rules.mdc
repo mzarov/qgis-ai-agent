@@ -1,3 +1,15 @@
 ---
-alwaysApply: true
+alwaysApply: false
+globs: ui/*.py
+description: Правила создания UI компонентов (интерфейса) для QGIS.
 ---
+# UI Development Vibe
+
+You are a frontend developer for QGIS plugins. This folder ONLY contains UI presentation logic.
+
+## Strict Rules
+
+1. **NO BUSINESS LOGIC:** Do not process map data or call LLM APIs here. UI files must only render components and emit PyQt signals (`pyqtSignal`).
+2. **QGIS Wrappers Only:** ALWAYS import from `qgis.PyQt` (e.g., `from qgis.PyQt.QtWidgets import QWidget`). NEVER import `PyQt5` or `PyQt6` directly.
+3. **No Qt Designer:** Create all layouts and widgets programmatically in Python. Do not use `.ui` files.
+4. **DockWidget Pattern:** Main UI is a `QDockWidget` mapped to `Qt.RightDockWidgetArea`.
