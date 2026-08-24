@@ -4,6 +4,7 @@ from qgis_ai_agent.qgis_tools.inspect.field_values import GetFieldValuesTool
 from qgis_ai_agent.qgis_tools.inspect.list_layers import ListLayersTool
 from qgis_ai_agent.qgis_tools.inspect.project_info import GetProjectInfoTool
 from qgis_ai_agent.qgis_tools.inspect.qgis_info import GetQgisInfoTool
+from qgis_ai_agent.qgis_tools.inspect.query_layer import QueryLayerTool
 from qgis_ai_agent.qgis_tools.inspect.sample_features import SampleFeaturesTool
 
 INSPECT_TOOLS = [
@@ -12,6 +13,7 @@ INSPECT_TOOLS = [
     DescribeLayerTool(),
     GetFieldValuesTool(),
     SampleFeaturesTool(),
+    QueryLayerTool(),
     GetCanvasExtentTool(),
     GetQgisInfoTool(),
 ]

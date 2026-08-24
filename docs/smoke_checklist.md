@@ -18,6 +18,12 @@ execute_tool("list_layers", {})
 execute_tool("describe_layer", {"layer_name": "ИМЯ_СЛОЯ"})
 execute_tool("get_field_values", {"layer_name": "ИМЯ_СЛОЯ", "field_name": "ПОЛЕ"})
 execute_tool("sample_features", {"layer_name": "ИМЯ_СЛОЯ", "limit": 3})
+execute_tool("query_layer", {"layer_name": "Дороги", "aggregate": "count"})
+execute_tool("query_layer", {"layer_name": "Дороги", "aggregate": "count", "filter": "highway = 'motorway'"})
+execute_tool("query_layer", {"layer_name": "Города", "order_by": "population DESC", "limit": 5, "fields": ["name", "population"]})
+execute_tool("query_layer", {"layer_name": "Реки", "order_by": "$length DESC", "limit": 1})
+execute_tool("query_layer", {"layer_name": "Озера и пруды", "aggregate": "sum", "expression": "$area"})
+execute_tool("query_layer", {"layer_name": "Дороги", "aggregate": "mean", "expression": "$length", "group_by": "highway"})
 execute_tool("describe_style", {"layer_name": "ИМЯ_СЛОЯ"})
 execute_tool("get_qgis_info", {})
 execute_tool("get_canvas_extent", {})
@@ -36,6 +42,11 @@ execute_tool("describe_processing", {"algorithm_id": "native:buffer"})
 - `describe_style` показывает тип рендерера и классы с цветами
 - `describe_processing` отдаёт enum парами `{"value": 0, "label": "Round"}`
 - несуществующее имя слоя или поля даёт ошибку со списком доступных
+- `query_layer` без `aggregate` отдаёт объекты, с `aggregate` — одно число
+- `group_by` даёт список групп со значением и числом объектов в каждой
+- `$length` и `$area` считаются в единицах CRS слоя: на слое в градусах
+  число получится бессмысленным, агент обязан это сказать
+- ошибка в выражении даёт текст парсера, а не падение
 
 ### Ветки классов в describe_style
 

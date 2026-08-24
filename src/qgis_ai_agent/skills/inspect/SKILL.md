@@ -1,7 +1,7 @@
 ---
 name: inspect
 description: Read the current QGIS project — structure, layers, attribute data, CRS, environment. Load this whenever you need facts about the project before answering or acting.
-tools: [get_project_info, list_layers, describe_layer, get_field_values, sample_features, get_canvas_extent, get_qgis_info]
+tools: [get_project_info, list_layers, describe_layer, get_field_values, sample_features, query_layer, get_canvas_extent, get_qgis_info]
 ---
 
 # Reading the project
@@ -18,6 +18,7 @@ asking the user for permission.
 | What is in this layer? Fields, extent, CRS, source, style | `describe_layer` |
 | What values does this field hold? | `get_field_values` |
 | What does the actual data look like? | `sample_features` |
+| How many, which are the largest, what is the total? | `query_layer` |
 | What is currently on screen? | `get_canvas_extent` |
 | Which QGIS version and providers are available? | `get_qgis_info` |
 
@@ -46,6 +47,37 @@ which values a field holds produces plans that fail on real data.
   ambiguous — codes, abbreviations, mixed-language values.
 - Both are capped. `unique_values_note` tells you when the list was truncated;
   do not present a truncated list as complete.
+
+## Answering questions with numbers
+
+`query_layer` runs QGIS expressions over a layer. Any question that starts with
+"сколько", "какой самый", "средняя", "суммарная" or "топ" is a `query_layer` call,
+not a guess from `sample_features`.
+
+| Question | Call |
+|---|---|
+| Сколько дорог типа motorway | `aggregate="count"`, `filter="highway = 'motorway'"` |
+| Топ-5 городов по населению | `order_by="population DESC"`, `limit=5` |
+| Самая длинная река | `order_by="$length DESC"`, `limit=1` |
+| Суммарная площадь озёр | `aggregate="sum"`, `expression="$area"` |
+| Средняя длина дороги по типам | `aggregate="mean"`, `expression="$length"`, `group_by="highway"` |
+
+Geometry is available through expressions — `$length`, `$area`, `$geometry`,
+`intersects()`, `distance()`, `buffer()`. A question about size, length or spatial
+relation does not need a geoprocessing algorithm; it needs the right expression.
+
+Rules that matter:
+
+- Field names are case-sensitive and must match `describe_layer` exactly. String
+  literals use single quotes: `highway = 'motorway'`.
+- `$length` and `$area` are measured in the units of the layer CRS. On a layer
+  where `crs_is_geographic` is true they come out in degrees and are meaningless —
+  say so instead of reporting the number.
+- `aggregate="count"` counts matched features regardless of nulls. To count
+  non-empty values add `filter="field is not null"`.
+- `order_by` works only without `aggregate`.
+- If the tool reports that too many features match, add a `filter` — it refuses to
+  return a partial aggregate rather than answer wrongly.
 
 ## Layer sources
 
