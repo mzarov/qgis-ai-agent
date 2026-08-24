@@ -95,13 +95,18 @@ class GetFieldValuesTool(BaseTool):
             values = layer.uniqueValues(index, limit + 1)
         except Exception:
             return {"unique_values": [], "unique_values_note": "значения недоступны"}
-        plain = sorted(_plain(value) for value in values)
-        if len(plain) > limit:
-            return {
-                "unique_values": plain[:limit],
-                "unique_values_note": f"показаны первые {limit}, значений больше",
-            }
-        return {"unique_values": plain, "unique_values_count": len(plain)}
+        plain = [_plain(value) for value in values]
+        filled = _sorted_safe([value for value in plain if value is not None])
+
+        result: dict[str, Any] = {"unique_values": filled[:limit]}
+        if len(filled) > limit:
+            result["unique_values_note"] = f"показаны первые {limit}, значений больше"
+        else:
+            result["unique_values_count"] = len(filled)
+        if len(plain) != len(filled):
+            result["has_null_values"] = True
+            result["null_note"] = "в поле есть пустые значения, в список они не включены"
+        return result
 
     @staticmethod
     def _is_numeric(field_type: str) -> bool:
@@ -117,6 +122,13 @@ class GetFieldValuesTool(BaseTool):
             except Exception:
                 continue
         return info
+
+
+def _sorted_safe(values: list[Any]) -> list[Any]:
+    try:
+        return sorted(values)
+    except TypeError:
+        return sorted(values, key=lambda value: (type(value).__name__, str(value)))
 
 
 def _plain(value: Any) -> Any:
