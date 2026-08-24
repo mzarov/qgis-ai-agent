@@ -1,7 +1,8 @@
 from typing import Any
 
 SYMBOL_KINDS = {0: "точки", 1: "линии", 2: "полигоны"}
-MULTILAYER_NOTE = "описан только первый слой символа"
+MAX_SYMBOL_LAYERS = 6
+LAYER_MEASURES = (("width", "width"), ("size", "size"), ("offset", "offset"))
 
 
 def symbol_info(symbol) -> dict[str, Any]:
@@ -9,19 +10,56 @@ def symbol_info(symbol) -> dict[str, Any]:
     kind = _symbol_kind(symbol)
     if kind:
         info["kind"] = kind
-    fill = _color_name(_call(symbol, "color"))
-    if fill:
-        info["fill_color"] = fill
+    color = _color_name(_call(symbol, "color"))
+    if color:
+        info["color"] = color
     for key, getter in (("opacity", "opacity"), ("size", "size"), ("width", "width")):
-        try:
-            info[key] = round(float(getattr(symbol, getter)()), 3)
-        except Exception:
+        value = _number(_call(symbol, getter))
+        if value is not None:
+            info[key] = value
+    layers = _describe_layers(symbol)
+    if len(layers) > 1:
+        info["layers"] = layers
+        info["layers_note"] = (
+            "символ собран из нескольких слоёв, они рисуются снизу вверх: "
+            "слой 0 под слоем 1 и так далее"
+        )
+    elif layers:
+        info.update({key: value for key, value in layers[0].items() if key.startswith("stroke")})
+    return info
+
+
+def _describe_layers(symbol) -> list[dict[str, Any]]:
+    count = _number(_call(symbol, "symbolLayerCount"))
+    if not count:
+        return []
+    result = []
+    for index in range(min(int(count), MAX_SYMBOL_LAYERS)):
+        layer = _call(symbol, "symbolLayer", index)
+        if layer is None:
             continue
-    info.update(_stroke_info(symbol))
-    layers = _symbol_layer_count(symbol)
-    if layers > 1:
-        info["symbol_layers"] = layers
-        info["symbol_layers_note"] = MULTILAYER_NOTE
+        result.append(_describe_layer(index, layer))
+    return result
+
+
+def _describe_layer(index: int, layer) -> dict[str, Any]:
+    info: dict[str, Any] = {"index": index}
+    layer_type = _call(layer, "layerType")
+    if isinstance(layer_type, str) and layer_type:
+        info["type"] = layer_type
+    color = _color_name(_call(layer, "color"))
+    if color:
+        info["color"] = color
+    for key, getter in LAYER_MEASURES:
+        value = _number(_call(layer, getter))
+        if value is not None:
+            info[key] = value
+    stroke = _color_name(_call(layer, "strokeColor"))
+    if stroke:
+        info["stroke_color"] = stroke
+        stroke_width = _number(_call(layer, "strokeWidth"))
+        if stroke_width is not None:
+            info["stroke_width"] = stroke_width
     return info
 
 
@@ -32,33 +70,19 @@ def _symbol_kind(symbol) -> str:
         return ""
 
 
-def _symbol_layer_count(symbol) -> int:
+def _call(owner, method, *args):
     try:
-        return int(symbol.symbolLayerCount())
+        return getattr(owner, method)(*args)
     except Exception:
-        return 0
+        return None
 
 
-def _stroke_info(symbol) -> dict[str, Any]:
+def _number(value) -> float | None:
+    if value is None or isinstance(value, bool):
+        return None
     try:
-        layer = symbol.symbolLayer(0)
-    except Exception:
-        return {}
-    stroke = _color_name(_call(layer, "strokeColor"))
-    if not stroke:
-        return {}
-    info: dict[str, Any] = {"stroke_color": stroke}
-    try:
-        info["stroke_width"] = round(float(layer.strokeWidth()), 3)
-    except Exception:
-        pass
-    return info
-
-
-def _call(owner, method):
-    try:
-        return getattr(owner, method)()
-    except Exception:
+        return round(float(value), 3)
+    except (TypeError, ValueError):
         return None
 
 
@@ -67,9 +91,11 @@ def _color_name(color) -> str:
         name = color.name()
     except Exception:
         return ""
+    if not isinstance(name, str):
+        return ""
     try:
         if not color.isValid():
             return ""
     except AttributeError:
         pass
-    return name or ""
+    return name

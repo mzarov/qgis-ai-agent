@@ -22,15 +22,27 @@ labels, or why a layer looks the way it does.
 | `graduatedSymbol` | `class_attribute` plus `classes` with `min`, `max`, `label`, `symbol` |
 | `RuleRenderer` | `rules` with `filter` expression and `label` |
 
-Each `symbol` carries `kind` (точки / линии / полигоны), `fill_color` and, where
-the symbol has an outline, `stroke_color` and `stroke_width`. Colours are hex
-strings (`#e31a1c`). **The fill is not always what the user sees** — a white point
-with a dark outline reads as dark, so mention the stroke when it carries the
-visual weight.
+Each `symbol` carries `kind` (точки / линии / полигоны), `color` and, for a
+single-layer symbol with an outline, `stroke_color` and `stroke_width`. Colours
+are hex strings (`#e31a1c`). Class lists are capped at 30 entries.
 
-When `symbol_layers` is present the symbol is built from several stacked layers
-and only the first is described; say so rather than presenting it as the whole
-picture. Class lists are capped at 30 entries.
+## Symbols built from several layers
+
+When `layers` is present, the symbol is stacked: layer 0 draws first, later
+layers draw on top. **Read the whole stack before describing the appearance** —
+the top-level `color` is only the symbol's nominal colour and often is not what
+dominates the picture.
+
+The common road casing looks like this:
+
+```
+layers: [{index: 0, color: "#000000", width: 1.4},
+         {index: 1, color: "#ff6011", width: 0.8}]
+```
+
+That is an orange line over a wider black one, so the road reads as orange with
+a black border. Describing only layer 0 would call the road black; describing
+only the top-level colour would miss the border entirely.
 
 `labeling` reports whether labels are on, which field or expression drives them,
 font family, size and colour.
