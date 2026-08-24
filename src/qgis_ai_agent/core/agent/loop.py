@@ -1,4 +1,5 @@
 from qgis.PyQt.QtCore import QObject, pyqtSignal
+from qgis.PyQt.QtWidgets import QApplication
 from qgis.core import Qgis, QgsMessageLog
 
 from qgis_ai_agent.core.agent.executor import ToolExecutor
@@ -7,23 +8,24 @@ from qgis_ai_agent.core.agent.request import build_step_request
 from qgis_ai_agent.core.agent.transcript import ToolResult, Transcript
 from qgis_ai_agent.core.llm.transport import ModelTurn, ToolCall
 from qgis_ai_agent.core.llm.worker import ModelTurnThread
-from qgis_ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call
+from qgis_ai_agent.qgis_tools.registry import (
+    get_tool_by_name,
+    summarize_tool_call,
+    validate_tool_call,
+)
 from qgis_ai_agent.skills.registry import SKILL_REGISTRY
 
 LOG_TAG = "QGIS AI Agent"
-# Страховка от зацикливания: столько ходов модели максимум на одну задачу.
 MAX_ITERATIONS = 12
-# Скилл чтения проекта загружен всегда — иначе простой вопрос стоит лишнего хода.
 PRELOADED_SKILLS = ("inspect",)
+THREAD_STOP_TIMEOUT_MS = 3000
+LIMIT_REACHED_MESSAGE = (
+    "Задача оказалась слишком длинной, я остановилась на достигнутом. "
+    "Уточните запрос или разбейте его на части."
+)
 
 
 class AgentLoop(QObject):
-    """
-    Агентный цикл: машина состояний в главном потоке.
-    Сетевые вызовы уходят в ModelTurnThread, а исполнение тулов остаётся
-    в главном потоке, где PyQGIS-объекты трогать безопасно.
-    """
-
     tool_started = pyqtSignal(str)
     tool_finished = pyqtSignal(str, bool)
     tool_queued = pyqtSignal(str)
@@ -48,16 +50,13 @@ class AgentLoop(QObject):
 
     @property
     def is_running(self) -> bool:
-        """Идёт ли сейчас сетевой запрос."""
         return bool(self._thread and self._thread.isRunning())
 
     @property
     def has_pending_writes(self) -> bool:
-        """Есть ли изменения, ожидающие подтверждения."""
         return bool(self._pending_writes)
 
     def start(self, prompt: str, history: list[dict[str, str]] | None = None) -> None:
-        """Запускает новый прогон агента по запросу пользователя."""
         self._transcript = Transcript()
         self._transcript.add_user(prompt)
         self._history = list(history or [])
@@ -69,46 +68,54 @@ class AgentLoop(QObject):
         self._request_step()
 
     def stop(self) -> None:
-        """Останавливает активный сетевой запрос — вызывается при выгрузке плагина."""
         thread = self._thread
         self._thread = None
-        if thread and thread.isRunning():
-            thread.terminate()
-            thread.wait(2000)
+        if not thread or not thread.isRunning():
+            return
+        thread.requestInterruption()
+        if thread.wait(THREAD_STOP_TIMEOUT_MS):
+            return
+        thread.terminate()
+        thread.wait(THREAD_STOP_TIMEOUT_MS)
 
     def confirm_pending(self) -> None:
-        """Выполняет накопленный батч изменений после подтверждения пользователем."""
         calls = list(self._pending_writes)
         self._pending_writes = []
         if not calls:
             return
-        results: list[ToolResult] = []
-        for call in calls:
-            self.tool_started.emit(summarize_tool_call(call.name, call.arguments))
-            result = self._executor.run(call)
-            self.tool_finished.emit(call.name, result.ok)
-            results.append(result)
+        self.busy_changed.emit(True)
+        try:
+            results = [self._apply(call) for call in calls]
+        finally:
+            self.busy_changed.emit(False)
         QgsMessageLog.logMessage(f"Применено изменений: {len(results)}.", LOG_TAG, Qgis.Info)
         self.applied.emit(results)
 
     def cancel_pending(self) -> None:
-        """Отменяет накопленный батч без применения."""
         self._pending_writes = []
 
+    def _apply(self, call: ToolCall) -> ToolResult:
+        self.tool_started.emit(summarize_tool_call(call.name, call.arguments))
+        QApplication.processEvents()
+        result = self._executor.run(call)
+        self.tool_finished.emit(call.name, result.ok)
+        QApplication.processEvents()
+        return result
+
     def _request_step(self) -> None:
-        """Отправляет следующий ход модели в фоновый поток."""
         if self._iteration >= MAX_ITERATIONS:
             self._finish_on_limit()
             return
         self._iteration += 1
-
         try:
             request = build_step_request(self._transcript, self._loaded_skills, self._history)
         except Exception as err:
             self._fail(str(err))
             return
         self._prompt_protocol = request.protocol
+        self._start_thread(request)
 
+    def _start_thread(self, request) -> None:
         thread = ModelTurnThread(request.messages, request.tool_schemas, request.overrides)
         thread.finished_turn.connect(self._on_turn)
         thread.error.connect(self._on_error)
@@ -117,11 +124,9 @@ class AgentLoop(QObject):
         thread.start()
 
     def _on_turn(self, turn: ModelTurn) -> None:
-        """Слот главного потока: разбирает ход модели и решает, что делать дальше."""
-        # Транспорт ушёл в фолбэк, а промпт был собран под нативный протокол —
-        # пересобираем запрос один раз, чтобы модель получила формат ответа.
-        if turn.protocol == "json" and self._prompt_protocol == "native" and not self._protocol_retried:
+        if self._needs_protocol_retry(turn):
             self._protocol_retried = True
+            self._iteration -= 1
             self._request_step()
             return
 
@@ -134,31 +139,29 @@ class AgentLoop(QObject):
         self._transcript.add_results(results, turn.protocol)
         self._request_step()
 
+    def _needs_protocol_retry(self, turn: ModelTurn) -> bool:
+        return (
+            turn.protocol == "json"
+            and self._prompt_protocol == "native"
+            and not self._protocol_retried
+        )
+
     def _dispatch(self, call: ToolCall) -> ToolResult:
-        """Направляет вызов: загрузка скилла, немедленное чтение или очередь на запись."""
         if call.name == LOAD_SKILL_TOOL:
             return self._load_skill(call)
 
         tool = get_tool_by_name(call.name)
         if tool is not None and not tool.is_read_only:
-            # Проверяем до постановки в очередь: исполнение произойдёт уже после
-            # конца цикла, и там ошибку возвращать будет некому.
-            rejection = self._validate_write(tool, call)
-            if rejection is not None:
-                return rejection
-            self._pending_writes.append(call)
-            self.tool_queued.emit(summarize_tool_call(call.name, call.arguments))
-            return ToolExecutor.queued(call)
+            return self._queue_write(call)
 
         self.tool_started.emit(summarize_tool_call(call.name, call.arguments))
         result = self._executor.run(call)
         self.tool_finished.emit(call.name, result.ok)
         return result
 
-    def _validate_write(self, tool, call: ToolCall) -> ToolResult | None:
-        """Отклоняет заведомо негодный write-вызов, возвращая объяснение модели."""
+    def _queue_write(self, call: ToolCall) -> ToolResult:
         try:
-            tool.validate(dict(call.arguments))
+            validate_tool_call(call.name, dict(call.arguments))
         except Exception as err:
             self.tool_started.emit(summarize_tool_call(call.name, call.arguments))
             self.tool_finished.emit(call.name, False)
@@ -168,10 +171,11 @@ class AgentLoop(QObject):
                 ok=False,
                 payload={"error": str(err), "arguments_sent": call.arguments},
             )
-        return None
+        self._pending_writes.append(call)
+        self.tool_queued.emit(summarize_tool_call(call.name, call.arguments))
+        return ToolExecutor.queued(call)
 
     def _load_skill(self, call: ToolCall) -> ToolResult:
-        """Обрабатывает мета-вызов загрузки скилла."""
         name = str(call.arguments.get("name") or "").strip()
         skill = SKILL_REGISTRY.get(name)
         if not skill:
@@ -187,11 +191,9 @@ class AgentLoop(QObject):
         return ToolResult(call=call, ok=True, payload={"loaded": name, "tools": skill.tool_names})
 
     def _on_error(self, message: str) -> None:
-        """Слот ошибки сетевого потока."""
         self._fail(message)
 
     def _complete(self, text: str) -> None:
-        """Завершает прогон: либо финальный ответ, либо запрос подтверждения."""
         self._thread = None
         self.busy_changed.emit(False)
         if self._pending_writes:
@@ -200,15 +202,10 @@ class AgentLoop(QObject):
             self.finished.emit(text)
 
     def _finish_on_limit(self) -> None:
-        """Прогон упёрся в лимит ходов — отдаём то, что успели накопить."""
         QgsMessageLog.logMessage(f"Достигнут лимит в {MAX_ITERATIONS} ходов.", LOG_TAG, Qgis.Warning)
-        self._complete(
-            "Задача оказалась слишком длинной, я остановилась на достигнутом. "
-            "Уточните запрос или разбейте его на части."
-        )
+        self._complete(LIMIT_REACHED_MESSAGE)
 
     def _fail(self, message: str) -> None:
-        """Аварийное завершение прогона."""
         self._thread = None
         self._pending_writes = []
         self.busy_changed.emit(False)

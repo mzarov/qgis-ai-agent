@@ -1,16 +1,13 @@
 from qgis.PyQt.QtCore import QThread, pyqtSignal
 
+DEFAULT_TIMEOUT = 120
+
 
 class ModelTurnThread(QThread):
-    """
-    Поток для одного хода агента: сетевой вызов уходит из главного потока,
-    а результат приходит сигналом обратно в главный, где безопасно трогать PyQGIS.
-    """
-
     finished_turn = pyqtSignal(object)
     error = pyqtSignal(str)
 
-    def __init__(self, messages, tool_schemas, overrides, timeout=120, parent=None):
+    def __init__(self, messages, tool_schemas, overrides, timeout=DEFAULT_TIMEOUT, parent=None):
         super().__init__(parent)
         self._messages = messages
         self._tool_schemas = tool_schemas
@@ -27,6 +24,9 @@ class ModelTurnThread(QThread):
                 overrides=self._overrides,
                 timeout=self._timeout,
             )
-            self.finished_turn.emit(turn)
         except Exception as err:
-            self.error.emit(str(err))
+            if not self.isInterruptionRequested():
+                self.error.emit(str(err))
+            return
+        if not self.isInterruptionRequested():
+            self.finished_turn.emit(turn)

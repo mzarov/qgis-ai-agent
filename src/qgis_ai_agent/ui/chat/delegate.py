@@ -19,7 +19,6 @@ _ANTIALIASING = getattr(
 
 
 class ChatMessageDelegate(QStyledItemDelegate):
-    """Отрисовка пузырей чата (модель слева, пользователь справа)."""
 
     def __init__(self, theme_provider, parent=None):
         super().__init__(parent)
@@ -53,7 +52,6 @@ class ChatMessageDelegate(QStyledItemDelegate):
             align = _ALIGN_LEFT | _ALIGN_TOP
             painter.drawText(text_rect, align | _TEXT_WORD_WRAP, text)
         except Exception:
-            # Аварийный fallback: даже при проблемах enum/рендера показываем текст
             painter.setPen(QPen(theme.text_color))
             painter.drawText(option.rect, _ALIGN_LEFT | _ALIGN_TOP | _TEXT_WORD_WRAP, str(text))
         finally:
@@ -92,7 +90,6 @@ class ChatMessageDelegate(QStyledItemDelegate):
         elif role == "plan":
             rect.setRight(rect.right() - int(offset * 0.35))
         elif role == "tool":
-            # Служебные сообщения о работе тулов делаем узкой полосой, чтобы не отвлекать.
             rect.setRight(rect.right() - int(offset * 1.4))
         elif role == "assistant":
             rect.setRight(rect.right() - offset)

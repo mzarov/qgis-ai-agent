@@ -5,8 +5,7 @@ from qgis_ai_agent.skills.registry import SKILL_REGISTRY
 
 LOAD_SKILL_TOOL = "load_skill"
 
-# Ядро системного промпта: правила поведения агента, не привязанные к домену.
-_CORE_PROMPT = """You are the QGIS AI Agent, running inside a live QGIS session.
+CORE_PROMPT = """You are the QGIS AI Agent, running inside a live QGIS session.
 
 You work by calling tools in a loop: look at the project first, then act on it.
 Never invent facts about the user's data — read them with a tool.
@@ -18,6 +17,9 @@ Safety model — the plugin, not you, decides when changes are applied:
 - Write tools are queued, not executed. A queued call returns
   {"status": "queued"} — that is the expected success response, not an error.
   Never retry a queued call, and never assume you can read back its effect.
+- A queued call may instead be rejected with an error explaining what is wrong.
+  Fix the plan yourself and queue the corrected steps — do not hand the problem
+  back to the user when the error already tells you how to solve it.
 - When you are done, the queued changes are shown to the user for confirmation.
 
 Describe queued work as proposed, never as done. Write "предлагаю построить буфер"
@@ -31,9 +33,7 @@ skill adds its tools to your toolset for the rest of the task.
 Finish the task by replying with plain text and no tool calls. That reply is what
 the user sees, so make it a short, concrete summary of what you did or found."""
 
-# Дополнение для эндпоинтов без нативного function calling.
-_JSON_PROTOCOL_PROMPT = """
-Response format — this endpoint does not support native tool calling, so reply
+JSON_PROTOCOL_PROMPT = """Response format — this endpoint does not support native tool calling, so reply
 with a single JSON object and nothing else (no markdown fences, no prose):
 
   {"text": "...", "tool_calls": [{"name": "tool_name", "arguments": {...}}]}
@@ -41,9 +41,12 @@ with a single JSON object and nothing else (no markdown fences, no prose):
 Use an empty tool_calls array when you are finished; then "text" is your final
 answer to the user."""
 
+PROJECT_CONTEXT_HEADER = "Project context (a starting hint — verify with tools):"
+LOADED_SKILLS_HEADER = "Currently loaded skills: "
+TOOLS_BLOCK_HEADER = "Available tools (name and JSON Schema of arguments):"
+
 
 def build_load_skill_schema(available_names: list[str]) -> dict[str, Any]:
-    """Схема мета-тула загрузки скилла — обслуживается самим циклом."""
     return {
         "type": "function",
         "function": {
@@ -72,39 +75,27 @@ def build_system_prompt(
     loaded_skills: list[str],
     json_protocol: bool = False,
 ) -> str:
-    """
-    Собирает системный промпт: ядро, однострочники скиллов,
-    тела уже загруженных скиллов и краткий контекст проекта.
-    """
-    parts = [_CORE_PROMPT]
+    parts = [CORE_PROMPT]
     if json_protocol:
-        parts.append(_JSON_PROTOCOL_PROMPT.strip())
-
-    summaries = SKILL_REGISTRY.summaries_block()
-    if summaries:
-        parts.append(summaries)
-
+        parts.append(JSON_PROTOCOL_PROMPT)
+    parts.append(SKILL_REGISTRY.summaries_block())
     if loaded_skills:
-        parts.append("Currently loaded skills: " + ", ".join(loaded_skills) + ".")
-        bodies = SKILL_REGISTRY.bodies_block(loaded_skills)
-        if bodies:
-            parts.append(bodies)
-
+        parts.append(LOADED_SKILLS_HEADER + ", ".join(loaded_skills) + ".")
+        parts.append(SKILL_REGISTRY.bodies_block(loaded_skills))
     if project_context:
-        parts.append("Project context (a starting hint — verify with tools):\n" + project_context)
-
+        parts.append(PROJECT_CONTEXT_HEADER + "\n" + project_context)
     return "\n\n".join(part for part in parts if part)
 
 
 def build_json_tools_block(tool_schemas: list[dict[str, Any]]) -> str:
-    """Описание доступных тулов для фолбэка без нативного function calling."""
     if not tool_schemas:
         return ""
-    lines = ["Available tools (name and JSON Schema of arguments):"]
+    lines = [TOOLS_BLOCK_HEADER]
     for schema in tool_schemas:
         function = schema.get("function") or {}
+        parameters = json.dumps(function.get("parameters") or {}, ensure_ascii=False)
         lines.append(
             f"- {function.get('name', '')}: {function.get('description', '')}\n"
-            f"  arguments: {json.dumps(function.get('parameters') or {}, ensure_ascii=False)}"
+            f"  arguments: {parameters}"
         )
     return "\n".join(lines)

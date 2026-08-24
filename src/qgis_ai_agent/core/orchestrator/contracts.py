@@ -2,14 +2,12 @@ from typing import Protocol
 
 
 class PromptEditContract(Protocol):
-    """Минимальный контракт поля ввода для очистки текста."""
 
     def clear(self) -> None:
         ...
 
 
 class DockWidgetContract(Protocol):
-    """Минимальный API UI для оркестратора."""
 
     prompt_edit: PromptEditContract
 

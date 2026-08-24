@@ -9,9 +9,13 @@ from qgis_ai_agent.qgis_tools.processing.utils import (
     normalize_output,
 )
 
+PROCESSING_MISSING_MSG = (
+    "Модуль Processing недоступен. Включите его в Модули → Управление модулями."
+)
+MAX_SUMMARY_PARAMS = 3
+
 
 class RunProcessingTool(BaseTool):
-    """Запуск любого алгоритма обработки QGIS по идентификатору и параметрам."""
     name = "run_processing"
     description = (
         "Запустить алгоритм обработки QGIS с заданными параметрами. "
@@ -20,13 +24,12 @@ class RunProcessingTool(BaseTool):
     )
     skill = "processing"
     safety = SAFETY_WRITE
-    capabilities = ["processing:run"]
-    examples = ["Построй буфер 500 метров вокруг дорог"]
     constraints = [
         "Идентификатор алгоритма должен существовать в реестре",
         "Имена параметров должны точно совпадать с describe_processing",
         "Расстояния в метрах требуют слоя в метрической CRS",
     ]
+    examples = ["Построй буфер 500 метров вокруг дорог", "Перепроецируй слой в UTM"]
     params_schema = [
         {
             "name": "algorithm_id",
@@ -61,49 +64,28 @@ class RunProcessingTool(BaseTool):
     ]
 
     def validate(self, params: dict[str, Any]) -> None:
-        """
-        Проверяет вызов до постановки в очередь, пока цикл ещё жив и модель
-        может перестроить план. Исполнение идёт после конца цикла, там уже поздно.
-        """
-        algorithm = find_algorithm(params.get("algorithm_id") or "")
-        arguments = params.get("parameters")
-        if not isinstance(arguments, dict):
-            raise ValueError("Параметр parameters должен быть объектом.")
-        check_distance_units(algorithm, coerce_parameters(algorithm, arguments))
+        self._prepare(params)
 
     def summarize_call(self, params: dict[str, Any]) -> str:
-        """Описание шага запуска алгоритма."""
         algorithm_id = (params.get("algorithm_id") or "").strip()
         arguments = params.get("parameters") or {}
-        shown = ", ".join(f"{key}={value}" for key, value in list(arguments.items())[:3])
-        tail = "…" if len(arguments) > 3 else ""
+        shown = ", ".join(
+            f"{key}={value}" for key, value in list(arguments.items())[:MAX_SUMMARY_PARAMS]
+        )
+        tail = "…" if len(arguments) > MAX_SUMMARY_PARAMS else ""
         output_name = (params.get("output_name") or "").strip()
         result_part = f" → «{output_name}»" if output_name else ""
         return f"Запустить {algorithm_id} ({shown}{tail}){result_part}."
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        algorithm = find_algorithm(params.get("algorithm_id") or "")
-        arguments = params.get("parameters")
-        if not isinstance(arguments, dict):
-            raise ValueError("Параметр parameters должен быть объектом.")
-        load_output = params.get("load_output")
-        load_output = True if load_output is None else bool(load_output)
+        algorithm, prepared = self._prepare(params)
+        load_output = self._resolve_load_output(params)
+        runner = self._get_runner(load_output)
 
-        try:
-            import processing
-        except ImportError:
-            raise RuntimeError(
-                "Модуль Processing недоступен. Включите его в Модули → Управление модулями."
-            )
-
-        # Модель присылает enum-варианты подписью, а выход часто вовсе не указывает.
-        prepared = coerce_parameters(algorithm, arguments)
-        # Метры на географической CRS дадут мусор — лучше упасть с объяснением.
-        check_distance_units(algorithm, prepared)
-
-        runner = processing.runAndLoadResults if load_output else processing.run
         result = runner(algorithm.id(), prepared)
-        layer_name = apply_output_name(result, params.get("output_name") or "") if load_output else ""
+        layer_name = (
+            apply_output_name(result, params.get("output_name") or "") if load_output else ""
+        )
         return {
             "algorithm_id": algorithm.id(),
             "loaded_to_project": load_output,
@@ -111,3 +93,26 @@ class RunProcessingTool(BaseTool):
             "parameters_used": prepared,
             "outputs": normalize_output(result),
         }
+
+    @staticmethod
+    def _prepare(params: dict[str, Any]):
+        algorithm = find_algorithm(params.get("algorithm_id") or "")
+        arguments = params.get("parameters")
+        if not isinstance(arguments, dict):
+            raise ValueError("Параметр parameters должен быть объектом.")
+        prepared = coerce_parameters(algorithm, arguments)
+        check_distance_units(algorithm, prepared)
+        return algorithm, prepared
+
+    @staticmethod
+    def _resolve_load_output(params: dict[str, Any]) -> bool:
+        load_output = params.get("load_output")
+        return True if load_output is None else bool(load_output)
+
+    @staticmethod
+    def _get_runner(load_output: bool):
+        try:
+            import processing
+        except ImportError:
+            raise RuntimeError(PROCESSING_MISSING_MSG)
+        return processing.runAndLoadResults if load_output else processing.run

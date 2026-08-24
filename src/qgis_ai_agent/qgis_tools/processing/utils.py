@@ -1,10 +1,14 @@
 from typing import Any
 
-from qgis.core import QgsApplication, QgsMapLayer, QgsProcessingParameterDefinition
+from qgis.core import (
+    QgsApplication,
+    QgsMapLayer,
+    QgsProcessingParameterDefinition,
+    QgsProject,
+)
 
 from qgis_ai_agent.qgis_tools.inspect.utils import suggest_metric_crs
 
-# Типы параметров-выходов: если такой обязателен и не задан, подставляем временный слой.
 DESTINATION_TYPES = {
     "sink",
     "vectorDestination",
@@ -13,21 +17,20 @@ DESTINATION_TYPES = {
     "folderDestination",
 }
 TEMPORARY_OUTPUT = "TEMPORARY_OUTPUT"
-# Расстояние больше этого на географической CRS почти наверняка задано в метрах:
-# 1 градус — это уже около 111 км, легитимные буферы в градусах заметно меньше.
 SUSPICIOUS_DEGREES = 1.0
+PRIMARY_OUTPUT_KEY = "OUTPUT"
 
 
 def get_registry():
-    """Возвращает реестр алгоритмов обработки QGIS."""
     registry = QgsApplication.processingRegistry()
     if registry is None:
-        raise RuntimeError("Реестр Processing недоступен. Проверьте, что модуль Processing включён.")
+        raise RuntimeError(
+            "Реестр Processing недоступен. Проверьте, что модуль Processing включён."
+        )
     return registry
 
 
 def find_algorithm(algorithm_id: str):
-    """Находит алгоритм по идентификатору вида native:buffer."""
     wanted = (algorithm_id or "").strip()
     if not wanted:
         raise ValueError("Не указан идентификатор алгоритма.")
@@ -41,7 +44,6 @@ def find_algorithm(algorithm_id: str):
 
 
 def algorithm_brief(algorithm) -> dict[str, Any]:
-    """Краткая карточка алгоритма для результатов поиска."""
     return {
         "id": algorithm.id(),
         "name": algorithm.displayName(),
@@ -51,30 +53,31 @@ def algorithm_brief(algorithm) -> dict[str, Any]:
 
 
 def is_optional(parameter: QgsProcessingParameterDefinition) -> bool:
-    """Является ли параметр алгоритма необязательным."""
     try:
         return bool(parameter.flags() & QgsProcessingParameterDefinition.FlagOptional)
     except Exception:
         return False
 
 
+def parameter_options(parameter) -> list[str]:
+    try:
+        options = parameter.options()
+    except AttributeError:
+        return []
+    return [str(option) for option in options] if options else []
+
+
 def describe_parameter(parameter: QgsProcessingParameterDefinition) -> dict[str, Any]:
-    """Описание одного параметра алгоритма для модели."""
     info: dict[str, Any] = {
         "name": parameter.name(),
         "description": parameter.description(),
         "type": parameter.type(),
         "optional": is_optional(parameter),
     }
-    try:
-        default = parameter.defaultValue()
-        if default is not None and isinstance(default, (str, int, float, bool)):
-            info["default"] = default
-    except Exception:
-        pass
-    # Для перечислений QGIS ждёт ИНДЕКС варианта, а не его название.
-    # Отдаём пары value/label, иначе модель передаёт строку и алгоритм её отвергает.
-    options = _parameter_options(parameter)
+    default = _default_value(parameter)
+    if default is not None:
+        info["default"] = default
+    options = parameter_options(parameter)
     if options:
         info["options"] = [
             {"value": index, "label": label} for index, label in enumerate(options)
@@ -83,92 +86,32 @@ def describe_parameter(parameter: QgsProcessingParameterDefinition) -> dict[str,
     return info
 
 
-def _parameter_options(parameter) -> list[str]:
-    """Варианты enum-параметра в виде списка подписей."""
+def _default_value(parameter) -> Any:
     try:
-        options = parameter.options()
-    except AttributeError:
-        return []
-    return [str(option) for option in options] if options else []
-
-
-def check_distance_units(algorithm, arguments: dict[str, Any]) -> None:
-    """
-    Ловит классическую ошибку: расстояние в метрах на слое с географической CRS.
-    В EPSG:4326 единица — градус, поэтому DISTANCE=500 даёт буфер в 500 градусов
-    и вырожденную геометрию вместо результата. Молча исправлять нельзя —
-    выбор между перепроецированием и градусами за пользователем.
-    """
-    from qgis.core import QgsProject
-
-    for parameter in algorithm.parameterDefinitions():
-        if parameter.type() != "distance":
-            continue
-        value = arguments.get(parameter.name())
-        try:
-            distance = float(value)
-        except (TypeError, ValueError):
-            continue
-        if distance <= SUSPICIOUS_DEGREES:
-            continue
-
-        layer_name = arguments.get(_parent_parameter_name(parameter))
-        if not isinstance(layer_name, str):
-            continue
-        layers = QgsProject.instance().mapLayersByName(layer_name.strip())
-        if not layers or not _is_geographic(layers[0]):
-            continue
-
-        target_crs = suggest_metric_crs(layers[0])
-        raise ValueError(
-            f"Слой «{layer_name}» в географической CRS ({layers[0].crs().authid()}), "
-            f"её единица — градус, а не метр. Значение {parameter.name()}={distance} "
-            f"будет истолковано как {distance} градусов и даст бессмысленный результат.\n"
-            "Добавьте перед этим шагом перепроецирование и запустите обработку на его результате:\n"
-            f'run_processing(algorithm_id="native:reprojectlayer", '
-            f'parameters={{"INPUT": "{layer_name}", "TARGET_CRS": "{target_crs}"}}, '
-            f'output_name="{layer_name} {target_crs.replace("EPSG:", "UTM ")}")\n'
-            f'затем повторите текущий вызов, подставив это имя в {_parent_parameter_name(parameter)}.\n'
-            f"Если {distance} действительно задано в градусах — так и скажите пользователю."
-        )
-
-
-def _parent_parameter_name(parameter) -> str:
-    """Имя параметра-слоя, к которому привязано расстояние."""
-    try:
-        return parameter.parentParameterName() or ""
-    except AttributeError:
-        return ""
-
-
-def _is_geographic(layer) -> bool:
-    """Является ли CRS слоя географической (единицы — градусы)."""
-    try:
-        return bool(layer.crs().isGeographic())
+        default = parameter.defaultValue()
     except Exception:
-        return False
+        return None
+    return default if isinstance(default, (str, int, float, bool)) else None
 
 
 def coerce_parameters(algorithm, arguments: dict[str, Any]) -> dict[str, Any]:
-    """
-    Правит частые расхождения между тем, что присылает модель, и тем, что ждёт QGIS:
-    названия enum-вариантов переводит в индексы, обязательные выходы заполняет
-    временным слоем. Неизвестные значения не трогает — пусть алгоритм сам ругнётся.
-    """
     result = dict(arguments)
     for parameter in algorithm.parameterDefinitions():
         name = parameter.name()
         param_type = parameter.type()
         if param_type == "enum" and name in result:
             result[name] = _coerce_enum(parameter, result[name])
-        elif param_type in DESTINATION_TYPES and name not in result and not is_optional(parameter):
+        elif (
+            param_type in DESTINATION_TYPES
+            and name not in result
+            and not is_optional(parameter)
+        ):
             result[name] = TEMPORARY_OUTPUT
     return result
 
 
 def _coerce_enum(parameter, value: Any) -> Any:
-    """Переводит название варианта enum в индекс, сохраняя списки для множественного выбора."""
-    options = _parameter_options(parameter)
+    options = parameter_options(parameter)
     if not options:
         return value
     if isinstance(value, list):
@@ -177,9 +120,7 @@ def _coerce_enum(parameter, value: Any) -> Any:
 
 
 def _coerce_enum_value(options: list[str], value: Any) -> Any:
-    """Один вариант enum: индекс оставляем как есть, подпись ищем в списке."""
-    # bool наследует int, поэтому проверяем его первым.
-    if isinstance(value, bool) or isinstance(value, int):
+    if isinstance(value, (bool, int)):
         return value
     text = str(value).strip()
     if text.lstrip("-").isdigit():
@@ -191,40 +132,82 @@ def _coerce_enum_value(options: list[str], value: Any) -> Any:
     return value
 
 
-def apply_output_name(result: dict[str, Any], output_name: str) -> str:
-    """
-    Переименовывает выходной слой, чтобы следующий шаг плана мог сослаться на него
-    по имени. Без этого результат зовётся «Buffered» или «Reprojected», и цепочка
-    из двух обработок не собирается.
-    """
-    from qgis.core import QgsProject
+def check_distance_units(algorithm, arguments: dict[str, Any]) -> None:
+    for parameter in algorithm.parameterDefinitions():
+        if parameter.type() != "distance":
+            continue
+        distance = _as_float(arguments.get(parameter.name()))
+        if distance is None or distance <= SUSPICIOUS_DEGREES:
+            continue
+        parent_name = _parent_parameter_name(parameter)
+        layer = _resolve_layer(arguments.get(parent_name))
+        if layer is None or not _is_geographic(layer):
+            continue
+        raise ValueError(
+            _degrees_error(arguments[parent_name], layer, parameter.name(), distance, parent_name)
+        )
 
+
+def _degrees_error(layer_name, layer, parameter_name: str, distance: float, parent_name: str) -> str:
+    target_crs = suggest_metric_crs(layer)
+    output_name = f"{layer_name} {target_crs.replace('EPSG:', 'UTM ')}"
+    return (
+        f"Слой «{layer_name}» в географической CRS ({layer.crs().authid()}), "
+        f"её единица — градус, а не метр. Значение {parameter_name}={distance} "
+        f"будет истолковано как {distance} градусов и даст бессмысленный результат.\n"
+        "Добавьте перед этим шагом перепроецирование и запустите обработку на его результате:\n"
+        f'run_processing(algorithm_id="native:reprojectlayer", '
+        f'parameters={{"INPUT": "{layer_name}", "TARGET_CRS": "{target_crs}"}}, '
+        f'output_name="{output_name}")\n'
+        f"затем повторите текущий вызов, подставив «{output_name}» в {parent_name}.\n"
+        f"Если {distance} действительно задано в градусах — так и скажите пользователю."
+    )
+
+
+def _as_float(value: Any) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _parent_parameter_name(parameter) -> str:
+    try:
+        return parameter.parentParameterName() or ""
+    except AttributeError:
+        return ""
+
+
+def _is_geographic(layer: QgsMapLayer) -> bool:
+    try:
+        return bool(layer.crs().isGeographic())
+    except Exception:
+        return False
+
+
+def _resolve_layer(value: Any) -> QgsMapLayer | None:
+    if isinstance(value, QgsMapLayer):
+        return value
+    if not isinstance(value, str) or not value.strip():
+        return None
+    matches = QgsProject.instance().mapLayersByName(value.strip())
+    return matches[0] if matches else QgsProject.instance().mapLayer(value.strip())
+
+
+def apply_output_name(result: dict[str, Any], output_name: str) -> str:
     name = (output_name or "").strip()
     if not name or not isinstance(result, dict):
         return ""
-    # Сначала OUTPUT как основной выход, затем любой другой слой в результате.
-    keys = ["OUTPUT"] + [key for key in result if key != "OUTPUT"]
+    keys = [PRIMARY_OUTPUT_KEY] + [key for key in result if key != PRIMARY_OUTPUT_KEY]
     for key in keys:
-        layer = _as_layer(result.get(key))
+        layer = _resolve_layer(result.get(key))
         if layer is not None:
             layer.setName(name)
             return name
     return ""
 
 
-def _as_layer(value: Any):
-    """Приводит значение результата к слою проекта, если это возможно."""
-    from qgis.core import QgsProject
-
-    if isinstance(value, QgsMapLayer):
-        return value
-    if isinstance(value, str):
-        return QgsProject.instance().mapLayer(value)
-    return None
-
-
 def normalize_output(value: Any) -> Any:
-    """Приводит результат алгоритма к сериализуемому виду."""
     if isinstance(value, QgsMapLayer):
         return {"layer_name": value.name(), "layer_id": value.id()}
     if isinstance(value, (str, int, float, bool)) or value is None:

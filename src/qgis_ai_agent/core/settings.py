@@ -63,7 +63,6 @@ def set_auth_type(value):
 
 
 def _url_settings_key(url):
-    """Стабильный короткий ключ настроек для конкретного URL API."""
     import hashlib
 
     normalized = (url or "").strip().rstrip("/").lower()
@@ -71,10 +70,6 @@ def _url_settings_key(url):
 
 
 def get_supports_tools(url):
-    """
-    Поддерживает ли эндпоинт нативный function calling.
-    None означает, что проверка ещё не проводилась.
-    """
     s = QgsSettings()
     val = s.value(f"{SETTINGS_PREFIX}/supports_tools/{_url_settings_key(url)}")
     if val is None:
@@ -83,7 +78,6 @@ def get_supports_tools(url):
 
 
 def set_supports_tools(url, value):
-    """Запоминает результат проверки function calling для эндпоинта."""
     s = QgsSettings()
     s.setValue(
         f"{SETTINGS_PREFIX}/supports_tools/{_url_settings_key(url)}",

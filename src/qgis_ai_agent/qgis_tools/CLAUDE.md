@@ -6,23 +6,24 @@
 
 ```python
 class DescribeLayerTool(BaseTool):
-    """Однострочное описание по-русски."""
     name = "describe_layer"            # snake_case, уникально в реестре
     description = "..."                # по-русски, попадает в схему для модели
     skill = "inspect"                  # домен: с каким скиллом грузится тул
     safety = SAFETY_READ               # read | write | destructive
-    capabilities = ["project:layer:describe"]
-    examples = ["Какие поля в слое дорог?"]
     constraints = ["Слой должен существовать"]
+    examples = ["Какие поля в слое дорог?"]
     params_schema = [
         {"name": "layer_name", "type": "string", "description": "...", "required": True},
     ]
 
+    def validate(self, params: dict[str, Any]) -> None:
+        ...
+
     def summarize_call(self, params: dict[str, Any]) -> str:
-        """Человекочитаемая строка для чата."""
+        ...
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        """Выполняет вызов. params — словарь аргументов от модели."""
+        ...
 ```
 
 `get_openai_schema()` строится из `params_schema` автоматически — руками схему
@@ -41,8 +42,8 @@ class DescribeLayerTool(BaseTool):
 4. **Ошибки — с внятным текстом на русском и подсказкой.** Модель их читает и
    исправляется. Если объект не найден, приложи список доступных
    (см. `inspect/utils.py::find_layer_by_name`).
-5. **Переиспользуй общие хелперы.** `layout/utils.py` уже умеет зоны страницы,
-   clamp по границам и anti-overlap; `inspect/utils.py` — описания слоёв и CRS.
+5. **Переиспользуй общие хелперы.** `inspect/utils.py` умеет описания слоёв, CRS
+   и подбор метрической проекции; `processing/utils.py` — приведение параметров.
    Не дублируй.
 6. **Результат должен сериализоваться в JSON.** Объекты PyQGIS отдавай как имена
    или идентификаторы (см. `processing/utils.py::normalize_output`).
@@ -53,13 +54,11 @@ class DescribeLayerTool(BaseTool):
 
 1. Цель — QGIS 4.0. API QGIS 2.x не существует (никакого `QgsComposition`).
 2. Состояние проекта — всегда через `QgsProject.instance()`.
-3. Макеты: `QgsLayout`, `QgsLayoutItemMap`, `QgsLayoutItemLegend`,
-   `QgsLayoutItemScaleBar`, `QgsLayoutItemLabel`.
-4. Обработка: `QgsApplication.processingRegistry()`, модуль `processing`.
-5. `try/except` вокруг рискованного, лог через
+3. Обработка: `QgsApplication.processingRegistry()`, модуль `processing`.
+4. `try/except` вокруг рискованного, лог через
    `QgsMessageLog.logMessage(msg, "QGIS AI Agent", Qgis.Info)`.
-6. Импорты вверху, абсолютные. Без `# -*- coding: utf-8 -*-` и без docstring
-   на уровне модуля.
+5. Импорты вверху, абсолютные. Код без комментариев и docstring — см. корневой
+   CLAUDE.md.
 
 ## Когда домен безграничен
 

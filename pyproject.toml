@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "qgis-ai-agent"
 version = "0.2.0"
-description = "Плагин QGIS 4: ИИ-агент с инструментами чтения проекта, обработки данных и сборки макетов"
+description = "Плагин QGIS 4: ИИ-агент с инструментами чтения проекта и обработки данных"
 authors = ["mzarov@duck.com"]
 
 [tool.poetry.dependencies]

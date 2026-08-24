@@ -5,7 +5,6 @@ from qgis.PyQt.QtGui import QColor, QPalette
 
 @dataclass
 class ChatTheme:
-    """Тема чата на основе системной палитры QGIS."""
     user_bg: QColor
     user_border: QColor
     user_accent: QColor
@@ -32,14 +31,12 @@ class ChatTheme:
 
 
 def build_theme_from_palette(palette: QPalette) -> ChatTheme:
-    """Собирает цветовую тему чата из текущей палитры приложения."""
     base = palette.base().color()
     is_dark = base.lightness() < 128
     if is_dark:
         plan_bg = QColor(92, 88, 56)
         plan_border = QColor(176, 168, 108)
         plan_accent = QColor(198, 188, 98)
-        # Приглушённый синий для служебных сообщений об активности тулов.
         tool_bg = QColor(48, 60, 76)
         tool_border = QColor(96, 122, 152)
     else:

@@ -10,8 +10,10 @@ from qgis_ai_agent.core.llm.client import (
 from qgis_ai_agent.core.llm.parser import parse_model_json, parse_tool_arguments
 from qgis_ai_agent.core.settings import get_supports_tools, set_supports_tools
 
-# Признаки того, что эндпоинт не понимает параметр tools.
-_UNSUPPORTED_MARKERS = (
+PROTOCOL_NATIVE = "native"
+PROTOCOL_JSON = "json"
+UNSUPPORTED_STATUS_CODES = (400, 404, 422, 501)
+UNSUPPORTED_MARKERS = (
     "tools",
     "tool_choice",
     "function",
@@ -24,7 +26,6 @@ _UNSUPPORTED_MARKERS = (
 
 @dataclass
 class ToolCall:
-    """Один вызов тула, запрошенный моделью."""
     id: str
     name: str
     arguments: dict[str, Any] = field(default_factory=dict)
@@ -32,12 +33,10 @@ class ToolCall:
 
 @dataclass
 class ModelTurn:
-    """Нормализованный ход модели: текст плюс запрошенные вызовы тулов."""
     text: str = ""
     tool_calls: list[ToolCall] = field(default_factory=list)
     finish_reason: str = ""
-    # Каким протоколом получен ход: native (tool_calls API) или json (фолбэк).
-    protocol: str = "native"
+    protocol: str = PROTOCOL_NATIVE
 
 
 def call_model(
@@ -46,11 +45,6 @@ def call_model(
     overrides: dict[str, Any] | None = None,
     timeout: int = 120,
 ) -> ModelTurn:
-    """
-    Запрашивает следующий ход модели.
-    Сначала пробует нативный function calling, при отказе эндпоинта
-    переключается на JSON-протокол в промпте и запоминает выбор.
-    """
     overrides = dict(overrides or {})
     url = resolve_endpoint(overrides.get("url_override"))
     supports_tools = get_supports_tools(url)
@@ -63,89 +57,94 @@ def call_model(
                 timeout=timeout,
                 **overrides,
             )
-            if supports_tools is None:
-                set_supports_tools(url, True)
-            return _parse_native_turn(data)
         except ApiResponseError as err:
             if not _looks_like_tools_unsupported(err):
                 raise
             set_supports_tools(url, False)
+        else:
+            if supports_tools is None:
+                set_supports_tools(url, True)
+            return _parse_native_turn(data)
 
-    data = post_chat_completion(messages, timeout=timeout, **overrides)
-    return _parse_json_turn(data)
+    return _parse_json_turn(post_chat_completion(messages, timeout=timeout, **overrides))
 
 
 def _looks_like_tools_unsupported(err: ApiResponseError) -> bool:
-    """Отличает отказ из-за неподдержки tools от прочих ошибок API."""
-    if err.status_code not in (400, 404, 422, 501):
+    if err.status_code not in UNSUPPORTED_STATUS_CODES:
         return False
     body = (err.body or "").lower()
-    return any(marker in body for marker in _UNSUPPORTED_MARKERS)
+    return any(marker in body for marker in UNSUPPORTED_MARKERS)
 
 
-def _first_message(data: dict[str, Any]) -> dict[str, Any]:
-    """Достаёт message из первого choice ответа API."""
+def _first_choice(data: dict[str, Any]) -> dict[str, Any]:
     choices = data.get("choices") or []
     if not choices:
         raise ValueError("Пустой ответ API.")
-    return choices[0].get("message") or {}
+    return choices[0]
 
 
 def _parse_native_turn(data: dict[str, Any]) -> ModelTurn:
-    """Разбирает ответ с нативными tool_calls."""
-    message = _first_message(data)
-    choices = data.get("choices") or [{}]
-    calls: list[ToolCall] = []
-    for index, raw_call in enumerate(message.get("tool_calls") or []):
-        function = raw_call.get("function") or {}
-        name = (function.get("name") or "").strip()
-        if not name:
-            continue
-        calls.append(
-            ToolCall(
-                id=raw_call.get("id") or f"call_{index}",
-                name=name,
-                arguments=parse_tool_arguments(function.get("arguments")),
-            )
-        )
+    choice = _first_choice(data)
+    message = choice.get("message") or {}
     return ModelTurn(
         text=(message.get("content") or "").strip(),
-        tool_calls=calls,
-        finish_reason=(choices[0].get("finish_reason") or "").strip(),
-        protocol="native",
+        tool_calls=[
+            call
+            for call in (
+                _native_call(index, raw)
+                for index, raw in enumerate(message.get("tool_calls") or [])
+            )
+            if call is not None
+        ],
+        finish_reason=(choice.get("finish_reason") or "").strip(),
+        protocol=PROTOCOL_NATIVE,
+    )
+
+
+def _native_call(index: int, raw: dict[str, Any]) -> ToolCall | None:
+    function = raw.get("function") or {}
+    name = (function.get("name") or "").strip()
+    if not name:
+        return None
+    return ToolCall(
+        id=raw.get("id") or f"call_{index}",
+        name=name,
+        arguments=parse_tool_arguments(function.get("arguments")),
     )
 
 
 def _parse_json_turn(data: dict[str, Any]) -> ModelTurn:
-    """Разбирает ответ JSON-протокола: {"text": ..., "tool_calls": [...]}."""
-    message = _first_message(data)
-    content = (message.get("content") or "").strip()
+    content = ((_first_choice(data).get("message") or {}).get("content") or "").strip()
     if not content:
-        return ModelTurn(text="", tool_calls=[], protocol="json")
+        return ModelTurn(protocol=PROTOCOL_JSON)
     try:
         parsed = parse_model_json(content)
     except json.JSONDecodeError:
-        # Модель ответила обычным текстом — считаем это финальным ответом.
-        return ModelTurn(text=content, tool_calls=[], protocol="json")
+        return ModelTurn(text=content, protocol=PROTOCOL_JSON)
 
-    calls: list[ToolCall] = []
-    for index, raw_call in enumerate(parsed.get("tool_calls") or []):
-        if not isinstance(raw_call, dict):
-            continue
-        name = (raw_call.get("name") or raw_call.get("tool") or "").strip()
-        if not name:
-            continue
-        calls.append(
-            ToolCall(
-                id=raw_call.get("id") or f"call_{index}",
-                name=name,
-                arguments=parse_tool_arguments(
-                    raw_call.get("arguments") if "arguments" in raw_call else raw_call.get("params")
-                ),
-            )
-        )
     return ModelTurn(
         text=(parsed.get("text") or parsed.get("message") or "").strip(),
-        tool_calls=calls,
-        protocol="json",
+        tool_calls=[
+            call
+            for call in (
+                _json_call(index, raw)
+                for index, raw in enumerate(parsed.get("tool_calls") or [])
+            )
+            if call is not None
+        ],
+        protocol=PROTOCOL_JSON,
+    )
+
+
+def _json_call(index: int, raw: Any) -> ToolCall | None:
+    if not isinstance(raw, dict):
+        return None
+    name = (raw.get("name") or raw.get("tool") or "").strip()
+    if not name:
+        return None
+    raw_arguments = raw.get("arguments") if "arguments" in raw else raw.get("params")
+    return ToolCall(
+        id=raw.get("id") or f"call_{index}",
+        name=name,
+        arguments=parse_tool_arguments(raw_arguments),
     )

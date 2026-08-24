@@ -3,9 +3,10 @@ from typing import Any
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
 from qgis_ai_agent.qgis_tools.processing.utils import describe_parameter, find_algorithm
 
+MAX_HELP_CHARS = 800
+
 
 class DescribeProcessingTool(BaseTool):
-    """Описание сигнатуры алгоритма обработки перед его запуском."""
     name = "describe_processing"
     description = (
         "Показать параметры алгоритма обработки: имена, типы, обязательность, "
@@ -13,9 +14,8 @@ class DescribeProcessingTool(BaseTool):
     )
     skill = "processing"
     safety = SAFETY_READ
-    capabilities = ["processing:describe"]
-    examples = ["Какие параметры у native:buffer?"]
     constraints = ["Идентификатор алгоритма должен существовать в реестре"]
+    examples = ["Какие параметры у native:buffer?"]
     params_schema = [
         {
             "name": "algorithm_id",
@@ -26,7 +26,6 @@ class DescribeProcessingTool(BaseTool):
     ]
 
     def summarize_call(self, params: dict[str, Any]) -> str:
-        """Описание шага чтения сигнатуры алгоритма."""
         algorithm_id = (params.get("algorithm_id") or "").strip()
         return f"Смотрю параметры {algorithm_id}." if algorithm_id else "Смотрю параметры алгоритма."
 
@@ -36,7 +35,7 @@ class DescribeProcessingTool(BaseTool):
             "id": algorithm.id(),
             "name": algorithm.displayName(),
             "group": algorithm.group(),
-            "help": (algorithm.shortHelpString() or "").strip()[:800],
+            "help": (algorithm.shortHelpString() or "").strip()[:MAX_HELP_CHARS],
             "parameters": [
                 describe_parameter(parameter)
                 for parameter in algorithm.parameterDefinitions()
