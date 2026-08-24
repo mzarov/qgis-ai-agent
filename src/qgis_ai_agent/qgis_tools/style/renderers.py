@@ -2,6 +2,8 @@ from typing import Any
 
 from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer
 
+from qgis_ai_agent.qgis_tools.style.symbols import symbol_info
+
 MAX_CLASSES = 30
 RENDERER_NAMES = {
     "singleSymbol": "одиночный символ",
@@ -62,20 +64,6 @@ def _class_count(layer: QgsMapLayer) -> int | None:
         except Exception:
             continue
     return None
-
-
-def symbol_info(symbol) -> dict[str, Any]:
-    info: dict[str, Any] = {}
-    try:
-        info["color"] = symbol.color().name()
-    except Exception:
-        pass
-    for key, getter in (("opacity", "opacity"), ("size", "size"), ("width", "width")):
-        try:
-            info[key] = round(float(getattr(symbol, getter)()), 3)
-        except Exception:
-            continue
-    return info
 
 
 def describe_vector_renderer(layer: QgsVectorLayer) -> dict[str, Any]:

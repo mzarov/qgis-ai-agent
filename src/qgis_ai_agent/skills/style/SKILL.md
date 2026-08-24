@@ -22,7 +22,15 @@ labels, or why a layer looks the way it does.
 | `graduatedSymbol` | `class_attribute` plus `classes` with `min`, `max`, `label`, `symbol` |
 | `RuleRenderer` | `rules` with `filter` expression and `label` |
 
-Colours come as hex strings (`#e31a1c`). Class lists are capped at 30 entries.
+Each `symbol` carries `kind` (точки / линии / полигоны), `fill_color` and, where
+the symbol has an outline, `stroke_color` and `stroke_width`. Colours are hex
+strings (`#e31a1c`). **The fill is not always what the user sees** — a white point
+with a dark outline reads as dark, so mention the stroke when it carries the
+visual weight.
+
+When `symbol_layers` is present the symbol is built from several stacked layers
+and only the first is described; say so rather than presenting it as the whole
+picture. Class lists are capped at 30 entries.
 
 `labeling` reports whether labels are on, which field or expression drives them,
 font family, size and colour.
