@@ -2,6 +2,8 @@ from typing import Any
 
 from qgis.core import QgsApplication, QgsMapLayer, QgsProcessingParameterDefinition
 
+from qgis_ai_agent.qgis_tools.inspect.utils import suggest_metric_crs
+
 # Типы параметров-выходов: если такой обязателен и не задан, подставляем временный слой.
 DESTINATION_TYPES = {
     "sink",
@@ -117,13 +119,16 @@ def check_distance_units(algorithm, arguments: dict[str, Any]) -> None:
         if not layers or not _is_geographic(layers[0]):
             continue
 
+        target_crs = suggest_metric_crs(layers[0])
         raise ValueError(
             f"Слой «{layer_name}» в географической CRS ({layers[0].crs().authid()}), "
             f"её единица — градус, а не метр. Значение {parameter.name()}={distance} "
-            f"будет истолковано как {distance} градусов и даст бессмысленный результат. "
-            "Сначала перепроецируйте слой в метрическую CRS "
-            "(алгоритм native:reprojectlayer, например в UTM или EPSG:3857) "
-            "и запустите обработку на результате. "
+            f"будет истолковано как {distance} градусов и даст бессмысленный результат.\n"
+            "Добавьте перед этим шагом перепроецирование и запустите обработку на его результате:\n"
+            f'run_processing(algorithm_id="native:reprojectlayer", '
+            f'parameters={{"INPUT": "{layer_name}", "TARGET_CRS": "{target_crs}"}}, '
+            f'output_name="{layer_name} {target_crs.replace("EPSG:", "UTM ")}")\n'
+            f'затем повторите текущий вызов, подставив это имя в {_parent_parameter_name(parameter)}.\n'
             f"Если {distance} действительно задано в градусах — так и скажите пользователю."
         )
 
@@ -184,6 +189,38 @@ def _coerce_enum_value(options: list[str], value: Any) -> Any:
         if option.lower() == lowered:
             return index
     return value
+
+
+def apply_output_name(result: dict[str, Any], output_name: str) -> str:
+    """
+    Переименовывает выходной слой, чтобы следующий шаг плана мог сослаться на него
+    по имени. Без этого результат зовётся «Buffered» или «Reprojected», и цепочка
+    из двух обработок не собирается.
+    """
+    from qgis.core import QgsProject
+
+    name = (output_name or "").strip()
+    if not name or not isinstance(result, dict):
+        return ""
+    # Сначала OUTPUT как основной выход, затем любой другой слой в результате.
+    keys = ["OUTPUT"] + [key for key in result if key != "OUTPUT"]
+    for key in keys:
+        layer = _as_layer(result.get(key))
+        if layer is not None:
+            layer.setName(name)
+            return name
+    return ""
+
+
+def _as_layer(value: Any):
+    """Приводит значение результата к слою проекта, если это возможно."""
+    from qgis.core import QgsProject
+
+    if isinstance(value, QgsMapLayer):
+        return value
+    if isinstance(value, str):
+        return QgsProject.instance().mapLayer(value)
+    return None
 
 
 def normalize_output(value: Any) -> Any:

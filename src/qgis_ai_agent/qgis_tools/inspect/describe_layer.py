@@ -11,6 +11,7 @@ from qgis_ai_agent.qgis_tools.inspect.utils import (
     find_layer_by_name,
     geometry_type_name,
     layer_kind,
+    suggest_metric_crs,
 )
 
 # Ограничение на число полей в ответе, чтобы не раздувать контекст модели.
@@ -54,6 +55,9 @@ class DescribeLayerTool(BaseTool):
             "crs_units": crs_units(layer),
             "extent": extent_dict(self._safe_extent(layer)),
         }
+        # Подсказка для перепроецирования — чтобы модель не подбирала CRS наугад.
+        if crs_is_geographic(layer):
+            result["suggested_metric_crs"] = suggest_metric_crs(layer)
         if isinstance(layer, QgsVectorLayer):
             result["geometry"] = geometry_type_name(layer)
             result["feature_count"] = self._safe_feature_count(layer)

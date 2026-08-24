@@ -33,10 +33,34 @@ user. One extra read call is much cheaper than a wrong write.
   `"Round"` is rejected by QGIS with "Incorrect parameter value".
 - For an output that should become a new layer, pass `'TEMPORARY_OUTPUT'` unless
   the user asked for a file on disk.
-- Distances and buffer sizes are in the units of the layer's CRS. If the layer is
-  in a geographic CRS (EPSG:4326 and similar), a distance in metres will not work
-  as expected — check the CRS with `describe_layer` and reproject first, or tell
-  the user why the result would be wrong.
+- Distances and buffer sizes are in the units of the layer's CRS.
+
+## Metres on a geographic CRS
+
+`list_layers` and `describe_layer` report `crs_is_geographic`. When it is true the
+layer measures in degrees, and a distance in metres is meaningless — a 500 there
+means 500 degrees.
+
+Do not hand this back to the user as a problem. Fix it yourself with a two-step plan:
+
+```
+run_processing(algorithm_id="native:reprojectlayer",
+               parameters={"INPUT": "Города", "TARGET_CRS": "EPSG:32641"},
+               output_name="Города UTM")
+run_processing(algorithm_id="native:buffer",
+               parameters={"INPUT": "Города UTM", "DISTANCE": 500},
+               output_name="Буфер 500 м")
+```
+
+`describe_layer` returns `suggested_metric_crs` for exactly this — use it as
+`TARGET_CRS` rather than picking a CRS yourself. If you queue a metric distance on
+a geographic layer anyway, the tool rejects the step and tells you the same thing.
+
+## Chaining steps
+
+A queued step has not run yet, so its output layer does not exist while you are
+planning. Give each step an `output_name` and reference that name in the next
+step — this is the only reliable way to chain two runs in one plan.
 
 ## Results
 

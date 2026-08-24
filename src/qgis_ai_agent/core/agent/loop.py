@@ -141,6 +141,11 @@ class AgentLoop(QObject):
 
         tool = get_tool_by_name(call.name)
         if tool is not None and not tool.is_read_only:
+            # Проверяем до постановки в очередь: исполнение произойдёт уже после
+            # конца цикла, и там ошибку возвращать будет некому.
+            rejection = self._validate_write(tool, call)
+            if rejection is not None:
+                return rejection
             self._pending_writes.append(call)
             self.tool_queued.emit(summarize_tool_call(call.name, call.arguments))
             return ToolExecutor.queued(call)
@@ -149,6 +154,21 @@ class AgentLoop(QObject):
         result = self._executor.run(call)
         self.tool_finished.emit(call.name, result.ok)
         return result
+
+    def _validate_write(self, tool, call: ToolCall) -> ToolResult | None:
+        """Отклоняет заведомо негодный write-вызов, возвращая объяснение модели."""
+        try:
+            tool.validate(dict(call.arguments))
+        except Exception as err:
+            self.tool_started.emit(summarize_tool_call(call.name, call.arguments))
+            self.tool_finished.emit(call.name, False)
+            QgsMessageLog.logMessage(f"Шаг {call.name} отклонён: {err}", LOG_TAG, Qgis.Warning)
+            return ToolResult(
+                call=call,
+                ok=False,
+                payload={"error": str(err), "arguments_sent": call.arguments},
+            )
+        return None
 
     def _load_skill(self, call: ToolCall) -> ToolResult:
         """Обрабатывает мета-вызов загрузки скилла."""
