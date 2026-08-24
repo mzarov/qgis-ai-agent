@@ -37,6 +37,33 @@ execute_tool("describe_processing", {"algorithm_id": "native:buffer"})
 - `describe_processing` отдаёт enum парами `{"value": 0, "label": "Round"}`
 - несуществующее имя слоя или поля даёт ошибку со списком доступных
 
+### Ветки классов в describe_style
+
+Категории, градации и правила не проверить на проекте с одиночными символами.
+Снипет подставляет категоризацию, проверяет и возвращает рендерер обратно —
+в проекте ничего не остаётся:
+
+```python
+from qgis.core import QgsProject, QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsSymbol
+from qgis_ai_agent.qgis_tools.registry import execute_tool
+
+layer = QgsProject.instance().mapLayersByName("ИМЯ_СЛОЯ")[0]
+saved = layer.renderer().clone()
+field = layer.fields().names()[1]
+values = list(layer.uniqueValues(layer.fields().indexOf(field)))[:4]
+categories = [
+    QgsRendererCategory(v, QgsSymbol.defaultSymbol(layer.geometryType()), str(v))
+    for v in values
+]
+layer.setRenderer(QgsCategorizedSymbolRenderer(field, categories))
+print(execute_tool("describe_style", {"layer_name": "ИМЯ_СЛОЯ"}))
+print(execute_tool("describe_layer", {"layer_name": "ИМЯ_СЛОЯ"})["style_summary"])
+layer.setRenderer(saved)
+```
+
+Ожидания: `class_attribute`, список `classes` со значением, подписью и символом
+на каждый класс, `style_summary` вида «категории по полю «…», классов: 4».
+
 ### Секреты в источнике
 
 Если есть слой PostGIS — проверить, что пароль не утекает:
