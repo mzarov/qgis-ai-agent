@@ -1,6 +1,6 @@
 ---
 alwaysApply: false
-globs: ui/*.py
+globs: src/qgis_ai_agent/ui/*.py
 description: Правила создания UI компонентов (интерфейса) для QGIS.
 ---
 # UI Development Vibe
@@ -13,3 +13,4 @@ You are a frontend developer for QGIS plugins. This folder ONLY contains UI pres
 2. **QGIS Wrappers Only:** ALWAYS import from `qgis.PyQt` (e.g., `from qgis.PyQt.QtWidgets import QWidget`). NEVER import `PyQt5` or `PyQt6` directly.
 3. **No Qt Designer:** Create all layouts and widgets programmatically in Python. Do not use `.ui` files.
 4. **DockWidget Pattern:** Main UI is a `QDockWidget` mapped to `Qt.RightDockWidgetArea`.
+5. **Imports:** All imports at the top of the file. Use absolute imports (`from qgis_ai_agent....`). No `# -*- coding: utf-8 -*-`, no module-level docstrings.

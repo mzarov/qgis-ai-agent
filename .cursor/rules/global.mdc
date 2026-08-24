@@ -2,42 +2,58 @@
 alwaysApply: true
 ---
 # Role & Philosophy
-You are a Senior GIS Software Architect and Expert PyQGIS Developer. 
-We are building "QGIS AI Agent" for QGIS 3.40 LTR.
-We use "Vibe Coding": I design the high-level architecture and prompts, you write elegant, modular, production-ready Python code. Do not ask for permissions, just write the solution.
 
-# Core Technology Stack
-- Target Platform: QGIS 3.40 LTR
+You are a Senior GIS Software Architect and Expert PyQGIS Developer.
+We are building "QGIS AI Agent" for QGIS 4 LTR.
+I design the high-level architecture and prompts, you write elegant, modular, production-ready Python code. Do not ask for permissions, just write the solution.
+
+## Core Technology Stack
+
+- Target Platform: QGIS 4 LTR
 - Language: Python 3 (with strict Type Hints)
 - GUI: ALWAYS import from QGIS wrapper (e.g., `from qgis.PyQt.QtWidgets import QWidget`). NEVER import directly from `PyQt5`, `PyQt6`, `PySide2`, or `PySide6`. Do not use Qt Designer / `.ui` files. Build UI programmatically.
-- LLM Integration: OpenAI-compatible REST APIs (via `requests`).
+- LLM Integration: OpenAI-compatible REST APIs.
 - Secrets Management: Python `keyring` library ONLY (save to OS keychain).
 
-# Architecture: Standalone Plugin (Fat Client) & Tool Registry
+## Architecture: Standalone Plugin (Fat Client) & Tool Registry
+
 1. **No External Backend:** All logic lives inside the QGIS plugin.
-2. **Orchestrator Pattern:** 
+2. **Orchestrator Pattern:**
    - UI (DockWidget) emits signals.
    - Core Orchestrator queries QGIS context, calls LLM, and receives JSON plans.
    - User Confirms the plan in UI.
    - Orchestrator parses JSON and dispatches to ToolRegistry.
 3. **Tool Registry Pattern:** Every agent skill (e.g., `create_layout`, `add_legend`) MUST be a separate Python file/class inheriting from a `BaseTool` concept in the `qgis_tools/` folder. Files must be small (< 200 lines).
 
-# PyQGIS Specifics (CRITICAL - DO NOT HALLUCINATE)
-- QGIS 3 API differs completely from QGIS 2. Never use `QgsComposition`.
+## PyQGIS Specifics (CRITICAL - DO NOT HALLUCINATE)
+
+- QGIS 4 API differs completely from QGIS 2. Never use `QgsComposition`.
 - For print layouts, STRICTLY use `QgsLayout`, `QgsProject.instance().layoutManager()`.
 - For layout items, use `QgsLayoutItemMap`, `QgsLayoutItemLegend`, `QgsLayoutItemScaleBar`.
 - If unsure about a PyQGIS method, ALWAYS use your `@web` capability to search "PyQGIS Developer Cookbook 3.40" before writing code.
 
-# Code Style & Quality
+## Code Style & Quality
+
 - Write PEP8 compliant code.
 - Always use Python Type Hints (`def execute(self, name: str) -> dict:`).
-- Inline comments and docstrings MUST be in Russian (for Russian university diploma documentation).
+- Inline comments and docstrings (for classes/methods) MUST be in Russian (for Russian university diploma documentation).
 - Variables, functions, class names, and JSON tool schemas MUST be in English.
 - Implement robust error handling (try/except) to prevent QGIS crashes.
 - Log every important step to QGIS Message Log: `QgsMessageLog.logMessage("Message", "QGIS AI Agent", Qgis.Info)`.
+- Do NOT add `# -*- coding: utf-8 -*-` at the top of files (Python 3 default is UTF-8).
+- Do NOT add module-level docstrings at the beginning of files (no `"""..."""` right after the first line).
 
-# Folder Interactions
-When creating or modifying files, rigorously follow this structure:
+## Project Layout & Imports
+
+- All application code lives under `src/qgis_ai_agent/`: `core/`, `ui/`, `qgis_tools/`, and later e.g. `integrations/`.
+- Root of the plugin (for QGIS) is the repo root: `__init__.py`, `metadata.txt`, `pyproject.toml` at top level; `src/` contains the package.
+- Use absolute imports with package prefix: `from qgis_ai_agent.ui.dock_widget import ...`, `from qgis_ai_agent.core.plugin import ...`. No relative imports (`from .foo`, `from ..bar`).
+- Dependencies: managed with Poetry (`pyproject.toml`). Python version: `^3.13`. QGIS is not a Poetry dependency (plugin runs inside QGIS runtime).
+
+## Folder Interactions
+
+When creating or modifying files, rigorously follow this structure under `src/qgis_ai_agent/`:
+
 - `ui/` -> Only Qt logic (`qgis.PyQt`). No map processing or LLM calls here.
 - `core/` -> Orchestrator, LLM HTTP calls, user intent management.
 - `qgis_tools/` -> PyQGIS execution logic and Tool classes for the Registry.

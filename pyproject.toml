@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "qgis-ai-agent"
+version = "0.1.0"
+description = "Плагин QGIS 4: создание макетов по запросу с помощью ИИ-агента"
+authors = ["mzarov@duck.com"]
+
+[tool.poetry.dependencies]
+python = "^3.13"
+requests = "^2.32"
+keyring = "^25.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -1,5 +1,5 @@
 ---
-globs: qgis_tools/**/*.py
+globs: src/qgis_ai_agent/qgis_tools/**/*.py
 alwaysApply: false
 description: Правила создания инструментов (tools) для QGIS Layout и взаимодействия с PyQGIS.
 ---
@@ -14,7 +14,8 @@ You are a Senior QGIS Developer. This folder contains the "hands" of the AI Agen
 
 ## PyQGIS Specifics (CRITICAL DO NOT HALLUCINATE)
 
-1. Target: QGIS 3.40. NEVER use QGIS 2.x API (e.g., no `QgsComposition`).
+1. Target: QGIS 4.0. NEVER use QGIS 2.x API (e.g., no `QgsComposition`).
 2. Always use `QgsProject.instance()` to access current state.
 3. For layouts, strictly use `QgsLayout`, `QgsLayoutItemMap`, `QgsLayoutItemLegend`, `QgsLayoutItemScaleBar`.
 4. Wrap execution in `try/except` and log via `QgsMessageLog.logMessage(msg, "QGIS AI Agent", Qgis.Info)`.
+5. **Imports:** All at the top. Use absolute imports (`from qgis_ai_agent....`). No `# -*- coding: utf-8 -*-`, no module-level docstrings.

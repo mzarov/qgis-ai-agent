@@ -1,0 +1,12 @@
+[general]
+name=QGIS AI Agent
+qgisMinimumVersion=3.22
+qgisMaximumVersion=4.99
+description=Создание печатных макетов по текстовому запросу с помощью ИИ-агента.
+about=Плагин для QGIS 4. Позволяет создавать макеты (карта, легенда, масштабная линейка) по описанию на естественном языке. Использует OpenAI-совместимый API и локальное хранилище ключей (keyring).
+version=0.1.0
+author=QGIS AI Agent Author
+email=author@example.com
+
+[tracker]
+repository=https://github.com/example/qgis_ai_agent
