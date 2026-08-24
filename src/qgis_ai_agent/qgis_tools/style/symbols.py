@@ -2,7 +2,8 @@ from typing import Any
 
 SYMBOL_KINDS = {0: "точки", 1: "линии", 2: "полигоны"}
 MAX_SYMBOL_LAYERS = 6
-LAYER_MEASURES = (("width", "width"), ("size", "size"), ("offset", "offset"))
+LAYER_MEASURES = (("width", "width"), ("size", "size"))
+OPTIONAL_MEASURES = (("offset", "offset"),)
 
 
 def symbol_info(symbol) -> dict[str, Any]:
@@ -53,6 +54,10 @@ def _describe_layer(index: int, layer) -> dict[str, Any]:
     for key, getter in LAYER_MEASURES:
         value = _number(_call(layer, getter))
         if value is not None:
+            info[key] = value
+    for key, getter in OPTIONAL_MEASURES:
+        value = _number(_call(layer, getter))
+        if value:
             info[key] = value
     stroke = _color_name(_call(layer, "strokeColor"))
     if stroke:
