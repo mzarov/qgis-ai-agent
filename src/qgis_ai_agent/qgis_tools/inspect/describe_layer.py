@@ -3,6 +3,7 @@ from typing import Any
 from qgis.core import QgsRasterLayer, QgsVectorLayer
 
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
+from qgis_ai_agent.qgis_tools.inspect.layer_meta import describe_source
 from qgis_ai_agent.qgis_tools.inspect.utils import (
     crs_authid,
     crs_is_geographic,
@@ -15,6 +16,7 @@ from qgis_ai_agent.qgis_tools.inspect.utils import (
     safe_feature_count,
     suggest_metric_crs,
 )
+from qgis_ai_agent.qgis_tools.style.renderers import renderer_summary
 
 MAX_FIELDS = 60
 RASTER_PROPERTIES = (("width", "width"), ("height", "height"), ("band_count", "bandCount"))
@@ -23,9 +25,9 @@ RASTER_PROPERTIES = (("width", "width"), ("height", "height"), ("band_count", "b
 class DescribeLayerTool(BaseTool):
     name = "describe_layer"
     description = (
-        "Показать подробности слоя: список полей атрибутов с типами, охват (extent), "
-        "систему координат и её единицы, число объектов. "
-        "Для слоя в градусах подсказывает метрическую CRS для перепроецирования."
+        "Показать подробности слоя: поля атрибутов с типами, охват, систему координат "
+        "и её единицы, число объектов, источник данных, активный фильтр и краткую "
+        "сводку оформления. Для слоя в градусах подсказывает метрическую CRS."
     )
     skill = "inspect"
     safety = SAFETY_READ
@@ -54,6 +56,10 @@ class DescribeLayerTool(BaseTool):
             "crs_units": crs_units(layer),
             "extent": extent_dict(safe_extent(layer)),
         }
+        result.update(describe_source(layer))
+        style = renderer_summary(layer)
+        if style:
+            result["style_summary"] = style
         if crs_is_geographic(layer):
             result["suggested_metric_crs"] = suggest_metric_crs(layer)
         if isinstance(layer, QgsVectorLayer):

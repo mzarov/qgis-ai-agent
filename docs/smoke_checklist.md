@@ -13,19 +13,39 @@
 
 ```python
 from qgis_ai_agent.qgis_tools.registry import execute_tool
+execute_tool("get_project_info", {})
 execute_tool("list_layers", {})
-execute_tool("get_canvas_extent", {})
 execute_tool("describe_layer", {"layer_name": "ИМЯ_СЛОЯ"})
+execute_tool("get_field_values", {"layer_name": "ИМЯ_СЛОЯ", "field_name": "ПОЛЕ"})
+execute_tool("sample_features", {"layer_name": "ИМЯ_СЛОЯ", "limit": 3})
+execute_tool("describe_style", {"layer_name": "ИМЯ_СЛОЯ"})
+execute_tool("get_qgis_info", {})
+execute_tool("get_canvas_extent", {})
 execute_tool("search_processing", {"query": "buffer"})
 execute_tool("describe_processing", {"algorithm_id": "native:buffer"})
 ```
 
 Ожидания:
 
-- `describe_layer` для слоя в `EPSG:4326` отдаёт `crs_is_geographic: True`
-  и `suggested_metric_crs`
+- `get_project_info` отдаёт дерево слоёв с группами и видимостью, единицы, темы
+- `describe_layer` для слоя в `EPSG:4326` отдаёт `crs_is_geographic: True`,
+  `suggested_metric_crs`, а также `provider`, `is_valid` и `style_summary`
+- `get_field_values` для числового поля отдаёт `min`/`max`, для текстового —
+  список уникальных значений с пометкой об обрезке
+- `sample_features` отдаёт реальные записи, длинные значения обрезаны
+- `describe_style` показывает тип рендерера и классы с цветами
 - `describe_processing` отдаёт enum парами `{"value": 0, "label": "Round"}`
-- несуществующее имя слоя даёт ошибку со списком доступных
+- несуществующее имя слоя или поля даёт ошибку со списком доступных
+
+### Секреты в источнике
+
+Если есть слой PostGIS — проверить, что пароль не утекает:
+
+```python
+execute_tool("describe_layer", {"layer_name": "ИМЯ_СЛОЯ_POSTGIS"})["source"]
+```
+
+В строке должно быть `password=‹скрыто›`, а не сам пароль.
 
 ## Агентный цикл
 
@@ -43,8 +63,19 @@ execute_tool("describe_processing", {"algorithm_id": "native:buffer"})
 ## Скиллы
 
 - Вопрос про слои не требует `load_skill` — `inspect` предзагружен.
-- Запрос про обработку → в логе `QGIS AI Agent` видно `Загружен скилл: processing`.
+- Запрос про обработку → в логе видно `Загружен скилл: processing`.
+- Вопрос про цвета и оформление → `Загружен скилл: style`.
 - Скилл загружается один раз за прогон.
+
+## Сбор контекста
+
+- «расскажи про мой проект» → `get_project_info`, в ответе группы слоёв,
+  что включено, единицы измерения
+- «какие значения в поле X» → `get_field_values`, реальные значения
+- «почему города красные» → `load_skill(style)` → `describe_style`, ответ
+  называет поле классификации и цвет, а не просто «красные»
+- битый слой (переименовать исходный файл) → `describe_layer` отдаёт
+  `is_valid: false`, агент предупреждает, а не строит планы поверх
 
 ## Обработка и проверка CRS
 

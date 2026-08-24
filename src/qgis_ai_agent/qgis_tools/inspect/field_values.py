@@ -1,0 +1,132 @@
+from typing import Any
+
+from qgis.core import QgsVectorLayer
+
+from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
+from qgis_ai_agent.qgis_tools.inspect.utils import find_layer_by_name
+
+DEFAULT_LIMIT = 25
+MAX_LIMIT = 100
+NUMERIC_TYPES = ("int", "double", "real", "float", "numeric", "long", "short")
+
+
+class GetFieldValuesTool(BaseTool):
+    name = "get_field_values"
+    description = (
+        "Показать содержимое поля атрибутов: уникальные значения и, для числовых "
+        "полей, минимум и максимум. Нужен перед классификацией, фильтрацией "
+        "и настройкой стиля по полю."
+    )
+    skill = "inspect"
+    safety = SAFETY_READ
+    constraints = ["Слой и поле должны существовать", "Слой должен быть векторным"]
+    examples = ["Какие значения в поле type?", "В каком диапазоне население городов?"]
+    params_schema = [
+        {
+            "name": "layer_name",
+            "type": "string",
+            "description": "Имя слоя ровно как в проекте",
+            "required": True,
+        },
+        {
+            "name": "field_name",
+            "type": "string",
+            "description": "Имя поля ровно как в describe_layer",
+            "required": True,
+        },
+        {
+            "name": "limit",
+            "type": "integer",
+            "description": f"Сколько уникальных значений вернуть (по умолчанию {DEFAULT_LIMIT})",
+            "required": False,
+        },
+    ]
+
+    def summarize_call(self, params: dict[str, Any]) -> str:
+        layer_name = (params.get("layer_name") or "").strip()
+        field_name = (params.get("field_name") or "").strip()
+        return f"Смотрю значения поля «{field_name}» в слое «{layer_name}»."
+
+    def execute(self, params: dict[str, Any]) -> dict[str, Any]:
+        layer = find_layer_by_name(params.get("layer_name") or "")
+        if not isinstance(layer, QgsVectorLayer):
+            raise ValueError(f"Слой «{layer.name()}» не векторный, у него нет полей атрибутов.")
+        field_name = (params.get("field_name") or "").strip()
+        index = self._field_index(layer, field_name)
+        limit = self._resolve_limit(params.get("limit"))
+
+        result: dict[str, Any] = {
+            "layer_name": layer.name(),
+            "field_name": field_name,
+            "field_type": self._field_type(layer, index),
+        }
+        result.update(self._unique_values(layer, index, limit))
+        if self._is_numeric(result["field_type"]):
+            result.update(self._numeric_range(layer, index))
+        return result
+
+    @staticmethod
+    def _field_index(layer: QgsVectorLayer, field_name: str) -> int:
+        index = layer.fields().indexOf(field_name)
+        if index < 0:
+            available = ", ".join(layer.fields().names())
+            raise ValueError(f"Поле не найдено: «{field_name}». Доступные поля: {available}.")
+        return index
+
+    @staticmethod
+    def _field_type(layer: QgsVectorLayer, index: int) -> str:
+        try:
+            field = layer.fields().at(index)
+            return field.typeName() or str(field.type())
+        except Exception:
+            return ""
+
+    @staticmethod
+    def _resolve_limit(raw: Any) -> int:
+        try:
+            value = int(raw) if raw is not None else DEFAULT_LIMIT
+        except (TypeError, ValueError):
+            value = DEFAULT_LIMIT
+        return max(1, min(value, MAX_LIMIT))
+
+    @staticmethod
+    def _unique_values(layer: QgsVectorLayer, index: int, limit: int) -> dict[str, Any]:
+        try:
+            values = layer.uniqueValues(index, limit + 1)
+        except Exception:
+            return {"unique_values": [], "unique_values_note": "значения недоступны"}
+        plain = sorted(_plain(value) for value in values)
+        if len(plain) > limit:
+            return {
+                "unique_values": plain[:limit],
+                "unique_values_note": f"показаны первые {limit}, значений больше",
+            }
+        return {"unique_values": plain, "unique_values_count": len(plain)}
+
+    @staticmethod
+    def _is_numeric(field_type: str) -> bool:
+        lowered = (field_type or "").lower()
+        return any(marker in lowered for marker in NUMERIC_TYPES)
+
+    @staticmethod
+    def _numeric_range(layer: QgsVectorLayer, index: int) -> dict[str, Any]:
+        info: dict[str, Any] = {}
+        for key, getter in (("min", "minimumValue"), ("max", "maximumValue")):
+            try:
+                info[key] = _plain(getattr(layer, getter)(index))
+            except Exception:
+                continue
+        return info
+
+
+def _plain(value: Any) -> Any:
+    if value is None:
+        return None
+    if isinstance(value, (str, int, float, bool)):
+        return value
+    try:
+        if value.isNull():
+            return None
+    except AttributeError:
+        pass
+    return str(value)
