@@ -34,13 +34,8 @@ class QgisAiAgentPlugin:
         if self.dock_widget:
             self.iface.removeDockWidget(self.dock_widget)
             self.dock_widget = None
-        if (
-            self._orchestrator
-            and self._orchestrator.current_llm_thread
-            and self._orchestrator.current_llm_thread.isRunning()
-        ):
-            self._orchestrator.current_llm_thread.terminate()
-            self._orchestrator.current_llm_thread.wait(2000)
+        if self._orchestrator:
+            self._orchestrator.shutdown()
         self._orchestrator = None
 
     def run(self):

@@ -25,16 +25,16 @@ class DockWidgetContract(Protocol):
     def add_plan_message(self, plan_lines: list[str]) -> int:
         ...
 
-    def append_model_chunk(self, message_id: int, chunk: str) -> None:
+    def add_tool_message(self, text: str) -> int:
         ...
 
-    def start_model_stream(self) -> int:
-        ...
-
-    def finalize_model_message(self, message_id: int, text: str) -> None:
+    def mark_tool_done(self, message_id: int, ok: bool = True) -> None:
         ...
 
     def mark_plan_completed(self, message_id: int) -> None:
+        ...
+
+    def set_confirm_visible(self, visible: bool) -> None:
         ...
 
     def set_busy(self, busy: bool) -> None:

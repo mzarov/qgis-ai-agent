@@ -2,7 +2,7 @@ from typing import Any
 
 from qgis.core import QgsLayoutItemLegend, QgsLayoutPoint, QgsLayoutSize
 
-from qgis_ai_agent.qgis_tools.base import BaseTool
+from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
 from qgis_ai_agent.qgis_tools.layout.layout_composer import compose_legend_box
 from qgis_ai_agent.qgis_tools.layout.utils import (
     LAYOUT_UNIT_MM,
@@ -15,6 +15,8 @@ class AddLegendTool(BaseTool):
     """Добавление легенды на макет, привязанной к карте."""
     name = "add_legend"
     description = "Добавить легенду слоёв. Привязывается к первой карте в макете. Координаты в мм."
+    skill = "layout"
+    safety = SAFETY_WRITE
     capabilities = ["layout:legend:add"]
     examples = ["Добавь легенду справа от карты"]
     constraints = ["Для корректной привязки в макете желательно наличие карты"]
@@ -24,6 +26,14 @@ class AddLegendTool(BaseTool):
         {"name": "y", "type": "number", "description": "Y левого верхнего угла легенды в мм", "required": False},
         {"name": "title", "type": "string", "description": "Заголовок легенды", "required": False},
     ]
+
+    def summarize_call(self, params: dict[str, Any]) -> str:
+        """Описание шага добавления легенды для чата."""
+        x, y = params.get("x"), params.get("y")
+        title = (params.get("title") or "").strip()
+        where = f" в ({x}, {y}) мм" if x is not None and y is not None else ""
+        titled = f", заголовок «{title}»" if title else ""
+        return f"Добавить легенду{where}{titled}."
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layout_name = params.get("layout_name") or "Макет ИИ"

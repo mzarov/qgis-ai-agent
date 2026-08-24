@@ -2,7 +2,7 @@ from typing import Any
 
 from qgis.core import QgsLayoutItemScaleBar, QgsLayoutPoint
 
-from qgis_ai_agent.qgis_tools.base import BaseTool
+from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
 from qgis_ai_agent.qgis_tools.layout.layout_composer import build_layout_policy
 from qgis_ai_agent.qgis_tools.layout.scalebar_composer import compose_scalebar_params
 from qgis_ai_agent.qgis_tools.layout.utils import (
@@ -22,6 +22,8 @@ class AddScaleBarTool(BaseTool):
         "Добавить масштабную линейку, привязанную к карте. "
         "По умолчанию автоматически подбирает информативные деления и длину."
     )
+    skill = "layout"
+    safety = SAFETY_WRITE
     capabilities = ["layout:scalebar:add"]
     examples = ["Добавь масштабную линейку внизу карты"]
     constraints = [
@@ -37,6 +39,14 @@ class AddScaleBarTool(BaseTool):
         {"name": "units_per_segment", "type": "number", "description": "Значение на деление (опционально)", "required": False},
         {"name": "segment_count", "type": "number", "description": "Количество делений справа (опционально)", "required": False},
     ]
+
+    def summarize_call(self, params: dict[str, Any]) -> str:
+        """Описание шага добавления масштабной линейки для чата."""
+        x, y = params.get("x"), params.get("y")
+        style = (params.get("style") or "").strip()
+        where = f" в ({x}, {y}) мм" if x is not None and y is not None else ""
+        styled = f", стиль «{style}»" if style else ", стиль подбирается автоматически"
+        return f"Добавить масштабную линейку{where}{styled}."
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layout_name = params.get("layout_name") or "Макет ИИ"

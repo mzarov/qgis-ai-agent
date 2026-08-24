@@ -81,6 +81,18 @@ class ChatView(QWidget):
     def add_result_message(self, text: str) -> int:
         return self._model.add_message("result", text)
 
+    def add_tool_message(self, text: str) -> int:
+        """Служебное сообщение о работе тула: «Смотрю слои проекта…»."""
+        return self._model.add_message("tool", f"⏳ {text}")
+
+    def mark_tool_done(self, message_id: int, ok: bool = True) -> None:
+        """Помечает сообщение тула как завершённое или упавшее."""
+        text = self._model.message_text(message_id)
+        if not text:
+            return
+        marker = "✓" if ok else "✕"
+        self._model.replace_message(message_id, text.replace("⏳", marker, 1), streaming=False)
+
     def start_model_stream(self) -> int:
         return self._model.add_message("assistant", "…", streaming=True)
 

@@ -2,7 +2,7 @@ from typing import Any
 
 from qgis.core import QgsLayoutItemMap, QgsLayoutPoint, QgsLayoutSize
 
-from qgis_ai_agent.qgis_tools.base import BaseTool
+from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
 from qgis_ai_agent.qgis_tools.layout.layout_composer import compose_map_box
 from qgis_ai_agent.qgis_tools.layout.utils import (
     LAYOUT_UNIT_MM,
@@ -15,6 +15,8 @@ class AddMapTool(BaseTool):
     """Добавление элемента карты на макет (отображает текущий extent канваса/слоёв)."""
     name = "add_map"
     description = "Добавить рамку карты на макет. Позиция и размер в мм."
+    skill = "layout"
+    safety = SAFETY_WRITE
     capabilities = ["layout:map:add"]
     examples = ["Добавь карту в макет по центру"]
     constraints = ["layout_name должен существовать"]
@@ -25,6 +27,14 @@ class AddMapTool(BaseTool):
         {"name": "width", "type": "number", "description": "Ширина рамки карты в мм", "required": False},
         {"name": "height", "type": "number", "description": "Высота рамки карты в мм", "required": False},
     ]
+
+    def summarize_call(self, params: dict[str, Any]) -> str:
+        """Описание шага добавления карты для чата."""
+        x, y = params.get("x"), params.get("y")
+        width, height = params.get("width"), params.get("height")
+        position = f"позиция ({x}, {y}) мм" if x is not None and y is not None else "позиция авто"
+        size = f"размер {width}×{height} мм" if width is not None and height is not None else "размер авто"
+        return f"Добавить карту: {position}, {size}."
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layout_name = params.get("layout_name") or "Макет ИИ"

@@ -6,13 +6,15 @@ from qgis.core import (
     QgsProject,
 )
 
-from qgis_ai_agent.qgis_tools.base import BaseTool
+from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
 
 
 class CreateLayoutTool(BaseTool):
     """Создание нового печатного макета с заданной страницей."""
     name = "create_layout"
     description = "Создать новый макет печати с одной страницей без автодобавления текста."
+    skill = "layout"
+    safety = SAFETY_WRITE
     capabilities = ["layout:create", "layout:page"]
     examples = ["Создай макет A4 «Карта района»", "Сделай альбомный A3 макет"]
     constraints = ["Не создавать новый макет, если имя уже существует"]
@@ -21,6 +23,14 @@ class CreateLayoutTool(BaseTool):
         {"name": "page_size", "type": "string", "description": "Размер страницы: A4, A3, A5, A0", "required": False},
         {"name": "orientation", "type": "string", "description": "portrait или landscape", "required": False},
     ]
+
+    def summarize_call(self, params: dict[str, Any]) -> str:
+        """Описание шага создания макета для чата."""
+        name = params.get("layout_name") or "Макет"
+        size = params.get("page_size") or "A4"
+        orientation = (params.get("orientation") or "portrait").lower()
+        orientation_ru = "альбомная" if orientation == "landscape" else "книжная"
+        return f"Создать макет «{name}», {size} {orientation_ru}."
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layout_name = (params.get("layout_name") or "").strip() or "Макет ИИ"

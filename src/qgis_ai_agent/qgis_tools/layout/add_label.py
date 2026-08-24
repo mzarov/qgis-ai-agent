@@ -4,7 +4,7 @@ from typing import Any
 from qgis.PyQt.QtCore import Qt
 from qgis.core import QgsLayoutItemLabel
 
-from qgis_ai_agent.qgis_tools.base import BaseTool
+from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
 from qgis_ai_agent.qgis_tools.layout.layout_composer import apply_label_geometry, compose_label_box
 from qgis_ai_agent.qgis_tools.layout.utils import get_layout
 
@@ -13,6 +13,8 @@ class AddLabelTool(BaseTool):
     """Добавление текстовой надписи на макет (заголовок, подпись и т.д.)."""
     name = "add_label"
     description = "Добавить надпись (текст) на макет. Можно выровнять по центру страницы."
+    skill = "layout"
+    safety = SAFETY_WRITE
     capabilities = ["layout:label:add"]
     examples = ["Добавь заголовок по центру сверху"]
     constraints = ["layout_name должен существовать"]
@@ -32,6 +34,20 @@ class AddLabelTool(BaseTool):
         "\u200d",  # zero-width joiner
         "\ufeff",  # BOM
     )
+
+    _ROLE_NAMES = {
+        "title": "заголовок",
+        "subtitle": "подзаголовок",
+        "footer": "подпись внизу",
+    }
+
+    def summarize_call(self, params: dict[str, Any]) -> str:
+        """Описание шага добавления надписи для чата."""
+        text = (params.get("text") or "").strip()
+        role = (params.get("role") or "label").strip().lower()
+        role_name = self._ROLE_NAMES.get(role, "надпись")
+        shown = text[:40] + ("…" if len(text) > 40 else "")
+        return f"Добавить {role_name} «{shown}»."
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layout_name = params.get("layout_name") or "Макет ИИ"

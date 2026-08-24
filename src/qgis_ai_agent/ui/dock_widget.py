@@ -43,6 +43,16 @@ class LayoutAgentDockWidget(QDockWidget):
         row.addWidget(self.busy_label)
         layout.addLayout(row)
 
+        confirm_row = QHBoxLayout()
+        self.confirm_btn = QPushButton("Применить изменения")
+        self.confirm_btn.clicked.connect(self.confirm_plan_clicked.emit)
+        confirm_row.addWidget(self.confirm_btn)
+        self.cancel_btn = QPushButton("Отмена")
+        self.cancel_btn.clicked.connect(self.cancel_plan_clicked.emit)
+        confirm_row.addWidget(self.cancel_btn)
+        layout.addLayout(confirm_row)
+        self.set_confirm_visible(False)
+
         settings_btn = QPushButton("Настройки")
         settings_btn.clicked.connect(self.open_settings_clicked.emit)
         layout.addWidget(settings_btn)
@@ -60,6 +70,12 @@ class LayoutAgentDockWidget(QDockWidget):
 
     def add_result_message(self, text: str) -> int:
         return self.chat_view.add_result_message(text)
+
+    def add_tool_message(self, text: str) -> int:
+        return self.chat_view.add_tool_message(text)
+
+    def mark_tool_done(self, message_id: int, ok: bool = True) -> None:
+        self.chat_view.mark_tool_done(message_id, ok)
 
     def start_model_stream(self) -> int:
         return self.chat_view.start_model_stream()
@@ -79,10 +95,15 @@ class LayoutAgentDockWidget(QDockWidget):
     def mark_plan_completed(self, message_id: int) -> None:
         self.chat_view.mark_plan_completed(message_id)
 
+    def set_confirm_visible(self, visible: bool) -> None:
+        """Кнопки применения показываются только при накопленном батче изменений."""
+        self.confirm_btn.setVisible(visible)
+        self.cancel_btn.setVisible(visible)
+
     def set_busy(self, busy: bool) -> None:
         self.send_btn.setEnabled(not busy)
         if busy:
-            self.busy_label.setText("Отправка…")
+            self.busy_label.setText("Работаю…")
         else:
             self.busy_label.setText("")
 

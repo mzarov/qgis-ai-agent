@@ -91,6 +91,9 @@ class ChatMessageDelegate(QStyledItemDelegate):
             rect.setRight(rect.right() - offset)
         elif role == "plan":
             rect.setRight(rect.right() - int(offset * 0.35))
+        elif role == "tool":
+            # Служебные сообщения о работе тулов делаем узкой полосой, чтобы не отвлекать.
+            rect.setRight(rect.right() - int(offset * 1.4))
         elif role == "assistant":
             rect.setRight(rect.right() - offset)
         return rect
@@ -107,4 +110,6 @@ class ChatMessageDelegate(QStyledItemDelegate):
             return theme.model_bg, theme.model_border
         if role == "result":
             return theme.result_bg, theme.result_border
+        if role == "tool":
+            return theme.tool_bg, theme.tool_border
         return theme.system_bg, theme.system_border

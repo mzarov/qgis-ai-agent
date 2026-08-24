@@ -113,7 +113,7 @@ def resolve_layout_zones(layout) -> dict[str, float]:
     }
 
 
-def _item_bbox_mm(item) -> tuple[float, float, float, float] | None:
+def item_bbox_mm(item) -> tuple[float, float, float, float] | None:
     """Оценивает bbox элемента макета в мм."""
     try:
         # Предпочтительно использовать sceneBoundingRect как универсальный вариант
@@ -130,7 +130,7 @@ def get_layout_item_bboxes(layout, include_maps: bool = False) -> list[tuple[flo
         if isinstance(item, QgsLayoutItem):
             if not include_maps and isinstance(item, QgsLayoutItemMap):
                 continue
-            bbox = _item_bbox_mm(item)
+            bbox = item_bbox_mm(item)
             if bbox:
                 result.append(bbox)
     return result

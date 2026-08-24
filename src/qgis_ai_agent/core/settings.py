@@ -62,6 +62,36 @@ def set_auth_type(value):
     s.setValue(f"{SETTINGS_PREFIX}/auth_type", value or AUTH_TYPE_BEARER)
 
 
+def _url_settings_key(url):
+    """Стабильный короткий ключ настроек для конкретного URL API."""
+    import hashlib
+
+    normalized = (url or "").strip().rstrip("/").lower()
+    return hashlib.md5(normalized.encode("utf-8")).hexdigest()[:12]
+
+
+def get_supports_tools(url):
+    """
+    Поддерживает ли эндпоинт нативный function calling.
+    None означает, что проверка ещё не проводилась.
+    """
+    s = QgsSettings()
+    val = s.value(f"{SETTINGS_PREFIX}/supports_tools/{_url_settings_key(url)}")
+    if val is None:
+        return None
+    return str(val).strip().lower() not in ("false", "0", "no", "off")
+
+
+def set_supports_tools(url, value):
+    """Запоминает результат проверки function calling для эндпоинта."""
+    s = QgsSettings()
+    s.setValue(
+        f"{SETTINGS_PREFIX}/supports_tools/{_url_settings_key(url)}",
+        "true" if value else "false",
+    )
+    s.sync()
+
+
 def get_api_key():
     try:
         import keyring
