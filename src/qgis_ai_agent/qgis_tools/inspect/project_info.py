@@ -1,3 +1,4 @@
+import os
 from typing import Any
 
 from qgis.core import (
@@ -29,9 +30,12 @@ class GetProjectInfoTool(BaseTool):
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         project = QgsProject.instance()
+        title = self._safe(project.title)
+        file_path = self._safe(project.fileName)
         return {
-            "title": self._safe(project.title),
-            "file_path": self._safe(project.fileName),
+            "title": title,
+            "display_name": title or self._name_from_path(file_path) or "без имени",
+            "file_path": file_path,
             "has_unsaved_changes": bool(self._safe(project.isDirty, default=False)),
             "crs": self._crs(project),
             "distance_units": self._units(project, "distanceUnits"),
@@ -46,6 +50,10 @@ class GetProjectInfoTool(BaseTool):
             return getter() or default
         except Exception:
             return default
+
+    @staticmethod
+    def _name_from_path(file_path: str) -> str:
+        return os.path.splitext(os.path.basename(file_path or ""))[0]
 
     @staticmethod
     def _crs(project: QgsProject) -> dict[str, Any]:
