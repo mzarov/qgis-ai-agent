@@ -9,10 +9,9 @@ def symbol_info(symbol) -> dict[str, Any]:
     kind = _symbol_kind(symbol)
     if kind:
         info["kind"] = kind
-    try:
-        info["fill_color"] = symbol.color().name()
-    except Exception:
-        pass
+    fill = _color_name(_call(symbol, "color"))
+    if fill:
+        info["fill_color"] = fill
     for key, getter in (("opacity", "opacity"), ("size", "size"), ("width", "width")):
         try:
             info[key] = round(float(getattr(symbol, getter)()), 3)
@@ -45,13 +44,32 @@ def _stroke_info(symbol) -> dict[str, Any]:
         layer = symbol.symbolLayer(0)
     except Exception:
         return {}
-    info: dict[str, Any] = {}
-    try:
-        info["stroke_color"] = layer.strokeColor().name()
-    except Exception:
-        pass
+    stroke = _color_name(_call(layer, "strokeColor"))
+    if not stroke:
+        return {}
+    info: dict[str, Any] = {"stroke_color": stroke}
     try:
         info["stroke_width"] = round(float(layer.strokeWidth()), 3)
     except Exception:
         pass
     return info
+
+
+def _call(owner, method):
+    try:
+        return getattr(owner, method)()
+    except Exception:
+        return None
+
+
+def _color_name(color) -> str:
+    try:
+        name = color.name()
+    except Exception:
+        return ""
+    try:
+        if not color.isValid():
+            return ""
+    except AttributeError:
+        pass
+    return name or ""
