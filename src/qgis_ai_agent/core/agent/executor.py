@@ -33,11 +33,16 @@ class ToolExecutor:
             QgsMessageLog.logMessage(f"Тул {call.name} выполнен.", LOG_TAG, Qgis.Info)
             return ToolResult(call=call, ok=True, payload=self._as_dict(payload))
         except Exception as err:
-            QgsMessageLog.logMessage(f"Тул {call.name} упал: {err}", LOG_TAG, Qgis.Warning)
+            # Аргументы в логе — иначе неверный вызов не отладить постфактум.
+            QgsMessageLog.logMessage(
+                f"Тул {call.name} упал: {err} | аргументы: {call.arguments}",
+                LOG_TAG,
+                Qgis.Warning,
+            )
             return ToolResult(
                 call=call,
                 ok=False,
-                payload={"error": str(err)},
+                payload={"error": str(err), "arguments_sent": call.arguments},
             )
 
     @staticmethod

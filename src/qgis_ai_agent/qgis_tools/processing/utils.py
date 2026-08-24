@@ -2,6 +2,16 @@ from typing import Any
 
 from qgis.core import QgsApplication, QgsMapLayer, QgsProcessingParameterDefinition
 
+# Типы параметров-выходов: если такой обязателен и не задан, подставляем временный слой.
+DESTINATION_TYPES = {
+    "sink",
+    "vectorDestination",
+    "rasterDestination",
+    "fileDestination",
+    "folderDestination",
+}
+TEMPORARY_OUTPUT = "TEMPORARY_OUTPUT"
+
 
 def get_registry():
     """Возвращает реестр алгоритмов обработки QGIS."""
@@ -57,14 +67,66 @@ def describe_parameter(parameter: QgsProcessingParameterDefinition) -> dict[str,
             info["default"] = default
     except Exception:
         pass
-    # Для перечислений показываем допустимые варианты — иначе модель их не угадает.
+    # Для перечислений QGIS ждёт ИНДЕКС варианта, а не его название.
+    # Отдаём пары value/label, иначе модель передаёт строку и алгоритм её отвергает.
+    options = _parameter_options(parameter)
+    if options:
+        info["options"] = [
+            {"value": index, "label": label} for index, label in enumerate(options)
+        ]
+        info["value_hint"] = "Передавайте число из поля value, а не текст из label."
+    return info
+
+
+def _parameter_options(parameter) -> list[str]:
+    """Варианты enum-параметра в виде списка подписей."""
     try:
         options = parameter.options()
-        if options:
-            info["options"] = [str(option) for option in options]
     except AttributeError:
-        pass
-    return info
+        return []
+    return [str(option) for option in options] if options else []
+
+
+def coerce_parameters(algorithm, arguments: dict[str, Any]) -> dict[str, Any]:
+    """
+    Правит частые расхождения между тем, что присылает модель, и тем, что ждёт QGIS:
+    названия enum-вариантов переводит в индексы, обязательные выходы заполняет
+    временным слоем. Неизвестные значения не трогает — пусть алгоритм сам ругнётся.
+    """
+    result = dict(arguments)
+    for parameter in algorithm.parameterDefinitions():
+        name = parameter.name()
+        param_type = parameter.type()
+        if param_type == "enum" and name in result:
+            result[name] = _coerce_enum(parameter, result[name])
+        elif param_type in DESTINATION_TYPES and name not in result and not is_optional(parameter):
+            result[name] = TEMPORARY_OUTPUT
+    return result
+
+
+def _coerce_enum(parameter, value: Any) -> Any:
+    """Переводит название варианта enum в индекс, сохраняя списки для множественного выбора."""
+    options = _parameter_options(parameter)
+    if not options:
+        return value
+    if isinstance(value, list):
+        return [_coerce_enum_value(options, item) for item in value]
+    return _coerce_enum_value(options, value)
+
+
+def _coerce_enum_value(options: list[str], value: Any) -> Any:
+    """Один вариант enum: индекс оставляем как есть, подпись ищем в списке."""
+    # bool наследует int, поэтому проверяем его первым.
+    if isinstance(value, bool) or isinstance(value, int):
+        return value
+    text = str(value).strip()
+    if text.lstrip("-").isdigit():
+        return int(text)
+    lowered = text.lower()
+    for index, option in enumerate(options):
+        if option.lower() == lowered:
+            return index
+    return value
 
 
 def normalize_output(value: Any) -> Any:

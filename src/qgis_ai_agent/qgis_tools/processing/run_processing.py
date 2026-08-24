@@ -1,7 +1,11 @@
 from typing import Any
 
 from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
-from qgis_ai_agent.qgis_tools.processing.utils import find_algorithm, normalize_output
+from qgis_ai_agent.qgis_tools.processing.utils import (
+    coerce_parameters,
+    find_algorithm,
+    normalize_output,
+)
 
 
 class RunProcessingTool(BaseTool):
@@ -67,10 +71,13 @@ class RunProcessingTool(BaseTool):
                 "Модуль Processing недоступен. Включите его в Модули → Управление модулями."
             )
 
+        # Модель присылает enum-варианты подписью, а выход часто вовсе не указывает.
+        prepared = coerce_parameters(algorithm, arguments)
         runner = processing.runAndLoadResults if load_output else processing.run
-        result = runner(algorithm.id(), dict(arguments))
+        result = runner(algorithm.id(), prepared)
         return {
             "algorithm_id": algorithm.id(),
             "loaded_to_project": load_output,
+            "parameters_used": prepared,
             "outputs": normalize_output(result),
         }

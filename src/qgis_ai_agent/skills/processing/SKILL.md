@@ -14,7 +14,9 @@ identifiers or signatures — discover them at runtime.
 Never call `run_processing` from memory. Always:
 
 1. `search_processing` with words describing the task → returns candidate ids
-   such as `native:buffer`.
+   such as `native:buffer`. **Search in English** — algorithm ids, tags and groups
+   are English even when the QGIS interface is localised. Searching in Russian
+   usually returns nothing and costs a wasted round trip.
 2. `describe_processing` with the chosen id → returns the exact parameter names,
    types, whether each is optional, and the allowed values for enums.
 3. `run_processing` with those exact parameter names.
@@ -26,6 +28,9 @@ user. One extra read call is much cheaper than a wrong write.
 
 - Input layers are given by their project layer name. Confirm the name with
   `list_layers` first — names are case-sensitive.
+- **Enum parameters take a number, not a label.** `describe_processing` returns
+  them as `{"value": 0, "label": "Round"}` pairs — pass the `value`. Sending
+  `"Round"` is rejected by QGIS with "Incorrect parameter value".
 - For an output that should become a new layer, pass `'TEMPORARY_OUTPUT'` unless
   the user asked for a file on disk.
 - Distances and buffer sizes are in the units of the layer's CRS. If the layer is
