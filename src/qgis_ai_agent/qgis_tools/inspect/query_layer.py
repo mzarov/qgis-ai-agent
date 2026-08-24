@@ -94,7 +94,7 @@ class QueryLayerTool(BaseTool):
             raise ValueError(f"Слой «{layer.name()}» не векторный, запросить его нельзя.")
 
         context = build_context(layer)
-        request = build_request(params.get("filter") or "")
+        request = build_request(params.get("filter") or "", layer)
         aggregate = (params.get("aggregate") or "").strip().lower()
 
         result: dict[str, Any] = {"layer_name": layer.name()}

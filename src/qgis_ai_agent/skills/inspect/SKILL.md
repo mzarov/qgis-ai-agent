@@ -69,10 +69,15 @@ relation does not need a geoprocessing algorithm; it needs the right expression.
 Rules that matter:
 
 - Field names are case-sensitive and must match `describe_layer` exactly. String
-  literals use single quotes: `highway = 'motorway'`.
-- `$length` and `$area` are measured in the units of the layer CRS. On a layer
-  where `crs_is_geographic` is true they come out in degrees and are meaningless —
-  say so instead of reporting the number.
+  literals use **single quotes**: `highway = 'motorway'`. Without them QGIS reads
+  the word as a column name — the tool now rejects that instead of returning zero
+  matches, but write the quotes and save yourself the round trip.
+- `$length` and `$area` follow the project. When `get_project_info` reports an
+  `ellipsoid`, they are computed on it and returned in `distance_units` /
+  `area_units` — usually metres, even for a layer stored in degrees. With no
+  ellipsoid set they are raw CRS units, and on a geographic layer that means
+  degrees, which is meaningless. Check `get_project_info` before quoting a
+  measured number, and state the unit you are quoting.
 - `aggregate="count"` counts matched features regardless of nulls. To count
   non-empty values add `filter="field is not null"`.
 - `order_by` works only without `aggregate`.

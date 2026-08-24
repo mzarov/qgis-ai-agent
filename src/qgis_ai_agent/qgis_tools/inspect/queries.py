@@ -22,8 +22,8 @@ SCAN_LIMIT_MESSAGE = (
 def run_aggregate(layer, request, context, params, aggregate: str) -> dict[str, Any]:
     expression_text = (params.get("expression") or "").strip()
     group_text = (params.get("group_by") or "").strip()
-    value_expression = prepared(expression_text, "expression", context) if expression_text else None
-    group_expression = prepared(group_text, "group_by", context) if group_text else None
+    value_expression = prepared(expression_text, "expression", context, layer) if expression_text else None
+    group_expression = prepared(group_text, "group_by", context, layer) if group_text else None
 
     matched = 0
     values: list[Any] = []
@@ -53,7 +53,7 @@ def run_aggregate(layer, request, context, params, aggregate: str) -> dict[str, 
 
 def run_rows(layer, request, context, params) -> dict[str, Any]:
     order_text, ascending = parse_order_by(params.get("order_by") or "")
-    order_expression = prepared(order_text, "order_by", context) if order_text else None
+    order_expression = prepared(order_text, "order_by", context, layer) if order_text else None
     limit = resolve_limit(params.get("limit"))
     wanted = _wanted_fields(layer, params.get("fields"))
 

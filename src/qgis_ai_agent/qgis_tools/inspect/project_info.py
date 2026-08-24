@@ -40,6 +40,8 @@ class GetProjectInfoTool(BaseTool):
             "crs": self._crs(project),
             "distance_units": self._units(project, "distanceUnits"),
             "area_units": self._units(project, "areaUnits"),
+            "ellipsoid": self._safe(project.ellipsoid),
+            "measurement_note": self._measurement_note(project),
             "layer_tree": self._tree(project),
             "map_themes": self._themes(project),
         }
@@ -54,6 +56,19 @@ class GetProjectInfoTool(BaseTool):
     @staticmethod
     def _name_from_path(file_path: str) -> str:
         return os.path.splitext(os.path.basename(file_path or ""))[0]
+
+    @classmethod
+    def _measurement_note(cls, project: QgsProject) -> str:
+        ellipsoid = cls._safe(project.ellipsoid)
+        if ellipsoid and ellipsoid.upper() != "NONE":
+            return (
+                f"$length и $area считаются по эллипсоиду {ellipsoid} и возвращаются "
+                "в единицах проекта, даже если слой хранится в градусах."
+            )
+        return (
+            "Эллипсоид не задан: $length и $area возвращаются в единицах CRS слоя. "
+            "Для слоя в градусах такие значения бессмысленны."
+        )
 
     @staticmethod
     def _crs(project: QgsProject) -> dict[str, Any]:
