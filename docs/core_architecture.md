@@ -1,52 +1,80 @@
 # Core Architecture
 
-This document describes the baseline architecture for `qgis_ai_agent.core`.
+Архитектура `qgis_ai_agent` после перехода на агентный цикл со скиллами.
 
-## Goals
+## Цели
 
-- keep `plugin.py` thin and focused on QGIS bootstrap/wiring
-- isolate orchestration, planning, execution, routing, and LLM transport
-- keep planning JSON contract stable for UI and tools
-- allow adding new tool domains without rewriting orchestration
+- держать `plugin.py` тонким: только bootstrap и связывание QGIS
+- дать агенту возможность **смотреть** проект перед тем, как его менять
+- не раздувать промпт по мере роста числа доменов
+- добавлять новый домен файлами, а не правкой оркестрации
 
 ## Package Layout
 
-- `core/orchestrator/` - flow coordinator and session state
-- `core/chat/` - chat-mode prompt and message builder
-- `core/planning/` - planning prompt, parser, clarification, planning service
-- `core/execution/` - step execution service and execution context
-- `core/routing/` - intent policies and router
-- `core/llm/` - transport client and worker thread
-- `core/context/` - project context providers
-- `core/state/` - shared stores (history)
+- `core/agent/` — агентный цикл: состояние прогона, сборка запроса, исполнение тулов, лента
+- `core/orchestrator/` — связь UI с циклом и рендер хода в чат
+- `core/llm/` — HTTP-клиент, транспортный адаптер, парсер
+- `core/context/` — краткая стартовая сводка о проекте
+- `core/state/` — история чата между прогонами
+- `qgis_tools/` — тулы по доменам: `inspect/`, `layout/`, `processing/`
+- `skills/` — пакеты знаний `<skill>/SKILL.md` и реестр
 
 ## Runtime Flow
 
-1. `QgisAiAgentPlugin` initializes `LayoutAgentDockWidget` and `CoreOrchestrator`.
-2. `CoreOrchestrator` receives UI events (`prompt`, `confirm`, `cancel`).
-3. Router selects mode (`chat` or `action`).
-4. Service builds LLM messages and sends async request through `LLMWorkerThread`.
-5. Planning response is parsed/validated, then rendered as a confirmable plan.
-6. Confirmed steps are executed via tool registry through `ExecutionService`.
+1. `QgisAiAgentPlugin` поднимает `LayoutAgentDockWidget` и `CoreOrchestrator`.
+2. Оркестратор передаёт запрос пользователя в `AgentLoop.start()`.
+3. Цикл собирает запрос (`request.py`) и отправляет ход в `ModelTurnThread`.
+4. Ответ приходит сигналом в главный поток — там же исполняются тулы.
+5. Цикл повторяется, пока модель вызывает тулы.
+6. Когда модель отвечает без вызовов, накопленные изменения уходят на подтверждение.
 
-## UI Contract
+## Модель потоков
 
-The orchestrator works with a minimal DockWidget API contract:
+Объекты PyQGIS и Qt можно трогать только из главного потока. Поэтому цикл —
+не `while` в фоне, а **машина состояний в главном потоке**: наружу уходит только
+HTTP-запрос, а `_on_turn` выполняется как слот главного потока.
 
-- add/finalize streaming model messages
-- add plan/system/result messages
-- toggle busy state and plan buttons
-- expose prompt input for clear()
+## Классы безопасности
 
-This keeps core independent from concrete widget implementation details.
+Каждый тул объявляет `safety`:
+
+| Класс         | Поведение                                              |
+| ------------- | ------------------------------------------------------ |
+| `read`        | выполняется сразу, подтверждение не запрашивается       |
+| `write`       | копится в батч, применяется после кнопки пользователя   |
+| `destructive` | зарезервирован под персональное подтверждение           |
+
+Write-вызов возвращает модели `{"status": "queued"}` — это штатный успешный
+ответ, а не ошибка. Изменения применяются только после нажатия кнопки.
+
+## Скиллы и прогрессивное раскрытие
+
+Скилл — это пакет домена: `SKILL.md` с фронтматтером (`name`, `description`,
+`tools`) плюс тело с правилами. В системном промпте всегда лежат только
+однострочники всех скиллов. Тело и схемы тулов подгружаются, когда агент вызывает
+мета-тул `load_skill`. Скилл `inspect` загружен всегда — иначе простой вопрос
+стоил бы лишнего хода.
+
+Рост промпта по мере загрузки: 1759 → 3151 → 5172 → 7005 символов. Без
+раскрытия все домены весили бы 7005 символов в каждом запросе.
+
+## Транспорт
+
+`core/llm/transport.py` пробует нативный function calling (`tools` +
+`tool_choice`). Если эндпоинт отвечает ошибкой про неподдерживаемый параметр,
+адаптер переключается на JSON-протокол в промпте и запоминает выбор в
+`QgsSettings` по хешу URL. Оба пути нормализуются в один `ModelTurn` — цикл не
+знает, какой сработал.
+
+## Добавление нового домена
+
+1. `qgis_tools/<domain>/` — классы тулов с `skill = "<domain>"` и `safety`
+2. `skills/<domain>/SKILL.md` — фронтматтер и правила домена
+3. подключить список тулов в `qgis_tools/registry.py`
+
+Оркестрация, цикл и промпт не трогаются.
 
 ## Prompt Policy
 
-- system prompts are authored in English
-- user-facing fields (`preface`, `plan_description`, clarification text) remain Russian
-- JSON shape remains stable:
-  - `can_do`
-  - `preface`
-  - `plan_description`
-  - `steps`
-  - `clarification_questions`
+- системные промпты и `SKILL.md` пишутся по-английски
+- весь текст, который видит пользователь, — по-русски
