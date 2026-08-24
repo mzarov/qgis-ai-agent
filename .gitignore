@@ -144,6 +144,10 @@ ENV/
 env.bak/
 venv.bak/
 
+# Secrets (API-ключи плагина хранятся в keyring, но подстрахуемся)
+keys.txt
+secrets.json
+
 # Spyder project settings
 .spyderproject
 .spyproject
