@@ -65,10 +65,21 @@ class DescribeLayerTool(BaseTool):
         if isinstance(layer, QgsVectorLayer):
             result["geometry"] = geometry_type_name(layer)
             result["feature_count"] = safe_feature_count(layer)
-            result["fields"] = self._describe_fields(layer)
+            result.update(self._fields_block(layer))
         elif isinstance(layer, QgsRasterLayer):
             result.update(self._describe_raster(layer))
         return result
+
+    @classmethod
+    def _fields_block(cls, layer: QgsVectorLayer) -> dict[str, Any]:
+        described = cls._describe_fields(layer)
+        block: dict[str, Any] = {"fields": described[:MAX_FIELDS], "field_count": len(described)}
+        if len(described) > MAX_FIELDS:
+            block["fields_note"] = (
+                f"показаны первые {MAX_FIELDS} полей из {len(described)}; "
+                "остальные есть в слое, но здесь не перечислены"
+            )
+        return block
 
     @staticmethod
     def _describe_fields(layer: QgsVectorLayer) -> list[dict[str, Any]]:
@@ -76,8 +87,6 @@ class DescribeLayerTool(BaseTool):
         try:
             for field in layer.fields():
                 fields.append({"name": field.name(), "type": field.typeName() or str(field.type())})
-                if len(fields) >= MAX_FIELDS:
-                    break
         except Exception:
             pass
         return fields

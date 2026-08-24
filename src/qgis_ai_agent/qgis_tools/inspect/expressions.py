@@ -7,6 +7,8 @@ from qgis.core import (
     QgsFeatureRequest,
 )
 
+from qgis_ai_agent.qgis_tools.inspect.utils import suggest_fields
+
 DESCENDING_MARKERS = ("desc", "descending")
 ASCENDING_MARKERS = ("asc", "ascending")
 SPECIAL_COLUMNS = {"*", "$geometry", "$id", "$area", "$length", "$perimeter", "$x", "$y"}
@@ -47,8 +49,9 @@ def check_columns(expression: QgsExpression, layer, label: str, text: str) -> No
         return
     raise ValueError(
         f"В выражении «{label}» нет таких полей: {', '.join(unknown)}. "
-        f"Выражение было: {text}. Доступные поля: {', '.join(sorted(available))}. "
-        "Текстовые значения пишутся в одинарных кавычках: highway = 'motorway'."
+        f"Выражение было: {text}. {suggest_fields(unknown, sorted(available))} "
+        "Если это текстовое значение, оно пишется в одинарных кавычках: "
+        "highway = 'motorway'."
     )
 
 

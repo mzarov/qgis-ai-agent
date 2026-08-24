@@ -3,7 +3,7 @@ from typing import Any
 from qgis.core import QgsVectorLayer
 
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
-from qgis_ai_agent.qgis_tools.inspect.utils import find_layer_by_name
+from qgis_ai_agent.qgis_tools.inspect.utils import find_layer_by_name, suggest_fields
 
 DEFAULT_LIMIT = 25
 MAX_LIMIT = 100
@@ -69,8 +69,8 @@ class GetFieldValuesTool(BaseTool):
     def _field_index(layer: QgsVectorLayer, field_name: str) -> int:
         index = layer.fields().indexOf(field_name)
         if index < 0:
-            available = ", ".join(layer.fields().names())
-            raise ValueError(f"Поле не найдено: «{field_name}». Доступные поля: {available}.")
+            hint = suggest_fields([field_name], layer.fields().names())
+            raise ValueError(f"Поле не найдено: «{field_name}». {hint}")
         return index
 
     @staticmethod
