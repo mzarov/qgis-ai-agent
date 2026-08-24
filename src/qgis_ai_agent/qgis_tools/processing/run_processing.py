@@ -2,6 +2,7 @@ from typing import Any
 
 from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
 from qgis_ai_agent.qgis_tools.processing.utils import (
+    check_distance_units,
     coerce_parameters,
     find_algorithm,
     normalize_output,
@@ -73,6 +74,8 @@ class RunProcessingTool(BaseTool):
 
         # Модель присылает enum-варианты подписью, а выход часто вовсе не указывает.
         prepared = coerce_parameters(algorithm, arguments)
+        # Метры на географической CRS дадут мусор — лучше упасть с объяснением.
+        check_distance_units(algorithm, prepared)
         runner = processing.runAndLoadResults if load_output else processing.run
         result = runner(algorithm.id(), prepared)
         return {

@@ -40,6 +40,22 @@ def crs_authid(layer: QgsMapLayer) -> str:
         return ""
 
 
+def crs_is_geographic(layer: QgsMapLayer) -> bool:
+    """
+    Географическая ли CRS слоя. Важно для обработки: в такой CRS расстояния
+    измеряются в градусах, и буфер «500 метров» без перепроецирования не построить.
+    """
+    try:
+        return bool(layer.crs().isGeographic())
+    except Exception:
+        return False
+
+
+def crs_units(layer: QgsMapLayer) -> str:
+    """Единицы измерения CRS слоя человекочитаемо."""
+    return "градусы" if crs_is_geographic(layer) else "метры или иные линейные единицы"
+
+
 def extent_dict(rectangle) -> dict[str, float] | None:
     """Переводит QgsRectangle в словарь с округлением."""
     if rectangle is None:
@@ -64,6 +80,7 @@ def describe_layer_brief(layer: QgsMapLayer) -> dict[str, Any]:
         "name": (layer.name() or "Без имени").strip(),
         "kind": kind,
         "crs": crs_authid(layer),
+        "crs_is_geographic": crs_is_geographic(layer),
     }
     if kind == "vector":
         brief["geometry"] = geometry_type_name(layer)

@@ -5,6 +5,8 @@ from qgis.core import QgsRasterLayer, QgsVectorLayer
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
 from qgis_ai_agent.qgis_tools.inspect.utils import (
     crs_authid,
+    crs_is_geographic,
+    crs_units,
     extent_dict,
     find_layer_by_name,
     geometry_type_name,
@@ -48,6 +50,8 @@ class DescribeLayerTool(BaseTool):
             "name": (layer.name() or "").strip(),
             "kind": kind,
             "crs": crs_authid(layer),
+            "crs_is_geographic": crs_is_geographic(layer),
+            "crs_units": crs_units(layer),
             "extent": extent_dict(self._safe_extent(layer)),
         }
         if isinstance(layer, QgsVectorLayer):

@@ -41,7 +41,7 @@ class CoreOrchestrator:
         """Пользователь отправил запрос — запускаем новый прогон агента."""
         text = (prompt or "").strip()
         if not text:
-            self.iface.messageBar().pushWarning("QGIS AI Agent", "Введите запрос.")
+            self._push_message("Введите запрос.", Qgis.Warning)
             return
         if self.agent.is_running:
             self.dock_widget.add_system_message("Дождитесь окончания текущей задачи.")
@@ -114,12 +114,26 @@ class CoreOrchestrator:
         if failed:
             details = "; ".join(str(result.payload.get("error", "")) for result in failed)
             self.dock_widget.add_system_message(f"Часть шагов не выполнена: {details}")
-            self.iface.messageBar().pushWarning("QGIS AI Agent", "Не все изменения применены.")
+            self._push_message("Не все изменения применены.", Qgis.Warning)
             return
         self.dock_widget.add_result_message(
-            f"Готово: применено шагов — {len(results)}. Проект → Менеджер макетов."
+            f"Готово: применено шагов — {len(results)}.{self._where_to_look(results)}"
         )
-        self.iface.messageBar().pushSuccess("QGIS AI Agent", "Изменения применены.")
+        self._push_message("Изменения применены.", Qgis.Success)
+
+    @staticmethod
+    def _where_to_look(results: list) -> str:
+        """Подсказка, где смотреть результат — зависит от того, что реально делалось."""
+        hints = []
+        if any("layout_name" in result.payload for result in results):
+            hints.append("макет — в Проект → Менеджер макетов")
+        if any("outputs" in result.payload for result in results):
+            hints.append("новые слои — на панели слоёв")
+        return " Смотрите: " + ", ".join(hints) + "." if hints else ""
+
+    def _push_message(self, text: str, level) -> None:
+        """Сообщение в шину QGIS с автоскрытием, чтобы старые плашки не висели."""
+        self.iface.messageBar().pushMessage("QGIS AI Agent", text, level=level, duration=8)
 
     def on_finished(self, text: str) -> None:
         """Агент закончил без изменений проекта — это ответ на вопрос."""
@@ -136,7 +150,7 @@ class CoreOrchestrator:
         self._active_tool_message_id = None
         self._plan_message_id = None
         self.dock_widget.add_system_message(f"Ошибка: {message}")
-        self.iface.messageBar().pushCritical("QGIS AI Agent", message)
+        self._push_message(message, Qgis.Critical)
 
     def shutdown(self) -> None:
         """Останавливает активный запрос при выгрузке плагина."""

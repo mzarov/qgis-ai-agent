@@ -11,6 +11,9 @@ DESTINATION_TYPES = {
     "folderDestination",
 }
 TEMPORARY_OUTPUT = "TEMPORARY_OUTPUT"
+# Расстояние больше этого на географической CRS почти наверняка задано в метрах:
+# 1 градус — это уже около 111 км, легитимные буферы в градусах заметно меньше.
+SUSPICIOUS_DEGREES = 1.0
 
 
 def get_registry():
@@ -85,6 +88,60 @@ def _parameter_options(parameter) -> list[str]:
     except AttributeError:
         return []
     return [str(option) for option in options] if options else []
+
+
+def check_distance_units(algorithm, arguments: dict[str, Any]) -> None:
+    """
+    Ловит классическую ошибку: расстояние в метрах на слое с географической CRS.
+    В EPSG:4326 единица — градус, поэтому DISTANCE=500 даёт буфер в 500 градусов
+    и вырожденную геометрию вместо результата. Молча исправлять нельзя —
+    выбор между перепроецированием и градусами за пользователем.
+    """
+    from qgis.core import QgsProject
+
+    for parameter in algorithm.parameterDefinitions():
+        if parameter.type() != "distance":
+            continue
+        value = arguments.get(parameter.name())
+        try:
+            distance = float(value)
+        except (TypeError, ValueError):
+            continue
+        if distance <= SUSPICIOUS_DEGREES:
+            continue
+
+        layer_name = arguments.get(_parent_parameter_name(parameter))
+        if not isinstance(layer_name, str):
+            continue
+        layers = QgsProject.instance().mapLayersByName(layer_name.strip())
+        if not layers or not _is_geographic(layers[0]):
+            continue
+
+        raise ValueError(
+            f"Слой «{layer_name}» в географической CRS ({layers[0].crs().authid()}), "
+            f"её единица — градус, а не метр. Значение {parameter.name()}={distance} "
+            f"будет истолковано как {distance} градусов и даст бессмысленный результат. "
+            "Сначала перепроецируйте слой в метрическую CRS "
+            "(алгоритм native:reprojectlayer, например в UTM или EPSG:3857) "
+            "и запустите обработку на результате. "
+            f"Если {distance} действительно задано в градусах — так и скажите пользователю."
+        )
+
+
+def _parent_parameter_name(parameter) -> str:
+    """Имя параметра-слоя, к которому привязано расстояние."""
+    try:
+        return parameter.parentParameterName() or ""
+    except AttributeError:
+        return ""
+
+
+def _is_geographic(layer) -> bool:
+    """Является ли CRS слоя географической (единицы — градусы)."""
+    try:
+        return bool(layer.crs().isGeographic())
+    except Exception:
+        return False
 
 
 def coerce_parameters(algorithm, arguments: dict[str, Any]) -> dict[str, Any]:
