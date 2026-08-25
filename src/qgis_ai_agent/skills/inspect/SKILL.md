@@ -62,9 +62,22 @@ not a guess from `sample_features`.
 | Суммарная площадь озёр | `aggregate="sum"`, `expression="$area"` |
 | Средняя длина дороги по типам | `aggregate="mean"`, `expression="$length"`, `group_by="highway"` |
 
+### Length and area are not fields
+
 Geometry is available through expressions — `$length`, `$area`, `$geometry`,
-`intersects()`, `distance()`, `buffer()`. A question about size, length or spatial
-relation does not need a geoprocessing algorithm; it needs the right expression.
+`intersects()`, `distance()`, `buffer()`.
+
+**Never go looking for a field that holds length or area.** Layers almost never
+have one, and failing to find it is not an answer. "Какая река самая длинная" is
+a single call:
+
+```
+query_layer(layer_name="Реки", order_by="$length DESC", limit=1, fields=["name"])
+```
+
+The same mistake wears other disguises: scanning `describe_layer` for a `length`
+column, sampling features hoping to spot one, or telling the user the data is
+missing. The data is in the geometry — measure it.
 
 Rules that matter:
 
