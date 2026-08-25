@@ -3,16 +3,17 @@ from typing import Any
 from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
 from qgis_ai_agent.qgis_tools.osm.args import (
     CANVAS,
+    as_text,
     geometry,
     required_key,
     selectors,
     territory,
     wanted_name,
-    as_text,
 )
 from qgis_ai_agent.qgis_tools.osm.fetch import fetch
 from qgis_ai_agent.qgis_tools.osm.load import SUBLAYERS, load_sublayers, write_payload
 from qgis_ai_agent.qgis_tools.osm.overpass import build_query
+
 NOTHING_FOUND = (
     "Overpass отработал, но объектов по такому запросу нет. Проверьте ключ и "
     "значение — например, amenity=cafe, а не amenity=кафе, — либо расширьте территорию."
