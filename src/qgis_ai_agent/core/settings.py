@@ -52,6 +52,19 @@ def set_verify_ssl(value: bool) -> None:
     s.sync()
 
 
+DIALECT_AUTO = "auto"
+
+
+def get_dialect() -> str:
+    s = QgsSettings()
+    return s.value(f"{SETTINGS_PREFIX}/api_dialect", DIALECT_AUTO, type=str) or DIALECT_AUTO
+
+
+def set_dialect(value: str | None) -> None:
+    s = QgsSettings()
+    s.setValue(f"{SETTINGS_PREFIX}/api_dialect", value or DIALECT_AUTO)
+
+
 AUTH_TYPE_BEARER = "Bearer"
 AUTH_TYPE_OAUTH = "OAuth"
 

@@ -1,7 +1,9 @@
+from qgis_ai_agent.core.llm.dialects import headers_for, path_for, resolve
 from qgis_ai_agent.core.settings import (
     get_api_key,
     get_api_url,
     get_auth_type,
+    get_dialect,
     get_model,
     get_verify_ssl,
 )
@@ -47,17 +49,23 @@ def resolve_endpoint(url_override=None):
     return url
 
 
-def build_request(url_override=None, key_override=None, auth_type_override=None, model_override=None):
+def build_request(
+    url_override=None,
+    key_override=None,
+    auth_type_override=None,
+    model_override=None,
+    dialect_override=None,
+):
     url = resolve_endpoint(url_override)
     key = ((key_override if key_override is not None else get_api_key()) or "").strip()
     if not key and not is_local(url):
         raise ValueError(MISSING_KEY_MSG)
+    chosen = dialect_override if dialect_override is not None else get_dialect()
+    dialect = resolve(url, chosen)
     auth_type = auth_type_override if auth_type_override is not None else get_auth_type()
-    headers = {"Content-Type": "application/json"}
-    if key:
-        headers["Authorization"] = f"{auth_type} {key}" if auth_type else f"Bearer {key}"
+    headers = headers_for(dialect, key, auth_type, url)
     model = (model_override if model_override is not None else get_model()) or ""
-    return f"{url}/chat/completions", headers, model
+    return url + path_for(dialect), headers, model
 
 
 def is_local(url):
@@ -72,6 +80,17 @@ def _host_of(url):
     return authority.split(":")[0]
 
 
+def post_json(endpoint, headers, body, timeout=DEFAULT_TIMEOUT, verify_override=None):
+    session = get_session()
+    verify_ssl = bool(verify_override) if verify_override is not None else get_verify_ssl()
+    response = session.post(
+        endpoint, json=body, headers=headers, timeout=timeout, verify=verify_ssl
+    )
+    if response.status_code >= 400:
+        raise ApiResponseError(response.status_code, response.text or "")
+    return response.json()
+
+
 def post_chat_completion(
     messages,
     extra_body=None,
@@ -81,22 +100,15 @@ def post_chat_completion(
     key_override=None,
     auth_type_override=None,
     verify_override=None,
+    dialect_override=None,
 ):
-    session = get_session()
     endpoint, headers, model = build_request(
-        url_override, key_override, auth_type_override, model_override
+        url_override, key_override, auth_type_override, model_override, dialect_override
     )
     body = {"model": model, "messages": messages, "stream": False}
     if extra_body:
         body.update(extra_body)
-    verify_ssl = bool(verify_override) if verify_override is not None else get_verify_ssl()
-
-    response = session.post(
-        endpoint, json=body, headers=headers, timeout=timeout, verify=verify_ssl
-    )
-    if response.status_code >= 400:
-        raise ApiResponseError(response.status_code, response.text or "")
-    return response.json()
+    return post_json(endpoint, headers, body, timeout, verify_override)
 
 
 def chat(messages, timeout=60, **overrides):

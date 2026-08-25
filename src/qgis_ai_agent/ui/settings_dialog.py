@@ -10,6 +10,7 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
 )
 
+from qgis_ai_agent.core.llm.dialects import DIALECTS
 from qgis_ai_agent.core.settings import (
     AUTH_TYPE_BEARER,
     AUTH_TYPE_OAUTH,
@@ -17,10 +18,12 @@ from qgis_ai_agent.core.settings import (
     get_api_url,
     get_auth_type,
     get_model,
+    get_dialect,
     get_verify_ssl,
     set_api_key,
     set_api_url,
     set_auth_type,
+    set_dialect,
     set_model,
     set_verify_ssl,
 )
@@ -48,6 +51,17 @@ class SettingsDialog(QDialog):
         self.key_edit.setPlaceholderText("Оставьте пустым, чтобы не менять")
         self.key_edit.setText(get_api_key())
         form.addRow("API-ключ:", self.key_edit)
+
+        self.dialect_combo = QComboBox()
+        self.dialect_combo.addItems(list(DIALECTS))
+        index = self.dialect_combo.findText(get_dialect())
+        if index >= 0:
+            self.dialect_combo.setCurrentIndex(index)
+        self.dialect_combo.setToolTip(
+            "auto определяет формат по адресу: api.anthropic.com — Anthropic, "
+            "всё остальное — OpenAI-совместимый."
+        )
+        form.addRow("Формат API:", self.dialect_combo)
 
         self.auth_type_combo = QComboBox()
         self.auth_type_combo.addItems([AUTH_TYPE_BEARER, AUTH_TYPE_OAUTH])
@@ -80,6 +94,7 @@ class SettingsDialog(QDialog):
         set_api_url(url or None)
         set_model(model or None)
         set_auth_type(self.auth_type_combo.currentText())
+        set_dialect(self.dialect_combo.currentText())
         set_verify_ssl(self.verify_ssl_cb.isChecked())
         if key:
             try:
@@ -98,6 +113,7 @@ class SettingsDialog(QDialog):
             model = self.model_edit.text().strip()
             key = self.key_edit.text().strip() or get_api_key()
             auth_type = self.auth_type_combo.currentText()
+            dialect = self.dialect_combo.currentText()
             verify = self.verify_ssl_cb.isChecked()
             reply = chat(
                 [{"role": "user", "content": "Ответь одним словом: ок"}],
@@ -105,6 +121,7 @@ class SettingsDialog(QDialog):
                 model_override=model or None,
                 key_override=key or None,
                 auth_type_override=auth_type or None,
+                dialect_override=dialect or None,
                 verify_override=verify,
             )
             QMessageBox.information(
