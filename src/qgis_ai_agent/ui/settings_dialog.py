@@ -82,7 +82,11 @@ class SettingsDialog(QDialog):
         set_auth_type(self.auth_type_combo.currentText())
         set_verify_ssl(self.verify_ssl_cb.isChecked())
         if key:
-            set_api_key(key)
+            try:
+                set_api_key(key)
+            except RuntimeError as error:
+                QMessageBox.warning(self, "Ключ не сохранён", str(error))
+                return
         QMessageBox.information(self, "Настройки", "Настройки сохранены.")
 
     def _test_connection(self):
