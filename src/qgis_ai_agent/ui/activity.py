@@ -1,4 +1,5 @@
-from qgis.PyQt.QtCore import Qt
+import time
+
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -10,12 +11,16 @@ from qgis.PyQt.QtWidgets import (
 
 from qgis_ai_agent.ui import style
 
-PENDING = "•"
+COLLAPSED = "›"
+EXPANDED = "⌄"
+PENDING = "●"
 DONE = "✓"
 FAILED = "✕"
 REJECTED = "⊘"
 STEP_FONT_SCALE = 0.9
-STEPS_INDENT = 22
+MARKER_WIDTH = 14
+STEPS_INDENT = 26
+SLOW_STEP_SECONDS = 0.15
 
 
 class ActivityGroup(QFrame):
@@ -23,7 +28,8 @@ class ActivityGroup(QFrame):
         super().__init__(parent)
         palette = self.palette()
         self.setStyleSheet(
-            f"QFrame {{ border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
+            f"QFrame {{ background: {style.css_color(style.card(palette))};"
+            f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
             f"border-radius: {style.CARD_RADIUS}px; }}"
         )
         column = QVBoxLayout(self)
@@ -31,21 +37,27 @@ class ActivityGroup(QFrame):
         column.setSpacing(0)
         column.addWidget(self._build_header(palette))
         column.addWidget(self._build_steps(palette))
-        self._steps_count = 0
+        self._count = 0
         self._failed = False
-        self._collapse()
+        self._started = time.monotonic()
+        self._steps_holder.setVisible(False)
 
     def _build_header(self, palette) -> QWidget:
         header = QWidget()
+        header.setStyleSheet("border: none;")
         row = QHBoxLayout(header)
-        row.setContentsMargins(9, 6, 10, 6)
-        row.setSpacing(7)
+        row.setContentsMargins(8, 6, 11, 6)
+        row.setSpacing(8)
 
         self._toggle = QToolButton()
         self._toggle.setAutoRaise(True)
         self._toggle.setCheckable(True)
-        self._toggle.setArrowType(Qt.ArrowType.RightArrow)
-        self._toggle.setStyleSheet("QToolButton { border: none; }")
+        self._toggle.setText(COLLAPSED)
+        self._toggle.setFixedWidth(MARKER_WIDTH)
+        self._toggle.setStyleSheet(
+            f"QToolButton {{ border: none; background: transparent;"
+            f"color: {style.css_color(style.muted(palette))}; font-size: 15px; }}"
+        )
         self._toggle.toggled.connect(self._on_toggled)
         row.addWidget(self._toggle)
 
@@ -53,60 +65,98 @@ class ActivityGroup(QFrame):
         self._title.setStyleSheet(f"color: {style.css_color(style.muted(palette))}; border: none;")
         row.addWidget(self._title, 1)
 
+        self._elapsed = QLabel()
+        self._elapsed.setStyleSheet(
+            f"color: {style.css_color(style.muted(palette))}; border: none;"
+        )
+        self._shrink(self._elapsed)
+        row.addWidget(self._elapsed)
+
         self._status = QLabel()
         self._status.setStyleSheet("border: none;")
+        self._status.setFixedWidth(MARKER_WIDTH)
         row.addWidget(self._status)
         return header
 
     def _build_steps(self, palette) -> QWidget:
         self._steps_holder = QWidget()
+        self._steps_holder.setStyleSheet("border: none;")
         self._steps = QVBoxLayout(self._steps_holder)
-        self._steps.setContentsMargins(STEPS_INDENT, 0, 10, 8)
-        self._steps.setSpacing(3)
-        self._steps_holder.setStyleSheet(
-            f"color: {style.css_color(style.muted(palette))}; border: none;"
-        )
+        self._steps.setContentsMargins(STEPS_INDENT, 0, 11, 9)
+        self._steps.setSpacing(5)
         return self._steps_holder
 
-    def add_step(self, text: str) -> QLabel:
-        label = QLabel(f"{PENDING}  {text}")
-        label.setWordWrap(True)
+    def add_step(self, text: str) -> QWidget:
+        row = StepRow(text, self.palette())
+        self._steps.addWidget(row)
+        self._count += 1
+        self._refresh()
+        return row
+
+    def mark_step(self, row: "StepRow", ok: bool) -> None:
+        row.set_state(DONE if ok else FAILED, ok)
+        if not ok:
+            self._failed = True
+        self._refresh()
+
+    def mark_rejected(self, row: "StepRow") -> None:
+        row.set_state(REJECTED, False)
+        self._failed = True
+        self._refresh()
+
+    def _refresh(self) -> None:
+        palette = self.palette()
+        self._title.setText(f"{self._count} {_plural(self._count)}")
+        self._status.setText(FAILED if self._failed else DONE)
+        colour = style.danger(palette) if self._failed else style.success(palette)
+        self._status.setStyleSheet(f"color: {style.css_color(colour)}; border: none;")
+        seconds = time.monotonic() - self._started
+        self._elapsed.setText(_format_seconds(seconds) if seconds >= SLOW_STEP_SECONDS else "")
+
+    def _on_toggled(self, expanded: bool) -> None:
+        self._toggle.setText(EXPANDED if expanded else COLLAPSED)
+        self._steps_holder.setVisible(expanded)
+
+    @staticmethod
+    def _shrink(label: QLabel) -> None:
         font = label.font()
         font.setPointSizeF(max(1.0, font.pointSizeF() * STEP_FONT_SCALE))
         label.setFont(font)
-        self._steps.addWidget(label)
-        self._steps_count += 1
-        self._refresh_title()
-        return label
 
-    def mark_step(self, label: QLabel, ok: bool) -> None:
-        marker = DONE if ok else FAILED
-        label.setText(label.text().replace(PENDING, marker, 1))
-        if not ok:
-            self._failed = True
-            self._refresh_title()
 
-    def mark_rejected(self, label: QLabel) -> None:
-        label.setText(label.text().replace(PENDING, REJECTED, 1))
-        self._failed = True
-        self._refresh_title()
+class StepRow(QWidget):
+    def __init__(self, text: str, palette, parent=None):
+        super().__init__(parent)
+        self.setStyleSheet("border: none;")
+        row = QHBoxLayout(self)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(8)
 
-    def _refresh_title(self) -> None:
-        self._title.setText(f"{self._steps_count} {_plural(self._steps_count)}")
-        self._status.setText(FAILED if self._failed else DONE)
+        self._marker = QLabel(PENDING)
+        self._marker.setFixedWidth(MARKER_WIDTH)
+        self._marker.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
+        row.addWidget(self._marker)
+
+        label = QLabel(text)
+        label.setWordWrap(True)
+        label.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
+        font = label.font()
+        font.setPointSizeF(max(1.0, font.pointSizeF() * STEP_FONT_SCALE))
+        label.setFont(font)
+        self._marker.setFont(font)
+        row.addWidget(label, 1)
+
+    def set_state(self, marker: str, ok: bool) -> None:
         palette = self.palette()
-        colour = palette.text().color() if self._failed else style.muted(palette)
-        self._status.setStyleSheet(f"color: {style.css_color(colour)}; border: none;")
+        colour = style.success(palette) if ok else style.danger(palette)
+        self._marker.setText(marker)
+        self._marker.setStyleSheet(f"color: {style.css_color(colour)};")
 
-    def _on_toggled(self, expanded: bool) -> None:
-        self._toggle.setArrowType(
-            Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow
-        )
-        self._steps_holder.setVisible(expanded)
 
-    def _collapse(self) -> None:
-        self._toggle.setChecked(False)
-        self._steps_holder.setVisible(False)
+def _format_seconds(seconds: float) -> str:
+    if seconds < 60:
+        return f"{seconds:.1f} с".replace(".", ",")
+    return f"{int(seconds // 60)} мин {int(seconds % 60)} с"
 
 
 def _plural(count: int) -> str:

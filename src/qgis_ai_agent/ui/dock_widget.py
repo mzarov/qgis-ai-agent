@@ -1,4 +1,4 @@
-from qgis.PyQt.QtCore import pyqtSignal
+from qgis.PyQt.QtCore import QSize, pyqtSignal
 from qgis.PyQt.QtWidgets import (
     QDockWidget,
     QHBoxLayout,
@@ -16,6 +16,8 @@ TITLE = "QGIS AI Agent"
 SETTINGS_ICON = "/mActionOptions.svg"
 CLEAR_ICON = "/mActionDeleteSelected.svg"
 HEADER_MARGINS = (11, 8, 9, 8)
+HEADER_ICON = 15
+HEADER_BUTTON = 24
 BODY_MARGINS = (9, 0, 9, 9)
 
 
@@ -53,23 +55,29 @@ class AgentDockWidget(QDockWidget):
         title.setFont(font)
         title.setStyleSheet("border: none;")
         row.addWidget(title, 1)
-        row.addWidget(self._build_action(CLEAR_ICON, "Очистить диалог", self._on_clear))
+        row.addWidget(self._build_action(CLEAR_ICON, "⌫", "Очистить диалог", self._on_clear))
         row.addWidget(
-            self._build_action(SETTINGS_ICON, "Настройки", self.open_settings_clicked.emit)
+            self._build_action(SETTINGS_ICON, "⚙", "Настройки", self.open_settings_clicked.emit)
         )
         return header
 
-    @staticmethod
-    def _build_action(icon_name: str, tooltip: str, handler) -> QToolButton:
+    def _build_action(self, icon_name: str, glyph: str, tooltip: str, handler) -> QToolButton:
         button = QToolButton()
         button.setAutoRaise(True)
         button.setToolTip(tooltip)
-        button.setStyleSheet("QToolButton { border: none; }")
+        button.setFixedSize(HEADER_BUTTON, HEADER_BUTTON)
+        button.setStyleSheet(
+            f"QToolButton {{ border: none; background: transparent;"
+            f"color: {style.css_color(style.muted(self.palette()))}; font-size: 14px; }}"
+            f"QToolButton:hover {{ background: {style.css_color(style.card(self.palette()))};"
+            "border-radius: 5px; }"
+        )
         icon = style.theme_icon(icon_name)
         if icon.isNull():
-            button.setText(tooltip[0])
+            button.setText(glyph)
         else:
             button.setIcon(icon)
+            button.setIconSize(QSize(HEADER_ICON, HEADER_ICON))
         button.clicked.connect(handler)
         return button
 

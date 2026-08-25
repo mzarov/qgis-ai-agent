@@ -4,9 +4,11 @@ from qgis.core import QgsApplication
 CARD_RADIUS = 10
 BUBBLE_RADIUS = 12
 HAIRLINE = 1
-USER_TINT = 0.16
+USER_TINT = 0.26
 CARD_TINT = 0.5
-MUTED_TINT = 0.45
+ELEVATED_TINT = 0.9
+BORDER_TINT = 0.8
+MUTED_TINT = 0.38
 
 
 def theme_icon(name: str) -> QIcon:
@@ -35,11 +37,32 @@ def surface(palette: QPalette) -> QColor:
 
 
 def card(palette: QPalette) -> QColor:
-    return blend(palette.base().color(), palette.window().color(), CARD_TINT)
+    base = palette.base().color()
+    target = QColor(255, 255, 255) if not is_dark(palette) else QColor(0, 0, 0)
+    lifted = blend(base, palette.window().color(), CARD_TINT)
+    return blend(lifted, target, 0.06 if is_dark(palette) else 0.0)
+
+
+def elevated(palette: QPalette) -> QColor:
+    base = palette.base().color()
+    lift = QColor(255, 255, 255) if is_dark(palette) else QColor(0, 0, 0)
+    return blend(base, lift, 0.07)
 
 
 def hairline(palette: QPalette) -> QColor:
-    return blend(palette.base().color(), palette.mid().color(), 0.55)
+    return blend(palette.base().color(), palette.mid().color(), BORDER_TINT)
+
+
+def success(palette: QPalette) -> QColor:
+    return QColor(106, 191, 142) if is_dark(palette) else QColor(31, 122, 71)
+
+
+def danger(palette: QPalette) -> QColor:
+    return QColor(226, 116, 116) if is_dark(palette) else QColor(176, 48, 48)
+
+
+def warning(palette: QPalette) -> QColor:
+    return QColor(230, 178, 90) if is_dark(palette) else QColor(160, 105, 15)
 
 
 def accent(palette: QPalette) -> QColor:
