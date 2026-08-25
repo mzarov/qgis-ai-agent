@@ -24,6 +24,103 @@ Never call `run_processing` from memory. Always:
 Guessing a parameter name produces a failed run and a confusing error for the
 user. One extra read call is much cheaper than a wrong write.
 
+## The map most requests land on
+
+Search still needs the right English words, and a few everyday tasks are not
+algorithms at all. Start from this table, then confirm with `describe_processing`
+— the ids below are stable QGIS core, but the parameters are not worth guessing.
+
+**Vector overlay**
+
+| Задача | id |
+|---|---|
+| обрезать слой по границе другого | `native:clip` |
+| пересечение двух слоёв | `native:intersection` |
+| объединение с сохранением атрибутов | `native:union` |
+| вычесть один слой из другого | `native:difference` |
+| склеить несколько слоёв в один | `native:mergevectorlayers` |
+| растворить границы, сгруппировав по полю | `native:dissolve` |
+
+**Геометрия**
+
+| Задача | id |
+|---|---|
+| буфер | `native:buffer` |
+| центроиды полигонов | `native:centroids` |
+| выпуклая оболочка | `native:convexhull` |
+| упростить геометрию | `native:simplifygeometries` |
+| починить битую геометрию | `native:fixgeometries` |
+| сменить проекцию слоя | `native:reprojectlayer` |
+| разбить мультичасти на отдельные объекты | `native:multiparttosingleparts` |
+| полигоны Вороного | `native:voronoipolygons` |
+
+**Атрибуты и связи**
+
+| Задача | id |
+|---|---|
+| добавить или пересчитать поле | `native:fieldcalculator` |
+| присоединить таблицу по общему полю | `native:joinattributestable` |
+| присоединить по расположению | `native:joinattributesbylocation` |
+| присоединить ближайший объект | `native:joinbynearest` |
+| оставить или переименовать поля | `native:refactorfields` |
+| статистика по группам | `qgis:statisticsbycategories` |
+| сколько точек в каждом полигоне | `native:countpointsinpolygon` |
+
+**Выборка**
+
+| Задача | id |
+|---|---|
+| отобрать по условию | `native:extractbyexpression` |
+| отобрать по расположению | `native:extractbylocation` |
+| отобрать по охвату | `native:extractbyextent` |
+
+**Растр**
+
+| Задача | id |
+|---|---|
+| растровый калькулятор | `native:rastercalc` |
+| обрезать растр по маске | `gdal:cliprasterbymasklayer` |
+| сменить проекцию растра | `gdal:warpreproject` |
+| склеить растры | `gdal:merge` |
+| уклон, экспозиция, отмывка | `native:slope`, `native:aspect`, `native:hillshade` |
+| изолинии | `gdal:contour` |
+| статистика растра по полигонам | `native:zonalstatisticsfb` |
+| снять значения растра в точках | `native:rastersampling` |
+| растр в полигоны | `gdal:polygonize` |
+| векторы в растр | `gdal:rasterize` |
+
+## Что алгоритмами не делается
+
+Три самых частых запроса — не алгоритмы, и поиск на них уводит не туда.
+`search_processing("area")` первым отдаёт `native:serviceareafrompoint`, то есть
+зону транспортной доступности, а вовсе не площадь.
+
+Площадь, длина, периметр, координаты — это **выражения**, а не алгоритмы:
+
+- посчитать и записать в поле — `native:fieldcalculator` с `FORMULA`
+- просто узнать значение, ничего не меняя — `query_layer` из скилла `inspect`
+
+| Нужно | Выражение |
+|---|---|
+| площадь полигона | `$area` |
+| длина линии, периметр | `$length`, `$perimeter` |
+| координаты точки | `$x`, `$y` |
+| площадь в гектарах | `$area / 10000` |
+
+Единицы `$area` и `$length` — это единицы CRS слоя. На географической системе
+получатся квадратные градусы, что бессмысленно: сначала `native:reprojectlayer`
+в метрическую CRS, потом счёт.
+
+NDVI и прочая арифметика по каналам — тоже не отдельный алгоритм, а
+`native:rastercalc` с выражением вида `("снимок@4" - "снимок@3") / ("снимок@4" + "снимок@3")`,
+где `@N` — номер канала, а имя перед `@` — имя слоя в проекте.
+
+У растрового калькулятора есть подвох: `EXTENT`, `CELL_SIZE` и `CRS` обязательны,
+и взять их неоткуда, кроме исходного растра. Сначала `describe_layer` по нему —
+оттуда `extent` и `crs`, — и только потом запуск. Размер ячейки берите из
+`describe_layer` того же растра, а не выдумывайте: чужое значение молча
+пересемплирует результат.
+
 ## Parameters
 
 - Input layers are given by their project layer name. Confirm the name with

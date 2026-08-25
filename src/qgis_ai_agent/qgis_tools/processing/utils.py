@@ -30,13 +30,14 @@ def get_registry():
 
 
 _SEARCH_INDEX: list[tuple[Any, dict[str, str]]] = []
+_INDEXED_COUNT = [-1]
 
 
 def build_search_index() -> list[tuple[Any, dict[str, str]]]:
-    if not _SEARCH_INDEX:
-        _SEARCH_INDEX.extend(
-            (algorithm, _haystack(algorithm)) for algorithm in get_registry().algorithms()
-        )
+    algorithms = get_registry().algorithms()
+    if _INDEXED_COUNT[0] != len(algorithms):
+        _SEARCH_INDEX[:] = [(algorithm, _haystack(algorithm)) for algorithm in algorithms]
+        _INDEXED_COUNT[0] = len(algorithms)
     return _SEARCH_INDEX
 
 
@@ -45,9 +46,11 @@ def _haystack(algorithm) -> dict[str, str]:
         tags = " ".join(algorithm.tags())
     except Exception:
         tags = ""
+    identifier = (algorithm.id() or "").lower()
     return {
         "name": (algorithm.displayName() or "").lower(),
-        "id": (algorithm.id() or "").lower(),
+        "id": identifier,
+        "bare": identifier.split(":")[-1],
         "tags": tags.lower(),
         "group": (algorithm.group() or "").lower(),
     }
