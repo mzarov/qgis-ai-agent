@@ -53,13 +53,15 @@ class BaseTool(ABC):
 
     @staticmethod
     def _build_property(param: dict[str, Any]) -> dict[str, Any]:
-        prop: dict[str, Any] = {
-            "type": JSON_SCHEMA_TYPES.get(param.get("type", "string"), "string"),
-            "description": param.get("description", ""),
-        }
+        kind = JSON_SCHEMA_TYPES.get(param.get("type", "string"), "string")
+        prop: dict[str, Any] = {"type": kind, "description": param.get("description", "")}
         enum_values = param.get("enum")
         if enum_values:
             prop["enum"] = list(enum_values)
+        if kind == "array":
+            prop["items"] = param.get("items") or {"type": "string"}
+        if kind == "object" and param.get("properties"):
+            prop["properties"] = dict(param["properties"])
         return prop
 
     def build_description(self) -> str:

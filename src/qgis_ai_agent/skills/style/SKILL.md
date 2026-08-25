@@ -1,7 +1,7 @@
 ---
 name: style
 description: Inspect how a layer is drawn — renderer type, classification field, classes with colours, labels, opacity. Load this for questions about appearance, colours or labelling.
-tools: [describe_style]
+tools: [describe_style, set_symbol, set_categories, set_graduated, set_labels, set_opacity]
 ---
 
 # Layer appearance
@@ -65,8 +65,48 @@ When the classification field matters, cross-check it with `get_field_values`
 from the `inspect` skill: a renderer can reference a field whose values have
 since changed, leaving classes that match nothing.
 
-## Limits
+## Changing how a layer looks
 
-This skill is read-only. There are no tools to change styling yet, so do not
-promise to recolour anything — describe what is there and, if the user wants a
-change, say plainly that it is not supported yet.
+Five write tools. Each **replaces** the renderer, so pick the one that matches the
+question rather than stacking calls on the same layer:
+
+| Ask | Tool |
+|---|---|
+| one colour for the whole layer | `set_symbol` |
+| a colour per value of a text field | `set_categories` |
+| classes over a numeric field | `set_graduated` |
+| turn labels on or off | `set_labels` |
+| make a layer see-through | `set_opacity` |
+
+`set_labels` and `set_opacity` are additive — they leave the renderer alone. The
+other three overwrite it, so applying `set_categories` after `set_symbol` on the
+same layer makes the first call pointless. Queue only the call you actually mean.
+
+These are write tools: the call returns `{"status": "queued"}` and the user
+applies the batch. Say "перекрашу", not "перекрасил".
+
+### Choosing between categories and graduations
+
+Text field with a handful of distinct values — `set_categories`. Numeric field
+with a continuous spread — `set_graduated`. If you do not know which, call
+`get_field_values` from the `inspect` skill first: it shows both the type and how
+many distinct values there are. Categorising a field with hundreds of values
+produces an unreadable map, and the tool refuses past 60.
+
+### Colours and ramps
+
+Colours are `#rrggbb` or English colour names. A ramp name must exist in the user's
+QGIS style library, and that library varies per install — do not trust a name you
+merely remember. Omitting `ramp` is safe: the tool picks a sensible default. Naming
+one that does not exist is also safe: the error lists what is available and you
+pick from that list. Common built-ins are `Spectral`, `Viridis`, `Blues`, `Set2`.
+
+Pick a ramp that suits the data: sequential (`Blues`, `Viridis`) for magnitudes,
+diverging (`Spectral`, `RdYlGn`) when there is a meaningful middle, qualitative
+(`Set2`, `Paired`) for categories that have no order.
+
+### Reading before writing
+
+For "почему это выглядит так" or "поменяй, но остальное оставь", call
+`describe_style` first. Without it you do not know what you are replacing, and
+these tools replace rather than patch.

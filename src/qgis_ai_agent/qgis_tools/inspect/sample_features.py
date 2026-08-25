@@ -37,6 +37,7 @@ class SampleFeaturesTool(BaseTool):
         {
             "name": "fields",
             "type": "array",
+            "items": {"type": "string"},
             "description": "Какие поля показать. По умолчанию все.",
             "required": False,
         },
