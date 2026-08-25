@@ -1,6 +1,6 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.common.renderers import renderer_summary
+from qgis_ai_agent.qgis_tools.common.renderers import renderer_summary, style_block
 from qgis_ai_agent.qgis_tools.style.renderers import describe_vector_renderer
 from qgis_ai_agent.qgis_tools.style.symbols import symbol_info
 
@@ -181,6 +181,23 @@ class RendererSummaryTest(unittest.TestCase):
 
     def test_missing_renderer_gives_nothing(self):
         self.assertEqual(renderer_summary(Layer(None)), "")
+
+
+class StyleBlockTest(unittest.TestCase):
+    def test_summary_never_travels_without_a_pointer(self):
+        block = style_block(Layer(SingleSymbol()))
+        self.assertEqual(block["style_summary"], "одиночный символ")
+        self.assertIn("describe_style", block["style_note"])
+
+    def test_pointer_names_the_skill_to_load(self):
+        self.assertIn("style", style_block(Layer(Categorized()))["style_note"])
+
+    def test_summary_never_leaks_a_colour(self):
+        block = style_block(Layer(SingleSymbol()))
+        self.assertNotIn("#", block["style_summary"])
+
+    def test_missing_renderer_gives_nothing_at_all(self):
+        self.assertEqual(style_block(Layer(None)), {})
 
 
 class SymbolInfoTest(unittest.TestCase):

@@ -15,7 +15,7 @@ asking the user for permission.
 |---|---|
 | What is this project? Groups, visibility, units, themes | `get_project_info` |
 | Which layers exist? | `list_layers` |
-| What is in this layer? Fields, extent, CRS, source, style | `describe_layer` |
+| What is in this layer? Fields, extent, CRS, source | `describe_layer` |
 | What values does this field hold? | `get_field_values` |
 | What does the actual data look like? | `sample_features` |
 | How many, which are the largest, what is the total? | `query_layer` |
