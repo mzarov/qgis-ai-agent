@@ -16,7 +16,10 @@ MIN_HEIGHT = 34
 MAX_HEIGHT = 120
 SEND_SIZE = 26
 HINT_FONT_SCALE = 0.85
-BUSY_TEXT = "Работаю…"
+SEND_GLYPH = "↑"
+STOP_GLYPH = "■"
+HINT_IDLE = "Enter — отправить, Shift+Enter — перенос"
+HINT_BUSY = "Работаю… нажмите ■, чтобы остановить"
 
 
 class PromptEdit(QPlainTextEdit):
@@ -33,9 +36,11 @@ class PromptEdit(QPlainTextEdit):
 
 class Composer(QWidget):
     submitted = pyqtSignal(str)
+    stopped = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._busy = False
         palette = self.palette()
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 0, 0, 0)
@@ -70,7 +75,7 @@ class Composer(QWidget):
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(8)
 
-        self._hint = QLabel("Enter — отправить, Shift+Enter — перенос")
+        self._hint = QLabel(HINT_IDLE)
         font = self._hint.font()
         font.setPointSizeF(max(1.0, font.pointSizeF() * HINT_FONT_SCALE))
         self._hint.setFont(font)
@@ -79,17 +84,26 @@ class Composer(QWidget):
         )
         row.addWidget(self._hint, 1)
 
-        self._send = QPushButton("↑")
+        self._send = QPushButton(SEND_GLYPH)
         self._send.setFixedSize(SEND_SIZE, SEND_SIZE)
         self._send.setToolTip("Отправить")
-        self._send.setStyleSheet(
-            f"QPushButton {{ background: {style.css_color(style.accent(palette))};"
-            f"color: {style.css_color(palette.highlightedText().color())};"
-            f"border: none; border-radius: {SEND_SIZE // 2}px; }}"
-        )
-        self._send.clicked.connect(self._on_submit)
+        self._send.setStyleSheet(self._button_style(style.accent(palette)))
+        self._send.clicked.connect(self._on_button)
         row.addWidget(self._send)
         return row
+
+    def _button_style(self, fill) -> str:
+        return (
+            f"QPushButton {{ background: {style.css_color(fill)};"
+            f"color: {style.css_color(self.palette().highlightedText().color())};"
+            f"border: none; border-radius: {SEND_SIZE // 2}px; }}"
+        )
+
+    def _on_button(self) -> None:
+        if self._busy:
+            self.stopped.emit()
+            return
+        self._on_submit()
 
     def _grow(self) -> None:
         height = int(self._edit.document().size().height() * self._line_height()) + 12
@@ -99,12 +113,20 @@ class Composer(QWidget):
         return self._edit.fontMetrics().lineSpacing()
 
     def _on_submit(self) -> None:
+        if self._busy:
+            return
         self.submitted.emit(self._edit.toPlainText().strip())
 
     def clear(self) -> None:
         self._edit.clear()
 
     def set_busy(self, busy: bool) -> None:
-        self._send.setEnabled(not busy)
+        self._busy = busy
+        palette = self.palette()
+        self._send.setText(STOP_GLYPH if busy else SEND_GLYPH)
+        self._send.setToolTip("Остановить" if busy else "Отправить")
+        self._send.setStyleSheet(
+            self._button_style(style.danger(palette) if busy else style.accent(palette))
+        )
         self._edit.setReadOnly(busy)
-        self._hint.setText(BUSY_TEXT if busy else "Enter — отправить, Shift+Enter — перенос")
+        self._hint.setText(HINT_BUSY if busy else HINT_IDLE)

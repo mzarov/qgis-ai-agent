@@ -3,12 +3,16 @@ from qgis.core import Qgis, QgsMessageLog
 
 from qgis_ai_agent.core.agent.batch import WriteBatch
 from qgis_ai_agent.core.agent.executor import ToolExecutor
+from qgis_ai_agent.core.agent.notices import (
+    DESTRUCTIVE_NOT_SUPPORTED,
+    LIMIT_REACHED_MESSAGE,
+)
 from qgis_ai_agent.core.agent.prompts import LOAD_SKILL_TOOL
 from qgis_ai_agent.core.agent.skills import load_skill
 from qgis_ai_agent.core.agent.request import build_overrides, build_step_request
 from qgis_ai_agent.core.agent.transcript import ToolResult, Transcript
+from qgis_ai_agent.core.agent.turn_thread import TurnThreadOwner
 from qgis_ai_agent.core.llm.transport import PROTOCOL_JSON, PROTOCOL_NATIVE, ModelTurn, ToolCall
-from qgis_ai_agent.core.llm.worker import ModelTurnThread
 from qgis_ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE, SAFETY_READ
 from qgis_ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call
 from qgis_ai_agent.skills.registry import SKILL_REGISTRY
@@ -16,15 +20,6 @@ from qgis_ai_agent.skills.registry import SKILL_REGISTRY
 LOG_TAG = "QGIS AI Agent"
 MAX_ITERATIONS = 12
 PRELOADED_SKILLS = ("inspect",)
-THREAD_STOP_TIMEOUT_MS = 3000
-DESTRUCTIVE_NOT_SUPPORTED = (
-    "Разрушающие операции пока не поддержаны плагином. "
-    "Предложите пользователю сделать это вручную."
-)
-LIMIT_REACHED_MESSAGE = (
-    "Задача оказалась слишком длинной, я остановилась на достигнутом. "
-    "Уточните запрос или разбейте его на части."
-)
 
 
 class AgentLoop(QObject):
@@ -38,6 +33,7 @@ class AgentLoop(QObject):
     finished = pyqtSignal(str)
     failed = pyqtSignal(str)
     busy_changed = pyqtSignal(bool)
+    aborted = pyqtSignal()
 
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
@@ -47,14 +43,15 @@ class AgentLoop(QObject):
         self._loaded_skills: list[str] = []
         self._batch = WriteBatch(self._executor)
         self._iteration = 0
-        self._thread: ModelTurnThread | None = None
+        self._turn = TurnThreadOwner()
         self._prompt_protocol = PROTOCOL_NATIVE
         self._overrides: dict = {}
         self._protocol_retried = False
+        self._aborted = False
 
     @property
     def is_running(self) -> bool:
-        return bool(self._thread and self._thread.isRunning())
+        return self._turn.is_running
 
     @property
     def has_pending_writes(self) -> bool:
@@ -68,20 +65,22 @@ class AgentLoop(QObject):
         self._batch.clear()
         self._iteration = 0
         self._protocol_retried = False
+        self._aborted = False
         self._overrides = build_overrides()
         self.busy_changed.emit(True)
         self._request_step()
 
+    def abort(self) -> None:
+        if not self.is_running and not self._batch:
+            return
+        self._aborted = True
+        self._turn.detach(self._on_turn, self._fail)
+        self._batch.clear()
+        self.busy_changed.emit(False)
+        self.aborted.emit()
+
     def stop(self) -> None:
-        thread = self._thread
-        self._thread = None
-        if not thread or not thread.isRunning():
-            return
-        thread.requestInterruption()
-        if thread.wait(THREAD_STOP_TIMEOUT_MS):
-            return
-        thread.terminate()
-        thread.wait(THREAD_STOP_TIMEOUT_MS)
+        self._turn.stop()
 
     def confirm_pending(self) -> None:
         if not self._batch:
@@ -116,14 +115,13 @@ class AgentLoop(QObject):
             self._fail(str(err))
             return
         self._prompt_protocol = request.protocol
-        thread = ModelTurnThread(request.messages, request.tool_schemas, request.overrides)
-        thread.finished_turn.connect(self._on_turn)
-        thread.error.connect(self._fail)
-        thread.finished.connect(thread.deleteLater)
-        self._thread = thread
-        thread.start()
+        self._turn.start(
+            request.messages, request.tool_schemas, request.overrides, self._on_turn, self._fail
+        )
 
     def _on_turn(self, turn: ModelTurn) -> None:
+        if self._aborted:
+            return
         if (
             turn.protocol == PROTOCOL_JSON
             and self._prompt_protocol == PROTOCOL_NATIVE
@@ -180,7 +178,7 @@ class AgentLoop(QObject):
         return result
 
     def _complete(self, text: str) -> None:
-        self._thread = None
+        self._turn.release()
         self.busy_changed.emit(False)
         if self._batch:
             self.confirm_needed.emit(self._batch.pending(), text)
@@ -192,7 +190,9 @@ class AgentLoop(QObject):
         self._complete(LIMIT_REACHED_MESSAGE)
 
     def _fail(self, message: str) -> None:
-        self._thread = None
+        if self._aborted:
+            return
+        self._turn.release()
         self._batch.clear()
         self.busy_changed.emit(False)
         self.failed.emit(message)

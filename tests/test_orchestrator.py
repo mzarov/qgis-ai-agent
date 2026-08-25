@@ -47,8 +47,15 @@ class Agent:
         self.has_pending_writes = False
         self.started = None
 
+        self.aborts = 0
+
     def start(self, prompt, history):
         self.started = (prompt, list(history))
+
+    def abort(self):
+        self.aborts += 1
+        self.is_running = False
+        self.has_pending_writes = False
 
     def stop(self):
         return None
@@ -148,6 +155,33 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.orchestrator.on_applied([Result(ok=False, payload={"error": "нет такого слоя"})])
         self.orchestrator.on_prompt("почини")
         self.assertIn("нет такого слоя", self.orchestrator.agent.started[1][-1]["content"])
+
+    def test_stop_aborts_the_run(self):
+        self.orchestrator.on_prompt("долгая задача")
+        self.orchestrator.agent.is_running = True
+        self.orchestrator.on_stop()
+        self.assertEqual(self.orchestrator.agent.aborts, 1)
+
+    def test_aborted_run_is_reported_and_unblocks_switching(self):
+        self.orchestrator.on_prompt("долгая задача")
+        self.orchestrator.agent.is_running = True
+        self.orchestrator.on_stop()
+        self.orchestrator.on_aborted()
+        self.assertTrue(any("остановлен" in text for text in self.dock.system))
+        self.orchestrator.on_new_session()
+        self.assertEqual(self.dock.replayed, [])
+
+    def test_aborted_run_drops_the_plan_card(self):
+        self.orchestrator._plan_message_id = 3
+        self.orchestrator.on_aborted()
+        self.assertIsNone(self.orchestrator._plan_message_id)
+
+    def test_question_asked_before_stop_stays_in_the_session(self):
+        self.orchestrator.on_prompt("долгая задача")
+        self.orchestrator.agent.is_running = True
+        self.orchestrator.on_stop()
+        self.orchestrator.on_aborted()
+        self.assertEqual(self.orchestrator.conversation.messages[-1]["content"], "долгая задача")
 
     def test_shutdown_saves_the_session(self):
         self._ask("последний вопрос")
