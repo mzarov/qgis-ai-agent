@@ -1,5 +1,10 @@
 from qgis.core import QgsMapLayer
 
+STYLE_POINTER = (
+    "это только тип оформления; цвета, классы и подписи здесь не возвращаются — "
+    "их читает describe_style из скилла style"
+)
+
 RENDERER_NAMES = {
     "singleSymbol": "одиночный символ",
     "categorizedSymbol": "категории",
@@ -49,6 +54,13 @@ def renderer_summary(layer: QgsMapLayer) -> str:
     if attribute:
         return f"{readable} по полю «{attribute}»"
     return readable
+
+
+def style_block(layer: QgsMapLayer) -> dict[str, str]:
+    summary = renderer_summary(layer)
+    if not summary:
+        return {}
+    return {"style_summary": summary, "style_note": STYLE_POINTER}
 
 
 def _class_count(layer: QgsMapLayer) -> int | None:

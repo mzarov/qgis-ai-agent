@@ -6,12 +6,19 @@ tools: [describe_style]
 
 # Layer appearance
 
-`list_layers` and `describe_layer` in the `inspect` skill already return a one-line
-`style_summary` per layer, such as "категории по полю «type», классов: 5".
+`list_layers` and `describe_layer` in the `inspect` skill return a one-line
+`style_summary` per layer, such as "категории по полю «type», классов: 5". That
+summary names the renderer and nothing else — **it never contains a colour**.
+Those tools say so themselves, in `style_note`.
 
-**A question about the styling of the whole project is one `list_layers` call**, not
-`describe_style` per layer. Load this skill only when a single layer needs depth —
-specific colours, class boundaries, labels, or why it looks the way it does.
+So split the question by what it asks for:
+
+- *"каким способом раскрашены слои?"*, *"где категории, где одиночный символ?"* —
+  one `list_layers` call answers it; this skill is not needed.
+- **Anything naming colours, class boundaries, labels or opacity — `describe_style`,
+  once per layer in question.** There is no shortcut. A layer called «Реки» does
+  not tell you it is blue: answering "обычно синий" is inventing the user's data,
+  and "одиночный символ" is not an answer to "какого цвета".
 
 ## What you get
 

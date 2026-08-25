@@ -16,7 +16,7 @@ from qgis_ai_agent.qgis_tools.common.layers import (
     safe_feature_count,
     suggest_metric_crs,
 )
-from qgis_ai_agent.qgis_tools.common.renderers import renderer_summary
+from qgis_ai_agent.qgis_tools.common.renderers import style_block
 
 MAX_FIELDS = 60
 RASTER_PROPERTIES = (("width", "width"), ("height", "height"), ("band_count", "bandCount"))
@@ -57,9 +57,7 @@ class DescribeLayerTool(BaseTool):
             "extent": extent_dict(safe_extent(layer)),
         }
         result.update(describe_source(layer))
-        style = renderer_summary(layer)
-        if style:
-            result["style_summary"] = style
+        result.update(style_block(layer))
         if crs_is_geographic(layer):
             result["suggested_metric_crs"] = suggest_metric_crs(layer)
         if isinstance(layer, QgsVectorLayer):

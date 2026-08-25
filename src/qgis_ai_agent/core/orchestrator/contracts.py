@@ -1,4 +1,4 @@
-from typing import Protocol
+from typing import Callable, Protocol
 
 
 class DockWidgetContract(Protocol):
@@ -34,4 +34,10 @@ class DockWidgetContract(Protocol):
         ...
 
     def clear_prompt(self) -> None:
+        ...
+
+    def replay(self, messages: list[dict[str, str]]) -> None:
+        ...
+
+    def set_session_source(self, provider: Callable[[], list[tuple[str, str]]]) -> None:
         ...

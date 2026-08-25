@@ -8,7 +8,7 @@ from qgis.core import (
     QgsVectorLayer,
 )
 
-from qgis_ai_agent.qgis_tools.common.renderers import renderer_summary
+from qgis_ai_agent.qgis_tools.common.renderers import style_block
 from qgis_ai_agent.qgis_tools.common.values import suggest_fields
 
 COORD_PRECISION = 6
@@ -134,9 +134,7 @@ def describe_layer_brief(layer: QgsMapLayer) -> dict[str, Any]:
         feature_count = safe_feature_count(layer)
         if feature_count is not None:
             brief["feature_count"] = feature_count
-    summary = renderer_summary(layer)
-    if summary:
-        brief["style_summary"] = summary
+    brief.update(style_block(layer))
     return brief
 
 
