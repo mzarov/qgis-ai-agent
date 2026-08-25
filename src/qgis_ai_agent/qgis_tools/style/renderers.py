@@ -2,7 +2,12 @@ from typing import Any
 
 from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer
 
-from qgis_ai_agent.qgis_tools.common.renderers import RENDERER_NAMES, get_renderer, renderer_type
+from qgis_ai_agent.qgis_tools.common.renderers import (
+    RENDERER_NAMES,
+    class_attribute,
+    get_renderer,
+    renderer_type,
+)
 from qgis_ai_agent.qgis_tools.common.values import plain_value
 from qgis_ai_agent.qgis_tools.style.symbols import symbol_info
 

@@ -6,10 +6,12 @@ tools: [describe_style]
 
 # Layer appearance
 
-`describe_layer` in the `inspect` skill already returns a one-line `style_summary`
-such as "категории по полю «type», классов: 5". Load this skill only when that
-line is not enough — when the user asks about specific colours, class boundaries,
-labels, or why a layer looks the way it does.
+`list_layers` and `describe_layer` in the `inspect` skill already return a one-line
+`style_summary` per layer, such as "категории по полю «type», классов: 5".
+
+**A question about the styling of the whole project is one `list_layers` call**, not
+`describe_style` per layer. Load this skill only when a single layer needs depth —
+specific colours, class boundaries, labels, or why it looks the way it does.
 
 ## What you get
 

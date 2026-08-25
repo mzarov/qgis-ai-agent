@@ -112,5 +112,13 @@
 python3 -m compileall -q src/
 ```
 
+```bash
+python3 tools/check_names.py src/
+```
+
+Вторая проверка ищет имена, использованные в функциях, но нигде не определённые.
+`compileall` их не видит: `NameError` срабатывает только при вызове, поэтому
+выпавший при рефакторинге импорт доживает до живого QGIS.
+
 Функциональная проверка — ручная, в живом QGIS по
 [docs/layout_smoke_checklist.md](docs/layout_smoke_checklist.md).
