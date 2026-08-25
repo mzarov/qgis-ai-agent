@@ -1,13 +1,18 @@
 from typing import Any
 
 from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
-from qgis_ai_agent.qgis_tools.osm.extent import canvas_bbox, parse_bbox
+from qgis_ai_agent.qgis_tools.osm.args import (
+    CANVAS,
+    geometry,
+    required_key,
+    selectors,
+    territory,
+    wanted_name,
+    as_text,
+)
 from qgis_ai_agent.qgis_tools.osm.fetch import fetch
 from qgis_ai_agent.qgis_tools.osm.load import SUBLAYERS, load_sublayers, write_payload
 from qgis_ai_agent.qgis_tools.osm.overpass import build_query
-
-CANVAS = "canvas"
-DEFAULT_GEOMETRY = "all"
 NOTHING_FOUND = (
     "Overpass отработал, но объектов по такому запросу нет. Проверьте ключ и "
     "значение — например, amenity=cafe, а не amenity=кафе, — либо расширьте территорию."
@@ -17,27 +22,33 @@ NOTHING_FOUND = (
 class DownloadOsmTool(BaseTool):
     name = "download_osm"
     description = (
-        "Скачать данные OpenStreetMap через Overpass и добавить их слоями в проект: "
-        "кафе, дороги, здания, водоёмы и прочее по паре ключ-значение OSM. "
-        "Территория задаётся именем места или прямоугольником."
+        "Скачать данные OpenStreetMap через Overpass и добавить их слоями в проект. "
+        "Простой случай — пара ключ-значение вроде amenity=cafe. Сложный — список "
+        "селекторов Overpass: несколько тегов разом, регулярные выражения, "
+        "исключения. Территория задаётся именем места или прямоугольником."
     )
     skill = "osm"
     safety = SAFETY_WRITE
     constraints = [
         "Нужен либо area, либо bbox — без территории запрос не выполняется",
         "Ключи и значения OSM пишутся по-английски: amenity=cafe, highway=primary",
+        "key с value или selectors — что-то одно",
     ]
     examples = [
         "Скачай кафе в Москве",
         "Загрузи дороги в текущем виде карты",
-        "Добавь здания из OSM по этому охвату",
+        "Скачай кафе, рестораны и бары одним слоем",
+        "Все дороги кроме грунтовых",
     ]
     params_schema = [
         {
             "name": "key",
             "type": "string",
-            "description": "Ключ OSM: amenity, highway, building, landuse, natural, shop",
-            "required": True,
+            "description": (
+                "Ключ OSM для простого случая: amenity, highway, building, landuse. "
+                "Для чего-то сложнее используйте selectors."
+            ),
+            "required": False,
         },
         {
             "name": "value",
@@ -67,6 +78,19 @@ class DownloadOsmTool(BaseTool):
             "required": False,
         },
         {
+            "name": "selectors",
+            "type": "array",
+            "items": {"type": "string"},
+            "description": (
+                "Селекторы Overpass, по одному на строку списка, например "
+                '["node[\'amenity\'~\'cafe|restaurant\']", "way[\'shop\']"]. '
+                "Так выражается всё, чего не покрывает пара ключ-значение: "
+                "несколько тегов, регулярные выражения, исключения через != и !~. "
+                "Территорию, таймаут и вывод дописывает плагин — их указывать не надо."
+            ),
+            "required": False,
+        },
+        {
             "name": "geometry",
             "type": "string",
             "enum": sorted(SUBLAYERS),
@@ -85,29 +109,34 @@ class DownloadOsmTool(BaseTool):
     ]
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
+        chosen = selectors(params)
         prepared = dict(params)
-        prepared["key"] = _required_key(params)
-        prepared["geometry"] = _geometry(params)
-        prepared["name"] = _wanted_name(params)
-        area, bbox = _territory(params)
+        prepared["key"] = "" if chosen else required_key(params)
+        prepared["selectors"] = chosen
+        prepared["geometry"] = geometry(params)
+        prepared["name"] = wanted_name(params)
+        area, bbox = territory(params)
         prepared["area"] = area
-        prepared["bbox"] = _as_text(bbox) if bbox else ""
-        build_query(prepared["key"], params.get("value") or "", area, bbox, prepared["geometry"])
+        prepared["bbox"] = as_text(bbox) if bbox else ""
+        build_query(
+            prepared["key"], params.get("value") or "", area, bbox, prepared["geometry"], chosen
+        )
         return prepared
 
     def summarize_call(self, params: dict[str, Any]) -> str:
-        name = _wanted_name(params)
+        name = wanted_name(params)
         where = (params.get("area") or "").strip() or "заданном охвате"
         return f"Скачиваю из OSM «{name}» в {where}."
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        key = _required_key(params)
-        geometry = _geometry(params)
-        name = _wanted_name(params)
-        area, bbox = _territory(params)
-        query = build_query(key, params.get("value") or "", area, bbox, geometry)
+        chosen = selectors(params)
+        key = "" if chosen else required_key(params)
+        wanted = geometry(params)
+        name = wanted_name(params)
+        area, bbox = territory(params)
+        query = build_query(key, params.get("value") or "", area, bbox, wanted, chosen)
         path = write_payload(fetch(query), name)
-        loaded = load_sublayers(path, geometry, name)
+        loaded = load_sublayers(path, wanted, name)
         if not loaded:
             raise ValueError(NOTHING_FOUND)
         return {
@@ -115,50 +144,3 @@ class DownloadOsmTool(BaseTool):
             "total_features": sum(item["feature_count"] for item in loaded),
             "source": path,
         }
-
-
-def _required_key(params: dict[str, Any]) -> str:
-    key = (params.get("key") or "").strip()
-    if not key:
-        raise ValueError("Не указан ключ OSM. Например: amenity, highway, building.")
-    return key
-
-
-def _geometry(params: dict[str, Any]) -> str:
-    wanted = (params.get("geometry") or DEFAULT_GEOMETRY).strip().lower()
-    if wanted not in SUBLAYERS:
-        raise ValueError(
-            f"Неизвестная геометрия «{params.get('geometry')}». "
-            f"Доступны: {', '.join(sorted(SUBLAYERS))}."
-        )
-    return wanted
-
-
-def _territory(params: dict[str, Any]) -> tuple[str, tuple[float, float, float, float] | None]:
-    area = (params.get("area") or "").strip()
-    raw_bbox = (params.get("bbox") or "").strip()
-    if area and raw_bbox:
-        raise ValueError("Укажите что-то одно: area или bbox, а не оба сразу.")
-    if area:
-        return area, None
-    if raw_bbox.lower() == CANVAS:
-        return "", canvas_bbox()
-    if raw_bbox:
-        return "", parse_bbox(raw_bbox)
-    raise ValueError(
-        "Не задана территория. Укажите area с именем места или bbox — "
-        f'прямоугольник в градусах либо "{CANVAS}" для текущего вида карты.'
-    )
-
-
-def _wanted_name(params: dict[str, Any]) -> str:
-    given = (params.get("name") or "").strip()
-    if given:
-        return given
-    key = (params.get("key") or "osm").strip()
-    value = (params.get("value") or "").strip()
-    return f"{key}={value}" if value else key
-
-
-def _as_text(bbox: tuple[float, float, float, float]) -> str:
-    return ",".join(f"{number:.6f}" for number in bbox)

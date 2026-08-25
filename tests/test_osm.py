@@ -1,6 +1,6 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.osm import download_osm, extent, load, overpass
+from qgis_ai_agent.qgis_tools.osm import download_osm, extent, load, overpass, selectors
 
 
 class BuildQueryTest(unittest.TestCase):
@@ -44,6 +44,79 @@ class BuildQueryTest(unittest.TestCase):
 
     def test_timeout_is_declared_to_overpass(self):
         self.assertIn(f"timeout:{overpass.QUERY_TIMEOUT_SEC}", overpass.build_query("shop", area="Тверь"))
+
+
+class SelectorTest(unittest.TestCase):
+    def test_plain_selector_passes(self):
+        self.assertEqual(selectors.normalize(['node["amenity"="cafe"]']), ['node["amenity"="cafe"]'])
+
+    def test_single_string_is_accepted(self):
+        self.assertEqual(selectors.normalize('way["shop"]'), ['way["shop"]'])
+
+    def test_regex_and_negation_pass(self):
+        kept = selectors.normalize(['way["highway"]["highway"!~"track|path"]'])
+        self.assertEqual(len(kept), 1)
+
+    def test_semicolon_cannot_smuggle_a_second_statement(self):
+        with self.assertRaises(ValueError) as caught:
+            selectors.normalize(['node["a"]; out; node["b"]'])
+        self.assertIn("нельзя", str(caught.exception))
+
+    def test_output_directive_is_refused(self):
+        with self.assertRaises(ValueError):
+            selectors.normalize(['node["a"]', "out skel qt"])
+
+    def test_assignment_is_refused(self):
+        with self.assertRaises(ValueError):
+            selectors.normalize(['node["a"]->.x'])
+
+    def test_selector_must_name_an_element_type(self):
+        with self.assertRaises(ValueError) as caught:
+            selectors.normalize(['["amenity"="cafe"]'])
+        self.assertIn("типа элемента", str(caught.exception))
+
+    def test_selector_without_conditions_is_refused(self):
+        with self.assertRaises(ValueError) as caught:
+            selectors.normalize(["node"])
+        self.assertIn("вытянул бы всё", str(caught.exception))
+
+    def test_unbalanced_brackets_are_refused(self):
+        with self.assertRaises(ValueError):
+            selectors.normalize(['node["amenity"="cafe"'])
+
+    def test_empty_list_is_refused(self):
+        with self.assertRaises(ValueError):
+            selectors.normalize([])
+
+    def test_too_many_selectors_suggest_a_regex(self):
+        with self.assertRaises(ValueError) as caught:
+            selectors.normalize([f'node["k{index}"]' for index in range(20)])
+        self.assertIn("регулярным", str(caught.exception))
+
+    def test_wrong_type_is_refused(self):
+        with self.assertRaises(ValueError):
+            selectors.normalize({"node": "cafe"})
+
+
+class SelectorQueryTest(unittest.TestCase):
+    def test_selectors_get_the_area_binding(self):
+        query = overpass.build_query(area="Тверь", selectors=['node["amenity"="cafe"]', 'way["shop"]'])
+        self.assertIn('node["amenity"="cafe"](area.searchArea);', query)
+        self.assertIn('way["shop"](area.searchArea);', query)
+
+    def test_selectors_in_a_bbox_need_no_binding(self):
+        query = overpass.build_query(bbox=(37.0, 55.0, 37.5, 55.5), selectors=['node["shop"]'])
+        self.assertIn('node["shop"];', query)
+        self.assertNotIn("searchArea", query)
+
+    def test_envelope_is_always_ours(self):
+        query = overpass.build_query(area="Тверь", selectors=['node["shop"]'])
+        self.assertTrue(query.startswith("[out:xml]"))
+        self.assertEqual(query.count("out body;"), 1)
+
+    def test_selectors_win_over_key(self):
+        query = overpass.build_query("building", area="Тверь", selectors=['node["shop"]'])
+        self.assertNotIn("building", query)
 
 
 class BboxTest(unittest.TestCase):
@@ -91,9 +164,32 @@ class ToolTest(unittest.TestCase):
             self.tool.prepare({"key": "amenity", "area": "Тверь", "bbox": "37,55,37.5,55.5"})
         self.assertIn("что-то одно", str(caught.exception))
 
-    def test_key_is_required(self):
-        with self.assertRaises(ValueError):
+    def test_key_or_selectors_is_required(self):
+        with self.assertRaises(ValueError) as caught:
             self.tool.prepare({"area": "Тверь"})
+        self.assertIn("selectors", str(caught.exception))
+
+    def test_key_and_selectors_together_are_rejected(self):
+        with self.assertRaises(ValueError) as caught:
+            self.tool.prepare(
+                {"key": "shop", "area": "Тверь", "selectors": ['node["amenity"="cafe"]']}
+            )
+        self.assertIn("что-то одно", str(caught.exception))
+
+    def test_selectors_alone_are_enough(self):
+        prepared = self.tool.prepare(
+            {"area": "Тверь", "selectors": ['node["amenity"~"cafe|bar"]', 'way["shop"]']}
+        )
+        self.assertEqual(len(prepared["selectors"]), 2)
+        self.assertEqual(prepared["key"], "")
+
+    def test_selector_run_gets_a_default_name(self):
+        prepared = self.tool.prepare({"area": "Тверь", "selectors": ['node["shop"]']})
+        self.assertTrue(prepared["name"].strip())
+
+    def test_broken_selector_is_rejected_before_queueing(self):
+        with self.assertRaises(ValueError):
+            self.tool.prepare({"area": "Тверь", "selectors": ["node; out;"]})
 
     def test_unknown_geometry_lists_the_options(self):
         with self.assertRaises(ValueError) as caught:

@@ -23,41 +23,43 @@ def endpoint() -> str:
 
 
 def build_query(
-    key: str,
+    key: str = "",
     value: str = "",
     area: str = "",
     bbox: tuple[float, float, float, float] | None = None,
     geometry: str = "all",
+    selectors: list[str] | None = None,
 ) -> str:
-    selector = _selector(key, value)
-    elements = GEOMETRY_ELEMENTS.get(geometry, ELEMENTS)
+    statements = selectors or _from_tag(key, value, geometry)
     if area:
-        return _area_query(selector, elements, area)
+        return _wrapped(statements, _area_header(area), "(area.searchArea)")
     if bbox is None:
         raise ValueError("Не задана территория поиска: нужен либо area, либо bbox.")
-    return _bbox_query(selector, elements, bbox)
+    return _wrapped(statements, _bbox_header(bbox), "")
 
 
-def _area_query(selector: str, elements: tuple[str, ...], area: str) -> str:
-    body = "\n".join(f'  {element}{selector}(area.searchArea);' for element in elements)
+def _from_tag(key: str, value: str, geometry: str) -> list[str]:
+    selector = _selector(key, value)
+    return [f"{element}{selector}" for element in GEOMETRY_ELEMENTS.get(geometry, ELEMENTS)]
+
+
+def _wrapped(statements: list[str], header: str, binding: str) -> str:
+    body = "\n".join(f"  {statement}{binding};" for statement in statements)
+    return f"{header}(\n{body}\n);\nout body;\n>;\nout skel qt;"
+
+
+def _area_header(area: str) -> str:
     return (
         f"[out:xml][timeout:{QUERY_TIMEOUT_SEC}];\n"
         f'area["name"="{_escaped(area)}"]->.searchArea;\n'
-        f"(\n{body}\n);\n"
-        "out body;\n>;\nout skel qt;"
     )
 
 
-def _bbox_query(
-    selector: str, elements: tuple[str, ...], bbox: tuple[float, float, float, float]
-) -> str:
+def _bbox_header(bbox: tuple[float, float, float, float]) -> str:
     west, south, east, north = bbox
-    body = "\n".join(f"  {element}{selector};" for element in elements)
     return (
         f"[out:xml][timeout:{QUERY_TIMEOUT_SEC}]"
         f"[bbox:{south:.6f},{west:.6f},{north:.6f},{east:.6f}];\n"
-        f"(\n{body}\n);\n"
-        "out body;\n>;\nout skel qt;"
     )
 
 

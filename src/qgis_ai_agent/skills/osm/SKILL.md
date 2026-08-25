@@ -6,8 +6,15 @@ tools: [download_osm]
 
 # Data from OpenStreetMap
 
-`download_osm` asks the public Overpass service for objects matching one OSM
-key-value pair inside one territory, then adds what came back to the project.
+`download_osm` asks the public Overpass service for objects inside one territory
+and adds what came back to the project. It takes the request two ways:
+
+- **`key` plus optional `value`** — one tag, the common case
+- **`selectors`** — a list of Overpass selectors, for everything else
+
+You write only *what to select*. The territory binding, the timeout and the output
+statements are added by the plugin, so a selector never carries `;`, `out` or `->`
+— those are refused.
 
 Use it when the user wants data that is not in the project. If the layer already
 exists, `inspect` and `processing` are the right skills instead.
@@ -32,7 +39,32 @@ The tags that cover most requests:
 | железные дороги | `railway` | `rail`, `station` |
 
 Omitting `value` means "everything with this key" and can be enormous —
-`building` over a city is millions of objects. Narrow it or narrow the territory.
+`building` over a city is tens of thousands of objects. Narrow it or narrow the
+territory.
+
+## Anything the pair cannot say
+
+Reach for `selectors` the moment the request needs more than one tag. Each entry
+is `<element>` followed by conditions, where element is `node`, `way`, `relation`
+or `nwr` for all three:
+
+| Ask | selectors |
+|---|---|
+| кафе, бары и рестораны одним слоем | `['node["amenity"~"cafe\|bar\|restaurant"]']` |
+| магазины и кафе вместе | `['node["shop"]', 'way["shop"]', 'node["amenity"="cafe"]']` |
+| дороги кроме грунтовых и троп | `['way["highway"]["highway"!~"track\|path\|footway"]']` |
+| здания, у которых указана этажность | `['way["building"]["building:levels"]']` |
+| всё, что называется «Ленина» | `['nwr["name"~"Ленина"]']` |
+
+The operators are Overpass's own: `=` equals, `!=` differs, `~` matches a regular
+expression, `!~` does not match, and a bare `["key"]` means the tag is present
+whatever its value.
+
+A selector with no condition at all is refused — `node` alone would drag down
+everything in the territory.
+
+When you use `selectors`, you choose the element types yourself, so `geometry`
+only decides which of the resulting layers to keep.
 
 ## Territory: area or bbox, never both
 
