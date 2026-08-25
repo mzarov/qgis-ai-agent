@@ -1,46 +1,29 @@
 from qgis.core import QgsProject
 
+from qgis_ai_agent.qgis_tools.inspect.utils import geometry_type_name, layer_kind
 
-def _geometry_type_name(layer) -> str:
-    if not hasattr(layer, "geometryType"):
-        return "вектор"
-    try:
-        gtype = layer.geometryType()
-        gt_text = str(gtype).lower()
-        if "point" in gt_text:
-            return "точки"
-        if "line" in gt_text:
-            return "линии"
-        if "polygon" in gt_text:
-            return "полигоны"
-    except Exception:
-        pass
-    return "вектор"
+MAX_LISTED = 12
 
 
 def get_project_context() -> str:
-    """Возвращает строку с контекстом проекта: макеты, слои и типы геометрии."""
-    project = QgsProject.instance()
-    parts = []
+    layers = _describe_layers(QgsProject.instance())
+    if not layers:
+        return "Слои: нет."
+    return "Слои: " + _join_capped(layers) + "."
 
-    manager = project.layoutManager()
-    layouts = [lay.name() for lay in manager.layouts()]
-    if layouts:
-        parts.append("Макеты в проекте: " + ", ".join(layouts) + ".")
-    else:
-        parts.append("Макеты в проекте: нет.")
 
-    layer_parts = []
+def _describe_layers(project: QgsProject) -> list[str]:
+    described = []
     for layer in project.mapLayers().values():
         name = (layer.name() or "Без имени").strip()
-        if "raster" in str(type(layer).__name__).lower():
-            layer_parts.append(f"{name} (растр)")
+        if layer_kind(layer) == "raster":
+            described.append(f"{name} (растр)")
         else:
-            geom = _geometry_type_name(layer)
-            layer_parts.append(f"{name} ({geom})")
-    if layer_parts:
-        parts.append("Слои: " + ", ".join(layer_parts) + ".")
-    else:
-        parts.append("Слои: нет.")
+            described.append(f"{name} ({geometry_type_name(layer) or 'вектор'})")
+    return described
 
-    return " ".join(parts)
+
+def _join_capped(items: list[str]) -> str:
+    if len(items) <= MAX_LISTED:
+        return ", ".join(items)
+    return ", ".join(items[:MAX_LISTED]) + f" и ещё {len(items) - MAX_LISTED}"

@@ -1,3 +1,5 @@
+import hashlib
+
 from qgis.core import QgsSettings
 
 KEYRING_SERVICE = "qgis_ai_agent"
@@ -60,6 +62,28 @@ def get_auth_type():
 def set_auth_type(value):
     s = QgsSettings()
     s.setValue(f"{SETTINGS_PREFIX}/auth_type", value or AUTH_TYPE_BEARER)
+
+
+def _url_settings_key(url):
+    normalized = (url or "").strip().rstrip("/").lower()
+    return hashlib.md5(normalized.encode("utf-8")).hexdigest()[:12]
+
+
+def get_supports_tools(url):
+    s = QgsSettings()
+    val = s.value(f"{SETTINGS_PREFIX}/supports_tools/{_url_settings_key(url)}")
+    if val is None:
+        return None
+    return str(val).strip().lower() not in ("false", "0", "no", "off")
+
+
+def set_supports_tools(url, value):
+    s = QgsSettings()
+    s.setValue(
+        f"{SETTINGS_PREFIX}/supports_tools/{_url_settings_key(url)}",
+        "true" if value else "false",
+    )
+    s.sync()
 
 
 def get_api_key():

@@ -1,44 +1,84 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+SAFETY_READ = "read"
+SAFETY_WRITE = "write"
+SAFETY_DESTRUCTIVE = "destructive"
+
+JSON_SCHEMA_TYPES = {
+    "string": "string",
+    "number": "number",
+    "integer": "integer",
+    "boolean": "boolean",
+    "array": "array",
+    "object": "object",
+}
+
 
 class BaseTool(ABC):
-    """
-    Базовый класс инструмента агента. Все тулы в qgis_tools наследуют его
-    и задают имя, описание, схему параметров для LLM и логику выполнения.
-    """
     name: str = ""
     description: str = ""
     params_schema: list[dict[str, Any]] = []
-    capabilities: list[str] = []
-    examples: list[str] = []
     constraints: list[str] = []
+    examples: list[str] = []
+    skill: str = ""
+    safety: str = SAFETY_WRITE
 
-    def get_schema_for_prompt(self) -> str:
-        """Одна строка для системного промпта: имя тула и параметры с краткими подсказками."""
-        parts = [f"{self.name} — params:"]
-        for p in self.params_schema:
-            desc = p.get("description", "")
-            if not p.get("required", True):
-                desc = f"{desc} (опционально)"
-            parts.append(f"  {p['name']}: {desc}")
-        return "\n".join(parts)
+    @property
+    def is_read_only(self) -> bool:
+        return self.safety == SAFETY_READ
 
-    def get_manifest(self) -> dict[str, Any]:
-        """Возвращает декларативный манифест тула для prompt и роутинга."""
+    def get_openai_schema(self) -> dict[str, Any]:
+        properties: dict[str, Any] = {}
+        required: list[str] = []
+        for param in self.params_schema:
+            param_name = param.get("name")
+            if not param_name:
+                continue
+            properties[param_name] = self._build_property(param)
+            if param.get("required", True):
+                required.append(param_name)
         return {
-            "name": self.name,
-            "description": self.description,
-            "capabilities": list(self.capabilities),
-            "constraints": list(self.constraints),
-            "examples": list(self.examples),
-            "params_schema": list(self.params_schema),
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.build_description(),
+                "parameters": {
+                    "type": "object",
+                    "properties": properties,
+                    "required": required,
+                },
+            },
         }
+
+    @staticmethod
+    def _build_property(param: dict[str, Any]) -> dict[str, Any]:
+        prop: dict[str, Any] = {
+            "type": JSON_SCHEMA_TYPES.get(param.get("type", "string"), "string"),
+            "description": param.get("description", ""),
+        }
+        enum_values = param.get("enum")
+        if enum_values:
+            prop["enum"] = list(enum_values)
+        return prop
+
+    def build_description(self) -> str:
+        parts = [self.description]
+        if self.constraints:
+            parts.append("Ограничения: " + "; ".join(self.constraints) + ".")
+        if self.examples:
+            parts.append("Примеры запросов: " + "; ".join(self.examples) + ".")
+        return " ".join(part for part in parts if part)
+
+    def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
+        return params
+
+    def summarize_call(self, params: dict[str, Any]) -> str:
+        if not params:
+            return self.description or self.name
+        shown = ", ".join(f"{key}={value}" for key, value in params.items())
+        return f"{self.description or self.name}: {shown}"
 
     @abstractmethod
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        """
-        Выполняет шаг. params — словарь из JSON плана модели.
-        Возвращает результат для оркестратора (например layout_name).
-        """
-        pass
+        ...

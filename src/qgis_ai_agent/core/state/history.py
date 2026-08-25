@@ -1,5 +1,4 @@
 class HistoryStore:
-    """Хранит ограниченную историю диалога для контекста LLM."""
 
     def __init__(self, max_messages: int = 12):
         self._max_messages = max_messages

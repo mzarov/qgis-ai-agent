@@ -19,7 +19,6 @@ _ANTIALIASING = getattr(
 
 
 class ChatMessageDelegate(QStyledItemDelegate):
-    """Отрисовка пузырей чата (модель слева, пользователь справа)."""
 
     def __init__(self, theme_provider, parent=None):
         super().__init__(parent)
@@ -53,7 +52,6 @@ class ChatMessageDelegate(QStyledItemDelegate):
             align = _ALIGN_LEFT | _ALIGN_TOP
             painter.drawText(text_rect, align | _TEXT_WORD_WRAP, text)
         except Exception:
-            # Аварийный fallback: даже при проблемах enum/рендера показываем текст
             painter.setPen(QPen(theme.text_color))
             painter.drawText(option.rect, _ALIGN_LEFT | _ALIGN_TOP | _TEXT_WORD_WRAP, str(text))
         finally:
@@ -87,24 +85,20 @@ class ChatMessageDelegate(QStyledItemDelegate):
         offset = int(rect.width() * theme.side_offset_ratio)
         if role == "user":
             rect.setLeft(rect.left() + offset)
-        elif role == "assistant_preface":
-            rect.setRight(rect.right() - offset)
         elif role == "plan":
             rect.setRight(rect.right() - int(offset * 0.35))
-        elif role == "assistant":
-            rect.setRight(rect.right() - offset)
+        elif role == "tool":
+            rect.setRight(rect.right() - int(offset * 1.4))
         return rect
 
     @staticmethod
     def _bubble_colors(role: str, theme: ChatTheme):
         if role == "user":
             return theme.user_bg, theme.user_border
-        if role == "assistant_preface":
-            return theme.preface_bg, theme.preface_border
         if role == "plan":
             return theme.plan_bg, theme.plan_border
-        if role == "assistant":
-            return theme.model_bg, theme.model_border
         if role == "result":
             return theme.result_bg, theme.result_border
+        if role == "tool":
+            return theme.tool_bg, theme.tool_border
         return theme.system_bg, theme.system_border
