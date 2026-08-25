@@ -53,7 +53,7 @@ class DispatchTest(unittest.TestCase):
     def test_unknown_skill_lists_available(self):
         result = self.loop._dispatch(call("load_skill", name="мусор"))
         self.assertFalse(result.ok)
-        self.assertEqual(result.payload["available"], ["inspect", "processing", "style"])
+        self.assertEqual(result.payload["available"], ["inspect", "processing", "project", "style"])
 
     def test_invalid_write_is_rejected_before_the_queue(self):
         result = self.loop._dispatch(

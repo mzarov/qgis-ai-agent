@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from qgis_ai_agent.qgis_tools.common.values import suggest_fields
-from qgis_ai_agent.qgis_tools.style.apply import parse_color
+from qgis_ai_agent.qgis_tools.common.colors import parse_color
 
 KIND_TEXT = "text"
 KIND_NUMBER = "number"

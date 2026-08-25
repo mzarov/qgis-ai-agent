@@ -10,10 +10,10 @@ from qgis_ai_agent.qgis_tools.style.apply import (
     require_field,
     require_vector_layer,
 )
-from qgis_ai_agent.qgis_tools.style.bag import properties_of, shown
+from qgis_ai_agent.qgis_tools.common.bag import properties_of, shown
 from qgis_ai_agent.qgis_tools.style.label_build import build_settings, wants
 from qgis_ai_agent.qgis_tools.style.label_catalogue import LABELS
-from qgis_ai_agent.qgis_tools.style.properties import as_bool
+from qgis_ai_agent.qgis_tools.common.properties import as_bool
 
 
 class SetLabelsTool(BaseTool):

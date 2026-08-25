@@ -1,5 +1,6 @@
 import unittest
 
+from qgis_ai_agent.qgis_tools.common import colors
 from qgis_ai_agent.qgis_tools.style import apply, describe_options, label_build, label_catalogue
 from qgis_ai_agent.qgis_tools.style import set_categories, set_graduated, set_labels
 from qgis_ai_agent.qgis_tools.style import symbol_build, symbol_catalogue
@@ -15,20 +16,21 @@ class StyleWriteCase(unittest.TestCase):
 
     def setUp(self):
         self.layer = Layer(name="Дороги", fields=self.fields, values=self.values)
+        self._colour = colors.QColor
+        colors.QColor = Colour
         self._patched = {
-            "QColor": apply.QColor,
             "QgsVectorLayer": apply.QgsVectorLayer,
             "QgsStyle": apply.QgsStyle,
             "QgsSymbol": apply.QgsSymbol,
             "find_layer_by_name": apply.find_layer_by_name,
         }
-        apply.QColor = Colour
         apply.QgsVectorLayer = Layer
         apply.QgsStyle = type("StyleHolder", (), {"defaultStyle": staticmethod(lambda: Style(RAMPS))})
         apply.QgsSymbol = type("SymbolHolder", (), {"defaultSymbol": staticmethod(lambda kind: Symbol())})
         apply.find_layer_by_name = self._find
 
     def tearDown(self):
+        colors.QColor = self._colour
         for name, value in self._patched.items():
             setattr(apply, name, value)
 
@@ -46,19 +48,16 @@ class SetSymbolTest(StyleWriteCase):
             set_symbol.QgsSingleSymbolRenderer,
             set_symbol.geometry_type_name,
             symbol_build.base_symbol,
-            symbol_build.parse_color,
         )
         set_symbol.QgsSingleSymbolRenderer = lambda symbol: ("single", symbol)
         set_symbol.geometry_type_name = lambda layer: "линии"
         symbol_build.base_symbol = lambda layer: Symbol()
-        symbol_build.parse_color = lambda value, label="Цвет": Colour(value)
 
     def tearDown(self):
         (
             set_symbol.QgsSingleSymbolRenderer,
             set_symbol.geometry_type_name,
             symbol_build.base_symbol,
-            symbol_build.parse_color,
         ) = self._patched_symbol
         super().tearDown()
 
@@ -268,7 +267,6 @@ class SetLabelsTest(StyleWriteCase):
             label_build.QgsTextBufferSettings,
             label_build.QgsTextShadowSettings,
             label_build.QgsTextBackgroundSettings,
-            label_build.parse_color,
         )
         set_labels.QgsVectorLayerSimpleLabeling = lambda settings: ("simple", settings)
         label_build.QgsPalLayerSettings = _FakeSettings
@@ -276,7 +274,6 @@ class SetLabelsTest(StyleWriteCase):
         label_build.QgsTextBufferSettings = _FakeSub
         label_build.QgsTextShadowSettings = _FakeSub
         label_build.QgsTextBackgroundSettings = _FakeSub
-        label_build.parse_color = lambda value, label="Цвет": Colour(value)
 
     def tearDown(self):
         (
@@ -286,7 +283,6 @@ class SetLabelsTest(StyleWriteCase):
             label_build.QgsTextBufferSettings,
             label_build.QgsTextShadowSettings,
             label_build.QgsTextBackgroundSettings,
-            label_build.parse_color,
         ) = self._labeling
         super().tearDown()
 
@@ -386,11 +382,11 @@ class CatalogueTest(unittest.TestCase):
     sets = (label_catalogue.LABELS, symbol_catalogue.SYMBOLS)
 
     def setUp(self):
-        self._colour = apply.QColor
-        apply.QColor = Colour
+        self._colour = colors.QColor
+        colors.QColor = Colour
 
     def tearDown(self):
-        apply.QColor = self._colour
+        colors.QColor = self._colour
 
     def test_describe_matches_the_catalogue(self):
         for kind, known in (("labels", label_catalogue.LABELS), ("symbol", symbol_catalogue.SYMBOLS)):

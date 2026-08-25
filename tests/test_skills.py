@@ -41,7 +41,7 @@ class RegistryTest(unittest.TestCase):
         self.registry = SkillRegistry(SKILLS_ROOT)
 
     def test_skills_are_found(self):
-        self.assertEqual(self.registry.names(), ["inspect", "processing", "style"])
+        self.assertEqual(self.registry.names(), ["inspect", "processing", "project", "style"])
 
     def test_every_skill_declares_description_and_body(self):
         for skill in self.registry.all_skills():

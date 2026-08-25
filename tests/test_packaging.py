@@ -65,9 +65,16 @@ class BuildTest(unittest.TestCase):
         tops = {name.split("/")[0] for name in self.names}
         self.assertEqual(tops, {build_plugin.PLUGIN_NAME})
 
-    def test_skill_bodies_are_packed(self):
-        packed = [name for name in self.names if name.endswith("SKILL.md")]
-        self.assertEqual(len(packed), 3)
+    def test_every_skill_body_is_packed(self):
+        on_disk = sorted(
+            path.parent.name
+            for path in (REPO_ROOT / "src").rglob("SKILL.md")
+        )
+        packed = sorted(
+            name.rsplit("/", 2)[1] for name in self.names if name.endswith("SKILL.md")
+        )
+        self.assertTrue(on_disk, "в исходниках не найдено ни одного SKILL.md")
+        self.assertEqual(packed, on_disk)
 
     def test_metadata_and_entry_point_are_packed(self):
         for tail in ("metadata.txt", "__init__.py", "core/plugin.py", "icon.png"):
@@ -108,7 +115,8 @@ class BuildTest(unittest.TestCase):
         from qgis_ai_agent.skills.registry import SkillRegistry
 
         registry = SkillRegistry(skills_root)
-        self.assertEqual(sorted(registry.names()), ["inspect", "processing", "style"])
+        on_disk = sorted(path.parent.name for path in (REPO_ROOT / "src").rglob("SKILL.md"))
+        self.assertEqual(sorted(registry.names()), on_disk)
 
 
 if __name__ == "__main__":
