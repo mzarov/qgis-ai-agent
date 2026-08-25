@@ -1,6 +1,7 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.style import apply, label_format, set_categories, set_graduated, set_labels
+from qgis_ai_agent.qgis_tools.style import apply, describe_labels, label_build, label_catalogue
+from qgis_ai_agent.qgis_tools.style import set_categories, set_graduated, set_labels
 from qgis_ai_agent.qgis_tools.style import set_opacity, set_symbol
 from tests.fake_layers import Colour, Field, Layer, Style, Symbol
 
@@ -204,90 +205,152 @@ class SetLabelsTest(StyleWriteCase):
         super().setUp()
         self.tool = set_labels.SetLabelsTool()
         self._labeling = (
-            set_labels.QgsPalLayerSettings,
             set_labels.QgsVectorLayerSimpleLabeling,
-            label_format.QgsTextFormat,
-            label_format.QgsTextBufferSettings,
-            label_format.parse_color,
+            label_build.QgsPalLayerSettings,
+            label_build.QgsTextFormat,
+            label_build.QgsTextBufferSettings,
+            label_build.QgsTextShadowSettings,
+            label_build.QgsTextBackgroundSettings,
+            label_build.parse_color,
         )
-        set_labels.QgsPalLayerSettings = _FakeSettings
         set_labels.QgsVectorLayerSimpleLabeling = lambda settings: ("simple", settings)
-        label_format.QgsTextFormat = _FakeFormat
-        label_format.QgsTextBufferSettings = _FakeBuffer
-        label_format.parse_color = lambda value, label="Цвет": Colour(value)
+        label_build.QgsPalLayerSettings = _FakeSettings
+        label_build.QgsTextFormat = _FakeFormat
+        label_build.QgsTextBufferSettings = _FakeSub
+        label_build.QgsTextShadowSettings = _FakeSub
+        label_build.QgsTextBackgroundSettings = _FakeSub
+        label_build.parse_color = lambda value, label="Цвет": Colour(value)
 
     def tearDown(self):
         (
-            set_labels.QgsPalLayerSettings,
             set_labels.QgsVectorLayerSimpleLabeling,
-            label_format.QgsTextFormat,
-            label_format.QgsTextBufferSettings,
-            label_format.parse_color,
+            label_build.QgsPalLayerSettings,
+            label_build.QgsTextFormat,
+            label_build.QgsTextBufferSettings,
+            label_build.QgsTextShadowSettings,
+            label_build.QgsTextBackgroundSettings,
+            label_build.parse_color,
         ) = self._labeling
         super().tearDown()
 
-    def test_labels_are_turned_on_with_the_field(self):
-        result = self.tool.execute({"layer_name": "Дороги", "field": "name"})
-        self.assertTrue(self.layer.labels_enabled)
-        self.assertEqual(self.layer.labeling[1].fieldName, "name")
-        self.assertEqual(result["size"], 9.0)
+    def _apply(self, **properties):
+        self.tool.execute({"layer_name": "Дороги", "properties": {"field": "name", **properties}})
+        return self.layer.labeling[1]
 
-    def test_turning_off_does_not_need_a_field(self):
-        prepared = self.tool.prepare({"layer_name": "Дороги", "enabled": False})
+    def test_field_reaches_the_settings(self):
+        self.assertEqual(self._apply().fieldName, "name")
+        self.assertTrue(self.layer.labels_enabled)
+
+    def test_font_family_and_weight(self):
+        settings = self._apply(font="Arial", bold=True, italic=True)
+        font = settings.text_format.font_object
+        self.assertEqual((font.family, font.bold, font.italic), ("Arial", True, True))
+
+    def test_offsets_and_rotation(self):
+        settings = self._apply(offset_x=2, offset_y=-3, rotation=45)
+        self.assertEqual((settings.xOffset, settings.yOffset, settings.angleOffset), (2.0, -3.0, 45.0))
+
+    def test_placement_is_translated(self):
+        self.assertIsNotNone(self._apply(placement="around").placement)
+
+    def test_unknown_placement_lists_options(self):
+        with self.assertRaises(ValueError) as caught:
+            self.tool.prepare({"layer_name": "Дороги", "properties": {"field": "name", "placement": "боком"}})
+        self.assertIn("curved", str(caught.exception))
+
+    def test_unknown_property_suggests_a_close_one(self):
+        with self.assertRaises(ValueError) as caught:
+            self.tool.prepare({"layer_name": "Дороги", "properties": {"field": "name", "buffer_colour": "white"}})
+        self.assertIn("buffer_color", str(caught.exception))
+
+    def test_out_of_range_number_names_the_limits(self):
+        with self.assertRaises(ValueError) as caught:
+            self.tool.prepare({"layer_name": "Дороги", "properties": {"field": "name", "size": 900}})
+        self.assertIn("72", str(caught.exception))
+
+    def test_buffer_turns_on_from_its_colour_alone(self):
+        buffer = self._apply(buffer_color="white").text_format.buffer
+        self.assertTrue(buffer.enabled)
+        self.assertEqual(buffer.colour, "white")
+
+    def test_buffer_stays_off_when_not_mentioned(self):
+        self.assertFalse(self._apply().text_format.buffer.enabled)
+
+    def test_buffer_can_be_switched_off_explicitly(self):
+        buffer = self._apply(buffer_color="white", buffer=False).text_format.buffer
+        self.assertFalse(buffer.enabled)
+
+    def test_shadow_and_background_are_independent(self):
+        settings = self._apply(shadow_color="grey")
+        self.assertTrue(settings.text_format.shadow.enabled)
+        self.assertFalse(settings.text_format.background.enabled)
+
+    def test_labels_can_be_turned_off(self):
+        prepared = self.tool.prepare({"layer_name": "Дороги", "properties": {"enabled": False}})
         self.tool.execute(prepared)
         self.assertFalse(self.layer.labels_enabled)
         self.assertIsNone(self.layer.labeling)
 
     def test_turning_on_without_a_field_is_rejected(self):
         with self.assertRaises(ValueError):
-            self.tool.prepare({"layer_name": "Дороги"})
+            self.tool.prepare({"layer_name": "Дороги", "properties": {"size": 12}})
 
     def test_unknown_field_is_rejected(self):
         with self.assertRaises(ValueError):
-            self.tool.prepare({"layer_name": "Дороги", "field": "нет_такого"})
+            self.tool.prepare({"layer_name": "Дороги", "properties": {"field": "нет_такого"}})
 
-    def test_absurd_font_size_is_rejected(self):
-        with self.assertRaises(ValueError):
-            self.tool.prepare({"layer_name": "Дороги", "field": "name", "size": 900})
+    def test_properties_must_be_an_object(self):
+        with self.assertRaises(ValueError) as caught:
+            self.tool.prepare({"layer_name": "Дороги", "properties": "field=name"})
+        self.assertIn("объектом", str(caught.exception))
 
-    def test_summary_says_what_will_happen(self):
-        self.assertIn("Убираю", self.tool.summarize_call({"layer_name": "Дороги", "enabled": False}))
-        self.assertIn("Подписываю", self.tool.summarize_call({"layer_name": "Дороги", "field": "name"}))
-
-    def test_summary_shows_what_actually_changes(self):
+    def test_summary_lists_what_changes(self):
         summary = self.tool.summarize_call(
-            {"layer_name": "Дороги", "field": "name", "buffer_color": "white", "size": 12}
+            {"layer_name": "Дороги", "properties": {"field": "name", "bold": True}}
         )
-        self.assertIn("обводка текста white", summary)
-        self.assertIn("размер 12", summary)
+        self.assertIn("field=name", summary)
+        self.assertIn("bold=True", summary)
 
-    def test_two_different_calls_read_differently(self):
-        first = self.tool.summarize_call({"layer_name": "Дороги", "field": "name", "color": "black"})
-        second = self.tool.summarize_call(
-            {"layer_name": "Дороги", "field": "name", "buffer_color": "white"}
+    def test_summary_shortens_a_long_bag(self):
+        properties = {"field": "name", "bold": True, "italic": True, "size": 12, "color": "black"}
+        self.assertIn("и ещё 1", self.tool.summarize_call({"layer_name": "Дороги", "properties": properties}))
+
+    def test_summary_survives_broken_properties(self):
+        self.assertTrue(self.tool.summarize_call({"layer_name": "Дороги", "properties": "мусор"}).strip())
+
+    def test_result_reports_what_was_applied(self):
+        result = self.tool.execute(
+            {"layer_name": "Дороги", "properties": {"field": "name", "bold": True}}
         )
-        self.assertNotEqual(first, second)
+        self.assertEqual(result["applied"], ["bold", "field"])
 
-    def test_buffer_colour_turns_the_halo_on(self):
-        self.tool.execute({"layer_name": "Дороги", "field": "name", "buffer_color": "white"})
-        buffer = self.layer.labeling[1].text_format.buffer
-        self.assertTrue(buffer.enabled)
-        self.assertEqual(buffer.colour, "white")
-        self.assertEqual(buffer.size, 1.0)
 
-    def test_buffer_stays_off_when_not_asked(self):
-        self.tool.execute({"layer_name": "Дороги", "field": "name"})
-        self.assertFalse(self.layer.labeling[1].text_format.buffer.enabled)
-
-    def test_buffer_can_be_turned_off_explicitly(self):
-        self.tool.execute(
-            {"layer_name": "Дороги", "field": "name", "buffer_color": "white", "buffer": False}
+class LabelCatalogueTest(unittest.TestCase):
+    def test_describe_matches_the_catalogue(self):
+        described = describe_labels.DescribeLabelOptionsTool().execute({})
+        self.assertEqual(described["property_count"], len(label_catalogue.PROPERTIES))
+        self.assertEqual(
+            [item["name"] for item in described["properties"]], label_catalogue.names()
         )
-        self.assertFalse(self.layer.labeling[1].text_format.buffer.enabled)
 
-    def test_absurd_buffer_size_is_rejected(self):
-        with self.assertRaises(ValueError):
-            self.tool.prepare({"layer_name": "Дороги", "field": "name", "buffer_size": 40})
+    def test_every_property_is_documented(self):
+        for item in label_catalogue.catalogue():
+            self.assertTrue(item["description"].strip(), item["name"])
+
+    def test_enum_properties_publish_their_options(self):
+        for prop in label_catalogue.PROPERTIES:
+            if prop.kind == "enum":
+                self.assertTrue(prop.options, prop.name)
+
+    def test_ranges_are_published_for_numbers(self):
+        for prop in label_catalogue.PROPERTIES:
+            if prop.kind == "number":
+                self.assertIsNotNone(prop.minimum, prop.name)
+                self.assertIsNotNone(prop.maximum, prop.name)
+
+    def test_the_asked_for_properties_exist(self):
+        for name in ("font", "color", "offset_x", "offset_y", "placement", "size", "bold"):
+            self.assertIn(name, label_catalogue.BY_NAME, name)
 
 
 class SetOpacityTest(StyleWriteCase):
@@ -342,33 +405,23 @@ class _FakeGraduated:
         return _FakeGraduated(classes)
 
 
-class _FakeSettings:
+class _FakeFont:
     def __init__(self):
-        self.fieldName = ""
-        self.isExpression = False
-        self.text_format = None
+        self.family = None
+        self.bold = None
+        self.italic = None
 
-    def setFormat(self, text_format):
-        self.text_format = text_format
+    def setFamily(self, value):
+        self.family = value
 
+    def setBold(self, value):
+        self.bold = value
 
-class _FakeFormat:
-    def __init__(self):
-        self.size = None
-        self.colour = None
-        self.buffer = None
-
-    def setSize(self, value):
-        self.size = value
-
-    def setColor(self, value):
-        self.colour = value.name()
-
-    def setBuffer(self, buffer):
-        self.buffer = buffer
+    def setItalic(self, value):
+        self.italic = value
 
 
-class _FakeBuffer:
+class _FakeSub:
     def __init__(self):
         self.enabled = None
         self.size = None
@@ -382,6 +435,61 @@ class _FakeBuffer:
 
     def setColor(self, value):
         self.colour = value.name()
+
+    def setFillColor(self, value):
+        self.colour = value.name()
+
+
+class _FakeFormat:
+    def __init__(self):
+        self.size = None
+        self.colour = None
+        self.opacity = None
+        self.buffer = None
+        self.shadow = None
+        self.background = None
+        self.font_object = _FakeFont()
+
+    def font(self):
+        return self.font_object
+
+    def setFont(self, value):
+        self.font_object = value
+
+    def setSize(self, value):
+        self.size = value
+
+    def setColor(self, value):
+        self.colour = value.name()
+
+    def setOpacity(self, value):
+        self.opacity = value
+
+    def setBuffer(self, value):
+        self.buffer = value
+
+    def setShadow(self, value):
+        self.shadow = value
+
+    def setBackground(self, value):
+        self.background = value
+
+
+class _FakeSettings:
+    def __init__(self):
+        self.fieldName = ""
+        self.isExpression = False
+        self.offsetUnits = None
+        self.distUnits = None
+        self.xOffset = None
+        self.yOffset = None
+        self.dist = None
+        self.angleOffset = None
+        self.placement = None
+        self.text_format = None
+
+    def setFormat(self, text_format):
+        self.text_format = text_format
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 ---
 name: style
 description: Inspect how a layer is drawn — renderer type, classification field, classes with colours, labels, opacity. Load this for questions about appearance, colours or labelling.
-tools: [describe_style, set_symbol, set_categories, set_graduated, set_labels, set_opacity]
+tools: [describe_style, describe_label_options, set_symbol, set_categories, set_graduated, set_labels, set_opacity]
 ---
 
 # Layer appearance
@@ -78,12 +78,6 @@ question rather than stacking calls on the same layer:
 | turn labels on or off | `set_labels` |
 | make a layer see-through | `set_opacity` |
 
-`set_labels` covers the whole label: which field, size, text colour, and the halo
-around the glyphs — `buffer_color` plus `buffer_size`. That halo is what users mean
-by "обводка подписей", "ореол" or "чтобы подписи читались поверх карты"; it is not
-`color`, which paints the glyphs themselves. Setting `buffer_color` turns the halo
-on, `buffer: false` turns it off.
-
 `set_labels` and `set_opacity` are additive — they leave the renderer alone. The
 other three overwrite it, so applying `set_categories` after `set_symbol` on the
 same layer makes the first call pointless. Queue only the call you actually mean.
@@ -111,12 +105,30 @@ Pick a ramp that suits the data: sequential (`Blues`, `Viridis`) for magnitudes,
 diverging (`Spectral`, `RdYlGn`) when there is a meaningful middle, qualitative
 (`Set2`, `Paired`) for categories that have no order.
 
-### One call per intent
+### Labels are one property bag
 
-Every parameter of `set_labels` lands in one call. "Подпиши названиями белым с
-чёрной обводкой размером 12" is a single call with `field`, `color`, `buffer_color`
-and `size` — not four. Queueing the same tool twice for one layer means the second
-call silently wins and the first was wasted work.
+`set_labels` takes `layer_name` and a single `properties` object. Everything about
+a label lives there: the field, font family, weight, size, colour, the halo around
+the glyphs, offsets, rotation, placement, shadow, background.
+
+**`describe_label_options` is the source of truth** for what those keys are called,
+what values they take and in what units. It is generated from the code, so it
+cannot drift from what actually works. Call it when you are not certain of a key —
+guessing produces an error listing near matches, which costs a round trip.
+
+Two keys are worth naming here because users describe them in words that do not
+match the key:
+
+- the halo that makes labels readable over a busy map — "обводка подписей", "ореол",
+  "чтобы читались" — is `buffer_color` and `buffer_size`, **not** `color`, which
+  paints the glyphs themselves
+- "сдвинь подписи" is `offset_x` / `offset_y` in millimetres, while "подальше от
+  значка" is `distance`
+
+Set everything in one call. "Подпиши названиями, жирным, 12, с белой обводкой" is
+one call with four keys, not four calls. Queueing `set_labels` twice for one layer
+means the second call wins outright and the first was wasted — the tool rebuilds
+the whole label configuration each time rather than patching it.
 
 ### Reading before writing
 

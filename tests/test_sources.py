@@ -61,21 +61,62 @@ def local_scope(func):
     return names
 
 
+def own_loads(func):
+    inner = {n for node in ast.walk(func)
+             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node is not func
+             for n in ast.walk(node)}
+    return [node for node in ast.walk(func)
+            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
+            and node not in inner]
+
+
+def nested(func):
+    return [node for node in func.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))] + [
+        node for parent in ast.walk(func) if isinstance(parent, (ast.If, ast.For, ast.While, ast.With, ast.Try))
+        for node in parent.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    ]
+
+
+def check_function(func, enclosing, path, problems):
+    scope = enclosing | local_scope(func) | {"self", "cls"}
+    for node in own_loads(func):
+        if node.id not in scope:
+            problems.append(f"{path}:{node.lineno} {node.id}")
+    for child in nested(func):
+        check_function(child, scope, path, problems)
+
+
 class UndefinedNameTest(unittest.TestCase):
     def test_no_undefined_names(self):
         problems = []
         for path in python_files():
             tree = ast.parse(read_source(path))
             known = module_scope(tree) | KNOWN
-            functions = [n for n in ast.walk(tree)
-                         if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
-            for func in functions:
-                scope = known | local_scope(func) | {"self", "cls"}
-                for node in ast.walk(func):
-                    if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
-                        if node.id not in scope:
-                            problems.append(f"{path}:{node.lineno} {node.id}")
+            for node in ast.walk(tree):
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    if not _is_nested(node, tree):
+                        check_function(node, known, path, problems)
         self.assertEqual(sorted(set(problems)), [])
+
+    def test_the_checker_still_catches_a_real_typo(self):
+        tree = ast.parse("def outer():\n    return missing_name\n")
+        problems = []
+        check_function(tree.body[0], KNOWN, "проверка", problems)
+        self.assertEqual(len(problems), 1)
+
+    def test_the_checker_allows_a_closure(self):
+        tree = ast.parse("def outer(value):\n    def inner():\n        return value\n    return inner\n")
+        problems = []
+        check_function(tree.body[0], KNOWN, "проверка", problems)
+        self.assertEqual(problems, [])
+
+
+def _is_nested(func, tree):
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node is not func:
+            if any(child is func for child in ast.walk(node)):
+                return True
+    return False
 
 
 class StyleTest(unittest.TestCase):

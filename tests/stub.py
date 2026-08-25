@@ -32,6 +32,7 @@ core = _mod("qgis.core", [
     "QgsSymbol","QgsStyle","QgsSingleSymbolRenderer","QgsCategorizedSymbolRenderer",
     "QgsRendererCategory","QgsGraduatedSymbolRenderer","QgsRendererRange",
     "QgsPalLayerSettings","QgsTextFormat","QgsTextBufferSettings",
+    "QgsTextShadowSettings","QgsTextBackgroundSettings",
     "QgsVectorLayerSimpleLabeling"])
 pyqt = _mod("qgis.PyQt"); pyqt.__path__ = []
 _mod("qgis.PyQt.QtCore", ["Qt","QThread","QObject","pyqtSignal","QEvent","QModelIndex",
