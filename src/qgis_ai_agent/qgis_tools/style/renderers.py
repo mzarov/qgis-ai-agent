@@ -43,8 +43,8 @@ def describe_vector_renderer(layer: QgsVectorLayer) -> dict[str, Any]:
 
 def _class_sources(renderer):
     return (
-        ("classes", renderer.categories, CATEGORY_FIELDS),
-        ("classes", renderer.ranges, RANGE_FIELDS),
+        ("classes", lambda: renderer.categories(), CATEGORY_FIELDS),
+        ("classes", lambda: renderer.ranges(), RANGE_FIELDS),
         ("rules", lambda: renderer.rootRule().children(), RULE_FIELDS),
     )
 
