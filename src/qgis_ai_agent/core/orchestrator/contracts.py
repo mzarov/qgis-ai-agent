@@ -1,15 +1,7 @@
 from typing import Protocol
 
 
-class PromptEditContract(Protocol):
-
-    def clear(self) -> None:
-        ...
-
-
 class DockWidgetContract(Protocol):
-
-    prompt_edit: PromptEditContract
 
     def add_user_message(self, text: str) -> int:
         ...
@@ -18,9 +10,6 @@ class DockWidgetContract(Protocol):
         ...
 
     def add_result_message(self, text: str) -> int:
-        ...
-
-    def add_plan_message(self, plan_lines: list[str]) -> int:
         ...
 
     def add_tool_message(self, text: str) -> int:
@@ -32,11 +21,17 @@ class DockWidgetContract(Protocol):
     def mark_tool_done(self, message_id: int, ok: bool = True) -> None:
         ...
 
+    def add_plan_message(self, plan_lines: list[str]) -> int:
+        ...
+
     def mark_plan_completed(self, message_id: int) -> None:
         ...
 
-    def set_confirm_visible(self, visible: bool) -> None:
+    def mark_plan_cancelled(self, message_id: int) -> None:
         ...
 
     def set_busy(self, busy: bool) -> None:
+        ...
+
+    def clear_prompt(self) -> None:
         ...

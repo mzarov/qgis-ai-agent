@@ -3,20 +3,20 @@ from qgis.PyQt.QtWidgets import (
     QDockWidget,
     QHBoxLayout,
     QLabel,
-    QPlainTextEdit,
-    QPushButton,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
-from qgis_ai_agent.ui.chat import ChatView
+from qgis_ai_agent.ui import style
+from qgis_ai_agent.ui.composer import Composer
+from qgis_ai_agent.ui.conversation import ConversationView
 
-PROMPT_PLACEHOLDER = (
-    "Например: что у меня в проекте? — или: построй буфер 500 метров вокруг городов"
-)
-PROMPT_HEIGHT = 60
-CHAT_MIN_HEIGHT = 120
-BUSY_TEXT = "Работаю…"
+TITLE = "QGIS AI Agent"
+SETTINGS_ICON = "/mActionOptions.svg"
+CLEAR_ICON = "/mActionDeleteSelected.svg"
+HEADER_MARGINS = (11, 8, 9, 8)
+BODY_MARGINS = (9, 0, 9, 9)
 
 
 class AgentDockWidget(QDockWidget):
@@ -27,82 +27,99 @@ class AgentDockWidget(QDockWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("QGIS AI Agent")
-        self.main_widget = QWidget()
-        layout = QVBoxLayout(self.main_widget)
-        layout.addWidget(QLabel("Чат:"))
-        self.chat_view = ChatView(self.main_widget)
-        self.chat_view.setMinimumHeight(CHAT_MIN_HEIGHT)
-        layout.addWidget(self.chat_view)
-        layout.addWidget(QLabel("Ваш запрос:"))
-        layout.addWidget(self._build_prompt())
-        layout.addLayout(self._build_send_row())
-        layout.addLayout(self._build_confirm_row())
-        layout.addWidget(self._build_settings_button())
-        self.set_confirm_visible(False)
-        self.setWidget(self.main_widget)
+        self.setWindowTitle(TITLE)
+        body = QWidget()
+        column = QVBoxLayout(body)
+        column.setContentsMargins(0, 0, 0, 0)
+        column.setSpacing(0)
+        column.addWidget(self._build_header())
+        column.addWidget(self._build_conversation(), 1)
+        column.addWidget(self._build_composer())
+        self.setWidget(body)
 
-    def _build_prompt(self) -> QPlainTextEdit:
-        self.prompt_edit = QPlainTextEdit()
-        self.prompt_edit.setPlaceholderText(PROMPT_PLACEHOLDER)
-        self.prompt_edit.setMaximumHeight(PROMPT_HEIGHT)
-        return self.prompt_edit
+    def _build_header(self) -> QWidget:
+        header = QWidget()
+        palette = self.palette()
+        header.setStyleSheet(
+            f"border-bottom: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
+        )
+        row = QHBoxLayout(header)
+        row.setContentsMargins(*HEADER_MARGINS)
+        row.setSpacing(4)
 
-    def _build_send_row(self) -> QHBoxLayout:
-        row = QHBoxLayout()
-        self.send_btn = QPushButton("Отправить")
-        self.send_btn.clicked.connect(self._on_send)
-        row.addWidget(self.send_btn)
-        self.busy_label = QLabel("")
-        row.addWidget(self.busy_label)
-        return row
+        title = QLabel(TITLE)
+        font = title.font()
+        font.setBold(True)
+        title.setFont(font)
+        title.setStyleSheet("border: none;")
+        row.addWidget(title, 1)
+        row.addWidget(self._build_action(CLEAR_ICON, "Очистить диалог", self._on_clear))
+        row.addWidget(
+            self._build_action(SETTINGS_ICON, "Настройки", self.open_settings_clicked.emit)
+        )
+        return header
 
-    def _build_confirm_row(self) -> QHBoxLayout:
-        row = QHBoxLayout()
-        self.confirm_btn = QPushButton("Применить изменения")
-        self.confirm_btn.clicked.connect(self.confirm_plan_clicked.emit)
-        row.addWidget(self.confirm_btn)
-        self.cancel_btn = QPushButton("Отмена")
-        self.cancel_btn.clicked.connect(self.cancel_plan_clicked.emit)
-        row.addWidget(self.cancel_btn)
-        return row
-
-    def _build_settings_button(self) -> QPushButton:
-        button = QPushButton("Настройки")
-        button.clicked.connect(self.open_settings_clicked.emit)
+    @staticmethod
+    def _build_action(icon_name: str, tooltip: str, handler) -> QToolButton:
+        button = QToolButton()
+        button.setAutoRaise(True)
+        button.setToolTip(tooltip)
+        button.setStyleSheet("QToolButton { border: none; }")
+        icon = style.theme_icon(icon_name)
+        if icon.isNull():
+            button.setText(tooltip[0])
+        else:
+            button.setIcon(icon)
+        button.clicked.connect(handler)
         return button
 
+    def _build_conversation(self) -> QWidget:
+        self.conversation = ConversationView()
+        self.conversation.confirm_requested.connect(self.confirm_plan_clicked.emit)
+        self.conversation.cancel_requested.connect(self.cancel_plan_clicked.emit)
+        return self.conversation
+
+    def _build_composer(self) -> QWidget:
+        holder = QWidget()
+        layout = QVBoxLayout(holder)
+        layout.setContentsMargins(*BODY_MARGINS)
+        self.composer = Composer()
+        self.composer.submitted.connect(self.prompt_submitted.emit)
+        layout.addWidget(self.composer)
+        return holder
+
+    def _on_clear(self) -> None:
+        self.conversation.clear()
+
     def add_user_message(self, text: str) -> int:
-        return self.chat_view.add_user_message(text)
+        return self.conversation.add_user_message(text)
 
     def add_system_message(self, text: str) -> int:
-        return self.chat_view.add_system_message(text)
+        return self.conversation.add_system_message(text)
 
     def add_result_message(self, text: str) -> int:
-        return self.chat_view.add_result_message(text)
+        return self.conversation.add_assistant_message(text)
 
     def add_tool_message(self, text: str) -> int:
-        return self.chat_view.add_tool_message(text)
+        return self.conversation.add_activity_step(text)
 
     def add_rejected_message(self, text: str) -> int:
-        return self.chat_view.add_rejected_message(text)
+        return self.conversation.add_rejected_step(text)
 
     def mark_tool_done(self, message_id: int, ok: bool = True) -> None:
-        self.chat_view.mark_tool_done(message_id, ok)
+        self.conversation.mark_activity_step(message_id, ok)
 
     def add_plan_message(self, plan_lines: list[str]) -> int:
-        return self.chat_view.add_plan_message(plan_lines)
+        return self.conversation.add_plan_card(plan_lines)
 
     def mark_plan_completed(self, message_id: int) -> None:
-        self.chat_view.mark_plan_completed(message_id)
+        self.conversation.mark_plan_applied(message_id)
 
-    def set_confirm_visible(self, visible: bool) -> None:
-        self.confirm_btn.setVisible(visible)
-        self.cancel_btn.setVisible(visible)
+    def mark_plan_cancelled(self, message_id: int) -> None:
+        self.conversation.mark_plan_cancelled(message_id)
 
     def set_busy(self, busy: bool) -> None:
-        self.send_btn.setEnabled(not busy)
-        self.busy_label.setText(BUSY_TEXT if busy else "")
+        self.composer.set_busy(busy)
 
-    def _on_send(self) -> None:
-        self.prompt_submitted.emit(self.prompt_edit.toPlainText().strip())
+    def clear_prompt(self) -> None:
+        self.composer.clear()
