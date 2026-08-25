@@ -33,10 +33,11 @@ core = _mod("qgis.core", [
     "QgsRendererCategory","QgsGraduatedSymbolRenderer","QgsRendererRange",
     "QgsPalLayerSettings","QgsTextFormat","QgsTextBufferSettings",
     "QgsTextShadowSettings","QgsTextBackgroundSettings",
-    "QgsVectorLayerSimpleLabeling","QgsCoordinateReferenceSystem"])
+    "QgsVectorLayerSimpleLabeling","QgsCoordinateReferenceSystem","QgsCoordinateTransform","QgsBlockingNetworkRequest"])
 pyqt = _mod("qgis.PyQt"); pyqt.__path__ = []
 _mod("qgis.PyQt.QtCore", ["Qt","QThread","QObject","pyqtSignal","QEvent","QModelIndex",
-                          "QAbstractListModel","QRect","QSize","QTimer"])
+                          "QAbstractListModel","QRect","QSize","QTimer","QByteArray","QUrl","QPointF"])
+_mod("qgis.PyQt.QtNetwork", ["QNetworkRequest"])
 _mod("qgis.PyQt.QtGui", ["QColor","QPalette","QGuiApplication","QKeySequence","QFont",
                          "QFontMetrics","QPainter","QPen","QBrush","QIcon"])
 _mod("qgis.PyQt.QtWidgets", ["QWidget","QDockWidget","QVBoxLayout","QHBoxLayout","QLabel",

@@ -2,6 +2,7 @@ from typing import Any, Iterable
 
 from qgis_ai_agent.qgis_tools.base import BaseTool
 from qgis_ai_agent.qgis_tools.inspect import INSPECT_TOOLS
+from qgis_ai_agent.qgis_tools.osm import OSM_TOOLS
 from qgis_ai_agent.qgis_tools.processing import PROCESSING_TOOLS
 from qgis_ai_agent.qgis_tools.project import PROJECT_TOOLS
 from qgis_ai_agent.qgis_tools.style import STYLE_TOOLS
@@ -9,6 +10,7 @@ from qgis_ai_agent.qgis_tools.style import STYLE_TOOLS
 ALL_TOOLS: list[BaseTool] = [
     *INSPECT_TOOLS,
     *PROJECT_TOOLS,
+    *OSM_TOOLS,
     *STYLE_TOOLS,
     *PROCESSING_TOOLS,
 ]
