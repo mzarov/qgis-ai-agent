@@ -44,8 +44,7 @@ class CoreOrchestrator:
             return
 
         self.dock_widget.add_user_message(text)
-        self.dock_widget.prompt_edit.clear()
-        self.dock_widget.set_confirm_visible(False)
+        self.dock_widget.clear_prompt()
         self._plan_message_id = None
         history = self.history_store.get()
         self.history_store.add("user", text)
@@ -79,24 +78,18 @@ class CoreOrchestrator:
             for index, call in enumerate(calls, 1)
         ]
         self._plan_message_id = self.dock_widget.add_plan_message(lines)
-        self.dock_widget.set_confirm_visible(True)
-        self.dock_widget.add_system_message(
-            f"Изменений к применению: {len(calls)}. "
-            "Нажмите «Применить изменения» или «Отмена»."
-        )
 
     def on_confirm_plan(self) -> None:
         if not self.agent.has_pending_writes:
             self.dock_widget.add_system_message("Нет изменений для применения.")
             return
-        self.dock_widget.set_confirm_visible(False)
         self.agent.confirm_pending()
 
     def on_cancel_plan(self) -> None:
         self.agent.cancel_pending()
-        self.dock_widget.set_confirm_visible(False)
+        if self._plan_message_id is not None:
+            self.dock_widget.mark_plan_cancelled(self._plan_message_id)
         self._plan_message_id = None
-        self.dock_widget.add_system_message("Изменения отменены, проект не тронут.")
 
     def on_applied(self, results: list) -> None:
         failed = [result for result in results if not result.ok]
@@ -124,7 +117,6 @@ class CoreOrchestrator:
         self.history_store.add("assistant", message)
 
     def on_failed(self, message: str) -> None:
-        self.dock_widget.set_confirm_visible(False)
         self._active_tool_message_id = None
         self._plan_message_id = None
         self.dock_widget.add_system_message(f"Ошибка: {message}")

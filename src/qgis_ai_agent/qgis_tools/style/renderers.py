@@ -2,7 +2,12 @@ from typing import Any
 
 from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer
 
-from qgis_ai_agent.qgis_tools.common.renderers import RENDERER_NAMES, get_renderer, renderer_type
+from qgis_ai_agent.qgis_tools.common.renderers import (
+    RENDERER_NAMES,
+    class_attribute,
+    get_renderer,
+    renderer_type,
+)
 from qgis_ai_agent.qgis_tools.common.values import plain_value
 from qgis_ai_agent.qgis_tools.style.symbols import symbol_info
 
@@ -38,8 +43,8 @@ def describe_vector_renderer(layer: QgsVectorLayer) -> dict[str, Any]:
 
 def _class_sources(renderer):
     return (
-        ("classes", renderer.categories, CATEGORY_FIELDS),
-        ("classes", renderer.ranges, RANGE_FIELDS),
+        ("classes", lambda: renderer.categories(), CATEGORY_FIELDS),
+        ("classes", lambda: renderer.ranges(), RANGE_FIELDS),
         ("rules", lambda: renderer.rootRule().children(), RULE_FIELDS),
     )
 

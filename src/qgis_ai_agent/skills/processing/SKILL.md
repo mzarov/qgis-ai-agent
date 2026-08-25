@@ -61,6 +61,11 @@ A queued step has not run yet, so its output layer does not exist while you are
 planning. Give each step an `output_name` and reference that name in the next
 step — this is the only reliable way to chain two runs in one plan.
 
+Queue **every** step of the chain in the same turn. Writing out "сначала
+перепроецируем, потом построим буфер" and stopping there leaves the user with
+nothing to confirm — the plan only exists once `run_processing` has been called
+for each step.
+
 ## Results
 
 `run_processing` loads its output into the project by default, so the new layer
