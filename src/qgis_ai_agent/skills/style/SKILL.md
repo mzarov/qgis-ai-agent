@@ -139,6 +139,19 @@ Not every symbol property fits every geometry: `shape` is meaningless for lines,
 `fill_style` for points. Such keys come back in `skipped` with a note. That is a
 report, not a failure — the rest was applied, so do not retry the call.
 
+### Three different opacities
+
+QGIS has three, and they are not interchangeable:
+
+| What the user means | Where it lives |
+|---|---|
+| весь слой полупрозрачный, включая растр | `set_opacity` |
+| полупрозрачная заливка, обводка нет | `opacity` in `set_symbol` |
+| полупрозрачный текст подписи | `opacity` in `set_labels` |
+
+"Сделай слой полупрозрачным" is `set_opacity`. Reach for the other two only when
+the user singles out the fill or the text.
+
 ### Reading before writing
 
 For "почему это выглядит так" or "поменяй, но остальное оставь", call

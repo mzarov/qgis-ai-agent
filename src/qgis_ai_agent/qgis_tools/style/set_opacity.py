@@ -2,10 +2,12 @@ from typing import Any
 
 from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
 from qgis_ai_agent.qgis_tools.common.layers import find_layer_by_name
-from qgis_ai_agent.qgis_tools.style.apply import clamp_opacity, refresh
+from qgis_ai_agent.qgis_tools.style.apply import refresh
 
 PERCENT_THRESHOLD = 1.0
 PERCENT_MAX = 100.0
+MIN_OPACITY = 0.0
+MAX_OPACITY = 1.0
 
 
 class SetOpacityTool(BaseTool):
@@ -66,4 +68,4 @@ def _as_fraction(value: Any) -> float:
         raise ValueError("Непрозрачность задаётся числом от 0 до 1, например 0.6.")
     if number > PERCENT_THRESHOLD:
         number = number / PERCENT_MAX
-    return clamp_opacity(number)
+    return max(MIN_OPACITY, min(MAX_OPACITY, number))

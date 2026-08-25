@@ -27,42 +27,24 @@ NOT_APPLICABLE = (
 
 def build_symbol(layer: Any, properties: dict[str, Any]) -> tuple[QgsSymbol, dict[str, Any]]:
     symbol = base_symbol(layer)
-    applied: list[str] = []
-    skipped: list[str] = []
-    _run(symbol, SYMBOLS.targeted(properties, TARGET_SYMBOL), applied, skipped)
-    _run_layers(symbol, SYMBOLS.targeted(properties, TARGET_LAYER), applied, skipped)
-    return symbol, {"applied": sorted(set(applied)), "skipped": sorted(set(skipped))}
+    landed: set[str] = set()
+    _run(symbol, SYMBOLS.targeted(properties, TARGET_SYMBOL), landed)
+    for index in range(_layer_count(symbol)):
+        _run(symbol.symbolLayer(index), SYMBOLS.targeted(properties, TARGET_LAYER), landed)
+    asked = [key for key in properties if key in SYMBOLS.by_name]
+    return symbol, {
+        "applied": sorted(key for key in asked if key in landed),
+        "skipped": sorted(key for key in asked if key not in landed),
+    }
 
 
-def _run_layers(
-    symbol: QgsSymbol,
-    pairs: list[tuple[StyleProperty, Any]],
-    applied: list[str],
-    skipped: list[str],
-) -> None:
-    if not pairs:
-        return
-    count = _layer_count(symbol)
-    if not count:
-        skipped.extend(prop.name for prop, _ in pairs)
-        return
-    for index in range(count):
-        _run(symbol.symbolLayer(index), pairs, applied, skipped)
-
-
-def _run(
-    subject: Any,
-    pairs: list[tuple[StyleProperty, Any]],
-    applied: list[str],
-    skipped: list[str],
-) -> None:
+def _run(subject: Any, pairs: list[tuple[StyleProperty, Any]], landed: set[str]) -> None:
     for prop, value in pairs:
         try:
             prop.apply(subject, native(prop, value))
-        except (AttributeError, TypeError, ValueError):
-            skipped.append(prop.name)
+        except (AttributeError, TypeError):
             continue
-        applied.append(prop.name)
+        landed.add(prop.name)
 
 
 def native(prop: StyleProperty, value: Any) -> Any:

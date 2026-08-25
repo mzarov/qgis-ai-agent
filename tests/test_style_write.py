@@ -85,6 +85,18 @@ class SetSymbolTest(StyleWriteCase):
         self.assertIn("линии", result["skipped_note"])
         self.assertIn("color", result["applied"])
 
+    def test_a_property_never_lands_in_both_lists(self):
+        symbol_build.base_symbol = lambda layer: _PartlyDeaf()
+        _, outcome = symbol_build.build_symbol(self.layer, {"stroke_color": "white"})
+        self.assertEqual(outcome["applied"], ["stroke_color"])
+        self.assertEqual(outcome["skipped"], [])
+
+    def test_property_no_layer_accepts_is_skipped(self):
+        symbol_build.base_symbol = lambda layer: _PartlyDeaf(accepting=False)
+        _, outcome = symbol_build.build_symbol(self.layer, {"stroke_color": "white"})
+        self.assertEqual(outcome["skipped"], ["stroke_color"])
+        self.assertEqual(outcome["applied"], [])
+
     def test_nothing_skipped_means_no_note(self):
         self.assertNotIn("skipped_note", self._apply(color="black"))
 
@@ -489,6 +501,26 @@ class _FakeGraduated:
         if _FakeGraduated.returns_none:
             return None
         return _FakeGraduated(classes)
+
+
+class _Deaf:
+    pass
+
+
+class _Hearing:
+    def setStrokeColor(self, value):
+        self.value = value
+
+
+class _PartlyDeaf:
+    def __init__(self, accepting=True):
+        self._layers = [_Hearing() if accepting else _Deaf(), _Deaf()]
+
+    def symbolLayerCount(self):
+        return len(self._layers)
+
+    def symbolLayer(self, index):
+        return self._layers[index]
 
 
 class _FakeFont:

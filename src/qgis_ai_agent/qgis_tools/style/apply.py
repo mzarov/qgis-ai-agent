@@ -7,8 +7,6 @@ from qgis_ai_agent.qgis_tools.common.layers import find_layer_by_name
 from qgis_ai_agent.qgis_tools.common.values import suggest_fields
 
 RAMPS_SHOWN = 24
-MIN_OPACITY = 0.0
-MAX_OPACITY = 1.0
 
 
 def require_vector_layer(layer_name: str) -> QgsVectorLayer:
@@ -83,14 +81,6 @@ def coloured_symbol(layer: QgsVectorLayer, color: QColor) -> QgsSymbol:
     symbol = base_symbol(layer)
     symbol.setColor(color)
     return symbol
-
-
-def clamp_opacity(value: Any) -> float:
-    try:
-        number = float(value)
-    except (TypeError, ValueError):
-        raise ValueError("Прозрачность задаётся числом от 0 до 1, например 0.6.")
-    return max(MIN_OPACITY, min(MAX_OPACITY, number))
 
 
 def refresh(layer: QgsVectorLayer) -> None:

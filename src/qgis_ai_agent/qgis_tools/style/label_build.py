@@ -62,8 +62,6 @@ def _sub(subject: Any, properties: dict[str, Any], target: str) -> Any:
 
 def _apply_group(subject: Any, properties: dict[str, Any], target: str) -> None:
     for prop, value in LABELS.targeted(properties, target):
-        if prop.name in SWITCHES.values() or prop.name == "enabled":
-            continue
         prop.apply(subject, _native(prop, value))
 
 

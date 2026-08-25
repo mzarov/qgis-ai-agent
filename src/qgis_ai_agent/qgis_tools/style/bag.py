@@ -11,8 +11,8 @@ def properties_of(params: dict[str, Any], subject: str) -> dict[str, Any]:
         return {}
     if not isinstance(properties, dict):
         raise ValueError(
-            f"Свойства ({subject}) передаются объектом вида "
-            '{"color": "#1f78b4", "size": 2}, а не строкой или списком.'
+            f"Свойства ({subject}) передаются объектом пар ключ-значение, "
+            "а не строкой или списком. Список ключей — describe_style_options."
         )
     return dict(properties)
 
