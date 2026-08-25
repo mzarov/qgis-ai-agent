@@ -1,6 +1,6 @@
 from qgis.core import QgsProject
 
-from qgis_ai_agent.qgis_tools.inspect.utils import geometry_type_name, layer_kind
+from qgis_ai_agent.qgis_tools.common.layers import geometry_type_name, layer_kind
 
 MAX_LISTED = 12
 

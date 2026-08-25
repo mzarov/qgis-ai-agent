@@ -3,8 +3,8 @@ from typing import Any
 from qgis.core import QgsRasterLayer, QgsVectorLayer
 
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
-from qgis_ai_agent.qgis_tools.inspect.layer_meta import describe_source
-from qgis_ai_agent.qgis_tools.inspect.utils import (
+from qgis_ai_agent.qgis_tools.common.layer_meta import describe_source
+from qgis_ai_agent.qgis_tools.common.layers import (
     crs_authid,
     crs_is_geographic,
     crs_units,
@@ -16,7 +16,7 @@ from qgis_ai_agent.qgis_tools.inspect.utils import (
     safe_feature_count,
     suggest_metric_crs,
 )
-from qgis_ai_agent.qgis_tools.style.renderers import renderer_summary
+from qgis_ai_agent.qgis_tools.common.renderers import renderer_summary
 
 MAX_FIELDS = 60
 RASTER_PROPERTIES = (("width", "width"), ("height", "height"), ("band_count", "bandCount"))

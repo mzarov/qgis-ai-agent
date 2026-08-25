@@ -3,8 +3,8 @@ from typing import Any
 from qgis.core import QgsRasterLayer, QgsVectorLayer
 
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
-from qgis_ai_agent.qgis_tools.inspect.layer_meta import layer_opacity
-from qgis_ai_agent.qgis_tools.inspect.utils import find_layer_by_name, layer_kind
+from qgis_ai_agent.qgis_tools.common.layer_meta import layer_opacity
+from qgis_ai_agent.qgis_tools.common.layers import find_layer_by_name, layer_kind
 from qgis_ai_agent.qgis_tools.style.labeling import describe_labeling
 from qgis_ai_agent.qgis_tools.style.renderers import (
     describe_raster_renderer,

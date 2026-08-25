@@ -2,72 +2,14 @@ from typing import Any
 
 from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer
 
-from qgis_ai_agent.qgis_tools.inspect.utils import plain_value
+from qgis_ai_agent.qgis_tools.common.renderers import RENDERER_NAMES, get_renderer, renderer_type
+from qgis_ai_agent.qgis_tools.common.values import plain_value
 from qgis_ai_agent.qgis_tools.style.symbols import symbol_info
 
 MAX_CLASSES = 30
 CATEGORY_FIELDS = (("value", "value"), ("label", "label"))
 RANGE_FIELDS = (("min", "lowerValue"), ("max", "upperValue"), ("label", "label"))
 RULE_FIELDS = (("filter", "filterExpression"), ("label", "label"))
-RENDERER_NAMES = {
-    "singleSymbol": "одиночный символ",
-    "categorizedSymbol": "категории",
-    "graduatedSymbol": "градации",
-    "RuleRenderer": "по правилам",
-    "nullSymbol": "без отрисовки",
-    "pointCluster": "кластеры точек",
-    "heatmapRenderer": "тепловая карта",
-    "25dRenderer": "2.5D",
-}
-
-
-def get_renderer(layer: QgsMapLayer):
-    try:
-        return layer.renderer()
-    except Exception:
-        return None
-
-
-def renderer_type(layer: QgsMapLayer) -> str:
-    renderer = get_renderer(layer)
-    if renderer is None:
-        return ""
-    try:
-        return renderer.type() or ""
-    except Exception:
-        return ""
-
-
-def class_attribute(layer: QgsMapLayer) -> str:
-    renderer = get_renderer(layer)
-    try:
-        return renderer.classAttribute() or ""
-    except Exception:
-        return ""
-
-
-def renderer_summary(layer: QgsMapLayer) -> str:
-    kind = renderer_type(layer)
-    if not kind:
-        return ""
-    readable = RENDERER_NAMES.get(kind, kind)
-    attribute = class_attribute(layer)
-    count = _class_count(layer)
-    if attribute and count is not None:
-        return f"{readable} по полю «{attribute}», классов: {count}"
-    if attribute:
-        return f"{readable} по полю «{attribute}»"
-    return readable
-
-
-def _class_count(layer: QgsMapLayer) -> int | None:
-    renderer = get_renderer(layer)
-    for getter in ("categories", "ranges"):
-        try:
-            return len(getattr(renderer, getter)())
-        except Exception:
-            continue
-    return None
 
 
 def describe_vector_renderer(layer: QgsVectorLayer) -> dict[str, Any]:

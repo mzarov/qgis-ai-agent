@@ -1,7 +1,7 @@
 from typing import Any
 
 from qgis_ai_agent.qgis_tools.inspect.aggregates import compute
-from qgis_ai_agent.qgis_tools.inspect.utils import clamp_limit, wanted_fields
+from qgis_ai_agent.qgis_tools.common.values import clamp_limit, wanted_fields
 from qgis_ai_agent.qgis_tools.inspect.expressions import (
     evaluate,
     parse_order_by,
