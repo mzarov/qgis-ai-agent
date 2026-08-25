@@ -20,7 +20,6 @@ REJECTED = "⊘"
 STEP_FONT_SCALE = 0.9
 MARKER_WIDTH = 14
 STEPS_INDENT = 26
-SLOW_STEP_SECONDS = 0.15
 
 
 class ActivityGroup(QFrame):
@@ -110,8 +109,7 @@ class ActivityGroup(QFrame):
         self._status.setText(FAILED if self._failed else DONE)
         colour = style.danger(palette) if self._failed else style.success(palette)
         self._status.setStyleSheet(f"color: {style.css_color(colour)}; border: none;")
-        seconds = time.monotonic() - self._started
-        self._elapsed.setText(_format_seconds(seconds) if seconds >= SLOW_STEP_SECONDS else "")
+        self._elapsed.setText(_format_seconds(time.monotonic() - self._started))
 
     def _on_toggled(self, expanded: bool) -> None:
         self._toggle.setText(EXPANDED if expanded else COLLAPSED)
@@ -154,6 +152,8 @@ class StepRow(QWidget):
 
 
 def _format_seconds(seconds: float) -> str:
+    if seconds < 1:
+        return f"{int(seconds * 1000)} мс"
     if seconds < 60:
         return f"{seconds:.1f} с".replace(".", ",")
     return f"{int(seconds // 60)} мин {int(seconds % 60)} с"

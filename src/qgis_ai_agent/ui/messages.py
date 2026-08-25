@@ -5,6 +5,7 @@ from qgis_ai_agent.ui import style
 
 USER_MAX_WIDTH_RATIO = 0.82
 BUBBLE_PADDING = 8
+BUBBLE_SIDE_PADDING = 11
 BROWSER_EXTRA_HEIGHT = 6
 SYSTEM_FONT_SCALE = 0.92
 
@@ -24,14 +25,21 @@ class UserMessage(QWidget):
             f"background: {style.css_color(style.user_bubble(palette))};"
             f"color: {style.css_color(style.text(palette))};"
             f"border-radius: {style.BUBBLE_RADIUS}px;"
-            f"padding: {BUBBLE_PADDING}px 11px;"
+            f"padding: {BUBBLE_PADDING}px {BUBBLE_SIDE_PADDING}px;"
         )
         row.addWidget(label, 0)
         self._label = label
 
     def resizeEvent(self, event):
-        self._label.setMaximumWidth(int(self.width() * USER_MAX_WIDTH_RATIO))
+        self._fit()
         super().resizeEvent(event)
+
+    def _fit(self) -> None:
+        metrics = self._label.fontMetrics()
+        lines = self._label.text().split("\n")
+        natural = max(metrics.horizontalAdvance(line) for line in lines) if lines else 0
+        limit = int(self.width() * USER_MAX_WIDTH_RATIO)
+        self._label.setFixedWidth(min(natural + BUBBLE_SIDE_PADDING * 2 + 2, limit))
 
 
 class AssistantMessage(QWidget):
