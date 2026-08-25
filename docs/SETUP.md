@@ -117,4 +117,4 @@ if [ -n "$PY" ]; then "$PY" -m pip install requests keyring; else echo "Python �
 "путь\к\python.exe" -m pip install requests keyring
 ```
 
-После установки перезагрузите плагин (снять и снова включить в менеджере плагинов).
+После установки запустите QGIS заново.

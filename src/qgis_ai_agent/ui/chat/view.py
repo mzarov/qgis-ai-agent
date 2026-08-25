@@ -67,7 +67,7 @@ class ChatView(QWidget):
         self._list.customContextMenuRequested.connect(self._show_context_menu)
 
     def _install_shortcuts(self) -> None:
-        self._copy_shortcut = QShortcut(QKeySequence.StandardKey.Copy, self._list)
+        self._copy_shortcut = QShortcut(_enum(QKeySequence, "StandardKey", "Copy", 0), self._list)
         self._copy_shortcut.activated.connect(self.copy_selected_messages)
 
     def add_user_message(self, text: str) -> int:
@@ -119,7 +119,7 @@ class ChatView(QWidget):
         QGuiApplication.clipboard().setText(text)
 
     def eventFilter(self, watched, event):
-        if watched is self._list.viewport() and event.type() == QEvent.Type.Resize:
+        if watched is self._list.viewport() and event.type() == _enum(QEvent, "Type", "Resize", 14):
             self._list.doItemsLayout()
         return super().eventFilter(watched, event)
 
