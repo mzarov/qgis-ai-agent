@@ -8,33 +8,35 @@ SETTINGS_PREFIX = "qgis_ai_agent"
 DEFAULT_API_URL = "https://api.openai.com/v1"
 DEFAULT_MODEL = "gpt-4o-mini"
 
-KEYRING_INSTALL_MSG = (
-    "Для сохранения API-ключа нужна библиотека keyring. "
-    "Установите её в Python QGIS. См. Настройки → Инструкция в документации плагина."
+KEYRING_FAILURE_MSG = (
+    "Не удалось сохранить ключ в системном хранилище: {reason}.\n\n"
+    "На Linux для этого нужен запущенный сервис секретов — gnome-keyring или KWallet. "
+    "Если библиотеки keyring нет, установите её в Python QGIS: см. раздел «Зависимости» "
+    "в документации плагина."
 )
 
 
-def get_api_url():
+def get_api_url() -> str:
     s = QgsSettings()
     return s.value(f"{SETTINGS_PREFIX}/api_url", DEFAULT_API_URL, type=str)
 
 
-def set_api_url(value):
+def set_api_url(value: str | None) -> None:
     s = QgsSettings()
     s.setValue(f"{SETTINGS_PREFIX}/api_url", value or DEFAULT_API_URL)
 
 
-def get_model():
+def get_model() -> str:
     s = QgsSettings()
     return s.value(f"{SETTINGS_PREFIX}/model", DEFAULT_MODEL, type=str)
 
 
-def set_model(value):
+def set_model(value: str | None) -> None:
     s = QgsSettings()
     s.setValue(f"{SETTINGS_PREFIX}/model", value or DEFAULT_MODEL)
 
 
-def get_verify_ssl():
+def get_verify_ssl() -> bool:
     s = QgsSettings()
     key = f"{SETTINGS_PREFIX}/verify_ssl"
     val = s.value(key)
@@ -44,7 +46,7 @@ def get_verify_ssl():
     return sval not in ("false", "0", "no", "off")
 
 
-def set_verify_ssl(value):
+def set_verify_ssl(value: bool) -> None:
     s = QgsSettings()
     s.setValue(f"{SETTINGS_PREFIX}/verify_ssl", "false" if not value else "true")
     s.sync()
@@ -54,22 +56,22 @@ AUTH_TYPE_BEARER = "Bearer"
 AUTH_TYPE_OAUTH = "OAuth"
 
 
-def get_auth_type():
+def get_auth_type() -> str:
     s = QgsSettings()
     return s.value(f"{SETTINGS_PREFIX}/auth_type", AUTH_TYPE_BEARER, type=str) or AUTH_TYPE_BEARER
 
 
-def set_auth_type(value):
+def set_auth_type(value: str | None) -> None:
     s = QgsSettings()
     s.setValue(f"{SETTINGS_PREFIX}/auth_type", value or AUTH_TYPE_BEARER)
 
 
-def _url_settings_key(url):
+def _url_settings_key(url: str) -> str:
     normalized = (url or "").strip().rstrip("/").lower()
     return hashlib.md5(normalized.encode("utf-8")).hexdigest()[:12]
 
 
-def get_supports_tools(url):
+def get_supports_tools(url: str) -> bool | None:
     s = QgsSettings()
     val = s.value(f"{SETTINGS_PREFIX}/supports_tools/{_url_settings_key(url)}")
     if val is None:
@@ -77,7 +79,7 @@ def get_supports_tools(url):
     return str(val).strip().lower() not in ("false", "0", "no", "off")
 
 
-def set_supports_tools(url, value):
+def set_supports_tools(url: str, value: bool) -> None:
     s = QgsSettings()
     s.setValue(
         f"{SETTINGS_PREFIX}/supports_tools/{_url_settings_key(url)}",
@@ -86,19 +88,21 @@ def set_supports_tools(url, value):
     s.sync()
 
 
-def get_api_key():
+def get_api_key() -> str:
     try:
         import keyring
+
         return keyring.get_password(KEYRING_SERVICE, KEYRING_KEY) or ""
-    except ImportError:
+    except Exception:
         return ""
 
 
-def set_api_key(value):
+def set_api_key(value: str) -> None:
     if not value:
         return
     try:
         import keyring
+
         keyring.set_password(KEYRING_SERVICE, KEYRING_KEY, value)
-    except ImportError:
-        raise RuntimeError(KEYRING_INSTALL_MSG)
+    except Exception as error:
+        raise RuntimeError(KEYRING_FAILURE_MSG.format(reason=error or type(error).__name__))

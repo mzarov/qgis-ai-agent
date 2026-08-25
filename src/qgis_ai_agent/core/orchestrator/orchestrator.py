@@ -10,6 +10,7 @@ from qgis_ai_agent.qgis_tools.registry import summarize_tool_call
 LOG_TAG = "QGIS AI Agent"
 MESSAGE_DURATION_SEC = 8
 SESSION_MISSING = "Диалог не найден."
+RUN_STOPPED = "Прогон остановлен. Изменения, которые агент успел запланировать, отменены."
 SWITCH_WHILE_RUNNING = "Дождитесь окончания текущей задачи."
 SWITCH_WHILE_PENDING = "Сначала примените или отмените запланированные изменения."
 
@@ -35,7 +36,16 @@ class CoreOrchestrator:
         self.agent.applied.connect(self.on_applied)
         self.agent.finished.connect(self.on_finished)
         self.agent.failed.connect(self.on_failed)
+        self.agent.aborted.connect(self.on_aborted)
         self.agent.busy_changed.connect(self.dock_widget.set_busy)
+
+    def on_stop(self) -> None:
+        self.agent.abort()
+
+    def on_aborted(self) -> None:
+        self._active_tool_message_id = None
+        self._plan_message_id = None
+        self.dock_widget.add_system_message(RUN_STOPPED)
 
     def on_new_session(self) -> None:
         if self._busy_with_current():

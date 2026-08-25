@@ -32,6 +32,7 @@ class AgentDockWidget(QDockWidget):
     new_session_clicked = pyqtSignal()
     session_chosen = pyqtSignal(str)
     prompt_submitted = pyqtSignal(str)
+    stop_clicked = pyqtSignal()
     confirm_plan_clicked = pyqtSignal()
     cancel_plan_clicked = pyqtSignal()
 
@@ -108,6 +109,7 @@ class AgentDockWidget(QDockWidget):
         layout.setContentsMargins(*BODY_MARGINS)
         self.composer = Composer()
         self.composer.submitted.connect(self.prompt_submitted.emit)
+        self.composer.stopped.connect(self.stop_clicked.emit)
         layout.addWidget(self.composer)
         return holder
 
