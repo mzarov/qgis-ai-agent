@@ -16,6 +16,7 @@ from qgis_ai_agent.ui.plan import PlanCard
 
 MESSAGE_SPACING = 11
 SIDE_PADDING = 12
+PIN_TOLERANCE = 24
 EMPTY_HINT = "Спросите про проект или попросите обработать слои."
 
 
@@ -37,6 +38,11 @@ class ConversationView(QScrollArea):
         self._column.setSpacing(MESSAGE_SPACING)
         self._column.addStretch(1)
         self.setWidget(holder)
+
+        self._pinned = True
+        bar = self.verticalScrollBar()
+        bar.rangeChanged.connect(self._on_range_changed)
+        bar.valueChanged.connect(self._on_value_changed)
 
         self._activity: ActivityGroup | None = None
         self._entries: dict[int, object] = {}
@@ -66,7 +72,9 @@ class ConversationView(QScrollArea):
         if self._activity is None:
             self._activity = ActivityGroup()
             self._append(self._activity)
-        return self._remember(self._activity.add_step(text))
+        step = self._activity.add_step(text)
+        QTimer.singleShot(0, self._scroll_to_bottom)
+        return self._remember(step)
 
     def mark_activity_step(self, entry_id: int, ok: bool) -> None:
         label = self._entries.get(entry_id)
@@ -144,6 +152,14 @@ class ConversationView(QScrollArea):
     def _close_activity(self) -> None:
         self._activity = None
 
+    def _on_value_changed(self, value: int) -> None:
+        self._pinned = value >= self.verticalScrollBar().maximum() - PIN_TOLERANCE
+
+    def _on_range_changed(self, minimum: int, maximum: int) -> None:
+        if self._pinned:
+            self.verticalScrollBar().setValue(maximum)
+
     def _scroll_to_bottom(self) -> None:
+        self._pinned = True
         bar = self.verticalScrollBar()
         bar.setValue(bar.maximum())
