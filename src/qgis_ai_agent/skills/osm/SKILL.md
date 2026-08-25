@@ -58,10 +58,6 @@ three empty layers alongside the one the user wanted; on a road search it adds a
 points layer of traffic signals nobody asked for. Cafes and shops are `points`,
 roads and rivers are `lines`, buildings and land use are `polygons`.
 
-Cafes are `points`. Roads are `lines`. Buildings and land use are `polygons`.
-Choose deliberately: `all` on a road query adds a points layer the user did not
-ask for.
-
 Each geometry becomes its own layer, because QGIS cannot mix geometry types in one
 vector layer. The result lists exactly what was added and how many objects are in
 each.
