@@ -1,6 +1,6 @@
 from typing import Any
 
-from qgis_ai_agent.qgis_tools.inspect.utils import crs_is_geographic, suggest_metric_crs
+from qgis_ai_agent.qgis_tools.common.layers import crs_is_geographic, suggest_metric_crs
 from qgis_ai_agent.qgis_tools.processing.utils import resolve_layer
 
 SUSPICIOUS_DEGREES = 1.0

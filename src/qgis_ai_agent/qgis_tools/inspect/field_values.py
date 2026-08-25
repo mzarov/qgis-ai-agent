@@ -3,12 +3,8 @@ from typing import Any
 from qgis.core import QgsVectorLayer
 
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
-from qgis_ai_agent.qgis_tools.inspect.utils import (
-    clamp_limit,
-    find_layer_by_name,
-    plain_value,
-    suggest_fields,
-)
+from qgis_ai_agent.qgis_tools.common.layers import find_layer_by_name
+from qgis_ai_agent.qgis_tools.common.values import clamp_limit, plain_value, suggest_fields
 
 DEFAULT_LIMIT = 25
 MAX_LIMIT = 100

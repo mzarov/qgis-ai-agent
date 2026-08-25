@@ -7,7 +7,7 @@ from qgis.core import (
     QgsProject,
 )
 
-from qgis_ai_agent.qgis_tools.inspect.utils import find_layer_by_name
+from qgis_ai_agent.qgis_tools.common.layers import find_layer_by_name
 
 DESTINATION_TYPES = {
     "sink",

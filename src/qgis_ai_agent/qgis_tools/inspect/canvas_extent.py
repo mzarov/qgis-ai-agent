@@ -3,7 +3,7 @@ from typing import Any
 from qgis.core import QgsProject
 
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
-from qgis_ai_agent.qgis_tools.inspect.utils import canvas_extent, extent_dict
+from qgis_ai_agent.qgis_tools.common.layers import canvas_extent, extent_dict
 
 
 class GetCanvasExtentTool(BaseTool):

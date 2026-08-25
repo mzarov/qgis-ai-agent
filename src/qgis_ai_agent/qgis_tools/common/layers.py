@@ -8,12 +8,7 @@ from qgis.core import (
     QgsVectorLayer,
 )
 
-from qgis_ai_agent.qgis_tools.inspect.values import (
-    clamp_limit,
-    plain_value,
-    suggest_fields,
-    wanted_fields,
-)
+from qgis_ai_agent.qgis_tools.common.values import suggest_fields
 
 COORD_PRECISION = 6
 FALLBACK_EXTENT = (0.0, 0.0, 100.0, 100.0)

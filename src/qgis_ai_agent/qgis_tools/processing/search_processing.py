@@ -1,7 +1,7 @@
 from typing import Any
 
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
-from qgis_ai_agent.qgis_tools.inspect.utils import clamp_limit
+from qgis_ai_agent.qgis_tools.common.values import clamp_limit
 from qgis_ai_agent.qgis_tools.processing.utils import algorithm_brief, build_search_index
 
 DEFAULT_LIMIT = 12

@@ -6,7 +6,7 @@ from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
 from qgis_ai_agent.qgis_tools.inspect.aggregates import AGGREGATE_FUNCTIONS
 from qgis_ai_agent.qgis_tools.inspect.expressions import build_context, build_request
 from qgis_ai_agent.qgis_tools.inspect.queries import DEFAULT_ROW_LIMIT, run_aggregate, run_rows
-from qgis_ai_agent.qgis_tools.inspect.utils import find_layer_by_name
+from qgis_ai_agent.qgis_tools.common.layers import find_layer_by_name
 
 
 class QueryLayerTool(BaseTool):

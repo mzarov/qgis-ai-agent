@@ -7,7 +7,7 @@ from qgis.core import (
     QgsFeatureRequest,
 )
 
-from qgis_ai_agent.qgis_tools.inspect.utils import plain_value, suggest_fields
+from qgis_ai_agent.qgis_tools.common.values import plain_value, suggest_fields
 
 DESCENDING_MARKERS = ("desc", "descending")
 ASCENDING_MARKERS = ("asc", "ascending")
