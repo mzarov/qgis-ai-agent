@@ -1,4 +1,4 @@
-from qgis_ai_agent.qgis_tools.style.properties import (
+from qgis_ai_agent.qgis_tools.common.properties import (
     KIND_BOOLEAN,
     KIND_COLOR,
     KIND_ENUM,

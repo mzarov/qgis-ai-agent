@@ -111,6 +111,9 @@ class Layer:
     def name(self):
         return self._name
 
+    def setName(self, value):
+        self._name = value
+
     def id(self):
         return f"{self._name}_id"
 

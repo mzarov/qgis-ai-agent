@@ -1,6 +1,6 @@
 from typing import Any
 
-from qgis_ai_agent.qgis_tools.style.properties import PropertySet
+from qgis_ai_agent.qgis_tools.common.properties import PropertySet
 
 SHOWN_IN_SUMMARY = 4
 

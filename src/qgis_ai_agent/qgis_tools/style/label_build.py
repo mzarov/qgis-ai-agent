@@ -18,7 +18,7 @@ from qgis_ai_agent.qgis_tools.style.label_catalogue import (
     TARGET_FORMAT,
     TARGET_SETTINGS,
 )
-from qgis_ai_agent.qgis_tools.style.properties import KIND_COLOR, KIND_ENUM, StyleProperty
+from qgis_ai_agent.qgis_tools.common.properties import KIND_COLOR, KIND_ENUM, StyleProperty
 
 MILLIMETRES = Qgis.RenderUnit.Millimeters
 

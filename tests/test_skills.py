@@ -1,4 +1,5 @@
 import os
+import pathlib
 import unittest
 
 from qgis_ai_agent.qgis_tools.registry import get_tools_for_skills
@@ -40,8 +41,10 @@ class RegistryTest(unittest.TestCase):
     def setUp(self):
         self.registry = SkillRegistry(SKILLS_ROOT)
 
-    def test_skills_are_found(self):
-        self.assertEqual(self.registry.names(), ["inspect", "processing", "style"])
+    def test_every_skill_on_disk_is_found(self):
+        on_disk = sorted(path.parent.name for path in pathlib.Path(SKILLS_ROOT).rglob("SKILL.md"))
+        self.assertTrue(on_disk, "в skills/ не найдено ни одного SKILL.md")
+        self.assertEqual(self.registry.names(), on_disk)
 
     def test_every_skill_declares_description_and_body(self):
         for skill in self.registry.all_skills():

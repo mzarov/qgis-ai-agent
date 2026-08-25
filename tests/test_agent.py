@@ -6,6 +6,7 @@ from qgis_ai_agent.core.agent.loop import AgentLoop
 from qgis_ai_agent.core.agent.transcript import ToolResult
 from qgis_ai_agent.core.llm.transport import ToolCall
 from qgis_ai_agent.qgis_tools.registry import ALL_TOOLS, get_tool_by_name
+from qgis_ai_agent.skills.registry import SKILL_REGISTRY
 
 
 class FakeExecutor:
@@ -53,7 +54,9 @@ class DispatchTest(unittest.TestCase):
     def test_unknown_skill_lists_available(self):
         result = self.loop._dispatch(call("load_skill", name="мусор"))
         self.assertFalse(result.ok)
-        self.assertEqual(result.payload["available"], ["inspect", "processing", "style"])
+        offered = result.payload["available"]
+        self.assertEqual(offered, SKILL_REGISTRY.names())
+        self.assertIn("inspect", offered)
 
     def test_invalid_write_is_rejected_before_the_queue(self):
         result = self.loop._dispatch(

@@ -3,6 +3,7 @@ from typing import Any
 from qgis.core import QgsStyle, QgsSymbol, QgsVectorLayer
 from qgis.PyQt.QtGui import QColor
 
+from qgis_ai_agent.qgis_tools.common.colors import parse_color
 from qgis_ai_agent.qgis_tools.common.layers import find_layer_by_name
 from qgis_ai_agent.qgis_tools.common.values import suggest_fields
 
@@ -31,16 +32,6 @@ def field_names(layer: QgsVectorLayer) -> list[str]:
         return [field.name() for field in layer.fields()]
     except Exception:
         return []
-
-
-def parse_color(value: Any, label: str = "Цвет") -> QColor:
-    color = QColor(str(value or "").strip())
-    if not color.isValid():
-        raise ValueError(
-            f"{label} «{value}» не распознан. Используйте hex вида #1f78b4 "
-            "или английское имя цвета вида steelblue."
-        )
-    return color
 
 
 def resolve_ramp(name: str, fallbacks: tuple[str, ...] = ()):
