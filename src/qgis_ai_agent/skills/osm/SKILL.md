@@ -53,6 +53,11 @@ One OSM query yields several geometry types — a `highway` search returns both 
 road lines and the crossings as points. `geometry` picks what to keep:
 `points`, `lines`, `polygons`, or `all`.
 
+**Pick one deliberately instead of leaving `all`.** `all` on a cafe search adds
+three empty layers alongside the one the user wanted; on a road search it adds a
+points layer of traffic signals nobody asked for. Cafes and shops are `points`,
+roads and rivers are `lines`, buildings and land use are `polygons`.
+
 Cafes are `points`. Roads are `lines`. Buildings and land use are `polygons`.
 Choose deliberately: `all` on a road query adds a points layer the user did not
 ask for.

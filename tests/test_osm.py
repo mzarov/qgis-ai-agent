@@ -131,6 +131,20 @@ class ToolTest(unittest.TestCase):
         self.assertFalse(self.tool.is_read_only)
 
 
+class CountTest(unittest.TestCase):
+    def test_known_count_is_used(self):
+        self.assertEqual(load._count(_Counting(known=44, features=0)), 44)
+
+    def test_unknown_count_falls_back_to_walking(self):
+        self.assertEqual(load._count(_Counting(known=-1, features=44)), 44)
+
+    def test_empty_sublayer_is_recognised_despite_unknown_count(self):
+        self.assertEqual(load._count(_Counting(known=-1, features=0)), 0)
+
+    def test_broken_layer_counts_as_empty(self):
+        self.assertEqual(load._count(_Broken()), 0)
+
+
 class SublayerTest(unittest.TestCase):
     def test_every_geometry_maps_to_sublayers(self):
         for name in ("points", "lines", "polygons", "all"):
@@ -151,6 +165,23 @@ class SublayerTest(unittest.TestCase):
     def test_geometry_options_match_the_tool_schema(self):
         schema = {item["name"]: item for item in download_osm.DownloadOsmTool().params_schema}
         self.assertEqual(set(schema["geometry"]["enum"]), set(load.SUBLAYERS))
+
+
+class _Counting:
+    def __init__(self, known, features):
+        self._known = known
+        self._features = features
+
+    def featureCount(self):
+        return self._known
+
+    def getFeatures(self):
+        return iter(range(self._features))
+
+
+class _Broken:
+    def featureCount(self):
+        raise RuntimeError("провайдер отвалился")
 
 
 if __name__ == "__main__":

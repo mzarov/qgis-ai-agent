@@ -58,7 +58,15 @@ def _title(name: str, sublayer: str, geometry: str) -> str:
 
 def _count(layer: Any) -> int:
     try:
-        return int(layer.featureCount())
+        known = int(layer.featureCount())
+    except Exception:
+        return 0
+    return known if known >= 0 else _counted_by_hand(layer)
+
+
+def _counted_by_hand(layer: Any) -> int:
+    try:
+        return sum(1 for _ in layer.getFeatures())
     except Exception:
         return 0
 
