@@ -1,6 +1,7 @@
 from qgis.PyQt.QtCore import QThread, pyqtSignal
 
-DEFAULT_TIMEOUT = 120
+from qgis_ai_agent.core.llm.client import DEFAULT_TIMEOUT
+from qgis_ai_agent.core.llm.transport import call_model
 
 
 class ModelTurnThread(QThread):
@@ -15,8 +16,6 @@ class ModelTurnThread(QThread):
         self._timeout = timeout
 
     def run(self):
-        from qgis_ai_agent.core.llm.transport import call_model
-
         try:
             turn = call_model(
                 self._messages,

@@ -7,7 +7,7 @@ from qgis.core import (
     QgsProject,
 )
 
-from qgis_ai_agent.qgis_tools.inspect.utils import suggest_metric_crs
+from qgis_ai_agent.qgis_tools.inspect.utils import find_layer_by_name
 
 DESTINATION_TYPES = {
     "sink",
@@ -17,7 +17,6 @@ DESTINATION_TYPES = {
     "folderDestination",
 }
 TEMPORARY_OUTPUT = "TEMPORARY_OUTPUT"
-SUSPICIOUS_DEGREES = 1.0
 PRIMARY_OUTPUT_KEY = "OUTPUT"
 
 
@@ -28,6 +27,30 @@ def get_registry():
             "Реестр Processing недоступен. Проверьте, что модуль Processing включён."
         )
     return registry
+
+
+_SEARCH_INDEX: list[tuple[Any, dict[str, str]]] = []
+
+
+def build_search_index() -> list[tuple[Any, dict[str, str]]]:
+    if not _SEARCH_INDEX:
+        _SEARCH_INDEX.extend(
+            (algorithm, _haystack(algorithm)) for algorithm in get_registry().algorithms()
+        )
+    return _SEARCH_INDEX
+
+
+def _haystack(algorithm) -> dict[str, str]:
+    try:
+        tags = " ".join(algorithm.tags())
+    except Exception:
+        tags = ""
+    return {
+        "name": (algorithm.displayName() or "").lower(),
+        "id": (algorithm.id() or "").lower(),
+        "tags": tags.lower(),
+        "group": (algorithm.group() or "").lower(),
+    }
 
 
 def find_algorithm(algorithm_id: str):
@@ -132,66 +155,18 @@ def _coerce_enum_value(options: list[str], value: Any) -> Any:
     return value
 
 
-def check_distance_units(algorithm, arguments: dict[str, Any]) -> None:
-    for parameter in algorithm.parameterDefinitions():
-        if parameter.type() != "distance":
-            continue
-        distance = _as_float(arguments.get(parameter.name()))
-        if distance is None or distance <= SUSPICIOUS_DEGREES:
-            continue
-        parent_name = _parent_parameter_name(parameter)
-        layer = _resolve_layer(arguments.get(parent_name))
-        if layer is None or not _is_geographic(layer):
-            continue
-        raise ValueError(
-            _degrees_error(arguments[parent_name], layer, parameter.name(), distance, parent_name)
-        )
-
-
-def _degrees_error(layer_name, layer, parameter_name: str, distance: float, parent_name: str) -> str:
-    target_crs = suggest_metric_crs(layer)
-    output_name = f"{layer_name} {target_crs.replace('EPSG:', 'UTM ')}"
-    return (
-        f"Слой «{layer_name}» в географической CRS ({layer.crs().authid()}), "
-        f"её единица — градус, а не метр. Значение {parameter_name}={distance} "
-        f"будет истолковано как {distance} градусов и даст бессмысленный результат.\n"
-        "Добавьте перед этим шагом перепроецирование и запустите обработку на его результате:\n"
-        f'run_processing(algorithm_id="native:reprojectlayer", '
-        f'parameters={{"INPUT": "{layer_name}", "TARGET_CRS": "{target_crs}"}}, '
-        f'output_name="{output_name}")\n'
-        f"затем повторите текущий вызов, подставив «{output_name}» в {parent_name}.\n"
-        f"Если {distance} действительно задано в градусах — так и скажите пользователю."
-    )
-
-
-def _as_float(value: Any) -> float | None:
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def _parent_parameter_name(parameter) -> str:
-    try:
-        return parameter.parentParameterName() or ""
-    except AttributeError:
-        return ""
-
-
-def _is_geographic(layer: QgsMapLayer) -> bool:
-    try:
-        return bool(layer.crs().isGeographic())
-    except Exception:
-        return False
-
-
-def _resolve_layer(value: Any) -> QgsMapLayer | None:
+def resolve_layer(value: Any) -> QgsMapLayer | None:
     if isinstance(value, QgsMapLayer):
         return value
     if not isinstance(value, str) or not value.strip():
         return None
-    matches = QgsProject.instance().mapLayersByName(value.strip())
-    return matches[0] if matches else QgsProject.instance().mapLayer(value.strip())
+    by_id = QgsProject.instance().mapLayer(value.strip())
+    if by_id is not None:
+        return by_id
+    try:
+        return find_layer_by_name(value)
+    except ValueError:
+        return None
 
 
 def apply_output_name(result: dict[str, Any], output_name: str) -> str:
@@ -200,7 +175,7 @@ def apply_output_name(result: dict[str, Any], output_name: str) -> str:
         return ""
     keys = [PRIMARY_OUTPUT_KEY] + [key for key in result if key != PRIMARY_OUTPUT_KEY]
     for key in keys:
-        layer = _resolve_layer(result.get(key))
+        layer = resolve_layer(result.get(key))
         if layer is not None:
             layer.setName(name)
             return name

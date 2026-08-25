@@ -2,9 +2,13 @@ from typing import Any
 
 from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer
 
+from qgis_ai_agent.qgis_tools.inspect.utils import plain_value
 from qgis_ai_agent.qgis_tools.style.symbols import symbol_info
 
 MAX_CLASSES = 30
+CATEGORY_FIELDS = (("value", "value"), ("label", "label"))
+RANGE_FIELDS = (("min", "lowerValue"), ("max", "upperValue"), ("label", "label"))
+RULE_FIELDS = (("filter", "filterExpression"), ("label", "label"))
 RENDERER_NAMES = {
     "singleSymbol": "одиночный символ",
     "categorizedSymbol": "категории",
@@ -77,18 +81,11 @@ def describe_vector_renderer(layer: QgsVectorLayer) -> dict[str, Any]:
     if attribute:
         info["class_attribute"] = attribute
 
-    categories = _describe_categories(renderer)
-    if categories is not None:
-        info["classes"] = categories
-        return info
-    ranges = _describe_ranges(renderer)
-    if ranges is not None:
-        info["classes"] = ranges
-        return info
-    rules = _describe_rules(renderer)
-    if rules is not None:
-        info["rules"] = rules
-        return info
+    for key, source, fields in _class_sources(renderer):
+        described = _describe_classes(source, fields)
+        if described is not None:
+            info[key] = described
+            return info
 
     try:
         info["symbol"] = symbol_info(renderer.symbol())
@@ -97,63 +94,29 @@ def describe_vector_renderer(layer: QgsVectorLayer) -> dict[str, Any]:
     return info
 
 
-def _describe_categories(renderer) -> list[dict[str, Any]] | None:
+def _class_sources(renderer):
+    return (
+        ("classes", renderer.categories, CATEGORY_FIELDS),
+        ("classes", renderer.ranges, RANGE_FIELDS),
+        ("rules", lambda: renderer.rootRule().children(), RULE_FIELDS),
+    )
+
+
+def _describe_classes(source, fields: tuple) -> list[dict[str, Any]] | None:
     try:
-        categories = renderer.categories()
+        items = list(source())
     except Exception:
         return None
     result = []
-    for category in list(categories)[:MAX_CLASSES]:
+    for item in items[:MAX_CLASSES]:
         entry: dict[str, Any] = {}
-        for key, getter in (("value", "value"), ("label", "label")):
+        for key, getter in fields:
             try:
-                entry[key] = _plain(getattr(category, getter)())
-            except Exception:
-                continue
-        try:
-            entry["symbol"] = symbol_info(category.symbol())
-        except Exception:
-            pass
-        result.append(entry)
-    return result
-
-
-def _describe_ranges(renderer) -> list[dict[str, Any]] | None:
-    try:
-        ranges = renderer.ranges()
-    except Exception:
-        return None
-    result = []
-    for item in list(ranges)[:MAX_CLASSES]:
-        entry: dict[str, Any] = {}
-        for key, getter in (("min", "lowerValue"), ("max", "upperValue"), ("label", "label")):
-            try:
-                entry[key] = _plain(getattr(item, getter)())
+                entry[key] = plain_value(getattr(item, getter)())
             except Exception:
                 continue
         try:
             entry["symbol"] = symbol_info(item.symbol())
-        except Exception:
-            pass
-        result.append(entry)
-    return result
-
-
-def _describe_rules(renderer) -> list[dict[str, Any]] | None:
-    try:
-        children = renderer.rootRule().children()
-    except Exception:
-        return None
-    result = []
-    for rule in list(children)[:MAX_CLASSES]:
-        entry: dict[str, Any] = {}
-        for key, getter in (("filter", "filterExpression"), ("label", "label")):
-            try:
-                entry[key] = _plain(getattr(rule, getter)())
-            except Exception:
-                continue
-        try:
-            entry["symbol"] = symbol_info(rule.symbol())
         except Exception:
             pass
         result.append(entry)
@@ -168,9 +131,3 @@ def describe_raster_renderer(layer: QgsRasterLayer) -> dict[str, Any]:
     except Exception:
         pass
     return info
-
-
-def _plain(value: Any) -> Any:
-    if isinstance(value, (str, int, float, bool)) or value is None:
-        return value
-    return str(value)

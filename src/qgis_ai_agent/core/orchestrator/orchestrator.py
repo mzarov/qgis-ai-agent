@@ -26,6 +26,7 @@ class CoreOrchestrator:
         self.agent.tool_started.connect(self.on_tool_started)
         self.agent.tool_finished.connect(self.on_tool_finished)
         self.agent.tool_queued.connect(self.on_tool_queued)
+        self.agent.tool_rejected.connect(self.on_tool_rejected)
         self.agent.skill_loaded.connect(self.on_skill_loaded)
         self.agent.confirm_needed.connect(self.on_confirm_needed)
         self.agent.applied.connect(self.on_applied)
@@ -62,6 +63,9 @@ class CoreOrchestrator:
 
     def on_tool_queued(self, summary: str) -> None:
         QgsMessageLog.logMessage(f"В план добавлено: {summary}", LOG_TAG, Qgis.Info)
+
+    def on_tool_rejected(self, summary: str) -> None:
+        self.dock_widget.add_rejected_message(f"Отклонено: {summary}")
 
     def on_skill_loaded(self, name: str) -> None:
         self.dock_widget.add_tool_message(f"Загружаю знания: {name}")

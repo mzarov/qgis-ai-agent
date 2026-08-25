@@ -3,6 +3,7 @@ from typing import Any
 from qgis.core import QgsRasterLayer, QgsVectorLayer
 
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
+from qgis_ai_agent.qgis_tools.inspect.layer_meta import layer_opacity
 from qgis_ai_agent.qgis_tools.inspect.utils import find_layer_by_name, layer_kind
 from qgis_ai_agent.qgis_tools.style.labeling import describe_labeling
 from qgis_ai_agent.qgis_tools.style.renderers import (
@@ -39,7 +40,7 @@ class DescribeStyleTool(BaseTool):
         result: dict[str, Any] = {
             "name": (layer.name() or "").strip(),
             "kind": layer_kind(layer),
-            "opacity": self._opacity(layer),
+            "opacity": layer_opacity(layer),
         }
         if isinstance(layer, QgsVectorLayer):
             result["renderer"] = describe_vector_renderer(layer)
@@ -47,10 +48,3 @@ class DescribeStyleTool(BaseTool):
         elif isinstance(layer, QgsRasterLayer):
             result["renderer"] = describe_raster_renderer(layer)
         return result
-
-    @staticmethod
-    def _opacity(layer) -> float | None:
-        try:
-            return round(float(layer.opacity()), 3)
-        except Exception:
-            return None

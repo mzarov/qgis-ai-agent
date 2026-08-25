@@ -33,8 +33,8 @@ def execute_tool(tool_name: str, params: dict[str, Any]) -> dict[str, Any]:
     return tool.execute(params)
 
 
-def validate_tool_call(tool_name: str, params: dict[str, Any]) -> None:
-    _require_tool(tool_name).validate(params)
+def prepare_tool_call(tool_name: str, params: dict[str, Any]) -> dict[str, Any]:
+    return _require_tool(tool_name).prepare(params)
 
 
 def summarize_tool_call(tool_name: str, params: dict[str, Any]) -> str:

@@ -2,7 +2,7 @@ import json
 from dataclasses import dataclass, field
 from typing import Any
 
-from qgis_ai_agent.core.llm.transport import ModelTurn, ToolCall
+from qgis_ai_agent.core.llm.transport import PROTOCOL_NATIVE, ModelTurn, ToolCall
 
 MAX_RESULT_CHARS = 4000
 TRUNCATION_NOTE = "… (результат обрезан)"
@@ -14,6 +14,14 @@ class ToolResult:
     call: ToolCall
     payload: dict[str, Any]
     ok: bool = True
+
+    @classmethod
+    def failure(cls, call: ToolCall, error: str) -> "ToolResult":
+        return cls(
+            call=call,
+            ok=False,
+            payload={"error": error, "arguments_sent": call.arguments},
+        )
 
     def to_text(self) -> str:
         try:
@@ -64,7 +72,7 @@ class Transcript:
 
     @classmethod
     def _render_turn(cls, turn: ModelTurn) -> dict[str, Any]:
-        if turn.protocol != "native":
+        if turn.protocol != PROTOCOL_NATIVE:
             payload = {
                 "text": turn.text,
                 "tool_calls": [
@@ -91,7 +99,7 @@ class Transcript:
 
     @staticmethod
     def _render_results(results: list[ToolResult], protocol: str) -> list[dict[str, Any]]:
-        if protocol == "native":
+        if protocol == PROTOCOL_NATIVE:
             return [
                 {"role": "tool", "tool_call_id": result.call.id, "content": result.to_text()}
                 for result in results

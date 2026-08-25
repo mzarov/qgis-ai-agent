@@ -1,4 +1,3 @@
-import difflib
 from typing import Any
 
 from qgis.core import (
@@ -9,9 +8,14 @@ from qgis.core import (
     QgsVectorLayer,
 )
 
+from qgis_ai_agent.qgis_tools.inspect.values import (
+    clamp_limit,
+    plain_value,
+    suggest_fields,
+    wanted_fields,
+)
+
 COORD_PRECISION = 6
-MAX_LISTED_FIELDS = 25
-CLOSE_MATCH_CUTOFF = 0.6
 FALLBACK_EXTENT = (0.0, 0.0, 100.0, 100.0)
 FALLBACK_CRS = "EPSG:3857"
 GEOMETRY_NAMES = (("point", "точки"), ("line", "линии"), ("polygon", "полигоны"))
@@ -142,22 +146,6 @@ def safe_feature_count(layer: QgsMapLayer) -> int | None:
         return int(layer.featureCount())
     except Exception:
         return None
-
-
-def suggest_fields(unknown: list[str], available: list[str]) -> str:
-    close: list[str] = []
-    for name in unknown:
-        close.extend(difflib.get_close_matches(name, available, n=3, cutoff=CLOSE_MATCH_CUTOFF))
-    if close:
-        return "Похожие поля: " + ", ".join(dict.fromkeys(close)) + "."
-    ordered = sorted(available)
-    shown = ", ".join(ordered[:MAX_LISTED_FIELDS])
-    if len(ordered) > MAX_LISTED_FIELDS:
-        return (
-            f"Первые {MAX_LISTED_FIELDS} полей: {shown}. "
-            f"Всего полей {len(ordered)}, полный список — describe_layer."
-        )
-    return f"Доступные поля: {shown}."
 
 
 def find_layer_by_name(name: str) -> QgsMapLayer:

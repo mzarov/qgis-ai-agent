@@ -1,6 +1,7 @@
 from typing import Any
 
 from qgis_ai_agent.qgis_tools.inspect.aggregates import compute
+from qgis_ai_agent.qgis_tools.inspect.utils import clamp_limit, wanted_fields
 from qgis_ai_agent.qgis_tools.inspect.expressions import (
     evaluate,
     parse_order_by,
@@ -24,6 +25,9 @@ def run_aggregate(layer, request, context, params, aggregate: str) -> dict[str, 
     group_text = (params.get("group_by") or "").strip()
     value_expression = prepared(expression_text, "expression", context, layer) if expression_text else None
     group_expression = prepared(group_text, "group_by", context, layer) if group_text else None
+
+    if value_expression is None and group_expression is None:
+        return _bare_count(layer, request, aggregate)
 
     matched = 0
     values: list[Any] = []
@@ -51,18 +55,27 @@ def run_aggregate(layer, request, context, params, aggregate: str) -> dict[str, 
     return info
 
 
+def _bare_count(layer, request, aggregate: str) -> dict[str, Any]:
+    matched = 0
+    for _ in layer.getFeatures(request.setNoAttributes()):
+        matched += 1
+        if matched > MAX_SCAN:
+            raise ValueError(SCAN_LIMIT_MESSAGE.format(limit=MAX_SCAN))
+    return {"aggregate": aggregate, "matched": matched, "value": compute(aggregate, [], matched)}
+
+
 def run_rows(layer, request, context, params) -> dict[str, Any]:
     order_text, ascending = parse_order_by(params.get("order_by") or "")
     order_expression = prepared(order_text, "order_by", context, layer) if order_text else None
-    limit = resolve_limit(params.get("limit"))
-    wanted = _wanted_fields(layer, params.get("fields"))
+    limit = clamp_limit(params.get("limit"), DEFAULT_ROW_LIMIT, MAX_ROW_LIMIT)
+    slots = _field_slots(layer, wanted_fields(layer, params.get("fields")))
 
     collected = []
     for feature in layer.getFeatures(request):
         if len(collected) >= MAX_SCAN:
             raise ValueError(SCAN_LIMIT_MESSAGE.format(limit=MAX_SCAN))
         key = evaluate(order_expression, context, feature) if order_expression else None
-        collected.append((key, _attributes(feature, wanted)))
+        collected.append((key, _attributes(feature, slots)))
 
     if order_expression is not None:
         collected.sort(key=lambda item: sort_key(item[0]), reverse=not ascending)
@@ -76,14 +89,6 @@ def run_rows(layer, request, context, params) -> dict[str, Any]:
     return info
 
 
-def resolve_limit(raw: Any) -> int:
-    try:
-        value = int(raw) if raw is not None else DEFAULT_ROW_LIMIT
-    except (TypeError, ValueError):
-        value = DEFAULT_ROW_LIMIT
-    return max(1, min(value, MAX_ROW_LIMIT))
-
-
 def _build_groups(aggregate: str, groups: dict[Any, list[Any]]) -> list[dict[str, Any]]:
     ordered = sorted(groups.items(), key=lambda item: sort_key(item[0]))
     return [
@@ -92,21 +97,22 @@ def _build_groups(aggregate: str, groups: dict[Any, list[Any]]) -> list[dict[str
     ]
 
 
-def _attributes(feature, wanted: list[str] | None) -> dict[str, Any]:
-    attributes: dict[str, Any] = {}
+def _field_slots(layer, wanted: list[str] | None) -> list[tuple[str, int]]:
     try:
-        names = feature.fields().names()
+        names = layer.fields().names()
     except Exception:
-        return attributes
-    for name in names:
-        if wanted is None or name in wanted:
-            attributes[name] = plain_value(feature[name])
-    return attributes
+        return []
+    return [
+        (name, index)
+        for index, name in enumerate(names)
+        if wanted is None or name in wanted
+    ]
 
 
-def _wanted_fields(layer, raw: Any) -> list[str] | None:
-    if not isinstance(raw, list) or not raw:
-        return None
-    available = set(layer.fields().names())
-    wanted = [str(name) for name in raw if str(name) in available]
-    return wanted or None
+def _attributes(feature, slots: list[tuple[str, int]]) -> dict[str, Any]:
+    values = feature.attributes()
+    return {
+        name: plain_value(values[index])
+        for name, index in slots
+        if index < len(values)
+    }

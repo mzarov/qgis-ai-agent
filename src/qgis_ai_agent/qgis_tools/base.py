@@ -70,8 +70,8 @@ class BaseTool(ABC):
             parts.append("Примеры запросов: " + "; ".join(self.examples) + ".")
         return " ".join(part for part in parts if part)
 
-    def validate(self, params: dict[str, Any]) -> None:
-        return None
+    def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
+        return params
 
     def summarize_call(self, params: dict[str, Any]) -> str:
         if not params:

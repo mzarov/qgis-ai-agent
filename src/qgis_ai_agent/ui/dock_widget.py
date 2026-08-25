@@ -84,6 +84,9 @@ class AgentDockWidget(QDockWidget):
     def add_tool_message(self, text: str) -> int:
         return self.chat_view.add_tool_message(text)
 
+    def add_rejected_message(self, text: str) -> int:
+        return self.chat_view.add_rejected_message(text)
+
     def mark_tool_done(self, message_id: int, ok: bool = True) -> None:
         self.chat_view.mark_tool_done(message_id, ok)
 

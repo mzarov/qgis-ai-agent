@@ -1,3 +1,5 @@
+import hashlib
+
 from qgis.core import QgsSettings
 
 KEYRING_SERVICE = "qgis_ai_agent"
@@ -63,8 +65,6 @@ def set_auth_type(value):
 
 
 def _url_settings_key(url):
-    import hashlib
-
     normalized = (url or "").strip().rstrip("/").lower()
     return hashlib.md5(normalized.encode("utf-8")).hexdigest()[:12]
 

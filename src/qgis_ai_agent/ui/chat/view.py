@@ -15,6 +15,7 @@ from qgis_ai_agent.ui.chat.theme import build_theme_from_palette
 
 ITEM_SPACING = 4
 PENDING_MARKER = "⏳"
+REJECTED_MARKER = "⊘"
 DONE_MARKER = "✓"
 FAILED_MARKER = "✕"
 PLAN_HEADER = "План действий:"
@@ -80,6 +81,9 @@ class ChatView(QWidget):
 
     def add_tool_message(self, text: str) -> int:
         return self._model.add_message("tool", f"{PENDING_MARKER} {text}")
+
+    def add_rejected_message(self, text: str) -> int:
+        return self._model.add_message("tool", f"{REJECTED_MARKER} {text}")
 
     def mark_tool_done(self, message_id: int, ok: bool = True) -> None:
         text = self._model.message_text(message_id)

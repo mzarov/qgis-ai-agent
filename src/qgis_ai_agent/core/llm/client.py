@@ -21,12 +21,18 @@ class ApiResponseError(RuntimeError):
         self.body = body
 
 
-def require_requests():
-    try:
-        import requests
-    except ImportError:
-        raise RuntimeError(REQUESTS_INSTALL_MSG)
-    return requests
+_SESSION = None
+
+
+def get_session():
+    global _SESSION
+    if _SESSION is None:
+        try:
+            import requests
+        except ImportError:
+            raise RuntimeError(REQUESTS_INSTALL_MSG)
+        _SESSION = requests.Session()
+    return _SESSION
 
 
 def resolve_endpoint(url_override=None):
@@ -60,7 +66,7 @@ def post_chat_completion(
     auth_type_override=None,
     verify_override=None,
 ):
-    requests = require_requests()
+    session = get_session()
     endpoint, headers, model = build_request(
         url_override, key_override, auth_type_override, model_override
     )
@@ -69,7 +75,7 @@ def post_chat_completion(
         body.update(extra_body)
     verify_ssl = bool(verify_override) if verify_override is not None else get_verify_ssl()
 
-    response = requests.post(
+    response = session.post(
         endpoint, json=body, headers=headers, timeout=timeout, verify=verify_ssl
     )
     if response.status_code >= 400:

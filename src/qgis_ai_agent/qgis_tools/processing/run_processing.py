@@ -1,9 +1,9 @@
 from typing import Any
 
 from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from qgis_ai_agent.qgis_tools.processing.units import check_distance_units
 from qgis_ai_agent.qgis_tools.processing.utils import (
     apply_output_name,
-    check_distance_units,
     coerce_parameters,
     find_algorithm,
     normalize_output,
@@ -63,8 +63,9 @@ class RunProcessingTool(BaseTool):
         },
     ]
 
-    def validate(self, params: dict[str, Any]) -> None:
-        self._prepare(params)
+    def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
+        _, prepared = self._prepare(params)
+        return {**params, "parameters": prepared}
 
     def summarize_call(self, params: dict[str, Any]) -> str:
         algorithm_id = (params.get("algorithm_id") or "").strip()

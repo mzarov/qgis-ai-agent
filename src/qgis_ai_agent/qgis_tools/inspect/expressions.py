@@ -7,7 +7,7 @@ from qgis.core import (
     QgsFeatureRequest,
 )
 
-from qgis_ai_agent.qgis_tools.inspect.utils import suggest_fields
+from qgis_ai_agent.qgis_tools.inspect.utils import plain_value, suggest_fields
 
 DESCENDING_MARKERS = ("desc", "descending")
 ASCENDING_MARKERS = ("asc", "ascending")
@@ -97,17 +97,6 @@ def parse_order_by(order_by: str) -> tuple[str, bool]:
         if marker in ASCENDING_MARKERS:
             return parts[0].strip(), True
     return text, True
-
-
-def plain_value(value: Any) -> Any:
-    if value is None or isinstance(value, (str, int, float, bool)):
-        return value
-    try:
-        if value.isNull():
-            return None
-    except AttributeError:
-        pass
-    return str(value)
 
 
 def sort_key(value: Any) -> tuple:

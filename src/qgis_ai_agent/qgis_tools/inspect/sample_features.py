@@ -3,7 +3,13 @@ from typing import Any
 from qgis.core import QgsFeatureRequest, QgsVectorLayer
 
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
-from qgis_ai_agent.qgis_tools.inspect.utils import find_layer_by_name
+from qgis_ai_agent.qgis_tools.inspect.utils import (
+    clamp_limit,
+    find_layer_by_name,
+    plain_value,
+    safe_feature_count,
+    wanted_fields,
+)
 
 DEFAULT_LIMIT = 5
 MAX_LIMIT = 20
@@ -49,8 +55,8 @@ class SampleFeaturesTool(BaseTool):
         layer = find_layer_by_name(params.get("layer_name") or "")
         if not isinstance(layer, QgsVectorLayer):
             raise ValueError(f"Слой «{layer.name()}» не векторный, записей у него нет.")
-        limit = self._resolve_limit(params.get("limit"))
-        wanted = self._wanted_fields(layer, params.get("fields"))
+        limit = clamp_limit(params.get("limit"), DEFAULT_LIMIT, MAX_LIMIT)
+        wanted = wanted_fields(layer, params.get("fields"))
 
         features = []
         for feature in layer.getFeatures(QgsFeatureRequest().setLimit(limit)):
@@ -58,25 +64,9 @@ class SampleFeaturesTool(BaseTool):
         return {
             "layer_name": layer.name(),
             "shown": len(features),
-            "total": self._total(layer),
+            "total": safe_feature_count(layer),
             "features": features,
         }
-
-    @staticmethod
-    def _resolve_limit(raw: Any) -> int:
-        try:
-            value = int(raw) if raw is not None else DEFAULT_LIMIT
-        except (TypeError, ValueError):
-            value = DEFAULT_LIMIT
-        return max(1, min(value, MAX_LIMIT))
-
-    @staticmethod
-    def _wanted_fields(layer: QgsVectorLayer, raw: Any) -> list[str] | None:
-        if not isinstance(raw, list) or not raw:
-            return None
-        available = set(layer.fields().names())
-        wanted = [str(name) for name in raw if str(name) in available]
-        return wanted or None
 
     @staticmethod
     def _describe_feature(feature, wanted: list[str] | None) -> dict[str, Any]:
@@ -88,19 +78,12 @@ class SampleFeaturesTool(BaseTool):
         for name in names:
             if wanted is not None and name not in wanted:
                 continue
-            attributes[name] = _plain(feature[name])
+            attributes[name] = _truncated(plain_value(feature[name]))
         entry: dict[str, Any] = {"attributes": attributes}
         geometry_type = _geometry_type(feature)
         if geometry_type:
             entry["geometry"] = geometry_type
         return entry
-
-    @staticmethod
-    def _total(layer: QgsVectorLayer) -> int | None:
-        try:
-            return int(layer.featureCount())
-        except Exception:
-            return None
 
 
 def _geometry_type(feature) -> str:
@@ -113,13 +96,7 @@ def _geometry_type(feature) -> str:
         return ""
 
 
-def _plain(value: Any) -> Any:
-    if value is None or isinstance(value, (int, float, bool)):
+def _truncated(value: Any) -> Any:
+    if not isinstance(value, str) or len(value) <= MAX_VALUE_CHARS:
         return value
-    try:
-        if value.isNull():
-            return None
-    except AttributeError:
-        pass
-    text = value if isinstance(value, str) else str(value)
-    return text if len(text) <= MAX_VALUE_CHARS else text[:MAX_VALUE_CHARS] + "…"
+    return value[:MAX_VALUE_CHARS] + "…"

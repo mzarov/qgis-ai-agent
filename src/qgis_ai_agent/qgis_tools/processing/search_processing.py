@@ -1,7 +1,8 @@
 from typing import Any
 
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
-from qgis_ai_agent.qgis_tools.processing.utils import algorithm_brief, get_registry
+from qgis_ai_agent.qgis_tools.inspect.utils import clamp_limit
+from qgis_ai_agent.qgis_tools.processing.utils import algorithm_brief, build_search_index
 
 DEFAULT_LIMIT = 12
 MAX_LIMIT = 30
@@ -42,52 +43,25 @@ class SearchProcessingTool(BaseTool):
         if not query:
             raise ValueError("Не задан поисковый запрос.")
         terms = query.split()
-        limit = self._resolve_limit(params.get("limit"))
+        limit = clamp_limit(params.get("limit"), DEFAULT_LIMIT, MAX_LIMIT)
 
-        scored = [
-            (score, algorithm_brief(algorithm))
-            for score, algorithm in (
-                (self._score(algorithm, terms), algorithm)
-                for algorithm in get_registry().algorithms()
-            )
-            if score > 0
-        ]
+        scored = []
+        for algorithm, haystack in build_search_index():
+            score = self._score(haystack, terms)
+            if score > 0:
+                scored.append((score, algorithm))
         scored.sort(key=lambda item: item[0], reverse=True)
         return {
             "query": query,
             "total_matched": len(scored),
-            "algorithms": [brief for _, brief in scored[:limit]],
+            "algorithms": [algorithm_brief(algorithm) for _, algorithm in scored[:limit]],
         }
 
     @staticmethod
-    def _resolve_limit(raw: Any) -> int:
-        try:
-            value = int(raw) if raw is not None else DEFAULT_LIMIT
-        except (TypeError, ValueError):
-            value = DEFAULT_LIMIT
-        return max(1, min(value, MAX_LIMIT))
-
-    @classmethod
-    def _score(cls, algorithm, terms: list[str]) -> int:
-        if not terms:
-            return 0
-        haystack = cls._haystack(algorithm)
+    def _score(haystack: dict[str, str], terms: list[str]) -> int:
         return sum(
             weight
             for field, weight in FIELD_WEIGHTS
             for term in terms
             if term in haystack[field]
         )
-
-    @staticmethod
-    def _haystack(algorithm) -> dict[str, str]:
-        try:
-            tags = " ".join(algorithm.tags())
-        except Exception:
-            tags = ""
-        return {
-            "name": (algorithm.displayName() or "").lower(),
-            "id": (algorithm.id() or "").lower(),
-            "tags": tags.lower(),
-            "group": (algorithm.group() or "").lower(),
-        }

@@ -26,6 +26,9 @@ class DockWidgetContract(Protocol):
     def add_tool_message(self, text: str) -> int:
         ...
 
+    def add_rejected_message(self, text: str) -> int:
+        ...
+
     def mark_tool_done(self, message_id: int, ok: bool = True) -> None:
         ...
 

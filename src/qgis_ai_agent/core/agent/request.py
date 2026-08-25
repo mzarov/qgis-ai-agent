@@ -9,6 +9,7 @@ from qgis_ai_agent.core.agent.prompts import (
 from qgis_ai_agent.core.agent.transcript import Transcript
 from qgis_ai_agent.core.context.project import get_project_context
 from qgis_ai_agent.core.llm.client import resolve_endpoint
+from qgis_ai_agent.core.llm.transport import PROTOCOL_JSON, PROTOCOL_NATIVE
 from qgis_ai_agent.core.settings import (
     get_api_key,
     get_api_url,
@@ -19,9 +20,6 @@ from qgis_ai_agent.core.settings import (
 )
 from qgis_ai_agent.qgis_tools.registry import build_tool_schemas, get_tools_for_skills
 from qgis_ai_agent.skills.registry import SKILL_REGISTRY
-
-PROTOCOL_NATIVE = "native"
-PROTOCOL_JSON = "json"
 
 
 @dataclass
@@ -36,6 +34,7 @@ def build_step_request(
     transcript: Transcript,
     loaded_skills: list[str],
     history: list[dict[str, str]],
+    overrides: dict[str, Any] | None = None,
 ) -> StepRequest:
     schemas = build_tool_schemas_for(loaded_skills)
     json_protocol = detect_json_protocol()
@@ -51,7 +50,7 @@ def build_step_request(
     return StepRequest(
         messages=transcript.build_messages(system_prompt, history),
         tool_schemas=schemas,
-        overrides=build_overrides(),
+        overrides=overrides if overrides is not None else build_overrides(),
         protocol=PROTOCOL_JSON if json_protocol else PROTOCOL_NATIVE,
     )
 

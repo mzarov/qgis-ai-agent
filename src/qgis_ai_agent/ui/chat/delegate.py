@@ -85,26 +85,18 @@ class ChatMessageDelegate(QStyledItemDelegate):
         offset = int(rect.width() * theme.side_offset_ratio)
         if role == "user":
             rect.setLeft(rect.left() + offset)
-        elif role == "assistant_preface":
-            rect.setRight(rect.right() - offset)
         elif role == "plan":
             rect.setRight(rect.right() - int(offset * 0.35))
         elif role == "tool":
             rect.setRight(rect.right() - int(offset * 1.4))
-        elif role == "assistant":
-            rect.setRight(rect.right() - offset)
         return rect
 
     @staticmethod
     def _bubble_colors(role: str, theme: ChatTheme):
         if role == "user":
             return theme.user_bg, theme.user_border
-        if role == "assistant_preface":
-            return theme.preface_bg, theme.preface_border
         if role == "plan":
             return theme.plan_bg, theme.plan_border
-        if role == "assistant":
-            return theme.model_bg, theme.model_border
         if role == "result":
             return theme.result_bg, theme.result_border
         if role == "tool":

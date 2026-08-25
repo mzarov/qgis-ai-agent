@@ -3,7 +3,12 @@ from typing import Any
 from qgis.core import QgsVectorLayer
 
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
-from qgis_ai_agent.qgis_tools.inspect.utils import find_layer_by_name, suggest_fields
+from qgis_ai_agent.qgis_tools.inspect.utils import (
+    clamp_limit,
+    find_layer_by_name,
+    plain_value,
+    suggest_fields,
+)
 
 DEFAULT_LIMIT = 25
 MAX_LIMIT = 100
@@ -53,7 +58,7 @@ class GetFieldValuesTool(BaseTool):
             raise ValueError(f"Слой «{layer.name()}» не векторный, у него нет полей атрибутов.")
         field_name = (params.get("field_name") or "").strip()
         index = self._field_index(layer, field_name)
-        limit = self._resolve_limit(params.get("limit"))
+        limit = clamp_limit(params.get("limit"), DEFAULT_LIMIT, MAX_LIMIT)
 
         result: dict[str, Any] = {
             "layer_name": layer.name(),
@@ -82,20 +87,12 @@ class GetFieldValuesTool(BaseTool):
             return ""
 
     @staticmethod
-    def _resolve_limit(raw: Any) -> int:
-        try:
-            value = int(raw) if raw is not None else DEFAULT_LIMIT
-        except (TypeError, ValueError):
-            value = DEFAULT_LIMIT
-        return max(1, min(value, MAX_LIMIT))
-
-    @staticmethod
     def _unique_values(layer: QgsVectorLayer, index: int, limit: int) -> dict[str, Any]:
         try:
             values = layer.uniqueValues(index, limit + 1)
         except Exception:
             return {"unique_values": [], "unique_values_note": "значения недоступны"}
-        plain = [_plain(value) for value in values]
+        plain = [plain_value(value) for value in values]
         filled = _sorted_safe([value for value in plain if value is not None])
 
         result: dict[str, Any] = {"unique_values": filled[:limit]}
@@ -118,7 +115,7 @@ class GetFieldValuesTool(BaseTool):
         info: dict[str, Any] = {}
         for key, getter in (("min", "minimumValue"), ("max", "maximumValue")):
             try:
-                info[key] = _plain(getattr(layer, getter)(index))
+                info[key] = plain_value(getattr(layer, getter)(index))
             except Exception:
                 continue
         return info
@@ -129,16 +126,3 @@ def _sorted_safe(values: list[Any]) -> list[Any]:
         return sorted(values)
     except TypeError:
         return sorted(values, key=lambda value: (type(value).__name__, str(value)))
-
-
-def _plain(value: Any) -> Any:
-    if value is None:
-        return None
-    if isinstance(value, (str, int, float, bool)):
-        return value
-    try:
-        if value.isNull():
-            return None
-    except AttributeError:
-        pass
-    return str(value)

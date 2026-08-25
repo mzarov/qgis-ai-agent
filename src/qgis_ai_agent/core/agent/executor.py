@@ -30,11 +30,7 @@ class ToolExecutor:
                 LOG_TAG,
                 Qgis.Warning,
             )
-            return ToolResult(
-                call=call,
-                ok=False,
-                payload={"error": str(err), "arguments_sent": call.arguments},
-            )
+            return ToolResult.failure(call, str(err))
         QgsMessageLog.logMessage(f"Тул {call.name} выполнен.", LOG_TAG, Qgis.Info)
         return ToolResult(call=call, ok=True, payload=self._as_dict(payload))
 
