@@ -1,7 +1,7 @@
 ---
 name: style
 description: Inspect how a layer is drawn — renderer type, classification field, classes with colours, labels, opacity. Load this for questions about appearance, colours or labelling.
-tools: [describe_style, describe_label_options, set_symbol, set_categories, set_graduated, set_labels, set_opacity]
+tools: [describe_style, describe_style_options, set_symbol, set_categories, set_graduated, set_labels, set_opacity]
 ---
 
 # Layer appearance
@@ -72,7 +72,7 @@ question rather than stacking calls on the same layer:
 
 | Ask | Tool |
 |---|---|
-| one colour for the whole layer | `set_symbol` |
+| how the layer itself is drawn | `set_symbol` |
 | a colour per value of a text field | `set_categories` |
 | classes over a numeric field | `set_graduated` |
 | turn labels on or off | `set_labels` |
@@ -105,30 +105,39 @@ Pick a ramp that suits the data: sequential (`Blues`, `Viridis`) for magnitudes,
 diverging (`Spectral`, `RdYlGn`) when there is a meaningful middle, qualitative
 (`Set2`, `Paired`) for categories that have no order.
 
-### Labels are one property bag
+### Two tools take a property bag
 
-`set_labels` takes `layer_name` and a single `properties` object. Everything about
-a label lives there: the field, font family, weight, size, colour, the halo around
-the glyphs, offsets, rotation, placement, shadow, background.
+`set_symbol` and `set_labels` both take `layer_name` plus a single `properties`
+object. Everything about the thing lives there — for a symbol: colour, opacity,
+size, stroke colour and width, dash pattern, marker shape, fill hatching; for a
+label: field, font, weight, size, colour, the halo around the glyphs, offsets,
+rotation, placement, shadow, background.
 
-**`describe_label_options` is the source of truth** for what those keys are called,
-what values they take and in what units. It is generated from the code, so it
-cannot drift from what actually works. Call it when you are not certain of a key —
-guessing produces an error listing near matches, which costs a round trip.
+**`describe_style_options` is the source of truth** for what those keys are called,
+what values they take and in what units. Pass `kind: "symbol"` or `kind: "labels"`.
+It is generated from the same catalogue the tools apply, so it cannot drift from
+what actually works. Call it when you are not certain of a key — guessing produces
+an error listing near matches, which costs a round trip.
 
-Two keys are worth naming here because users describe them in words that do not
+Three keys are worth naming here because users describe them in words that do not
 match the key:
 
 - the halo that makes labels readable over a busy map — "обводка подписей", "ореол",
   "чтобы читались" — is `buffer_color` and `buffer_size`, **not** `color`, which
   paints the glyphs themselves
 - "сдвинь подписи" is `offset_x` / `offset_y` in millimetres, while "подальше от
-  значка" is `distance`
+  значка" is `distance`; on `offset_y` a **negative** number moves labels up
+- "пунктирные дороги" is `stroke_style: "dash"` on `set_symbol`, and "без заливки,
+  только контур" is `fill_style: "none"`
 
 Set everything in one call. "Подпиши названиями, жирным, 12, с белой обводкой" is
-one call with four keys, not four calls. Queueing `set_labels` twice for one layer
-means the second call wins outright and the first was wasted — the tool rebuilds
-the whole label configuration each time rather than patching it.
+one call with four keys, not four calls. Queueing either tool twice for one layer
+means the second call wins outright and the first was wasted — both rebuild the
+whole configuration each time rather than patching it.
+
+Not every symbol property fits every geometry: `shape` is meaningless for lines,
+`fill_style` for points. Such keys come back in `skipped` with a note. That is a
+report, not a failure — the rest was applied, so do not retry the call.
 
 ### Reading before writing
 

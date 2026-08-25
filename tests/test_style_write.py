@@ -1,7 +1,8 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.style import apply, describe_labels, label_build, label_catalogue
+from qgis_ai_agent.qgis_tools.style import apply, describe_options, label_build, label_catalogue
 from qgis_ai_agent.qgis_tools.style import set_categories, set_graduated, set_labels
+from qgis_ai_agent.qgis_tools.style import symbol_build, symbol_catalogue
 from qgis_ai_agent.qgis_tools.style import set_opacity, set_symbol
 from tests.fake_layers import Colour, Field, Layer, Style, Symbol
 
@@ -41,46 +42,90 @@ class SetSymbolTest(StyleWriteCase):
     def setUp(self):
         super().setUp()
         self.tool = set_symbol.SetSymbolTool()
-        self.saved_renderer = set_symbol.QgsSingleSymbolRenderer
+        self._patched_symbol = (
+            set_symbol.QgsSingleSymbolRenderer,
+            set_symbol.geometry_type_name,
+            symbol_build.base_symbol,
+            symbol_build.parse_color,
+        )
         set_symbol.QgsSingleSymbolRenderer = lambda symbol: ("single", symbol)
+        set_symbol.geometry_type_name = lambda layer: "линии"
+        symbol_build.base_symbol = lambda layer: Symbol()
+        symbol_build.parse_color = lambda value, label="Цвет": Colour(value)
 
     def tearDown(self):
-        set_symbol.QgsSingleSymbolRenderer = self.saved_renderer
+        (
+            set_symbol.QgsSingleSymbolRenderer,
+            set_symbol.geometry_type_name,
+            symbol_build.base_symbol,
+            symbol_build.parse_color,
+        ) = self._patched_symbol
         super().tearDown()
 
+    def _apply(self, **properties):
+        return self.tool.execute({"layer_name": "Дороги", "properties": properties})
+
     def test_colour_reaches_the_symbol(self):
-        self.tool.execute({"layer_name": "Дороги", "color": "#1f78b4"})
+        self._apply(color="#1f78b4")
         self.assertEqual(self.layer.renderer_set[1].colour, "#1f78b4")
 
     def test_renderer_is_replaced_and_layer_redrawn(self):
-        self.tool.execute({"layer_name": "Дороги", "color": "black"})
+        self._apply(color="black")
         self.assertEqual(self.layer.renderer_set[0], "single")
         self.assertEqual(self.layer.repaints, 1)
 
     def test_stroke_lands_on_every_symbol_layer(self):
-        result = self.tool.execute(
-            {"layer_name": "Дороги", "color": "white", "stroke_color": "#232323"}
-        )
+        result = self._apply(color="white", stroke_color="#232323")
         self.assertEqual(self.layer.renderer_set[1].symbolLayer(0).stroke_color, "#232323")
-        self.assertEqual(result["applied"]["stroke_color"], "#232323")
+        self.assertIn("stroke_color", result["applied"])
+
+    def test_inapplicable_property_is_reported_not_swallowed(self):
+        result = self._apply(color="black", shape="square")
+        self.assertIn("shape", result["skipped"])
+        self.assertIn("линии", result["skipped_note"])
+        self.assertIn("color", result["applied"])
+
+    def test_nothing_skipped_means_no_note(self):
+        self.assertNotIn("skipped_note", self._apply(color="black"))
 
     def test_bad_colour_is_rejected_before_queueing(self):
         with self.assertRaises(ValueError) as caught:
-            self.tool.prepare({"layer_name": "Дороги", "color": "тёмно-синий"})
+            self.tool.prepare({"layer_name": "Дороги", "properties": {"color": "тёмно-синий"}})
         self.assertIn("#1f78b4", str(caught.exception))
 
     def test_missing_layer_is_rejected_before_queueing(self):
         with self.assertRaises(ValueError):
-            self.tool.prepare({"layer_name": "Нет такого", "color": "black"})
+            self.tool.prepare({"layer_name": "Нет такого", "properties": {"color": "black"}})
 
-    def test_negative_width_is_rejected(self):
-        with self.assertRaises(ValueError):
-            self.tool.prepare({"layer_name": "Дороги", "color": "black", "stroke_width": -1})
+    def test_out_of_range_width_is_rejected(self):
+        with self.assertRaises(ValueError) as caught:
+            self.tool.prepare({"layer_name": "Дороги", "properties": {"stroke_width": 500}})
+        self.assertIn("20", str(caught.exception))
 
-    def test_prepare_normalizes_layer_name(self):
-        prepared = self.tool.prepare({"layer_name": "Дороги", "color": "black", "size": 2})
-        self.assertEqual(prepared["layer_name"], "Дороги")
-        self.assertEqual(prepared["size"], 2.0)
+    def test_empty_bag_is_rejected(self):
+        with self.assertRaises(ValueError) as caught:
+            self.tool.prepare({"layer_name": "Дороги", "properties": {}})
+        self.assertIn("describe_style_options", str(caught.exception))
+
+    def test_unknown_property_suggests_a_close_one(self):
+        with self.assertRaises(ValueError) as caught:
+            self.tool.prepare({"layer_name": "Дороги", "properties": {"colour": "black"}})
+        self.assertIn("color", str(caught.exception))
+
+    def test_unknown_enum_lists_options(self):
+        with self.assertRaises(ValueError) as caught:
+            self.tool.prepare({"layer_name": "Дороги", "properties": {"stroke_style": "волной"}})
+        self.assertIn("dash", str(caught.exception))
+
+    def test_summary_lists_what_changes(self):
+        summary = self.tool.summarize_call(
+            {"layer_name": "Дороги", "properties": {"color": "black", "size": 2}}
+        )
+        self.assertIn("color=black", summary)
+        self.assertIn("size=2", summary)
+
+    def test_summary_survives_broken_properties(self):
+        self.assertTrue(self.tool.summarize_call({"layer_name": "Дороги", "properties": "мусор"}).strip())
 
 
 class SetCategoriesTest(StyleWriteCase):
@@ -325,32 +370,73 @@ class SetLabelsTest(StyleWriteCase):
         self.assertEqual(result["applied"], ["bold", "field"])
 
 
-class LabelCatalogueTest(unittest.TestCase):
+class CatalogueTest(unittest.TestCase):
+    sets = (label_catalogue.LABELS, symbol_catalogue.SYMBOLS)
+
+    def setUp(self):
+        self._colour = apply.QColor
+        apply.QColor = Colour
+
+    def tearDown(self):
+        apply.QColor = self._colour
+
     def test_describe_matches_the_catalogue(self):
-        described = describe_labels.DescribeLabelOptionsTool().execute({})
-        self.assertEqual(described["property_count"], len(label_catalogue.PROPERTIES))
-        self.assertEqual(
-            [item["name"] for item in described["properties"]], label_catalogue.names()
-        )
+        for kind, known in (("labels", label_catalogue.LABELS), ("symbol", symbol_catalogue.SYMBOLS)):
+            described = describe_options.DescribeStyleOptionsTool().execute({"kind": kind})
+            self.assertEqual(described["property_count"], len(known.properties), kind)
+            self.assertEqual([item["name"] for item in described["properties"]], known.names(), kind)
+
+    def test_unknown_kind_lists_the_kinds(self):
+        with self.assertRaises(ValueError) as caught:
+            describe_options.DescribeStyleOptionsTool().execute({"kind": "макет"})
+        self.assertIn("labels", str(caught.exception))
 
     def test_every_property_is_documented(self):
-        for item in label_catalogue.catalogue():
-            self.assertTrue(item["description"].strip(), item["name"])
+        for known in self.sets:
+            for item in known.catalogue():
+                self.assertTrue(item["description"].strip(), item["name"])
 
     def test_enum_properties_publish_their_options(self):
-        for prop in label_catalogue.PROPERTIES:
-            if prop.kind == "enum":
-                self.assertTrue(prop.options, prop.name)
+        for known in self.sets:
+            for prop in known.properties:
+                if prop.kind == "enum":
+                    self.assertTrue(prop.options, prop.name)
 
     def test_ranges_are_published_for_numbers(self):
-        for prop in label_catalogue.PROPERTIES:
-            if prop.kind == "number":
-                self.assertIsNotNone(prop.minimum, prop.name)
-                self.assertIsNotNone(prop.maximum, prop.name)
+        for known in self.sets:
+            for prop in known.properties:
+                if prop.kind == "number":
+                    self.assertIsNotNone(prop.minimum, prop.name)
+                    self.assertIsNotNone(prop.maximum, prop.name)
+
+    def test_names_are_unique_inside_a_set(self):
+        for known in self.sets:
+            self.assertEqual(len(known.names()), len(set(known.names())), known.subject)
 
     def test_the_asked_for_properties_exist(self):
         for name in ("font", "color", "offset_x", "offset_y", "placement", "size", "bold"):
-            self.assertIn(name, label_catalogue.BY_NAME, name)
+            self.assertIn(name, label_catalogue.LABELS.by_name, name)
+        for name in ("color", "size", "stroke_color", "stroke_width", "shape", "fill_style"):
+            self.assertIn(name, symbol_catalogue.SYMBOLS.by_name, name)
+
+    def test_every_enum_option_maps_to_a_qgis_name(self):
+        mappings = {
+            "shape": symbol_catalogue.SHAPES,
+            "stroke_style": symbol_catalogue.PEN_STYLES,
+            "fill_style": symbol_catalogue.BRUSH_STYLES,
+            "placement": label_catalogue.PLACEMENTS,
+        }
+        for known in self.sets:
+            for prop in known.properties:
+                if prop.kind == "enum":
+                    self.assertEqual(set(prop.options), set(mappings[prop.name]), prop.name)
+
+    def test_colour_is_validated_when_coerced(self):
+        for known in self.sets:
+            colours = [prop for prop in known.properties if prop.kind == "color"]
+            self.assertTrue(colours, known.subject)
+            with self.assertRaises(ValueError, msg=known.subject):
+                known.coerce_all({colours[0].name: "не цвет"})
 
 
 class SetOpacityTest(StyleWriteCase):

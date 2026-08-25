@@ -10,11 +10,10 @@ from qgis_ai_agent.qgis_tools.style.apply import (
     require_field,
     require_vector_layer,
 )
-from qgis_ai_agent.qgis_tools.style.label_build import build_settings, coerce_all, wants
-from qgis_ai_agent.qgis_tools.style.label_catalogue import names
-
-SHOWN_IN_SUMMARY = 4
-FALSE_WORDS = ("false", "0", "no", "off", "нет")
+from qgis_ai_agent.qgis_tools.style.bag import properties_of, shown
+from qgis_ai_agent.qgis_tools.style.label_build import build_settings, wants
+from qgis_ai_agent.qgis_tools.style.label_catalogue import LABELS
+from qgis_ai_agent.qgis_tools.style.properties import as_bool
 
 
 class SetLabelsTool(BaseTool):
@@ -22,7 +21,7 @@ class SetLabelsTool(BaseTool):
     description = (
         "Настроить подписи слоя одним вызовом: поле, шрифт, начертание, размер, "
         "цвет, обводку текста, сдвиг, поворот, размещение, тень, подложку. "
-        "Полный список свойств отдаёт describe_label_options. Остальное "
+        "Полный список свойств отдаёт describe_style_options. Остальное "
         "оформление слоя не трогает."
     )
     skill = "style"
@@ -50,7 +49,7 @@ class SetLabelsTool(BaseTool):
                 "Свойства подписи парами ключ-значение, например "
                 '{"field": "name", "bold": true, "buffer_color": "white", '
                 '"offset_y": -3}. Имена и допустимые значения — '
-                "describe_label_options. Незнакомый ключ вернёт подсказку."
+                'describe_style_options с kind="labels". Незнакомый ключ вернёт подсказку.'
             ),
             "required": True,
         },
@@ -58,7 +57,7 @@ class SetLabelsTool(BaseTool):
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = require_vector_layer(params.get("layer_name") or "")
-        properties = coerce_all(_properties(params))
+        properties = LABELS.coerce_all(properties_of(params, LABELS.subject))
         prepared = dict(params)
         prepared["layer_name"] = layer.name()
         prepared["properties"] = properties
@@ -76,16 +75,16 @@ class SetLabelsTool(BaseTool):
     def summarize_call(self, params: dict[str, Any]) -> str:
         layer_name = (params.get("layer_name") or "").strip()
         try:
-            properties = _properties(params)
+            properties = properties_of(params, LABELS.subject)
         except ValueError:
             return f"Настраиваю подписи «{layer_name}»."
         if not _is_enabled(properties):
             return f"Убираю подписи со слоя «{layer_name}»."
-        return f"Настраиваю подписи «{layer_name}»: {_shown(properties)}."
+        return f"Настраиваю подписи «{layer_name}»: {shown(properties, LABELS)}."
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = require_vector_layer(params.get("layer_name") or "")
-        properties = coerce_all(_properties(params))
+        properties = LABELS.coerce_all(properties_of(params, LABELS.subject))
         if not _is_enabled(properties):
             layer.setLabelsEnabled(False)
             refresh(layer)
@@ -104,30 +103,6 @@ class SetLabelsTool(BaseTool):
         }
 
 
-def _properties(params: dict[str, Any]) -> dict[str, Any]:
-    properties = params.get("properties")
-    if properties is None:
-        return {}
-    if not isinstance(properties, dict):
-        raise ValueError(
-            "Свойства подписи передаются объектом вида "
-            '{"field": "name", "size": 12}, а не строкой или списком.'
-        )
-    return dict(properties)
-
-
 def _is_enabled(properties: dict[str, Any]) -> bool:
     value = properties.get("enabled")
-    if value is None:
-        return True
-    if isinstance(value, str):
-        return value.strip().lower() not in FALSE_WORDS
-    return bool(value)
-
-
-def _shown(properties: dict[str, Any]) -> str:
-    pairs = [f"{key}={value}" for key, value in properties.items() if key in names()]
-    if len(pairs) <= SHOWN_IN_SUMMARY:
-        return ", ".join(pairs) or "по умолчанию"
-    head = ", ".join(pairs[:SHOWN_IN_SUMMARY])
-    return f"{head} и ещё {len(pairs) - SHOWN_IN_SUMMARY}"
+    return True if value is None else as_bool(value)

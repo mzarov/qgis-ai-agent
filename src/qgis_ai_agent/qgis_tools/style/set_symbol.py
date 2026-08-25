@@ -3,135 +3,86 @@ from typing import Any
 from qgis.core import QgsSingleSymbolRenderer
 
 from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
-from qgis_ai_agent.qgis_tools.style.apply import (
-    coloured_symbol,
-    parse_color,
-    refresh,
-    require_vector_layer,
-)
-
-MAX_STROKE_WIDTH = 20.0
-MAX_SIZE = 100.0
+from qgis_ai_agent.qgis_tools.common.layers import geometry_type_name
+from qgis_ai_agent.qgis_tools.style.apply import refresh, require_vector_layer
+from qgis_ai_agent.qgis_tools.style.bag import properties_of, shown
+from qgis_ai_agent.qgis_tools.style.symbol_build import build_symbol, note_for
+from qgis_ai_agent.qgis_tools.style.symbol_catalogue import SYMBOLS
 
 
 class SetSymbolTool(BaseTool):
     name = "set_symbol"
     description = (
-        "Перекрасить слой одним символом: цвет заливки, цвет и толщина обводки, "
-        "размер точек или толщина линий. Заменяет текущее оформление слоя."
+        "Оформить слой одним символом: цвет, прозрачность, размер точки или "
+        "толщина линии, обводка и её штрих, форма значка, штриховка заливки. "
+        "Полный список свойств отдаёт describe_style_options. Заменяет "
+        "текущее оформление слоя."
     )
     skill = "style"
     safety = SAFETY_WRITE
     constraints = [
         "Слой должен существовать и быть векторным",
-        "Цвета задаются как #rrggbb или английским именем",
+        "Все свойства идут одним вызовом, а не несколькими",
     ]
-    examples = ["Сделай реки синими", "Дороги — тонкие серые линии"]
+    examples = [
+        "Сделай реки синими",
+        "Дороги — тонкие серые пунктирные линии",
+        "Города квадратными значками с белой обводкой",
+    ]
     params_schema = [
         {
             "name": "layer_name",
             "type": "string",
-            "description": "Имя слоя ровно как в проекте (см. list_layers)",
+            "description": "Имя слоя ровно как в проекте",
             "required": True,
         },
         {
-            "name": "color",
-            "type": "string",
-            "description": "Основной цвет: #1f78b4 или steelblue",
-            "required": True,
-        },
-        {
-            "name": "stroke_color",
-            "type": "string",
-            "description": "Цвет обводки. Не указывать, если обводка не нужна.",
-            "required": False,
-        },
-        {
-            "name": "stroke_width",
-            "type": "number",
-            "description": "Толщина обводки в миллиметрах, например 0.4",
-            "required": False,
-        },
-        {
-            "name": "size",
-            "type": "number",
+            "name": "properties",
+            "type": "object",
             "description": (
-                "Размер точки или толщина линии в миллиметрах. Для полигонов не "
-                "применяется."
+                "Свойства символа парами ключ-значение, например "
+                '{"color": "#1f78b4", "stroke_color": "white", "size": 2}. '
+                "Имена и допустимые значения — describe_style_options "
+                'с kind="symbol". Незнакомый ключ вернёт подсказку.'
             ),
-            "required": False,
+            "required": True,
         },
     ]
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = require_vector_layer(params.get("layer_name") or "")
+        properties = SYMBOLS.coerce_all(properties_of(params, SYMBOLS.subject))
+        if not properties:
+            raise ValueError(
+                "Не указано ни одного свойства символа. Список доступных — "
+                'describe_style_options с kind="symbol".'
+            )
         prepared = dict(params)
         prepared["layer_name"] = layer.name()
-        parse_color(params.get("color"), "Цвет")
-        if params.get("stroke_color"):
-            parse_color(params.get("stroke_color"), "Цвет обводки")
-        for key, limit in (("stroke_width", MAX_STROKE_WIDTH), ("size", MAX_SIZE)):
-            if params.get(key) is not None:
-                prepared[key] = _positive(params.get(key), key, limit)
+        prepared["properties"] = properties
         return prepared
 
     def summarize_call(self, params: dict[str, Any]) -> str:
         layer_name = (params.get("layer_name") or "").strip()
-        return f"Перекрашиваю слой «{layer_name}» в {params.get('color', '')}."
+        try:
+            properties = properties_of(params, SYMBOLS.subject)
+        except ValueError:
+            return f"Оформляю слой «{layer_name}»."
+        return f"Оформляю «{layer_name}»: {shown(properties, SYMBOLS)}."
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = require_vector_layer(params.get("layer_name") or "")
-        symbol = coloured_symbol(layer, parse_color(params.get("color"), "Цвет"))
-        applied = _tune(symbol, params)
+        properties = SYMBOLS.coerce_all(properties_of(params, SYMBOLS.subject))
+        symbol, outcome = build_symbol(layer, properties)
         layer.setRenderer(QgsSingleSymbolRenderer(symbol))
         refresh(layer)
-        return {"layer": layer.name(), "renderer": "singleSymbol", "applied": applied}
-
-
-def _tune(symbol: Any, params: dict[str, Any]) -> dict[str, Any]:
-    applied: dict[str, Any] = {"color": params.get("color")}
-    size = params.get("size")
-    if size is not None:
-        for setter in ("setSize", "setWidth"):
-            if _call(symbol, setter, float(size)):
-                applied["size"] = float(size)
-                break
-    for index in range(_layer_count(symbol)):
-        layer = symbol.symbolLayer(index)
-        if params.get("stroke_color") and _call(
-            layer, "setStrokeColor", parse_color(params["stroke_color"], "Цвет обводки")
-        ):
-            applied["stroke_color"] = params["stroke_color"]
-        if params.get("stroke_width") is not None and _call(
-            layer, "setStrokeWidth", float(params["stroke_width"])
-        ):
-            applied["stroke_width"] = float(params["stroke_width"])
-    return applied
-
-
-def _layer_count(symbol: Any) -> int:
-    try:
-        return int(symbol.symbolLayerCount())
-    except Exception:
-        return 0
-
-
-def _call(target: Any, method: str, value: Any) -> bool:
-    setter = getattr(target, method, None)
-    if setter is None:
-        return False
-    try:
-        setter(value)
-    except Exception:
-        return False
-    return True
-
-
-def _positive(value: Any, key: str, limit: float) -> float:
-    try:
-        number = float(value)
-    except (TypeError, ValueError):
-        raise ValueError(f"Параметр {key} задаётся числом в миллиметрах, например 0.6.")
-    if number <= 0 or number > limit:
-        raise ValueError(f"Параметр {key} должен быть больше 0 и не больше {limit:g} мм.")
-    return number
+        result: dict[str, Any] = {
+            "layer": layer.name(),
+            "renderer": "singleSymbol",
+            "applied": outcome["applied"],
+        }
+        note = note_for(outcome["skipped"], geometry_type_name(layer))
+        if note:
+            result["skipped"] = outcome["skipped"]
+            result["skipped_note"] = note
+        return result
