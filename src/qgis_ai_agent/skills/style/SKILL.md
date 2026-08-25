@@ -78,6 +78,12 @@ question rather than stacking calls on the same layer:
 | turn labels on or off | `set_labels` |
 | make a layer see-through | `set_opacity` |
 
+`set_labels` covers the whole label: which field, size, text colour, and the halo
+around the glyphs — `buffer_color` plus `buffer_size`. That halo is what users mean
+by "обводка подписей", "ореол" or "чтобы подписи читались поверх карты"; it is not
+`color`, which paints the glyphs themselves. Setting `buffer_color` turns the halo
+on, `buffer: false` turns it off.
+
 `set_labels` and `set_opacity` are additive — they leave the renderer alone. The
 other three overwrite it, so applying `set_categories` after `set_symbol` on the
 same layer makes the first call pointless. Queue only the call you actually mean.
@@ -104,6 +110,13 @@ pick from that list. Common built-ins are `Spectral`, `Viridis`, `Blues`, `Set2`
 Pick a ramp that suits the data: sequential (`Blues`, `Viridis`) for magnitudes,
 diverging (`Spectral`, `RdYlGn`) when there is a meaningful middle, qualitative
 (`Set2`, `Paired`) for categories that have no order.
+
+### One call per intent
+
+Every parameter of `set_labels` lands in one call. "Подпиши названиями белым с
+чёрной обводкой размером 12" is a single call with `field`, `color`, `buffer_color`
+and `size` — not four. Queueing the same tool twice for one layer means the second
+call silently wins and the first was wasted work.
 
 ### Reading before writing
 

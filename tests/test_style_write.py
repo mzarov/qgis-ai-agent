@@ -1,6 +1,6 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.style import apply, set_categories, set_graduated, set_labels
+from qgis_ai_agent.qgis_tools.style import apply, label_format, set_categories, set_graduated, set_labels
 from qgis_ai_agent.qgis_tools.style import set_opacity, set_symbol
 from tests.fake_layers import Colour, Field, Layer, Style, Symbol
 
@@ -205,18 +205,24 @@ class SetLabelsTest(StyleWriteCase):
         self.tool = set_labels.SetLabelsTool()
         self._labeling = (
             set_labels.QgsPalLayerSettings,
-            set_labels.QgsTextFormat,
             set_labels.QgsVectorLayerSimpleLabeling,
+            label_format.QgsTextFormat,
+            label_format.QgsTextBufferSettings,
+            label_format.parse_color,
         )
         set_labels.QgsPalLayerSettings = _FakeSettings
-        set_labels.QgsTextFormat = _FakeFormat
         set_labels.QgsVectorLayerSimpleLabeling = lambda settings: ("simple", settings)
+        label_format.QgsTextFormat = _FakeFormat
+        label_format.QgsTextBufferSettings = _FakeBuffer
+        label_format.parse_color = lambda value, label="Цвет": Colour(value)
 
     def tearDown(self):
         (
             set_labels.QgsPalLayerSettings,
-            set_labels.QgsTextFormat,
             set_labels.QgsVectorLayerSimpleLabeling,
+            label_format.QgsTextFormat,
+            label_format.QgsTextBufferSettings,
+            label_format.parse_color,
         ) = self._labeling
         super().tearDown()
 
@@ -247,6 +253,41 @@ class SetLabelsTest(StyleWriteCase):
     def test_summary_says_what_will_happen(self):
         self.assertIn("Убираю", self.tool.summarize_call({"layer_name": "Дороги", "enabled": False}))
         self.assertIn("Подписываю", self.tool.summarize_call({"layer_name": "Дороги", "field": "name"}))
+
+    def test_summary_shows_what_actually_changes(self):
+        summary = self.tool.summarize_call(
+            {"layer_name": "Дороги", "field": "name", "buffer_color": "white", "size": 12}
+        )
+        self.assertIn("обводка текста white", summary)
+        self.assertIn("размер 12", summary)
+
+    def test_two_different_calls_read_differently(self):
+        first = self.tool.summarize_call({"layer_name": "Дороги", "field": "name", "color": "black"})
+        second = self.tool.summarize_call(
+            {"layer_name": "Дороги", "field": "name", "buffer_color": "white"}
+        )
+        self.assertNotEqual(first, second)
+
+    def test_buffer_colour_turns_the_halo_on(self):
+        self.tool.execute({"layer_name": "Дороги", "field": "name", "buffer_color": "white"})
+        buffer = self.layer.labeling[1].text_format.buffer
+        self.assertTrue(buffer.enabled)
+        self.assertEqual(buffer.colour, "white")
+        self.assertEqual(buffer.size, 1.0)
+
+    def test_buffer_stays_off_when_not_asked(self):
+        self.tool.execute({"layer_name": "Дороги", "field": "name"})
+        self.assertFalse(self.layer.labeling[1].text_format.buffer.enabled)
+
+    def test_buffer_can_be_turned_off_explicitly(self):
+        self.tool.execute(
+            {"layer_name": "Дороги", "field": "name", "buffer_color": "white", "buffer": False}
+        )
+        self.assertFalse(self.layer.labeling[1].text_format.buffer.enabled)
+
+    def test_absurd_buffer_size_is_rejected(self):
+        with self.assertRaises(ValueError):
+            self.tool.prepare({"layer_name": "Дороги", "field": "name", "buffer_size": 40})
 
 
 class SetOpacityTest(StyleWriteCase):
@@ -315,6 +356,26 @@ class _FakeFormat:
     def __init__(self):
         self.size = None
         self.colour = None
+        self.buffer = None
+
+    def setSize(self, value):
+        self.size = value
+
+    def setColor(self, value):
+        self.colour = value.name()
+
+    def setBuffer(self, buffer):
+        self.buffer = buffer
+
+
+class _FakeBuffer:
+    def __init__(self):
+        self.enabled = None
+        self.size = None
+        self.colour = None
+
+    def setEnabled(self, value):
+        self.enabled = value
 
     def setSize(self, value):
         self.size = value
