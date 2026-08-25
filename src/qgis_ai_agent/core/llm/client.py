@@ -11,6 +11,11 @@ REQUESTS_INSTALL_MSG = (
     "Установите её в Python QGIS. См. документацию плагина (раздел «Зависимости»)."
 )
 DEFAULT_TIMEOUT = 120
+LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1", "0.0.0.0", "host.docker.internal")
+MISSING_KEY_MSG = (
+    "Не задан API-ключ. Укажите его в Настройках — или подключитесь к локальной "
+    "модели: для адреса на localhost ключ не нужен."
+)
 ERROR_BODY_LIMIT = 300
 
 
@@ -45,15 +50,26 @@ def resolve_endpoint(url_override=None):
 def build_request(url_override=None, key_override=None, auth_type_override=None, model_override=None):
     url = resolve_endpoint(url_override)
     key = ((key_override if key_override is not None else get_api_key()) or "").strip()
-    if not key:
-        raise ValueError("Не задан API-ключ. Укажите его в Настройках.")
+    if not key and not is_local(url):
+        raise ValueError(MISSING_KEY_MSG)
     auth_type = auth_type_override if auth_type_override is not None else get_auth_type()
-    headers = {
-        "Authorization": f"{auth_type} {key}" if auth_type else f"Bearer {key}",
-        "Content-Type": "application/json",
-    }
+    headers = {"Content-Type": "application/json"}
+    if key:
+        headers["Authorization"] = f"{auth_type} {key}" if auth_type else f"Bearer {key}"
     model = (model_override if model_override is not None else get_model()) or ""
     return f"{url}/chat/completions", headers, model
+
+
+def is_local(url):
+    host = _host_of(url)
+    return host in LOCAL_HOSTS or host.endswith(".local")
+
+
+def _host_of(url):
+    authority = (url or "").split("//")[-1].split("/")[0].strip().lower()
+    if authority.startswith("["):
+        return authority[1:].split("]")[0]
+    return authority.split(":")[0]
 
 
 def post_chat_completion(
