@@ -1,12 +1,12 @@
 [general]
 name=QGIS AI Agent
-qgisMinimumVersion=3.22
+qgisMinimumVersion=3.40
 qgisMaximumVersion=4.99
 description=ИИ-агент в QGIS: изучает проект и обрабатывает данные по текстовому запросу.
 about=Плагин для QGIS 4. Агент сам изучает проект (слои, поля атрибутов, системы координат) и запускает алгоритмы обработки по описанию на естественном языке. Изменения применяются только после подтверждения пользователем. Использует OpenAI-совместимый API и локальное хранилище ключей (keyring).
 version=0.2.0
-author=QGIS AI Agent Author
-email=author@example.com
+author=mzarov
+email=mzarov@duck.com
 
 [tracker]
-repository=https://github.com/example/qgis_ai_agent
+repository=https://github.com/mzarov/qgis-ai-agent

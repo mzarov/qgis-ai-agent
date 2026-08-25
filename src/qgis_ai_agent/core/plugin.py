@@ -9,6 +9,9 @@ from qgis_ai_agent.ui.dock_widget import AgentDockWidget
 from qgis_ai_agent.ui.settings_dialog import SettingsDialog
 
 MENU_TITLE = "QGIS AI Agent"
+DOCK_AREA = getattr(
+    getattr(Qt, "DockWidgetArea", Qt), "RightDockWidgetArea", getattr(Qt, "RightDockWidgetArea", 2)
+)
 ICON_FILENAME = "icon.png"
 
 
@@ -39,7 +42,7 @@ class QgisAiAgentPlugin:
     def run(self):
         if self.dock_widget is None:
             self._build()
-        self.iface.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dock_widget)
+        self.iface.addDockWidget(DOCK_AREA, self.dock_widget)
         self.dock_widget.show()
         self.dock_widget.raise_()
 
