@@ -28,7 +28,12 @@ core = _mod("qgis.core", [
     "QgsRasterLayer","QgsRectangle","QgsApplication","QgsProcessingParameterDefinition",
     "QgsProcessingFeedback","QgsLayerTreeGroup","QgsLayerTreeLayer",
     "QgsUnitTypes","QgsFeatureRequest","QgsFeature","QgsGeometry",
-    "QgsExpression","QgsExpressionContext","QgsExpressionContextUtils"])
+    "QgsExpression","QgsExpressionContext","QgsExpressionContextUtils",
+    "QgsSymbol","QgsStyle","QgsSingleSymbolRenderer","QgsCategorizedSymbolRenderer",
+    "QgsRendererCategory","QgsGraduatedSymbolRenderer","QgsRendererRange",
+    "QgsPalLayerSettings","QgsTextFormat","QgsTextBufferSettings",
+    "QgsTextShadowSettings","QgsTextBackgroundSettings",
+    "QgsVectorLayerSimpleLabeling"])
 pyqt = _mod("qgis.PyQt"); pyqt.__path__ = []
 _mod("qgis.PyQt.QtCore", ["Qt","QThread","QObject","pyqtSignal","QEvent","QModelIndex",
                           "QAbstractListModel","QRect","QSize","QTimer"])

@@ -77,6 +77,7 @@ class QueryLayerTool(BaseTool):
         {
             "name": "fields",
             "type": "array",
+            "items": {"type": "string"},
             "description": "Какие поля показать у объектов. По умолчанию все.",
             "required": False,
         },

@@ -1,6 +1,6 @@
 from typing import Any
 
-from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer
+from qgis.core import QgsRasterLayer, QgsVectorLayer
 
 from qgis_ai_agent.qgis_tools.common.renderers import (
     RENDERER_NAMES,

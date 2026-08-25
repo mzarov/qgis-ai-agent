@@ -1,7 +1,7 @@
 ---
 name: style
 description: Inspect how a layer is drawn — renderer type, classification field, classes with colours, labels, opacity. Load this for questions about appearance, colours or labelling.
-tools: [describe_style]
+tools: [describe_style, describe_style_options, set_symbol, set_categories, set_graduated, set_labels, set_opacity]
 ---
 
 # Layer appearance
@@ -65,8 +65,95 @@ When the classification field matters, cross-check it with `get_field_values`
 from the `inspect` skill: a renderer can reference a field whose values have
 since changed, leaving classes that match nothing.
 
-## Limits
+## Changing how a layer looks
 
-This skill is read-only. There are no tools to change styling yet, so do not
-promise to recolour anything — describe what is there and, if the user wants a
-change, say plainly that it is not supported yet.
+Five write tools. Each **replaces** the renderer, so pick the one that matches the
+question rather than stacking calls on the same layer:
+
+| Ask | Tool |
+|---|---|
+| how the layer itself is drawn | `set_symbol` |
+| a colour per value of a text field | `set_categories` |
+| classes over a numeric field | `set_graduated` |
+| turn labels on or off | `set_labels` |
+| make a layer see-through | `set_opacity` |
+
+`set_labels` and `set_opacity` are additive — they leave the renderer alone. The
+other three overwrite it, so applying `set_categories` after `set_symbol` on the
+same layer makes the first call pointless. Queue only the call you actually mean.
+
+These are write tools: the call returns `{"status": "queued"}` and the user
+applies the batch. Say "перекрашу", not "перекрасил".
+
+### Choosing between categories and graduations
+
+Text field with a handful of distinct values — `set_categories`. Numeric field
+with a continuous spread — `set_graduated`. If you do not know which, call
+`get_field_values` from the `inspect` skill first: it shows both the type and how
+many distinct values there are. Categorising a field with hundreds of values
+produces an unreadable map, and the tool refuses past 60.
+
+### Colours and ramps
+
+Colours are `#rrggbb` or English colour names. A ramp name must exist in the user's
+QGIS style library, and that library varies per install — do not trust a name you
+merely remember. Omitting `ramp` is safe: the tool picks a sensible default. Naming
+one that does not exist is also safe: the error lists what is available and you
+pick from that list. Common built-ins are `Spectral`, `Viridis`, `Blues`, `Set2`.
+
+Pick a ramp that suits the data: sequential (`Blues`, `Viridis`) for magnitudes,
+diverging (`Spectral`, `RdYlGn`) when there is a meaningful middle, qualitative
+(`Set2`, `Paired`) for categories that have no order.
+
+### Two tools take a property bag
+
+`set_symbol` and `set_labels` both take `layer_name` plus a single `properties`
+object. Everything about the thing lives there — for a symbol: colour, opacity,
+size, stroke colour and width, dash pattern, marker shape, fill hatching; for a
+label: field, font, weight, size, colour, the halo around the glyphs, offsets,
+rotation, placement, shadow, background.
+
+**`describe_style_options` is the source of truth** for what those keys are called,
+what values they take and in what units. Pass `kind: "symbol"` or `kind: "labels"`.
+It is generated from the same catalogue the tools apply, so it cannot drift from
+what actually works. Call it when you are not certain of a key — guessing produces
+an error listing near matches, which costs a round trip.
+
+Three keys are worth naming here because users describe them in words that do not
+match the key:
+
+- the halo that makes labels readable over a busy map — "обводка подписей", "ореол",
+  "чтобы читались" — is `buffer_color` and `buffer_size`, **not** `color`, which
+  paints the glyphs themselves
+- "сдвинь подписи" is `offset_x` / `offset_y` in millimetres, while "подальше от
+  значка" is `distance`; on `offset_y` a **negative** number moves labels up
+- "пунктирные дороги" is `stroke_style: "dash"` on `set_symbol`, and "без заливки,
+  только контур" is `fill_style: "none"`
+
+Set everything in one call. "Подпиши названиями, жирным, 12, с белой обводкой" is
+one call with four keys, not four calls. Queueing either tool twice for one layer
+means the second call wins outright and the first was wasted — both rebuild the
+whole configuration each time rather than patching it.
+
+Not every symbol property fits every geometry: `shape` is meaningless for lines,
+`fill_style` for points. Such keys come back in `skipped` with a note. That is a
+report, not a failure — the rest was applied, so do not retry the call.
+
+### Three different opacities
+
+QGIS has three, and they are not interchangeable:
+
+| What the user means | Where it lives |
+|---|---|
+| весь слой полупрозрачный, включая растр | `set_opacity` |
+| полупрозрачная заливка, обводка нет | `opacity` in `set_symbol` |
+| полупрозрачный текст подписи | `opacity` in `set_labels` |
+
+"Сделай слой полупрозрачным" is `set_opacity`. Reach for the other two only when
+the user singles out the fill or the text.
+
+### Reading before writing
+
+For "почему это выглядит так" or "поменяй, но остальное оставь", call
+`describe_style` first. Without it you do not know what you are replacing, and
+these tools replace rather than patch.

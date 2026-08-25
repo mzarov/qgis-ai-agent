@@ -1,5 +1,7 @@
 import unittest
 
+from qgis_ai_agent.core.agent import batch as batch_module
+from qgis_ai_agent.core.agent.batch import WriteBatch
 from qgis_ai_agent.core.agent.loop import AgentLoop
 from qgis_ai_agent.core.agent.transcript import ToolResult
 from qgis_ai_agent.core.llm.transport import ToolCall
@@ -84,6 +86,44 @@ class BatchTest(unittest.TestCase):
     def test_confirm_on_empty_queue_does_nothing(self):
         self.loop.confirm_pending()
         self.assertEqual(self.executor.ran, [])
+
+
+
+class BatchDedupTest(unittest.TestCase):
+    def setUp(self):
+        self.batch = WriteBatch(FakeExecutor())
+        self._saved = batch_module.prepare_tool_call
+        batch_module.prepare_tool_call = lambda name, params: params
+
+    def tearDown(self):
+        batch_module.prepare_tool_call = self._saved
+
+    def test_identical_calls_collapse(self):
+        first = self.batch.add(call("set_opacity", layer_name="Дороги", opacity=0.5))
+        second = self.batch.add(call("set_opacity", layer_name="Дороги", opacity=0.5))
+        self.assertIs(first, second)
+        self.assertEqual(len(self.batch.pending()), 1)
+
+    def test_different_arguments_stay_separate(self):
+        self.batch.add(call("set_opacity", layer_name="Дороги", opacity=0.5))
+        self.batch.add(call("set_opacity", layer_name="Дороги", opacity=0.9))
+        self.assertEqual(len(self.batch.pending()), 2)
+
+    def test_argument_order_does_not_split_a_duplicate(self):
+        self.batch.add(call("set_opacity", layer_name="Дороги", opacity=0.5))
+        self.batch.add(call("set_opacity", opacity=0.5, layer_name="Дороги"))
+        self.assertEqual(len(self.batch.pending()), 1)
+
+    def test_different_tools_stay_separate(self):
+        self.batch.add(call("set_opacity", layer_name="Дороги", opacity=0.5))
+        self.batch.add(call("set_symbol", layer_name="Дороги", opacity=0.5))
+        self.assertEqual(len(self.batch.pending()), 2)
+
+    def test_duplicate_is_applied_once(self):
+        self.batch.add(call("set_opacity", layer_name="Дороги", opacity=0.5))
+        self.batch.add(call("set_opacity", layer_name="Дороги", opacity=0.5))
+        results = self.batch.apply(lambda item: None, lambda item, result: None)
+        self.assertEqual(len(results), 1)
 
 
 if __name__ == "__main__":
