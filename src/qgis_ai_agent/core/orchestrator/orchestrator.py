@@ -4,23 +4,26 @@ from qgis.core import Qgis, QgsMessageLog
 
 from qgis_ai_agent.core.agent.loop import AgentLoop
 from qgis_ai_agent.core.orchestrator.contracts import DockWidgetContract
-from qgis_ai_agent.core.state.history import HistoryStore
+from qgis_ai_agent.core.state.conversation import ConversationState
 from qgis_ai_agent.qgis_tools.registry import summarize_tool_call
 
 LOG_TAG = "QGIS AI Agent"
-HISTORY_LIMIT = 14
 MESSAGE_DURATION_SEC = 8
+SESSION_MISSING = "Диалог не найден."
+SWITCH_WHILE_RUNNING = "Дождитесь окончания текущей задачи."
+SWITCH_WHILE_PENDING = "Сначала примените или отмените запланированные изменения."
 
 
 class CoreOrchestrator:
     def __init__(self, iface: Any, dock_widget: DockWidgetContract):
         self.iface = iface
         self.dock_widget = dock_widget
-        self.history_store = HistoryStore(max_messages=HISTORY_LIMIT)
+        self.conversation = ConversationState()
         self.agent = AgentLoop()
         self._active_tool_message_id: int | None = None
         self._plan_message_id: int | None = None
         self._connect_agent()
+        self.dock_widget.set_session_source(self.conversation.recent)
 
     def _connect_agent(self) -> None:
         self.agent.tool_started.connect(self.on_tool_started)
@@ -34,6 +37,34 @@ class CoreOrchestrator:
         self.agent.failed.connect(self.on_failed)
         self.agent.busy_changed.connect(self.dock_widget.set_busy)
 
+    def on_new_session(self) -> None:
+        if self._busy_with_current():
+            return
+        self.conversation.start_new()
+        self._replay()
+
+    def on_session_chosen(self, identifier: str) -> None:
+        if self._busy_with_current():
+            return
+        if not self.conversation.restore(identifier):
+            self.dock_widget.add_system_message(SESSION_MISSING)
+            return
+        self._replay()
+
+    def _busy_with_current(self) -> bool:
+        if self.agent.is_running:
+            self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
+            return True
+        if self.agent.has_pending_writes:
+            self.dock_widget.add_system_message(SWITCH_WHILE_PENDING)
+            return True
+        return False
+
+    def _replay(self) -> None:
+        self._plan_message_id = None
+        self._active_tool_message_id = None
+        self.dock_widget.replay(self.conversation.messages)
+
     def on_prompt(self, prompt: str) -> None:
         text = (prompt or "").strip()
         if not text:
@@ -46,8 +77,8 @@ class CoreOrchestrator:
         self.dock_widget.add_user_message(text)
         self.dock_widget.clear_prompt()
         self._plan_message_id = None
-        history = self.history_store.get()
-        self.history_store.add("user", text)
+        history = self.conversation.window()
+        self.conversation.add("user", text)
         self.agent.start(text, history)
 
     def on_tool_started(self, summary: str) -> None:
@@ -72,7 +103,7 @@ class CoreOrchestrator:
     def on_confirm_needed(self, calls: list, final_text: str) -> None:
         if final_text:
             self.dock_widget.add_result_message(final_text)
-            self.history_store.add("assistant", final_text)
+            self.conversation.add("assistant", final_text)
         lines = [
             f"{index}. {summarize_tool_call(call.name, call.arguments)}"
             for index, call in enumerate(calls, 1)
@@ -98,12 +129,14 @@ class CoreOrchestrator:
         self._plan_message_id = None
         if failed:
             details = "; ".join(str(result.payload.get("error", "")) for result in failed)
-            self.dock_widget.add_system_message(f"Часть шагов не выполнена: {details}")
+            outcome = f"Часть шагов не выполнена: {details}"
+            self.dock_widget.add_system_message(outcome)
+            self.conversation.add("assistant", outcome)
             self._push_message("Не все изменения применены.", Qgis.Warning)
             return
-        self.dock_widget.add_result_message(
-            f"Готово: применено шагов — {len(results)}.{self._where_to_look(results)}"
-        )
+        outcome = f"Готово: применено шагов — {len(results)}.{self._where_to_look(results)}"
+        self.dock_widget.add_result_message(outcome)
+        self.conversation.add("assistant", outcome)
         self._push_message("Изменения применены.", Qgis.Success)
 
     def on_finished(self, text: str) -> None:
@@ -114,7 +147,7 @@ class CoreOrchestrator:
             )
             return
         self.dock_widget.add_result_message(message)
-        self.history_store.add("assistant", message)
+        self.conversation.add("assistant", message)
 
     def on_failed(self, message: str) -> None:
         self._active_tool_message_id = None
@@ -123,6 +156,7 @@ class CoreOrchestrator:
         self._push_message(message, Qgis.Critical)
 
     def shutdown(self) -> None:
+        self.conversation.save()
         self.agent.stop()
 
     @staticmethod

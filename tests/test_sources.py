@@ -1,6 +1,7 @@
 import ast
 import builtins
 import os
+import pathlib
 import unittest
 
 SOURCE_ROOT = os.path.join(
@@ -17,6 +18,10 @@ def python_files():
         for name in sorted(names):
             if name.endswith(".py"):
                 yield os.path.join(folder, name)
+
+
+def read_source(path):
+    return pathlib.Path(path).read_text(encoding="utf-8")
 
 
 def module_scope(tree):
@@ -60,7 +65,7 @@ class UndefinedNameTest(unittest.TestCase):
     def test_no_undefined_names(self):
         problems = []
         for path in python_files():
-            tree = ast.parse(open(path, encoding="utf-8").read())
+            tree = ast.parse(read_source(path))
             known = module_scope(tree) | KNOWN
             functions = [n for n in ast.walk(tree)
                          if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
@@ -77,7 +82,7 @@ class StyleTest(unittest.TestCase):
     def test_no_comments_and_no_docstrings(self):
         problems = []
         for path in python_files():
-            source = open(path, encoding="utf-8").read()
+            source = read_source(path)
             for number, line in enumerate(source.split("\n"), 1):
                 if line.strip().startswith("#"):
                     problems.append(f"{path}:{number} комментарий")
@@ -94,7 +99,7 @@ class StyleTest(unittest.TestCase):
     def test_files_stay_under_the_limit(self):
         too_long = []
         for path in python_files():
-            lines = len(open(path, encoding="utf-8").read().split("\n"))
+            lines = len(read_source(path).split("\n"))
             if lines > MAX_LINES:
                 too_long.append(f"{os.path.basename(path)}: {lines}")
         self.assertEqual(too_long, [])
@@ -102,7 +107,7 @@ class StyleTest(unittest.TestCase):
     def test_imports_are_absolute(self):
         relative = []
         for path in python_files():
-            for node in ast.walk(ast.parse(open(path, encoding="utf-8").read())):
+            for node in ast.walk(ast.parse(read_source(path))):
                 if isinstance(node, ast.ImportFrom) and node.level:
                     relative.append(f"{path}:{node.lineno}")
         self.assertEqual(relative, [])
