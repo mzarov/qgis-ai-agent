@@ -5,7 +5,7 @@ from qgis.core import QgsSingleSymbolRenderer
 from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
 from qgis_ai_agent.qgis_tools.common.layers import geometry_type_name
 from qgis_ai_agent.qgis_tools.style.apply import refresh, require_vector_layer
-from qgis_ai_agent.qgis_tools.common.bag import properties_of, shown
+from qgis_ai_agent.qgis_tools.common.properties import properties_of, shown
 from qgis_ai_agent.qgis_tools.style.symbol_build import build_symbol, note_for
 from qgis_ai_agent.qgis_tools.style.symbol_catalogue import SYMBOLS
 

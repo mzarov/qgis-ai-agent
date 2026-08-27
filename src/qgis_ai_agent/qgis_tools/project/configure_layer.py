@@ -1,7 +1,7 @@
 from typing import Any
 
 from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
-from qgis_ai_agent.qgis_tools.common.bag import properties_of, shown
+from qgis_ai_agent.qgis_tools.common.properties import properties_of, shown
 from qgis_ai_agent.qgis_tools.project.catalogues import LAYER_PROPERTIES
 from qgis_ai_agent.qgis_tools.project.tree import (
     ensure_group,

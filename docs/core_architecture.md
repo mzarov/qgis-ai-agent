@@ -22,7 +22,7 @@
 
 ## Runtime Flow
 
-1. `QgisAiAgentPlugin` поднимает `AgentDockWidget` и `CoreOrchestrator`.
+1. `plugin.py` (корень сборки над слоями) поднимает `AgentDockWidget` и `CoreOrchestrator`.
 2. Оркестратор передаёт запрос пользователя в `AgentLoop.start()`.
 3. Цикл собирает запрос (`request.py`) и отправляет ход в `ModelTurnThread`.
 4. Ответ приходит сигналом в главный поток — там же исполняются тулы.

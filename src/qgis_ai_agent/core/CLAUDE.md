@@ -70,6 +70,8 @@ UI сигнал → CoreOrchestrator → AgentLoop.start()
 | `llm/dialects.py`        | определение диалекта по адресу, пути и заголовки     |
 | `llm/anthropic.py`       | перевод сообщений и схем тулов в формат Anthropic    |
 | `llm/client.py`          | HTTP-слой, разрешение URL/ключа/заголовков          |
+| `llm/probe.py`           | проверка подключения для окна настроек               |
+| `llm/providers.py`       | пресеты провайдеров для окна настроек                |
 | `orchestrator/`          | связь UI с циклом, контракт DockWidget              |
 | `state/conversation.py`  | окно для модели и текущий диалог — одной точкой входа |
 | `state/session.py`       | модель диалога: заголовок, сообщения, сериализация   |
