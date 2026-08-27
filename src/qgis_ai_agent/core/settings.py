@@ -1,12 +1,20 @@
 import hashlib
+from typing import Any
 
 from qgis.core import QgsSettings
 
+SETTINGS_PREFIX = "qgis_ai_agent"
 KEYRING_SERVICE = "qgis_ai_agent"
 KEYRING_KEY = "api_key"
-SETTINGS_PREFIX = "qgis_ai_agent"
+
 DEFAULT_API_URL = "https://api.openai.com/v1"
 DEFAULT_MODEL = "gpt-4o-mini"
+DIALECT_AUTO = "auto"
+AUTH_TYPE_BEARER = "Bearer"
+AUTH_TYPE_OAUTH = "OAuth"
+
+FALSE_WORDS = ("false", "0", "no", "off")
+URL_KEY_LENGTH = 12
 
 KEYRING_FAILURE_MSG = (
     "Не удалось сохранить ключ в системном хранилище: {reason}.\n\n"
@@ -16,89 +24,69 @@ KEYRING_FAILURE_MSG = (
 )
 
 
+def _read(key: str, default: str) -> str:
+    value = QgsSettings().value(f"{SETTINGS_PREFIX}/{key}", default, type=str)
+    return value or default
+
+
+def _write(key: str, value: str) -> None:
+    settings = QgsSettings()
+    settings.setValue(f"{SETTINGS_PREFIX}/{key}", value)
+    settings.sync()
+
+
+def _as_bool(value: Any) -> bool:
+    return str(value).strip().lower() not in FALSE_WORDS
+
+
 def get_api_url() -> str:
-    s = QgsSettings()
-    return s.value(f"{SETTINGS_PREFIX}/api_url", DEFAULT_API_URL, type=str)
+    return _read("api_url", DEFAULT_API_URL)
 
 
 def set_api_url(value: str | None) -> None:
-    s = QgsSettings()
-    s.setValue(f"{SETTINGS_PREFIX}/api_url", value or DEFAULT_API_URL)
+    _write("api_url", value or DEFAULT_API_URL)
 
 
 def get_model() -> str:
-    s = QgsSettings()
-    return s.value(f"{SETTINGS_PREFIX}/model", DEFAULT_MODEL, type=str)
+    return _read("model", DEFAULT_MODEL)
 
 
 def set_model(value: str | None) -> None:
-    s = QgsSettings()
-    s.setValue(f"{SETTINGS_PREFIX}/model", value or DEFAULT_MODEL)
-
-
-def get_verify_ssl() -> bool:
-    s = QgsSettings()
-    key = f"{SETTINGS_PREFIX}/verify_ssl"
-    val = s.value(key)
-    if val is None:
-        return True
-    sval = str(val).strip().lower()
-    return sval not in ("false", "0", "no", "off")
-
-
-def set_verify_ssl(value: bool) -> None:
-    s = QgsSettings()
-    s.setValue(f"{SETTINGS_PREFIX}/verify_ssl", "false" if not value else "true")
-    s.sync()
-
-
-DIALECT_AUTO = "auto"
+    _write("model", value or DEFAULT_MODEL)
 
 
 def get_dialect() -> str:
-    s = QgsSettings()
-    return s.value(f"{SETTINGS_PREFIX}/api_dialect", DIALECT_AUTO, type=str) or DIALECT_AUTO
+    return _read("api_dialect", DIALECT_AUTO)
 
 
 def set_dialect(value: str | None) -> None:
-    s = QgsSettings()
-    s.setValue(f"{SETTINGS_PREFIX}/api_dialect", value or DIALECT_AUTO)
-
-
-AUTH_TYPE_BEARER = "Bearer"
-AUTH_TYPE_OAUTH = "OAuth"
+    _write("api_dialect", value or DIALECT_AUTO)
 
 
 def get_auth_type() -> str:
-    s = QgsSettings()
-    return s.value(f"{SETTINGS_PREFIX}/auth_type", AUTH_TYPE_BEARER, type=str) or AUTH_TYPE_BEARER
+    return _read("auth_type", AUTH_TYPE_BEARER)
 
 
 def set_auth_type(value: str | None) -> None:
-    s = QgsSettings()
-    s.setValue(f"{SETTINGS_PREFIX}/auth_type", value or AUTH_TYPE_BEARER)
+    _write("auth_type", value or AUTH_TYPE_BEARER)
 
 
-def _url_settings_key(url: str) -> str:
-    normalized = (url or "").strip().rstrip("/").lower()
-    return hashlib.md5(normalized.encode("utf-8")).hexdigest()[:12]
+def get_verify_ssl() -> bool:
+    stored = QgsSettings().value(f"{SETTINGS_PREFIX}/verify_ssl")
+    return True if stored is None else _as_bool(stored)
+
+
+def set_verify_ssl(value: bool) -> None:
+    _write("verify_ssl", "true" if value else "false")
 
 
 def get_supports_tools(url: str) -> bool | None:
-    s = QgsSettings()
-    val = s.value(f"{SETTINGS_PREFIX}/supports_tools/{_url_settings_key(url)}")
-    if val is None:
-        return None
-    return str(val).strip().lower() not in ("false", "0", "no", "off")
+    stored = QgsSettings().value(f"{SETTINGS_PREFIX}/supports_tools/{_url_settings_key(url)}")
+    return None if stored is None else _as_bool(stored)
 
 
 def set_supports_tools(url: str, value: bool) -> None:
-    s = QgsSettings()
-    s.setValue(
-        f"{SETTINGS_PREFIX}/supports_tools/{_url_settings_key(url)}",
-        "true" if value else "false",
-    )
-    s.sync()
+    _write(f"supports_tools/{_url_settings_key(url)}", "true" if value else "false")
 
 
 def get_api_key() -> str:
@@ -119,3 +107,8 @@ def set_api_key(value: str) -> None:
         keyring.set_password(KEYRING_SERVICE, KEYRING_KEY, value)
     except Exception as error:
         raise RuntimeError(KEYRING_FAILURE_MSG.format(reason=error or type(error).__name__))
+
+
+def _url_settings_key(url: str) -> str:
+    normalized = (url or "").strip().rstrip("/").lower()
+    return hashlib.md5(normalized.encode("utf-8")).hexdigest()[:URL_KEY_LENGTH]
