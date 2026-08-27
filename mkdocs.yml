@@ -1,0 +1,41 @@
+site_name: QGIS AI Agent
+site_description: An AI agent inside QGIS 4 — inspects your project and processes data from a plain-language request.
+site_url: https://mzarov.github.io/qgis-ai-agent/
+repo_url: https://github.com/mzarov/qgis-ai-agent
+repo_name: mzarov/qgis-ai-agent
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      toggle:
+        icon: material/weather-night
+        name: Dark theme
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      toggle:
+        icon: material/weather-sunny
+        name: Light theme
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+nav:
+  - Home: index.md
+  - Setup: SETUP.md
+  - Usage: usage.md
+  - Architecture: core_architecture.md
+  - Development:
+      - Translations: translations.md
+      - Smoke checklist: smoke_checklist.md

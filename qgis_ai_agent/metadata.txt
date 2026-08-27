@@ -15,7 +15,7 @@ deprecated=False
 icon=icon.png
 tags=ai,agent,llm,openai,processing,vector,raster,openstreetmap
 
-homepage=https://github.com/mzarov/qgis-ai-agent
+homepage=https://mzarov.github.io/qgis-ai-agent/
 repository=https://github.com/mzarov/qgis-ai-agent
 tracker=https://github.com/mzarov/qgis-ai-agent/issues
 

@@ -28,3 +28,4 @@ secrets.json
 .vscode/
 .DS_Store
 Thumbs.db
+site/
