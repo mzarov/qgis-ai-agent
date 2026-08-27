@@ -63,13 +63,17 @@ def _icon(draw: Callable[[QPainter], None], colour: Any, size: int) -> QIcon:
     painter = QPainter(pixmap)
     try:
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        painter.scale(size * ratio / CANVAS, size * ratio / CANVAS)
+        painter.scale(scale_for(size), scale_for(size))
         painter.setPen(_pen(colour))
         painter.setBrush(Qt.BrushStyle.NoBrush)
         draw(painter)
     finally:
         painter.end()
     return QIcon(pixmap)
+
+
+def scale_for(size: int) -> float:
+    return size / CANVAS
 
 
 def _pen(colour: Any) -> QPen:

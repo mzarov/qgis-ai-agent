@@ -61,6 +61,26 @@ class GeometryTest(unittest.TestCase):
         self.assertIn("NoBrush", body.rsplit("setBrush", 1)[1])
 
 
+class ScaleTest(unittest.TestCase):
+    def test_canvas_maps_exactly_onto_the_icon(self):
+        for size in (12, 15, 16, 24, 32):
+            self.assertAlmostEqual(icons.scale_for(size) * icons.CANVAS, size, msg=str(size))
+
+    def test_scale_ignores_the_device_ratio(self):
+        body = SOURCE.split("def scale_for(")[1].split("\ndef ")[0]
+        self.assertNotIn("ratio", body)
+
+    def test_painter_scales_by_that_factor_only(self):
+        body = SOURCE.split("def _icon(")[1].split("\ndef ")[0]
+        self.assertIn("painter.scale(scale_for(size), scale_for(size))", body)
+        self.assertNotIn("size * ratio / CANVAS", body)
+
+    def test_ratio_is_used_for_the_pixmap_not_the_transform(self):
+        body = SOURCE.split("def _icon(")[1].split("\ndef ")[0]
+        self.assertIn("QPixmap(int(size * ratio), int(size * ratio))", body)
+        self.assertIn("setDevicePixelRatio(ratio)", body)
+
+
 class RatioTest(unittest.TestCase):
     def test_absent_screen_falls_back_to_one(self):
         saved = icons.QGuiApplication
