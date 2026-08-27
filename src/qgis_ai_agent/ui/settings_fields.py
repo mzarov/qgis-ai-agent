@@ -6,6 +6,9 @@ from qgis_ai_agent.ui import style
 
 HINT_SCALE = 0.86
 SECTION_SCALE = 0.9
+CARD_NAME = "settingsCard"
+INPUT_RADIUS = 6
+INPUT_PADDING = "5px 8px"
 CARD_MARGINS = (14, 12, 14, 13)
 CARD_SPACING = 11
 FIELD_SPACING = 3
@@ -14,8 +17,9 @@ LABEL_SPACING = 2
 
 def card(palette: Any) -> tuple[QFrame, QVBoxLayout]:
     frame = QFrame()
+    frame.setObjectName(CARD_NAME)
     frame.setStyleSheet(
-        f"QFrame {{ background: {style.css_color(style.card(palette))};"
+        f"QFrame#{CARD_NAME} {{ background: {style.css_color(style.card(palette))};"
         f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
         f"border-radius: {style.CARD_RADIUS}px; }}"
     )
@@ -32,21 +36,19 @@ def section(title: str, palette: Any) -> QLabel:
     font.setPointSizeF(max(1.0, font.pointSizeF() * SECTION_SCALE))
     label.setFont(font)
     label.setStyleSheet(
-        f"color: {style.css_color(style.muted(palette))}; border: none; letter-spacing: 1px;"
+        f"color: {style.css_color(style.muted(palette))}; letter-spacing: 1px;"
     )
     return label
 
 
 def field(title: str, widget: QWidget, hint: str, palette: Any) -> QWidget:
     holder = QWidget()
-    holder.setStyleSheet("border: none; background: transparent;")
     column = QVBoxLayout(holder)
     column.setContentsMargins(0, 0, 0, 0)
     column.setSpacing(FIELD_SPACING)
 
-    label = QLabel(title)
-    label.setStyleSheet("border: none;")
-    column.addWidget(label)
+    column.addWidget(QLabel(title))
+    widget.setStyleSheet(input_style(palette))
     column.addWidget(widget)
     if hint:
         column.addSpacing(LABEL_SPACING)
@@ -61,14 +63,28 @@ def status(palette: Any) -> QLabel:
     font = label.font()
     font.setPointSizeF(max(1.0, font.pointSizeF() * HINT_SCALE))
     label.setFont(font)
-    label.setStyleSheet(f"color: {style.css_color(style.muted(palette))}; border: none;")
+    label.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
     return label
 
 
 def paint_status(label: QLabel, text: str, colour: Any) -> None:
     label.setText(text)
-    label.setStyleSheet(f"color: {style.css_color(colour)}; border: none;")
+    label.setStyleSheet(f"color: {style.css_color(colour)};")
     label.setVisible(bool(text))
+
+
+def input_style(palette: Any) -> str:
+    border = style.css_color(style.hairline(palette))
+    return (
+        "QLineEdit, QComboBox {"
+        f"background: {style.css_color(style.surface(palette))};"
+        f"color: {style.css_color(style.text(palette))};"
+        f"border: {style.HAIRLINE}px solid {border};"
+        f"border-radius: {INPUT_RADIUS}px; padding: {INPUT_PADDING}; }}"
+        "QLineEdit:focus, QComboBox:focus {"
+        f"border: {style.HAIRLINE}px solid {style.css_color(style.accent(palette))}; }}"
+        "QComboBox::drop-down { border: none; width: 22px; }"
+    )
 
 
 def accent_button(palette: Any) -> str:
@@ -98,5 +114,5 @@ def _hint(text: str, palette: Any) -> QLabel:
     font = label.font()
     font.setPointSizeF(max(1.0, font.pointSizeF() * HINT_SCALE))
     label.setFont(font)
-    label.setStyleSheet(f"color: {style.css_color(style.muted(palette))}; border: none;")
+    label.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
     return label

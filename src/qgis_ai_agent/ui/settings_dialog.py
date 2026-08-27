@@ -101,7 +101,6 @@ class SettingsDialog(QDialog):
 
         self.verify_ssl_cb = QCheckBox("Проверять SSL-сертификат")
         self.verify_ssl_cb.setChecked(get_verify_ssl())
-        self.verify_ssl_cb.setStyleSheet("border: none;")
         column.addWidget(self.verify_ssl_cb)
         return frame
 
