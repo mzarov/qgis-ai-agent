@@ -1,49 +1,51 @@
-# Установка и настройка
+# Installation and configuration
 
-Плагин требует **QGIS 4.0 или новее**. На QGIS 3.x он не работает: сборка 3.40 LTR
-под macOS несёт Python 3.9, а код использует синтаксис аннотаций из Python 3.10.
+The plugin requires **QGIS 4.0 or newer**. It does not work on QGIS 3.x: the
+3.40 LTR build on macOS ships Python 3.9, while the code uses annotation syntax
+from Python 3.10.
 
-## 1. Установка из zip
+## 1. Installing from a zip
 
-Готовый архив собирается из репозитория одной командой:
+A ready-to-install archive is built from the repository with one command:
 
 ```bash
 python3 tools/build_plugin.py
 ```
 
-Он кладёт `dist/qgis_ai_agent-<версия>.zip` — ровно в том виде, который ждёт QGIS:
-одна папка `qgis_ai_agent/` внутри архива.
+It writes `dist/qgis_ai_agent-<version>.zip` — exactly the shape QGIS expects:
+a single `qgis_ai_agent/` folder inside the archive.
 
-Дальше в QGIS: **Модули → Управление модулями → Установить из ZIP**, выбрать файл,
-нажать **Установить модуль**. После установки в меню появится **QGIS AI Agent**.
+Then in QGIS: **Plugins → Manage and Install Plugins → Install from ZIP**, pick
+the file, press **Install Plugin**. After installation **QGIS AI Agent** appears
+in the menu.
 
-Скачивать zip кнопкой «Code → Download ZIP» на GitHub **нельзя**: архив
-распаковывается папкой `qgis-ai-agent-main`, а имя папки задаёт имя пакета Python —
-с дефисом плагин не загрузится.
+Do **not** download the zip with GitHub's “Code → Download ZIP” button: that
+archive unpacks as a `qgis-ai-agent-main` folder, the folder name becomes the
+Python package name, and with a hyphen the plugin will not load.
 
-## 2. Ключ и адрес API
+## 2. API key and address
 
-Плагин работает с любым OpenAI-совместимым эндпоинтом. Откройте панель плагина и
-нажмите шестерёнку:
+The plugin works with any OpenAI-compatible endpoint. Open the plugin panel and
+press the gear icon:
 
-| Поле | Что вводить |
+| Field | What to enter |
 | --- | --- |
-| Базовый URL API | адрес **без** `/chat/completions` — плагин допишет сам |
-| Модель | идентификатор модели у вашего провайдера |
-| API-ключ | хранится в системном хранилище, не в конфиге QGIS |
-| Формат API | `auto` — определяется по адресу; `openai` или `anthropic` вручную |
-| Тип авторизации | `Bearer` для большинства сервисов, `OAuth` для корпоративных шлюзов |
-| Проверять SSL-сертификат | снимать только для внутреннего шлюза с самоподписанным сертификатом |
+| Base URL | the address **without** `/chat/completions` — the plugin appends it |
+| Model | the model identifier at your provider |
+| API key | stored in the system keychain, not in the QGIS config |
+| API format | `auto` — picked from the address; `openai` or `anthropic` manually |
+| Authorisation type | `Bearer` for most services, `OAuth` for corporate gateways |
+| Verify the SSL certificate | untick only for an internal gateway with a self-signed certificate |
 
-Кнопка **Проверить подключение** шлёт один короткий запрос и показывает ответ
-модели — так видно, что URL, ключ и имя модели согласуются между собой.
+The **Test connection** button sends one short request and shows the model's
+reply — proof that the URL, the key and the model name agree with each other.
 
-### Проверенные провайдеры
+### Verified providers
 
-Плагин говорит на двух форматах. `auto` выбирает по адресу, так что обычно
-достаточно вставить URL, ключ и имя модели.
+The plugin speaks two formats. `auto` picks one from the address, so usually
+pasting the URL, the key and the model name is enough.
 
-| Провайдер | Базовый URL | Формат |
+| Provider | Base URL | Format |
 | --- | --- | --- |
 | OpenAI | `https://api.openai.com/v1` | openai |
 | OpenRouter | `https://openrouter.ai/api/v1` | openai |
@@ -51,64 +53,64 @@ python3 tools/build_plugin.py
 | DeepSeek | `https://api.deepseek.com/v1` | openai |
 | Groq | `https://api.groq.com/openai/v1` | openai |
 | Mistral | `https://api.mistral.ai/v1` | openai |
-| Together, Fireworks, Cerebras | адрес из их документации | openai |
+| Together, Fireworks, Cerebras | the address from their docs | openai |
 
-OpenRouter даёт доступ к моделям почти всех вендоров через один ключ и один
-адрес — включая Claude и Gemini, — и для плагина остаётся обычным
-OpenAI-совместимым сервисом. Ставить формат вручную нужно только для шлюза,
-который говорит на формате Anthropic с нестандартного адреса.
+OpenRouter exposes the models of nearly every vendor through one key and one
+address — including Claude and Gemini — and to the plugin it remains an ordinary
+OpenAI-compatible service. Setting the format by hand is only needed for a
+gateway that speaks the Anthropic format from a non-standard address.
 
-### Локальная модель — без ключа и без счетов
+### A local model — no key and no bills
 
-Для адреса на `localhost` ключ не требуется: поле можно оставить пустым.
-Так подключаются Ollama, LM Studio, llama.cpp и любой другой сервер с
-OpenAI-совместимым API.
+An address on `localhost` requires no key: the field may stay empty. That is how
+Ollama, LM Studio, llama.cpp and any other server with an OpenAI-compatible API
+connect.
 
-| Сервер | Базовый URL |
+| Server | Base URL |
 | --- | --- |
 | Ollama | `http://localhost:11434/v1` |
 | LM Studio | `http://localhost:1234/v1` |
 | llama.cpp server | `http://localhost:8080/v1` |
 
-Учтите: агент работает циклом с двумя десятками инструментов, и небольшая
-модель на 7–8 миллиардов параметров будет путаться в вызовах. Осмысленный
-минимум — модель уровня 30B с поддержкой function calling.
+Mind the size: the agent runs a loop over two dozen tools, and a small 7–8B
+model will get lost in the calls. The sensible minimum is a ~30B-class model
+with function calling support.
 
-Агентный цикл вызывает инструменты, поэтому модель должна уметь function calling.
-Если эндпоинт его не поддерживает, плагин сам переключится на текстовый
-JSON-протокол и запомнит выбор для этого URL.
+The agent loop calls tools, so the model must support function calling. If the
+endpoint does not, the plugin switches to a text JSON protocol on its own and
+remembers the choice for that URL.
 
-## 3. Зависимости
+## 3. Dependencies
 
-Нужна одна библиотека — `keyring`, для хранения ключа в системном хранилище.
-Сетевые запросы идут через `QgsBlockingNetworkRequest`, то есть через сетевой
-стек самого QGIS: сторонний HTTP-клиент не нужен, а настройки прокси и
-аутентификации QGIS применяются автоматически.
+One library is needed — `keyring`, for storing the key in the system keychain.
+Network requests go through `QgsBlockingNetworkRequest`, that is through the
+QGIS network stack itself: no third-party HTTP client, and the QGIS proxy and
+authentication settings apply automatically.
 
-`keyring` есть в QGIS 4 под macOS; если в вашей сборке его нет или на Linux не
-запущен сервис секретов (gnome-keyring, KWallet), при сохранении ключа
-появится сообщение с причиной.
+`keyring` ships with QGIS 4 on macOS; if your build lacks it, or on Linux no
+secret service is running (gnome-keyring, KWallet), saving the key shows a
+message with the reason.
 
-Ставить нужно в тот Python, с которым запускается QGIS. Узнать его путь: **Модули →
-Консоль Python**, затем
+Install it into the Python that runs QGIS. To find its path: **Plugins →
+Python Console**, then
 
 ```python
 import sys; print(sys.executable)
 ```
 
-Закройте QGIS и выполните в терминале (кавычки обязательны, если в пути есть пробелы):
+Close QGIS and run in a terminal (the quotes matter if the path has spaces):
 
 ```bash
-"/путь/из/консоли" -m pip install keyring
+"/path/from/the/console" -m pip install keyring
 ```
 
-## 4. Установка для разработки
+## 4. Development install
 
-Чтобы не пересобирать архив на каждую правку, поставьте симлинк из репозитория в
-каталог плагинов профиля.
+To avoid rebuilding the archive on every edit, symlink the package from the
+repository into the profile's plugin folder.
 
-Путь к каталогу: **Установки → Профили пользователя → Открыть папку активного
-профиля**, далее `python/plugins`.
+The folder path: **Settings → User Profiles → Open Active Profile Folder**,
+then `python/plugins`.
 
 ```bash
 PLUGINS_DIR="$HOME/Library/Application Support/QGIS/QGIS4/profiles/default/python/plugins"
@@ -116,26 +118,26 @@ mkdir -p "$PLUGINS_DIR"
 ln -sfn "$(pwd)/qgis_ai_agent" "$PLUGINS_DIR/qgis_ai_agent"
 ```
 
-Ссылка ведёт на папку пакета, а не на корень репозитория: в QGIS попадает
-только плагин, без tests и docs. Если симлинк стоял на корень репозитория
-со времён старой структуры — пересоздайте его этой командой, иначе QGIS
-перестанет видеть плагин.
+The link points at the package folder, not the repository root: only the plugin
+reaches QGIS, without tests and docs. If your symlink still points at the
+repository root from the old layout — recreate it with this command, otherwise
+QGIS stops seeing the plugin.
 
-При правках кода перезагружайте плагин через **Plugin Reloader** (`Ctrl+F5`). Если
-менялась структура пакетов, нужен полный перезапуск QGIS: снятие галочки не
-выгружает подмодули из `sys.modules`. Консоль Python держит свой кэш, сбросить его
-можно так:
+While editing code, reload the plugin with **Plugin Reloader** (`Ctrl+F5`). If
+the package structure changed, a full QGIS restart is needed: unticking the
+plugin does not unload submodules from `sys.modules`. The Python console keeps
+its own cache; reset it with:
 
 ```python
 import sys; [sys.modules.pop(n) for n in list(sys.modules) if n.startswith("qgis_ai_agent")]
 ```
 
-## 5. Проверка
+## 5. Verification
 
 ```bash
 python3 -m unittest discover -s tests -t .
 ```
 
-Набор гоняется и на обычном Python, и внутри Python самого QGIS — во втором случае
-против живого PyQGIS. Что тестами не покрыть, проверяется руками по
-[smoke_checklist.md](smoke_checklist.md).
+The suite runs both on plain Python and inside the QGIS Python — in the latter
+case against live PyQGIS. Whatever tests cannot reach is checked by hand,
+following [smoke_checklist.md](smoke_checklist.md).

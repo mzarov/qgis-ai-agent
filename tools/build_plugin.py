@@ -24,7 +24,7 @@ def read_version() -> str:
         for line in handle:
             if line.startswith("version="):
                 return line.split("=", 1)[1].strip()
-    raise SystemExit("В metadata.txt нет строки version=")
+    raise SystemExit("metadata.txt has no version= line")
 
 
 def is_wanted(name: str) -> bool:
@@ -38,7 +38,7 @@ def collect() -> list[tuple[str, str]]:
     for name in EXTRA_FILES:
         absolute = os.path.join(REPO_ROOT, name)
         if not os.path.isfile(absolute):
-            raise SystemExit(f"Не найден обязательный файл {name}")
+            raise SystemExit(f"Required file {name} not found")
         entries.append((absolute, f"{PLUGIN_NAME}/{name}"))
     for folder, dirs, names in os.walk(PACKAGE_DIR):
         dirs[:] = sorted(item for item in dirs if item not in SKIPPED_DIRS)
@@ -57,10 +57,10 @@ def verify(entries: list[tuple[str, str]]) -> None:
         if not any(arc.endswith(tail) for arc in packed)
     ]
     if missing:
-        raise SystemExit("В сборку не попало обязательное: " + ", ".join(missing))
+        raise SystemExit("Required content missing from the build: " + ", ".join(missing))
     for tail in (f"{PLUGIN_NAME}/plugin.py", f"{PLUGIN_NAME}/metadata.txt"):
         if tail not in packed:
-            raise SystemExit(f"В сборку не попал {tail}")
+            raise SystemExit(f"{tail} missing from the build")
 
 
 def build() -> str:
@@ -79,9 +79,9 @@ def main() -> None:
     size_kb = os.path.getsize(target) / 1024
     with zipfile.ZipFile(target) as archive:
         count = len(archive.namelist())
-    print(f"Собрано: {os.path.relpath(target, REPO_ROOT)}")
-    print(f"Файлов: {count}, размер: {size_kb:.0f} КБ")
-    print(f"Корневая папка в архиве: {PLUGIN_NAME}/")
+    print(f"Built: {os.path.relpath(target, REPO_ROOT)}")
+    print(f"Files: {count}, size: {size_kb:.0f} KB")
+    print(f"Top-level folder in the archive: {PLUGIN_NAME}/")
 
 
 if __name__ == "__main__":

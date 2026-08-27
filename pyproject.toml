@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "qgis-ai-agent"
 version = "0.5.0"
-description = "Плагин QGIS 4: ИИ-агент с инструментами чтения проекта и обработки данных"
+description = "QGIS 4 plugin: an AI agent with tools for reading the project and processing data"
 authors = ["mzarov@duck.com"]
 
 [tool.poetry.dependencies]

@@ -20,12 +20,12 @@ repository=https://github.com/mzarov/qgis-ai-agent
 tracker=https://github.com/mzarov/qgis-ai-agent/issues
 
 changelog=0.5.0
-    - Английский интерфейс с русским переводом, язык берётся из настроек QGIS
-    - Агент отвечает на языке пользователя, а не на языке плагина
+    - English interface with a Russian translation, following the QGIS language
+    - The agent answers in the user's language, not the plugin's
     0.4.0
-    - Диалоги сохраняются между сеансами QGIS и привязаны к проекту
-    - Сводка оформления указывает на describe_style вместо догадок о цветах
+    - Conversations persist across QGIS sessions, bound to the project
+    - The style summary points at describe_style instead of guessing colours
     0.3.0
-    - Переработанный интерфейс, набор из 173 автотестов
+    - Reworked interface, a suite of 173 automated tests
     0.2.0
-    - Агентный цикл со скиллами вместо одноразового планировщика
+    - An agent loop with skills instead of a one-shot planner

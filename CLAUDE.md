@@ -1,196 +1,226 @@
 # QGIS AI Agent
 
-Плагин для QGIS 4 LTR: ИИ-агент, который изучает проект и обрабатывает данные по
-запросу на естественном языке.
+A plugin for QGIS 4 LTR: an AI agent that inspects the project and processes data
+from a plain-language request.
 
-Домены реализованы как скиллы: `inspect` (чтение проекта), `project` (слои,
-дерево, сохранение), `style` (оформление и подписи), `processing` (алгоритмы),
-`osm` (данные из OpenStreetMap через Overpass). Печатные макеты были в версии
-`v0.1.0-diploma` и удалены — их предстоит переделать отдельным скиллом.
+Domains are implemented as skills: `inspect` (reading the project), `project`
+(layers, tree, saving), `style` (styling and labels), `processing` (algorithms),
+`osm` (OpenStreetMap data through Overpass). Print layouts existed in
+`v0.1.0-diploma` and were removed — they are to be rebuilt as a separate skill.
 
-Проектирование архитектуры и промптов — за пользователем, реализация — за агентом.
-Не переспрашивай разрешения на рутинные решения, пиши код.
+Architecture and prompt design belong to the user; implementation belongs to the
+agent. Do not ask permission for routine decisions — write the code.
 
-## Стек
+## Stack
 
-- QGIS 4 LTR, Python 3 со строгими type hints
-- GUI: **только** через обёртку QGIS (`from qgis.PyQt.QtWidgets import QWidget`).
-  Никогда напрямую из `PyQt5`, `PyQt6`, `PySide2`, `PySide6`. Без Qt Designer и `.ui` —
-  интерфейс собирается программно.
-- LLM: любой OpenAI-совместимый REST API. Вендор-нейтральность — принцип, а не деталь:
-  никаких SDK, привязанных к одному провайдеру.
-- Секреты: только `keyring` (системное хранилище). Ключи не пишутся в конфиг.
-  Для адреса на `localhost` ключ не обязателен — иначе вендор-нейтральность
-  была бы на словах: локальные серверы (Ollama, LM Studio) ключей не требуют.
-- Зависимости: Poetry, Python `^3.12`. Плагин крутится внутри QGIS, поэтому каждая
-  новая зависимость — это проблема установки для пользователя. Добавлять только при
-  крайней необходимости; сейчас она одна — `keyring`. **Весь HTTP идёт через
-  `QgsBlockingNetworkRequest`**, а не через `requests`: этого требуют правила
-  репозитория плагинов QGIS, заодно он крутит событийный цикл (интерфейс не
-  замерзает, правило главного потока не нарушается) и уважает настройки прокси
-  и аутентификации QGIS.
+- QGIS 4 LTR, Python 3 with strict type hints
+- GUI: **only** through the QGIS wrapper (`from qgis.PyQt.QtWidgets import QWidget`).
+  Never directly from `PyQt5`, `PyQt6`, `PySide2`, `PySide6`. No Qt Designer and no
+  `.ui` files — the interface is built in code.
+- LLM: any OpenAI-compatible REST API. Vendor neutrality is a principle, not a
+  detail: no SDK tied to a single provider.
+- Secrets: `keyring` only (the system keychain). Keys are never written to config.
+  An address on `localhost` needs no key — otherwise vendor neutrality would be
+  words only: local servers (Ollama, LM Studio) require no keys.
+- Dependencies: Poetry, Python `^3.12`. The plugin runs inside QGIS, so every new
+  dependency is an installation problem for the user. Add one only when strictly
+  necessary; today there is exactly one — `keyring`. **All HTTP goes through
+  `QgsBlockingNetworkRequest`**, not `requests`: the QGIS plugin repository rules
+  require it, and it also spins the event loop (the UI does not freeze, the
+  main-thread rule is not violated) and honours the QGIS proxy and
+  authentication settings.
 
-## Архитектура
+## Architecture
 
-Подробности — в [docs/core_architecture.md](docs/core_architecture.md).
+Details: [docs/core_architecture.md](docs/core_architecture.md).
 
-1. **Без бэкенда.** Вся логика внутри плагина. Агентный фреймворк не используется —
-   цикл свой (обоснование в том же документе).
-2. **Агентный цикл.** UI шлёт сигналы → `CoreOrchestrator` → `AgentLoop`. Цикл работает
-   как act → observe → decide: модель вызывает тулы, видит результаты, решает следующий
-   шаг. Это **не** одноразовый планировщик. Прогон кончается, когда модель отвечает без
-   вызовов тулов.
-3. **Классы безопасности вместо «план → подтверждение».** Каждый тул объявляет `safety`:
-   - `read` — выполняется сразу, подтверждение не запрашивается
-   - `write` — копится в батч, применяется после кнопки пользователя
-   - `destructive` — зарезервирован под персональное подтверждение
+1. **No backend.** All logic lives inside the plugin. No agent framework — the
+   loop is our own (the reasoning is in that document).
+2. **Agent loop.** UI emits signals → `CoreOrchestrator` → `AgentLoop`. The loop
+   works act → observe → decide: the model calls tools, sees results, picks the
+   next step. It is **not** a one-shot planner. A run ends when the model replies
+   without tool calls.
+3. **Safety classes instead of “plan → confirm”.** Every tool declares `safety`:
+   - `read` — executes immediately, no confirmation asked
+   - `write` — collected into a batch, applied after the user presses the button
+   - `destructive` — reserved for per-call confirmation
 
-   Write-вызов возвращает модели `{"status": "queued"}` — это успех, а не ошибка.
-4. **Тул и скилл — разные вещи, не путай слова:**
-   - **тул** — один класс-наследник `BaseTool` в `qgis_tools/<домен>/`, один класс на файл
-   - **скилл** — пакет домена `skills/<домен>/SKILL.md`: фронтматтер (`name`,
-     `description`, `tools`) плюс тело с правилами домена
-5. **Прогрессивное раскрытие.** В системном промпте постоянно лежит только по одной
-   строке на скилл. Тело `SKILL.md` и схемы тулов подгружаются, когда модель вызывает
-   `load_skill`. **Никогда не добавляй правило домена в `core/agent/prompts.py`** — там
-   только поведение, не зависящее от домена.
-6. **Новый домен добавляется файлами, а не правкой оркестрации:**
-   `qgis_tools/<домен>/` + `skills/<домен>/SKILL.md` + одна строка в `qgis_tools/registry.py`.
+   A write call returns `{"status": "queued"}` to the model — that is success,
+   not an error.
+4. **A tool and a skill are different things — do not mix the words:**
+   - **tool** — one `BaseTool` subclass in `qgis_tools/<domain>/`, one class per file
+   - **skill** — a domain package `skills/<domain>/SKILL.md`: frontmatter (`name`,
+     `description`, `tools`) plus a body with the domain rules
+5. **Progressive disclosure.** The system prompt permanently holds only one line
+   per skill. The `SKILL.md` body and the tool schemas load when the model calls
+   `load_skill`. **Never add a domain rule to `core/agent/prompts.py`** — only
+   domain-independent behaviour lives there.
+6. **A new domain is added with files, not by editing orchestration:**
+   `qgis_tools/<domain>/` + `skills/<domain>/SKILL.md` + one line in
+   `qgis_tools/registry.py`.
 
-## Главный поток — критично
+## Main thread — critical
 
-Объекты PyQGIS и Qt можно трогать **только из главного потока**. Поэтому агентный цикл —
-машина состояний в главном потоке: наружу уходит один HTTP-запрос (`ModelTurnThread`), а
-`_on_turn` и исполнение тулов выполняются как слот главного потока.
+PyQGIS and Qt objects may be touched **only from the main thread**. That is why
+the agent loop is a state machine on the main thread: the single outgoing HTTP
+request runs in `ModelTurnThread`, while `_on_turn` and tool execution run as a
+main-thread slot.
 
-Никогда не выноси исполнение тулов в фоновый поток и не переписывай цикл на `while` в
-фоне или на `asyncio` — это уронит QGIS.
+Never move tool execution to a background thread and never rewrite the loop as a
+background `while` or as `asyncio` — that crashes QGIS.
 
-## PyQGIS — не галлюцинировать
+## PyQGIS — do not hallucinate
 
-- API QGIS 4 полностью отличается от QGIS 2. `QgsComposition` не существует.
-- Состояние проекта — всегда через `QgsProject.instance()`.
-- Обработка: `QgsApplication.processingRegistry()`, модуль `processing`.
-- Макеты: `QgsLayout`, `QgsProject.instance().layoutManager()` — понадобится,
-  когда домен макетов вернётся.
-- Если не уверен в методе PyQGIS — сначала найди его в «PyQGIS Developer Cookbook 3.40»,
-  потом пиши код.
+- The QGIS 4 API is entirely different from QGIS 2. `QgsComposition` does not exist.
+- Project state — always through `QgsProject.instance()`.
+- Processing: `QgsApplication.processingRegistry()`, the `processing` module.
+- Layouts: `QgsLayout`, `QgsProject.instance().layoutManager()` — needed when the
+  layout domain returns.
+- Unsure about a PyQGIS method? Find it in the “PyQGIS Developer Cookbook 3.40”
+  first, then write the code.
 
-## Стиль кода
+## Language
 
-- **Код без комментариев и docstring.** Совсем: ни `#`, ни `"""..."""`. Понятность
-  достигается именами и размером функций. Если без пояснения не разобраться —
-  это сигнал переименовать или разбить, а не дописать комментарий.
-- Магические значения выносятся в именованные константы модуля — они и заменяют
-  собой пояснения (`SUSPICIOUS_DEGREES`, `MAX_ITERATIONS`, `PENDING_MARKER`).
-- PEP8, type hints везде (`def execute(self, params: dict[str, Any]) -> dict[str, Any]:`).
-- **Язык оригинала — английский, весь и целиком.** Имена, схемы тулов, системные
-  промпты, `SKILL.md`, `description` тулов, сообщения об ошибках, текст интерфейса.
-  Русского в `qgis_ai_agent/` нет ни строки — это стережёт `tests/test_i18n.py`.
-- **Пользовательский текст оборачивается в `tr()`, модельный — нет.** Читателей
-  двое, и они разные: `summarize_call` и `ui/` видит человек, поэтому там
-  `tr("Apply")`; `description`, схемы и ошибки тулов читает модель, поэтому там
-  чистый английский. Прогонять через `tr()` то, что уходит в промпт, значит слать
-  модели русские схемы — заметно хуже, чем английские.
-- `tr()` принимает только строковый литерал: `tr("Layer '{0}'").format(name)`,
-  а не f-строку. Из f-строки `lupdate` ничего не извлечёт.
-- `try/except` вокруг всего, что может уронить QGIS.
-- Логировать важные шаги: `QgsMessageLog.logMessage("Сообщение", "QGIS AI Agent", Qgis.Info)`.
-- **Не** добавлять `# -*- coding: utf-8 -*-` (Python 3 и так UTF-8).
-- Файлы держать под 200 строк. Если растёт — выносить в соседний модуль.
-- `__init__.py` пакетов держать пустыми, кроме тех, где собирается список тулов.
-  Реэкспорты ради удобства тянут лишние зависимости при импорте.
+- **The repository speaks English — all of it.** Code, identifiers, tool schemas,
+  system prompts, `SKILL.md`, error messages, UI text, README, docs, CLAUDE.md
+  files. Russian exists only inside `qgis_ai_agent/translations/` as a
+  translation catalogue. `tests/test_i18n.py` enforces the source side.
+- **User-facing text is wrapped in `tr()`, model-facing text is not.** There are
+  two readers and they differ: `summarize_call` and `ui/` are read by a person,
+  so `tr("Apply")`; tool `description`s, schemas and errors are read by the
+  model, so plain English. Piping prompt text through `tr()` would send the
+  model Russian schemas — noticeably worse than English ones.
+- `tr()` takes a string literal only: `tr("Layer '{0}'").format(name)`, never an
+  f-string. `update_translations.py` cannot extract anything from an f-string.
 
-## Структура и импорты
+## Code style
 
-Код живёт под `qgis_ai_agent/`:
+- **No comments and no docstrings.** None at all: no `#`, no `"""..."""`.
+  Clarity comes from names and function size. If something is unreadable without
+  an explanation, that is a signal to rename or split, not to write a comment.
+- Magic values become named module constants — they replace explanations
+  (`SUSPICIOUS_DEGREES`, `MAX_ITERATIONS`, `PENDING_MARKER`).
+- PEP 8, type hints everywhere
+  (`def execute(self, params: dict[str, Any]) -> dict[str, Any]:`).
+- Formatting and import order are owned by **ruff** (`ruff format` +
+  `ruff check --fix`), wired as a pre-commit hook. Do not hand-format against it.
+- `try/except` around anything that can crash QGIS.
+- Log the important steps:
+  `QgsMessageLog.logMessage("Message", "QGIS AI Agent", Qgis.Info)`.
+- Do **not** add `# -*- coding: utf-8 -*-` (Python 3 is UTF-8 already).
+- Aim for files around 200 lines; the hard cap enforced by tests is 400. Growing
+  past the target is a signal to consider extracting a neighbouring module, not
+  an automatic failure.
+- Keep package `__init__.py` files empty, except the ones that assemble a tool
+  list. Convenience re-exports drag extra dependencies at import time.
 
-| Пакет         | Назначение                                                        |
-| ------------- | ----------------------------------------------------------------- |
-| `core/`       | цикл, оркестрация, LLM-транспорт, состояние                       |
-| `qgis_tools/` | тулы по доменам — вся PyQGIS-логика исполнения                    |
-| `skills/`     | пакеты знаний доменов (`SKILL.md`)                                |
-| `ui/`         | только Qt: рендер и сигналы                                       |
+## Layout and imports
 
-Плагин — это папка `qgis_ai_agent/` целиком: внутри `__init__.py`,
-`metadata.txt`, `icon.png` и код. Только она попадает в zip и в симлинк для
-QGIS; `tests/`, `tools/`, `docs/` — уровень репозитория и в QGIS не едут.
-Корень сборки — `qgis_ai_agent/plugin.py`: единственный модуль, которому
-можно импортировать и `core`, и `ui`. Направление слоёв
-(`ui → core → qgis_tools`, обратно нельзя) стережёт `tests/test_layering.py`.
+Code lives under `qgis_ai_agent/`:
 
-Целевая версия — **QGIS 4.0+**. На 3.x плагин не работает и не притворяется:
-сборка 3.40 LTR под macOS несёт Python 3.9, а код пишется на синтаксисе 3.10+
-(`X | None` в аннотациях). `qgisMinimumVersion` в `metadata.txt` обязан этому
-соответствовать.
+| Package       | Purpose                                                     |
+| ------------- | ----------------------------------------------------------- |
+| `core/`       | loop, orchestration, LLM transport, state                   |
+| `qgis_tools/` | tools by domain — all PyQGIS execution logic                |
+| `skills/`     | domain knowledge packages (`SKILL.md`)                      |
+| `ui/`         | Qt only: rendering and signals                              |
 
-Плагин раздаётся zip-ом, который собирает `tools/build_plugin.py`. Всё, что нужно
-в рантайме, обязано попадать в архив — `SKILL.md` читаются с диска, поэтому
-упаковка «только .py» ломает плагин молча. Это стережёт `tests/test_packaging.py`.
+The plugin is the `qgis_ai_agent/` folder as a whole: `__init__.py`,
+`metadata.txt`, `icon.png` and the code inside. Only that folder goes into the
+zip and into the QGIS symlink; `tests/`, `tools/`, `docs/` are repository-level
+and never reach QGIS. The composition root is `qgis_ai_agent/plugin.py`: the
+only module allowed to import both `core` and `ui`. The layer direction
+(`ui → core → qgis_tools`, never backwards) is guarded by `tests/test_layering.py`.
 
-Импорты только абсолютные, с префиксом пакета: `from qgis_ai_agent.ui.dock_widget import ...`.
-Относительные (`from .foo`, `from ..bar`) не использовать. Все импорты — вверху файла.
+The target version is **QGIS 4.0+**. On 3.x the plugin does not work and does
+not pretend to: the 3.40 LTR build on macOS ships Python 3.9, while the code is
+written in 3.10+ syntax (`X | None` annotations). `qgisMinimumVersion` in
+`metadata.txt` must match that.
 
-## Проверка
+The plugin ships as a zip built by `tools/build_plugin.py`. Everything needed at
+runtime must land in the archive — `SKILL.md` files are read from disk, so a
+“.py only” package breaks the plugin silently. `tests/test_packaging.py` guards
+this.
+
+Imports are absolute only, with the package prefix:
+`from qgis_ai_agent.ui.dock_widget import ...`. No relative imports
+(`from .foo`, `from ..bar`). All imports at the top of the file.
+
+## Verification
 
 ```bash
 python3 -m unittest discover -s tests -t .
 ```
 
-Сборка устанавливаемого архива:
+Lint and formatting (the same check runs in CI and in the pre-commit hook):
+
+```bash
+poetry run ruff check .
+poetry run ruff format --check .
+```
+
+One-time setup of the hook after cloning:
+
+```bash
+poetry install
+poetry run pre-commit install
+```
+
+Building the installable archive:
 
 ```bash
 python3 tools/build_plugin.py
 ```
 
-Обновление переводов после добавления или правки строки в `tr()`:
+Updating translations after adding or changing a `tr()` string:
 
 ```bash
 python3 tools/update_translations.py
 ```
 
-Никаких зависимостей команда не требует. Это отличие от штатного рецепта QGIS
-(`.pro` → `pylupdate5` → Qt Linguist → `lrelease` → `.qm`), и оба его шага
-заменены осознанно.
+The command needs no dependencies. That is a deliberate departure from the stock
+QGIS recipe (`.pro` → `pylupdate5` → Qt Linguist → `lrelease` → `.qm`), and both
+replaced steps were replaced for measured reasons.
 
-**Извлечение — разбором AST, а не `pylupdate5`.** Тот вызовы `tr()` находит, но
-не годится: не-ASCII в исходнике читает как latin-1 (`…` и `■` приезжают мусором,
-и перевод в рантайме не совпадает), `tr_n` не видит вовсе — множественное число
-теряется целиком, — а контекст ставит `@default` вместо `QgisAiAgent`.
+**Extraction is AST-based, not `pylupdate5`.** That tool does find `tr()`
+calls, but it reads non-ASCII source as latin-1 (`…` and `■` arrive mangled, so
+the runtime lookup misses), it does not see `tr_n` at all — plural forms vanish
+entirely — and it writes the `@default` context instead of `QgisAiAgent`.
 
-**Компиляция — своя, `tools/qm.py`, а не `lrelease`.** Он в Qt-тулзах, которых
-нет ни в QGIS, ни в системе: ради одного бинарника пришлось бы ставить PySide6
-на 349 МБ. Формат `.qm` простой — магия, блок языка, таблица `elfHash(source) →
-смещение`, записи сообщений и правила множественного числа. Вывод **побайтово
-совпадает** с тем, что даёт настоящий `lrelease`, и это закреплено эталоном:
-`tests/data/golden_ru.qm` собран им один раз и лежит в репозитории, а
-`tests/test_qm.py` требует, чтобы наш компилятор его воспроизводил. Эталон
-специально покрывает то, на чём легко разойтись: не-ASCII, экранируемые в XML
-символы, перевод строки и три формы множественного числа.
+**Compilation is our own `tools/qm.py`, not `lrelease`.** That binary ships in
+the Qt tools, which exist neither in QGIS nor on the system: installing 349 MB
+of PySide6 for one executable is absurd next to a 144 KB plugin. The `.qm`
+format is simple — magic, language block, an `elfHash(source) → offset` table,
+message records and plural rules. The output is **byte-identical** to what real
+`lrelease` produces, and that is pinned by a fixture: `tests/data/golden_ru.qm`
+was built by `lrelease` once and lives in the repository, and `tests/test_qm.py`
+requires our compiler to reproduce it. The fixture deliberately covers what is
+easy to get wrong: non-ASCII, XML-escaped characters, a newline and all three
+plural forms.
 
-Из этого следует единственное ограничение: **новый язык требует своих правил
-множественного числа** в `NUMERUS_RULES`. Неизвестный язык компилятор не
-угадывает, а отказывается собирать.
+The single consequence: **a new language needs its plural rules** in
+`NUMERUS_RULES`. The compiler refuses unknown languages instead of guessing.
 
-Расходиться каталогу с кодом не даёт `tests/test_i18n.py`: он же проверяет, что
-непереведённых строк не осталось, что плейсхолдеры `{0}` и `%n` пережили перевод,
-что у русского все три формы множественного числа и что `.qm` попадает в архив,
-а `.ts` — нет.
+`tests/test_i18n.py` keeps the catalogue honest: no Russian in the sources, the
+catalogue matches the code, nothing is left untranslated, the `{0}` and `%n`
+placeholders survive translation, Russian has all three plural forms, the `.qm`
+ships in the archive while the `.ts` stays out.
 
-Тесты на `unittest` из стандартной библиотеки — ни одной зависимости.
-`tests/stub.py` подменяет модули `qgis`, если настоящего QGIS нет, поэтому набор
-гоняется и на обычном Python, и внутри Python самого QGIS против живого PyQGIS.
+Tests are stdlib `unittest` — not a single dependency. `tests/stub.py` fakes the
+`qgis` modules when real QGIS is absent, so the suite runs both on plain Python
+and inside the QGIS Python against live PyQGIS.
 
-Что покрыто: чистая логика (агрегаты, выражения, приведение значений, зоны UTM,
-вычистка секретов), оба протокола транспорта, лента прогона, разбор всех типов
-рендерера, контракт тулов и схемы, согласованность скиллов с реестром, инвариант
-безопасности в цикле. Плюс `tests/test_sources.py` статически стережёт правила
-стиля: отсутствие комментариев и docstring, лимит в 200 строк, абсолютные
-импорты, отсутствие неопределённых имён.
+What is covered: pure logic (aggregates, expressions, value coercion, UTM zones,
+secret scrubbing), both transport protocols, the run transcript, every renderer
+type, the tool contract and schemas, skill/registry consistency, the safety
+invariant in the loop. Plus `tests/test_sources.py` statically enforces the
+style rules: no comments or docstrings, the file-size cap, absolute imports, no
+undefined names.
 
-**Новый тул или скилл — новый тест.** Оба сегодняшних падения `describe_style`
-дожили до живого QGIS ровно потому, что код тулов никто не вызывал: `compileall`
-и проверка импортов такое не ловят.
+**A new tool or skill means a new test.** Both `describe_style` failures once
+survived all the way to live QGIS precisely because nobody called the tool code:
+`compileall` and import checks do not catch that.
 
-Что тестами не покрыть — настоящие вызовы PyQGIS к слоям и отрисовку Qt. Это
-по-прежнему руками, по [docs/smoke_checklist.md](docs/smoke_checklist.md).
+What tests cannot reach — real PyQGIS calls against layers and Qt painting —
+is still checked by hand, following
+[docs/smoke_checklist.md](docs/smoke_checklist.md).

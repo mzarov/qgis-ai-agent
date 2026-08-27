@@ -1,120 +1,132 @@
 # QGIS AI Agent
 
-ИИ-агент внутри QGIS 4: изучает проект и обрабатывает данные по запросу на
-естественном языке. Работает циклом — смотрит на проект, вызывает инструменты,
-видит результаты, решает следующий шаг. Изменения применяются только после
-подтверждения пользователем.
+An AI agent inside QGIS 4: it inspects your project and processes data from a
+plain-language request. It works as a loop — looks at the project, calls tools,
+sees the results, decides the next step. Changes are applied only after the user
+confirms them.
 
-**Что умеет** — пять доменов, 25 инструментов:
+**Documentation:** <https://mzarov.github.io/qgis-ai-agent/>
 
-| Домен | Примеры запросов |
+**What it does** — five domains, 25 tools:
+
+| Domain | Example requests |
 | --- | --- |
-| `inspect` | «какие у меня слои?», «какие значения в поле highway?» |
-| `project` | «загрузи файл», «спрячь слой», «сохрани проект» |
-| `style` | «сделай реки синими», «раскрась по населению», «подпиши названиями» |
-| `processing` | «построй буфер 500 м», «обрежь по границе района», «посчитай NDVI» |
-| `osm` | «скачай кафе в Твери», «дороги кроме грунтовых из OSM» |
+| `inspect` | “what layers do I have?”, “which values does the highway field hold?” |
+| `project` | “load this file”, “hide the layer”, “save the project” |
+| `style` | “make the rivers blue”, “colour by population”, “label with names” |
+| `processing` | “build a 500 m buffer”, “clip by the district boundary”, “compute NDVI” |
+| `osm` | “download the cafes in Tver”, “roads except unpaved ones from OSM” |
 
-## Установка
+## Installation
 
-Нужен **QGIS 4.0+**. Собрать архив и установить через
-**Модули → Управление модулями → Установить из ZIP**:
+Requires **QGIS 4.0+**. Build the archive and install it through
+**Plugins → Manage and Install Plugins → Install from ZIP**:
 
 ```bash
 python3 tools/build_plugin.py
 ```
 
-Архив появится в `dist/`. Подробности, зависимости и вариант установки для
-разработки — в [docs/SETUP.md](docs/SETUP.md).
+The archive appears in `dist/`. Details, dependencies and the development
+install are in [docs/SETUP.md](docs/SETUP.md).
 
-## Настройка
+## Configuration
 
-Шестерёнка на панели плагина. Выбор провайдера подставляет адрес и формат API —
-поддержаны OpenAI, OpenRouter, Anthropic, DeepSeek, Groq, Mistral и локальные
-Ollama / LM Studio (для localhost ключ не нужен). Ключ хранится в системном
-хранилище, не в конфиге.
+The gear icon on the plugin panel. Picking a provider fills in the address and
+the API format — OpenAI, OpenRouter, Anthropic, DeepSeek, Groq, Mistral and the
+local Ollama / LM Studio are supported (no key needed for localhost). The key is
+stored in the system keychain, not in the config.
 
-Модель должна уметь function calling; для эндпоинтов без него есть текстовый
-JSON-протокол, включается сам.
+The model must support function calling; for endpoints without it there is a
+text JSON protocol that switches on by itself.
 
-## Как это устроено
-
-```
-пользователь → CoreOrchestrator → AgentLoop (главный поток)
-                                     │  HTTP в фоне (ModelTurnThread)
-                                     ▼
-                            модель вызывает тулы
-                       read — сразу │ write — в батч
-                                     ▼
-                        карточка плана → кнопка «Применить»
-```
-
-Три идеи, на которых всё держится:
-
-- **Классы безопасности вместо «план → подтверждение».** Читающий тул
-  выполняется немедленно, пишущий копится в батч и ждёт кнопки.
-- **Прогрессивное раскрытие.** В промпте постоянно лежит по одной строке на
-  домен; тело правил и схемы тулов подгружаются мета-тулом `load_skill`.
-- **Вендор-нейтральность.** Любой OpenAI-совместимый API плюс диалект
-  Anthropic; никаких SDK провайдеров.
-
-Полное описание — [docs/core_architecture.md](docs/core_architecture.md).
-
-## Структура
+## How it works
 
 ```
-qgis_ai_agent/                 плагин целиком — только эта папка попадает в QGIS
-  __init__.py, metadata.txt    вход для QGIS
-  plugin.py                    корень сборки: связывает QGIS, core и ui
-  core/                        цикл, оркестрация, LLM-транспорт, состояние
-  qgis_tools/                  тулы по доменам — вся PyQGIS-логика
-  skills/                      знания доменов (SKILL.md)
-  ui/                          только Qt: рендер и сигналы
-tests/                         unittest, гоняются без QGIS через tests/stub.py
-tools/build_plugin.py          сборка устанавливаемого zip
-docs/                          установка, архитектура, ручной чеклист
+user → CoreOrchestrator → AgentLoop (main thread)
+                             │  HTTP in background (ModelTurnThread)
+                             ▼
+                    the model calls tools
+               read — immediately │ write — into a batch
+                             ▼
+                 plan card → the Apply button
 ```
 
-Направление зависимостей: `ui → core → qgis_tools → skills`; обратные импорты
-запрещены и проверяются тестом `tests/test_layering.py`.
+Three ideas everything rests on:
 
-## Разработка
+- **Safety classes instead of “plan → confirm”.** A reading tool runs
+  immediately; a writing tool is collected into a batch and waits for the button.
+- **Progressive disclosure.** The prompt permanently holds one line per domain;
+  the rule bodies and tool schemas are loaded by the `load_skill` meta-tool.
+- **Vendor neutrality.** Any OpenAI-compatible API plus the Anthropic dialect;
+  no provider SDKs.
+
+The full picture: [docs/core_architecture.md](docs/core_architecture.md).
+
+## Layout
+
+```
+qgis_ai_agent/                 the whole plugin — only this folder reaches QGIS
+  __init__.py, metadata.txt    the QGIS entry point
+  plugin.py                    composition root: wires QGIS, core and ui
+  core/                        loop, orchestration, LLM transport, state
+  qgis_tools/                  tools by domain — all the PyQGIS logic
+  skills/                      domain knowledge (SKILL.md)
+  ui/                          Qt only: rendering and signals
+tests/                         unittest, runs without QGIS via tests/stub.py
+tools/build_plugin.py          builds the installable zip
+docs/                          setup, architecture, manual checklist
+```
+
+Dependency direction: `ui → core → qgis_tools → skills`; reverse imports are
+forbidden and checked by `tests/test_layering.py`.
+
+## Development
 
 ```bash
 python3 -m unittest discover -s tests -t .
 ```
 
-Перед PR стоит прогнать те же сканеры, что и репозиторий плагинов QGIS —
-они же стоят в CI:
+Formatting and imports are owned by ruff; set up the pre-commit hook once and it
+fixes them on every commit:
 
 ```bash
-pip install bandit detect-secrets flake8
-cd qgis_ai_agent && bandit -r . && cd ..
-detect-secrets scan qgis_ai_agent/ && flake8 qgis_ai_agent/
+poetry install
+poetry run pre-commit install
 ```
 
-Ни одной тестовой зависимости у самого набора: только stdlib. Если настоящего QGIS нет,
-`tests/stub.py` подменяет модули `qgis` — поэтому набор работает и на обычном
-Python, и внутри Python самого QGIS.
+Before a PR, run the same scanners the QGIS plugin repository runs — CI runs
+them too:
 
-Правила кода — в [CLAUDE.md](CLAUDE.md) и в `CLAUDE.md` каждого пакета.
-Коротко: без комментариев и docstring, файлы до 200 строк, type hints везде,
-абсолютные импорты. Всё это проверяется тестами, а не ревью на глаз.
+```bash
+pip install bandit detect-secrets ruff
+cd qgis_ai_agent && bandit -r . && cd ..
+detect-secrets scan qgis_ai_agent/
+ruff check . && ruff format --check .
+```
 
-### Как добавить домен
+The test suite itself has zero dependencies: stdlib only. When real QGIS is
+absent, `tests/stub.py` fakes the `qgis` modules — so the suite runs both on
+plain Python and inside the QGIS Python.
 
-1. `qgis_ai_agent/qgis_tools/<домен>/` — классы тулов
-   (`skill = "<домен>"`, `safety = read|write`)
-2. `qgis_ai_agent/skills/<домен>/SKILL.md` — правила домена
-3. одна строка в `qgis_tools/registry.py`
+Code rules live in [CLAUDE.md](CLAUDE.md) and in each package's `CLAUDE.md`.
+In short: no comments or docstrings, files around 200 lines (hard cap 400),
+type hints everywhere, absolute imports. All of it is enforced by tests, not by
+eyeballing reviews.
 
-Цикл, оркестратор и промпт не трогаются. Новый тул — новый тест на
-подставных объектах PyQGIS, как в `tests/test_style_write.py`.
+### Adding a domain
 
-### Перед PR
+1. `qgis_ai_agent/qgis_tools/<domain>/` — tool classes
+   (`skill = "<domain>"`, `safety = read|write`)
+2. `qgis_ai_agent/skills/<domain>/SKILL.md` — the domain rules
+3. one line in `qgis_tools/registry.py`
 
-- [ ] `python3 -m unittest discover -s tests -t .` — зелёный
-- [ ] `python3 tools/build_plugin.py` — собирается
-- [ ] новый тул или скилл покрыт тестом
-- [ ] то, что тестами не берётся, добавлено в
+The loop, the orchestrator and the prompt stay untouched. A new tool means a new
+test against fake PyQGIS objects, as in `tests/test_style_write.py`.
+
+### Before a PR
+
+- [ ] `python3 -m unittest discover -s tests -t .` — green
+- [ ] `python3 tools/build_plugin.py` — builds
+- [ ] a new tool or skill is covered by a test
+- [ ] whatever tests cannot reach is added to
       [docs/smoke_checklist.md](docs/smoke_checklist.md)
