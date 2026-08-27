@@ -48,17 +48,50 @@ class GeometryTest(unittest.TestCase):
         self.assertEqual(outside, [])
 
     def test_drawings_actually_draw_something(self):
-        for name in ("_draw_clock", "_draw_bin", "_draw_sliders"):
+        for name in ("_draw_clock", "_draw_bin", "_draw_gear"):
             body = SOURCE.split(f"def {name}(")[1].split("\ndef ")[0]
             self.assertIn("painter.draw", body, name)
 
     def test_one_stroke_weight_for_the_whole_set(self):
         self.assertEqual(SOURCE.count("pen.setWidthF("), 1)
 
-    def test_brush_is_restored_after_a_filled_knob(self):
-        body = SOURCE.split("def _knob(")[1].split("\ndef ")[0]
-        self.assertEqual(body.count("setBrush"), 2)
-        self.assertIn("NoBrush", body.rsplit("setBrush", 1)[1])
+    def test_the_whole_set_is_stroked_never_filled(self):
+        self.assertEqual(SOURCE.count("setBrush"), 1)
+        self.assertIn("painter.setBrush(Qt.BrushStyle.NoBrush)", SOURCE)
+
+    def test_gear_fits_the_canvas(self):
+        reach = icons.GEAR_RING + icons.GEAR_TOOTH
+        self.assertGreater(icons.CENTRE - reach, 0.0)
+        self.assertLess(icons.CENTRE + reach, icons.CANVAS)
+
+    def test_gear_hub_sits_inside_its_ring(self):
+        self.assertLess(icons.GEAR_HUB, icons.GEAR_RING)
+
+    def test_every_tooth_stays_inside_the_canvas(self):
+        outer = icons.GEAR_RING + icons.GEAR_TOOTH
+        for index in range(icons.GEAR_TEETH):
+            for value in icons.tooth_at(index, outer):
+                self.assertGreaterEqual(round(value, 6), 0.0, index)
+                self.assertLessEqual(round(value, 6), icons.CANVAS, index)
+
+    def test_teeth_are_distinguishable_at_header_size(self):
+        self.assertGreater(icons.tooth_gap(15), 3.0)
+
+    def test_teeth_are_evenly_spaced(self):
+        outer = icons.GEAR_RING + icons.GEAR_TOOTH
+        first = icons.tooth_at(0, outer)
+        self.assertAlmostEqual(first[0], icons.CENTRE + outer)
+        self.assertAlmostEqual(first[1], icons.CENTRE)
+        quarter = icons.tooth_at(icons.GEAR_TEETH // 4, outer)
+        self.assertAlmostEqual(quarter[0], icons.CENTRE)
+
+    def test_teeth_start_where_the_ring_ends(self):
+        body = SOURCE.split("def _draw_gear(")[1].split("\ndef ")[0]
+        self.assertIn("_at(index, GEAR_RING), _at(index, GEAR_RING + GEAR_TOOTH)", body)
+
+    def test_tooth_maths_has_no_qt_in_it(self):
+        body = SOURCE.split("def tooth_at(")[1].split("\ndef ")[0]
+        self.assertNotIn("QPointF", body)
 
 
 class ScaleTest(unittest.TestCase):

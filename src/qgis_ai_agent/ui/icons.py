@@ -1,12 +1,17 @@
+import math
 from typing import Any, Callable
 
 from qgis.PyQt.QtCore import QPointF, QRectF, Qt
 from qgis.PyQt.QtGui import QGuiApplication, QIcon, QPainter, QPainterPath, QPen, QPixmap
 
 CANVAS = 16.0
+CENTRE = 8.0
 STROKE = 1.45
-KNOB = 1.85
 MAX_RATIO = 4.0
+GEAR_HUB = 1.85
+GEAR_RING = 4.4
+GEAR_TOOTH = 2.05
+GEAR_TEETH = 8
 
 
 def sessions(colour: Any, size: int) -> QIcon:
@@ -18,7 +23,7 @@ def clear(colour: Any, size: int) -> QIcon:
 
 
 def settings(colour: Any, size: int) -> QIcon:
-    return _icon(_draw_sliders, colour, size)
+    return _icon(_draw_gear, colour, size)
 
 
 def _draw_clock(painter: QPainter) -> None:
@@ -41,17 +46,26 @@ def _draw_bin(painter: QPainter) -> None:
     painter.drawPath(body)
 
 
-def _draw_sliders(painter: QPainter) -> None:
-    painter.drawLine(QPointF(2.7, 5.7), QPointF(13.3, 5.7))
-    painter.drawLine(QPointF(2.7, 10.3), QPointF(13.3, 10.3))
-    _knob(painter, 6.0, 5.7)
-    _knob(painter, 10.2, 10.3)
+def _draw_gear(painter: QPainter) -> None:
+    centre = QPointF(CENTRE, CENTRE)
+    painter.drawEllipse(centre, GEAR_RING, GEAR_RING)
+    painter.drawEllipse(centre, GEAR_HUB, GEAR_HUB)
+    for index in range(GEAR_TEETH):
+        painter.drawLine(_at(index, GEAR_RING), _at(index, GEAR_RING + GEAR_TOOTH))
 
 
-def _knob(painter: QPainter, x: float, y: float) -> None:
-    painter.setBrush(painter.pen().color())
-    painter.drawEllipse(QPointF(x, y), KNOB, KNOB)
-    painter.setBrush(Qt.BrushStyle.NoBrush)
+def tooth_at(index: int, radius: float) -> tuple[float, float]:
+    angle = 2.0 * math.pi * index / GEAR_TEETH
+    return CENTRE + radius * math.cos(angle), CENTRE + radius * math.sin(angle)
+
+
+def tooth_gap(size: int) -> float:
+    return 2.0 * math.pi * (GEAR_RING + GEAR_TOOTH) / GEAR_TEETH * scale_for(size)
+
+
+def _at(index: int, radius: float) -> QPointF:
+    x, y = tooth_at(index, radius)
+    return QPointF(x, y)
 
 
 def _icon(draw: Callable[[QPainter], None], colour: Any, size: int) -> QIcon:
