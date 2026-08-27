@@ -1,8 +1,8 @@
 DESTRUCTIVE_NOT_SUPPORTED = (
-    "Разрушающие операции пока не поддержаны плагином. "
-    "Предложите пользователю сделать это вручную."
+    "Destructive operations are not supported by the plugin yet. "
+    "Tell the user to do this by hand."
 )
 LIMIT_REACHED_MESSAGE = (
-    "Задача оказалась слишком длинной, я остановилась на достигнутом. "
-    "Уточните запрос или разбейте его на части."
+    "This task ran longer than I am allowed to, so I stopped where I got to. "
+    "Narrow the request or split it into steps."
 )

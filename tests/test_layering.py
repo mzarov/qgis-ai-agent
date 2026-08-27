@@ -11,7 +11,8 @@ FORBIDDEN = {
     "skills": ("core", "ui", "qgis_tools"),
 }
 DOMAINS = ("inspect", "style", "processing", "project", "osm")
-COMPOSITION_ROOT = "plugin.py"
+TOP_LEVEL_MODULES = ("i18n.py", "plugin.py")
+LEAF_MODULES = ("i18n.py",)
 
 
 def internal_imports(path: pathlib.Path) -> list[str]:
@@ -42,13 +43,17 @@ class LayeringTest(unittest.TestCase):
                     problems.append(f"{path.relative_to(SOURCE_ROOT)} -> {module}")
         self.assertEqual(problems, [])
 
-    def test_composition_root_is_the_only_top_level_module(self):
+    def test_only_the_composition_root_and_leaves_sit_at_the_top(self):
         top_modules = sorted(
             item.name
             for item in SOURCE_ROOT.iterdir()
             if item.suffix == ".py" and item.name != "__init__.py"
         )
-        self.assertEqual(top_modules, [COMPOSITION_ROOT])
+        self.assertEqual(top_modules, sorted(TOP_LEVEL_MODULES))
+
+    def test_top_level_leaves_import_nothing_of_ours(self):
+        for name in LEAF_MODULES:
+            self.assertEqual(internal_imports(SOURCE_ROOT / name), [], name)
 
     def test_tool_domains_do_not_import_each_other(self):
         problems = []

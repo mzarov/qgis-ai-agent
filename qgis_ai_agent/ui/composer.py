@@ -11,17 +11,18 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.ui import style
 
-PLACEHOLDER = "Спросите про проект или попросите обработать слои"
+PLACEHOLDER = tr("Ask about the project or ask to process layers")
 MIN_HEIGHT = 34
 MAX_HEIGHT = 120
 SEND_SIZE = 26
 HINT_FONT_SCALE = 0.85
 SEND_GLYPH = "↑"
 STOP_GLYPH = "■"
-HINT_IDLE = "Enter — отправить, Shift+Enter — перенос"
-HINT_BUSY = "Работаю… нажмите ■, чтобы остановить"
+HINT_IDLE = tr("Enter to send, Shift+Enter for a new line")
+HINT_BUSY = tr("Working… press ■ to stop")
 
 
 class PromptEdit(QPlainTextEdit):
@@ -88,7 +89,7 @@ class Composer(QWidget):
 
         self._send = QPushButton(SEND_GLYPH)
         self._send.setFixedSize(SEND_SIZE, SEND_SIZE)
-        self._send.setToolTip("Отправить")
+        self._send.setToolTip(tr("Send"))
         self._send.setStyleSheet(self._button_style(style.accent(palette)))
         self._send.clicked.connect(self._on_button)
         row.addWidget(self._send)
@@ -126,7 +127,7 @@ class Composer(QWidget):
         self._busy = busy
         palette = self.palette()
         self._send.setText(STOP_GLYPH if busy else SEND_GLYPH)
-        self._send.setToolTip("Остановить" if busy else "Отправить")
+        self._send.setToolTip(tr("Stop") if busy else tr("Send"))
         self._send.setStyleSheet(
             self._button_style(style.danger(palette) if busy else style.accent(palette))
         )

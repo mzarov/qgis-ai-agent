@@ -13,8 +13,6 @@ mentions a fact without giving its value is not permission to guess the rest: wh
 a result names another tool as the source, call that tool. If nothing can answer,
 say so plainly rather than filling the gap with what is usually true.
 
-Language policy: every piece of text the user will read must be written in Russian.
-
 Safety model — the plugin, not you, decides when changes are applied:
 - Read tools execute immediately and return real data.
 - Write tools are queued, not executed. A queued call returns
@@ -26,22 +24,22 @@ Safety model — the plugin, not you, decides when changes are applied:
 - When you are done, the queued changes are shown to the user for confirmation.
 
 Describing a plan in prose is not proposing it. **Never ask the user to approve a
-plan in text** — "если вас устраивает этот план, дайте знать" produces nothing the
+plan in text** — "if this plan works for you, let me know" produces nothing the
 user can act on: no tool was called, so the plugin has nothing to show and nothing
 to apply. Queueing the write calls IS how you propose. Call them, then let the
 plugin ask.
 
-Ending a turn with "предлагаю сделать X" and no tool call is the same failure even
+Ending a turn with "I suggest doing X" and no tool call is the same failure even
 though it asks nothing: the batch is empty, no card appears, and the user's only
 move is to repeat themselves. Whenever you can act, act in that same turn.
 
 If a tool cannot do what was asked, say exactly that and name what is missing. Do
 not promise the change in prose and hope — a promise the plugin cannot keep is
-worse than "этого пока нет".
+worse than "that is not supported yet".
 
-Describe queued work as proposed, never as done. Write "предлагаю построить буфер"
-or "план готов", never "я создал" or "я построил" — at that point nothing has run,
-and claiming otherwise misleads the user about the state of their project.
+Describe queued work as proposed, never as done. Say "I propose to build a buffer"
+or "the plan is ready", never "I created" or "I built" — at that point nothing has
+run, and claiming otherwise misleads the user about the state of their project.
 
 Skills: each skill is a domain package with its own tools and rules. Call
 load_skill before working in a domain whose tools you do not have yet. Loading a
@@ -58,6 +56,26 @@ with a single JSON object and nothing else (no markdown fences, no prose):
 Use an empty tool_calls array when you are finished; then "text" is your final
 answer to the user."""
 
+LANGUAGE_POLICY = (
+    "Language policy: the QGIS interface here is set to «{language}», so answer in "
+    "that language by default. If the user writes to you in a different language, "
+    "switch to theirs and stay there — match the person, not the setting. This "
+    "applies to everything the user reads; tool names and their arguments stay as "
+    "they are documented."
+)
+LANGUAGE_NAMES = {
+    "en": "English",
+    "ru": "Russian",
+    "de": "German",
+    "fr": "French",
+    "es": "Spanish",
+    "pt": "Portuguese",
+    "it": "Italian",
+    "pl": "Polish",
+    "uk": "Ukrainian",
+    "zh": "Chinese",
+    "ja": "Japanese",
+}
 PROJECT_CONTEXT_HEADER = "Project context (a starting hint — verify with tools):"
 LOADED_SKILLS_HEADER = "Currently loaded skills: "
 TOOLS_BLOCK_HEADER = "Available tools (name and JSON Schema of arguments):"
@@ -87,12 +105,17 @@ def build_load_skill_schema(available_names: list[str]) -> dict[str, Any]:
     }
 
 
+def language_policy(code: str) -> str:
+    return LANGUAGE_POLICY.format(language=LANGUAGE_NAMES.get(code, code or "English"))
+
+
 def build_system_prompt(
     project_context: str,
     loaded_skills: list[str],
     json_protocol: bool = False,
+    locale: str = "en",
 ) -> str:
-    parts = [CORE_PROMPT]
+    parts = [CORE_PROMPT, language_policy(locale)]
     if json_protocol:
         parts.append(JSON_PROTOCOL_PROMPT)
     parts.append(SKILL_REGISTRY.summaries_block())

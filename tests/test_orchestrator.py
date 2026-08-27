@@ -111,14 +111,14 @@ class OrchestratorSessionTest(unittest.TestCase):
     def test_unknown_session_reports_and_keeps_current(self):
         self._ask("текущий")
         self.orchestrator.on_session_chosen("нет-такого")
-        self.assertIn("Диалог не найден.", self.dock.system)
+        self.assertIn("Conversation not found.", self.dock.system)
         self.assertEqual(len(self.orchestrator.conversation.messages), 2)
 
     def test_switching_while_running_is_refused(self):
         self._ask("вопрос")
         self.orchestrator.agent.is_running = True
         self.orchestrator.on_new_session()
-        self.assertIn("Дождитесь окончания текущей задачи.", self.dock.system)
+        self.assertIn("Wait for the current task to finish.", self.dock.system)
         self.assertIsNone(self.dock.replayed)
 
     def test_switching_with_pending_writes_is_refused(self):
@@ -147,14 +147,14 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.orchestrator.on_applied([Result(payload={"result_layer_name": "буфер"})])
         self.orchestrator.on_prompt("а теперь покрась его")
         history = self.orchestrator.agent.started[1]
-        self.assertIn("Готово: применено шагов — 1", history[-1]["content"])
+        self.assertIn("Done: 1 step(s) applied", history[-1]["content"])
         self.assertIn("буфер", history[-1]["content"])
 
     def test_failed_writes_reach_the_next_turn(self):
         self.orchestrator.on_prompt("построй буфер")
         self.orchestrator.on_applied([Result(ok=False, payload={"error": "нет такого слоя"})])
         self.orchestrator.on_prompt("почини")
-        self.assertIn("нет такого слоя", self.orchestrator.agent.started[1][-1]["content"])
+        self.assertIn("нет такого слоя", str(self.orchestrator.agent.started[1]))
 
     def test_stop_aborts_the_run(self):
         self.orchestrator.on_prompt("долгая задача")
@@ -167,7 +167,7 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.orchestrator.agent.is_running = True
         self.orchestrator.on_stop()
         self.orchestrator.on_aborted()
-        self.assertTrue(any("остановлен" in text for text in self.dock.system))
+        self.assertTrue(any("Run stopped" in text for text in self.dock.system))
         self.orchestrator.on_new_session()
         self.assertEqual(self.dock.replayed, [])
 

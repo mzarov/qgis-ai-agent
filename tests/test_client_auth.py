@@ -89,5 +89,5 @@ class TransportTest(unittest.TestCase):
 
     def test_non_json_answer_is_reported_clearly(self):
         body = self.SOURCE.split("def _decoded(")[1].split("\ndef ")[0]
-        self.assertIn("не JSON", body)
-        self.assertIn("не объект JSON", body)
+        self.assertIn("non-JSON", body)
+        self.assertIn("not a JSON object", body)

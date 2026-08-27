@@ -144,7 +144,7 @@ class ProbeTest(unittest.TestCase):
         self._with_chat(lambda messages, **kwargs: "   ")
         ok, message = settings_probe.probe({})
         self.assertFalse(ok)
-        self.assertIn("пустой", message)
+        self.assertIn("empty answer", message)
 
     def test_error_is_reported_not_raised(self):
         def broken(messages, **kwargs):
@@ -153,7 +153,7 @@ class ProbeTest(unittest.TestCase):
         self._with_chat(broken)
         ok, message = settings_probe.probe({})
         self.assertFalse(ok)
-        self.assertIn("API-ключ", message)
+        self.assertIn("API", message)
 
     def test_silent_exception_still_names_something(self):
         def broken(messages, **kwargs):

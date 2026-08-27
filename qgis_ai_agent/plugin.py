@@ -5,6 +5,7 @@ from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
+from qgis_ai_agent import i18n
 from qgis_ai_agent.core.orchestrator.orchestrator import CoreOrchestrator
 from qgis_ai_agent.ui.dock_widget import AgentDockWidget
 from qgis_ai_agent.ui.settings_dialog import SettingsDialog
@@ -22,6 +23,7 @@ class QgisAiAgentPlugin:
         self.dock_widget = None
         self.menu_action = None
         self._orchestrator = None
+        i18n.install(os.path.dirname(os.path.abspath(__file__)))
 
     def initGui(self) -> None:
         self.menu_action = QAction(self._icon(), MENU_TITLE, self.iface.mainWindow())
@@ -39,6 +41,7 @@ class QgisAiAgentPlugin:
         if self._orchestrator:
             self._orchestrator.shutdown()
         self._orchestrator = None
+        i18n.remove()
 
     def run(self) -> None:
         if self.dock_widget is None:

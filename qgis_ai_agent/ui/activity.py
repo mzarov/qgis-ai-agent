@@ -9,6 +9,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from qgis_ai_agent.i18n import tr, tr_n
 from qgis_ai_agent.ui import style
 
 COLLAPSED = "›"
@@ -105,7 +106,7 @@ class ActivityGroup(QFrame):
 
     def _refresh(self) -> None:
         palette = self.palette()
-        self._title.setText(f"{self._count} {_plural(self._count)}")
+        self._title.setText(tr_n("%n action(s)", self._count))
         self._status.setText(FAILED if self._failed else DONE)
         colour = style.danger(palette) if self._failed else style.success(palette)
         self._status.setStyleSheet(f"color: {style.css_color(colour)}; border: none;")
@@ -153,14 +154,7 @@ class StepRow(QWidget):
 
 def _format_seconds(seconds: float) -> str:
     if seconds < 1:
-        return f"{int(seconds * 1000)} мс"
+        return tr("{0} ms").format(int(seconds * 1000))
     if seconds < 60:
-        return f"{seconds:.1f} с".replace(".", ",")
-    return f"{int(seconds // 60)} мин {int(seconds % 60)} с"
-
-
-def _plural(count: int) -> str:
-    tail = count % 10
-    if count % 100 in range(11, 15) or tail == 0 or tail > 4:
-        return "действий"
-    return "действие" if tail == 1 else "действия"
+        return tr("{0} s").format(f"{seconds:.1f}")
+    return tr("{0} min {1} s").format(int(seconds // 60), int(seconds % 60))
