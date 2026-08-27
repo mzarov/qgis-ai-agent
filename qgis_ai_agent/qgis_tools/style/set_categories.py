@@ -4,9 +4,9 @@ from qgis.core import QgsCategorizedSymbolRenderer, QgsRendererCategory
 
 from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
 from qgis_ai_agent.qgis_tools.common.values import plain_value
+from qgis_ai_agent.qgis_tools.common.colors import parse_color
 from qgis_ai_agent.qgis_tools.style.apply import (
     coloured_symbol,
-    parse_color,
     refresh,
     require_field,
     require_vector_layer,

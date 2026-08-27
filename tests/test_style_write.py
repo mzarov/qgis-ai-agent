@@ -3,6 +3,7 @@ import unittest
 from qgis_ai_agent.qgis_tools.common import colors
 from qgis_ai_agent.qgis_tools.style import apply, describe_options, label_build, label_catalogue
 from qgis_ai_agent.qgis_tools.style import set_categories, set_graduated, set_labels
+from qgis_ai_agent.qgis_tools.common import colors
 from qgis_ai_agent.qgis_tools.style import symbol_build, symbol_catalogue
 from qgis_ai_agent.qgis_tools.style import set_opacity, set_symbol
 from tests.fake_layers import Colour, Field, Layer, Style, Symbol

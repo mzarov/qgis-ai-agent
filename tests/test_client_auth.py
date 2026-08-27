@@ -1,3 +1,4 @@
+import pathlib
 import unittest
 
 from qgis_ai_agent.core.llm.client import build_request, is_local, resolve_endpoint
@@ -62,3 +63,31 @@ class BuildRequestTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TransportTest(unittest.TestCase):
+    SOURCE = (
+        pathlib.Path(__file__).resolve().parent.parent
+        / "qgis_ai_agent"
+        / "core"
+        / "llm"
+        / "client.py"
+    ).read_text(encoding="utf-8")
+
+    def test_network_goes_through_qgis_not_requests(self):
+        self.assertIn("QgsBlockingNetworkRequest", self.SOURCE)
+        self.assertNotIn("import requests", self.SOURCE)
+        self.assertNotIn("session.post", self.SOURCE)
+
+    def test_headers_are_carried_onto_the_request(self):
+        body = self.SOURCE.split("def _build_network_request(")[1].split("\ndef ")[0]
+        self.assertIn("setRawHeader", body)
+
+    def test_transport_failure_is_distinct_from_an_api_error(self):
+        self.assertIn("raise ConnectionError(", self.SOURCE)
+        self.assertIn("raise ApiResponseError(status, text)", self.SOURCE)
+
+    def test_non_json_answer_is_reported_clearly(self):
+        body = self.SOURCE.split("def _decoded(")[1].split("\ndef ")[0]
+        self.assertIn("не JSON", body)
+        self.assertIn("не объект JSON", body)

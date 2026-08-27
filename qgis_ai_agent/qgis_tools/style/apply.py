@@ -3,7 +3,6 @@ from typing import Any
 from qgis.core import QgsStyle, QgsSymbol, QgsVectorLayer
 from qgis.PyQt.QtGui import QColor
 
-from qgis_ai_agent.qgis_tools.common.colors import parse_color
 from qgis_ai_agent.qgis_tools.common.layers import find_layer_by_name
 from qgis_ai_agent.qgis_tools.common.values import suggest_fields
 

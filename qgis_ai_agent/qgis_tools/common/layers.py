@@ -9,7 +9,6 @@ from qgis.core import (
 )
 
 from qgis_ai_agent.qgis_tools.common.renderers import style_block
-from qgis_ai_agent.qgis_tools.common.values import suggest_fields
 
 COORD_PRECISION = 6
 FALLBACK_EXTENT = (0.0, 0.0, 100.0, 100.0)
