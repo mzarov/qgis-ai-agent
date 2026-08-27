@@ -28,7 +28,7 @@ jobs:
           python-version: "3.12"
       - name: Build the site
         run: |
-          python3 -m pip install --quiet mkdocs-material
+          python3 -m pip install --quiet mkdocs-material mkdocs-static-i18n
           mkdocs build --strict
       - uses: actions/upload-pages-artifact@v3
         with:

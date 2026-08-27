@@ -31,6 +31,28 @@ markdown_extensions:
   - pymdownx.highlight
   - pymdownx.superfences
 
+plugins:
+  - search
+  - i18n:
+      docs_structure: suffix
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+        - locale: ru
+          name: Русский
+          build: true
+          site_description: ИИ-агент внутри QGIS 4 — изучает проект и обрабатывает данные по запросу на естественном языке.
+          nav_translations:
+            Home: Главная
+            Setup: Установка
+            Usage: Использование
+            Architecture: Архитектура
+            Development: Разработка
+            Translations: Переводы
+            Smoke checklist: Смоук-чеклист
+
 nav:
   - Home: index.md
   - Setup: SETUP.md
