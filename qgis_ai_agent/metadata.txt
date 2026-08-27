@@ -2,8 +2,8 @@
 name=QGIS AI Agent
 qgisMinimumVersion=4.0
 description=AI agent inside QGIS: explores your project and processes data from a plain-language request.
-about=The agent inspects your project on its own — layers, attribute fields, CRS, styling — then styles layers, runs Processing algorithms and downloads OpenStreetMap data from a description in plain language. Read-only actions run immediately; anything that changes the project is collected into a plan and applied only after you press Apply. REQUIRES AN ACCOUNT AND API KEY with a language-model provider: the plugin works with any OpenAI-compatible endpoint and with Anthropic, including local servers such as Ollama or LM Studio (no key needed for localhost). Your prompts and short summaries of the project — layer names, field names, CRS — are sent to the provider you configure, so pick one you trust. The key is stored in your system keyring, never in the project or settings file. Interface language is Russian.
-version=0.4.0
+about=The agent inspects your project on its own — layers, attribute fields, CRS, styling — then styles layers, runs Processing algorithms and downloads OpenStreetMap data from a description in plain language. Read-only actions run immediately; anything that changes the project is collected into a plan and applied only after you press Apply. REQUIRES AN ACCOUNT AND API KEY with a language-model provider: the plugin works with any OpenAI-compatible endpoint and with Anthropic, including local servers such as Ollama or LM Studio (no key needed for localhost). Your prompts and short summaries of the project — layer names, field names, CRS — are sent to the provider you configure, so pick one you trust. The key is stored in your system keyring, never in the project or settings file. The interface is available in English and Russian, following the QGIS interface language.
+version=0.5.0
 author=mzarov
 email=mzarov@duck.com
 
@@ -19,7 +19,10 @@ homepage=https://github.com/mzarov/qgis-ai-agent
 repository=https://github.com/mzarov/qgis-ai-agent
 tracker=https://github.com/mzarov/qgis-ai-agent/issues
 
-changelog=0.4.0
+changelog=0.5.0
+    - Английский интерфейс с русским переводом, язык берётся из настроек QGIS
+    - Агент отвечает на языке пользователя, а не на языке плагина
+    0.4.0
     - Диалоги сохраняются между сеансами QGIS и привязаны к проекту
     - Сводка оформления указывает на describe_style вместо догадок о цветах
     0.3.0

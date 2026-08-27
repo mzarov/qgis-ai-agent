@@ -53,7 +53,7 @@ class SanitizeSourceTest(unittest.TestCase):
         source = "dbname='gis' host=db user='mzarov' password='S3cr3t!' table=roads"
         cleaned = sanitize_source(source)
         self.assertNotIn("S3cr3t", cleaned)
-        self.assertIn("‹скрыто›", cleaned)
+        self.assertIn("<hidden>", cleaned)
 
     def test_uppercase_key_is_hidden(self):
         self.assertNotIn("Qwerty", sanitize_source("user=admin PASSWORD=Qwerty123"))

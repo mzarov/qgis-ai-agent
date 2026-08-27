@@ -2,6 +2,7 @@ from typing import Any
 
 from qgis.core import QgsGraduatedSymbolRenderer
 
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
 from qgis_ai_agent.qgis_tools.style.apply import (
     base_symbol,
@@ -28,42 +29,42 @@ DEFAULT_RAMPS = ("Viridis", "Blues", "Spectral")
 class SetGraduatedTool(BaseTool):
     name = "set_graduated"
     description = (
-        "Раскрасить слой градациями по числовому полю: разбить значения на классы "
-        "и залить их палитрой. Заменяет оформление слоя."
+        "Colour a layer with graduated classes over a numeric field: split the values "
+        "into classes and fill them from a ramp. Replaces the styling of the layer."
     )
     skill = "style"
     safety = SAFETY_WRITE
     constraints = [
-        "Поле должно существовать и содержать числа",
-        f"Число классов от {MIN_CLASSES} до {MAX_CLASSES}",
+        "The field must exist and hold numbers",
+        f"The number of classes runs from {MIN_CLASSES} to {MAX_CLASSES}",
     ]
-    examples = ["Раскрась районы по населению", "Градации по площади, 7 классов, Viridis"]
+    examples = ["Colour the districts by population", "Graduate by area, 7 classes, Viridis"]
     params_schema = [
         {
             "name": "layer_name",
             "type": "string",
-            "description": "Имя слоя ровно как в проекте",
+            "description": "Layer name exactly as in the project",
             "required": True,
         },
         {
             "name": "field",
             "type": "string",
-            "description": "Числовое поле, по которому строятся градации",
+            "description": "Numeric field the graduation is built on",
             "required": True,
         },
         {
             "name": "ramp",
             "type": "string",
             "description": (
-                "Имя палитры QGIS, например Viridis или Reds. Без неё берётся разумная "
-                "по умолчанию; неизвестное имя вернёт список доступных."
+                "Name of a QGIS colour ramp, for example Viridis or Reds. Without it a "
+                "sensible default is used; an unknown name comes back with the available list."
             ),
             "required": False,
         },
         {
             "name": "classes",
             "type": "integer",
-            "description": f"Сколько классов, по умолчанию {DEFAULT_CLASSES}",
+            "description": f"How many classes, {DEFAULT_CLASSES} by default",
             "required": False,
         },
         {
@@ -71,9 +72,9 @@ class SetGraduatedTool(BaseTool):
             "type": "string",
             "enum": sorted(MODES),
             "description": (
-                "Способ разбиения: quantile — поровну объектов, equal — равные "
-                "интервалы, jenks — естественные границы, pretty — круглые числа, "
-                "stddev — по стандартному отклонению."
+                "How to split: quantile for an equal number of features per class, equal "
+                "for equal intervals, jenks for natural breaks, pretty for round numbers, "
+                "stddev for standard deviation."
             ),
             "required": False,
         },
@@ -94,7 +95,9 @@ class SetGraduatedTool(BaseTool):
     def summarize_call(self, params: dict[str, Any]) -> str:
         layer_name = (params.get("layer_name") or "").strip()
         classes = params.get("classes") or DEFAULT_CLASSES
-        return f"Строю градации «{layer_name}» по «{params.get('field', '')}», классов: {classes}."
+        return tr("Graduating '{0}' by '{1}', classes: {2}.").format(
+            layer_name, params.get("field", ""), classes
+        )
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = require_vector_layer(params.get("layer_name") or "")
@@ -111,8 +114,8 @@ class SetGraduatedTool(BaseTool):
         )
         if renderer is None:
             raise ValueError(
-                f"QGIS не смог построить градации по полю «{field}»: возможно, все "
-                "значения одинаковы или пусты."
+                f"QGIS could not build graduated classes on field '{field}': the values "
+                "may all be equal or empty."
             )
         layer.setRenderer(renderer)
         refresh(layer)
@@ -131,8 +134,8 @@ def _require_numeric(layer: Any, field: str) -> None:
         return
     if not layer.fields().at(index).isNumeric():
         raise ValueError(
-            f"Поле «{field}» не числовое, градации по нему не строятся. "
-            "Для текстовых значений используйте set_categories."
+            f"Field '{field}' is not numeric, so graduated classes cannot be built on it. "
+            "For text values use set_categories."
         )
 
 
@@ -142,14 +145,14 @@ def _class_count(value: Any) -> int:
     try:
         number = int(value)
     except (TypeError, ValueError):
-        raise ValueError(f"Число классов задаётся целым числом от {MIN_CLASSES} до {MAX_CLASSES}.")
+        raise ValueError(f"The number of classes is a whole number from {MIN_CLASSES} to {MAX_CLASSES}.")
     if number < MIN_CLASSES or number > MAX_CLASSES:
-        raise ValueError(f"Число классов должно быть от {MIN_CLASSES} до {MAX_CLASSES}.")
+        raise ValueError(f"The number of classes must run from {MIN_CLASSES} to {MAX_CLASSES}.")
     return number
 
 
 def _mode_name(value: Any) -> str:
     name = (str(value or DEFAULT_MODE)).strip().lower()
     if name not in MODES:
-        raise ValueError(f"Неизвестный способ разбиения «{value}». Доступны: {', '.join(sorted(MODES))}.")
+        raise ValueError(f"Unknown split mode '{value}'. Available: {', '.join(sorted(MODES))}.")
     return name

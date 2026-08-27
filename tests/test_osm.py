@@ -60,7 +60,7 @@ class SelectorTest(unittest.TestCase):
     def test_semicolon_cannot_smuggle_a_second_statement(self):
         with self.assertRaises(ValueError) as caught:
             selectors.normalize(['node["a"]; out; node["b"]'])
-        self.assertIn("нельзя", str(caught.exception))
+        self.assertIn("not allowed", str(caught.exception))
 
     def test_output_directive_is_refused(self):
         with self.assertRaises(ValueError):
@@ -73,12 +73,12 @@ class SelectorTest(unittest.TestCase):
     def test_selector_must_name_an_element_type(self):
         with self.assertRaises(ValueError) as caught:
             selectors.normalize(['["amenity"="cafe"]'])
-        self.assertIn("типа элемента", str(caught.exception))
+        self.assertIn("element type", str(caught.exception))
 
     def test_selector_without_conditions_is_refused(self):
         with self.assertRaises(ValueError) as caught:
             selectors.normalize(["node"])
-        self.assertIn("вытянул бы всё", str(caught.exception))
+        self.assertIn("would pull in everything", str(caught.exception))
 
     def test_unbalanced_brackets_are_refused(self):
         with self.assertRaises(ValueError):
@@ -91,7 +91,7 @@ class SelectorTest(unittest.TestCase):
     def test_too_many_selectors_suggest_a_regex(self):
         with self.assertRaises(ValueError) as caught:
             selectors.normalize([f'node["k{index}"]' for index in range(20)])
-        self.assertIn("регулярным", str(caught.exception))
+        self.assertIn("regular expression", str(caught.exception))
 
     def test_wrong_type_is_refused(self):
         with self.assertRaises(ValueError):
@@ -129,7 +129,7 @@ class BboxTest(unittest.TestCase):
     def test_wrong_count_is_rejected(self):
         with self.assertRaises(ValueError) as caught:
             extent.parse_bbox("37,55,37.5")
-        self.assertIn("четырьмя", str(caught.exception))
+        self.assertIn("four numbers", str(caught.exception))
 
     def test_non_numbers_are_rejected(self):
         with self.assertRaises(ValueError):
@@ -138,7 +138,7 @@ class BboxTest(unittest.TestCase):
     def test_inverted_corners_are_rejected(self):
         with self.assertRaises(ValueError) as caught:
             extent.parse_bbox("38,55,37,56")
-        self.assertIn("меньше востока", str(caught.exception))
+        self.assertIn("less than the east", str(caught.exception))
 
     def test_out_of_range_is_rejected(self):
         with self.assertRaises(ValueError):
@@ -162,7 +162,7 @@ class ToolTest(unittest.TestCase):
     def test_area_and_bbox_together_are_rejected(self):
         with self.assertRaises(ValueError) as caught:
             self.tool.prepare({"key": "amenity", "area": "Тверь", "bbox": "37,55,37.5,55.5"})
-        self.assertIn("что-то одно", str(caught.exception))
+        self.assertIn("not both at once", str(caught.exception))
 
     def test_key_or_selectors_is_required(self):
         with self.assertRaises(ValueError) as caught:
@@ -174,7 +174,7 @@ class ToolTest(unittest.TestCase):
             self.tool.prepare(
                 {"key": "shop", "area": "Тверь", "selectors": ['node["amenity"="cafe"]']}
             )
-        self.assertIn("что-то одно", str(caught.exception))
+        self.assertIn("not both at once", str(caught.exception))
 
     def test_selectors_alone_are_enough(self):
         prepared = self.tool.prepare(
@@ -253,7 +253,7 @@ class SublayerTest(unittest.TestCase):
         self.assertEqual(load._title("Кафе", "points", "points"), "Кафе")
 
     def test_several_sublayers_get_a_suffix(self):
-        self.assertEqual(load._title("Дороги", "points", "all"), "Дороги — точки")
+        self.assertEqual(load._title("Roads", "points", "all"), "Roads — points")
 
     def test_file_name_is_safe_for_disk(self):
         self.assertNotIn("/", load._slug("amenity=cafe/../etc"))

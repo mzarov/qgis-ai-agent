@@ -51,5 +51,5 @@ def summarize_tool_call(tool_name: str, params: dict[str, Any]) -> str:
 def _require_tool(tool_name: str) -> BaseTool:
     tool = get_tool_by_name(tool_name)
     if not tool:
-        raise ValueError(f"Неизвестный инструмент: {tool_name}")
+        raise ValueError(f"Unknown tool: {tool_name}")
     return tool

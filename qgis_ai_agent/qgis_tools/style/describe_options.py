@@ -1,40 +1,43 @@
 from typing import Any
 
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
 from qgis_ai_agent.qgis_tools.style.label_catalogue import LABELS
 from qgis_ai_agent.qgis_tools.style.symbol_catalogue import SYMBOLS
 
 KINDS = {"labels": LABELS, "symbol": SYMBOLS}
 USAGE_NOTE = (
-    "Свойства передаются одним объектом properties в set_labels или set_symbol. "
-    "Указывайте только те, что нужно изменить: остальные останутся по умолчанию."
+    "The properties are passed as a single properties object to set_labels or set_symbol. "
+    "Pass only the ones you want to change: the rest keep their defaults."
 )
 
 
 class DescribeStyleOptionsTool(BaseTool):
     name = "describe_style_options"
     description = (
-        "Показать, какими свойствами можно управлять у подписей или у символа "
-        "слоя: имена, типы, допустимые значения, единицы измерения. Вызвать "
-        "перед set_labels или set_symbol, если не уверены в имени свойства."
+        "Show which properties of the labels or of the layer symbol can be controlled: "
+        "names, types, allowed values, units of measurement. Call it before "
+        "set_labels or set_symbol when you are unsure of a property name."
     )
     skill = "style"
     safety = SAFETY_READ
     constraints = []
-    examples = ["Какие настройки подписей доступны?", "Как сдвинуть подписи?"]
+    examples = ["Which label settings are available?", "How do I offset the labels?"]
     params_schema = [
         {
             "name": "kind",
             "type": "string",
             "enum": sorted(KINDS),
-            "description": "labels — свойства подписей, symbol — свойства символа слоя",
+            "description": "labels for label properties, symbol for the layer symbol properties",
             "required": True,
         },
     ]
 
     def summarize_call(self, params: dict[str, Any]) -> str:
         kind = (params.get("kind") or "").strip()
-        return f"Смотрю доступные свойства: {kind}." if kind else "Смотрю доступные свойства."
+        if not kind:
+            return tr("Reading the available properties.")
+        return tr("Reading the available properties: {0}.").format(kind)
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         known = _resolve(params.get("kind"))
@@ -50,5 +53,5 @@ class DescribeStyleOptionsTool(BaseTool):
 def _resolve(kind: Any) -> Any:
     name = str(kind or "").strip().lower()
     if name not in KINDS:
-        raise ValueError(f"Неизвестный вид «{kind}». Доступны: {', '.join(sorted(KINDS))}.")
+        raise ValueError(f"Unknown kind '{kind}'. Available: {', '.join(sorted(KINDS))}.")
     return KINDS[name]

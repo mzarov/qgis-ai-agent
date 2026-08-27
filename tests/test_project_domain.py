@@ -190,12 +190,12 @@ class AddLayerTest(ProjectCase):
     def test_missing_file_is_rejected_before_queueing(self):
         with self.assertRaises(ValueError) as caught:
             self.tool.prepare({"source": "/нет/такого.shp"})
-        self.assertIn("нет на диске", str(caught.exception))
+        self.assertIn("no file", str(caught.exception))
 
     def test_duplicate_name_is_rejected(self):
         with self.assertRaises(ValueError) as caught:
             self.tool.prepare({"source": self.path, "name": "Дороги"})
-        self.assertIn("уже есть", str(caught.exception))
+        self.assertIn("is already in the project", str(caught.exception))
 
     def test_layer_lands_in_the_project(self):
         result = self.tool.execute({"source": self.path})
@@ -210,7 +210,7 @@ class AddLayerTest(ProjectCase):
         add_layer.QgsVectorLayer = lambda source, name, provider: _Made(name, False)
         with self.assertRaises(ValueError) as caught:
             self.tool.execute({"source": self.path})
-        self.assertIn("не смог открыть", str(caught.exception))
+        self.assertIn("could not open", str(caught.exception))
 
     def test_unknown_kind_is_rejected(self):
         with self.assertRaises(ValueError):
@@ -233,7 +233,7 @@ class RemoveLayerTest(ProjectCase):
         self.assertEqual(self.project.mapLayers(), {})
 
     def test_result_says_the_file_survives(self):
-        self.assertIn("на диске", self.tool.execute({"layer_name": "Дороги"})["note"])
+        self.assertIn("on disk", self.tool.execute({"layer_name": "Дороги"})["note"])
 
     def test_missing_layer_is_rejected_before_queueing(self):
         with self.assertRaises(ValueError):
@@ -257,7 +257,7 @@ class ConfigureLayerTest(ProjectCase):
         self.project.addMapLayer(Layer(name="Реки"))
         with self.assertRaises(ValueError) as caught:
             self.tool.prepare({"layer_name": "Дороги", "properties": {"name": "Реки"}})
-        self.assertIn("уже есть", str(caught.exception))
+        self.assertIn("is already in the project", str(caught.exception))
 
     def test_group_move_creates_the_group(self):
         result = self.tool.execute({"layer_name": "Дороги", "properties": {"group": "Транспорт"}})
@@ -345,7 +345,7 @@ class SaveProjectTest(ProjectCase):
         self.project.write_ok = False
         with self.assertRaises(ValueError) as caught:
             self.tool.execute({"path": "/data/город"})
-        self.assertIn("не смог записать", str(caught.exception))
+        self.assertIn("could not write", str(caught.exception))
 
 
 class ZoomToLayerTest(ProjectCase):
@@ -367,7 +367,7 @@ class ZoomToLayerTest(ProjectCase):
         try:
             with self.assertRaises(ValueError) as caught:
                 self.tool.execute({"layer_name": "Дороги"})
-            self.assertIn("Карта недоступна", str(caught.exception))
+            self.assertIn("map is not available", str(caught.exception))
         finally:
             zoom_to_layer.safe_extent, zoom_to_layer._apply_extent = saved
 
@@ -377,7 +377,7 @@ class ZoomToLayerTest(ProjectCase):
         try:
             with self.assertRaises(ValueError) as caught:
                 self.tool.execute({"layer_name": "Дороги"})
-            self.assertIn("нет охвата", str(caught.exception))
+            self.assertIn("no extent", str(caught.exception))
         finally:
             zoom_to_layer.safe_extent = saved
 

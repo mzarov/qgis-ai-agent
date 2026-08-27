@@ -51,7 +51,7 @@ class SetSymbolTest(StyleWriteCase):
             symbol_build.base_symbol,
         )
         set_symbol.QgsSingleSymbolRenderer = lambda symbol: ("single", symbol)
-        set_symbol.geometry_type_name = lambda layer: "линии"
+        set_symbol.geometry_type_name = lambda layer: "line"
         symbol_build.base_symbol = lambda layer: Symbol()
 
     def tearDown(self):
@@ -82,7 +82,7 @@ class SetSymbolTest(StyleWriteCase):
     def test_inapplicable_property_is_reported_not_swallowed(self):
         result = self._apply(color="black", shape="square")
         self.assertIn("shape", result["skipped"])
-        self.assertIn("линии", result["skipped_note"])
+        self.assertIn("line", result["skipped_note"])
         self.assertIn("color", result["applied"])
 
     def test_a_property_never_lands_in_both_lists(self):
@@ -192,7 +192,7 @@ class SetCategoriesTest(StyleWriteCase):
             self.tool.prepare(
                 {"layer_name": "Дороги", "field": "type", "colors": ["#111111"]}
             )
-        self.assertIn("категорий", str(caught.exception))
+        self.assertIn("categories", str(caught.exception))
 
     def test_too_many_categories_points_at_graduated(self):
         self.layer._values = [f"значение {index}" for index in range(80)]
@@ -250,7 +250,7 @@ class SetGraduatedTest(StyleWriteCase):
         try:
             with self.assertRaises(ValueError) as caught:
                 self.tool.execute({"layer_name": "Дороги", "field": "population", "ramp": "Blues"})
-            self.assertIn("одинаковы", str(caught.exception))
+            self.assertIn("all be equal", str(caught.exception))
         finally:
             _FakeGraduated.returns_none = False
 
@@ -356,7 +356,7 @@ class SetLabelsTest(StyleWriteCase):
     def test_properties_must_be_an_object(self):
         with self.assertRaises(ValueError) as caught:
             self.tool.prepare({"layer_name": "Дороги", "properties": "field=name"})
-        self.assertIn("объектом", str(caught.exception))
+        self.assertIn("key-value pairs", str(caught.exception))
 
     def test_summary_lists_what_changes(self):
         summary = self.tool.summarize_call(
@@ -367,7 +367,7 @@ class SetLabelsTest(StyleWriteCase):
 
     def test_summary_shortens_a_long_bag(self):
         properties = {"field": "name", "bold": True, "italic": True, "size": 12, "color": "black"}
-        self.assertIn("и ещё 1", self.tool.summarize_call({"layer_name": "Дороги", "properties": properties}))
+        self.assertIn("and 1 more", self.tool.summarize_call({"layer_name": "Дороги", "properties": properties}))
 
     def test_summary_survives_broken_properties(self):
         self.assertTrue(self.tool.summarize_call({"layer_name": "Дороги", "properties": "мусор"}).strip())

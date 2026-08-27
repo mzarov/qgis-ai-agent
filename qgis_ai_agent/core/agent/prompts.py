@@ -57,25 +57,14 @@ Use an empty tool_calls array when you are finished; then "text" is your final
 answer to the user."""
 
 LANGUAGE_POLICY = (
-    "Language policy: the QGIS interface here is set to «{language}», so answer in "
+    "Language policy: the QGIS interface here is set to {language}, so answer in "
     "that language by default. If the user writes to you in a different language, "
     "switch to theirs and stay there — match the person, not the setting. This "
     "applies to everything the user reads; tool names and their arguments stay as "
     "they are documented."
 )
-LANGUAGE_NAMES = {
-    "en": "English",
-    "ru": "Russian",
-    "de": "German",
-    "fr": "French",
-    "es": "Spanish",
-    "pt": "Portuguese",
-    "it": "Italian",
-    "pl": "Polish",
-    "uk": "Ukrainian",
-    "zh": "Chinese",
-    "ja": "Japanese",
-}
+DEFAULT_LANGUAGE = "English"
+LANGUAGE_NAMES = {"en": "English", "ru": "Russian"}
 PROJECT_CONTEXT_HEADER = "Project context (a starting hint — verify with tools):"
 LOADED_SKILLS_HEADER = "Currently loaded skills: "
 TOOLS_BLOCK_HEADER = "Available tools (name and JSON Schema of arguments):"
@@ -106,7 +95,7 @@ def build_load_skill_schema(available_names: list[str]) -> dict[str, Any]:
 
 
 def language_policy(code: str) -> str:
-    return LANGUAGE_POLICY.format(language=LANGUAGE_NAMES.get(code, code or "English"))
+    return LANGUAGE_POLICY.format(language=LANGUAGE_NAMES.get(code, DEFAULT_LANGUAGE))
 
 
 def build_system_prompt(

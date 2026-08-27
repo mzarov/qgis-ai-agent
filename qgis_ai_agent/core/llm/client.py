@@ -19,19 +19,15 @@ from qgis_ai_agent.core.settings import (
 
 DEFAULT_TIMEOUT = 120
 LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1", "0.0.0.0", "host.docker.internal")
-MISSING_KEY_MSG = (
-    tr(
+MISSING_KEY_MSG = tr(
     "No API key. Set one in Settings — or connect to a local model: "
     "an address on localhost needs no key."
 )
-)
 ERROR_BODY_LIMIT = 300
 STATUS_ATTRIBUTE = QNetworkRequest.Attribute.HttpStatusCodeAttribute
-TRANSPORT_FAILED = (
-    tr(
+TRANSPORT_FAILED = tr(
     "Could not reach {endpoint}: {reason}. Check the address, the network and "
     "the QGIS proxy settings."
-)
 )
 
 

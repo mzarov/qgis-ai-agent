@@ -1,5 +1,6 @@
 from typing import Any
 
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
 from qgis_ai_agent.qgis_tools.project.tree import project
 
@@ -9,18 +10,18 @@ QGZ = ".qgz"
 class SaveProjectTool(BaseTool):
     name = "save_project"
     description = (
-        "Сохранить проект QGIS. Без пути сохраняет туда, откуда проект открыт; "
-        "с путём сохраняет как новый файл."
+        "Save the QGIS project. Without a path it saves where the project was opened from; "
+        "with a path it saves as a new file."
     )
     skill = "project"
     safety = SAFETY_WRITE
-    constraints = ["Для несохранённого проекта путь обязателен"]
-    examples = ["Сохрани проект", "Сохрани проект как /data/города.qgz"]
+    constraints = ["A never-saved project requires a path"]
+    examples = ["Save the project", "Save the project as /data/cities.qgz"]
     params_schema = [
         {
             "name": "path",
             "type": "string",
-            "description": f"Путь к файлу проекта. Расширение {QGZ} добавится само.",
+            "description": f"Path to the project file. The {QGZ} extension is added on its own.",
             "required": False,
         },
     ]
@@ -29,8 +30,8 @@ class SaveProjectTool(BaseTool):
         path = (params.get("path") or "").strip()
         if not path and not _current_path():
             raise ValueError(
-                "Проект ещё ни разу не сохранён, поэтому нужен путь: "
-                "укажите его в параметре path."
+                "The project has never been saved, so a path is needed: "
+                "give it in the path parameter."
             )
         prepared = dict(params)
         if path:
@@ -39,15 +40,17 @@ class SaveProjectTool(BaseTool):
 
     def summarize_call(self, params: dict[str, Any]) -> str:
         path = (params.get("path") or "").strip()
-        return f"Сохраняю проект как «{_with_suffix(path)}»." if path else "Сохраняю проект."
+        if not path:
+            return tr("Saving the project.")
+        return tr("Saving the project as '{0}'.").format(_with_suffix(path))
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         path = (params.get("path") or "").strip()
         target = _with_suffix(path) if path else _current_path()
         if not target:
-            raise ValueError("Не удалось определить, куда сохранять проект.")
+            raise ValueError("Could not work out where to save the project.")
         if not project().write(target):
-            raise ValueError(f"QGIS не смог записать проект в «{target}».")
+            raise ValueError(f"QGIS could not write the project to '{target}'.")
         return {"saved": target}
 
 

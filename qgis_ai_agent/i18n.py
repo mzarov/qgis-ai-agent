@@ -4,10 +4,11 @@ from typing import Any
 from qgis.PyQt.QtCore import QCoreApplication, QTranslator
 
 CONTEXT = "QgisAiAgent"
-FOLDER = "i18n"
+FOLDER = "translations"
 PREFIX = "qgis_ai_agent"
 SUFFIX = ".qm"
 FALLBACK_LOCALE = "en"
+SUPPORTED_LOCALES = ("en", "ru")
 _TRANSLATOR: list[Any] = []
 
 
@@ -38,7 +39,8 @@ def locale_code() -> str:
         stored = ""
     if not isinstance(stored, str) or not stored.strip():
         return FALLBACK_LOCALE
-    return stored.strip().split("_")[0].lower()
+    language = stored.strip().split("_")[0].lower()
+    return language if language in SUPPORTED_LOCALES else FALLBACK_LOCALE
 
 
 def install(plugin_dir: str) -> bool:

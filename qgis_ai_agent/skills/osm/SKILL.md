@@ -21,22 +21,24 @@ exists, `inspect` and `processing` are the right skills instead.
 
 ## Keys and values are English, always
 
-OSM tags are English regardless of what language the user speaks. "Кафе в Москве"
-is `key=amenity`, `value=cafe`, `area=Москва` — the *place name* follows OSM's own
-naming, the *tag* never does. Passing `value=кафе` returns nothing.
+OSM tags are English regardless of what language the user speaks. A request for
+cafes in Berlin is `key=amenity`, `value=cafe`, `area=Berlin`. When the user writes
+in another language, translate the *tag* into English but leave the *place name* as
+OSM itself spells it: a translated tag matches nothing at all, and a translated
+place name usually does not exist in the data.
 
 The tags that cover most requests:
 
 | Ask | key | value |
 |---|---|---|
-| кафе, рестораны, школы, банки | `amenity` | `cafe`, `restaurant`, `school`, `bank` |
-| дороги | `highway` | `primary`, `secondary`, `residential`, `footway` |
-| здания | `building` | omit for all buildings, or `yes`, `house` |
-| вода | `natural` | `water`; rivers are `waterway=river` |
-| зелень, застройка, промзоны | `landuse` | `forest`, `residential`, `industrial` |
-| магазины | `shop` | omit for all, or `supermarket`, `bakery` |
-| парки, спорт | `leisure` | `park`, `pitch`, `garden` |
-| железные дороги | `railway` | `rail`, `station` |
+| cafes, restaurants, schools, banks | `amenity` | `cafe`, `restaurant`, `school`, `bank` |
+| roads | `highway` | `primary`, `secondary`, `residential`, `footway` |
+| buildings | `building` | omit for all buildings, or `yes`, `house` |
+| water | `natural` | `water`; rivers are `waterway=river` |
+| greenery, housing, industry | `landuse` | `forest`, `residential`, `industrial` |
+| shops | `shop` | omit for all, or `supermarket`, `bakery` |
+| parks, sport | `leisure` | `park`, `pitch`, `garden` |
+| railways | `railway` | `rail`, `station` |
 
 Omitting `value` means "everything with this key" and can be enormous —
 `building` over a city is tens of thousands of objects. Narrow it or narrow the
@@ -50,11 +52,11 @@ or `nwr` for all three:
 
 | Ask | selectors |
 |---|---|
-| кафе, бары и рестораны одним слоем | `['node["amenity"~"cafe\|bar\|restaurant"]']` |
-| магазины и кафе вместе | `['node["shop"]', 'way["shop"]', 'node["amenity"="cafe"]']` |
-| дороги кроме грунтовых и троп | `['way["highway"]["highway"!~"track\|path\|footway"]']` |
-| здания, у которых указана этажность | `['way["building"]["building:levels"]']` |
-| всё, что называется «Ленина» | `['nwr["name"~"Ленина"]']` |
+| cafes, bars and restaurants as one layer | `['node["amenity"~"cafe\|bar\|restaurant"]']` |
+| shops and cafes together | `['node["shop"]', 'way["shop"]', 'node["amenity"="cafe"]']` |
+| roads except tracks and paths | `['way["highway"]["highway"!~"track\|path\|footway"]']` |
+| buildings that state their floor count | `['way["building"]["building:levels"]']` |
+| anything named "Central" | `['nwr["name"~"Central"]']` |
 
 The operators are Overpass's own: `=` equals, `!=` differs, `~` matches a regular
 expression, `!~` does not match, and a bare `["key"]` means the tag is present
@@ -72,9 +74,9 @@ only decides which of the resulting layers to keep.
 real administrative boundaries. If Overpass does not recognise the name, nothing
 comes back — try the local spelling or fall back to a bbox.
 
-`bbox` takes `"запад,юг,восток,север"` in degrees, or the literal `"canvas"` for
+`bbox` takes `"west,south,east,north"` in degrees, or the literal `"canvas"` for
 whatever the user is currently looking at. **`"canvas"` is the right answer to
-"здесь", "в этом районе", "в текущем виде"** — do not invent coordinates for it.
+"here", "in this area", "in the current view"** — do not invent coordinates for it.
 
 A bbox wider than five degrees is refused before anything is sent: Overpass does
 not serve requests that size, and a refusal now is better than a timeout later.

@@ -1,5 +1,6 @@
 from typing import Any
 
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
 from qgis_ai_agent.qgis_tools.processing.units import check_distance_units
 from qgis_ai_agent.qgis_tools.processing.utils import (
@@ -10,7 +11,7 @@ from qgis_ai_agent.qgis_tools.processing.utils import (
 )
 
 PROCESSING_MISSING_MSG = (
-    "Модуль Processing недоступен. Включите его в Модули → Управление модулями."
+    "The Processing plugin is not available. Enable it in Plugins → Manage and Install Plugins."
 )
 MAX_SUMMARY_PARAMS = 3
 
@@ -18,31 +19,31 @@ MAX_SUMMARY_PARAMS = 3
 class RunProcessingTool(BaseTool):
     name = "run_processing"
     description = (
-        "Запустить алгоритм обработки QGIS с заданными параметрами. "
-        "Сначала уточните сигнатуру через describe_processing. "
-        "По умолчанию результат добавляется в проект."
+        "Run a QGIS processing algorithm with the given parameters. "
+        "Check the signature with describe_processing first. "
+        "By default the result is added to the project."
     )
     skill = "processing"
     safety = SAFETY_WRITE
     constraints = [
-        "Идентификатор алгоритма должен существовать в реестре",
-        "Имена параметров должны точно совпадать с describe_processing",
-        "Расстояния в метрах требуют слоя в метрической CRS",
+        "The algorithm identifier must exist in the registry",
+        "Parameter names must match describe_processing exactly",
+        "Distances in metres require a layer in a metric CRS",
     ]
-    examples = ["Построй буфер 500 метров вокруг дорог", "Перепроецируй слой в UTM"]
+    examples = ["Build a 500 metre buffer around the roads", "Reproject the layer to UTM"]
     params_schema = [
         {
             "name": "algorithm_id",
             "type": "string",
-            "description": "Идентификатор алгоритма, например native:buffer",
+            "description": "Algorithm identifier, for example native:buffer",
             "required": True,
         },
         {
             "name": "parameters",
             "type": "object",
             "description": (
-                "Объект с параметрами алгоритма. Слои указываются по имени, "
-                "выход обычно 'TEMPORARY_OUTPUT'."
+                "Object holding the algorithm parameters. Layers are given by name, "
+                "the output is usually 'TEMPORARY_OUTPUT'."
             ),
             "required": True,
         },
@@ -50,15 +51,15 @@ class RunProcessingTool(BaseTool):
             "name": "output_name",
             "type": "string",
             "description": (
-                "Имя для результирующего слоя. Задайте его, если на результат "
-                "будет ссылаться следующий шаг плана."
+                "Name for the resulting layer. Set it when a later step will refer "
+                "to this result."
             ),
             "required": False,
         },
         {
             "name": "load_output",
             "type": "boolean",
-            "description": "Добавить результат в проект (по умолчанию true)",
+            "description": "Add the result to the project (true by default)",
             "required": False,
         },
     ]
@@ -75,8 +76,8 @@ class RunProcessingTool(BaseTool):
         )
         tail = "…" if len(arguments) > MAX_SUMMARY_PARAMS else ""
         output_name = (params.get("output_name") or "").strip()
-        result_part = f" → «{output_name}»" if output_name else ""
-        return f"Запустить {algorithm_id} ({shown}{tail}){result_part}."
+        result_part = f" → '{output_name}'" if output_name else ""
+        return tr("Run {0} ({1}{2}){3}.").format(algorithm_id, shown, tail, result_part)
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         algorithm, prepared = self._prepare(params)
@@ -100,7 +101,7 @@ class RunProcessingTool(BaseTool):
         algorithm = find_algorithm(params.get("algorithm_id") or "")
         arguments = params.get("parameters")
         if not isinstance(arguments, dict):
-            raise ValueError("Параметр parameters должен быть объектом.")
+            raise ValueError("The parameters argument must be an object.")
         prepared = coerce_parameters(algorithm, arguments)
         check_distance_units(algorithm, prepared)
         return algorithm, prepared

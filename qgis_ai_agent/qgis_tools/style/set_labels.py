@@ -2,6 +2,7 @@ from typing import Any
 
 from qgis.core import QgsVectorLayerSimpleLabeling
 
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
 from qgis_ai_agent.qgis_tools.common.values import suggest_fields
 from qgis_ai_agent.qgis_tools.style.apply import (
@@ -19,37 +20,37 @@ from qgis_ai_agent.qgis_tools.common.properties import as_bool
 class SetLabelsTool(BaseTool):
     name = "set_labels"
     description = (
-        "Настроить подписи слоя одним вызовом: поле, шрифт, начертание, размер, "
-        "цвет, обводку текста, сдвиг, поворот, размещение, тень, подложку. "
-        "Полный список свойств отдаёт describe_style_options. Остальное "
-        "оформление слоя не трогает."
+        "Configure the labels of a layer in one call: field, font, weight, size, "
+        "colour, text buffer, offset, rotation, placement, shadow, background. "
+        "describe_style_options returns the full list of properties. Leaves the "
+        "rest of the layer styling alone."
     )
     skill = "style"
     safety = SAFETY_WRITE
     constraints = [
-        "Поле подписи должно существовать в слое",
-        "Все свойства идут одним вызовом, а не несколькими",
+        "The label field must exist in the layer",
+        "All properties go in one call, not several",
     ]
     examples = [
-        "Подпиши города названиями",
-        "Сделай подписи жирными с белой обводкой",
-        "Сдвинь подписи на 3 мм вверх",
+        "Label the cities with their names",
+        "Make the labels bold with a white buffer",
+        "Move the labels 3 mm up",
     ]
     params_schema = [
         {
             "name": "layer_name",
             "type": "string",
-            "description": "Имя слоя ровно как в проекте",
+            "description": "Layer name exactly as in the project",
             "required": True,
         },
         {
             "name": "properties",
             "type": "object",
             "description": (
-                "Свойства подписи парами ключ-значение, например "
+                "Label properties as key-value pairs, for example "
                 '{"field": "name", "bold": true, "buffer_color": "white", '
-                '"offset_y": -3}. Имена и допустимые значения — '
-                'describe_style_options с kind="labels". Незнакомый ключ вернёт подсказку.'
+                '"offset_y": -3}. Names and allowed values come from '
+                'describe_style_options with kind="labels". An unknown key comes back with a hint.'
             ),
             "required": True,
         },
@@ -66,7 +67,7 @@ class SetLabelsTool(BaseTool):
         field = str(properties.get("field") or "").strip()
         if not field:
             raise ValueError(
-                "Чтобы включить подписи, укажите свойство field. "
+                "To switch the labels on, give the field property. "
                 f"{suggest_fields([], field_names(layer))}"
             )
         properties["field"] = require_field(layer, field)
@@ -77,10 +78,10 @@ class SetLabelsTool(BaseTool):
         try:
             properties = properties_of(params, LABELS.subject)
         except ValueError:
-            return f"Настраиваю подписи «{layer_name}»."
+            return tr("Setting up labels for '{0}'.").format(layer_name)
         if not _is_enabled(properties):
-            return f"Убираю подписи со слоя «{layer_name}»."
-        return f"Настраиваю подписи «{layer_name}»: {shown(properties, LABELS)}."
+            return tr("Removing the labels from layer '{0}'.").format(layer_name)
+        return tr("Setting up labels for '{0}': {1}.").format(layer_name, shown(properties, LABELS))
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = require_vector_layer(params.get("layer_name") or "")

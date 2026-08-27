@@ -11,8 +11,8 @@ USER_AGENT = "QGIS AI Agent"
 EMPTY_MARKERS = ("<osm", "</osm>")
 MAX_BYTES = 80 * 1024 * 1024
 TOO_BIG = (
-    "Overpass вернул {megabytes:.0f} МБ — это больше предела в {limit} МБ. "
-    "Сузьте территорию или уточните value, иначе QGIS не переварит результат."
+    "Overpass returned {megabytes:.0f} MB, which is over the limit of {limit} MB. "
+    "Narrow the territory down or make value more specific, otherwise QGIS will choke on it."
 )
 
 
@@ -46,8 +46,8 @@ def _check_shape(text: str) -> None:
         return
     head = text.strip()[:200]
     raise ValueError(
-        f"Overpass вернул не данные OSM, а это: {head}. "
-        "Обычно так выглядит ошибка в запросе или перегрузка сервиса."
+        f"Overpass returned something that is not OSM data: {head}. "
+        "That usually means a broken query or an overloaded service."
     )
 
 
@@ -57,6 +57,6 @@ def _failure(caller: Any) -> str:
     except Exception:
         message = ""
     return (
-        f"Не удалось получить данные Overpass: {message or 'сервис недоступен'}. "
-        "Сервис публичный и часто занят — можно повторить позже или сузить запрос."
+        f"Could not fetch data from Overpass: {message or 'the service is unavailable'}. "
+        "The service is public and often busy — retry later or narrow the query down."
     )

@@ -1,5 +1,6 @@
 from typing import Any
 
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
 from qgis_ai_agent.qgis_tools.common.layers import extent_dict, safe_extent
 from qgis_ai_agent.qgis_tools.project.tree import find_layer
@@ -8,33 +9,35 @@ from qgis_ai_agent.qgis_tools.project.tree import find_layer
 class ZoomToLayerTool(BaseTool):
     name = "zoom_to_layer"
     description = (
-        "Показать слой целиком на карте: подогнать вид под его охват. "
-        "Меняет только вид, ни проект, ни данные не трогает."
+        "Show a whole layer on the map: fit the view to its extent. "
+        "Changes the view only, touches neither the project nor the data."
     )
     skill = "project"
     safety = SAFETY_READ
-    constraints = ["Слой с указанным именем должен существовать в проекте"]
-    examples = ["Покажи слой городов", "Приблизь к дорогам"]
+    constraints = ["A layer with this name must exist in the project"]
+    examples = ["Show me the cities layer", "Zoom to the roads"]
     params_schema = [
         {
             "name": "layer_name",
             "type": "string",
-            "description": "Имя слоя ровно как в проекте",
+            "description": "Layer name exactly as in the project",
             "required": True,
         },
     ]
 
     def summarize_call(self, params: dict[str, Any]) -> str:
         layer_name = (params.get("layer_name") or "").strip()
-        return f"Показываю слой «{layer_name}» целиком." if layer_name else "Подгоняю вид карты."
+        if not layer_name:
+            return tr("Fitting the map view.")
+        return tr("Showing the whole of layer '{0}'.").format(layer_name)
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = find_layer(params.get("layer_name") or "")
         extent = safe_extent(layer)
         if extent is None:
-            raise ValueError(f"У слоя «{layer.name()}» нет охвата — возможно, он пуст.")
+            raise ValueError(f"Layer '{layer.name()}' has no extent — it may be empty.")
         if not _apply_extent(layer, extent):
-            raise ValueError("Карта недоступна: плагин запущен без окна QGIS.")
+            raise ValueError("The map is not available: the plugin is running without a QGIS window.")
         return {"layer": layer.name(), "extent": extent_dict(extent)}
 
 

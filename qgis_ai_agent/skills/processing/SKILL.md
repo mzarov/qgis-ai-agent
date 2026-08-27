@@ -15,8 +15,8 @@ Never call `run_processing` from memory. Always:
 
 1. `search_processing` with words describing the task → returns candidate ids
    such as `native:buffer`. **Search in English** — algorithm ids, tags and groups
-   are English even when the QGIS interface is localised. Searching in Russian
-   usually returns nothing and costs a wasted round trip.
+   are English even when the QGIS interface is localised. Searching in the user's
+   language usually returns nothing and costs a wasted round trip.
 2. `describe_processing` with the chosen id → returns the exact parameter names,
    types, whether each is optional, and the allowed values for enums.
 3. `run_processing` with those exact parameter names.
@@ -32,94 +32,94 @@ algorithms at all. Start from this table, then confirm with `describe_processing
 
 **Vector overlay**
 
-| Задача | id |
+| Task | id |
 |---|---|
-| обрезать слой по границе другого | `native:clip` |
-| пересечение двух слоёв | `native:intersection` |
-| объединение с сохранением атрибутов | `native:union` |
-| вычесть один слой из другого | `native:difference` |
-| склеить несколько слоёв в один | `native:mergevectorlayers` |
-| растворить границы, сгруппировав по полю | `native:dissolve` |
+| clip a layer by the boundary of another | `native:clip` |
+| intersection of two layers | `native:intersection` |
+| union keeping the attributes | `native:union` |
+| subtract one layer from another | `native:difference` |
+| merge several layers into one | `native:mergevectorlayers` |
+| dissolve boundaries, grouped by a field | `native:dissolve` |
 
-**Геометрия**
+**Geometry**
 
-| Задача | id |
+| Task | id |
 |---|---|
-| буфер | `native:buffer` |
-| центроиды полигонов | `native:centroids` |
-| выпуклая оболочка | `native:convexhull` |
-| упростить геометрию | `native:simplifygeometries` |
-| починить битую геометрию | `native:fixgeometries` |
-| сменить проекцию слоя | `native:reprojectlayer` |
-| разбить мультичасти на отдельные объекты | `native:multiparttosingleparts` |
-| полигоны Вороного | `native:voronoipolygons` |
+| buffer | `native:buffer` |
+| centroids of polygons | `native:centroids` |
+| convex hull | `native:convexhull` |
+| simplify geometry | `native:simplifygeometries` |
+| repair broken geometry | `native:fixgeometries` |
+| reproject a layer | `native:reprojectlayer` |
+| split multiparts into separate features | `native:multiparttosingleparts` |
+| Voronoi polygons | `native:voronoipolygons` |
 
-**Атрибуты и связи**
+**Attributes and joins**
 
-| Задача | id |
+| Task | id |
 |---|---|
-| добавить или пересчитать поле | `native:fieldcalculator` |
-| присоединить таблицу по общему полю | `native:joinattributestable` |
-| присоединить по расположению | `native:joinattributesbylocation` |
-| присоединить ближайший объект | `native:joinbynearest` |
-| оставить или переименовать поля | `native:refactorfields` |
-| статистика по группам | `qgis:statisticsbycategories` |
-| сколько точек в каждом полигоне | `native:countpointsinpolygon` |
+| add or recompute a field | `native:fieldcalculator` |
+| join a table on a shared field | `native:joinattributestable` |
+| join by location | `native:joinattributesbylocation` |
+| join the nearest feature | `native:joinbynearest` |
+| keep or rename fields | `native:refactorfields` |
+| statistics by group | `qgis:statisticsbycategories` |
+| how many points fall in each polygon | `native:countpointsinpolygon` |
 
-**Выборка**
+**Selection**
 
-| Задача | id |
+| Task | id |
 |---|---|
-| отобрать по условию | `native:extractbyexpression` |
-| отобрать по расположению | `native:extractbylocation` |
-| отобрать по охвату | `native:extractbyextent` |
+| extract by condition | `native:extractbyexpression` |
+| extract by location | `native:extractbylocation` |
+| extract by extent | `native:extractbyextent` |
 
-**Растр**
+**Raster**
 
-| Задача | id |
+| Task | id |
 |---|---|
-| растровый калькулятор | `native:rastercalc` |
-| обрезать растр по маске | `gdal:cliprasterbymasklayer` |
-| сменить проекцию растра | `gdal:warpreproject` |
-| склеить растры | `gdal:merge` |
-| уклон, экспозиция, отмывка | `native:slope`, `native:aspect`, `native:hillshade` |
-| изолинии | `gdal:contour` |
-| статистика растра по полигонам | `native:zonalstatisticsfb` |
-| снять значения растра в точках | `native:rastersampling` |
-| растр в полигоны | `gdal:polygonize` |
-| векторы в растр | `gdal:rasterize` |
+| raster calculator | `native:rastercalc` |
+| clip a raster by a mask | `gdal:cliprasterbymasklayer` |
+| reproject a raster | `gdal:warpreproject` |
+| merge rasters | `gdal:merge` |
+| slope, aspect, hillshade | `native:slope`, `native:aspect`, `native:hillshade` |
+| contour lines | `gdal:contour` |
+| raster statistics per polygon | `native:zonalstatisticsfb` |
+| sample raster values at points | `native:rastersampling` |
+| raster to polygons | `gdal:polygonize` |
+| vectors to raster | `gdal:rasterize` |
 
-## Что алгоритмами не делается
+## What is not an algorithm at all
 
-Три самых частых запроса — не алгоритмы, и поиск на них уводит не туда.
-`search_processing("area")` первым отдаёт `native:serviceareafrompoint`, то есть
-зону транспортной доступности, а вовсе не площадь.
+Three of the most common requests are not algorithms, and searching for them leads
+somewhere else entirely. `search_processing("area")` returns
+`native:serviceareafrompoint` first — a travel-time catchment, not an area.
 
-Площадь, длина, периметр, координаты — это **выражения**, а не алгоритмы:
+Area, length, perimeter and coordinates are **expressions**, not algorithms:
 
-- посчитать и записать в поле — `native:fieldcalculator` с `FORMULA`
-- просто узнать значение, ничего не меняя — `query_layer` из скилла `inspect`
+- to compute and store in a field — `native:fieldcalculator` with `FORMULA`
+- to just read the value, changing nothing — `query_layer` from the `inspect` skill
 
-| Нужно | Выражение |
+| Wanted | Expression |
 |---|---|
-| площадь полигона | `$area` |
-| длина линии, периметр | `$length`, `$perimeter` |
-| координаты точки | `$x`, `$y` |
-| площадь в гектарах | `$area / 10000` |
+| area of a polygon | `$area` |
+| length of a line, perimeter | `$length`, `$perimeter` |
+| coordinates of a point | `$x`, `$y` |
+| area in hectares | `$area / 10000` |
 
-Единицы `$area` и `$length` — это единицы CRS слоя. На географической системе
-получатся квадратные градусы, что бессмысленно: сначала `native:reprojectlayer`
-в метрическую CRS, потом счёт.
+The units of `$area` and `$length` are the units of the layer CRS. On a geographic
+system that gives square degrees, which is meaningless: run
+`native:reprojectlayer` into a metric CRS first, then measure.
 
-NDVI и прочая арифметика по каналам — тоже не отдельный алгоритм, а
-`native:rastercalc` с выражением вида `("снимок@4" - "снимок@3") / ("снимок@4" + "снимок@3")`,
-где `@N` — номер канала, а имя перед `@` — имя слоя в проекте.
+NDVI and other band arithmetic is not a separate algorithm either, but
+`native:rastercalc` with an expression like `("scene@4" - "scene@3") / ("scene@4" + "scene@3")`,
+where `@N` is the band number and the name before `@` is the layer name in the project.
 
-У растрового калькулятора есть подвох: `EXTENT`, `CELL_SIZE` и `CRS` обязательны,
-и взять их неоткуда, кроме исходного растра. Сначала `describe_layer` по нему —
-оттуда `extent` и `crs`, — и только потом запуск. Размер ячейки берите из
-`describe_layer` того же растра, а не выдумывайте: чужое значение молча
-пересемплирует результат.
+The raster calculator has a catch: `EXTENT`, `CELL_SIZE` and `CRS` are required, and
+there is nowhere to get them but the source raster. Call `describe_layer` on it
+first — that gives `extent` and `crs` — and only then run. Take the cell size from
+`describe_layer` of the same raster rather than inventing one: a foreign value
+silently resamples the result.
 
 ## Parameters
 
@@ -140,11 +140,11 @@ Do not hand this back to the user as a problem. Fix it yourself with a two-step 
 
 ```
 run_processing(algorithm_id="native:reprojectlayer",
-               parameters={"INPUT": "Города", "TARGET_CRS": "EPSG:32641"},
-               output_name="Города UTM 41")
+               parameters={"INPUT": "Cities", "TARGET_CRS": "EPSG:32641"},
+               output_name="Cities UTM 41")
 run_processing(algorithm_id="native:buffer",
-               parameters={"INPUT": "Города UTM 41", "DISTANCE": 500},
-               output_name="Буфер 500 м")
+               parameters={"INPUT": "Cities UTM 41", "DISTANCE": 500},
+               output_name="Buffer 500 m")
 ```
 
 `describe_layer` returns `suggested_metric_crs` for exactly this — use it as
@@ -158,8 +158,8 @@ A queued step has not run yet, so its output layer does not exist while you are
 planning. Give each step an `output_name` and reference that name in the next
 step — this is the only reliable way to chain two runs in one plan.
 
-Queue **every** step of the chain in the same turn. Writing out "сначала
-перепроецируем, потом построим буфер" and stopping there leaves the user with
+Queue **every** step of the chain in the same turn. Writing out "first we reproject,
+then we build the buffer" and stopping there leaves the user with
 nothing to confirm — the plan only exists once `run_processing` has been called
 for each step.
 

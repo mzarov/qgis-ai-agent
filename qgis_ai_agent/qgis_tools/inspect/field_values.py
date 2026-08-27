@@ -2,6 +2,7 @@ from typing import Any
 
 from qgis.core import QgsVectorLayer
 
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
 from qgis_ai_agent.qgis_tools.common.layers import find_layer_by_name
 from qgis_ai_agent.qgis_tools.common.values import clamp_limit, plain_value, suggest_fields
@@ -14,31 +15,31 @@ NUMERIC_TYPES = ("int", "double", "real", "float", "numeric", "long", "short")
 class GetFieldValuesTool(BaseTool):
     name = "get_field_values"
     description = (
-        "Показать содержимое поля атрибутов: уникальные значения и, для числовых "
-        "полей, минимум и максимум. Нужен перед классификацией, фильтрацией "
-        "и настройкой стиля по полю."
+        "Show what an attribute field contains: unique values and, for numeric "
+        "fields, the minimum and the maximum. Needed before classifying, filtering "
+        "or styling by that field."
     )
     skill = "inspect"
     safety = SAFETY_READ
-    constraints = ["Слой и поле должны существовать", "Слой должен быть векторным"]
-    examples = ["Какие значения в поле type?", "В каком диапазоне население городов?"]
+    constraints = ["The layer and the field must exist", "The layer must be a vector layer"]
+    examples = ["Which values does the type field hold?", "What is the range of city population?"]
     params_schema = [
         {
             "name": "layer_name",
             "type": "string",
-            "description": "Имя слоя ровно как в проекте",
+            "description": "Layer name exactly as in the project",
             "required": True,
         },
         {
             "name": "field_name",
             "type": "string",
-            "description": "Имя поля ровно как в describe_layer",
+            "description": "Field name exactly as in describe_layer",
             "required": True,
         },
         {
             "name": "limit",
             "type": "integer",
-            "description": f"Сколько уникальных значений вернуть (по умолчанию {DEFAULT_LIMIT})",
+            "description": f"How many unique values to return (default {DEFAULT_LIMIT})",
             "required": False,
         },
     ]
@@ -46,12 +47,12 @@ class GetFieldValuesTool(BaseTool):
     def summarize_call(self, params: dict[str, Any]) -> str:
         layer_name = (params.get("layer_name") or "").strip()
         field_name = (params.get("field_name") or "").strip()
-        return f"Смотрю значения поля «{field_name}» в слое «{layer_name}»."
+        return tr("Reading values of field '{0}' in layer '{1}'.").format(field_name, layer_name)
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = find_layer_by_name(params.get("layer_name") or "")
         if not isinstance(layer, QgsVectorLayer):
-            raise ValueError(f"Слой «{layer.name()}» не векторный, у него нет полей атрибутов.")
+            raise ValueError(f"Layer '{layer.name()}' is not a vector layer, it has no attribute fields.")
         field_name = (params.get("field_name") or "").strip()
         index = self._field_index(layer, field_name)
         limit = clamp_limit(params.get("limit"), DEFAULT_LIMIT, MAX_LIMIT)
@@ -71,7 +72,7 @@ class GetFieldValuesTool(BaseTool):
         index = layer.fields().indexOf(field_name)
         if index < 0:
             hint = suggest_fields([field_name], layer.fields().names())
-            raise ValueError(f"Поле не найдено: «{field_name}». {hint}")
+            raise ValueError(f"Field not found: '{field_name}'. {hint}")
         return index
 
     @staticmethod
@@ -87,18 +88,18 @@ class GetFieldValuesTool(BaseTool):
         try:
             values = layer.uniqueValues(index, limit + 1)
         except Exception:
-            return {"unique_values": [], "unique_values_note": "значения недоступны"}
+            return {"unique_values": [], "unique_values_note": "the values are not available"}
         plain = [plain_value(value) for value in values]
         filled = _sorted_safe([value for value in plain if value is not None])
 
         result: dict[str, Any] = {"unique_values": filled[:limit]}
         if len(filled) > limit:
-            result["unique_values_note"] = f"показаны первые {limit}, значений больше"
+            result["unique_values_note"] = f"showing the first {limit}, there are more values"
         else:
             result["unique_values_count"] = len(filled)
         if len(plain) != len(filled):
             result["has_null_values"] = True
-            result["null_note"] = "в поле есть пустые значения, в список они не включены"
+            result["null_note"] = "the field has empty values, they are not included in the list"
         return result
 
     @staticmethod

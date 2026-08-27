@@ -2,6 +2,7 @@ from typing import Any
 
 from qgis.core import QgsRasterLayer, QgsVectorLayer
 
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
 from qgis_ai_agent.qgis_tools.common.layer_meta import layer_opacity
 from qgis_ai_agent.qgis_tools.common.layers import find_layer_by_name, layer_kind
@@ -15,25 +16,27 @@ from qgis_ai_agent.qgis_tools.style.renderers import (
 class DescribeStyleTool(BaseTool):
     name = "describe_style"
     description = (
-        "Показать оформление слоя: тип рендерера, поле классификации, классы "
-        "со значениями и цветами, подписи и прозрачность."
+        "Show the styling of a layer: renderer type, classification field, classes "
+        "with their values and colours, labels and opacity."
     )
     skill = "style"
     safety = SAFETY_READ
-    constraints = ["Слой с указанным именем должен существовать в проекте"]
-    examples = ["Почему города красные?", "Как сейчас раскрашен слой дорог?"]
+    constraints = ["A layer with this name must exist in the project"]
+    examples = ["Why are the cities red?", "How is the roads layer coloured right now?"]
     params_schema = [
         {
             "name": "layer_name",
             "type": "string",
-            "description": "Имя слоя ровно как в проекте (см. list_layers)",
+            "description": "Layer name exactly as in the project (see list_layers)",
             "required": True,
         },
     ]
 
     def summarize_call(self, params: dict[str, Any]) -> str:
         layer_name = (params.get("layer_name") or "").strip()
-        return f"Смотрю оформление слоя «{layer_name}»." if layer_name else "Смотрю оформление слоя."
+        if not layer_name:
+            return tr("Reading the layer styling.")
+        return tr("Reading the styling of layer '{0}'.").format(layer_name)
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = find_layer_by_name(params.get("layer_name") or "")

@@ -9,8 +9,13 @@ DIST_DIR = os.path.join(REPO_ROOT, "dist")
 EXTRA_FILES = ("LICENSE",)
 SKIPPED_DIRS = {"__pycache__", ".git", ".mypy_cache", ".ruff_cache"}
 SKIPPED_NAMES = {"CLAUDE.md", ".DS_Store"}
-SKIPPED_SUFFIXES = (".pyc", ".pyo")
-REQUIRED_INSIDE = ("skills/inspect/SKILL.md", "skills/style/SKILL.md", "skills/processing/SKILL.md")
+SKIPPED_SUFFIXES = (".pyc", ".pyo", ".ts")
+REQUIRED_INSIDE = (
+    "skills/inspect/SKILL.md",
+    "skills/style/SKILL.md",
+    "skills/processing/SKILL.md",
+    "translations/qgis_ai_agent_ru.qm",
+)
 
 
 def read_version() -> str:

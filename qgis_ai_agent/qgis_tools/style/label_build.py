@@ -67,7 +67,7 @@ def _apply_group(subject: Any, properties: dict[str, Any], target: str) -> None:
 
 def _native(prop: StyleProperty, value: Any) -> Any:
     if prop.kind == KIND_COLOR:
-        return parse_color(value, f"Свойство «{prop.name}»")
+        return parse_color(value, f"Property '{prop.name}'")
     if prop.kind == KIND_ENUM and prop.name == "placement":
         return getattr(Qgis.LabelPlacement, PLACEMENTS[value])
     return value

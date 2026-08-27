@@ -3,18 +3,18 @@ from typing import Any
 from qgis.core import QgsMapLayer
 
 STYLE_POINTER = (
-    "это только тип оформления; цвета, классы и подписи здесь не возвращаются — "
-    "их читает describe_style из скилла style"
+    "this is only the kind of styling; colours, classes and labels are not returned here "
+    "— describe_style from the style skill reads those"
 )
 
 RENDERER_NAMES = {
-    "singleSymbol": "одиночный символ",
-    "categorizedSymbol": "категории",
-    "graduatedSymbol": "градации",
-    "RuleRenderer": "по правилам",
-    "nullSymbol": "без отрисовки",
-    "pointCluster": "кластеры точек",
-    "heatmapRenderer": "тепловая карта",
+    "singleSymbol": "single symbol",
+    "categorizedSymbol": "categories",
+    "graduatedSymbol": "graduated",
+    "RuleRenderer": "rule based",
+    "nullSymbol": "not drawn",
+    "pointCluster": "point cluster",
+    "heatmapRenderer": "heatmap",
     "25dRenderer": "2.5D",
 }
 
@@ -52,9 +52,9 @@ def renderer_summary(layer: QgsMapLayer) -> str:
     attribute = class_attribute(layer)
     count = _class_count(layer)
     if attribute and count is not None:
-        return f"{readable} по полю «{attribute}», классов: {count}"
+        return f"{readable} on field '{attribute}', classes: {count}"
     if attribute:
-        return f"{readable} по полю «{attribute}»"
+        return f"{readable} on field '{attribute}'"
     return readable
 
 

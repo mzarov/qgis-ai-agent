@@ -3,6 +3,7 @@ from typing import Any
 
 from qgis.core import QgsRasterLayer, QgsVectorLayer
 
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
 from qgis_ai_agent.qgis_tools.common.layers import crs_authid, geometry_type_name, safe_feature_count
 from qgis_ai_agent.qgis_tools.project.tree import (
@@ -23,40 +24,40 @@ MAX_GROUP_NAME = 120
 class AddLayerTool(BaseTool):
     name = "add_layer"
     description = (
-        "Добавить слой в проект из файла на диске или из источника данных. "
-        "Тип определяется по расширению, если не указан явно."
+        "Add a layer to the project from a file on disk or from a data source. "
+        "The kind is guessed from the extension unless it is given explicitly."
     )
     skill = "project"
     safety = SAFETY_WRITE
     constraints = [
-        "Файл должен существовать и открываться QGIS",
-        "Группа, если указана, должна существовать или будет создана",
+        "The file must exist and be readable by QGIS",
+        "A group, if given, must exist or it will be created",
     ]
-    examples = ["Загрузи /data/roads.geojson", "Добавь растр подложки в группу «Фон»"]
+    examples = ["Load /data/roads.geojson", "Add the basemap raster to the 'Background' group"]
     params_schema = [
         {
             "name": "source",
             "type": "string",
-            "description": "Путь к файлу или строка источника данных",
+            "description": "Path to the file or a data source string",
             "required": True,
         },
         {
             "name": "name",
             "type": "string",
-            "description": "Имя слоя в проекте. По умолчанию — имя файла без расширения.",
+            "description": "Layer name in the project. Defaults to the file name without extension.",
             "required": False,
         },
         {
             "name": "kind",
             "type": "string",
             "enum": [VECTOR, RASTER],
-            "description": "Тип слоя. Без него определяется по расширению файла.",
+            "description": "Layer kind. Without it the file extension decides.",
             "required": False,
         },
         {
             "name": "group",
             "type": "string",
-            "description": "Группа в дереве слоёв. Отсутствующая группа будет создана.",
+            "description": "Group in the layer tree. A group that does not exist will be created.",
             "required": False,
         },
     ]
@@ -64,17 +65,17 @@ class AddLayerTool(BaseTool):
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
         source = (params.get("source") or "").strip()
         if not source:
-            raise ValueError("Не указан источник слоя.")
+            raise ValueError("No layer source was given.")
         prepared = dict(params)
         prepared["source"] = source
         prepared["name"] = _wanted_name(params, source)
         prepared["kind"] = _wanted_kind(params, source)
         if _looks_like_path(source) and not os.path.exists(source):
-            raise ValueError(f"Файла «{source}» нет на диске. Проверьте путь.")
+            raise ValueError(f"There is no file '{source}' on disk. Check the path.")
         if prepared["name"] in layer_names():
             raise ValueError(
-                f"Слой с именем «{prepared['name']}» уже есть в проекте. "
-                "Задайте другое имя через name."
+                f"A layer named '{prepared['name']}' is already in the project. "
+                "Give another name through the name parameter."
             )
         check_group_name(params.get("group"))
         return prepared
@@ -83,8 +84,8 @@ class AddLayerTool(BaseTool):
         source = (params.get("source") or "").strip()
         name = _wanted_name(params, source)
         group = (params.get("group") or "").strip()
-        tail = f" в группу «{group}»" if group else ""
-        return f"Добавляю слой «{name}»{tail}."
+        tail = tr(" into group '{0}'").format(group) if group else ""
+        return tr("Adding layer '{0}'{1}.").format(name, tail)
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         source = (params.get("source") or "").strip()
@@ -92,7 +93,7 @@ class AddLayerTool(BaseTool):
         kind = _wanted_kind(params, source)
         layer = _build(source, name, kind)
         if not layer.isValid():
-            raise ValueError(f"QGIS не смог открыть «{source}»: {_reason(layer)}")
+            raise ValueError(f"QGIS could not open '{source}': {_reason(layer)}")
         group = (params.get("group") or "").strip()
         project().addMapLayer(layer, not group)
         if group:
@@ -103,7 +104,7 @@ class AddLayerTool(BaseTool):
 def check_group_name(name: Any) -> None:
     wanted = str(name or "").strip()
     if len(wanted) > MAX_GROUP_NAME:
-        raise ValueError(f"Имя группы слишком длинное. {describe_groups()}")
+        raise ValueError(f"The group name is too long. {describe_groups()}")
 
 
 def _build(source: str, name: str, kind: str) -> Any:
@@ -127,7 +128,7 @@ def _wanted_name(params: dict[str, Any], source: str) -> str:
     if given:
         return given
     base = os.path.basename(source.split("|")[0].split("?")[0])
-    return os.path.splitext(base)[0] or "Новый слой"
+    return os.path.splitext(base)[0] or "New layer"
 
 
 def _wanted_kind(params: dict[str, Any], source: str) -> str:
@@ -135,7 +136,7 @@ def _wanted_kind(params: dict[str, Any], source: str) -> str:
     if given in (VECTOR, RASTER):
         return given
     if given:
-        raise ValueError(f"Неизвестный тип слоя «{given}». Доступны: {VECTOR}, {RASTER}.")
+        raise ValueError(f"Unknown layer kind '{given}'. Available: {VECTOR}, {RASTER}.")
     suffix = os.path.splitext(source.split("|")[0].split("?")[0])[1].lower()
     return RASTER if suffix in RASTER_SUFFIXES else VECTOR
 
@@ -149,4 +150,4 @@ def _reason(layer: Any) -> str:
         message = layer.error().summary()
     except Exception:
         message = ""
-    return message or "источник не распознан или файл повреждён"
+    return message or "the source was not recognised or the file is damaged"

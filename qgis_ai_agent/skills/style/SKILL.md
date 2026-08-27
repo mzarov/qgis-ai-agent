@@ -7,18 +7,18 @@ tools: [describe_style, describe_style_options, set_symbol, set_categories, set_
 # Layer appearance
 
 `list_layers` and `describe_layer` in the `inspect` skill return a one-line
-`style_summary` per layer, such as "категории по полю «type», классов: 5". That
+`style_summary` per layer, such as "categories on field 'type', classes: 5". That
 summary names the renderer and nothing else — **it never contains a colour**.
 Those tools say so themselves, in `style_note`.
 
 So split the question by what it asks for:
 
-- *"каким способом раскрашены слои?"*, *"где категории, где одиночный символ?"* —
-  one `list_layers` call answers it; this skill is not needed.
+- *"how are the layers coloured?"*, *"which ones use categories, which a single
+  symbol?"* — one `list_layers` call answers it; this skill is not needed.
 - **Anything naming colours, class boundaries, labels or opacity — `describe_style`,
-  once per layer in question.** There is no shortcut. A layer called «Реки» does
-  not tell you it is blue: answering "обычно синий" is inventing the user's data,
-  and "одиночный символ" is not an answer to "какого цвета".
+  once per layer in question.** There is no shortcut. A layer called "Rivers" does
+  not tell you it is blue: answering "usually blue" is inventing the user's data,
+  and "single symbol" is not an answer to "what colour".
 
 ## What you get
 
@@ -31,7 +31,7 @@ So split the question by what it asks for:
 | `graduatedSymbol` | `class_attribute` plus `classes` with `min`, `max`, `label`, `symbol` |
 | `RuleRenderer` | `rules` with `filter` expression and `label` |
 
-Each `symbol` carries `kind` (точки / линии / полигоны), `color` and, for a
+Each `symbol` carries `kind` (point / line / polygon), `color` and, for a
 single-layer symbol with an outline, `stroke_color` and `stroke_width`. Colours
 are hex strings (`#e31a1c`). Class lists are capped at 30 entries.
 
@@ -58,8 +58,8 @@ font family, size and colour.
 
 ## Answering appearance questions
 
-Name the mechanism, not just the colour. "Города красные" is less useful than
-"слой категоризован по полю `type`, и категория `city` окрашена в #e31a1c".
+Name the mechanism, not just the colour. "The cities are red" is less useful than
+"the layer is categorised on field `type`, and the `city` category is painted #e31a1c".
 
 When the classification field matters, cross-check it with `get_field_values`
 from the `inspect` skill: a renderer can reference a field whose values have
@@ -83,7 +83,7 @@ other three overwrite it, so applying `set_categories` after `set_symbol` on the
 same layer makes the first call pointless. Queue only the call you actually mean.
 
 These are write tools: the call returns `{"status": "queued"}` and the user
-applies the batch. Say "перекрашу", not "перекрасил".
+applies the batch. Say "I will recolour", not "I recoloured".
 
 ### Choosing between categories and graduations
 
@@ -122,15 +122,15 @@ an error listing near matches, which costs a round trip.
 Three keys are worth naming here because users describe them in words that do not
 match the key:
 
-- the halo that makes labels readable over a busy map — "обводка подписей", "ореол",
-  "чтобы читались" — is `buffer_color` and `buffer_size`, **not** `color`, which
-  paints the glyphs themselves
-- "сдвинь подписи" is `offset_x` / `offset_y` in millimetres, while "подальше от
-  значка" is `distance`; on `offset_y` a **negative** number moves labels up
-- "пунктирные дороги" is `stroke_style: "dash"` on `set_symbol`, and "без заливки,
-  только контур" is `fill_style: "none"`
+- the halo that makes labels readable over a busy map — "label outline", "halo",
+  "so they stay readable" — is `buffer_color` and `buffer_size`, **not** `color`,
+  which paints the glyphs themselves
+- "move the labels" is `offset_x` / `offset_y` in millimetres, while "further from
+  the marker" is `distance`; on `offset_y` a **negative** number moves labels up
+- "dashed roads" is `stroke_style: "dash"` on `set_symbol`, and "no fill, outline
+  only" is `fill_style: "none"`
 
-Set everything in one call. "Подпиши названиями, жирным, 12, с белой обводкой" is
+Set everything in one call. "Label them with the name, bold, 12, white halo" is
 one call with four keys, not four calls. Queueing either tool twice for one layer
 means the second call wins outright and the first was wasted — both rebuild the
 whole configuration each time rather than patching it.
@@ -145,15 +145,15 @@ QGIS has three, and they are not interchangeable:
 
 | What the user means | Where it lives |
 |---|---|
-| весь слой полупрозрачный, включая растр | `set_opacity` |
-| полупрозрачная заливка, обводка нет | `opacity` in `set_symbol` |
-| полупрозрачный текст подписи | `opacity` in `set_labels` |
+| the whole layer see-through, rasters included | `set_opacity` |
+| a see-through fill but a solid outline | `opacity` in `set_symbol` |
+| see-through label text | `opacity` in `set_labels` |
 
-"Сделай слой полупрозрачным" is `set_opacity`. Reach for the other two only when
+"Make the layer see-through" is `set_opacity`. Reach for the other two only when
 the user singles out the fill or the text.
 
 ### Reading before writing
 
-For "почему это выглядит так" or "поменяй, но остальное оставь", call
+For "why does it look like this" or "change this but leave the rest", call
 `describe_style` first. Without it you do not know what you are replacing, and
 these tools replace rather than patch.

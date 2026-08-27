@@ -13,7 +13,7 @@ from qgis_ai_agent.qgis_tools.common.renderers import style_block
 COORD_PRECISION = 6
 FALLBACK_EXTENT = (0.0, 0.0, 100.0, 100.0)
 FALLBACK_CRS = "EPSG:3857"
-GEOMETRY_NAMES = (("point", "точки"), ("line", "линии"), ("polygon", "полигоны"))
+GEOMETRY_NAMES = ("point", "line", "polygon")
 
 
 def geometry_type_name(layer: QgsMapLayer) -> str:
@@ -22,11 +22,11 @@ def geometry_type_name(layer: QgsMapLayer) -> str:
     try:
         geometry = str(layer.geometryType()).lower()
     except Exception:
-        return "вектор"
-    for marker, name in GEOMETRY_NAMES:
-        if marker in geometry:
+        return "vector"
+    for name in GEOMETRY_NAMES:
+        if name in geometry:
             return name
-    return "вектор"
+    return "vector"
 
 
 def layer_kind(layer: QgsMapLayer) -> str:
@@ -52,7 +52,7 @@ def crs_is_geographic(layer: QgsMapLayer) -> bool:
 
 
 def crs_units(layer: QgsMapLayer) -> str:
-    return "градусы" if crs_is_geographic(layer) else "метры или иные линейные единицы"
+    return "degrees" if crs_is_geographic(layer) else "metres or other linear units"
 
 
 def suggest_metric_crs(layer: QgsMapLayer) -> str:
@@ -123,7 +123,7 @@ def canvas_extent() -> QgsRectangle:
 def describe_layer_brief(layer: QgsMapLayer) -> dict[str, Any]:
     kind = layer_kind(layer)
     brief: dict[str, Any] = {
-        "name": (layer.name() or "Без имени").strip(),
+        "name": (layer.name() or "Unnamed").strip(),
         "kind": kind,
         "crs": crs_authid(layer),
         "crs_is_geographic": crs_is_geographic(layer),
@@ -156,5 +156,5 @@ def find_layer_by_name(name: str) -> QgsMapLayer:
             if (layer.name() or "").strip().lower() == lowered:
                 return layer
     available = [(layer.name() or "").strip() for layer in project.mapLayers().values()]
-    hint = ", ".join(available) if available else "в проекте нет слоёв"
-    raise ValueError(f"Слой не найден: «{wanted}». Доступные слои: {hint}.")
+    hint = ", ".join(available) if available else "the project has no layers"
+    raise ValueError(f"Layer not found: '{wanted}'. Available layers: {hint}.")

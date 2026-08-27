@@ -4,7 +4,7 @@ from qgis.core import QgsProject
 
 from qgis_ai_agent.qgis_tools.common.layers import find_layer_by_name
 
-ROOT_GROUP = "корень"
+ROOT_GROUP = "root"
 
 
 def project() -> QgsProject:
@@ -19,7 +19,7 @@ def tree_node(layer: Any) -> Any:
     node = layer_tree().findLayer(layer.id())
     if node is None:
         raise ValueError(
-            f"Слоя «{layer.name()}» нет в дереве слоёв проекта — возможно, он уже удалён."
+            f"Layer '{layer.name()}' is not in the project layer tree — it may already be removed."
         )
     return node
 
@@ -41,8 +41,8 @@ def group_names() -> list[str]:
 def describe_groups() -> str:
     names = group_names()
     if not names:
-        return "Групп в проекте нет — не указывайте group, слой ляжет в корень."
-    return "Существующие группы: " + ", ".join(f"«{name}»" for name in names) + "."
+        return "The project has no groups — omit group and the layer will land in the root."
+    return "Existing groups: " + ", ".join(f"'{name}'" for name in names) + "."
 
 
 def layer_names() -> list[str]:

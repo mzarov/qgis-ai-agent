@@ -51,16 +51,16 @@ which values a field holds produces plans that fail on real data.
 ## Answering questions with numbers
 
 `query_layer` runs QGIS expressions over a layer. Any question that starts with
-"сколько", "какой самый", "средняя", "суммарная" or "топ" is a `query_layer` call,
-not a guess from `sample_features`.
+"how many", "which is the largest", "average", "total" or "top" is a `query_layer`
+call, not a guess from `sample_features`.
 
 | Question | Call |
 |---|---|
-| Сколько дорог типа motorway | `aggregate="count"`, `filter="highway = 'motorway'"` |
-| Топ-5 городов по населению | `order_by="population DESC"`, `limit=5` |
-| Самая длинная река | `order_by="$length DESC"`, `limit=1` |
-| Суммарная площадь озёр | `aggregate="sum"`, `expression="$area"` |
-| Средняя длина дороги по типам | `aggregate="mean"`, `expression="$length"`, `group_by="highway"` |
+| How many roads of type motorway | `aggregate="count"`, `filter="highway = 'motorway'"` |
+| Top 5 cities by population | `order_by="population DESC"`, `limit=5` |
+| The longest river | `order_by="$length DESC"`, `limit=1` |
+| Total area of the lakes | `aggregate="sum"`, `expression="$area"` |
+| Average road length per type | `aggregate="mean"`, `expression="$length"`, `group_by="highway"` |
 
 ### Length and area are not fields
 
@@ -68,11 +68,11 @@ Geometry is available through expressions — `$length`, `$area`, `$geometry`,
 `intersects()`, `distance()`, `buffer()`.
 
 **Never go looking for a field that holds length or area.** Layers almost never
-have one, and failing to find it is not an answer. "Какая река самая длинная" is
+have one, and failing to find it is not an answer. "Which river is the longest" is
 a single call:
 
 ```
-query_layer(layer_name="Реки", order_by="$length DESC", limit=1, fields=["name"])
+query_layer(layer_name="Rivers", order_by="$length DESC", limit=1, fields=["name"])
 ```
 
 The same mistake wears other disguises: scanning `describe_layer` for a `length`
@@ -99,7 +99,7 @@ Rules that matter:
 
 ## Layer sources
 
-`source` has credentials stripped: `password=‹скрыто›`. Never ask the user for a
+`source` has credentials stripped: `password=<hidden>`. Never ask the user for a
 password, and never suggest putting one into a tool call.
 
 ## Cost

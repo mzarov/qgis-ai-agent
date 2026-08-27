@@ -2,6 +2,7 @@ from typing import Any
 
 from qgis.core import QgsRasterLayer, QgsVectorLayer
 
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
 from qgis_ai_agent.qgis_tools.common.layer_meta import describe_source
 from qgis_ai_agent.qgis_tools.common.layers import (
@@ -25,26 +26,28 @@ RASTER_PROPERTIES = (("width", "width"), ("height", "height"), ("band_count", "b
 class DescribeLayerTool(BaseTool):
     name = "describe_layer"
     description = (
-        "Показать подробности слоя: поля атрибутов с типами, охват, систему координат "
-        "и её единицы, число объектов, источник данных, активный фильтр и краткую "
-        "сводку оформления. Для слоя в градусах подсказывает метрическую CRS."
+        "Show the details of a layer: attribute fields with their types, extent, "
+        "coordinate system and its units, feature count, data source, active filter and a "
+        "short styling summary. For a layer in degrees it suggests a metric CRS."
     )
     skill = "inspect"
     safety = SAFETY_READ
-    constraints = ["Слой с указанным именем должен существовать в проекте"]
-    examples = ["Какие поля в слое «Города»?", "В какой проекции слой дорог?"]
+    constraints = ["A layer with this name must exist in the project"]
+    examples = ["Which fields does the 'Cities' layer have?", "What CRS is the roads layer in?"]
     params_schema = [
         {
             "name": "layer_name",
             "type": "string",
-            "description": "Имя слоя ровно как в проекте (см. list_layers)",
+            "description": "Layer name exactly as in the project (see list_layers)",
             "required": True,
         },
     ]
 
     def summarize_call(self, params: dict[str, Any]) -> str:
         layer_name = (params.get("layer_name") or "").strip()
-        return f"Смотрю слой «{layer_name}»." if layer_name else "Смотрю слой."
+        if not layer_name:
+            return tr("Reading the layer.")
+        return tr("Reading layer '{0}'.").format(layer_name)
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = find_layer_by_name(params.get("layer_name") or "")
@@ -74,8 +77,8 @@ class DescribeLayerTool(BaseTool):
         block: dict[str, Any] = {"fields": described[:MAX_FIELDS], "field_count": len(described)}
         if len(described) > MAX_FIELDS:
             block["fields_note"] = (
-                f"показаны первые {MAX_FIELDS} полей из {len(described)}; "
-                "остальные есть в слое, но здесь не перечислены"
+                f"showing the first {MAX_FIELDS} fields out of {len(described)}; "
+                "the rest exist in the layer but are not listed here"
             )
         return block
 

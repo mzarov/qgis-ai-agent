@@ -15,8 +15,8 @@ DEFAULT_ROW_LIMIT = 20
 MAX_ROW_LIMIT = 200
 MAX_GROUPS = 50
 SCAN_LIMIT_MESSAGE = (
-    "Под условие подпадает больше {limit} объектов, и точный ответ по ним не посчитать. "
-    "Сузьте выборку параметром filter."
+    "More than {limit} features match the condition, so an exact answer cannot be computed. "
+    "Narrow the selection down with the filter parameter."
 )
 
 
@@ -51,7 +51,7 @@ def run_aggregate(layer, request, context, params, aggregate: str) -> dict[str, 
     info["group_by"] = group_text
     info["groups"] = _build_groups(aggregate, groups)
     if len(groups) > MAX_GROUPS:
-        info["groups_note"] = f"показаны первые {MAX_GROUPS} групп из {len(groups)}"
+        info["groups_note"] = f"showing the first {MAX_GROUPS} groups out of {len(groups)}"
     return info
 
 

@@ -26,15 +26,15 @@ def _degrees_error(layer_name, layer, parameter_name: str, distance: float, pare
     target_crs = suggest_metric_crs(layer)
     output_name = f"{layer_name} {target_crs.replace('EPSG:', 'UTM ')}"
     return (
-        f"Слой «{layer_name}» в географической CRS ({layer.crs().authid()}), "
-        f"её единица — градус, а не метр. Значение {parameter_name}={distance} "
-        f"будет истолковано как {distance} градусов и даст бессмысленный результат.\n"
-        "Добавьте перед этим шагом перепроецирование и запустите обработку на его результате:\n"
+        f"Layer '{layer_name}' is in a geographic CRS ({layer.crs().authid()}), "
+        f"whose unit is the degree, not the metre. The value {parameter_name}={distance} "
+        f"would be read as {distance} degrees and give a meaningless result.\n"
+        "Add a reprojection before this step and run the processing on its result:\n"
         f'run_processing(algorithm_id="native:reprojectlayer", '
         f'parameters={{"INPUT": "{layer_name}", "TARGET_CRS": "{target_crs}"}}, '
         f'output_name="{output_name}")\n'
-        f"затем повторите текущий вызов, подставив «{output_name}» в {parent_name}.\n"
-        f"Если {distance} действительно задано в градусах — так и скажите пользователю."
+        f"then repeat the current call with '{output_name}' in {parent_name}.\n"
+        f"If {distance} really was meant in degrees, say so to the user."
     )
 
 

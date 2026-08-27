@@ -1,7 +1,5 @@
 from typing import Any
 
-from qgis_ai_agent.i18n import tr
-
 from qgis.core import Qgis, QgsMessageLog
 
 from qgis_ai_agent.core.agent.transcript import ToolResult

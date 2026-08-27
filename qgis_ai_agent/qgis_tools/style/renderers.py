@@ -20,7 +20,7 @@ RULE_FIELDS = (("filter", "filterExpression"), ("label", "label"))
 def describe_vector_renderer(layer: QgsVectorLayer) -> dict[str, Any]:
     renderer = get_renderer(layer)
     kind = renderer_type(layer)
-    info: dict[str, Any] = {"type": kind, "type_ru": RENDERER_NAMES.get(kind, kind)}
+    info: dict[str, Any] = {"type": kind, "type_readable": RENDERER_NAMES.get(kind, kind)}
     if renderer is None:
         return info
 

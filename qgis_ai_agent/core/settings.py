@@ -18,13 +18,11 @@ AUTH_TYPE_OAUTH = "OAuth"
 FALSE_WORDS = ("false", "0", "no", "off")
 URL_KEY_LENGTH = 12
 
-KEYRING_FAILURE_MSG = (
-    tr(
+KEYRING_FAILURE_MSG = tr(
     "Could not save the key to the system keyring: {reason}.\n\n"
     "On Linux this needs a running secret service — gnome-keyring or KWallet. "
     "If the keyring library is missing, install it into the QGIS Python: see the "
     "Dependencies section of the plugin documentation."
-)
 )
 
 

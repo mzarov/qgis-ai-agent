@@ -1,5 +1,6 @@
 from typing import Any
 
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
 from qgis_ai_agent.qgis_tools.osm.args import (
     CANVAS,
@@ -15,39 +16,39 @@ from qgis_ai_agent.qgis_tools.osm.load import SUBLAYERS, load_sublayers, write_p
 from qgis_ai_agent.qgis_tools.osm.overpass import build_query
 
 NOTHING_FOUND = (
-    "Overpass отработал, но объектов по такому запросу нет. Проверьте ключ и "
-    "значение — например, amenity=cafe, а не amenity=кафе, — либо расширьте территорию."
+    "Overpass ran fine, but nothing matches this query. Check the key and the "
+    "value — amenity=cafe, for instance, is written in English — or widen the territory."
 )
 
 
 class DownloadOsmTool(BaseTool):
     name = "download_osm"
     description = (
-        "Скачать данные OpenStreetMap через Overpass и добавить их слоями в проект. "
-        "Простой случай — пара ключ-значение вроде amenity=cafe. Сложный — список "
-        "селекторов Overpass: несколько тегов разом, регулярные выражения, "
-        "исключения. Территория задаётся именем места или прямоугольником."
+        "Download OpenStreetMap data through Overpass and add it to the project as layers. "
+        "The simple case is a key-value pair such as amenity=cafe. The hard case is a list "
+        "of Overpass selectors: several tags at once, regular expressions, exclusions. "
+        "The territory is given as a place name or as a rectangle."
     )
     skill = "osm"
     safety = SAFETY_WRITE
     constraints = [
-        "Нужен либо area, либо bbox — без территории запрос не выполняется",
-        "Ключи и значения OSM пишутся по-английски: amenity=cafe, highway=primary",
-        "key с value или selectors — что-то одно",
+        "Either area or bbox is required — without a territory the query does not run",
+        "OSM keys and values are written in English: amenity=cafe, highway=primary",
+        "key with value, or selectors — one of the two",
     ]
     examples = [
-        "Скачай кафе в Москве",
-        "Загрузи дороги в текущем виде карты",
-        "Скачай кафе, рестораны и бары одним слоем",
-        "Все дороги кроме грунтовых",
+        "Download the cafes in Berlin",
+        "Load the roads in the current map view",
+        "Download cafes, restaurants and bars as one layer",
+        "All roads except the unpaved ones",
     ]
     params_schema = [
         {
             "name": "key",
             "type": "string",
             "description": (
-                "Ключ OSM для простого случая: amenity, highway, building, landuse. "
-                "Для чего-то сложнее используйте selectors."
+                "OSM key for the simple case: amenity, highway, building, landuse. "
+                "For anything harder use selectors."
             ),
             "required": False,
         },
@@ -55,8 +56,8 @@ class DownloadOsmTool(BaseTool):
             "name": "value",
             "type": "string",
             "description": (
-                "Значение ключа: cafe, primary, residential. Без него берутся все "
-                "объекты с таким ключом."
+                "Value of the key: cafe, primary, residential. Without it every "
+                "object carrying that key is taken."
             ),
             "required": False,
         },
@@ -64,8 +65,8 @@ class DownloadOsmTool(BaseTool):
             "name": "area",
             "type": "string",
             "description": (
-                "Имя территории в OSM: Москва, Berlin, Тверская область. "
-                "Взаимоисключимо с bbox."
+                "Name of the territory in OSM: Berlin, Île-de-France, Kyoto. "
+                "Mutually exclusive with bbox."
             ),
             "required": False,
         },
@@ -73,8 +74,8 @@ class DownloadOsmTool(BaseTool):
             "name": "bbox",
             "type": "string",
             "description": (
-                'Прямоугольник "запад,юг,восток,север" в градусах EPSG:4326, '
-                f'либо "{CANVAS}" — текущий вид карты.'
+                'A "west,south,east,north" rectangle in EPSG:4326 degrees, '
+                f'or "{CANVAS}" for the current map view.'
             ),
             "required": False,
         },
@@ -83,11 +84,11 @@ class DownloadOsmTool(BaseTool):
             "type": "array",
             "items": {"type": "string"},
             "description": (
-                "Селекторы Overpass, по одному на строку списка, например "
+                "Overpass selectors, one per list entry, for example "
                 '["node[\'amenity\'~\'cafe|restaurant\']", "way[\'shop\']"]. '
-                "Так выражается всё, чего не покрывает пара ключ-значение: "
-                "несколько тегов, регулярные выражения, исключения через != и !~. "
-                "Территорию, таймаут и вывод дописывает плагин — их указывать не надо."
+                "This expresses everything a key-value pair cannot: several tags, "
+                "regular expressions, exclusions through != and !~. "
+                "The plugin appends the territory, the timeout and the output — do not pass those."
             ),
             "required": False,
         },
@@ -96,15 +97,15 @@ class DownloadOsmTool(BaseTool):
             "type": "string",
             "enum": sorted(SUBLAYERS),
             "description": (
-                "Какие геометрии загрузить: points — точки, lines — линии, "
-                "polygons — полигоны, all — всё найденное."
+                "Which geometries to load: points, lines, polygons, "
+                "or all for everything that was found."
             ),
             "required": False,
         },
         {
             "name": "name",
             "type": "string",
-            "description": "Имя слоя. По умолчанию собирается из ключа и значения.",
+            "description": "Layer name. By default it is built from the key and the value.",
             "required": False,
         },
     ]
@@ -126,8 +127,8 @@ class DownloadOsmTool(BaseTool):
 
     def summarize_call(self, params: dict[str, Any]) -> str:
         name = wanted_name(params)
-        where = (params.get("area") or "").strip() or "заданном охвате"
-        return f"Скачиваю из OSM «{name}» в {where}."
+        where = (params.get("area") or "").strip() or tr("the given extent")
+        return tr("Downloading '{0}' from OSM in {1}.").format(name, where)
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         chosen = selectors(params)

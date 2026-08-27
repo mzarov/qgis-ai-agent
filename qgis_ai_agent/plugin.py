@@ -23,7 +23,6 @@ class QgisAiAgentPlugin:
         self.dock_widget = None
         self.menu_action = None
         self._orchestrator = None
-        i18n.install(os.path.dirname(os.path.abspath(__file__)))
 
     def initGui(self) -> None:
         self.menu_action = QAction(self._icon(), MENU_TITLE, self.iface.mainWindow())
