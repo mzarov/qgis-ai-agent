@@ -111,4 +111,4 @@ def set_api_key(value: str) -> None:
 
 def _url_settings_key(url: str) -> str:
     normalized = (url or "").strip().rstrip("/").lower()
-    return hashlib.md5(normalized.encode("utf-8")).hexdigest()[:URL_KEY_LENGTH]
+    return hashlib.md5(normalized.encode("utf-8"), usedforsecurity=False).hexdigest()[:URL_KEY_LENGTH]

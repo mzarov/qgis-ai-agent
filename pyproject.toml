@@ -6,7 +6,6 @@ authors = ["mzarov@duck.com"]
 
 [tool.poetry.dependencies]
 python = "^3.12"
-requests = "^2.32"
 keyring = "^25.0"
 
 [build-system]

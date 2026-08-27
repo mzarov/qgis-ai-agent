@@ -84,7 +84,16 @@ docs/                          установка, архитектура, ру�
 python3 -m unittest discover -s tests -t .
 ```
 
-Ни одной тестовой зависимости: только stdlib. Если настоящего QGIS нет,
+Перед PR стоит прогнать те же сканеры, что и репозиторий плагинов QGIS —
+они же стоят в CI:
+
+```bash
+pip install bandit detect-secrets flake8
+cd qgis_ai_agent && bandit -r . && cd ..
+detect-secrets scan qgis_ai_agent/ && flake8 qgis_ai_agent/
+```
+
+Ни одной тестовой зависимости у самого набора: только stdlib. Если настоящего QGIS нет,
 `tests/stub.py` подменяет модули `qgis` — поэтому набор работает и на обычном
 Python, и внутри Python самого QGIS.
 

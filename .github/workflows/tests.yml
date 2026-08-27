@@ -18,6 +18,13 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Тесты
         run: python3 -m unittest discover -s tests -t .
+      - name: Сканеры репозитория QGIS
+        if: matrix.python == '3.12'
+        run: |
+          python3 -m pip install --quiet bandit detect-secrets flake8
+          cd qgis_ai_agent && bandit -r . -q
+          cd .. && detect-secrets scan qgis_ai_agent/ > /dev/null
+          flake8 qgis_ai_agent/
       - name: Сборка плагина
         run: python3 tools/build_plugin.py
       - name: Архив как артефакт

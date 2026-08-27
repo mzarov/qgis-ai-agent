@@ -1,4 +1,9 @@
+import json
 from typing import Any
+
+from qgis.core import QgsBlockingNetworkRequest
+from qgis.PyQt.QtCore import QByteArray, QUrl
+from qgis.PyQt.QtNetwork import QNetworkRequest
 
 from qgis_ai_agent.core.llm.dialects import headers_for, host_of, path_for, resolve
 from qgis_ai_agent.core.settings import (
@@ -10,10 +15,6 @@ from qgis_ai_agent.core.settings import (
     get_verify_ssl,
 )
 
-REQUESTS_INSTALL_MSG = (
-    "Для запросов к API нужна библиотека requests. "
-    "Установите её в Python QGIS. См. документацию плагина (раздел «Зависимости»)."
-)
 DEFAULT_TIMEOUT = 120
 LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1", "0.0.0.0", "host.docker.internal")
 MISSING_KEY_MSG = (
@@ -21,6 +22,11 @@ MISSING_KEY_MSG = (
     "модели: для адреса на localhost ключ не нужен."
 )
 ERROR_BODY_LIMIT = 300
+STATUS_ATTRIBUTE = QNetworkRequest.Attribute.HttpStatusCodeAttribute
+TRANSPORT_FAILED = (
+    "Не удалось связаться с {endpoint}: {reason}. Проверьте адрес, сеть и "
+    "настройки прокси QGIS."
+)
 
 
 class ApiResponseError(RuntimeError):
@@ -28,20 +34,6 @@ class ApiResponseError(RuntimeError):
         super().__init__(message or f"API вернул {status_code}: {body[:ERROR_BODY_LIMIT]}")
         self.status_code = status_code
         self.body = body
-
-
-_SESSION = None
-
-
-def get_session() -> Any:
-    global _SESSION
-    if _SESSION is None:
-        try:
-            import requests
-        except ImportError:
-            raise RuntimeError(REQUESTS_INSTALL_MSG)
-        _SESSION = requests.Session()
-    return _SESSION
 
 
 def resolve_endpoint(url_override: str | None = None) -> str:
@@ -82,14 +74,58 @@ def post_json(
     timeout: int = DEFAULT_TIMEOUT,
     verify_override: bool | None = None,
 ) -> dict[str, Any]:
-    session = get_session()
+    request = _build_network_request(endpoint, headers, verify_override)
+    caller = QgsBlockingNetworkRequest()
+    payload = QByteArray(json.dumps(body, ensure_ascii=False).encode("utf-8"))
+    if caller.post(request, payload) != QgsBlockingNetworkRequest.ErrorCode.NoError:
+        raise ConnectionError(
+            TRANSPORT_FAILED.format(endpoint=endpoint, reason=_reason(caller))
+        )
+    reply = caller.reply()
+    text = bytes(reply.content()).decode("utf-8", errors="replace")
+    status = _status_of(reply)
+    if status >= 400:
+        raise ApiResponseError(status, text)
+    return _decoded(text, status)
+
+
+def _build_network_request(
+    endpoint: str, headers: dict[str, str], verify_override: bool | None
+) -> QNetworkRequest:
+    request = QNetworkRequest(QUrl(endpoint))
+    for name, value in headers.items():
+        request.setRawHeader(name.encode("utf-8"), value.encode("utf-8"))
     verify_ssl = bool(verify_override) if verify_override is not None else get_verify_ssl()
-    response = session.post(
-        endpoint, json=body, headers=headers, timeout=timeout, verify=verify_ssl
-    )
-    if response.status_code >= 400:
-        raise ApiResponseError(response.status_code, response.text or "")
-    return response.json()
+    if not verify_ssl:
+        request.setAttribute(
+            QNetworkRequest.Attribute.RedirectPolicyAttribute,
+            QNetworkRequest.RedirectPolicy.NoLessSafeRedirectPolicy,
+        )
+    return request
+
+
+def _status_of(reply: Any) -> int:
+    try:
+        return int(reply.attribute(STATUS_ATTRIBUTE))
+    except Exception:
+        return 0
+
+
+def _decoded(text: str, status: int) -> dict[str, Any]:
+    try:
+        parsed = json.loads(text)
+    except ValueError:
+        raise ApiResponseError(status, text, f"API вернул не JSON: {text[:ERROR_BODY_LIMIT]}")
+    if not isinstance(parsed, dict):
+        raise ApiResponseError(status, text, "API вернул не объект JSON.")
+    return parsed
+
+
+def _reason(caller: Any) -> str:
+    try:
+        return caller.errorMessage() or "сервис недоступен"
+    except Exception:
+        return "сервис недоступен"
 
 
 def post_chat_completion(

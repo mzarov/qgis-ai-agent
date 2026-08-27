@@ -56,4 +56,3 @@ class SearchProcessingTool(BaseTool):
             "total_matched": len(scored),
             "algorithms": [algorithm_brief(algorithm) for _, algorithm in scored[:limit]],
         }
-

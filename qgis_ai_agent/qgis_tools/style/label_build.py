@@ -9,7 +9,7 @@ from qgis.core import (
     QgsTextShadowSettings,
 )
 
-from qgis_ai_agent.qgis_tools.style.apply import parse_color
+from qgis_ai_agent.qgis_tools.common.colors import parse_color
 from qgis_ai_agent.qgis_tools.style.label_catalogue import (
     LABELS,
     PLACEMENTS,
