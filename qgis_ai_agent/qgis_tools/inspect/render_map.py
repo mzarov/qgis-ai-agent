@@ -1,19 +1,17 @@
-import base64
 from typing import Any
 
 from qgis.core import QgsMapRendererParallelJob, QgsMapSettings
-from qgis.PyQt.QtCore import QBuffer, QIODevice, QSize
+from qgis.PyQt.QtCore import QSize
 
 from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import RESULT_IMAGE_KEY, SAFETY_READ, BaseTool
+from qgis_ai_agent.qgis_tools.common.images import encoded_png
 from qgis_ai_agent.qgis_tools.common.layers import extent_dict, find_layer_by_name, safe_extent
 
 DEFAULT_WIDTH = 900
 MIN_WIDTH = 200
 MAX_WIDTH = 1600
 FALLBACK_RATIO = 0.75
-MAX_IMAGE_BYTES = 4 * 1024 * 1024
-IMAGE_FORMAT = "PNG"
 LOOK_NOTE = "The rendered map is attached as an image. Look at it before judging colours, labels or layer visibility."
 
 
@@ -59,7 +57,7 @@ class RenderMapTool(BaseTool):
         width = _clamped_width(params.get("width"))
         settings.setOutputSize(QSize(width, _height_for(settings, width)))
         image = _rendered(settings)
-        encoded = _encoded_png(image)
+        encoded = encoded_png(image)
         return {
             "width": int(image.width()),
             "height": int(image.height()),
@@ -113,18 +111,3 @@ def _rendered(settings: Any) -> Any:
     job.start()
     job.waitForFinished()
     return job.renderedImage()
-
-
-def _encoded_png(image: Any) -> str:
-    buffer = QBuffer()
-    buffer.open(QIODevice.OpenModeFlag.WriteOnly)
-    if not image.save(buffer, IMAGE_FORMAT):
-        raise ValueError("QGIS could not encode the rendered map into an image.")
-    data = bytes(buffer.data())
-    buffer.close()
-    if len(data) > MAX_IMAGE_BYTES:
-        raise ValueError(
-            f"The rendered image is {len(data) // 1024 // 1024} MB, over the limit of "
-            f"{MAX_IMAGE_BYTES // 1024 // 1024} MB. Ask for a smaller width."
-        )
-    return base64.b64encode(data).decode("ascii")

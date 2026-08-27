@@ -43,6 +43,11 @@
         <translation>Добавляю подложку.</translation>
     </message>
     <message>
+        <location filename="qgis_ai_agent/qgis_tools/layout/add_layout_item.py" line="97"/>
+        <source>Adding a {0} to layout '{1}'.</source>
+        <translation>Добавляю {0} в макет «{1}».</translation>
+    </message>
+    <message>
         <location filename="qgis_ai_agent/qgis_tools/project/add_basemap.py" line="88"/>
         <source>Adding basemap '{0}' under the other layers.</source>
         <translation>Добавляю подложку «{0}» под остальные слои.</translation>
@@ -116,6 +121,11 @@
         <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="165"/>
         <source>Changes applied.</source>
         <translation>Изменения применены.</translation>
+    </message>
+    <message>
+        <location filename="qgis_ai_agent/qgis_tools/layout/configure_layout_item.py" line="74"/>
+        <source>Changing item '{0}' of layout '{1}'.</source>
+        <translation>Меняю элемент «{0}» макета «{1}».</translation>
     </message>
     <message>
         <location filename="qgis_ai_agent/qgis_tools/project/configure_layer.py" line="69"/>
@@ -198,17 +208,22 @@
         <translation>Не удалось сохранить ключ в системном хранилище: {reason}.&#10;&#10;В Linux для этого нужна запущенная служба секретов — gnome-keyring или KWallet. Если не хватает библиотеки keyring, поставьте её в Python QGIS: см. раздел «Зависимости» в документации плагина.</translation>
     </message>
     <message>
+        <location filename="qgis_ai_agent/qgis_tools/layout/create_layout.py" line="65"/>
+        <source>Creating layout '{0}' ({1}).</source>
+        <translation>Создаю макет «{0}» ({1}).</translation>
+    </message>
+    <message>
         <location filename="qgis_ai_agent/core/llm/providers.py" line="6"/>
         <source>Custom address</source>
         <translation>Свой адрес</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/edit/delete_features.py" line="61"/>
+        <location filename="qgis_ai_agent/qgis_tools/edit/delete_features.py" line="58"/>
         <source>Deleting features from '{0}'.</source>
         <translation>Удаляю объекты из «{0}».</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/edit/delete_features.py" line="60"/>
+        <location filename="qgis_ai_agent/qgis_tools/edit/delete_features.py" line="57"/>
         <source>Deleting {0} feature(s) from '{1}'.</source>
         <translation>Удаляю объектов: {0} — из «{1}».</translation>
     </message>
@@ -236,6 +251,11 @@
         <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="191"/>
         <source>Error: {0}</source>
         <translation>Ошибка: {0}</translation>
+    </message>
+    <message>
+        <location filename="qgis_ai_agent/qgis_tools/layout/export_layout.py" line="53"/>
+        <source>Exporting layout '{0}' to {1}.</source>
+        <translation>Экспортирую макет «{0}» в {1}.</translation>
     </message>
     <message>
         <location filename="qgis_ai_agent/qgis_tools/project/zoom_to_layer.py" line="31"/>
@@ -329,6 +349,11 @@
         <translation>Смотрю слой «{0}».</translation>
     </message>
     <message>
+        <location filename="qgis_ai_agent/qgis_tools/layout/describe_layout.py" line="36"/>
+        <source>Reading layout '{0}'.</source>
+        <translation>Смотрю макет «{0}».</translation>
+    </message>
+    <message>
         <location filename="qgis_ai_agent/qgis_tools/inspect/sample_features.py" line="49"/>
         <source>Reading records of layer '{0}'.</source>
         <translation>Смотрю записи слоя «{0}».</translation>
@@ -359,7 +384,7 @@
         <translation>Смотрю текущий охват карты.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/inspect/get_selection.py" line="32"/>
+        <location filename="qgis_ai_agent/qgis_tools/inspect/get_selection.py" line="30"/>
         <source>Reading the current selection.</source>
         <translation>Смотрю текущее выделение.</translation>
     </message>
@@ -389,6 +414,11 @@
         <translation>Смотрю слои проекта.</translation>
     </message>
     <message>
+        <location filename="qgis_ai_agent/qgis_tools/layout/list_layouts.py" line="17"/>
+        <source>Reading the project layouts.</source>
+        <translation>Смотрю макеты проекта.</translation>
+    </message>
+    <message>
         <location filename="qgis_ai_agent/qgis_tools/project/list_db_connections.py" line="44"/>
         <source>Reading the saved database connections.</source>
         <translation>Смотрю сохранённые подключения к базам.</translation>
@@ -414,6 +444,11 @@
         <translation>Отклонено: {0}</translation>
     </message>
     <message>
+        <location filename="qgis_ai_agent/qgis_tools/layout/remove_layout_item.py" line="41"/>
+        <source>Removing item '{0}' from layout '{1}'.</source>
+        <translation>Убираю элемент «{0}» из макета «{1}».</translation>
+    </message>
+    <message>
         <location filename="qgis_ai_agent/qgis_tools/project/remove_layer.py" line="34"/>
         <source>Removing layer '{0}' from the project.</source>
         <translation>Убираю слой «{0}» из проекта.</translation>
@@ -424,12 +459,17 @@
         <translation>Убираю подписи со слоя «{0}».</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/inspect/render_map.py" line="51"/>
+        <location filename="qgis_ai_agent/qgis_tools/inspect/render_map.py" line="49"/>
         <source>Rendering layer '{0}' to an image.</source>
         <translation>Делаю снимок слоя «{0}».</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/inspect/render_map.py" line="50"/>
+        <location filename="qgis_ai_agent/qgis_tools/layout/render_layout.py" line="50"/>
+        <source>Rendering layout '{0}' to an image.</source>
+        <translation>Делаю снимок макета «{0}».</translation>
+    </message>
+    <message>
+        <location filename="qgis_ai_agent/qgis_tools/inspect/render_map.py" line="48"/>
         <source>Rendering the map to an image.</source>
         <translation>Делаю снимок карты.</translation>
     </message>
@@ -595,12 +635,12 @@
         <translation>Без названия</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/edit/update_attributes.py" line="72"/>
+        <location filename="qgis_ai_agent/qgis_tools/edit/update_attributes.py" line="69"/>
         <source>Updating features of '{0}': {1}.</source>
         <translation>Обновляю объекты «{0}»: {1}.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/edit/update_attributes.py" line="71"/>
+        <location filename="qgis_ai_agent/qgis_tools/edit/update_attributes.py" line="68"/>
         <source>Updating {0} feature(s) of '{1}': {2}.</source>
         <translation>Обновляю объектов: {0} — в «{1}»: {2}.</translation>
     </message>

@@ -491,3 +491,20 @@ These verify the agent solves everyday tasks without wandering through search.
 106. **delete_features refuses to delete everything silently.** “Delete all
      features” works only when the filter is the literal all; an empty filter
      is rejected with an explanation.
+
+## Print layouts
+
+107. **A sheet in one run.** “Make an A4 landscape layout with the map, a
+     title, a legend and a scale bar” → one plan card; after Apply the layout
+     manager holds the sheet and everything sits inside the page.
+108. **The agent looks at the sheet.** The verification pass calls
+     render_layout; if the legend covers the map, a fix plan appears with
+     configure_layout_item.
+109. **Legend before map is refused.** Ask for a legend in an empty layout →
+     a clear error saying to add a map first, at queue time.
+110. **Out-of-page items are refused** at queue time with the page size in
+     the message.
+111. **Export.** “Export the layout to /tmp/map.pdf” → the file exists and
+     opens; a path into a missing folder is refused before queueing.
+112. **Item ids are addressable.** describe_layout shows map-1/title;
+     “move the title down a little” changes exactly that item.

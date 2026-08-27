@@ -37,7 +37,7 @@ class _Stub(metaclass=_Meta):
 def _mod(name, attrs=()):
     m = types.ModuleType(name)
     for a in attrs:
-        setattr(m, a, _Stub)
+        setattr(m, a, type(a, (_Stub,), {}))
     sys.modules[name] = m
     return m
 
@@ -85,6 +85,14 @@ core = _mod(
         "QgsBlockingNetworkRequest",
         "QgsMapSettings",
         "QgsProviderRegistry",
+        "QgsPrintLayout",
+        "QgsLayoutItemMap",
+        "QgsLayoutItemLegend",
+        "QgsLayoutItemLabel",
+        "QgsLayoutItemScaleBar",
+        "QgsLayoutPoint",
+        "QgsLayoutSize",
+        "QgsLayoutExporter",
         "QgsMapRendererParallelJob",
     ],
 )
