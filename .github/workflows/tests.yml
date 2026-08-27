@@ -21,7 +21,7 @@ jobs:
       - name: Lint and formatting
         if: matrix.python == '3.12'
         run: |
-          python3 -m pip install --quiet ruff
+          python3 -m pip install --quiet ruff==0.13.3
           ruff check .
           ruff format --check .
       - name: QGIS repository scanners
