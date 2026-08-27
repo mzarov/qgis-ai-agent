@@ -1,10 +1,9 @@
 import ast
-import os
 import pathlib
-import shutil
-import subprocess
 import sys
 import xml.etree.ElementTree as ElementTree
+
+from qm import compile_qm
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 PACKAGE = REPO_ROOT / "qgis_ai_agent"
@@ -13,10 +12,9 @@ CONTEXT = "QgisAiAgent"
 PREFIX = "qgis_ai_agent"
 LANGUAGES = ("ru",)
 CALLS = ("tr", "tr_n")
-RELEASE_TOOLS = ("lrelease", "pyside6-lrelease", "lrelease-qt6", "lrelease-qt5")
-TOOL_ENV_VAR = "LRELEASE"
 UNFINISHED = "unfinished"
 PLURAL_FORMS = 3
+SUFFIX = ".qm"
 HEADER = '<?xml version="1.0" encoding="utf-8"?>\n<!DOCTYPE TS>\n'
 
 
@@ -98,31 +96,26 @@ def _escaped(text: str) -> str:
     )
 
 
-def release_tool() -> str:
-    chosen = os.environ.get(TOOL_ENV_VAR, "").strip()
-    if chosen:
-        if not os.access(chosen, os.X_OK):
-            raise SystemExit(f"{TOOL_ENV_VAR}={chosen} is not an executable")
-        return chosen
-    for name in RELEASE_TOOLS:
-        found = shutil.which(name)
-        if found:
-            return found
-    return ""
+def translated(path: pathlib.Path) -> list[tuple[str, str, list[str]]]:
+    root = ElementTree.parse(path).getroot()
+    messages: list[tuple[str, str, list[str]]] = []
+    for block in root.iter("context"):
+        context = block.findtext("name") or CONTEXT
+        for message in block.iter("message"):
+            target = message.find("translation")
+            if target is None or target.get("type") == UNFINISHED:
+                continue
+            forms = [form.text or "" for form in target.findall("numerusform")]
+            messages.append((context, message.findtext("source") or "", forms or [target.text or ""]))
+    return messages
 
 
-def compile_all() -> bool:
-    tool = release_tool()
-    if not tool:
-        print(f"lrelease not found — .ts updated, .qm left as it was. "
-              f"Install Qt tools or point {TOOL_ENV_VAR} at lrelease.")
-        return False
+def compile_all() -> None:
     for language in LANGUAGES:
-        source = FOLDER / f"{PREFIX}_{language}.ts"
-        target = FOLDER / f"{PREFIX}_{language}.qm"
-        subprocess.run([tool, str(source), "-qm", str(target)], check=True)
-        print(f"compiled {target.relative_to(REPO_ROOT)}")
-    return True
+        target = FOLDER / f"{PREFIX}_{language}{SUFFIX}"
+        messages = translated(FOLDER / f"{PREFIX}_{language}.ts")
+        target.write_bytes(compile_qm(language, messages))
+        print(f"compiled {target.relative_to(REPO_ROOT)}: {len(messages)} messages")
 
 
 def main() -> int:

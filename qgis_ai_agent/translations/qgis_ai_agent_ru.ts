@@ -163,12 +163,12 @@
         <translation>Скопировать весь диалог</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/llm/client.py" line="31"/>
+        <location filename="qgis_ai_agent/core/llm/client.py" line="28"/>
         <source>Could not reach {endpoint}: {reason}. Check the address, the network and the QGIS proxy settings.</source>
         <translation>Не удалось достучаться до {endpoint}: {reason}. Проверьте адрес, сеть и настройки прокси в QGIS.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/settings.py" line="22"/>
+        <location filename="qgis_ai_agent/core/settings.py" line="21"/>
         <source>Could not save the key to the system keyring: {reason}.&#10;&#10;On Linux this needs a running secret service — gnome-keyring or KWallet. If the keyring library is missing, install it into the QGIS Python: see the Dependencies section of the plugin documentation.</source>
         <translation>Не удалось сохранить ключ в системном хранилище: {reason}.&#10;&#10;В Linux для этого нужна запущенная служба секретов — gnome-keyring или KWallet. Если не хватает библиотеки keyring, поставьте её в Python QGIS: см. раздел «Зависимости» в документации плагина.</translation>
     </message>
@@ -238,12 +238,12 @@
         <translation>Новые слои: {0}.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/llm/client.py" line="48"/>
+        <location filename="qgis_ai_agent/core/llm/client.py" line="44"/>
         <source>No API URL. Set one in Settings.</source>
         <translation>Не задан адрес API. Укажите его в настройках.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/llm/client.py" line="23"/>
+        <location filename="qgis_ai_agent/core/llm/client.py" line="22"/>
         <source>No API key. Set one in Settings — or connect to a local model: an address on localhost needs no key.</source>
         <translation>Не задан ключ API. Укажите его в настройках — или подключитесь к локальной модели: адресу на localhost ключ не нужен.</translation>
     </message>
@@ -470,22 +470,22 @@
         <translation>Проверяю подключение…</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/llm/client.py" line="160"/>
+        <location filename="qgis_ai_agent/core/llm/client.py" line="156"/>
         <source>The API returned an empty answer.</source>
         <translation>API вернул пустой ответ.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/llm/client.py" line="124"/>
+        <location filename="qgis_ai_agent/core/llm/client.py" line="120"/>
         <source>The API returned non-JSON: {0}</source>
         <translation>API вернул не JSON: {0}</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/llm/client.py" line="126"/>
+        <location filename="qgis_ai_agent/core/llm/client.py" line="122"/>
         <source>The API returned something that is not a JSON object.</source>
         <translation>API вернул нечто, что не является объектом JSON.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/llm/client.py" line="40"/>
+        <location filename="qgis_ai_agent/core/llm/client.py" line="36"/>
         <source>The API returned {0}: {1}</source>
         <translation>API вернул {0}: {1}</translation>
     </message>
@@ -579,8 +579,8 @@
         <translation>выбираю объекты</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/llm/client.py" line="132"/>
-        <location filename="qgis_ai_agent/core/llm/client.py" line="134"/>
+        <location filename="qgis_ai_agent/core/llm/client.py" line="128"/>
+        <location filename="qgis_ai_agent/core/llm/client.py" line="130"/>
         <source>service unavailable</source>
         <translation>сервис недоступен</translation>
     </message>
