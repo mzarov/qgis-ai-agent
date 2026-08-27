@@ -4,9 +4,9 @@ import zipfile
 
 PLUGIN_NAME = "qgis_ai_agent"
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PACKAGE_DIR = os.path.join(REPO_ROOT, PLUGIN_NAME)
 DIST_DIR = os.path.join(REPO_ROOT, "dist")
-ROOT_FILES = ("__init__.py", "metadata.txt", "icon.png", "LICENSE")
-SOURCE_DIR = "src"
+EXTRA_FILES = ("LICENSE",)
 SKIPPED_DIRS = {"__pycache__", ".git", ".mypy_cache", ".ruff_cache"}
 SKIPPED_NAMES = {"CLAUDE.md", ".DS_Store"}
 SKIPPED_SUFFIXES = (".pyc", ".pyo")
@@ -14,7 +14,7 @@ REQUIRED_INSIDE = ("skills/inspect/SKILL.md", "skills/style/SKILL.md", "skills/p
 
 
 def read_version() -> str:
-    path = os.path.join(REPO_ROOT, "metadata.txt")
+    path = os.path.join(PACKAGE_DIR, "metadata.txt")
     with open(path, encoding="utf-8") as handle:
         for line in handle:
             if line.startswith("version="):
@@ -30,19 +30,18 @@ def is_wanted(name: str) -> bool:
 
 def collect() -> list[tuple[str, str]]:
     entries: list[tuple[str, str]] = []
-    for name in ROOT_FILES:
+    for name in EXTRA_FILES:
         absolute = os.path.join(REPO_ROOT, name)
         if not os.path.isfile(absolute):
             raise SystemExit(f"Не найден обязательный файл {name}")
         entries.append((absolute, f"{PLUGIN_NAME}/{name}"))
-    for folder, dirs, names in os.walk(os.path.join(REPO_ROOT, SOURCE_DIR)):
+    for folder, dirs, names in os.walk(PACKAGE_DIR):
         dirs[:] = sorted(item for item in dirs if item not in SKIPPED_DIRS)
         for name in sorted(names):
             if not is_wanted(name):
                 continue
             absolute = os.path.join(folder, name)
-            relative = os.path.relpath(absolute, REPO_ROOT)
-            entries.append((absolute, f"{PLUGIN_NAME}/{relative}"))
+            entries.append((absolute, os.path.relpath(absolute, REPO_ROOT)))
     return entries
 
 
@@ -54,9 +53,9 @@ def verify(entries: list[tuple[str, str]]) -> None:
     ]
     if missing:
         raise SystemExit("В сборку не попало обязательное: " + ", ".join(missing))
-    entry_point = f"{PLUGIN_NAME}/src/{PLUGIN_NAME}/core/plugin.py"
-    if entry_point not in packed:
-        raise SystemExit(f"В сборку не попала точка входа {entry_point}")
+    for tail in (f"{PLUGIN_NAME}/plugin.py", f"{PLUGIN_NAME}/metadata.txt"):
+        if tail not in packed:
+            raise SystemExit(f"В сборку не попал {tail}")
 
 
 def build() -> str:

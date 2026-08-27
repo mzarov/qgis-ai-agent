@@ -5,7 +5,7 @@ import pathlib
 import unittest
 
 SOURCE_ROOT = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qgis_ai_agent"
 )
 KNOWN = set(dir(builtins)) | {"__file__", "__name__", "__doc__", "__package__"}
 MAX_LINES = 200
@@ -144,6 +144,16 @@ class StyleTest(unittest.TestCase):
             if lines > MAX_LINES:
                 too_long.append(f"{os.path.basename(path)}: {lines}")
         self.assertEqual(too_long, [])
+
+    def test_every_function_declares_its_return_type(self):
+        bare = []
+        for path in python_files():
+            for node in ast.walk(ast.parse(read_source(path))):
+                if (isinstance(node, ast.FunctionDef)
+                        and node.returns is None
+                        and not node.name.startswith("__")):
+                    bare.append(f"{os.path.basename(path)}:{node.lineno} {node.name}")
+        self.assertEqual(bare, [])
 
     def test_imports_are_absolute(self):
         relative = []

@@ -1,0 +1,28 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Тесты
+        run: python3 -m unittest discover -s tests -t .
+      - name: Сборка плагина
+        run: python3 tools/build_plugin.py
+      - name: Архив как артефакт
+        if: matrix.python == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: qgis_ai_agent
+          path: dist/*.zip
