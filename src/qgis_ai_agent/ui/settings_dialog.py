@@ -2,23 +2,22 @@ from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
-    QDialogButtonBox,
-    QFormLayout,
+    QHBoxLayout,
     QLineEdit,
-    QMessageBox,
     QPushButton,
     QVBoxLayout,
 )
 
 from qgis_ai_agent.core.llm.dialects import DIALECTS
+from qgis_ai_agent.core.llm.providers import TITLES, by_title, matching
 from qgis_ai_agent.core.settings import (
     AUTH_TYPE_BEARER,
     AUTH_TYPE_OAUTH,
     get_api_key,
     get_api_url,
     get_auth_type,
-    get_model,
     get_dialect,
+    get_model,
     get_verify_ssl,
     set_api_key,
     set_api_url,
@@ -27,109 +26,165 @@ from qgis_ai_agent.core.settings import (
     set_model,
     set_verify_ssl,
 )
+from qgis_ai_agent.ui import settings_fields as fields
+from qgis_ai_agent.ui import style
+from qgis_ai_agent.ui.settings_probe import probe
+
+TITLE = "Настройки — QGIS AI Agent"
+MIN_WIDTH = 520
+MARGINS = (16, 16, 16, 14)
+SPACING = 12
+SAVED = "Настройки сохранены."
+TESTING = "Проверяю подключение…"
+KEY_HINT = "Хранится в системном хранилище, не в файле настроек."
+KEYLESS_HINT = "Для локального сервера ключ не нужен — оставьте поле пустым."
+DIALECT_HINT = "auto определяет формат по адресу: api.anthropic.com — Anthropic, остальное — OpenAI."
+AUTH_HINT = "Bearer подходит почти всем; OAuth — для корпоративных шлюзов."
 
 
 class SettingsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Настройки — QGIS AI Agent")
-        layout = QVBoxLayout(self)
+        self.setWindowTitle(TITLE)
+        self.setMinimumWidth(MIN_WIDTH)
+        palette = self.palette()
+        column = QVBoxLayout(self)
+        column.setContentsMargins(*MARGINS)
+        column.setSpacing(SPACING)
+        column.addWidget(self._build_connection(palette))
+        column.addWidget(self._build_advanced(palette))
+        self._status = fields.status(palette)
+        column.addWidget(self._status)
+        column.addStretch(1)
+        column.addLayout(self._build_buttons(palette))
+        self._sync_preset()
 
-        form = QFormLayout()
-        self.url_edit = QLineEdit()
+    def _build_connection(self, palette):
+        frame, column = fields.card(palette)
+        column.addWidget(fields.section("Подключение", palette))
+
+        self.preset_combo = QComboBox()
+        self.preset_combo.addItems(TITLES)
+        self.preset_combo.currentTextChanged.connect(self._apply_preset)
+        column.addWidget(fields.field("Провайдер", self.preset_combo, "", palette))
+
+        self.url_edit = QLineEdit(get_api_url())
         self.url_edit.setPlaceholderText("https://api.openai.com/v1")
-        self.url_edit.setText(get_api_url())
-        form.addRow("Базовый URL API:", self.url_edit)
+        self.url_edit.textChanged.connect(self._sync_preset)
+        column.addWidget(
+            fields.field("Базовый URL", self.url_edit, "Без /chat/completions на конце.", palette)
+        )
 
-        self.model_edit = QLineEdit()
-        self.model_edit.setPlaceholderText("gpt-4o-mini")
-        self.model_edit.setText(get_model())
-        form.addRow("Модель:", self.model_edit)
+        self.model_edit = QLineEdit(get_model())
+        column.addWidget(fields.field("Модель", self.model_edit, "", palette))
 
-        self.key_edit = QLineEdit()
+        self.key_edit = QLineEdit(get_api_key())
         self.key_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        self.key_edit.setPlaceholderText("Оставьте пустым, чтобы не менять")
-        self.key_edit.setText(get_api_key())
-        form.addRow("API-ключ:", self.key_edit)
+        self.key_edit.setPlaceholderText("Ключ провайдера")
+        self._key_field = fields.field("API-ключ", self.key_edit, KEY_HINT, palette)
+        column.addWidget(self._key_field)
+        return frame
+
+    def _build_advanced(self, palette):
+        frame, column = fields.card(palette)
+        column.addWidget(fields.section("Дополнительно", palette))
 
         self.dialect_combo = QComboBox()
         self.dialect_combo.addItems(list(DIALECTS))
-        index = self.dialect_combo.findText(get_dialect())
-        if index >= 0:
-            self.dialect_combo.setCurrentIndex(index)
-        self.dialect_combo.setToolTip(
-            "auto определяет формат по адресу: api.anthropic.com — Anthropic, "
-            "всё остальное — OpenAI-совместимый."
-        )
-        form.addRow("Формат API:", self.dialect_combo)
+        _select(self.dialect_combo, get_dialect())
+        column.addWidget(fields.field("Формат API", self.dialect_combo, DIALECT_HINT, palette))
 
         self.auth_type_combo = QComboBox()
         self.auth_type_combo.addItems([AUTH_TYPE_BEARER, AUTH_TYPE_OAUTH])
-        idx = self.auth_type_combo.findText(get_auth_type())
-        if idx >= 0:
-            self.auth_type_combo.setCurrentIndex(idx)
-        form.addRow("Тип авторизации:", self.auth_type_combo)
+        _select(self.auth_type_combo, get_auth_type())
+        column.addWidget(fields.field("Тип авторизации", self.auth_type_combo, AUTH_HINT, palette))
 
         self.verify_ssl_cb = QCheckBox("Проверять SSL-сертификат")
         self.verify_ssl_cb.setChecked(get_verify_ssl())
-        form.addRow("", self.verify_ssl_cb)
+        column.addWidget(self.verify_ssl_cb)
+        return frame
 
-        layout.addLayout(form)
-
+    def _build_buttons(self, palette):
+        row = QHBoxLayout()
+        row.setSpacing(8)
         self.test_btn = QPushButton("Проверить подключение")
+        self.test_btn.setStyleSheet(fields.plain_button(palette))
         self.test_btn.clicked.connect(self._test_connection)
-        layout.addWidget(self.test_btn)
+        row.addWidget(self.test_btn)
+        row.addStretch(1)
 
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Close
-        )
-        buttons.button(QDialogButtonBox.StandardButton.Save).clicked.connect(self._save)
-        buttons.button(QDialogButtonBox.StandardButton.Close).clicked.connect(self.reject)
-        layout.addWidget(buttons)
+        close_btn = QPushButton("Закрыть")
+        close_btn.setStyleSheet(fields.plain_button(palette))
+        close_btn.clicked.connect(self.reject)
+        row.addWidget(close_btn)
+
+        save_btn = QPushButton("Сохранить")
+        save_btn.setStyleSheet(fields.accent_button(palette))
+        save_btn.setDefault(True)
+        save_btn.clicked.connect(self._save)
+        row.addWidget(save_btn)
+        return row
+
+    def _apply_preset(self, title):
+        preset = by_title(title)
+        if preset.is_custom:
+            self._paint_key_hint(True)
+            return
+        self.url_edit.setText(preset.url)
+        _select(self.dialect_combo, preset.dialect)
+        self.model_edit.setPlaceholderText(preset.model_hint)
+        self._paint_key_hint(preset.needs_key)
+
+    def _sync_preset(self):
+        preset = matching(self.url_edit.text())
+        _select(self.preset_combo, preset.title)
+        self.model_edit.setPlaceholderText(preset.model_hint)
+        self._paint_key_hint(preset.needs_key or preset.is_custom)
+
+    def _paint_key_hint(self, needs_key):
+        self._key_field.setToolTip(KEY_HINT if needs_key else KEYLESS_HINT)
+        self.key_edit.setPlaceholderText("Ключ провайдера" if needs_key else "Не требуется")
 
     def _save(self):
-        url = self.url_edit.text().strip()
-        model = self.model_edit.text().strip()
-        key = self.key_edit.text()
-        set_api_url(url or None)
-        set_model(model or None)
+        set_api_url(self.url_edit.text().strip() or None)
+        set_model(self.model_edit.text().strip() or None)
         set_auth_type(self.auth_type_combo.currentText())
         set_dialect(self.dialect_combo.currentText())
         set_verify_ssl(self.verify_ssl_cb.isChecked())
+        key = self.key_edit.text()
         if key:
             try:
                 set_api_key(key)
             except RuntimeError as error:
-                QMessageBox.warning(self, "Ключ не сохранён", str(error))
+                self._show(str(error), style.danger(self.palette()))
                 return
-        QMessageBox.information(self, "Настройки", "Настройки сохранены.")
+        self._show(SAVED, style.success(self.palette()))
 
     def _test_connection(self):
-        from qgis_ai_agent.core.llm.client import chat
-
         self.test_btn.setEnabled(False)
+        self._show(TESTING, style.muted(self.palette()))
         try:
-            url = self.url_edit.text().strip()
-            model = self.model_edit.text().strip()
-            key = self.key_edit.text().strip() or get_api_key()
-            auth_type = self.auth_type_combo.currentText()
-            dialect = self.dialect_combo.currentText()
-            verify = self.verify_ssl_cb.isChecked()
-            reply = chat(
-                [{"role": "user", "content": "Ответь одним словом: ок"}],
-                url_override=url or None,
-                model_override=model or None,
-                key_override=key or None,
-                auth_type_override=auth_type or None,
-                dialect_override=dialect or None,
-                verify_override=verify,
-            )
-            QMessageBox.information(
-                self,
-                "Проверка подключения",
-                f"Ответ модели: {reply[:200]}" + ("..." if len(reply) > 200 else ""),
-            )
-        except Exception as e:
-            QMessageBox.warning(self, "Ошибка", str(e))
+            ok, message = probe(self._overrides())
         finally:
             self.test_btn.setEnabled(True)
+        palette = self.palette()
+        self._show(message, style.success(palette) if ok else style.danger(palette))
+
+    def _overrides(self):
+        return {
+            "url_override": self.url_edit.text().strip() or None,
+            "model_override": self.model_edit.text().strip() or None,
+            "key_override": self.key_edit.text().strip() or get_api_key() or None,
+            "auth_type_override": self.auth_type_combo.currentText() or None,
+            "dialect_override": self.dialect_combo.currentText() or None,
+            "verify_override": self.verify_ssl_cb.isChecked(),
+        }
+
+    def _show(self, message, colour):
+        fields.paint_status(self._status, message, colour)
+
+
+def _select(combo, value):
+    index = combo.findText(value or "")
+    if index >= 0:
+        combo.setCurrentIndex(index)
