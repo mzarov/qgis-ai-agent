@@ -4,9 +4,9 @@ from qgis.core import QgsVectorLayer
 
 from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
+from qgis_ai_agent.qgis_tools.common.expressions import build_context, build_request
 from qgis_ai_agent.qgis_tools.common.layers import find_layer_by_name
 from qgis_ai_agent.qgis_tools.inspect.aggregates import AGGREGATE_FUNCTIONS
-from qgis_ai_agent.qgis_tools.inspect.expressions import build_context, build_request
 from qgis_ai_agent.qgis_tools.inspect.queries import DEFAULT_ROW_LIMIT, run_aggregate, run_rows
 
 
@@ -82,6 +82,12 @@ class QueryLayerTool(BaseTool):
             "description": "Which fields to show for the features. All of them by default.",
             "required": False,
         },
+        {
+            "name": "selected_only",
+            "type": "boolean",
+            "description": "Work only with the features the user selected on the map",
+            "required": False,
+        },
     ]
 
     def summarize_call(self, params: dict[str, Any]) -> str:
@@ -99,14 +105,31 @@ class QueryLayerTool(BaseTool):
 
         context = build_context(layer)
         request = build_request(params.get("filter") or "", layer)
+        if params.get("selected_only"):
+            _restrict_to_selection(layer, request)
         aggregate = (params.get("aggregate") or "").strip().lower()
 
         result: dict[str, Any] = {"layer_name": layer.name()}
         condition = (params.get("filter") or "").strip()
         if condition:
             result["filter"] = condition
+        if params.get("selected_only"):
+            result["selected_only"] = True
         if aggregate:
             result.update(run_aggregate(layer, request, context, params, aggregate))
         else:
             result.update(run_rows(layer, request, context, params))
         return result
+
+
+def _restrict_to_selection(layer: QgsVectorLayer, request: Any) -> None:
+    try:
+        ids = list(layer.selectedFeatureIds())
+    except Exception:
+        ids = []
+    if not ids:
+        raise ValueError(
+            f"Nothing is selected on layer '{layer.name()}'. Ask the user to select "
+            "features first, or drop selected_only."
+        )
+    request.setFilterFids(ids)

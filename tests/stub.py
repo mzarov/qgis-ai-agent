@@ -84,6 +84,7 @@ core = _mod(
         "QgsCoordinateTransform",
         "QgsBlockingNetworkRequest",
         "QgsMapSettings",
+        "QgsProviderRegistry",
         "QgsMapRendererParallelJob",
     ],
 )

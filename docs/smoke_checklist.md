@@ -465,3 +465,29 @@ These verify the agent solves everyday tasks without wandering through search.
     the settings → after Apply no verification run starts.
 97. **Verification does not loop.** Apply the plan queued BY a verification
     run → the changes land, and no further verification starts on its own.
+
+## Selection, basemaps, databases, editing
+
+98. **The agent sees the selection.** Select a few features by hand, ask
+    “what did I select?” → get_selection lists the layer, the count and real
+    attributes.
+99. **Computing over the selection.** “Total area of the selected polygons” →
+    query_layer with selected_only=true; the number matches the manual check.
+100. **Nothing selected is said plainly.** Clear the selection and repeat →
+     the agent says nothing is selected instead of computing over everything.
+101. **A basemap lands at the bottom.** “Add an OpenStreetMap basemap” → after
+     Apply the tile layer sits under all layers and the map shows tiles.
+102. **A custom tile URL without {z} is refused** with a clear message before
+     anything is queued.
+103. **Database connections are read-only discovered.** With a saved PostGIS
+     connection, “load roads from the database” walks
+     list_db_connections → list_db_tables → add_db_layer and never asks for a
+     password in chat.
+104. **Editing asks twice.** “Set type to park for the selected features” →
+     the plan card, then Apply → an extra warning dialog listing exactly the
+     destructive steps. Declining leaves the data untouched.
+105. **The edit really lands.** Accepting the dialog changes the values; the
+     verification pass re-reads them and confirms the count.
+106. **delete_features refuses to delete everything silently.** “Delete all
+     features” works only when the filter is the literal all; an empty filter
+     is rejected with an explanation.

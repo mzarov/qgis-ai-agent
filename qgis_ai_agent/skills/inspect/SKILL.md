@@ -1,7 +1,7 @@
 ---
 name: inspect
 description: Read the current QGIS project — structure, layers, attribute data, CRS, environment. Load this whenever you need facts about the project before answering or acting.
-tools: [get_project_info, list_layers, describe_layer, get_field_values, sample_features, query_layer, get_canvas_extent, render_map, get_qgis_info]
+tools: [get_project_info, list_layers, describe_layer, get_field_values, sample_features, query_layer, get_selection, get_canvas_extent, render_map, get_qgis_info]
 ---
 
 # Reading the project
@@ -96,6 +96,14 @@ Rules that matter:
 - `order_by` works only without `aggregate`.
 - If the tool reports that too many features match, add a `filter` — it refuses to
   return a partial aggregate rather than answer wrongly.
+
+## The user's selection
+
+When the request says "selected", "these features", "highlighted" or otherwise
+points at the screen, call `get_selection` first — it lists which layers hold
+selected features and samples their attributes. To compute over exactly those
+features, pass `selected_only=true` to `query_layer`. If nothing is selected,
+say so and ask what to select instead of guessing a filter.
 
 ## Seeing the map
 

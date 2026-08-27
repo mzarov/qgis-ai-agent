@@ -8,7 +8,8 @@ from qgis_ai_agent.core.orchestrator.contracts import DockWidgetContract
 from qgis_ai_agent.core.settings import get_verify_after_apply
 from qgis_ai_agent.core.state.conversation import ConversationState
 from qgis_ai_agent.i18n import tr
-from qgis_ai_agent.qgis_tools.registry import summarize_tool_call
+from qgis_ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
+from qgis_ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call
 
 LOG_TAG = "QGIS AI Agent"
 MESSAGE_DURATION_SEC = 8
@@ -17,6 +18,7 @@ RUN_STOPPED = tr("Run stopped. Any changes the agent had planned were dropped.")
 SWITCH_WHILE_RUNNING = tr("Wait for the current task to finish.")
 SWITCH_WHILE_PENDING = tr("Apply or cancel the planned changes first.")
 VERIFYING = tr("Checking the applied changes…")
+DESTRUCTIVE_DECLINED = tr("Kept everything as it was — the destructive steps were not applied.")
 
 
 class CoreOrchestrator:
@@ -125,7 +127,19 @@ class CoreOrchestrator:
         if not self.agent.has_pending_writes:
             self.dock_widget.add_system_message(tr("There are no changes to apply."))
             return
+        destructive = self._destructive_lines()
+        if destructive and not self.dock_widget.confirm_destructive(destructive):
+            self.dock_widget.add_system_message(DESTRUCTIVE_DECLINED)
+            return
         self.agent.confirm_pending()
+
+    def _destructive_lines(self) -> list[str]:
+        lines = []
+        for call in self.agent.pending_writes():
+            tool = get_tool_by_name(call.name)
+            if tool is not None and tool.safety == SAFETY_DESTRUCTIVE:
+                lines.append(summarize_tool_call(call.name, call.arguments))
+        return lines
 
     def on_cancel_plan(self) -> None:
         self.agent.cancel_pending()
