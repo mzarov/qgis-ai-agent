@@ -22,7 +22,7 @@ def fetch(query: str) -> str:
     request.setRawHeader(b"User-Agent", USER_AGENT.encode("utf-8"))
 
     caller = QgsBlockingNetworkRequest()
-    code = caller.post(request, QByteArray(f"data={query}".encode("utf-8")))
+    code = caller.post(request, QByteArray(f"data={query}".encode()))
     if code != QgsBlockingNetworkRequest.ErrorCode.NoError:
         raise ValueError(_failure(caller))
 
@@ -36,9 +36,7 @@ def fetch(query: str) -> str:
 def _check_size(payload: bytes) -> None:
     if len(payload) <= MAX_BYTES:
         return
-    raise ValueError(
-        TOO_BIG.format(megabytes=len(payload) / 1024 / 1024, limit=MAX_BYTES // 1024 // 1024)
-    )
+    raise ValueError(TOO_BIG.format(megabytes=len(payload) / 1024 / 1024, limit=MAX_BYTES // 1024 // 1024))
 
 
 def _check_shape(text: str) -> None:

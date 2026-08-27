@@ -1,8 +1,6 @@
 import json
 from typing import Any
 
-from qgis_ai_agent.i18n import tr
-
 from qgis.core import QgsBlockingNetworkRequest
 from qgis.PyQt.QtCore import QByteArray, QUrl
 from qgis.PyQt.QtNetwork import QNetworkRequest
@@ -16,18 +14,17 @@ from qgis_ai_agent.core.settings import (
     get_model,
     get_verify_ssl,
 )
+from qgis_ai_agent.i18n import tr
 
 DEFAULT_TIMEOUT = 120
 LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1", "0.0.0.0", "host.docker.internal")
 MISSING_KEY_MSG = tr(
-    "No API key. Set one in Settings — or connect to a local model: "
-    "an address on localhost needs no key."
+    "No API key. Set one in Settings — or connect to a local model: an address on localhost needs no key."
 )
 ERROR_BODY_LIMIT = 300
 STATUS_ATTRIBUTE = QNetworkRequest.Attribute.HttpStatusCodeAttribute
 TRANSPORT_FAILED = tr(
-    "Could not reach {endpoint}: {reason}. Check the address, the network and "
-    "the QGIS proxy settings."
+    "Could not reach {endpoint}: {reason}. Check the address, the network and the QGIS proxy settings."
 )
 
 
@@ -80,9 +77,7 @@ def post_json(
     caller = QgsBlockingNetworkRequest()
     payload = QByteArray(json.dumps(body, ensure_ascii=False).encode("utf-8"))
     if caller.post(request, payload) != QgsBlockingNetworkRequest.ErrorCode.NoError:
-        raise ConnectionError(
-            TRANSPORT_FAILED.format(endpoint=endpoint, reason=_reason(caller))
-        )
+        raise ConnectionError(TRANSPORT_FAILED.format(endpoint=endpoint, reason=_reason(caller)))
     reply = caller.reply()
     text = bytes(reply.content()).decode("utf-8", errors="replace")
     status = _status_of(reply)
@@ -91,9 +86,7 @@ def post_json(
     return _decoded(text, status)
 
 
-def _build_network_request(
-    endpoint: str, headers: dict[str, str], verify_override: bool | None
-) -> QNetworkRequest:
+def _build_network_request(endpoint: str, headers: dict[str, str], verify_override: bool | None) -> QNetworkRequest:
     request = QNetworkRequest(QUrl(endpoint))
     for name, value in headers.items():
         request.setRawHeader(name.encode("utf-8"), value.encode("utf-8"))
@@ -117,7 +110,9 @@ def _decoded(text: str, status: int) -> dict[str, Any]:
     try:
         parsed = json.loads(text)
     except ValueError:
-        raise ApiResponseError(status, text, tr("The API returned non-JSON: {0}").format(text[:ERROR_BODY_LIMIT]))
+        raise ApiResponseError(
+            status, text, tr("The API returned non-JSON: {0}").format(text[:ERROR_BODY_LIMIT])
+        ) from None
     if not isinstance(parsed, dict):
         raise ApiResponseError(status, text, tr("The API returned something that is not a JSON object."))
     return parsed

@@ -10,24 +10,29 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: ["3.12", "3.13"]
+        python: ["3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-      - name: Тесты
+      - name: Tests
         run: python3 -m unittest discover -s tests -t .
-      - name: Сканеры репозитория QGIS
+      - name: Lint and formatting
         if: matrix.python == '3.12'
         run: |
-          python3 -m pip install --quiet bandit detect-secrets flake8
+          python3 -m pip install --quiet ruff==0.13.3
+          ruff check .
+          ruff format --check .
+      - name: QGIS repository scanners
+        if: matrix.python == '3.12'
+        run: |
+          python3 -m pip install --quiet bandit detect-secrets
           cd qgis_ai_agent && bandit -r . -q
           cd .. && detect-secrets scan qgis_ai_agent/ > /dev/null
-          flake8 qgis_ai_agent/
-      - name: Сборка плагина
+      - name: Plugin build
         run: python3 tools/build_plugin.py
-      - name: Архив как артефакт
+      - name: Archive as artifact
         if: matrix.python == '3.12'
         uses: actions/upload-artifact@v4
         with:

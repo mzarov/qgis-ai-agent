@@ -47,8 +47,7 @@ class DownloadOsmTool(BaseTool):
             "name": "key",
             "type": "string",
             "description": (
-                "OSM key for the simple case: amenity, highway, building, landuse. "
-                "For anything harder use selectors."
+                "OSM key for the simple case: amenity, highway, building, landuse. For anything harder use selectors."
             ),
             "required": False,
         },
@@ -56,8 +55,7 @@ class DownloadOsmTool(BaseTool):
             "name": "value",
             "type": "string",
             "description": (
-                "Value of the key: cafe, primary, residential. Without it every "
-                "object carrying that key is taken."
+                "Value of the key: cafe, primary, residential. Without it every object carrying that key is taken."
             ),
             "required": False,
         },
@@ -65,8 +63,7 @@ class DownloadOsmTool(BaseTool):
             "name": "area",
             "type": "string",
             "description": (
-                "Name of the territory in OSM: Berlin, Île-de-France, Kyoto. "
-                "Mutually exclusive with bbox."
+                "Name of the territory in OSM: Berlin, Île-de-France, Kyoto. Mutually exclusive with bbox."
             ),
             "required": False,
         },
@@ -74,8 +71,7 @@ class DownloadOsmTool(BaseTool):
             "name": "bbox",
             "type": "string",
             "description": (
-                'A "west,south,east,north" rectangle in EPSG:4326 degrees, '
-                f'or "{CANVAS}" for the current map view.'
+                f'A "west,south,east,north" rectangle in EPSG:4326 degrees, or "{CANVAS}" for the current map view.'
             ),
             "required": False,
         },
@@ -85,7 +81,7 @@ class DownloadOsmTool(BaseTool):
             "items": {"type": "string"},
             "description": (
                 "Overpass selectors, one per list entry, for example "
-                '["node[\'amenity\'~\'cafe|restaurant\']", "way[\'shop\']"]. '
+                "[\"node['amenity'~'cafe|restaurant']\", \"way['shop']\"]. "
                 "This expresses everything a key-value pair cannot: several tags, "
                 "regular expressions, exclusions through != and !~. "
                 "The plugin appends the territory, the timeout and the output — do not pass those."
@@ -96,10 +92,7 @@ class DownloadOsmTool(BaseTool):
             "name": "geometry",
             "type": "string",
             "enum": sorted(SUBLAYERS),
-            "description": (
-                "Which geometries to load: points, lines, polygons, "
-                "or all for everything that was found."
-            ),
+            "description": ("Which geometries to load: points, lines, polygons, or all for everything that was found."),
             "required": False,
         },
         {
@@ -120,9 +113,7 @@ class DownloadOsmTool(BaseTool):
         area, bbox = territory(params)
         prepared["area"] = area
         prepared["bbox"] = as_text(bbox) if bbox else ""
-        build_query(
-            prepared["key"], params.get("value") or "", area, bbox, prepared["geometry"], chosen
-        )
+        build_query(prepared["key"], params.get("value") or "", area, bbox, prepared["geometry"], chosen)
         return prepared
 
     def summarize_call(self, params: dict[str, Any]) -> str:

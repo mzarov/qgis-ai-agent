@@ -12,6 +12,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from qgis_ai_agent.core.llm.dialects import DIALECTS
+from qgis_ai_agent.core.llm.probe import probe
 from qgis_ai_agent.core.llm.providers import TITLES, by_title, matching
 from qgis_ai_agent.core.settings import (
     AUTH_TYPE_BEARER,
@@ -32,7 +33,6 @@ from qgis_ai_agent.core.settings import (
 from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.ui import settings_fields as fields
 from qgis_ai_agent.ui import style
-from qgis_ai_agent.core.llm.probe import probe
 
 TITLE = tr("Settings — QGIS AI Agent")
 MIN_WIDTH = 520
@@ -42,10 +42,7 @@ SAVED = tr("Settings saved.")
 TESTING = tr("Testing the connection…")
 KEY_HINT = tr("Stored in the system keyring, not in the settings file.")
 KEYLESS_HINT = tr("A local server needs no key — leave this empty.")
-DIALECT_HINT = tr(
-    "auto picks the format from the address: api.anthropic.com is Anthropic, "
-    "everything else is OpenAI."
-)
+DIALECT_HINT = tr("auto picks the format from the address: api.anthropic.com is Anthropic, everything else is OpenAI.")
 AUTH_HINT = tr("Bearer suits almost everyone; OAuth is for corporate gateways.")
 
 

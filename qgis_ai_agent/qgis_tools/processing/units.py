@@ -17,9 +17,7 @@ def check_distance_units(algorithm, arguments: dict[str, Any]) -> None:
         layer = resolve_layer(arguments.get(parent_name))
         if layer is None or not crs_is_geographic(layer):
             continue
-        raise ValueError(
-            _degrees_error(arguments[parent_name], layer, parameter.name(), distance, parent_name)
-        )
+        raise ValueError(_degrees_error(arguments[parent_name], layer, parameter.name(), distance, parent_name))
 
 
 def _degrees_error(layer_name, layer, parameter_name: str, distance: float, parent_name: str) -> str:

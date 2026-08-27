@@ -14,7 +14,7 @@
         <translation> при условии {0}</translation>
     </message>
     <message numerus="yes">
-        <location filename="qgis_ai_agent/ui/activity.py" line="109"/>
+        <location filename="qgis_ai_agent/ui/activity.py" line="107"/>
         <source>%n action(s)</source>
         <translation>
             <numerusform>%n действие</numerusform>
@@ -28,12 +28,12 @@
         <translation>Локальному серверу ключ не нужен — оставьте поле пустым.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="102"/>
+        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="99"/>
         <source>API format</source>
         <translation>Формат API</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="91"/>
+        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="88"/>
         <source>API key</source>
         <translation>Ключ API</translation>
     </message>
@@ -43,17 +43,17 @@
         <translation>Добавляю слой «{0}»{1}.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="97"/>
+        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="94"/>
         <source>Advanced</source>
         <translation>Дополнительно</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/plan.py" line="120"/>
+        <location filename="qgis_ai_agent/ui/plan.py" line="119"/>
         <source>Applied</source>
         <translation>Применено</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/plan.py" line="105"/>
+        <location filename="qgis_ai_agent/ui/plan.py" line="104"/>
         <source>Apply</source>
         <translation>Применить</translation>
     </message>
@@ -73,67 +73,67 @@
         <translation>Спросите о проекте или попросите обработать слои.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="107"/>
+        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="104"/>
         <source>Authorisation type</source>
         <translation>Тип авторизации</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="82"/>
+        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="79"/>
         <source>Base URL</source>
         <translation>Базовый адрес</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="49"/>
+        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="46"/>
         <source>Bearer suits almost everyone; OAuth is for corporate gateways.</source>
         <translation>Bearer подходит почти всем; OAuth — для корпоративных шлюзов.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/plan.py" line="112"/>
+        <location filename="qgis_ai_agent/ui/plan.py" line="111"/>
         <source>Cancel</source>
         <translation>Отменить</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/plan.py" line="123"/>
+        <location filename="qgis_ai_agent/ui/plan.py" line="122"/>
         <source>Cancelled</source>
         <translation>Отменено</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="151"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="148"/>
         <source>Changes applied.</source>
         <translation>Изменения применены.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/project/configure_layer.py" line="73"/>
+        <location filename="qgis_ai_agent/qgis_tools/project/configure_layer.py" line="69"/>
         <source>Changing layer '{0}'.</source>
         <translation>Меняю слой «{0}».</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/project/configure_layer.py" line="74"/>
+        <location filename="qgis_ai_agent/qgis_tools/project/configure_layer.py" line="70"/>
         <source>Changing layer '{0}': {1}.</source>
         <translation>Меняю слой «{0}»: {1}.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/project/configure_project.py" line="54"/>
+        <location filename="qgis_ai_agent/qgis_tools/project/configure_project.py" line="46"/>
         <source>Changing the project settings.</source>
         <translation>Меняю настройки проекта.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/project/configure_project.py" line="55"/>
+        <location filename="qgis_ai_agent/qgis_tools/project/configure_project.py" line="47"/>
         <source>Changing the project settings: {0}.</source>
         <translation>Меняю настройки проекта: {0}.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/dock_widget.py" line="71"/>
+        <location filename="qgis_ai_agent/ui/dock_widget.py" line="68"/>
         <source>Clear conversation</source>
         <translation>Очистить диалог</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="123"/>
+        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="120"/>
         <source>Close</source>
         <translation>Закрыть</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/style/set_categories.py" line="106"/>
+        <location filename="qgis_ai_agent/qgis_tools/style/set_categories.py" line="104"/>
         <source>Colouring '{0}' by field '{1}'.</source>
         <translation>Раскрашиваю «{0}» по полю «{1}».</translation>
     </message>
@@ -143,7 +143,7 @@
         <translation>Подключение есть, но модель вернула пустой ответ.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="71"/>
+        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="68"/>
         <source>Connection</source>
         <translation>Подключение</translation>
     </message>
@@ -153,17 +153,17 @@
         <translation>Диалог не найден.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/dock_widget.py" line="68"/>
+        <location filename="qgis_ai_agent/ui/dock_widget.py" line="66"/>
         <source>Conversations</source>
         <translation>Диалоги</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/conversation.py" line="134"/>
+        <location filename="qgis_ai_agent/ui/conversation.py" line="132"/>
         <source>Copy the whole conversation</source>
         <translation>Скопировать весь диалог</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/llm/client.py" line="28"/>
+        <location filename="qgis_ai_agent/core/llm/client.py" line="26"/>
         <source>Could not reach {endpoint}: {reason}. Check the address, the network and the QGIS proxy settings.</source>
         <translation>Не удалось достучаться до {endpoint}: {reason}. Проверьте адрес, сеть и настройки прокси в QGIS.</translation>
     </message>
@@ -178,12 +178,12 @@
         <translation>Свой адрес</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="148"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="145"/>
         <source>Done: {0} step(s) applied.{1}</source>
         <translation>Готово: применено шагов — {0}.{1}</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/osm/download_osm.py" line="131"/>
+        <location filename="qgis_ai_agent/qgis_tools/osm/download_osm.py" line="122"/>
         <source>Downloading '{0}' from OSM in {1}.</source>
         <translation>Скачиваю из OSM «{0}» в {1}.</translation>
     </message>
@@ -193,7 +193,7 @@
         <translation>Enter — отправить, Shift+Enter — новая строка</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="166"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="161"/>
         <source>Error: {0}</source>
         <translation>Ошибка: {0}</translation>
     </message>
@@ -218,7 +218,7 @@
         <translation>Загружаю знания: {0}</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="86"/>
+        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="83"/>
         <source>Model</source>
         <translation>Модель</translation>
     </message>
@@ -228,48 +228,48 @@
         <translation>Модель ответила: {0}</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/dock_widget.py" line="21"/>
+        <location filename="qgis_ai_agent/ui/dock_widget.py" line="22"/>
         <source>New conversation</source>
         <translation>Новый диалог</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="181"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="174"/>
         <source>New layers: {0}.</source>
         <translation>Новые слои: {0}.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/llm/client.py" line="44"/>
+        <location filename="qgis_ai_agent/core/llm/client.py" line="41"/>
         <source>No API URL. Set one in Settings.</source>
         <translation>Не задан адрес API. Укажите его в настройках.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/llm/client.py" line="22"/>
+        <location filename="qgis_ai_agent/core/llm/client.py" line="21"/>
         <source>No API key. Set one in Settings — or connect to a local model: an address on localhost needs no key.</source>
         <translation>Не задан ключ API. Укажите его в настройках — или подключитесь к локальной модели: адресу на localhost ключ не нужен.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/dock_widget.py" line="22"/>
+        <location filename="qgis_ai_agent/ui/dock_widget.py" line="23"/>
         <source>No past conversations</source>
         <translation>Прошлых диалогов нет</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="146"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="143"/>
         <source>Not all changes were applied.</source>
         <translation>Применились не все изменения.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="153"/>
+        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="150"/>
         <source>Not required</source>
         <translation>Не обязателен</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="76"/>
+        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="73"/>
         <source>Provider</source>
         <translation>Провайдер</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="90"/>
-        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="153"/>
+        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="87"/>
+        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="150"/>
         <source>Provider key</source>
         <translation>Ключ провайдера</translation>
     </message>
@@ -304,7 +304,7 @@
         <translation>Смотрю доступные свойства: {0}.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/inspect/canvas_extent.py" line="21"/>
+        <location filename="qgis_ai_agent/qgis_tools/inspect/canvas_extent.py" line="19"/>
         <source>Reading the current map extent.</source>
         <translation>Смотрю текущий охват карты.</translation>
     </message>
@@ -349,12 +349,12 @@
         <translation>Отклонено: {0}</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/project/remove_layer.py" line="35"/>
+        <location filename="qgis_ai_agent/qgis_tools/project/remove_layer.py" line="34"/>
         <source>Removing layer '{0}' from the project.</source>
         <translation>Убираю слой «{0}» из проекта.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/style/set_labels.py" line="83"/>
+        <location filename="qgis_ai_agent/qgis_tools/style/set_labels.py" line="81"/>
         <source>Removing the labels from layer '{0}'.</source>
         <translation>Убираю подписи со слоя «{0}».</translation>
     </message>
@@ -364,22 +364,22 @@
         <translation>Прогон остановлен. Запланированные агентом изменения отброшены.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/processing/run_processing.py" line="80"/>
+        <location filename="qgis_ai_agent/qgis_tools/processing/run_processing.py" line="73"/>
         <source>Run {0} ({1}{2}){3}.</source>
         <translation>Запустить {0} ({1}{2}){3}.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="128"/>
+        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="125"/>
         <source>Save</source>
         <translation>Сохранить</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/project/save_project.py" line="45"/>
+        <location filename="qgis_ai_agent/qgis_tools/project/save_project.py" line="42"/>
         <source>Saving the project as '{0}'.</source>
         <translation>Сохраняю проект как «{0}».</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/project/save_project.py" line="44"/>
+        <location filename="qgis_ai_agent/qgis_tools/project/save_project.py" line="41"/>
         <source>Saving the project.</source>
         <translation>Сохраняю проект.</translation>
     </message>
@@ -394,28 +394,28 @@
         <translation>Ищу алгоритм: «{0}».</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/composer.py" line="92"/>
-        <location filename="qgis_ai_agent/ui/composer.py" line="130"/>
+        <location filename="qgis_ai_agent/ui/composer.py" line="90"/>
+        <location filename="qgis_ai_agent/ui/composer.py" line="128"/>
         <source>Send</source>
         <translation>Отправить</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/style/set_opacity.py" line="55"/>
+        <location filename="qgis_ai_agent/qgis_tools/style/set_opacity.py" line="52"/>
         <source>Setting opacity of '{0}' to {1}.</source>
         <translation>Ставлю «{0}» непрозрачность {1}.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/style/set_labels.py" line="81"/>
+        <location filename="qgis_ai_agent/qgis_tools/style/set_labels.py" line="79"/>
         <source>Setting up labels for '{0}'.</source>
         <translation>Настраиваю подписи «{0}».</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/style/set_labels.py" line="84"/>
+        <location filename="qgis_ai_agent/qgis_tools/style/set_labels.py" line="82"/>
         <source>Setting up labels for '{0}': {1}.</source>
         <translation>Настраиваю подписи «{0}»: {1}.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/dock_widget.py" line="73"/>
+        <location filename="qgis_ai_agent/ui/dock_widget.py" line="69"/>
         <source>Settings</source>
         <translation>Настройки</translation>
     </message>
@@ -435,12 +435,12 @@
         <translation>Показываю слой «{0}» целиком.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="143"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="140"/>
         <source>Some steps did not run: {0}</source>
         <translation>Часть шагов не выполнилась: {0}</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/composer.py" line="130"/>
+        <location filename="qgis_ai_agent/ui/composer.py" line="128"/>
         <source>Stop</source>
         <translation>Стоп</translation>
     </message>
@@ -450,17 +450,17 @@
         <translation>Хранится в системном хранилище, а не в файле настроек.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/style/set_symbol.py" line="72"/>
+        <location filename="qgis_ai_agent/qgis_tools/style/set_symbol.py" line="71"/>
         <source>Styling '{0}': {1}.</source>
         <translation>Оформляю «{0}»: {1}.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/style/set_symbol.py" line="71"/>
+        <location filename="qgis_ai_agent/qgis_tools/style/set_symbol.py" line="70"/>
         <source>Styling layer '{0}'.</source>
         <translation>Оформляю слой «{0}».</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="117"/>
+        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="114"/>
         <source>Test connection</source>
         <translation>Проверить подключение</translation>
     </message>
@@ -470,37 +470,37 @@
         <translation>Проверяю подключение…</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/llm/client.py" line="156"/>
+        <location filename="qgis_ai_agent/core/llm/client.py" line="151"/>
         <source>The API returned an empty answer.</source>
         <translation>API вернул пустой ответ.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/llm/client.py" line="120"/>
+        <location filename="qgis_ai_agent/core/llm/client.py" line="114"/>
         <source>The API returned non-JSON: {0}</source>
         <translation>API вернул не JSON: {0}</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/llm/client.py" line="122"/>
+        <location filename="qgis_ai_agent/core/llm/client.py" line="117"/>
         <source>The API returned something that is not a JSON object.</source>
         <translation>API вернул нечто, что не является объектом JSON.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/llm/client.py" line="36"/>
+        <location filename="qgis_ai_agent/core/llm/client.py" line="33"/>
         <source>The API returned {0}: {1}</source>
         <translation>API вернул {0}: {1}</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="157"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="153"/>
         <source>The model returned nothing. Try rephrasing.</source>
         <translation>Модель ничего не вернула. Попробуйте переформулировать.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="183"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="176"/>
         <source>The result is in the layer panel.</source>
         <translation>Результат — на панели слоёв.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="126"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="123"/>
         <source>There are no changes to apply.</source>
         <translation>Применять нечего.</translation>
     </message>
@@ -515,7 +515,7 @@
         <translation>Без названия</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="109"/>
+        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="106"/>
         <source>Verify the SSL certificate</source>
         <translation>Проверять сертификат SSL</translation>
     </message>
@@ -525,7 +525,7 @@
         <translation>Дождитесь окончания текущей задачи.</translation>
     </message>
     <message numerus="yes">
-        <location filename="qgis_ai_agent/ui/plan.py" line="154"/>
+        <location filename="qgis_ai_agent/ui/plan.py" line="153"/>
         <source>Will change the project — %n step(s)</source>
         <translation>
             <numerusform>Изменит проект — %n шаг</numerusform>
@@ -534,7 +534,7 @@
         </translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="82"/>
+        <location filename="qgis_ai_agent/ui/settings_dialog.py" line="79"/>
         <source>Without /chat/completions at the end.</source>
         <translation>Без /chat/completions на конце.</translation>
     </message>
@@ -569,7 +569,7 @@
         <translation>считаю {0}</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/common/properties.py" line="176"/>
+        <location filename="qgis_ai_agent/qgis_tools/common/properties.py" line="166"/>
         <source>defaults</source>
         <translation>по умолчанию</translation>
     </message>
@@ -579,23 +579,23 @@
         <translation>выбираю объекты</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/llm/client.py" line="128"/>
-        <location filename="qgis_ai_agent/core/llm/client.py" line="130"/>
+        <location filename="qgis_ai_agent/core/llm/client.py" line="123"/>
+        <location filename="qgis_ai_agent/core/llm/client.py" line="125"/>
         <source>service unavailable</source>
         <translation>сервис недоступен</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/style/set_opacity.py" line="54"/>
+        <location filename="qgis_ai_agent/qgis_tools/style/set_opacity.py" line="51"/>
         <source>the given amount</source>
         <translation>заданную величину</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/osm/download_osm.py" line="130"/>
+        <location filename="qgis_ai_agent/qgis_tools/osm/download_osm.py" line="121"/>
         <source>the given extent</source>
         <translation>заданном охвате</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/style/set_opacity.py" line="50"/>
+        <location filename="qgis_ai_agent/qgis_tools/style/set_opacity.py" line="47"/>
         <source>the layer</source>
         <translation>слою</translation>
     </message>
@@ -610,22 +610,22 @@
         <translation>вендор/модель</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/common/properties.py" line="180"/>
+        <location filename="qgis_ai_agent/qgis_tools/common/properties.py" line="170"/>
         <source>{0} and {1} more</source>
         <translation>{0} и ещё {1}</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/activity.py" line="160"/>
+        <location filename="qgis_ai_agent/ui/activity.py" line="158"/>
         <source>{0} min {1} s</source>
         <translation>{0} мин {1} с</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/activity.py" line="157"/>
+        <location filename="qgis_ai_agent/ui/activity.py" line="155"/>
         <source>{0} ms</source>
         <translation>{0} мс</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/activity.py" line="159"/>
+        <location filename="qgis_ai_agent/ui/activity.py" line="157"/>
         <source>{0} s</source>
         <translation>{0} с</translation>
     </message>

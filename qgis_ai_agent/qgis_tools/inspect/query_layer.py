@@ -4,10 +4,10 @@ from qgis.core import QgsVectorLayer
 
 from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
+from qgis_ai_agent.qgis_tools.common.layers import find_layer_by_name
 from qgis_ai_agent.qgis_tools.inspect.aggregates import AGGREGATE_FUNCTIONS
 from qgis_ai_agent.qgis_tools.inspect.expressions import build_context, build_request
 from qgis_ai_agent.qgis_tools.inspect.queries import DEFAULT_ROW_LIMIT, run_aggregate, run_rows
-from qgis_ai_agent.qgis_tools.common.layers import find_layer_by_name
 
 
 class QueryLayerTool(BaseTool):
@@ -54,7 +54,7 @@ class QueryLayerTool(BaseTool):
         {
             "name": "expression",
             "type": "string",
-            "description": "Field or expression to aggregate: \"population\", \"$length\", \"$area\"",
+            "description": 'Field or expression to aggregate: "population", "$length", "$area"',
             "required": False,
         },
         {
@@ -66,7 +66,7 @@ class QueryLayerTool(BaseTool):
         {
             "name": "order_by",
             "type": "string",
-            "description": "Feature ordering: \"population DESC\". Only without aggregate.",
+            "description": 'Feature ordering: "population DESC". Only without aggregate.',
             "required": False,
         },
         {

@@ -1,9 +1,9 @@
 import hashlib
 from typing import Any
 
-from qgis_ai_agent.i18n import tr
-
 from qgis.core import QgsSettings
+
+from qgis_ai_agent.i18n import tr
 
 SETTINGS_PREFIX = "qgis_ai_agent"
 KEYRING_SERVICE = "qgis_ai_agent"
@@ -108,7 +108,7 @@ def set_api_key(value: str) -> None:
 
         keyring.set_password(KEYRING_SERVICE, KEYRING_KEY, value)
     except Exception as error:
-        raise RuntimeError(KEYRING_FAILURE_MSG.format(reason=error or type(error).__name__))
+        raise RuntimeError(KEYRING_FAILURE_MSG.format(reason=error or type(error).__name__)) from error
 
 
 def _url_settings_key(url: str) -> str:

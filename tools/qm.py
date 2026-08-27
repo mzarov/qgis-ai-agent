@@ -23,13 +23,19 @@ NUMERUS_RULES = {
     "en": bytes([Q_EQ, 1]),
     "ru": bytes(
         [
-            Q_MOD_10 | Q_EQ, 1,
+            Q_MOD_10 | Q_EQ,
+            1,
             Q_AND,
-            Q_MOD_100 | Q_NOT | Q_EQ, 11,
+            Q_MOD_100 | Q_NOT | Q_EQ,
+            11,
             Q_NEWRULE,
-            Q_MOD_10 | Q_BETWEEN, 2, 4,
+            Q_MOD_10 | Q_BETWEEN,
+            2,
+            4,
             Q_AND,
-            Q_MOD_100 | Q_NOT | Q_BETWEEN, 10, 19,
+            Q_MOD_100 | Q_NOT | Q_BETWEEN,
+            10,
+            19,
         ]
     ),
 }
@@ -85,8 +91,8 @@ def read_qm(data: bytes) -> list[tuple[str, str, list[str]]]:
     position = len(MAGIC)
     while position < len(data):
         tag = data[position]
-        size = struct.unpack(">I", data[position + 1:position + 5])[0]
-        blocks[tag] = data[position + 5:position + 5 + size]
+        size = struct.unpack(">I", data[position + 1 : position + 5])[0]
+        blocks[tag] = data[position + 5 : position + 5 + size]
         position += 5 + size
     return _records(blocks.get(BLOCK_MESSAGES, b""))
 
@@ -102,9 +108,9 @@ def _records(body: bytes) -> list[tuple[str, str, list[str]]]:
             position += 1
             if tag == TAG_END:
                 break
-            size = struct.unpack(">I", body[position:position + 4])[0]
+            size = struct.unpack(">I", body[position : position + 4])[0]
             position += 4
-            payload = body[position:position + size]
+            payload = body[position : position + size]
             position += size
             if tag == TAG_TRANSLATION:
                 forms.append(payload.decode("utf-16-be"))

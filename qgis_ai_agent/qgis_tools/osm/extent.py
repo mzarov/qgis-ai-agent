@@ -15,28 +15,21 @@ TOO_WIDE = (
 def parse_bbox(text: str) -> tuple[float, float, float, float]:
     parts = [item.strip() for item in str(text or "").replace(";", ",").split(",")]
     if len(parts) != PARTS:
-        raise ValueError(
-            'bbox is given as four numbers "west,south,east,north" in degrees, '
-            f"got: '{text}'."
-        )
+        raise ValueError(f"bbox is given as four numbers \"west,south,east,north\" in degrees, got: '{text}'.")
     try:
         west, south, east, north = (float(item) for item in parts)
     except ValueError:
-        raise ValueError(f"bbox '{text}' holds a value that is not a number.")
+        raise ValueError(f"bbox '{text}' holds a value that is not a number.") from None
     return _checked(west, south, east, north)
 
 
 def canvas_bbox() -> tuple[float, float, float, float]:
     rectangle, source = _canvas_extent()
     if rectangle is None:
-        raise ValueError(
-            "The map is not available, so the current view cannot be read. Give bbox as numbers, or area."
-        )
+        raise ValueError("The map is not available, so the current view cannot be read. Give bbox as numbers, or area.")
     if source is not None and source.authid() != WGS84:
         rectangle = _to_wgs84(rectangle, source)
-    return _checked(
-        rectangle.xMinimum(), rectangle.yMinimum(), rectangle.xMaximum(), rectangle.yMaximum()
-    )
+    return _checked(rectangle.xMinimum(), rectangle.yMinimum(), rectangle.xMaximum(), rectangle.yMaximum())
 
 
 def _canvas_extent() -> tuple[Any, Any]:
@@ -50,15 +43,11 @@ def _canvas_extent() -> tuple[Any, Any]:
 
 
 def _to_wgs84(rectangle: Any, source: Any) -> Any:
-    transform = QgsCoordinateTransform(
-        source, QgsCoordinateReferenceSystem(WGS84), QgsProject.instance()
-    )
+    transform = QgsCoordinateTransform(source, QgsCoordinateReferenceSystem(WGS84), QgsProject.instance())
     return transform.transformBoundingBox(rectangle)
 
 
-def _checked(
-    west: float, south: float, east: float, north: float
-) -> tuple[float, float, float, float]:
+def _checked(west: float, south: float, east: float, north: float) -> tuple[float, float, float, float]:
     if west >= east or south >= north:
         raise ValueError(
             "In bbox the west must be less than the east, and the south less than the north. "

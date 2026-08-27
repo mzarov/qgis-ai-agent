@@ -3,9 +3,9 @@ from typing import Any
 from qgis.core import Qgis, QgsMessageLog
 
 from qgis_ai_agent.core.agent.loop import AgentLoop
-from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.core.orchestrator.contracts import DockWidgetContract
 from qgis_ai_agent.core.state.conversation import ConversationState
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.registry import summarize_tool_call
 
 LOG_TAG = "QGIS AI Agent"
@@ -115,10 +115,7 @@ class CoreOrchestrator:
         if final_text:
             self.dock_widget.add_result_message(final_text)
             self.conversation.add("assistant", final_text)
-        lines = [
-            f"{index}. {summarize_tool_call(call.name, call.arguments)}"
-            for index, call in enumerate(calls, 1)
-        ]
+        lines = [f"{index}. {summarize_tool_call(call.name, call.arguments)}" for index, call in enumerate(calls, 1)]
         self._plan_message_id = self.dock_widget.add_plan_message(lines)
 
     def on_confirm_plan(self) -> None:
@@ -153,9 +150,7 @@ class CoreOrchestrator:
     def on_finished(self, text: str) -> None:
         message = (text or "").strip()
         if not message:
-            self.dock_widget.add_system_message(
-                tr("The model returned nothing. Try rephrasing.")
-            )
+            self.dock_widget.add_system_message(tr("The model returned nothing. Try rephrasing."))
             return
         self.dock_widget.add_result_message(message)
         self.conversation.add("assistant", message)
@@ -173,9 +168,7 @@ class CoreOrchestrator:
     @staticmethod
     def _where_to_look(results: list) -> str:
         names = [
-            result.payload.get("result_layer_name")
-            for result in results
-            if result.payload.get("result_layer_name")
+            result.payload.get("result_layer_name") for result in results if result.payload.get("result_layer_name")
         ]
         if names:
             return " " + tr("New layers: {0}.").format(", ".join(f"«{name}»" for name in names))
@@ -184,6 +177,4 @@ class CoreOrchestrator:
         return ""
 
     def _push_message(self, text: str, level) -> None:
-        self.iface.messageBar().pushMessage(
-            "QGIS AI Agent", text, level=level, duration=MESSAGE_DURATION_SEC
-        )
+        self.iface.messageBar().pushMessage("QGIS AI Agent", text, level=level, duration=MESSAGE_DURATION_SEC)

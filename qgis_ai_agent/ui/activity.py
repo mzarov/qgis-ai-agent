@@ -66,9 +66,7 @@ class ActivityGroup(QFrame):
         row.addWidget(self._title, 1)
 
         self._elapsed = QLabel()
-        self._elapsed.setStyleSheet(
-            f"color: {style.css_color(style.muted(palette))}; border: none;"
-        )
+        self._elapsed.setStyleSheet(f"color: {style.css_color(style.muted(palette))}; border: none;")
         self._shrink(self._elapsed)
         row.addWidget(self._elapsed)
 

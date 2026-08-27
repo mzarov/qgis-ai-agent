@@ -11,10 +11,7 @@ ROUND_DIGITS = 4
 def compute(function: str, values: list[Any], matched: int) -> Any:
     name = (function or "").strip().lower()
     if name not in AGGREGATE_FUNCTIONS:
-        raise ValueError(
-            f"Unknown aggregate function: '{function}'. "
-            f"Available: {', '.join(AGGREGATE_FUNCTIONS)}."
-        )
+        raise ValueError(f"Unknown aggregate function: '{function}'. Available: {', '.join(AGGREGATE_FUNCTIONS)}.")
     if name == "count":
         return matched
     filled = [value for value in values if value is not None]

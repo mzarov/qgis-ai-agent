@@ -123,8 +123,5 @@ def build_json_tools_block(tool_schemas: list[dict[str, Any]]) -> str:
     for schema in tool_schemas:
         function = schema.get("function") or {}
         parameters = json.dumps(function.get("parameters") or {}, ensure_ascii=False)
-        lines.append(
-            f"- {function.get('name', '')}: {function.get('description', '')}\n"
-            f"  arguments: {parameters}"
-        )
+        lines.append(f"- {function.get('name', '')}: {function.get('description', '')}\n  arguments: {parameters}")
     return "\n".join(lines)

@@ -59,9 +59,7 @@ class DispatchTest(unittest.TestCase):
         self.assertIn("inspect", offered)
 
     def test_invalid_write_is_rejected_before_the_queue(self):
-        result = self.loop._dispatch(
-            call("run_processing", algorithm_id="native:buffer", parameters={})
-        )
+        result = self.loop._dispatch(call("run_processing", algorithm_id="native:buffer", parameters={}))
         self.assertFalse(result.ok)
         self.assertIn("arguments_sent", result.payload)
         self.assertFalse(self.loop.has_pending_writes)
@@ -89,7 +87,6 @@ class BatchTest(unittest.TestCase):
     def test_confirm_on_empty_queue_does_nothing(self):
         self.loop.confirm_pending()
         self.assertEqual(self.executor.ran, [])
-
 
 
 class BatchDedupTest(unittest.TestCase):

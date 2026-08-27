@@ -28,10 +28,7 @@ class ConversationState:
         self._store.save(self._session)
 
     def recent(self) -> list[tuple[str, str]]:
-        return [
-            (session.identifier, session.display_title())
-            for session in self._store.recent(current_project_key())
-        ]
+        return [(session.identifier, session.display_title()) for session in self._store.recent(current_project_key())]
 
     def start_new(self) -> None:
         self.save()

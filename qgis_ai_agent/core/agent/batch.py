@@ -1,6 +1,7 @@
 import json
+from collections.abc import Callable
 from dataclasses import replace
-from typing import Any, Callable
+from typing import Any
 
 from qgis.PyQt.QtWidgets import QApplication
 

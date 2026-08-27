@@ -31,9 +31,7 @@ class ConversationView(QScrollArea):
         super().__init__(parent)
         self.setWidgetResizable(True)
         self.setFrameShape(QFrame.Shape.NoFrame)
-        self.setStyleSheet(
-            f"QScrollArea {{ background: {style.css_color(style.surface(self.palette()))}; }}"
-        )
+        self.setStyleSheet(f"QScrollArea {{ background: {style.css_color(style.surface(self.palette()))}; }}")
 
         holder = QWidget()
         self._column = QVBoxLayout(holder)

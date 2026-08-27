@@ -73,8 +73,7 @@ class PlanCard(QFrame):
     def _build_step(index: int, step: str, palette) -> QWidget:
         row = QWidget()
         row.setStyleSheet(
-            f"border: none; border-top: {style.HAIRLINE}px solid "
-            f"{style.css_color(style.hairline(palette))};"
+            f"border: none; border-top: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
         )
         layout = QHBoxLayout(row)
         layout.setContentsMargins(0, 6, 0, 6)

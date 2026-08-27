@@ -49,18 +49,12 @@ def _wrapped(statements: list[str], header: str, binding: str) -> str:
 
 
 def _area_header(area: str) -> str:
-    return (
-        f"[out:xml][timeout:{QUERY_TIMEOUT_SEC}];\n"
-        f'area["name"="{_escaped(area)}"]->.searchArea;\n'
-    )
+    return f'[out:xml][timeout:{QUERY_TIMEOUT_SEC}];\narea["name"="{_escaped(area)}"]->.searchArea;\n'
 
 
 def _bbox_header(bbox: tuple[float, float, float, float]) -> str:
     west, south, east, north = bbox
-    return (
-        f"[out:xml][timeout:{QUERY_TIMEOUT_SEC}]"
-        f"[bbox:{south:.6f},{west:.6f},{north:.6f},{east:.6f}];\n"
-    )
+    return f"[out:xml][timeout:{QUERY_TIMEOUT_SEC}][bbox:{south:.6f},{west:.6f},{north:.6f},{east:.6f}];\n"
 
 
 def _selector(key: str, value: str) -> str:

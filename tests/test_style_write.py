@@ -1,11 +1,19 @@
 import unittest
 
 from qgis_ai_agent.qgis_tools.common import colors
-from qgis_ai_agent.qgis_tools.style import apply, describe_options, label_build, label_catalogue
-from qgis_ai_agent.qgis_tools.style import set_categories, set_graduated, set_labels
-from qgis_ai_agent.qgis_tools.common import colors
-from qgis_ai_agent.qgis_tools.style import symbol_build, symbol_catalogue
-from qgis_ai_agent.qgis_tools.style import set_opacity, set_symbol
+from qgis_ai_agent.qgis_tools.style import (
+    apply,
+    describe_options,
+    label_build,
+    label_catalogue,
+    set_categories,
+    set_graduated,
+    set_labels,
+    set_opacity,
+    set_symbol,
+    symbol_build,
+    symbol_catalogue,
+)
 from tests.fake_layers import Colour, Field, Layer, Style, Symbol
 
 RAMPS = ["Blues", "Spectral", "Viridis"]
@@ -130,9 +138,7 @@ class SetSymbolTest(StyleWriteCase):
         self.assertIn("dash", str(caught.exception))
 
     def test_summary_lists_what_changes(self):
-        summary = self.tool.summarize_call(
-            {"layer_name": "Дороги", "properties": {"color": "black", "size": 2}}
-        )
+        summary = self.tool.summarize_call({"layer_name": "Дороги", "properties": {"color": "black", "size": 2}})
         self.assertIn("color=black", summary)
         self.assertIn("size=2", summary)
 
@@ -189,9 +195,7 @@ class SetCategoriesTest(StyleWriteCase):
 
     def test_colour_count_must_match_categories(self):
         with self.assertRaises(ValueError) as caught:
-            self.tool.prepare(
-                {"layer_name": "Дороги", "field": "type", "colors": ["#111111"]}
-            )
+            self.tool.prepare({"layer_name": "Дороги", "field": "type", "colors": ["#111111"]})
         self.assertIn("categories", str(caught.exception))
 
     def test_too_many_categories_points_at_graduated(self):
@@ -238,9 +242,7 @@ class SetGraduatedTest(StyleWriteCase):
         self.assertIn("jenks", str(caught.exception))
 
     def test_execute_applies_the_renderer(self):
-        result = self.tool.execute(
-            {"layer_name": "Дороги", "field": "population", "classes": 4, "ramp": "Viridis"}
-        )
+        result = self.tool.execute({"layer_name": "Дороги", "field": "population", "classes": 4, "ramp": "Viridis"})
         self.assertEqual(result["class_count"], 4)
         self.assertEqual(result["mode"], "quantile")
         self.assertEqual(self.layer.repaints, 1)
@@ -359,9 +361,7 @@ class SetLabelsTest(StyleWriteCase):
         self.assertIn("key-value pairs", str(caught.exception))
 
     def test_summary_lists_what_changes(self):
-        summary = self.tool.summarize_call(
-            {"layer_name": "Дороги", "properties": {"field": "name", "bold": True}}
-        )
+        summary = self.tool.summarize_call({"layer_name": "Дороги", "properties": {"field": "name", "bold": True}})
         self.assertIn("field=name", summary)
         self.assertIn("bold=True", summary)
 
@@ -373,9 +373,7 @@ class SetLabelsTest(StyleWriteCase):
         self.assertTrue(self.tool.summarize_call({"layer_name": "Дороги", "properties": "мусор"}).strip())
 
     def test_result_reports_what_was_applied(self):
-        result = self.tool.execute(
-            {"layer_name": "Дороги", "properties": {"field": "name", "bold": True}}
-        )
+        result = self.tool.execute({"layer_name": "Дороги", "properties": {"field": "name", "bold": True}})
         self.assertEqual(result["applied"], ["bold", "field"])
 
 

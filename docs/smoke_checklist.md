@@ -1,68 +1,71 @@
 # Smoke Checklist
 
-Ручная проверка в живом QGIS — то, что не покрыть тестами: настоящие вызовы
-PyQGIS к слоям и отрисовка Qt. Всё остальное закрыто набором `tests/`.
+Manual verification in live QGIS — the part tests cannot cover: real PyQGIS
+calls against layers and Qt painting. Everything else is closed by the
+`tests/` suite.
 
-## Техническая проверка после правок
+## Technical check after edits
 
 ```bash
 python3 -m unittest discover -s tests -t .
 ```
 
-Набор проходит без QGIS. Если он красный — в живой QGIS идти рано.
+The suite runs without QGIS. If it is red, going into live QGIS is premature.
 
-## Read-тулы без агента
+## Read tools without the agent
 
-Открыть проект со слоями, затем **Плагины → Консоль Python**:
+Open a project with layers, then **Plugins → Python Console**:
 
 ```python
 from qgis_ai_agent.qgis_tools.registry import execute_tool
 execute_tool("get_project_info", {})
 execute_tool("list_layers", {})
-execute_tool("describe_layer", {"layer_name": "ИМЯ_СЛОЯ"})
-execute_tool("get_field_values", {"layer_name": "ИМЯ_СЛОЯ", "field_name": "ПОЛЕ"})
-execute_tool("sample_features", {"layer_name": "ИМЯ_СЛОЯ", "limit": 3})
-execute_tool("query_layer", {"layer_name": "Дороги", "aggregate": "count"})
-execute_tool("query_layer", {"layer_name": "Дороги", "aggregate": "count", "filter": "highway = 'motorway'"})
-execute_tool("query_layer", {"layer_name": "Города", "order_by": "population DESC", "limit": 5, "fields": ["name", "population"]})
-execute_tool("query_layer", {"layer_name": "Реки", "order_by": "$length DESC", "limit": 1})
-execute_tool("query_layer", {"layer_name": "Озера и пруды", "aggregate": "sum", "expression": "$area"})
-execute_tool("query_layer", {"layer_name": "Дороги", "aggregate": "mean", "expression": "$length", "group_by": "highway"})
-execute_tool("describe_style", {"layer_name": "ИМЯ_СЛОЯ"})
+execute_tool("describe_layer", {"layer_name": "LAYER_NAME"})
+execute_tool("get_field_values", {"layer_name": "LAYER_NAME", "field_name": "FIELD"})
+execute_tool("sample_features", {"layer_name": "LAYER_NAME", "limit": 3})
+execute_tool("query_layer", {"layer_name": "Roads", "aggregate": "count"})
+execute_tool("query_layer", {"layer_name": "Roads", "aggregate": "count", "filter": "highway = 'motorway'"})
+execute_tool("query_layer", {"layer_name": "Cities", "order_by": "population DESC", "limit": 5, "fields": ["name", "population"]})
+execute_tool("query_layer", {"layer_name": "Rivers", "order_by": "$length DESC", "limit": 1})
+execute_tool("query_layer", {"layer_name": "Lakes and ponds", "aggregate": "sum", "expression": "$area"})
+execute_tool("query_layer", {"layer_name": "Roads", "aggregate": "mean", "expression": "$length", "group_by": "highway"})
+execute_tool("describe_style", {"layer_name": "LAYER_NAME"})
 execute_tool("get_qgis_info", {})
 execute_tool("get_canvas_extent", {})
 execute_tool("search_processing", {"query": "buffer"})
 execute_tool("describe_processing", {"algorithm_id": "native:buffer"})
 ```
 
-Ожидания:
+Expectations:
 
-- `get_project_info` отдаёт дерево слоёв с группами и видимостью, единицы, темы
-- `describe_layer` для слоя в `EPSG:4326` отдаёт `crs_is_geographic: True`,
-  `suggested_metric_crs`, а также `provider`, `is_valid` и `style_summary`
-- `get_field_values` для числового поля отдаёт `min`/`max`, для текстового —
-  список уникальных значений с пометкой об обрезке
-- `sample_features` отдаёт реальные записи, длинные значения обрезаны
-- `describe_style` показывает тип рендерера и классы с цветами
-- `describe_processing` отдаёт enum парами `{"value": 0, "label": "Round"}`
-- несуществующее имя слоя или поля даёт ошибку со списком доступных
-- `query_layer` без `aggregate` отдаёт объекты, с `aggregate` — одно число
-- `group_by` даёт список групп со значением и числом объектов в каждой
-- `$length` и `$area` считаются в единицах CRS слоя: на слое в градусах
-  число получится бессмысленным, агент обязан это сказать
-- ошибка в выражении даёт текст парсера, а не падение
+- `get_project_info` returns the layer tree with groups and visibility, the
+  units, the themes
+- `describe_layer` for a layer in `EPSG:4326` returns `crs_is_geographic: True`,
+  `suggested_metric_crs`, plus `provider`, `is_valid` and `style_summary`
+- `get_field_values` for a numeric field returns `min`/`max`; for a text field —
+  the unique values with a truncation note
+- `sample_features` returns real records, long values truncated
+- `describe_style` shows the renderer type and the classes with colours
+- `describe_processing` returns enums as `{"value": 0, "label": "Round"}` pairs
+- a nonexistent layer or field name yields an error with the list of available
+  ones
+- `query_layer` without `aggregate` returns features; with it — a single number
+- `group_by` yields a list of groups with a value and a feature count each
+- `$length` and `$area` are measured in the layer's CRS units: on a layer in
+  degrees the number is meaningless, and the agent must say so
+- an error in an expression yields the parser text, not a crash
 
-### Ветки классов в describe_style
+### Class branches in describe_style
 
-Категории, градации и правила не проверить на проекте с одиночными символами.
-Снипет подставляет категоризацию, проверяет и возвращает рендерер обратно —
-в проекте ничего не остаётся:
+Categories, graduations and rules cannot be checked on a project with single
+symbols only. This snippet installs a categorisation, checks, and puts the
+renderer back — nothing remains in the project:
 
 ```python
 from qgis.core import QgsProject, QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsSymbol
 from qgis_ai_agent.qgis_tools.registry import execute_tool
 
-layer = QgsProject.instance().mapLayersByName("ИМЯ_СЛОЯ")[0]
+layer = QgsProject.instance().mapLayersByName("LAYER_NAME")[0]
 saved = layer.renderer().clone()
 field = layer.fields().names()[1]
 values = list(layer.uniqueValues(layer.fields().indexOf(field)))[:4]
@@ -71,357 +74,371 @@ categories = [
     for v in values
 ]
 layer.setRenderer(QgsCategorizedSymbolRenderer(field, categories))
-print(execute_tool("describe_style", {"layer_name": "ИМЯ_СЛОЯ"}))
-print(execute_tool("describe_layer", {"layer_name": "ИМЯ_СЛОЯ"})["style_summary"])
+print(execute_tool("describe_style", {"layer_name": "LAYER_NAME"}))
+print(execute_tool("describe_layer", {"layer_name": "LAYER_NAME"})["style_summary"])
 layer.setRenderer(saved)
 ```
 
-Ожидания: `class_attribute`, список `classes` со значением, подписью и символом
-на каждый класс, `style_summary` вида «категории по полю «…», классов: 4».
+Expectations: `class_attribute`, a `classes` list with a value, a label and a
+symbol per class, and a `style_summary` like “categories on field '…',
+classes: 4”.
 
-### Секреты в источнике
+### Secrets in the source
 
-Если есть слой PostGIS — проверить, что пароль не утекает:
+With a PostGIS layer available — verify the password does not leak:
 
 ```python
-execute_tool("describe_layer", {"layer_name": "ИМЯ_СЛОЯ_POSTGIS"})["source"]
+execute_tool("describe_layer", {"layer_name": "POSTGIS_LAYER_NAME"})["source"]
 ```
 
-В строке должно быть `password=‹скрыто›`, а не сам пароль.
+The string must contain `password=<hidden>`, not the actual password.
 
-## Агентный цикл
+## The agent loop
 
-- **Чтение без подтверждения.** «что у меня в проекте?» → агент вызывает
-  `list_layers`, отвечает по факту, кнопки подтверждения не появляются.
-- **Данные из проекта.** «какие поля в слое X?» → `describe_layer`, в ответе
-  реальные поля.
-- **Формулировка до подтверждения.** Агент пишет «предлагаю», а не «я создал».
-- **Отмена.** Нажать «Отмена» → в проекте ничего не изменилось.
-- **Ошибка тула не рвёт прогон.** Запрос с несуществующим слоем → агент видит
-  ошибку и исправляется сам.
-- **Лимит ходов.** Заведомо неподъёмная задача → остановка на `MAX_ITERATIONS`
-  с внятным сообщением, QGIS не виснет.
+- **Reading without confirmation.** “what is in my project?” → the agent calls
+  `list_layers`, answers from facts, no confirmation buttons appear.
+- **Data from the project.** “which fields does layer X have?” →
+  `describe_layer`, real fields in the answer.
+- **Wording before confirmation.** The agent says “I propose”, never “I created”.
+- **Cancel.** Press Cancel → nothing in the project changed.
+- **A tool error does not kill the run.** A request with a nonexistent layer →
+  the agent sees the error and corrects itself.
+- **The turn limit.** A knowingly impossible task → the run stops at
+  `MAX_ITERATIONS` with a clear message, QGIS does not hang.
 
-## Скиллы
+## Skills
 
-- Вопрос про слои не требует `load_skill` — `inspect` предзагружен.
-- Запрос про обработку → в логе видно `Загружен скилл: processing`.
-- Вопрос про цвета и оформление → `Загружен скилл: style`.
-- Скилл загружается один раз за прогон.
+- A question about layers needs no `load_skill` — `inspect` is preloaded.
+- A processing request → the log shows the `processing` skill loading.
+- A question about colours and styling → the `style` skill loads.
+- A skill loads once per run.
 
-## Сбор контекста
+## Context gathering
 
-- «расскажи про мой проект» → `get_project_info`, в ответе группы слоёв,
-  что включено, единицы измерения
-- «какие значения в поле X» → `get_field_values`, реальные значения
-- «почему города красные» → `load_skill(style)` → `describe_style`, ответ
-  называет поле классификации и цвет, а не просто «красные»
-- битый слой (переименовать исходный файл) → `describe_layer` отдаёт
-  `is_valid: false`, агент предупреждает, а не строит планы поверх
+- “tell me about my project” → `get_project_info`; the answer carries layer
+  groups, what is enabled, the measurement units
+- “which values does field X hold” → `get_field_values`, real values
+- “why are the cities red” → `load_skill(style)` → `describe_style`; the answer
+  names the classification field and the colour, not just “red”
+- a broken layer (rename its source file) → `describe_layer` returns
+  `is_valid: false`; the agent warns instead of planning on top of it
 
-## Обработка и проверка CRS
+## Processing and the CRS check
 
-Главный сценарий, ради которого сделана валидация до очереди:
+The main scenario the pre-queue validation exists for:
 
-1. «построй буфер 500 м вокруг городов» на слое в `EPSG:4326`
-2. первый `run_processing` отклоняется — шаг помечен ✕ в чате
-3. агент **не останавливается**: читает ошибку и строит план из двух шагов —
-   `native:reprojectlayer` → `native:buffer` на его результате
-4. после подтверждения в проекте появляются оба слоя, буфер геометрически верный
+1. “build a 500 m buffer around the cities” on a layer in `EPSG:4326`
+2. the first `run_processing` is rejected — the step is marked ✕ in the chat
+3. the agent **does not stop**: it reads the error and builds a two-step plan —
+   `native:reprojectlayer` → `native:buffer` on its result
+4. after confirmation both layers appear, the buffer is geometrically correct
 
-Дополнительно:
+Additionally:
 
-- «найди алгоритм буфера» → `search_processing` возвращает `native:buffer`
-- enum передан подписью вместо индекса → тул сам приводит к индексу
+- “find the buffer algorithm” → `search_processing` returns `native:buffer`
+- an enum passed as a label instead of an index → the tool coerces it itself
 
-## Транспорт
+## Transport
 
-- **Эндпоинт с function calling** — работает нативный путь.
-- **Эндпоинт без него** — первый запрос падает на `tools`, адаптер уходит в
-  JSON-протокол, флаг `supports_tools` записывается, следующие запросы сразу
-  идут по JSON-пути.
-- Смена URL в настройках не ломает выбор: флаг хранится по хешу URL.
+- **An endpoint with function calling** — the native path works.
+- **An endpoint without it** — the first request fails on `tools`, the adapter
+  switches to the JSON protocol, the `supports_tools` flag is written, the next
+  requests go straight down the JSON path.
+- Changing the URL in the settings does not break the choice: the flag is
+  stored under a hash of the URL.
 
 ```python
 from qgis_ai_agent.core.settings import get_api_url, get_supports_tools
 get_supports_tools(get_api_url())
 ```
 
-## Потоки и выгрузка
+## Threads and unloading
 
-- UI не подвисает во время многошагового прогона.
-- Во время применения батча кнопка «Отправить» заблокирована, в чате видно
-  прогресс по шагам.
-- Выгрузка плагина при активном запросе не роняет QGIS.
+- The UI does not freeze during a multi-step run.
+- While the batch is applying, the Send button is blocked and the chat shows
+  per-step progress.
+- Unloading the plugin during an active request does not crash QGIS.
 
-## Диалоги
+## Conversations
 
-Кнопка «Диалоги» — в шапке панели, слева от «Очистить».
+The Conversations button is in the panel header, left of Clear.
 
-1. **Диалог переживает перезапуск.** Спросить «какие у меня слои?», дождаться
-   ответа, закрыть QGIS, открыть заново, открыть плагин → «Диалоги» → в списке
-   есть строка с текстом вопроса. Выбрать её: переписка вернулась целиком.
-2. **Модель помнит контекст восстановленного диалога.** После пункта 1 спросить
-   «а сколько их?» — ответ должен опираться на прошлый вопрос, а не переспрашивать.
-3. **Новый диалог не тянет старое.** «Диалоги» → «Новый диалог»: лента пуста.
-   Задать вопрос, вернуться к прошлому диалогу — оба на месте и не перемешаны.
-4. **Заголовок — первая реплика.** Длинный вопрос обрезается многоточием,
-   не ломает ширину меню.
-5. **Привязка к проекту.** Открыть другой проект QGIS → «Диалоги»: диалогов из
-   прошлого проекта в списке нет. Вернуть прежний проект — список вернулся.
-6. **Пустое не копится.** Нажать «Новый диалог» пять раз подряд, ничего не
-   спрашивая → в списке не появилось пяти пустых строк.
-7. **Переключение во время работы запрещено.** Дать долгую задачу и, пока агент
-   работает, нажать «Новый диалог» → служебное сообщение «Дождитесь окончания
-   текущей задачи», лента не очистилась.
-8. **Переключение с неприменённым планом запрещено.** Дождаться карточки плана и,
-   не нажимая «Применить», выбрать другой диалог → сообщение про запланированные
-   изменения, карточка на месте, кнопка «Применить» всё ещё работает.
-9. **«Очистить диалог» не удаляет сохранённое.** Очистить ленту, открыть
-   «Диалоги» → диалог по-прежнему в списке и открывается с сообщениями.
+1. **A conversation survives a restart.** Ask “what layers do I have?”, wait
+   for the reply, close QGIS, open it again, open the plugin → Conversations →
+   the list has a row with the question text. Pick it: the whole conversation
+   returns.
+2. **The model remembers the restored context.** After step 1 ask “and how many
+   are there?” — the answer must build on the previous question, not re-ask.
+3. **A new conversation drags nothing along.** Conversations → New
+   conversation: the feed is empty. Ask something, go back to the previous
+   conversation — both are intact and unmixed.
+4. **The title is the first message.** A long question is cut with an ellipsis
+   and does not break the menu width.
+5. **Bound to the project.** Open another QGIS project → Conversations: the
+   previous project's conversations are absent. Return the old project — the
+   list is back.
+6. **Nothing empty accumulates.** Press New conversation five times without
+   asking anything → the list does not gain five empty rows.
+7. **Switching during a run is forbidden.** Start a long task and, while the
+   agent works, press New conversation → the service message says to wait for
+   the current task; the feed is not cleared.
+8. **Switching with an unapplied plan is forbidden.** Wait for a plan card and,
+   without pressing Apply, pick another conversation → a message about the
+   planned changes, the card stays, Apply still works.
+9. **Clear does not delete the saved copy.** Clear the feed, open
+   Conversations → the conversation is still listed and opens with its
+   messages.
 
-## Остановка прогона
+## Stopping a run
 
-1. **Кнопка меняется.** Задать любой вопрос: в момент работы кнопка отправки
-   становится красным квадратом, подсказка — «Работаю… нажмите ■, чтобы
-   остановить».
-2. **Остановка срабатывает сразу.** Дать долгую задачу и нажать ■ — панель
-   разблокируется мгновенно, не дожидаясь ответа модели. Появляется сообщение
-   «Прогон остановлен».
-3. **Поздний ответ не всплывает.** После остановки подождать минуту: ответ модели
-   на прерванный запрос не должен появиться в ленте задним числом.
-4. **После остановки можно работать дальше.** Задать новый вопрос — он проходит
-   обычным порядком.
-5. **Остановка отменяет план.** Довести до карточки плана, нажать ■ (если прогон
-   ещё идёт) или проверить, что после остановки «Применить» ничего не применяет.
-6. **Enter во время работы не отправляет.** Начать долгую задачу, ввести текст,
-   нажать Enter — ничего не уходит.
+1. **The button changes.** Ask anything: while working, the send button becomes
+   a red square with a “Working… press ■ to stop” tooltip.
+2. **Stopping is immediate.** Start a long task and press ■ — the panel
+   unlocks instantly, without waiting for the model. A “run stopped” message
+   appears.
+3. **A late reply does not surface.** After stopping, wait a minute: the
+   model's answer to the aborted request must not appear retroactively.
+4. **Work continues after a stop.** Ask a new question — it goes through
+   normally.
+5. **Stopping cancels the plan.** Get to a plan card, press ■ (if the run is
+   still going) or check that Apply applies nothing after the stop.
+6. **Enter does not send during a run.** Start a long task, type text, press
+   Enter — nothing is sent.
 
-## Изменение оформления
+## Changing the styling
 
-Требует живого проекта со слоями. Все пять тулов — пишущие, значит каждый раз
-должна появляться карточка плана с кнопкой «Применить».
+Requires a live project with layers. All five tools are writers, so a plan card
+with the Apply button must appear every time.
 
-1. **Один цвет.** «Сделай реки синими» → карточка плана, после «Применить» слой
-   перекрашен и легенда обновилась без перезапуска QGIS.
-2. **Отмена ничего не меняет.** Повторить пункт 1 и нажать «Отмена» — цвет слоя
-   прежний.
-3. **Категории.** «Раскрась дороги по типу» → категорий столько же, сколько
-   уникальных значений поля; в легенде подписи значений.
-4. **Палитра по умолчанию.** Тот же запрос без указания палитры не должен падать
-   с ошибкой про палитры.
-5. **Несуществующая палитра.** «Раскрась по типу палитрой ЧегоТоТам» — агент
-   получает список доступных и повторяет вызов сам, не спрашивая пользователя.
-6. **Градации.** «Раскрась по населению, 7 классов, jenks» → семь классов,
-   границы не одинаковые.
-7. **Текстовое поле в градациях.** «Градации по названию» — агент должен
-   переключиться на категории, а не сдаться.
-8. **Подписи.** «Подпиши города названиями» → подписи появились. «Убери подписи»
-   → исчезли, оформление символов при этом не изменилось.
-9. **Прозрачность.** «Сделай подложку на 50% прозрачной» → слой полупрозрачный,
-   рендерер не сброшен.
-10. **Растр.** Прозрачность работает и на растровом слое.
-11. **Цвет словами.** «Сделай леса тёмно-зелёными» — агент подбирает hex сам,
-    ошибки про нераспознанный цвет быть не должно.
-12. **Чтение перед записью.** «Почему города красные? Сделай их синими» — в ленте
-    сначала describe_style, потом set_symbol.
+1. **A single colour.** “Make the rivers blue” → a plan card; after Apply the
+   layer is recoloured and the legend refreshes without restarting QGIS.
+2. **Cancel changes nothing.** Repeat step 1 and press Cancel — the colour is
+   unchanged.
+3. **Categories.** “Colour the roads by type” → as many categories as the field
+   has unique values; the legend shows the value labels.
+4. **The default ramp.** The same request without naming a ramp must not fail
+   with a ramp error.
+5. **A nonexistent ramp.** “Colour by type with the WhateverItWas ramp” — the
+   agent receives the available list and retries by itself, without asking the
+   user.
+6. **Graduations.** “Colour by population, 7 classes, jenks” → seven classes,
+   the boundaries are not identical.
+7. **A text field in graduations.** “Graduate by name” — the agent must switch
+   to categories, not give up.
+8. **Labels.** “Label the cities with names” → labels appear. “Remove the
+   labels” → they vanish; the symbol styling is untouched.
+9. **Opacity.** “Make the basemap 50% transparent” → the layer is see-through,
+   the renderer is not reset.
+10. **Raster.** Opacity works on a raster layer too.
+11. **A colour in words.** “Make the forests dark green” — the agent picks the
+    hex itself; no unrecognised-colour error.
+12. **Reading before writing.** “Why are the cities red? Make them blue” — the
+    feed shows describe_style first, then set_symbol.
 
-## Подписи: обводка текста
+## Labels: the text buffer
 
-13. **Обводка включается.** «Сделай у подписей городов белую обводку, чтобы
-    читались» → в плане один шаг, в нём видно «обводка текста white». После
-    применения подписи с ореолом, размер и цвет текста не сброшены.
-14. **Обводка снимается.** «Убери обводку у подписей» → ореол исчез, подписи
-    остались.
-15. **Шаги в плане различимы.** Запрос, где меняется и цвет, и обводка, не должен
-    давать два одинаковых по тексту шага.
-16. **Дубли схлопываются.** Если агент поставил один и тот же вызов дважды,
-    в карточке плана он должен быть один раз.
-17. **Агент не обещает словами.** Запрос про оформление должен сразу давать
-    карточку плана, а не фразу «предлагаю изменить…» без единого шага.
+13. **The buffer switches on.** “Give the city labels a white halo so they stay
+    readable” → one step in the plan showing the white text buffer. After
+    applying, the labels carry a halo; text size and colour are not reset.
+14. **The buffer switches off.** “Remove the label halo” → the halo is gone,
+    the labels remain.
+15. **Plan steps are distinguishable.** A request changing both the colour and
+    the buffer must not produce two identically worded steps.
+16. **Duplicates collapse.** If the agent queued the same call twice, the plan
+    card shows it once.
+17. **The agent does not promise in prose.** A styling request must yield a
+    plan card right away, not an “I propose to change…” with zero steps.
 
-## Подписи: свойства одним вызовом
+## Labels: properties in one call
 
-18. **Шрифт.** «Сделай подписи городов шрифтом Arial, жирным» → в плане один шаг,
-    в нём видно font и bold. После применения шрифт сменился.
-19. **Сдвиг.** «Сдвинь подписи городов на 3 мм вверх» → подписи сместились;
-    вверх это offset_y отрицательный, проверить направление глазами.
-20. **Размещение.** «Поставь подписи вокруг значков, а не поверх» → placement
-    сменился на around.
-21. **Каталог свойств.** «Какие настройки подписей есть?» → агент зовёт
-    describe_style_options и перечисляет реальные свойства, а не выдуманные.
-22. **Незнакомое свойство.** Попросить что-то на грани, например «сделай подписи
-    вразрядку» — агент либо находит свойство, либо честно говорит, что такого
-    нет, а не обещает прозой.
-23. **Всё одним шагом.** «Подпиши названиями, жирным, 12 пунктов, с белой
-    обводкой» → в карточке ровно один шаг, а не четыре.
+18. **Font.** “Make the city labels Arial, bold” → one step showing font and
+    bold. After applying, the font changed.
+19. **Offset.** “Move the city labels 3 mm up” → the labels moved; up is a
+    negative offset_y, verify the direction by eye.
+20. **Placement.** “Put the labels around the markers, not on top” → placement
+    changed to around.
+21. **The property catalogue.** “Which label settings exist?” → the agent calls
+    describe_style_options and lists real properties, not invented ones.
+22. **An unknown property.** Ask for something borderline, e.g. letter-spaced
+    labels — the agent either finds the property or honestly says there is
+    none, instead of promising in prose.
+23. **Everything in one step.** “Label with names, bold, 12 pt, white halo” →
+    exactly one step in the card, not four.
 
-## Символ: свойства одним вызовом
+## Symbol: properties in one call
 
-24. **Пунктир.** «Сделай дороги серыми пунктирными» → в плане один шаг со
-    stroke_style=dash, после применения линии пунктирные.
-25. **Форма значка.** «Города квадратными значками» → значки квадратные.
-26. **Только контур.** «Полигоны без заливки, только контур» → fill_style=none,
-    контур виден.
-27. **Неприменимое свойство.** «Сделай дороги квадратными» → агент не должен
-    молча отчитаться об успехе: в результате будет skipped с пояснением, и агент
-    сообщит пользователю, что форма к линиям неприменима.
-28. **Каталог символа.** «Какие настройки символа есть?» → describe_style_options
-    с kind=symbol, перечислены реальные свойства.
+24. **Dashes.** “Make the roads grey and dashed” → one step with
+    stroke_style=dash; after applying, the lines are dashed.
+25. **Marker shape.** “Cities as square markers” → the markers are square.
+26. **Outline only.** “Polygons with no fill, outline only” → fill_style=none,
+    the outline is visible.
+27. **An inapplicable property.** “Make the roads square” → the agent must not
+    silently report success: the result carries skipped with a note, and the
+    agent tells the user shape does not apply to lines.
+28. **The symbol catalogue.** “Which symbol settings exist?” →
+    describe_style_options with kind=symbol, real properties listed.
 
-## Проект и слои
+## Project and layers
 
-29. **Загрузка слоя.** «Загрузи /путь/к/файлу.geojson» → карточка плана, после
-    применения слой в дереве и на карте.
-30. **Несуществующий файл.** «Загрузи /нет/такого.shp» → внятная ошибка про путь,
-    ничего не поставлено в очередь.
-31. **Повтор имени.** Загрузить тот же файл второй раз → агент получает отказ и
-    сам предлагает другое имя, а не пытается снова.
-32. **Группа.** «Добавь слой в группу Фон» → группа создалась, слой внутри.
-33. **Видимость.** «Спрячь слой дорог» → галочка снята, карта перерисована.
-34. **Переименование.** «Переименуй слой в «Дороги города»» → имя сменилось
-    и в дереве, и в легенде.
-35. **Порядок.** «Подними реки наверх» → слой стал первым в своей группе и
-    рисуется поверх остальных.
-36. **Возврат в корень.** Переместить слой в группу, затем «вынеси из группы» →
-    слой в корне дерева.
-37. **Зум.** «Покажи слой городов» → карта подогналась под охват, подтверждения
-    не спрашивалось.
-38. **CRS проекта.** «Переведи проект в EPSG:3857» → сменилась проекция карты,
-    CRS самих слоёв прежняя.
-39. **Сохранение.** «Сохрани проект» на уже сохранённом проекте → записался туда
-    же, заголовок окна без звёздочки.
-40. **Новый проект.** «Сохрани проект» на несохранённом → агент не выдумывает
-    путь, а просит его.
-41. **Удаление слоя.** «Убери слой X» → слой исчез из проекта, файл на диске
-    остался.
-42. **Сквозной сценарий.** «Загрузи файл, раскрась по типу, подпиши названиями и
-    сохрани проект» → один прогон, все шаги в одной карточке плана.
+29. **Loading a layer.** “Load /path/to/file.geojson” → a plan card; after
+    applying, the layer is in the tree and on the map.
+30. **A nonexistent file.** “Load /no/such.shp” → a clear error about the path,
+    nothing queued.
+31. **A duplicate name.** Load the same file twice → the agent receives the
+    refusal and proposes another name itself instead of retrying.
+32. **A group.** “Add the layer to the Background group” → the group was
+    created, the layer is inside.
+33. **Visibility.** “Hide the roads layer” → the checkbox is off, the map
+    repainted.
+34. **Renaming.** “Rename the layer to 'City roads'” → the name changed both in
+    the tree and in the legend.
+35. **Order.** “Move the rivers to the top” → the layer is first in its group
+    and draws above the rest.
+36. **Back to the root.** Move a layer into a group, then “take it out of the
+    group” → the layer is at the tree root.
+37. **Zoom.** “Show me the cities layer” → the map fit the extent, no
+    confirmation was asked.
+38. **Project CRS.** “Switch the project to EPSG:3857” → the map projection
+    changed, the layers' own CRS did not.
+39. **Saving.** “Save the project” on an already-saved project → written to the
+    same place, no asterisk in the window title.
+40. **A new project.** “Save the project” on a never-saved one → the agent asks
+    for a path instead of inventing one.
+41. **Removing a layer.** “Drop layer X” → the layer left the project, the file
+    on disk stayed.
+42. **The end-to-end scenario.** “Load the file, colour by type, label with
+    names and save the project” → one run, all steps in one plan card.
 
-## Данные из OpenStreetMap
+## OpenStreetMap data
 
-Требует интернета. Overpass — публичный сервис, отказ «занят» это не баг.
+Requires internet. Overpass is a public service; a “busy” refusal is not a bug.
 
-43. **Кафе по имени места.** «Скачай кафе в Твери» → карточка плана, после
-    применения слой точек с кафе, объектов больше нуля.
-44. **Текущий вид.** Приблизиться к небольшому району, «загрузи здания в текущем
-    виде» → агент передаёт bbox=canvas, а не выдумывает координаты.
-45. **Геометрия.** «Скачай дороги» → слой линий; агент не должен добавлять заодно
-    слой точек, если его не просили.
-46. **Слишком широкий охват.** Отдалиться до континента и повторить пункт 44 →
-    отказ до отправки запроса, с объяснением про пять градусов.
-47. **Русское значение тега.** «Скачай amenity=кафе» → пустой результат, агент
-    должен объяснить про английские теги, а не повторять запрос.
-48. **Несуществующее место.** «Скачай кафе в Нетакогогорода» → пусто, внятное
-    сообщение.
-49. **Занятый Overpass.** Если сервис вернул отказ — агент сообщает и предлагает
-    повторить, а не долбит запрос заново.
-50. **Сквозной сценарий.** «Скачай парки в Твери, раскрась зелёным, подпиши
-    названиями и сохрани проект» → один прогон, все шаги в одной карточке.
-51. **Пустые подслои не приезжают.** «Скачай кафе в Твери» с geometry=all →
-    в проект добавлен только слой точек; пустые линии и полигоны отброшены.
-52. **Несколько тегов разом.** «Скачай кафе, бары и рестораны в Твери одним
-    слоем» → один вызов с selectors и регуляркой, один слой точек.
-53. **Исключение.** «Загрузи дороги кроме грунтовых» → selectors с `!~`,
-    в результате нет highway=track.
-54. **Разные ключи вместе.** «Магазины и кафе» → несколько селекторов в одном
-    вызове, а не два отдельных вызова.
-55. **Селектор без условий.** Попросить «скачай вообще всё отсюда» → отказ с
-    объяснением, что нужен хотя бы один тег.
+43. **Cafes by place name.** “Download the cafes in Tver” → a plan card; after
+    applying, a point layer with cafes, more than zero features.
+44. **The current view.** Zoom to a small area, “load the buildings in the
+    current view” → the agent passes bbox=canvas instead of inventing
+    coordinates.
+45. **Geometry.** “Download the roads” → a line layer; the agent must not add a
+    point layer nobody asked for.
+46. **Too wide an extent.** Zoom out to a continent and repeat step 44 → a
+    refusal before anything is sent, explaining the five degrees.
+47. **A native-language tag value.** “Download amenity=кафе” → an empty result;
+    the agent must explain that tags are English, not repeat the request.
+48. **A nonexistent place.** “Download the cafes in Nosuchtown” → empty, a
+    clear message.
+49. **A busy Overpass.** If the service refuses — the agent reports it and
+    offers a retry instead of hammering the same request.
+50. **The end-to-end scenario.** “Download the parks in Tver, colour them
+    green, label with names and save the project” → one run, all steps in one
+    card.
+51. **Empty sublayers do not arrive.** “Download the cafes in Tver” with
+    geometry=all → only the point layer is added; empty lines and polygons are
+    dropped.
+52. **Several tags at once.** “Download cafes, bars and restaurants in Tver as
+    one layer” → one call with selectors and a regex, one point layer.
+53. **An exclusion.** “Load the roads except unpaved ones” → selectors with
+    `!~`; the result has no highway=track.
+54. **Different keys together.** “Shops and cafes” → several selectors in one
+    call, not two separate calls.
+55. **A selector with no conditions.** Ask to “download everything here” → a
+    refusal explaining at least one tag is required.
 
-## Штатные инструменты QGIS
+## Stock QGIS tooling
 
-Проверяют, что агент решает типовые задачи без блужданий по поиску.
+These verify the agent solves everyday tasks without wandering through search.
 
-56. **Буфер находится с первого раза.** «Построй буфер 500 м вокруг школ» → в
-    ленте `native:buffer`, а не `native:taperedbuffer`.
-57. **Площадь — не алгоритм.** «Посчитай площадь каждого полигона» → агент зовёт
-    `native:fieldcalculator` с `$area`, а не `native:serviceareafrompoint`.
-58. **Длина.** «Добавь поле с длиной линий в километрах» → `$length / 1000`.
-59. **Площадь на географической CRS.** То же на слое в EPSG:4326 → агент сначала
-    перепроецирует, а не выдаёт квадратные градусы.
-60. **NDVI.** «Посчитай NDVI по этому снимку» → `native:rastercalc` с выражением
-    по каналам, extent и cell size взяты из `describe_layer` растра.
-61. **Обрезка растра.** «Обрежь растр по границе района» →
+56. **The buffer is found first try.** “Build a 500 m buffer around the
+    schools” → the feed shows `native:buffer`, not `native:taperedbuffer`.
+57. **Area is not an algorithm.** “Compute the area of every polygon” → the
+    agent calls `native:fieldcalculator` with `$area`, not
+    `native:serviceareafrompoint`.
+58. **Length.** “Add a field with line length in kilometres” →
+    `$length / 1000`.
+59. **Area on a geographic CRS.** The same on a layer in EPSG:4326 → the agent
+    reprojects first instead of producing square degrees.
+60. **NDVI.** “Compute NDVI for this scene” → `native:rastercalc` with a band
+    expression; extent and cell size taken from the raster's `describe_layer`.
+61. **Raster clipping.** “Clip the raster by the district boundary” →
     `gdal:cliprasterbymasklayer`.
-62. **Зональная статистика.** «Средняя высота по каждому району» →
+62. **Zonal statistics.** “Mean elevation per district” →
     `native:zonalstatisticsfb`.
-63. **Пространственное соединение.** «Добавь к точкам название района, в котором
-    они лежат» → `native:joinattributesbylocation`.
-64. **Растворение по полю.** «Объедини районы в области по полю region» →
-    `native:dissolve` с полем.
-65. **Цепочка.** «Обрежь дороги по границе города, посчитай длину и сохрани» →
-    все шаги в одной карточке плана.
-66. **Запрос не на английском в поиске.** Агент не должен искать «растровый
-    калькулятор» — поиск по русскому даёт ноль, он обязан переводить сам.
+63. **Spatial join.** “Add to the points the name of the district they fall
+    in” → `native:joinattributesbylocation`.
+64. **Dissolve by field.** “Merge the districts into regions by the region
+    field” → `native:dissolve` with the field.
+65. **A chain.** “Clip the roads by the city boundary, compute the length and
+    save” → all steps in one plan card.
+66. **A non-English search request.** The agent must not search for the local
+    words — a non-English query returns nothing, it must translate on its own.
 
-## Локальная модель
+## A local model
 
-67. **Подключение без ключа.** Запустить Ollama, в настройках указать
-    `http://localhost:11434/v1`, модель — любую установленную, ключ оставить
-    пустым → «Проверить подключение» отвечает.
-68. **Удалённый адрес без ключа.** Стереть ключ, вернуть адрес OpenAI →
-    внятное сообщение про ключ, а не про сеть.
-69. **Прогон на локальной модели.** «Какие у меня слои?» отрабатывает; если
-    модель мелкая и путается в вызовах — это её предел, а не поломка плагина.
-70. **OpenRouter.** Адрес `https://openrouter.ai/api/v1`, ключ OpenRouter,
-    модель вида `anthropic/claude-sonnet-4` → «Проверить подключение» отвечает,
-    прогон с вызовом тулов проходит.
-71. **Anthropic напрямую.** Адрес `https://api.anthropic.com/v1`, ключ
-    Anthropic, формат `auto` → плагин сам уходит на `/messages`, вызовы тулов
-    работают.
-72. **Диалект вручную.** Поставить формат `openai` на адресе Anthropic →
-    запрос уходит на `/chat/completions` и сервис отвечает ошибкой; это
-    проверка, что ручной выбор действительно перебивает определение.
+67. **Connecting without a key.** Start Ollama, set
+    `http://localhost:11434/v1`, any installed model, leave the key empty →
+    Test connection replies.
+68. **A remote address without a key.** Erase the key, put the OpenAI address
+    back → a clear message about the key, not about the network.
+69. **A run on a local model.** “What layers do I have?” works; if a small
+    model fumbles the calls, that is its limit, not a plugin failure.
+70. **OpenRouter.** Address `https://openrouter.ai/api/v1`, an OpenRouter key,
+    a model like `anthropic/claude-sonnet-4` → Test connection replies, a run
+    with tool calls passes.
+71. **Anthropic directly.** Address `https://api.anthropic.com/v1`, an
+    Anthropic key, format `auto` → the plugin goes to `/messages` on its own,
+    tool calls work.
+72. **The dialect by hand.** Set format `openai` on the Anthropic address → the
+    request goes to `/chat/completions` and the service errors; this verifies
+    the manual choice really overrides detection.
 
-## Окно настроек
+## The settings window
 
-73. **URL помещается.** Открыть настройки: длинный адрес шлюза виден целиком,
-    окно не приходится растягивать.
-74. **Пресет подставляет адрес.** Выбрать «Anthropic» → адрес и формат API
-    заполнились сами, поле модели показывает подсказку.
-75. **Пресет определяется обратно.** Вписать вручную адрес OpenRouter → в списке
-    провайдеров сам выбрался OpenRouter.
-76. **Локальный провайдер.** Выбрать «Ollama» → подсказка у ключа меняется на
-    «Не требуется».
-77. **Проверка не открывает окон.** «Проверить подключение» → результат строкой
-    внизу диалога: зелёной при успехе, красной при ошибке. Нажать несколько раз
-    подряд — окна поверх окна не появляются.
-78. **Сохранение.** «Сохранить» → строка «Настройки сохранены», диалог остаётся
-    открытым.
-79. **Тёмная и светлая тема.** Переключить тему QGIS и открыть настройки —
-    карточки и подсказки читаются в обеих.
-80. **У полей видна рамка.** В настройках у «Базовый URL», «Модель», «API-ключ»
-    и у выпадающих списков есть контур; при клике в поле контур становится
-    акцентным.
-81. **Глубина видна.** В настройках карточки светлее фона окна, а поля ввода
-    темнее карточек — три различимых уровня, а не одно тёмное пятно.
-82. **Иконки шапки.** Три значка — часы, корзина, шестерёнка — одного цвета
-    и веса, не разноцветные. На retina не мылят и не обрезаются.
-    У шестерёнки различимы зубцы, а не сплошной кружок.
-83. **Иконки следуют теме.** Переключить светлую и тёмную тему QGIS и открыть
-    панель заново: значки читаются в обеих.
+73. **The URL fits.** Open the settings: a long gateway address is fully
+    visible, no window stretching required.
+74. **The preset fills the address.** Pick “Anthropic” → the address and the
+    API format filled in, the model field shows a placeholder.
+75. **The preset detects back.** Paste the OpenRouter address by hand → the
+    provider list selects OpenRouter on its own.
+76. **A local provider.** Pick “Ollama” → the key hint changes to “Not
+    required”.
+77. **The check opens no windows.** Test connection → the result is a line at
+    the bottom of the dialog: green on success, red on error. Press it several
+    times — no windows stack on the window.
+78. **Saving.** Save → the “Settings saved” line, the dialog stays open.
+79. **Dark and light themes.** Switch the QGIS theme and open the settings —
+    the cards and hints are readable in both.
+80. **Input frames are visible.** In the settings, Base URL, Model, API key and
+    the drop-downs have an outline; clicking into a field makes the outline
+    accented.
+81. **Depth is visible.** In the settings the cards are lighter than the window
+    background and the inputs darker than the cards — three distinguishable
+    levels, not one dark blot.
+82. **Header icons.** The three icons — clock, bin, gear — share one colour and
+    weight, not mismatched colours. On retina they neither blur nor crop. The
+    gear teeth are distinct, not a solid circle.
+83. **Icons follow the theme.** Switch the light and dark QGIS themes and
+    reopen the panel: the icons are readable in both.
 
-## Язык интерфейса и ответов
+## Interface and answer language
 
-84. **Русский QGIS.** Настройки QGIS → «Общие» → язык интерфейса «Русский»,
-    перезапустить QGIS, открыть панель агента: заголовок кнопки отправки,
-    подсказка в поле ввода, «Настройки», «Диалоги», «Очистить диалог» —
-    по-русски. Это проверяет, что переводчик встаёт до импорта модулей:
-    именно эти строки вычисляются на импорте.
-85. **Окно настроек по-русски.** Открыть настройки: «Подключение», «Провайдер»,
-    «Базовый адрес», «Ключ API», «Проверить подключение», «Сохранить» —
-    переведены, ничего не осталось английским.
-86. **Карточка плана по-русски.** Попросить перекрасить слой → в карточке
-    «Изменит проект — N шагов» с правильной формой: 1 шаг, 2 шага, 5 шагов.
-    Кнопки — «Применить» и «Отменить», после применения — «Применено».
-87. **Лента шагов по-русски.** Во время прогона строки вида «Смотрю слои
-    проекта.», «Оформляю «Дороги»: color=blue.» — не английские.
-88. **Английский QGIS.** Переключить язык QGIS на English, перезапустить:
-    весь интерфейс плагина по-английски, без вкраплений русского.
-89. **Язык ответа модели следует за пользователем.** В английском QGIS написать
-    агенту по-русски → он отвечает по-русски. В русском QGIS написать
-    по-английски → отвечает по-английски. Интерфейс при этом не меняется.
-90. **Незнакомый язык QGIS.** Поставить, например, немецкий: интерфейс плагина
-    английский (перевода нет), плагин не падает, агент отвечает по-английски,
-    пока пользователь не напишет иначе.
+84. **Russian QGIS.** QGIS Settings → General → interface language Russian,
+    restart QGIS, open the agent panel: the send button title, the input
+    placeholder, Settings, Conversations, Clear conversation — all in Russian.
+    This verifies the translator installs before module imports: exactly these
+    strings are evaluated at import time.
+85. **The settings window in Russian.** Open the settings: Connection,
+    Provider, Base URL, API key, Test connection, Save — translated, nothing
+    left in English.
+86. **The plan card in Russian.** Ask to recolour a layer → the card says “will
+    change the project — N steps” with the correct plural form: 1 шаг, 2 шага,
+    5 шагов. The buttons are Применить and Отменить; after applying —
+    Применено.
+87. **The step feed in Russian.** During a run, lines like «Смотрю слои
+    проекта.» and «Оформляю «Дороги»: color=blue.» — not English.
+88. **English QGIS.** Switch the QGIS language to English, restart: the whole
+    plugin interface is English, no Russian remnants.
+89. **The model's language follows the user.** In an English QGIS write to the
+    agent in Russian → it answers in Russian. In a Russian QGIS write in
+    English → it answers in English. The interface does not change either way.
+90. **An unsupported QGIS language.** Set, say, German: the plugin interface is
+    English (there is no translation), the plugin does not crash, the agent
+    answers in English until the user writes otherwise.

@@ -1,137 +1,144 @@
-# ui/ — только представление
+# ui/ — presentation only
 
-Здесь живёт исключительно логика отрисовки. Ни обработки данных, ни вызовов LLM.
+Nothing but rendering logic lives here. No data processing, no LLM calls.
 
-## Правила
+## Rules
 
-1. **Никакой бизнес-логики.** Файлы UI только рисуют компоненты и эмитят сигналы
-   PyQt. Решения принимает `core/`.
-2. **Только обёртки QGIS.** Всегда `from qgis.PyQt.QtWidgets import ...`.
-   Никогда напрямую `PyQt5` или `PyQt6` — версия Qt зависит от сборки QGIS.
-3. **Без Qt Designer.** Виджеты и layout собираются программно, `.ui`-файлов нет.
-4. **Цвета — из темы QGIS.** Палитра берётся через `QPalette` в `style.py`.
-   Хардкод цветов запрещён: плагин обязан следовать светлой и тёмной теме.
-   Иконки панели рисуются в `icons.py` пером из той же палитры, а не берутся
-   через `QgsApplication.getThemeIcon`: штатные иконки цветные и рисовались
-   под панель инструментов, поэтому в компактной шапке смотрятся тремя
-   разными наклейками, да ещё и не следуют теме. Для чего-то за пределами
-   нашей панели тему QGIS по-прежнему уважаем.
-5. **Совместимость enum.** Qt5 и Qt6 держат enum'ы по-разному. Пути вида
-   `Qt.DockWidgetArea.RightDockWidgetArea` на Qt5 не существуют — заворачивай
-   в `getattr` с запасным значением, как сделано в `plugin.py`.
+1. **No business logic.** UI files only draw components and emit PyQt signals.
+   Decisions belong to `core/`.
+2. **QGIS wrappers only.** Always `from qgis.PyQt.QtWidgets import ...`.
+   Never `PyQt5` or `PyQt6` directly — the Qt version depends on the QGIS build.
+3. **No Qt Designer.** Widgets and layouts are built in code; there are no
+   `.ui` files.
+4. **Colours come from the QGIS theme.** The palette is read through `QPalette`
+   in `style.py`. Hard-coded colours are forbidden: the plugin must follow both
+   the light and the dark theme. The header icons are drawn in `icons.py` with a
+   pen from that same palette rather than taken from
+   `QgsApplication.getThemeIcon`: the stock icons are colourful and were drawn
+   for a toolbar, so in a compact header they look like three mismatched
+   stickers — and they ignore the theme. Outside our own panel the QGIS theme
+   is still respected.
+5. **Enum compatibility.** Qt5 and Qt6 hold enums differently. Paths like
+   `Qt.DockWidgetArea.RightDockWidgetArea` do not exist on Qt5 — wrap them in
+   `getattr` with a fallback, as done in `plugin.py`.
 
-## Из чего собран интерфейс
+## What the interface is made of
 
-| Файл | Что |
+| File | What |
 | ---- | --- |
-| `dock_widget.py`  | оболочка: шапка, лента, композитор; меню диалогов; контракт для оркестратора |
-| `conversation.py` | `QScrollArea` с виджетом на сообщение, автопрокрутка, группировка действий |
-| `messages.py`     | реплика пользователя, ответ агента, служебное сообщение |
-| `activity.py`     | сворачиваемая группа вызовов тулов |
-| `plan.py`         | карточка плана с кнопками внутри |
-| `composer.py`     | поле ввода: Enter отправляет, Shift+Enter переносит; кнопка отправки становится «стоп» |
-| `style.py`        | цвета из палитры; `panel()` — приподнятый уровень для диалогов |
-| `icons.py`        | иконки шапки: рисуются пером из палитры, один вес штриха |
-| `settings_dialog.py` | окно настроек: провайдер, ключ, формат API |
-| `settings_fields.py` | карточки, подписи, подсказки и кнопки для настроек |
+| `dock_widget.py`  | the shell: header, feed, composer; conversation menu; the orchestrator contract |
+| `conversation.py` | a `QScrollArea` with one widget per message, autoscroll, action grouping |
+| `messages.py`     | the user message, the agent reply, the service message |
+| `activity.py`     | the collapsible group of tool calls |
+| `plan.py`         | the plan card with its buttons inside |
+| `composer.py`     | the input box: Enter sends, Shift+Enter breaks the line; the send button turns into “stop” |
+| `style.py`        | palette colours; `panel()` — the raised level for dialogs |
+| `icons.py`        | header icons: drawn with a palette pen, one stroke weight |
+| `settings_dialog.py` | the settings window: provider, key, API format |
+| `settings_fields.py` | cards, labels, hints and buttons for the settings |
 
-## Иконки шапки
+## Header icons
 
-Три иконки — часы для диалогов, корзина для очистки, шестерёнка для настроек —
-рисуются `QPainter` на холсте 16×16 одним пером толщиной 1.45 и цветом
-`style.muted`. Отсюда комплектность: один вес штриха, один цвет, одна
-оптическая плотность. Набор целиком контурный, заливки нет ни у одной фигуры.
+The three icons — a clock for conversations, a bin for clearing, a gear for
+settings — are drawn with `QPainter` on a 16×16 canvas with a single pen of
+width 1.45 in the `style.muted` colour. Hence the consistency: one stroke
+weight, one colour, one optical density. The whole set is outline-only; no
+shape carries a fill.
 
-Зубцы шестерёнки считаются тригонометрией, а не выписаны координатами,
-поэтому и проверяются арифметикой: каждая вершина внутри холста, втулка
-внутри кольца, а расстояние между вершинами больше трёх пикселей при иконке
-15 — иначе зубцы сливаются в кляксу.
+The gear teeth are computed with trigonometry rather than written out as
+coordinates, so they are also verified with arithmetic: every vertex inside the
+canvas, the hub inside the ring, and the distance between vertices above three
+pixels at icon size 15 — otherwise the teeth merge into a blob.
 
-Растр создаётся с `devicePixelRatio` экрана, иначе на retina иконки мылят.
-Коэффициент проверяется на вменяемость: за пределами 1…4 берётся единица.
+The pixmap is created with the screen's `devicePixelRatio`, otherwise the icons
+blur on retina. The ratio is sanity-checked: outside 1…4 it falls back to one.
 
-**Множитель экрана участвует только в размере растра, но не в трансформации.**
-`QPainter` на пиксмапе с заданным `devicePixelRatio` уже работает в логических
-координатах — Qt учитывает множитель сам. Домножить на него ещё раз в
-`painter.scale` значит нарисовать вдвое крупнее и обрезать по левому верхнему
-углу; на обычном экране это незаметно, на retina видно сразу. Отсюда
-`scale_for(size) = size / CANVAS` без всякого ratio, и тест на инвариант:
-холст обязан ложиться на иконку ровно.
+**The screen multiplier participates only in the pixmap size, never in the
+transform.** A `QPainter` on a pixmap with a set `devicePixelRatio` already
+works in logical coordinates — Qt applies the multiplier itself. Multiplying by
+it again in `painter.scale` draws twice as large and crops to the top-left
+corner; invisible on a normal screen, obvious on retina. Hence
+`scale_for(size) = size / CANVAS` with no ratio at all, and an invariant test:
+the canvas must map onto the icon exactly.
 
-Если рисование почему-то упало, кнопка показывает текстовый глиф — тот же
-запасной путь, что был при иконках темы. Геометрию стережёт
-`tests/test_icons.py`: все точки обязаны лежать внутри холста, у набора один
-вес пера, а кисть после залитого ползунка возвращается в `NoBrush`, иначе
-следующая фигура зальётся целиком.
+If painting fails for any reason, the button shows a text glyph — the same
+fallback that existed with theme icons. Geometry is guarded by
+`tests/test_icons.py`: every point must lie inside the canvas, the set carries
+one pen weight, and the brush returns to `NoBrush` after the filled slider,
+otherwise the next shape gets flooded.
 
-## Ответ агента — markdown
+## The agent reply is markdown
 
-`AssistantMessage` рендерит текст через `QTextDocument.setMarkdown()`. Модель
-пишет жирным, списками и кодом — всё это должно отображаться, а не показываться
-звёздочками. Высота подгоняется под содержимое, потому что скролл здесь один —
-у всей ленты.
+`AssistantMessage` renders text through `QTextDocument.setMarkdown()`. The
+model writes bold, lists and code — all of it must display, not show as
+asterisks. The height follows the content, because there is a single scroll —
+the feed's.
 
-## Группировка действий
+## Action grouping
 
-`ConversationView` сама складывает подряд идущие вызовы тулов в один
-`ActivityGroup`. Любое сообщение другого типа закрывает группу. Поэтому
-оркестратор по-прежнему зовёт `add_tool_message` на каждый вызов и ничего не
-знает про группировку.
+`ConversationView` itself folds consecutive tool calls into one
+`ActivityGroup`. Any message of another kind closes the group. So the
+orchestrator still calls `add_tool_message` per call and knows nothing about
+grouping.
 
-## Карточка плана
+## The plan card
 
-Кнопки «Применить» и «Отмена» живут внутри `PlanCard`, а не отдельным рядом
-внизу панели. Карточка эмитит сигналы наверх, док их пробрасывает под теми же
-именами, что и раньше. После применения или отмены кнопки исчезают, а заголовок
-показывает исход — история диалога остаётся честной.
+The Apply and Cancel buttons live inside `PlanCard`, not as a separate row at
+the bottom of the panel. The card emits signals upwards; the dock re-emits them
+under the same names as before. After applying or cancelling the buttons
+disappear and the title shows the outcome — the conversation history stays
+honest.
 
-## Одна кнопка на отправку и остановку
+## One button for send and stop
 
-Пока агент работает, кнопка отправки не гаснет, а превращается в «стоп»: меняются
-глиф, цвет и подсказка. Отдельной кнопки нет намеренно — она была бы видна всегда
-и большую часть времени неактивна. Enter во время работы игнорируется.
+While the agent works, the send button does not grey out — it becomes “stop”:
+the glyph, the colour and the tooltip change. There is deliberately no separate
+button — it would be visible always and inactive most of the time. Enter is
+ignored while a run is active.
 
-## Меню диалогов
+## The conversations menu
 
-Кнопка «Диалоги» в шапке собирает меню в момент клика, а не хранит список: он
-устаревает при каждом ответе агента. Список приходит от оркестратора через
-`set_session_source` — провайдер отдаёт пары `(идентификатор, заголовок)`, чтобы
-в `ui/` не приезжали типы из `core/`.
+The Conversations button in the header builds its menu at click time instead of
+keeping a list: it goes stale with every agent reply. The list comes from the
+orchestrator through `set_session_source` — the provider returns
+`(identifier, title)` pairs so that no `core/` types leak into `ui/`.
 
-## Окно настроек
+## The settings window
 
-Поля сгруппированы в карточки, у каждого — подсказка снизу мелким шрифтом.
-Провайдер выбирается из списка и подставляет адрес и формат API; список
-пресетов живёт в `core/llm/providers.py`, потому что это знание о сервисах,
-а не об интерфейсе. Модель пресет **не** подставляет, только подсказывает
-плейсхолдером: имена моделей меняются чаще, чем адреса, и вписать
-несуществующее хуже, чем не вписать ничего.
+Fields are grouped into cards, each with a small hint underneath. The provider
+is picked from a list and fills in the address and the API format; the preset
+list lives in `core/llm/providers.py`, because that is knowledge about
+services, not about the interface. The preset does **not** fill in the model —
+it only suggests one as a placeholder: model names change more often than
+addresses, and writing a wrong one is worse than writing none.
 
-Результат проверки подключения показывается строкой в самом окне, а не
-модальным сообщением: проверку жмут по несколько раз подряд, и каждый раз
-закрывать диалог поверх диалога — мучение. Ошибка красная, успех зелёный,
-цвета берутся из палитры.
+The connection-check result is shown as a line inside the window, not as a
+modal box: the check gets pressed several times in a row, and closing a dialog
+above a dialog every time is torture. Errors are red, success is green, both
+colours come from the palette.
 
-Проверка подключения живёт в `core/llm/probe.py` — в ui ей не место, это
-вызов модели. Диалог получает пару «получилось, текст» и только рисует её.
+The connection check lives in `core/llm/probe.py` — it does not belong in ui,
+it is a model call. The dialog receives a “worked, text” pair and only draws it.
 
-**Три уровня глубины, а не один.** Диалог настроек сначала выглядел глухо
-тёмным, и причина считалась, а не угадывалась: при типичной тёмной палитре
-QGIS фон окна ≈ 49 по серому, `card()` давала 39 — то есть карточка была
-**темнее** подложки и тонула, — а поле ввода 35 отличалось от неё на четыре
-уровня из 255. Отсюда `panel()`: в тёмной теме поднимает базу к белому,
-в светлой возвращает её как есть. Стало 49 → 59 → 35: карточка выступает,
-поле утоплено. `card()` осталась для ленты диалога, её вид уже утверждён.
+**Three depth levels, not one.** The settings dialog first looked flatly dark,
+and the cause was computed, not guessed: under the typical dark QGIS palette
+the window background is ≈49 grey, `card()` gave 39 — the card was **darker**
+than its backdrop and sank — while the input at 35 differed from it by four
+levels out of 255. Hence `panel()`: in the dark theme it lifts the base towards
+white, in the light theme it returns it untouched. The result is 49 → 59 → 35:
+the card stands out, the input is recessed. `card()` remains for the
+conversation feed; its look is already approved.
 
-**Стиль карточки обязан быть привязан к objectName.** `QLabel` наследуется от
-`QFrame`, поэтому селектор вида `QFrame { border: ... }` протекает в подписи
-внутри карточки. Лечить это затиранием `border: none` на контейнерах нельзя:
-такое правило протекает дальше, в поля ввода, и у них пропадает рамка — ровно
-это и случилось. Правильный путь — `QFrame#settingsCard { ... }` и явный стиль
-для `QLineEdit`/`QComboBox`. Инвариант стережёт `tests/test_settings_ui.py`.
+**Card styling must be bound to an objectName.** `QLabel` inherits `QFrame`, so
+a selector like `QFrame { border: ... }` leaks into the labels inside the card.
+Curing that by stamping `border: none` on containers is wrong: that rule leaks
+further, into the inputs, and their frame disappears — exactly what happened.
+The right way is `QFrame#settingsCard { ... }` plus explicit styles for
+`QLineEdit`/`QComboBox`. The invariant is guarded by
+`tests/test_settings_ui.py`.
 
-## Контракт с оркестратором
+## The orchestrator contract
 
-`core/orchestrator/contracts.py::DockWidgetContract` описывает минимальный API.
-Добавил метод в `AgentDockWidget` — добавь его и в контракт, иначе связь молча
-разъедется.
+`core/orchestrator/contracts.py::DockWidgetContract` describes the minimal API.
+Added a method to `AgentDockWidget`? Add it to the contract too, otherwise the
+wiring silently diverges.

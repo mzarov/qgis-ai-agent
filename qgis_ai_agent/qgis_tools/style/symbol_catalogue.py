@@ -87,8 +87,7 @@ SYMBOLS = PropertySet(
         StyleProperty(
             "stroke_style",
             KIND_ENUM,
-            "Dash pattern of the line or the stroke: solid, dash, dot, "
-            "dashdot, or none for no stroke at all",
+            "Dash pattern of the line or the stroke: solid, dash, dot, dashdot, or none for no stroke at all",
             TARGET_LAYER,
             method("setStrokeStyle", "setPenStyle"),
             options=tuple(sorted(PEN_STYLES)),
@@ -96,8 +95,7 @@ SYMBOLS = PropertySet(
         StyleProperty(
             "shape",
             KIND_ENUM,
-            "Marker shape for point layers: circle, square, triangle, diamond, "
-            "star, cross, pentagon, hexagon",
+            "Marker shape for point layers: circle, square, triangle, diamond, star, cross, pentagon, hexagon",
             TARGET_LAYER,
             method("setShape"),
             options=tuple(sorted(SHAPES)),
@@ -105,8 +103,7 @@ SYMBOLS = PropertySet(
         StyleProperty(
             "fill_style",
             KIND_ENUM,
-            "Fill hatching of a polygon: solid, none for no fill at all, "
-            "horizontal, vertical, diagonal, cross, dense",
+            "Fill hatching of a polygon: solid, none for no fill at all, horizontal, vertical, diagonal, cross, dense",
             TARGET_LAYER,
             method("setBrushStyle"),
             options=tuple(sorted(BRUSH_STYLES)),

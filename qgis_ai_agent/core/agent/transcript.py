@@ -75,9 +75,7 @@ class Transcript:
         if turn.protocol != PROTOCOL_NATIVE:
             payload = {
                 "text": turn.text,
-                "tool_calls": [
-                    {"name": call.name, "arguments": call.arguments} for call in turn.tool_calls
-                ],
+                "tool_calls": [{"name": call.name, "arguments": call.arguments} for call in turn.tool_calls],
             }
             return {"role": "assistant", "content": json.dumps(payload, ensure_ascii=False)}
 
@@ -100,9 +98,6 @@ class Transcript:
     @staticmethod
     def _render_results(results: list[ToolResult], protocol: str) -> list[dict[str, Any]]:
         if protocol == PROTOCOL_NATIVE:
-            return [
-                {"role": "tool", "tool_call_id": result.call.id, "content": result.to_text()}
-                for result in results
-            ]
+            return [{"role": "tool", "tool_call_id": result.call.id, "content": result.to_text()} for result in results]
         lines = [f"{result.call.name} -> {result.to_text()}" for result in results]
         return [{"role": "user", "content": RESULTS_HEADER + "\n" + "\n".join(lines)}]

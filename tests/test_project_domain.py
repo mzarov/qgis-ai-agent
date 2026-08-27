@@ -285,9 +285,7 @@ class ConfigureLayerTest(ProjectCase):
         self.assertIn("visible", str(caught.exception))
 
     def test_summary_lists_what_changes(self):
-        summary = self.tool.summarize_call(
-            {"layer_name": "Дороги", "properties": {"visible": False}}
-        )
+        summary = self.tool.summarize_call({"layer_name": "Дороги", "properties": {"visible": False}})
         self.assertIn("visible=False", summary)
 
 

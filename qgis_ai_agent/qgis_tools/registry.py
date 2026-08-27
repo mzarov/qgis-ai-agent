@@ -1,4 +1,5 @@
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 from qgis_ai_agent.qgis_tools.base import BaseTool
 from qgis_ai_agent.qgis_tools.inspect import INSPECT_TOOLS

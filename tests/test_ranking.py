@@ -15,9 +15,7 @@ def haystack(name, bare="", tags="", group=""):
 
 def best(entries, query):
     terms = query.lower().split()
-    ranked = sorted(
-        ((score(item, terms, query.lower()), item["bare"]) for item in entries), reverse=True
-    )
+    ranked = sorted(((score(item, terms, query.lower()), item["bare"]) for item in entries), reverse=True)
     return [name for weight, name in ranked if weight > 0]
 
 

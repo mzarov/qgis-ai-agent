@@ -10,9 +10,7 @@ from qgis_ai_agent.qgis_tools.processing.utils import (
     normalize_output,
 )
 
-PROCESSING_MISSING_MSG = (
-    "The Processing plugin is not available. Enable it in Plugins → Manage and Install Plugins."
-)
+PROCESSING_MISSING_MSG = "The Processing plugin is not available. Enable it in Plugins → Manage and Install Plugins."
 MAX_SUMMARY_PARAMS = 3
 
 
@@ -50,10 +48,7 @@ class RunProcessingTool(BaseTool):
         {
             "name": "output_name",
             "type": "string",
-            "description": (
-                "Name for the resulting layer. Set it when a later step will refer "
-                "to this result."
-            ),
+            "description": ("Name for the resulting layer. Set it when a later step will refer to this result."),
             "required": False,
         },
         {
@@ -71,9 +66,7 @@ class RunProcessingTool(BaseTool):
     def summarize_call(self, params: dict[str, Any]) -> str:
         algorithm_id = (params.get("algorithm_id") or "").strip()
         arguments = params.get("parameters") or {}
-        shown = ", ".join(
-            f"{key}={value}" for key, value in list(arguments.items())[:MAX_SUMMARY_PARAMS]
-        )
+        shown = ", ".join(f"{key}={value}" for key, value in list(arguments.items())[:MAX_SUMMARY_PARAMS])
         tail = "…" if len(arguments) > MAX_SUMMARY_PARAMS else ""
         output_name = (params.get("output_name") or "").strip()
         result_part = f" → '{output_name}'" if output_name else ""
@@ -85,9 +78,7 @@ class RunProcessingTool(BaseTool):
         runner = self._get_runner(load_output)
 
         result = runner(algorithm.id(), prepared)
-        layer_name = (
-            apply_output_name(result, params.get("output_name") or "") if load_output else ""
-        )
+        layer_name = apply_output_name(result, params.get("output_name") or "") if load_output else ""
         return {
             "algorithm_id": algorithm.id(),
             "loaded_to_project": load_output,
@@ -116,5 +107,5 @@ class RunProcessingTool(BaseTool):
         try:
             import processing
         except ImportError:
-            raise RuntimeError(PROCESSING_MISSING_MSG)
+            raise RuntimeError(PROCESSING_MISSING_MSG) from None
         return processing.runAndLoadResults if load_output else processing.run

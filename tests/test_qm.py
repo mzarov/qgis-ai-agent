@@ -93,10 +93,10 @@ def _golden_hashes() -> list[int]:
     position = len(MAGIC)
     while position < len(data):
         tag = data[position]
-        size = struct.unpack(">I", data[position + 1:position + 5])[0]
-        payload = data[position + 5:position + 5 + size]
+        size = struct.unpack(">I", data[position + 1 : position + 5])[0]
+        payload = data[position + 5 : position + 5 + size]
         if tag == BLOCK_HASHES:
-            return [struct.unpack(">I", payload[i:i + 4])[0] for i in range(0, len(payload), 8)]
+            return [struct.unpack(">I", payload[i : i + 4])[0] for i in range(0, len(payload), 8)]
         position += 5 + size
     return []
 

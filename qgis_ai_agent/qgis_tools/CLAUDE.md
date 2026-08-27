@@ -1,14 +1,14 @@
-# qgis_tools/ — руки агента
+# qgis_tools/ — the agent's hands
 
-Вся PyQGIS-логика исполнения. Один тул — один класс — один файл, до 200 строк.
+All PyQGIS execution logic. One tool — one class — one file, around 200 lines.
 
-## Контракт тула
+## The tool contract
 
 ```python
 class DescribeLayerTool(BaseTool):
-    name = "describe_layer"            # snake_case, уникально в реестре
-    description = "..."                # по-английски, попадает в схему для модели
-    skill = "inspect"                  # домен: с каким скиллом грузится тул
+    name = "describe_layer"            # snake_case, unique in the registry
+    description = "..."                # English, goes into the schema for the model
+    skill = "inspect"                  # domain: which skill loads this tool
     safety = SAFETY_READ               # read | write | destructive
     constraints = ["The layer must exist"]
     examples = ["Which fields does the roads layer have?"]
@@ -16,7 +16,7 @@ class DescribeLayerTool(BaseTool):
         {"name": "layer_name", "type": "string", "description": "...", "required": True},
     ]
 
-    def validate(self, params: dict[str, Any]) -> None:
+    def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
         ...
 
     def summarize_call(self, params: dict[str, Any]) -> str:
@@ -26,89 +26,96 @@ class DescribeLayerTool(BaseTool):
         ...
 ```
 
-`get_openai_schema()` строится из `params_schema` автоматически — руками схему
-не писать. Поддерживаемые `type`: `string`, `number`, `integer`, `boolean`,
-`array`, `object`; необязательный `enum` перечисляет допустимые значения.
+`get_openai_schema()` is built from `params_schema` automatically — never write
+the schema by hand. Supported `type`s: `string`, `number`, `integer`, `boolean`,
+`array`, `object`; the optional `enum` lists the allowed values.
 
-## Правила
+## Rules
 
-1. **`skill` и `safety` обязательны.** Без `skill` тул не попадёт ни в один набор.
-   `safety` по умолчанию `write` — для читающего тула ставь `SAFETY_READ` явно.
-2. **`read` не имеет права ничего менять.** Он выполняется без подтверждения
-   пользователя. Любая мутация проекта — это `write`, даже безобидная.
-3. **`summarize_call` не имеет права падать.** Цикл зовёт его и на пути ошибки:
-   если он бросит исключение на кривых аргументах, сломается сама обработка
-   ошибки, а не только строка в ленте. Всё, что может не разобраться, оборачивай
-   в `try` и подставляй общее слово. Это ловит `tests/test_tools.py`.
-4. **`summarize_call` — единственное здесь, что видит человек.** Поэтому только он
-   оборачивается в `tr()`, и только в него можно класть литерал для перевода:
-   `tr("Reading layer '{0}'.").format(name)`. Знание о том, как выглядит шаг, живёт
-   в туле, а не в реестре. Не указанные пользователем координаты показывай как
-   «авто», а не подставляй выдуманные значения по умолчанию.
-5. **Ошибки — с внятным английским текстом и подсказкой, без `tr()`.** Модель их читает и
-   исправляется. Если объект не найден, приложи список доступных
-   (см. `inspect/utils.py::find_layer_by_name`).
-6. **Общее живёт в `common/`, не в чужом домене.** Там: `layers.py` — поиск слоя,
-   CRS, охваты; `values.py` — приведение значений, лимиты, подсказки по именам;
-   `layer_meta.py` — источник, валидность, прозрачность; `renderers.py` — тип
-   рендерера и однострочная сводка. Домены не импортируют друг друга: если тянет
-   импортировать из соседнего домена — общее место для этого `common/`.
-7. **Результат должен сериализоваться в JSON.** Объекты PyQGIS отдавай как имена
-   или идентификаторы (см. `processing/utils.py::normalize_output`).
-8. **Регистрация:** класс → `<домен>/__init__.py` в список домена → импорт списка
-   в `registry.py`. Плюс `skills/<домен>/SKILL.md` с тем же именем тула в `tools`.
-9. **Новый тул — новый тест.** Контракт и схема проверяются автоматически для всех
-   тулов, но логику `execute` надо покрыть отдельно: на подставных объектах PyQGIS,
-   как в `tests/test_renderers.py`. Оба падения `describe_style` дожили до живого
-   QGIS именно потому, что этот код никто не вызывал.
+1. **`skill` and `safety` are mandatory.** Without `skill` the tool lands in no
+   set. The `safety` default is `write` — a reading tool sets `SAFETY_READ`
+   explicitly.
+2. **`read` has no right to change anything.** It runs without the user's
+   confirmation. Any mutation of the project is `write`, however harmless.
+3. **`summarize_call` has no right to crash.** The loop calls it on the error
+   path too: if it throws on malformed arguments, error handling itself breaks,
+   not just one line in the feed. Wrap anything that may fail to parse in `try`
+   and fall back to a generic word. `tests/test_tools.py` catches this.
+4. **`summarize_call` is the only thing here a person sees.** So only it gets
+   wrapped in `tr()`, and only it may carry a literal for translation:
+   `tr("Reading layer '{0}'.").format(name)`. The knowledge of what a step
+   looks like lives in the tool, not in the registry. Show coordinates the user
+   did not give as “auto” — never substitute invented defaults.
+5. **Errors carry clear English text and a hint, without `tr()`.** The model
+   reads them and corrects itself. When an object is missing, attach the list
+   of available ones (see `common/layers.py::find_layer_by_name`).
+6. **Shared code lives in `common/`, not in a neighbouring domain.** There:
+   `layers.py` — layer lookup, CRS, extents; `values.py` — value coercion,
+   limits, name hints; `layer_meta.py` — source, validity, opacity;
+   `renderers.py` — renderer type and one-line summary. Domains never import
+   each other: the urge to import from a sibling domain means the shared place
+   for that code is `common/`.
+7. **Results must serialise to JSON.** Return PyQGIS objects as names or
+   identifiers (see `processing/utils.py::normalize_output`).
+8. **Registration:** class → the domain list in `<domain>/__init__.py` → the
+   list import in `registry.py`. Plus `skills/<domain>/SKILL.md` with the same
+   tool name in `tools`.
+9. **A new tool means a new test.** The contract and the schema are checked
+   automatically for every tool, but `execute` logic needs its own coverage: on
+   fake PyQGIS objects, as in `tests/test_renderers.py`. Both `describe_style`
+   failures survived to live QGIS precisely because nobody called that code.
 
-## PyQGIS — не галлюцинировать
+## PyQGIS — do not hallucinate
 
-1. Цель — QGIS 4.0. API QGIS 2.x не существует (никакого `QgsComposition`).
-2. Состояние проекта — всегда через `QgsProject.instance()`.
-3. Обработка: `QgsApplication.processingRegistry()`, модуль `processing`.
-4. `try/except` вокруг рискованного, лог через
+1. The target is QGIS 4.0. The QGIS 2.x API does not exist (no
+   `QgsComposition`).
+2. Project state — always through `QgsProject.instance()`.
+3. Processing: `QgsApplication.processingRegistry()`, the `processing` module.
+4. `try/except` around anything risky, log through
    `QgsMessageLog.logMessage(msg, "QGIS AI Agent", Qgis.Info)`.
-5. Импорты вверху, абсолютные. Код без комментариев и docstring — см. корневой
-   CLAUDE.md.
+5. Imports at the top, absolute. Code without comments or docstrings — see the
+   root CLAUDE.md.
 
-## Границы доменов
+## Domain boundaries
 
-`inspect/`, `project/`, `style/`, `processing/` зависят только от `base.py` и
-`common/`. Внутри домена общее живёт в своём файле: у `style/` это `apply.py`
-(палитры, перерисовка), у `project/` — `tree.py` (дерево слоёв и группы).
-Зависимостей между самими доменами быть не должно — иначе удаление одного
-потребует правок в другом, и обещание «новый домен = только новые файлы»
-перестанет быть правдой.
+`inspect/`, `project/`, `style/`, `processing/` depend only on `base.py` and
+`common/`. Inside a domain the shared code has its own file: for `style/` it is
+`apply.py` (ramps, repaint), for `project/` it is `tree.py` (layer tree and
+groups). There must be no dependencies between the domains themselves —
+otherwise deleting one would require edits in another, and the promise “a new
+domain is only new files” would stop being true.
 
-## Когда домен безграничен
+## When a domain is boundless
 
-Если операций в домене сотни (как алгоритмы Processing), не пиши класс на каждую.
-Дай три тула — поиск, описание сигнатуры, запуск — и опиши в `SKILL.md`, как ими
-пользоваться. Образец: `processing/`.
+When a domain holds hundreds of operations (like Processing algorithms), do not
+write a class per operation. Give three tools — search, signature description,
+run — and describe how to use them in `SKILL.md`. The model: `processing/`.
 
-## Когда у объекта десятки свойств
+## When an object has dozens of properties
 
-Параметр на свойство не масштабируется: у `QgsPalLayerSettings` 111 членов, у
-`QgsTextFormat` 27 сеттеров. Вместо этого — мешок свойств: один параметр
-`properties` типа `object` плюс каталог в коде и читающий тул, который его
-отдаёт.
+A parameter per property does not scale: `QgsPalLayerSettings` has 111 members,
+`QgsTextFormat` has 27 setters. Instead — a property bag: one `properties`
+parameter of type `object` plus a catalogue in code and a reading tool that
+serves it.
 
-Механика общая и живёт в `common/properties.py` — `StyleProperty` и `PropertySet`
-с приведением значений, проверкой диапазонов, подсказками по опечаткам и
-разбором параметра `properties`. Каталоги принадлежат доменам: `style/` держит
-`label_catalogue.py` и `symbol_catalogue.py`, `project/` — `catalogues.py`.
-Механизм поднялся в `common/`, когда понадобился второму домену, а не раньше.
+The machinery is shared and lives in `common/properties.py` — `StyleProperty`
+and `PropertySet` with value coercion, range checks, typo hints and the parsing
+of the `properties` parameter. Catalogues belong to the domains: `style/` keeps
+`label_catalogue.py` and `symbol_catalogue.py`, `project/` keeps
+`catalogues.py`. The machinery moved up into `common/` when a second domain
+needed it — not earlier.
 
-Каталог обязан быть единственным источником правды. Тул описания строится из
-него же, поэтому разойтись с реализацией не может — в отличие от списка свойств,
-переписанного руками в `SKILL.md`. Добавить свойство = одна запись в каталоге;
-ни нового тула, ни правки схемы, ни правки скилла.
+The catalogue must be the single source of truth. The describing tool is built
+from it too, so it cannot drift from the implementation — unlike a property
+list hand-copied into `SKILL.md`. Adding a property = one catalogue entry;
+no new tool, no schema edit, no skill edit.
 
-**Приведение обязано проверять значение в `coerce`, а не при исполнении.** Тул
-записи исполняется после конца цикла, и вернуть ошибку модели там уже некому.
-Ровно это и сломалось при выносе механизма: цвет проверялся в `native()` на
-исполнении, и невалидный цвет молча доезжал до применения.
+**Coercion must validate the value in `coerce`, not at execution.** A write tool
+executes after the loop has ended, and there is nobody left to return an error
+to. Exactly that broke when the machinery was extracted: the colour was checked
+in `native()` at execution time, and an invalid colour silently rode all the way
+to being applied.
 
-Свойство, неприменимое к геометрии слоя (форма значка у линий), не должно молча
-исчезать: оно возвращается в `skipped` с пояснением, что это отчёт, а не отказ.
+A property inapplicable to the layer's geometry (marker shape on lines) must not
+vanish silently: it comes back in `skipped` with a note that this is a report,
+not a refusal.

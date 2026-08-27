@@ -39,12 +39,8 @@ class DescribeProcessingTool(BaseTool):
             "name": algorithm.displayName(),
             "group": algorithm.group(),
             "help": (algorithm.shortHelpString() or "").strip()[:MAX_HELP_CHARS],
-            "parameters": [
-                describe_parameter(parameter)
-                for parameter in algorithm.parameterDefinitions()
-            ],
+            "parameters": [describe_parameter(parameter) for parameter in algorithm.parameterDefinitions()],
             "outputs": [
-                {"name": output.name(), "description": output.description()}
-                for output in algorithm.outputDefinitions()
+                {"name": output.name(), "description": output.description()} for output in algorithm.outputDefinitions()
             ],
         }

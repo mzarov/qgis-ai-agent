@@ -1,53 +1,62 @@
-# skills/ — знания доменов
+# skills/ — domain knowledge
 
-Скилл — пакет домена: `<домен>/SKILL.md` с фронтматтером и телом правил.
-Это то, что раньше жило нумерованными пунктами в системном промпте.
+A skill is a domain package: `<domain>/SKILL.md` with frontmatter and a body of
+rules. This is what used to live as numbered clauses in the system prompt.
 
-## Формат
+The format deliberately follows the open Agent Skills convention: required
+`name` and `description` in the frontmatter, a Markdown body, progressive
+loading. Our `tools` field is a local extension binding the skill to its tool
+classes.
+
+## Format
 
 ```markdown
 ---
 name: processing
-description: Одно предложение — когда грузить этот скилл. Модель выбирает по нему.
+description: One sentence — when to load this skill. The model chooses by it.
 tools: [search_processing, describe_processing, run_processing]
 ---
 
-# Заголовок домена
+# Domain heading
 
-Правила, которые модель должна знать, работая в этом домене.
+The rules the model must know while working in this domain.
 ```
 
-Фронтматтер парсится вручную на stdlib (`base.py`) — PyYAML в зависимостях нет и
-не будет. Поддерживаются `ключ: значение` и инлайновые списки `[a, b, c]`.
+The frontmatter is parsed by hand on stdlib (`base.py`) — PyYAML is not a
+dependency and will not become one. `key: value` pairs and inline lists
+`[a, b, c]` are supported.
 
-## Правила
+## Rules
 
-1. **Язык — английский.** Тело `SKILL.md` уходит в системный промпт. Английский
-   здесь не только соглашение: примеры пользовательских формулировок тоже пишутся
-   по-английски, иначе скилл учит модель одному языку вместо всех. На каком языке
-   отвечать, решает не скилл, а `language_policy` в `core/agent/prompts.py`.
-2. **`description` — это триггер выбора.** Пиши его как ответ на вопрос «когда мне
-   это грузить», а не как название домена. Он всегда лежит в промпте, поэтому одна
-   плотная строка, не абзац.
-3. **`tools` обязан совпадать с реестром.** Имена в списке — ровно те, что у тулов
-   с `skill = "<домен>"` в `qgis_tools/registry.py`, и в том же порядке.
-   Расхождение ловится проверкой при ревью.
-4. **Не дублируй то, что код и так гарантирует.** Если тул сам приводит подпись
-   enum к индексу или подставляет выход по умолчанию — правило об этом в `SKILL.md`
-   не нужно. Оно только жжёт токены и разъезжается с кодом при первой правке.
-   Это была главная болезнь старого промпта.
-   Обратное тоже верно: если правило в `SKILL.md` модель систематически
-   игнорирует — переноси проверку в `BaseTool.validate`, код надёжнее инструкции.
-5. **Пиши про то, что модель угадать не может:** порядок шагов, единицы измерения,
-   подводные камни вроде метров в географической CRS, связки с другими доменами.
-6. **Тело грузится по требованию,** поэтому длина здесь дешевле, чем в ядре промпта.
-   Но без воды: всё, что не влияет на решение модели, — лишнее.
+1. **The language is English.** The `SKILL.md` body goes into the system
+   prompt. English here is more than a convention: example user phrasings are
+   written in English too, otherwise the skill teaches the model one language
+   instead of all of them. Which language to *answer* in is decided not by the
+   skill but by `language_policy` in `core/agent/prompts.py`.
+2. **`description` is the selection trigger.** Write it as the answer to “when
+   should I load this”, not as the domain's title. It sits in the prompt
+   permanently, so one dense line, not a paragraph.
+3. **`tools` must match the registry.** The names in the list are exactly the
+   tools with `skill = "<domain>"` in `qgis_tools/registry.py`, in the same
+   order. A mismatch is caught by review checks.
+4. **Never duplicate what the code already guarantees.** If the tool itself
+   coerces an enum label to its index or fills the default output, a rule about
+   it does not belong in `SKILL.md`. It only burns tokens and drifts from the
+   code at the first edit. That was the main disease of the old prompt.
+   The reverse also holds: when the model systematically ignores a `SKILL.md`
+   rule — move the check into `BaseTool.prepare`; code is more reliable than an
+   instruction.
+5. **Write what the model cannot guess:** step order, measurement units,
+   pitfalls like metres on a geographic CRS, links to other domains.
+6. **The body loads on demand,** so length is cheaper here than in the prompt
+   core. But no padding: anything that does not change the model's decision is
+   excess.
 
-## Добавление домена
+## Adding a domain
 
-1. `qgis_tools/<домен>/` — классы тулов с `skill = "<домен>"`
-2. `skills/<домен>/SKILL.md` — фронтматтер и правила
-3. одна строка в `qgis_tools/registry.py`
+1. `qgis_tools/<domain>/` — tool classes with `skill = "<domain>"`
+2. `skills/<domain>/SKILL.md` — frontmatter and rules
+3. one line in `qgis_tools/registry.py`
 
-Цикл, оркестратор и ядро промпта не трогаются. Если пришлось их править —
-абстракция протекла, разберись почему.
+The loop, the orchestrator and the prompt core stay untouched. If you had to
+edit them — the abstraction leaked; find out why.

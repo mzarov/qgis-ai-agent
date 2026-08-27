@@ -18,9 +18,7 @@ def layer_tree() -> Any:
 def tree_node(layer: Any) -> Any:
     node = layer_tree().findLayer(layer.id())
     if node is None:
-        raise ValueError(
-            f"Layer '{layer.name()}' is not in the project layer tree — it may already be removed."
-        )
+        raise ValueError(f"Layer '{layer.name()}' is not in the project layer tree — it may already be removed.")
     return node
 
 

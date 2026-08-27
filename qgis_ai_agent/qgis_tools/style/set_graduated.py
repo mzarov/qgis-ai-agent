@@ -95,9 +95,7 @@ class SetGraduatedTool(BaseTool):
     def summarize_call(self, params: dict[str, Any]) -> str:
         layer_name = (params.get("layer_name") or "").strip()
         classes = params.get("classes") or DEFAULT_CLASSES
-        return tr("Graduating '{0}' by '{1}', classes: {2}.").format(
-            layer_name, params.get("field", ""), classes
-        )
+        return tr("Graduating '{0}' by '{1}', classes: {2}.").format(layer_name, params.get("field", ""), classes)
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = require_vector_layer(params.get("layer_name") or "")
@@ -114,8 +112,7 @@ class SetGraduatedTool(BaseTool):
         )
         if renderer is None:
             raise ValueError(
-                f"QGIS could not build graduated classes on field '{field}': the values "
-                "may all be equal or empty."
+                f"QGIS could not build graduated classes on field '{field}': the values may all be equal or empty."
             )
         layer.setRenderer(renderer)
         refresh(layer)
@@ -145,7 +142,7 @@ def _class_count(value: Any) -> int:
     try:
         number = int(value)
     except (TypeError, ValueError):
-        raise ValueError(f"The number of classes is a whole number from {MIN_CLASSES} to {MAX_CLASSES}.")
+        raise ValueError(f"The number of classes is a whole number from {MIN_CLASSES} to {MAX_CLASSES}.") from None
     if number < MIN_CLASSES or number > MAX_CLASSES:
         raise ValueError(f"The number of classes must run from {MIN_CLASSES} to {MAX_CLASSES}.")
     return number

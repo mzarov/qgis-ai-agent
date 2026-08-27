@@ -1,5 +1,4 @@
 class HistoryStore:
-
     def __init__(self, max_messages: int = 12):
         self._max_messages = max_messages
         self._messages: list[dict[str, str]] = []

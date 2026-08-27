@@ -1,10 +1,9 @@
 import pathlib
 import unittest
 
+from qgis_ai_agent.core.llm import probe as settings_probe
 from qgis_ai_agent.core.llm import providers
 from qgis_ai_agent.core.llm.dialects import ANTHROPIC, OPENAI, resolve
-from qgis_ai_agent.ui import settings_fields as fields
-from qgis_ai_agent.core.llm import probe as settings_probe
 
 
 class PresetTest(unittest.TestCase):
@@ -61,17 +60,14 @@ class PresetTest(unittest.TestCase):
             self.assertEqual(preset.dialect, OPENAI, preset.title)
 
 
-SOURCE = (
-    pathlib.Path(__file__).resolve().parent.parent
-    / "qgis_ai_agent"
-    / "ui"
-    / "settings_fields.py"
-).read_text(encoding="utf-8")
+SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "qgis_ai_agent" / "ui" / "settings_fields.py").read_text(
+    encoding="utf-8"
+)
 
 
 class StyleSheetTest(unittest.TestCase):
     def test_card_style_is_scoped_by_object_name(self):
-        self.assertIn(f"QFrame#{{CARD_NAME}}", SOURCE)
+        self.assertIn("QFrame#{CARD_NAME}", SOURCE)
         self.assertIn("setObjectName(CARD_NAME)", SOURCE)
 
     def test_card_never_uses_a_bare_type_selector(self):
@@ -93,21 +89,14 @@ class StyleSheetTest(unittest.TestCase):
         self.assertIn("style.surface(palette)", SOURCE)
 
     def test_borders_are_not_blanket_erased_on_containers(self):
-        offenders = [
-            line.strip()
-            for line in SOURCE.split("\n")
-            if "border: none" in line and "drop-down" not in line
-        ]
+        offenders = [line.strip() for line in SOURCE.split("\n") if "border: none" in line and "drop-down" not in line]
         self.assertEqual(offenders, [])
 
 
 class PanelLevelTest(unittest.TestCase):
-    STYLE = (
-        pathlib.Path(__file__).resolve().parent.parent
-        / "qgis_ai_agent"
-        / "ui"
-        / "style.py"
-    ).read_text(encoding="utf-8")
+    STYLE = (pathlib.Path(__file__).resolve().parent.parent / "qgis_ai_agent" / "ui" / "style.py").read_text(
+        encoding="utf-8"
+    )
 
     def test_panel_exists_and_lifts_only_in_the_dark(self):
         self.assertIn("def panel(", self.STYLE)

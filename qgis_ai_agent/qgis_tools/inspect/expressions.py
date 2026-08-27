@@ -41,10 +41,7 @@ def check_columns(expression: QgsExpression, layer, label: str, text: str) -> No
     except Exception:
         return
     available = set(layer.fields().names())
-    unknown = sorted(
-        name for name in referenced
-        if name and name not in SPECIAL_COLUMNS and name not in available
-    )
+    unknown = sorted(name for name in referenced if name and name not in SPECIAL_COLUMNS and name not in available)
     if not unknown:
         return
     raise ValueError(
@@ -69,8 +66,7 @@ def evaluate(expression: QgsExpression, context: QgsExpressionContext, feature) 
     value = expression.evaluate(context)
     if expression.hasEvalError():
         raise ValueError(
-            f"Could not evaluate the expression '{expression.expression()}': "
-            f"{expression.evalErrorString().strip()}"
+            f"Could not evaluate the expression '{expression.expression()}': {expression.evalErrorString().strip()}"
         )
     return plain_value(value)
 

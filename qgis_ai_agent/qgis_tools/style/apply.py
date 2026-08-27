@@ -12,10 +12,7 @@ RAMPS_SHOWN = 24
 def require_vector_layer(layer_name: str) -> QgsVectorLayer:
     layer = find_layer_by_name(layer_name)
     if not isinstance(layer, QgsVectorLayer):
-        raise ValueError(
-            f"Layer '{layer_name}' is not a vector layer. Symbol styling applies "
-            "to vector layers only."
-        )
+        raise ValueError(f"Layer '{layer_name}' is not a vector layer. Symbol styling applies to vector layers only.")
     return layer
 
 
@@ -46,9 +43,7 @@ def resolve_ramp(name: str, fallbacks: tuple[str, ...] = ()) -> Any:
             return style.colorRamp(candidate)
     if available:
         return style.colorRamp(available[0])
-    raise ValueError(
-        "The QGIS library holds no colour ramps at all — pass the colours through colors instead."
-    )
+    raise ValueError("The QGIS library holds no colour ramps at all — pass the colours through colors instead.")
 
 
 def describe_ramps(available: list[str]) -> str:

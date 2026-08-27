@@ -4,6 +4,7 @@ from qgis.core import QgsVectorLayerSimpleLabeling
 
 from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from qgis_ai_agent.qgis_tools.common.properties import as_bool, properties_of, shown
 from qgis_ai_agent.qgis_tools.common.values import suggest_fields
 from qgis_ai_agent.qgis_tools.style.apply import (
     field_names,
@@ -11,10 +12,8 @@ from qgis_ai_agent.qgis_tools.style.apply import (
     require_field,
     require_vector_layer,
 )
-from qgis_ai_agent.qgis_tools.common.properties import properties_of, shown
 from qgis_ai_agent.qgis_tools.style.label_build import build_settings, wants
 from qgis_ai_agent.qgis_tools.style.label_catalogue import LABELS
-from qgis_ai_agent.qgis_tools.common.properties import as_bool
 
 
 class SetLabelsTool(BaseTool):
@@ -67,8 +66,7 @@ class SetLabelsTool(BaseTool):
         field = str(properties.get("field") or "").strip()
         if not field:
             raise ValueError(
-                "To switch the labels on, give the field property. "
-                f"{suggest_fields([], field_names(layer))}"
+                f"To switch the labels on, give the field property. {suggest_fields([], field_names(layer))}"
             )
         properties["field"] = require_field(layer, field)
         return prepared

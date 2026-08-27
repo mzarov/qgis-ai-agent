@@ -23,9 +23,7 @@ PRIMARY_OUTPUT_KEY = "OUTPUT"
 def get_registry() -> Any:
     registry = QgsApplication.processingRegistry()
     if registry is None:
-        raise RuntimeError(
-            "The Processing registry is not available. Check that the Processing plugin is enabled."
-        )
+        raise RuntimeError("The Processing registry is not available. Check that the Processing plugin is enabled.")
     return registry
 
 
@@ -62,10 +60,7 @@ def find_algorithm(algorithm_id: str) -> Any:
         raise ValueError("No algorithm identifier was given.")
     algorithm = get_registry().algorithmById(wanted)
     if algorithm is None:
-        raise ValueError(
-            f"Algorithm not found: {wanted}. "
-            "Look the exact identifier up with search_processing."
-        )
+        raise ValueError(f"Algorithm not found: {wanted}. Look the exact identifier up with search_processing.")
     return algorithm
 
 
@@ -105,9 +100,7 @@ def describe_parameter(parameter: QgsProcessingParameterDefinition) -> dict[str,
         info["default"] = default
     options = parameter_options(parameter)
     if options:
-        info["options"] = [
-            {"value": index, "label": label} for index, label in enumerate(options)
-        ]
+        info["options"] = [{"value": index, "label": label} for index, label in enumerate(options)]
         info["value_hint"] = "Pass the number from the value field, not the text from label."
     return info
 
@@ -127,11 +120,7 @@ def coerce_parameters(algorithm, arguments: dict[str, Any]) -> dict[str, Any]:
         param_type = parameter.type()
         if param_type == "enum" and name in result:
             result[name] = _coerce_enum(parameter, result[name])
-        elif (
-            param_type in DESTINATION_TYPES
-            and name not in result
-            and not is_optional(parameter)
-        ):
+        elif param_type in DESTINATION_TYPES and name not in result and not is_optional(parameter):
             result[name] = TEMPORARY_OUTPUT
     return result
 

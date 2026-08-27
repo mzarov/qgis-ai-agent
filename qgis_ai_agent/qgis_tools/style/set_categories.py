@@ -4,8 +4,8 @@ from qgis.core import QgsCategorizedSymbolRenderer, QgsRendererCategory
 
 from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
-from qgis_ai_agent.qgis_tools.common.values import plain_value
 from qgis_ai_agent.qgis_tools.common.colors import parse_color
+from qgis_ai_agent.qgis_tools.common.values import plain_value
 from qgis_ai_agent.qgis_tools.style.apply import (
     coloured_symbol,
     refresh,
@@ -67,9 +67,7 @@ class SetCategoriesTool(BaseTool):
             "name": "values",
             "type": "array",
             "items": {"type": "string"},
-            "description": (
-                "Which values of the field to show. By default every unique value in the layer."
-            ),
+            "description": ("Which values of the field to show. By default every unique value in the layer."),
             "required": False,
         },
     ]
@@ -112,7 +110,7 @@ class SetCategoriesTool(BaseTool):
         colors = _colours_for(values, params.get("colors"), params.get("ramp"))
         categories = [
             QgsRendererCategory(value, coloured_symbol(layer, colour), str(value))
-            for value, colour in zip(values, colors)
+            for value, colour in zip(values, colors, strict=False)
         ]
         layer.setRenderer(QgsCategorizedSymbolRenderer(field, categories))
         refresh(layer)
