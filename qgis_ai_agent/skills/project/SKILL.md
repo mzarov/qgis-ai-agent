@@ -1,7 +1,7 @@
 ---
 name: project
-description: Manage the project itself — add and remove layers, rename, hide, group and reorder them, change project CRS, zoom the map, save the project. Load this to set a workflow up or to finish it.
-tools: [zoom_to_layer, add_layer, remove_layer, configure_layer, configure_project, save_project]
+description: Manage the project itself — add layers from files, basemaps and PostGIS, remove, rename, hide, group and reorder them, change project CRS, zoom the map, save the project. Load this to set a workflow up or to finish it.
+tools: [zoom_to_layer, add_layer, add_basemap, list_db_connections, list_db_tables, add_db_layer, remove_layer, configure_layer, configure_project, save_project]
 ---
 
 # The project as a workspace
@@ -13,11 +13,32 @@ saved.
 | Ask | Tool |
 |---|---|
 | "load a file", "add a layer" | `add_layer` |
+| "add a basemap", "OSM background", "satellite under my layers" | `add_basemap` |
+| "load a table from the database", "from PostGIS" | `list_db_connections` → `list_db_tables` → `add_db_layer` |
 | "drop a layer", "remove the spare one" | `remove_layer` |
 | "rename", "hide", "into a group", "move to the top" | `configure_layer` |
 | "change the project CRS", "name the project" | `configure_project` |
 | "show me the layer", "zoom to" | `zoom_to_layer` |
 | "save the project" | `save_project` |
+
+## Basemaps
+
+`add_basemap` places the tile layer at the bottom of the tree, so it never
+covers the data. Presets carry their attribution — repeat it to the user when
+they ask about the source. "Подложка", "фон", "спутник" all mean a basemap;
+`osm` is the safe default, `esri-imagery` is the satellite one. Tiles come from
+public services and need internet; a blank layer usually means no connection,
+not a wrong call.
+
+## Databases
+
+The plugin never sees database passwords: it can only use connections the user
+already saved in the QGIS Browser. The path is always three steps —
+`list_db_connections` to find the connection, `list_db_tables` for the exact
+schema and table, `add_db_layer` to load. Never guess table names: they are
+case sensitive and the listing is one cheap read away. If there are no saved
+connections, tell the user to create one in Browser → PostgreSQL, do not ask
+for credentials in chat.
 
 ## Finishing the job
 

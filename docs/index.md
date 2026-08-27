@@ -7,15 +7,23 @@ confirm them.
 
 ## What it does
 
-Five domains, 25 tools:
+Seven domains, 41 tools:
 
 | Domain | Example requests |
 | --- | --- |
-| `inspect` | “what layers do I have?”, “which values does the highway field hold?” |
-| `project` | “load this file”, “hide the layer”, “save the project” |
+| `inspect` | “what layers do I have?”, “what did I select?”, “show me the map” |
+| `project` | “load this file”, “add an OSM basemap”, “load a table from PostGIS” |
 | `style` | “make the rivers blue”, “colour by population”, “label with names” |
 | `processing` | “build a 500 m buffer”, “clip by the district boundary”, “compute NDVI” |
 | `osm` | “download the cafes in Tver”, “roads except unpaved ones from OSM” |
+| `edit` | “fix the misspelled name”, “delete the features I selected” |
+| `layout` | “make an A4 map sheet with a legend and export it to PDF” |
+
+On a vision-capable model the agent **sees** the map: it renders the canvas or
+a print layout to an image and judges colours, labels and composition by eye.
+And after you press Apply it **verifies itself** — re-reads the project,
+compares the result with what you asked for and queues fixes when something is
+off.
 
 ## The safety model
 

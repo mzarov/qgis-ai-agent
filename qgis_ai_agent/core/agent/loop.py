@@ -3,17 +3,14 @@ from qgis.PyQt.QtCore import QObject, pyqtSignal
 
 from qgis_ai_agent.core.agent.batch import WriteBatch
 from qgis_ai_agent.core.agent.executor import ToolExecutor
-from qgis_ai_agent.core.agent.notices import (
-    DESTRUCTIVE_NOT_SUPPORTED,
-    LIMIT_REACHED_MESSAGE,
-)
+from qgis_ai_agent.core.agent.notices import LIMIT_REACHED_MESSAGE
 from qgis_ai_agent.core.agent.prompts import LOAD_SKILL_TOOL
 from qgis_ai_agent.core.agent.request import build_overrides, build_step_request
 from qgis_ai_agent.core.agent.skills import load_skill
 from qgis_ai_agent.core.agent.transcript import ToolResult, Transcript
 from qgis_ai_agent.core.agent.turn_thread import TurnThreadOwner
 from qgis_ai_agent.core.llm.transport import PROTOCOL_JSON, PROTOCOL_NATIVE, ModelTurn, ToolCall
-from qgis_ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE, SAFETY_READ
+from qgis_ai_agent.qgis_tools.base import SAFETY_READ
 from qgis_ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call
 from qgis_ai_agent.skills.registry import SKILL_REGISTRY
 
@@ -48,6 +45,7 @@ class AgentLoop(QObject):
         self._overrides: dict = {}
         self._protocol_retried = False
         self._aborted = False
+        self._is_verification = False
 
     @property
     def is_running(self) -> bool:
@@ -57,10 +55,23 @@ class AgentLoop(QObject):
     def has_pending_writes(self) -> bool:
         return bool(self._batch)
 
-    def start(self, prompt: str, history: list[dict[str, str]] | None = None) -> None:
+    def pending_writes(self) -> list[ToolCall]:
+        return self._batch.pending()
+
+    @property
+    def is_verification(self) -> bool:
+        return self._is_verification
+
+    def start(
+        self,
+        prompt: str,
+        history: list[dict[str, str]] | None = None,
+        verification: bool = False,
+    ) -> None:
         self._transcript = Transcript()
         self._transcript.add_user(prompt)
         self._history = list(history or [])
+        self._is_verification = verification
         self._loaded_skills = [name for name in PRELOADED_SKILLS if SKILL_REGISTRY.get(name)]
         self._batch.clear()
         self._iteration = 0
@@ -138,12 +149,8 @@ class AgentLoop(QObject):
             return self._load_skill(call)
 
         tool = get_tool_by_name(call.name)
-        if tool is None:
+        if tool is None or tool.safety == SAFETY_READ:
             return self._run_now(call)
-        if tool.safety == SAFETY_READ:
-            return self._run_now(call)
-        if tool.safety == SAFETY_DESTRUCTIVE:
-            return ToolResult.failure(call, DESTRUCTIVE_NOT_SUPPORTED)
         return self._queue_write(call)
 
     def _run_now(self, call: ToolCall) -> ToolResult:

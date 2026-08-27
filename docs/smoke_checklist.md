@@ -442,3 +442,69 @@ These verify the agent solves everyday tasks without wandering through search.
 90. **An unsupported QGIS language.** Set, say, German: the plugin interface is
     English (there is no translation), the plugin does not crash, the agent
     answers in English until the user writes otherwise.
+
+## Vision and self-verification
+
+91. **render_map returns a picture.** In the Python console:
+    `execute_tool("render_map", {})` → a dict with `width`, `height`, `extent`
+    and a non-empty `image_base64`; decoding it yields a valid PNG of the
+    current view.
+92. **The agent looks at the map.** Ask “what does the map look like?” on a
+    vision model → the feed shows render_map, and the answer describes the
+    actual colours on screen, not guesses.
+93. **A blind endpoint degrades gracefully.** Same question on a model without
+    vision → the first request is retried without the image, the run finishes
+    with a text note instead of an error, and later runs skip images at once.
+94. **Verification runs after Apply.** “Make the rivers blue” → Apply → the
+    feed shows “Checking the applied changes…”, then describe_style or
+    render_map, then a short verdict that the rivers are now blue.
+95. **Verification fixes a failure.** Force one step to fail (e.g. rename the
+    layer between queueing and applying) → the verification run sees the
+    failure and queues a corrected call; a new plan card appears.
+96. **The toggle works.** Untick “Check the result after applying changes” in
+    the settings → after Apply no verification run starts.
+97. **Verification does not loop.** Apply the plan queued BY a verification
+    run → the changes land, and no further verification starts on its own.
+
+## Selection, basemaps, databases, editing
+
+98. **The agent sees the selection.** Select a few features by hand, ask
+    “what did I select?” → get_selection lists the layer, the count and real
+    attributes.
+99. **Computing over the selection.** “Total area of the selected polygons” →
+    query_layer with selected_only=true; the number matches the manual check.
+100. **Nothing selected is said plainly.** Clear the selection and repeat →
+     the agent says nothing is selected instead of computing over everything.
+101. **A basemap lands at the bottom.** “Add an OpenStreetMap basemap” → after
+     Apply the tile layer sits under all layers and the map shows tiles.
+102. **A custom tile URL without {z} is refused** with a clear message before
+     anything is queued.
+103. **Database connections are read-only discovered.** With a saved PostGIS
+     connection, “load roads from the database” walks
+     list_db_connections → list_db_tables → add_db_layer and never asks for a
+     password in chat.
+104. **Editing asks twice.** “Set type to park for the selected features” →
+     the plan card, then Apply → an extra warning dialog listing exactly the
+     destructive steps. Declining leaves the data untouched.
+105. **The edit really lands.** Accepting the dialog changes the values; the
+     verification pass re-reads them and confirms the count.
+106. **delete_features refuses to delete everything silently.** “Delete all
+     features” works only when the filter is the literal all; an empty filter
+     is rejected with an explanation.
+
+## Print layouts
+
+107. **A sheet in one run.** “Make an A4 landscape layout with the map, a
+     title, a legend and a scale bar” → one plan card; after Apply the layout
+     manager holds the sheet and everything sits inside the page.
+108. **The agent looks at the sheet.** The verification pass calls
+     render_layout; if the legend covers the map, a fix plan appears with
+     configure_layout_item.
+109. **Legend before map is refused.** Ask for a legend in an empty layout →
+     a clear error saying to add a map first, at queue time.
+110. **Out-of-page items are refused** at queue time with the page size in
+     the message.
+111. **Export.** “Export the layout to /tmp/map.pdf” → the file exists and
+     opens; a path into a missing folder is refused before queueing.
+112. **Item ids are addressable.** describe_layout shows map-1/title;
+     “move the title down a little” changes exactly that item.

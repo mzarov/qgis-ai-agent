@@ -3,10 +3,13 @@ from typing import Any
 from qgis.core import Qgis, QgsMessageLog
 
 from qgis_ai_agent.core.agent.loop import AgentLoop
+from qgis_ai_agent.core.agent.prompts import build_verification_prompt
 from qgis_ai_agent.core.orchestrator.contracts import DockWidgetContract
+from qgis_ai_agent.core.settings import get_verify_after_apply
 from qgis_ai_agent.core.state.conversation import ConversationState
 from qgis_ai_agent.i18n import tr
-from qgis_ai_agent.qgis_tools.registry import summarize_tool_call
+from qgis_ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
+from qgis_ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call
 
 LOG_TAG = "QGIS AI Agent"
 MESSAGE_DURATION_SEC = 8
@@ -14,6 +17,8 @@ SESSION_MISSING = tr("Conversation not found.")
 RUN_STOPPED = tr("Run stopped. Any changes the agent had planned were dropped.")
 SWITCH_WHILE_RUNNING = tr("Wait for the current task to finish.")
 SWITCH_WHILE_PENDING = tr("Apply or cancel the planned changes first.")
+VERIFYING = tr("Checking the applied changes…")
+DESTRUCTIVE_DECLINED = tr("Kept everything as it was — the destructive steps were not applied.")
 
 
 class CoreOrchestrator:
@@ -122,7 +127,19 @@ class CoreOrchestrator:
         if not self.agent.has_pending_writes:
             self.dock_widget.add_system_message(tr("There are no changes to apply."))
             return
+        destructive = self._destructive_lines()
+        if destructive and not self.dock_widget.confirm_destructive(destructive):
+            self.dock_widget.add_system_message(DESTRUCTIVE_DECLINED)
+            return
         self.agent.confirm_pending()
+
+    def _destructive_lines(self) -> list[str]:
+        lines = []
+        for call in self.agent.pending_writes():
+            tool = get_tool_by_name(call.name)
+            if tool is not None and tool.safety == SAFETY_DESTRUCTIVE:
+                lines.append(summarize_tool_call(call.name, call.arguments))
+        return lines
 
     def on_cancel_plan(self) -> None:
         self.agent.cancel_pending()
@@ -141,11 +158,24 @@ class CoreOrchestrator:
             self.dock_widget.add_system_message(outcome)
             self.conversation.add("assistant", outcome)
             self._push_message(tr("Not all changes were applied."), Qgis.Warning)
+        else:
+            outcome = tr("Done: {0} step(s) applied.{1}").format(len(results), self._where_to_look(results))
+            self.dock_widget.add_result_message(outcome)
+            self.conversation.add("assistant", outcome)
+            self._push_message(tr("Changes applied."), Qgis.Success)
+        self._maybe_verify(results)
+
+    def _maybe_verify(self, results: list) -> None:
+        if not results or self.agent.is_verification or self.agent.is_running:
             return
-        outcome = tr("Done: {0} step(s) applied.{1}").format(len(results), self._where_to_look(results))
-        self.dock_widget.add_result_message(outcome)
-        self.conversation.add("assistant", outcome)
-        self._push_message(tr("Changes applied."), Qgis.Success)
+        if not get_verify_after_apply():
+            return
+        outcomes = [
+            {"tool": result.call.name, "ok": result.ok, "error": str(result.payload.get("error", ""))}
+            for result in results
+        ]
+        self.dock_widget.add_system_message(VERIFYING)
+        self.agent.start(build_verification_prompt(outcomes), self.conversation.window(), verification=True)
 
     def on_finished(self, text: str) -> None:
         message = (text or "").strip()

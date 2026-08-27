@@ -45,12 +45,22 @@ class Agent:
     def __init__(self):
         self.is_running = False
         self.has_pending_writes = False
+        self.is_verification = False
         self.started = None
-
+        self.verification_started = None
         self.aborts = 0
 
-    def start(self, prompt, history):
-        self.started = (prompt, list(history))
+    def start(self, prompt, history, verification=False):
+        if verification:
+            self.verification_started = (prompt, list(history))
+        else:
+            self.started = (prompt, list(history))
+
+    def pending_writes(self):
+        return list(getattr(self, "pending", []))
+
+    def confirm_pending(self):
+        self.confirmed = True
 
     def abort(self):
         self.aborts += 1
@@ -61,10 +71,17 @@ class Agent:
         return None
 
 
+class Call:
+    def __init__(self, name="set_symbol"):
+        self.name = name
+        self.arguments = {}
+
+
 class Result:
-    def __init__(self, ok=True, payload=None):
+    def __init__(self, ok=True, payload=None, name="set_symbol"):
         self.ok = ok
         self.payload = payload or {}
+        self.call = Call(name)
 
 
 class OrchestratorSessionTest(unittest.TestCase):
@@ -155,6 +172,89 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.orchestrator.on_applied([Result(ok=False, payload={"error": "нет такого слоя"})])
         self.orchestrator.on_prompt("почини")
         self.assertIn("нет такого слоя", str(self.orchestrator.agent.started[1]))
+
+    def test_destructive_steps_ask_an_extra_confirmation(self):
+        from qgis_ai_agent.core.orchestrator import orchestrator as module
+
+        saved = module.get_tool_by_name
+
+        class Destructive:
+            safety = "destructive"
+
+        module.get_tool_by_name = lambda name: Destructive()
+        self.orchestrator.agent.has_pending_writes = True
+        self.orchestrator.agent.pending = [Call("delete_features")]
+        self.dock.confirm_destructive = lambda lines: False
+        try:
+            self.orchestrator.on_confirm_plan()
+        finally:
+            module.get_tool_by_name = saved
+        self.assertFalse(getattr(self.orchestrator.agent, "confirmed", False))
+        self.assertTrue(any("destructive" in text or "не применены" in text for text in self.dock.system))
+
+    def test_accepted_destructive_steps_apply(self):
+        from qgis_ai_agent.core.orchestrator import orchestrator as module
+
+        saved = module.get_tool_by_name
+
+        class Destructive:
+            safety = "destructive"
+
+        module.get_tool_by_name = lambda name: Destructive()
+        self.orchestrator.agent.has_pending_writes = True
+        self.orchestrator.agent.pending = [Call("delete_features")]
+        self.dock.confirm_destructive = lambda lines: True
+        try:
+            self.orchestrator.on_confirm_plan()
+        finally:
+            module.get_tool_by_name = saved
+        self.assertTrue(self.orchestrator.agent.confirmed)
+
+    def test_plain_writes_skip_the_extra_confirmation(self):
+        self.orchestrator.agent.has_pending_writes = True
+        self.orchestrator.agent.pending = [Call("set_symbol")]
+        asked = []
+        self.dock.confirm_destructive = lambda lines: asked.append(lines) or True
+        self.orchestrator.on_confirm_plan()
+        self.assertEqual(asked, [])
+        self.assertTrue(self.orchestrator.agent.confirmed)
+
+    def test_apply_triggers_a_verification_run(self):
+        self.orchestrator.on_prompt("сделай реки синими")
+        self.orchestrator.on_applied([Result(name="set_symbol")])
+        prompt, history = self.orchestrator.agent.verification_started
+        self.assertIn("set_symbol: ok", prompt)
+        self.assertIn("Verify", prompt)
+        self.assertTrue(any("Done: 1 step(s) applied" in item["content"] for item in history))
+
+    def test_failed_steps_reach_the_verification_prompt(self):
+        self.orchestrator.on_prompt("сделай реки синими")
+        self.orchestrator.on_applied([Result(ok=False, payload={"error": "no such layer"}, name="set_symbol")])
+        prompt, _ = self.orchestrator.agent.verification_started
+        self.assertIn("FAILED — no such layer", prompt)
+
+    def test_a_verification_run_is_not_verified_again(self):
+        self.orchestrator.on_prompt("сделай реки синими")
+        self.orchestrator.agent.is_verification = True
+        self.orchestrator.on_applied([Result()])
+        self.assertIsNone(self.orchestrator.agent.verification_started)
+
+    def test_verification_respects_the_setting(self):
+        from qgis_ai_agent.core.orchestrator import orchestrator as module
+
+        saved = module.get_verify_after_apply
+        module.get_verify_after_apply = lambda: False
+        try:
+            self.orchestrator.on_prompt("сделай реки синими")
+            self.orchestrator.on_applied([Result()])
+        finally:
+            module.get_verify_after_apply = saved
+        self.assertIsNone(self.orchestrator.agent.verification_started)
+
+    def test_empty_apply_verifies_nothing(self):
+        self.orchestrator.on_prompt("вопрос")
+        self.orchestrator.on_applied([])
+        self.assertIsNone(self.orchestrator.agent.verification_started)
 
     def test_stop_aborts_the_run(self):
         self.orchestrator.on_prompt("долгая задача")

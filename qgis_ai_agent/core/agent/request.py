@@ -15,6 +15,7 @@ from qgis_ai_agent.core.settings import (
     get_api_url,
     get_auth_type,
     get_model,
+    get_supports_images,
     get_supports_tools,
     get_verify_ssl,
 )
@@ -50,7 +51,7 @@ def build_step_request(
         if tools_block:
             system_prompt = f"{system_prompt}\n\n{tools_block}"
     return StepRequest(
-        messages=transcript.build_messages(system_prompt, history),
+        messages=transcript.build_messages(system_prompt, history, include_images=not detect_images_unsupported()),
         tool_schemas=schemas,
         overrides=overrides if overrides is not None else build_overrides(),
         protocol=PROTOCOL_JSON if json_protocol else PROTOCOL_NATIVE,
@@ -63,6 +64,13 @@ def build_tool_schemas_for(loaded_skills: list[str]) -> list[dict[str, Any]]:
     if remaining:
         schemas.insert(0, build_load_skill_schema(remaining))
     return schemas
+
+
+def detect_images_unsupported() -> bool:
+    try:
+        return get_supports_images(resolve_endpoint()) is False
+    except Exception:
+        return False
 
 
 def detect_json_protocol() -> bool:

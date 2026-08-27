@@ -4,6 +4,7 @@ from qgis.core import Qgis, QgsMessageLog
 
 from qgis_ai_agent.core.agent.transcript import ToolResult
 from qgis_ai_agent.core.llm.transport import ToolCall
+from qgis_ai_agent.qgis_tools.base import RESULT_IMAGE_KEY
 from qgis_ai_agent.qgis_tools.registry import execute_tool, get_tool_by_name
 
 LOG_TAG = "QGIS AI Agent"
@@ -32,7 +33,11 @@ class ToolExecutor:
             )
             return ToolResult.failure(call, str(err))
         QgsMessageLog.logMessage(f"Tool {call.name} finished.", LOG_TAG, Qgis.Info)
-        return ToolResult(call=call, ok=True, payload=self._as_dict(payload))
+        prepared = self._as_dict(payload)
+        image = str(prepared.pop(RESULT_IMAGE_KEY, "") or "")
+        if image:
+            prepared["image_attached"] = True
+        return ToolResult(call=call, ok=True, payload=prepared, image=image)
 
     @staticmethod
     def queued(call: ToolCall) -> ToolResult:

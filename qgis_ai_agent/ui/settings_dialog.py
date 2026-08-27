@@ -22,12 +22,14 @@ from qgis_ai_agent.core.settings import (
     get_auth_type,
     get_dialect,
     get_model,
+    get_verify_after_apply,
     get_verify_ssl,
     set_api_key,
     set_api_url,
     set_auth_type,
     set_dialect,
     set_model,
+    set_verify_after_apply,
     set_verify_ssl,
 )
 from qgis_ai_agent.i18n import tr
@@ -44,6 +46,8 @@ KEY_HINT = tr("Stored in the system keyring, not in the settings file.")
 KEYLESS_HINT = tr("A local server needs no key — leave this empty.")
 DIALECT_HINT = tr("auto picks the format from the address: api.anthropic.com is Anthropic, everything else is OpenAI.")
 AUTH_HINT = tr("Bearer suits almost everyone; OAuth is for corporate gateways.")
+VERIFY_LABEL = tr("Check the result after applying changes")
+VERIFY_HINT = tr("After you press Apply, the agent re-reads the project and confirms the changes really landed.")
 
 
 class SettingsDialog(QDialog):
@@ -106,6 +110,11 @@ class SettingsDialog(QDialog):
         self.verify_ssl_cb = QCheckBox(tr("Verify the SSL certificate"))
         self.verify_ssl_cb.setChecked(get_verify_ssl())
         column.addWidget(self.verify_ssl_cb)
+
+        self.verify_apply_cb = QCheckBox(VERIFY_LABEL)
+        self.verify_apply_cb.setToolTip(VERIFY_HINT)
+        self.verify_apply_cb.setChecked(get_verify_after_apply())
+        column.addWidget(self.verify_apply_cb)
         return frame
 
     def _build_buttons(self, palette: Any) -> QHBoxLayout:
@@ -155,6 +164,7 @@ class SettingsDialog(QDialog):
         set_auth_type(self.auth_type_combo.currentText())
         set_dialect(self.dialect_combo.currentText())
         set_verify_ssl(self.verify_ssl_cb.isChecked())
+        set_verify_after_apply(self.verify_apply_cb.isChecked())
         key = self.key_edit.text()
         if key:
             try:

@@ -1,6 +1,6 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.inspect.expressions import parse_order_by, sort_key
+from qgis_ai_agent.qgis_tools.common.expressions import parse_order_by, sort_key
 
 
 class ParseOrderByTest(unittest.TestCase):

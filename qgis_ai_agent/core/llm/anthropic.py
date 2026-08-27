@@ -4,6 +4,10 @@ from typing import Any
 from qgis_ai_agent.core.llm.dialects import DEFAULT_MAX_TOKENS
 
 TEXT_BLOCK = "text"
+IMAGE_BLOCK = "image"
+IMAGE_URL_BLOCK = "image_url"
+DATA_URL_PREFIX = "data:"
+DEFAULT_IMAGE_MEDIA = "image/png"
 TOOL_USE = "tool_use"
 TOOL_RESULT = "tool_result"
 USER = "user"
@@ -51,8 +55,32 @@ def translate_message(message: dict[str, Any]) -> dict[str, Any] | None:
         return _result_message(message)
     if role == ASSISTANT:
         return _assistant_message(message)
-    content = str(message.get("content") or "")
-    return {"role": USER, "content": content} if content else None
+    content = message.get("content")
+    if isinstance(content, list):
+        blocks = [block for block in (_user_block(item) for item in content) if block]
+        return {"role": USER, "content": blocks} if blocks else None
+    text = str(content or "")
+    return {"role": USER, "content": text} if text else None
+
+
+def _user_block(item: Any) -> dict[str, Any] | None:
+    if not isinstance(item, dict):
+        return None
+    if item.get("type") == IMAGE_URL_BLOCK:
+        media, data = _split_data_url(str((item.get(IMAGE_URL_BLOCK) or {}).get("url") or ""))
+        if not data:
+            return None
+        return {"type": IMAGE_BLOCK, "source": {"type": "base64", "media_type": media, "data": data}}
+    text = str(item.get("text") or "")
+    return {"type": TEXT_BLOCK, "text": text} if text else None
+
+
+def _split_data_url(url: str) -> tuple[str, str]:
+    if not url.startswith(DATA_URL_PREFIX):
+        return "", ""
+    head, _, data = url.partition(",")
+    media = head[len(DATA_URL_PREFIX) :].split(";")[0] or DEFAULT_IMAGE_MEDIA
+    return media, data
 
 
 def translate_tool(schema: dict[str, Any]) -> dict[str, Any]:

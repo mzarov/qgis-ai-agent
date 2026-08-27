@@ -3,10 +3,14 @@
 A plugin for QGIS 4 LTR: an AI agent that inspects the project and processes data
 from a plain-language request.
 
-Domains are implemented as skills: `inspect` (reading the project), `project`
-(layers, tree, saving), `style` (styling and labels), `processing` (algorithms),
-`osm` (OpenStreetMap data through Overpass). Print layouts existed in
-`v0.1.0-diploma` and were removed — they are to be rebuilt as a separate skill.
+Domains are implemented as skills: `inspect` (reading the project, selection,
+rendering the map to an image), `project` (layers, basemaps, PostGIS, tree,
+saving), `style` (styling and labels), `processing` (algorithms), `osm`
+(OpenStreetMap data through Overpass), `edit` (in-place attribute edits and
+deletion — the `destructive` class), `layout` (print layouts and export). After
+the user applies a batch, the orchestrator starts a verification run: the agent
+re-reads the result with read tools and, for visual changes, looks at a
+rendered image.
 
 Architecture and prompt design belong to the user; implementation belongs to the
 agent. Do not ask permission for routine decisions — write the code.

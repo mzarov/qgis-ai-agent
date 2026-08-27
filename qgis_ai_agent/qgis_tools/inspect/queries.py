@@ -1,14 +1,14 @@
 from typing import Any
 
-from qgis_ai_agent.qgis_tools.common.values import clamp_limit, wanted_fields
-from qgis_ai_agent.qgis_tools.inspect.aggregates import compute
-from qgis_ai_agent.qgis_tools.inspect.expressions import (
+from qgis_ai_agent.qgis_tools.common.expressions import (
     evaluate,
     parse_order_by,
     plain_value,
     prepared,
     sort_key,
 )
+from qgis_ai_agent.qgis_tools.common.values import clamp_limit, wanted_fields
+from qgis_ai_agent.qgis_tools.inspect.aggregates import compute
 
 MAX_SCAN = 50000
 DEFAULT_ROW_LIMIT = 20

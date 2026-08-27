@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+RESULT_IMAGE_KEY = "image_base64"
 SAFETY_READ = "read"
 SAFETY_WRITE = "write"
 SAFETY_DESTRUCTIVE = "destructive"

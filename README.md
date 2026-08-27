@@ -8,15 +8,22 @@ confirms them.
 **Documentation:** <https://mzarov.github.io/qgis-ai-agent/> ·
 по-русски: <https://mzarov.github.io/qgis-ai-agent/ru/>
 
-**What it does** — five domains, 25 tools:
+**What it does** — seven domains, 41 tools:
 
 | Domain | Example requests |
 | --- | --- |
-| `inspect` | “what layers do I have?”, “which values does the highway field hold?” |
-| `project` | “load this file”, “hide the layer”, “save the project” |
+| `inspect` | “what layers do I have?”, “what did I select?”, “show me the map” |
+| `project` | “load this file”, “add an OSM basemap”, “load a table from PostGIS” |
 | `style` | “make the rivers blue”, “colour by population”, “label with names” |
 | `processing` | “build a 500 m buffer”, “clip by the district boundary”, “compute NDVI” |
 | `osm` | “download the cafes in Tver”, “roads except unpaved ones from OSM” |
+| `edit` | “fix the misspelled name”, “delete the features with no geometry data” |
+| `layout` | “make an A4 map sheet with a legend and export it to PDF” |
+
+The agent can **see**: on a vision model it renders the map or the layout and
+judges the result by eye. After you press Apply it runs a **verification pass**
+— re-reads the project, looks at the picture and reports whether the changes
+really landed, queueing fixes when they did not.
 
 ## Installation
 

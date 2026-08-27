@@ -12,11 +12,19 @@ from qgis_ai_agent.core.llm.client import (
 )
 from qgis_ai_agent.core.llm.dialects import ANTHROPIC, resolve
 from qgis_ai_agent.core.llm.parser import parse_model_json, parse_tool_arguments
-from qgis_ai_agent.core.settings import get_dialect, get_supports_tools, set_supports_tools
+from qgis_ai_agent.core.settings import (
+    get_dialect,
+    get_supports_tools,
+    set_supports_images,
+    set_supports_tools,
+)
 
 PROTOCOL_NATIVE = "native"
 PROTOCOL_JSON = "json"
 UNSUPPORTED_STATUS_CODES = (400, 404, 422, 501)
+IMAGE_REJECTED_STATUS_CODES = (400, 413, 415, 422)
+IMAGE_URL_BLOCK = "image_url"
+IMAGE_STRIPPED_NOTE = "[image omitted: this endpoint rejected image input]"
 UNSUPPORTED_MARKERS = (
     "tools",
     "tool_choice",
@@ -51,6 +59,48 @@ def call_model(
 ) -> ModelTurn:
     overrides = dict(overrides or {})
     url = resolve_endpoint(overrides.get("url_override"))
+    try:
+        return _dispatch(messages, tool_schemas, overrides, timeout, url)
+    except ApiResponseError as err:
+        if not (_has_images(messages) and err.status_code in IMAGE_REJECTED_STATUS_CODES):
+            raise
+        turn = _dispatch(_without_images(messages), tool_schemas, overrides, timeout, url)
+        set_supports_images(url, False)
+        return turn
+
+
+def _has_images(messages: list[dict[str, Any]]) -> bool:
+    return any(
+        isinstance(block, dict) and block.get("type") == IMAGE_URL_BLOCK
+        for message in messages
+        if isinstance(message.get("content"), list)
+        for block in message["content"]
+    )
+
+
+def _without_images(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    cleaned = []
+    for message in messages:
+        content = message.get("content")
+        if not isinstance(content, list):
+            cleaned.append(message)
+            continue
+        parts = [
+            str(block.get("text") or "") if block.get("type") != IMAGE_URL_BLOCK else IMAGE_STRIPPED_NOTE
+            for block in content
+            if isinstance(block, dict)
+        ]
+        cleaned.append({**message, "content": "\n".join(part for part in parts if part)})
+    return cleaned
+
+
+def _dispatch(
+    messages: list[dict[str, Any]],
+    tool_schemas: list[dict[str, Any]],
+    overrides: dict[str, Any],
+    timeout: int,
+    url: str,
+) -> ModelTurn:
     chosen = overrides.get("dialect_override")
     if resolve(url, chosen if chosen is not None else get_dialect()) == ANTHROPIC:
         return _call_anthropic(messages, tool_schemas, overrides, timeout)
