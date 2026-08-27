@@ -1,7 +1,7 @@
 ---
 name: inspect
 description: Read the current QGIS project — structure, layers, attribute data, CRS, environment. Load this whenever you need facts about the project before answering or acting.
-tools: [get_project_info, list_layers, describe_layer, get_field_values, sample_features, query_layer, get_canvas_extent, get_qgis_info]
+tools: [get_project_info, list_layers, describe_layer, get_field_values, sample_features, query_layer, get_canvas_extent, render_map, get_qgis_info]
 ---
 
 # Reading the project
@@ -96,6 +96,18 @@ Rules that matter:
 - `order_by` works only without `aggregate`.
 - If the tool reports that too many features match, add a `filter` — it refuses to
   return a partial aggregate rather than answer wrongly.
+
+## Seeing the map
+
+`render_map` renders the current view (or one layer's extent with `layer_name`)
+to an image attached to the result. Use it when the question is about how the
+map *looks* — colours in context, label readability, whether a layer is visible
+— and to verify styling changes after they were applied. Data questions (counts,
+values, fields) are answered by the data tools above, not by pixel-reading.
+
+It needs a vision-capable model; if the endpoint rejects images the plugin
+retries without the picture and you get a text note instead — say so rather
+than pretending you saw the map.
 
 ## Layer sources
 

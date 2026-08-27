@@ -442,3 +442,26 @@ These verify the agent solves everyday tasks without wandering through search.
 90. **An unsupported QGIS language.** Set, say, German: the plugin interface is
     English (there is no translation), the plugin does not crash, the agent
     answers in English until the user writes otherwise.
+
+## Vision and self-verification
+
+91. **render_map returns a picture.** In the Python console:
+    `execute_tool("render_map", {})` → a dict with `width`, `height`, `extent`
+    and a non-empty `image_base64`; decoding it yields a valid PNG of the
+    current view.
+92. **The agent looks at the map.** Ask “what does the map look like?” on a
+    vision model → the feed shows render_map, and the answer describes the
+    actual colours on screen, not guesses.
+93. **A blind endpoint degrades gracefully.** Same question on a model without
+    vision → the first request is retried without the image, the run finishes
+    with a text note instead of an error, and later runs skip images at once.
+94. **Verification runs after Apply.** “Make the rivers blue” → Apply → the
+    feed shows “Checking the applied changes…”, then describe_style or
+    render_map, then a short verdict that the rivers are now blue.
+95. **Verification fixes a failure.** Force one step to fail (e.g. rename the
+    layer between queueing and applying) → the verification run sees the
+    failure and queues a corrected call; a new plan card appears.
+96. **The toggle works.** Untick “Check the result after applying changes” in
+    the settings → after Apply no verification run starts.
+97. **Verification does not loop.** Apply the plan queued BY a verification
+    run → the changes land, and no further verification starts on its own.

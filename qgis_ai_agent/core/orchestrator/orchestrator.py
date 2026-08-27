@@ -3,7 +3,9 @@ from typing import Any
 from qgis.core import Qgis, QgsMessageLog
 
 from qgis_ai_agent.core.agent.loop import AgentLoop
+from qgis_ai_agent.core.agent.prompts import build_verification_prompt
 from qgis_ai_agent.core.orchestrator.contracts import DockWidgetContract
+from qgis_ai_agent.core.settings import get_verify_after_apply
 from qgis_ai_agent.core.state.conversation import ConversationState
 from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.registry import summarize_tool_call
@@ -14,6 +16,7 @@ SESSION_MISSING = tr("Conversation not found.")
 RUN_STOPPED = tr("Run stopped. Any changes the agent had planned were dropped.")
 SWITCH_WHILE_RUNNING = tr("Wait for the current task to finish.")
 SWITCH_WHILE_PENDING = tr("Apply or cancel the planned changes first.")
+VERIFYING = tr("Checking the applied changes…")
 
 
 class CoreOrchestrator:
@@ -141,11 +144,24 @@ class CoreOrchestrator:
             self.dock_widget.add_system_message(outcome)
             self.conversation.add("assistant", outcome)
             self._push_message(tr("Not all changes were applied."), Qgis.Warning)
+        else:
+            outcome = tr("Done: {0} step(s) applied.{1}").format(len(results), self._where_to_look(results))
+            self.dock_widget.add_result_message(outcome)
+            self.conversation.add("assistant", outcome)
+            self._push_message(tr("Changes applied."), Qgis.Success)
+        self._maybe_verify(results)
+
+    def _maybe_verify(self, results: list) -> None:
+        if not results or self.agent.is_verification or self.agent.is_running:
             return
-        outcome = tr("Done: {0} step(s) applied.{1}").format(len(results), self._where_to_look(results))
-        self.dock_widget.add_result_message(outcome)
-        self.conversation.add("assistant", outcome)
-        self._push_message(tr("Changes applied."), Qgis.Success)
+        if not get_verify_after_apply():
+            return
+        outcomes = [
+            {"tool": result.call.name, "ok": result.ok, "error": str(result.payload.get("error", ""))}
+            for result in results
+        ]
+        self.dock_widget.add_system_message(VERIFYING)
+        self.agent.start(build_verification_prompt(outcomes), self.conversation.window(), verification=True)
 
     def on_finished(self, text: str) -> None:
         message = (text or "").strip()

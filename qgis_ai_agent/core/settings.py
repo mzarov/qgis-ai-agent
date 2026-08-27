@@ -82,6 +82,24 @@ def set_verify_ssl(value: bool) -> None:
     _write("verify_ssl", "true" if value else "false")
 
 
+def get_verify_after_apply() -> bool:
+    stored = QgsSettings().value(f"{SETTINGS_PREFIX}/verify_after_apply")
+    return True if stored is None else _as_bool(stored)
+
+
+def set_verify_after_apply(value: bool) -> None:
+    _write("verify_after_apply", "true" if value else "false")
+
+
+def get_supports_images(url: str) -> bool | None:
+    stored = QgsSettings().value(f"{SETTINGS_PREFIX}/supports_images/{_url_settings_key(url)}")
+    return None if stored is None else _as_bool(stored)
+
+
+def set_supports_images(url: str, value: bool) -> None:
+    _write(f"supports_images/{_url_settings_key(url)}", "true" if value else "false")
+
+
 def get_supports_tools(url: str) -> bool | None:
     stored = QgsSettings().value(f"{SETTINGS_PREFIX}/supports_tools/{_url_settings_key(url)}")
     return None if stored is None else _as_bool(stored)

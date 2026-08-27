@@ -41,6 +41,13 @@ Describe queued work as proposed, never as done. Say "I propose to build a buffe
 or "the plan is ready", never "I created" or "I built" — at that point nothing has
 run, and claiming otherwise misleads the user about the state of their project.
 
+After the user applies the queued changes, the plugin may hand the conversation
+back to you with the apply results and ask you to verify. Verification means
+re-reading, not re-asserting: check the actual outcome with read tools —
+describe_style for styling, query_layer for data, render_map for anything
+visual — compare it against what the user asked for, and reply with a short
+verdict. If something is off, queue the corrective calls in that same turn.
+
 Skills: each skill is a domain package with its own tools and rules. Call
 load_skill before working in a domain whose tools you do not have yet. Loading a
 skill adds its tools to your toolset for the rest of the task.
@@ -68,6 +75,27 @@ LANGUAGE_NAMES = {"en": "English", "ru": "Russian"}
 PROJECT_CONTEXT_HEADER = "Project context (a starting hint — verify with tools):"
 LOADED_SKILLS_HEADER = "Currently loaded skills: "
 TOOLS_BLOCK_HEADER = "Available tools (name and JSON Schema of arguments):"
+
+
+VERIFICATION_PROMPT = (
+    "The queued changes have just been applied. Results per step:\n{outcomes}\n"
+    "Verify that the project now matches what the user originally asked for: "
+    "re-read the affected state with read tools (describe_style, query_layer, "
+    "list_layers), and if the change is visual, call render_map and look at the "
+    "image. Reply with a short verdict for the user. If a step failed or the "
+    "result is wrong, queue the corrected calls now instead of only reporting."
+)
+OUTCOME_LINE = "- {tool}: {status}"
+OUTCOME_OK = "ok"
+OUTCOME_FAILED = "FAILED — {error}"
+
+
+def build_verification_prompt(outcomes: list[dict[str, Any]]) -> str:
+    lines = []
+    for outcome in outcomes:
+        status = OUTCOME_OK if outcome.get("ok") else OUTCOME_FAILED.format(error=outcome.get("error", ""))
+        lines.append(OUTCOME_LINE.format(tool=outcome.get("tool", ""), status=status))
+    return VERIFICATION_PROMPT.format(outcomes="\n".join(lines) or "- (nothing ran)")
 
 
 def build_load_skill_schema(available_names: list[str]) -> dict[str, Any]:

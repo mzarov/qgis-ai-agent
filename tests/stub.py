@@ -83,6 +83,8 @@ core = _mod(
         "QgsCoordinateReferenceSystem",
         "QgsCoordinateTransform",
         "QgsBlockingNetworkRequest",
+        "QgsMapSettings",
+        "QgsMapRendererParallelJob",
     ],
 )
 pyqt = _mod("qgis.PyQt")
@@ -101,6 +103,8 @@ _mod(
         "QSize",
         "QTimer",
         "QByteArray",
+        "QBuffer",
+        "QIODevice",
         "QUrl",
         "QPointF",
         "QRectF",

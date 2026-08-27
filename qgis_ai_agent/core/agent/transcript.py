@@ -7,6 +7,9 @@ from qgis_ai_agent.core.llm.transport import PROTOCOL_NATIVE, ModelTurn, ToolCal
 MAX_RESULT_CHARS = 4000
 TRUNCATION_NOTE = "… (result truncated)"
 RESULTS_HEADER = "Tool results:"
+IMAGE_MEDIA = "image/png"
+IMAGE_INTRO = "Image rendered by {tool}:"
+IMAGE_OMITTED_NOTE = "[image omitted: this endpoint does not accept image input]"
 
 
 @dataclass
@@ -14,6 +17,7 @@ class ToolResult:
     call: ToolCall
     payload: dict[str, Any]
     ok: bool = True
+    image: str = ""
 
     @classmethod
     def failure(cls, call: ToolCall, error: str) -> "ToolResult":
@@ -51,23 +55,24 @@ class Transcript:
         self,
         system_prompt: str,
         history: list[dict[str, str]] | None = None,
+        include_images: bool = True,
     ) -> list[dict[str, Any]]:
         messages: list[dict[str, Any]] = [{"role": "system", "content": system_prompt}]
         if history:
             messages.extend(history)
         for entry in self.entries:
-            messages.extend(self._render(entry))
+            messages.extend(self._render(entry, include_images))
         return messages
 
     @classmethod
-    def _render(cls, entry: dict[str, Any]) -> list[dict[str, Any]]:
+    def _render(cls, entry: dict[str, Any], include_images: bool) -> list[dict[str, Any]]:
         kind = entry["kind"]
         if kind == "user":
             return [{"role": "user", "content": entry["text"]}]
         if kind == "turn":
             return [cls._render_turn(entry["turn"])]
         if kind == "results":
-            return cls._render_results(entry["results"], entry["protocol"])
+            return cls._render_results(entry["results"], entry["protocol"], include_images)
         return []
 
     @classmethod
@@ -95,9 +100,35 @@ class Transcript:
             },
         }
 
-    @staticmethod
-    def _render_results(results: list[ToolResult], protocol: str) -> list[dict[str, Any]]:
+    @classmethod
+    def _render_results(cls, results: list[ToolResult], protocol: str, include_images: bool) -> list[dict[str, Any]]:
         if protocol == PROTOCOL_NATIVE:
-            return [{"role": "tool", "tool_call_id": result.call.id, "content": result.to_text()} for result in results]
-        lines = [f"{result.call.name} -> {result.to_text()}" for result in results]
-        return [{"role": "user", "content": RESULTS_HEADER + "\n" + "\n".join(lines)}]
+            rendered = [
+                {"role": "tool", "tool_call_id": result.call.id, "content": result.to_text()} for result in results
+            ]
+        else:
+            lines = [f"{result.call.name} -> {result.to_text()}" for result in results]
+            rendered = [{"role": "user", "content": RESULTS_HEADER + "\n" + "\n".join(lines)}]
+        for result in results:
+            attachment = cls._image_message(result, include_images)
+            if attachment is not None:
+                rendered.append(attachment)
+        return rendered
+
+    @staticmethod
+    def _image_message(result: ToolResult, include_images: bool) -> dict[str, Any] | None:
+        if not result.image:
+            return None
+        intro = IMAGE_INTRO.format(tool=result.call.name)
+        if not include_images:
+            return {"role": "user", "content": f"{intro} {IMAGE_OMITTED_NOTE}"}
+        return {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": intro},
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:{IMAGE_MEDIA};base64,{result.image}"},
+                },
+            ],
+        }

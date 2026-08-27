@@ -48,6 +48,7 @@ class AgentLoop(QObject):
         self._overrides: dict = {}
         self._protocol_retried = False
         self._aborted = False
+        self._is_verification = False
 
     @property
     def is_running(self) -> bool:
@@ -57,10 +58,20 @@ class AgentLoop(QObject):
     def has_pending_writes(self) -> bool:
         return bool(self._batch)
 
-    def start(self, prompt: str, history: list[dict[str, str]] | None = None) -> None:
+    @property
+    def is_verification(self) -> bool:
+        return self._is_verification
+
+    def start(
+        self,
+        prompt: str,
+        history: list[dict[str, str]] | None = None,
+        verification: bool = False,
+    ) -> None:
         self._transcript = Transcript()
         self._transcript.add_user(prompt)
         self._history = list(history or [])
+        self._is_verification = verification
         self._loaded_skills = [name for name in PRELOADED_SKILLS if SKILL_REGISTRY.get(name)]
         self._batch.clear()
         self._iteration = 0
