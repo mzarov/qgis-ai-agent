@@ -7,8 +7,8 @@ from qgis_ai_agent.core.llm.transport import ToolCall
 from qgis_ai_agent.qgis_tools.registry import execute_tool, get_tool_by_name
 
 LOG_TAG = "QGIS AI Agent"
-UNKNOWN_TOOL_HINT = "Проверьте список доступных тулов или загрузите нужный скилл."
-QUEUED_NOTE = "Действие добавлено в план и будет выполнено после подтверждения пользователя."
+UNKNOWN_TOOL_HINT = "Check the list of available tools or load the skill you need."
+QUEUED_NOTE = "The action was added to the plan and runs after the user confirms."
 
 
 class ToolExecutor:
@@ -18,7 +18,7 @@ class ToolExecutor:
                 call=call,
                 ok=False,
                 payload={
-                    "error": f"Неизвестный инструмент: {call.name}.",
+                    "error": f"Unknown tool: {call.name}.",
                     "hint": UNKNOWN_TOOL_HINT,
                 },
             )
@@ -26,12 +26,12 @@ class ToolExecutor:
             payload = execute_tool(call.name, dict(call.arguments))
         except Exception as err:
             QgsMessageLog.logMessage(
-                f"Тул {call.name} упал: {err} | аргументы: {call.arguments}",
+                f"Tool {call.name} failed: {err} | arguments: {call.arguments}",
                 LOG_TAG,
                 Qgis.Warning,
             )
             return ToolResult.failure(call, str(err))
-        QgsMessageLog.logMessage(f"Тул {call.name} выполнен.", LOG_TAG, Qgis.Info)
+        QgsMessageLog.logMessage(f"Tool {call.name} finished.", LOG_TAG, Qgis.Info)
         return ToolResult(call=call, ok=True, payload=self._as_dict(payload))
 
     @staticmethod

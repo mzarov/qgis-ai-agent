@@ -48,7 +48,7 @@ class SuggestFieldsTest(unittest.TestCase):
     def test_close_match_is_offered(self):
         hint = suggest_fields(["hwy"], ["highway", "name", "surface"])
         self.assertIn("highway", hint)
-        self.assertIn("Похожие поля", hint)
+        self.assertIn("Similar fields", hint)
 
     def test_several_typos_all_offered(self):
         hint = suggest_fields(["hwy", "nam"], ["highway", "name"])
@@ -58,12 +58,12 @@ class SuggestFieldsTest(unittest.TestCase):
     def test_long_list_is_truncated(self):
         available = [f"field_{index}" for index in range(80)]
         hint = suggest_fields(["совсем_другое"], available)
-        self.assertIn("Всего полей 80", hint)
+        self.assertIn("80 fields in total", hint)
         self.assertLess(len(hint), 400)
 
     def test_short_list_is_shown_whole(self):
         hint = suggest_fields(["нет"], ["a", "b"])
-        self.assertIn("Доступные поля", hint)
+        self.assertIn("Available fields", hint)
 
 
 if __name__ == "__main__":

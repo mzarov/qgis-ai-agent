@@ -58,7 +58,7 @@ class ToolResultTest(unittest.TestCase):
 
     def test_long_payload_is_truncated(self):
         result = ToolResult(call=call(), payload={"x": "д" * 9000})
-        self.assertIn("обрезан", result.to_text())
+        self.assertIn("truncated", result.to_text())
 
     def test_unserialisable_payload_does_not_raise(self):
         ToolResult(call=call(), payload={"x": object()}).to_text()

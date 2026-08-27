@@ -2,6 +2,7 @@ from typing import Any
 
 from qgis.core import QgsCategorizedSymbolRenderer, QgsRendererCategory
 
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
 from qgis_ai_agent.qgis_tools.common.values import plain_value
 from qgis_ai_agent.qgis_tools.common.colors import parse_color
@@ -20,35 +21,35 @@ DEFAULT_RAMPS = ("Set2", "Spectral", "Paired", "Viridis")
 class SetCategoriesTool(BaseTool):
     name = "set_categories"
     description = (
-        "Раскрасить слой по категориям: каждому значению поля — свой цвет. "
-        "Цвета берутся из палитры QGIS или задаются списком. Заменяет оформление слоя."
+        "Colour a layer by categories: every value of a field gets its own colour. "
+        "Colours come from a QGIS ramp or from a list. Replaces the styling of the layer."
     )
     skill = "style"
     safety = SAFETY_WRITE
     constraints = [
-        "Поле должно существовать в слое",
-        "Либо палитра, либо список цветов — что-то одно",
+        "The field must exist in the layer",
+        "Either a ramp or a list of colours — one of the two",
     ]
-    examples = ["Раскрась дороги по типу", "Города по региону, палитра Set2"]
+    examples = ["Colour the roads by type", "Cities by region, Set2 ramp"]
     params_schema = [
         {
             "name": "layer_name",
             "type": "string",
-            "description": "Имя слоя ровно как в проекте",
+            "description": "Layer name exactly as in the project",
             "required": True,
         },
         {
             "name": "field",
             "type": "string",
-            "description": "Поле, по значениям которого делятся категории",
+            "description": "Field whose values split the features into categories",
             "required": True,
         },
         {
             "name": "ramp",
             "type": "string",
             "description": (
-                "Имя палитры QGIS, например Spectral или Set2. Без неё берётся разумная "
-                "по умолчанию; неизвестное имя вернёт список доступных."
+                "Name of a QGIS colour ramp, for example Spectral or Set2. Without it a "
+                "sensible default is used; an unknown name comes back with the available list."
             ),
             "required": False,
         },
@@ -57,8 +58,8 @@ class SetCategoriesTool(BaseTool):
             "type": "array",
             "items": {"type": "string"},
             "description": (
-                "Цвета по одному на категорию, в порядке значений. Используйте, "
-                "когда нужны конкретные цвета, а не палитра."
+                "Colours, one per category, in the order of the values. Use it when "
+                "specific colours are wanted instead of a ramp."
             ),
             "required": False,
         },
@@ -67,7 +68,7 @@ class SetCategoriesTool(BaseTool):
             "type": "array",
             "items": {"type": "string"},
             "description": (
-                "Какие значения поля показать. По умолчанию все уникальные значения слоя."
+                "Which values of the field to show. By default every unique value in the layer."
             ),
             "required": False,
         },
@@ -78,20 +79,20 @@ class SetCategoriesTool(BaseTool):
         field = require_field(layer, (params.get("field") or "").strip())
         values = _wanted_values(layer, field, params.get("values"))
         if not values:
-            raise ValueError(f"В поле «{field}» слоя «{layer.name()}» нет значений для категорий.")
+            raise ValueError(f"Field '{field}' of layer '{layer.name()}' holds no values to categorise.")
         if len(values) > MAX_CATEGORIES:
             raise ValueError(
-                f"В поле «{field}» {len(values)} разных значений — это больше {MAX_CATEGORIES}. "
-                "Для числовых данных используйте set_graduated, иначе сузьте список values."
+                f"Field '{field}' has {len(values)} distinct values, which is over {MAX_CATEGORIES}. "
+                "For numeric data use set_graduated, otherwise narrow the values list down."
             )
         colors = params.get("colors") or []
         if colors and len(colors) != len(values):
             raise ValueError(
-                f"Цветов {len(colors)}, а категорий {len(values)}. Дайте цвет каждой "
-                "категории или укажите палитру вместо списка."
+                f"There are {len(colors)} colours and {len(values)} categories. Give one colour "
+                "per category, or pass a ramp instead of a list."
             )
         for color in colors:
-            parse_color(color, "Цвет категории")
+            parse_color(color, "Category colour")
         if not colors:
             resolve_ramp(params.get("ramp") or "", DEFAULT_RAMPS)
         prepared = dict(params)
@@ -102,7 +103,7 @@ class SetCategoriesTool(BaseTool):
 
     def summarize_call(self, params: dict[str, Any]) -> str:
         layer_name = (params.get("layer_name") or "").strip()
-        return f"Раскрашиваю «{layer_name}» по полю «{params.get('field', '')}»."
+        return tr("Colouring '{0}' by field '{1}'.").format(layer_name, params.get("field", ""))
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = require_vector_layer(params.get("layer_name") or "")
@@ -137,7 +138,7 @@ def _wanted_values(layer: Any, field: str, requested: Any) -> list[Any]:
 
 def _colours_for(values: list[Any], colors: Any, ramp_name: Any) -> list[Any]:
     if colors:
-        return [parse_color(colour, "Цвет категории") for colour in colors]
+        return [parse_color(colour, "Category colour") for colour in colors]
     ramp = resolve_ramp(ramp_name or "", DEFAULT_RAMPS)
     total = max(1, len(values) - 1)
     return [ramp.color(index / total) for index in range(len(values))]

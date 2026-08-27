@@ -34,7 +34,7 @@ def build_query(
     if area:
         return _wrapped(statements, _area_header(area), "(area.searchArea)")
     if bbox is None:
-        raise ValueError("Не задана территория поиска: нужен либо area, либо bbox.")
+        raise ValueError("No search territory was given: either area or bbox is required.")
     return _wrapped(statements, _bbox_header(bbox), "")
 
 
@@ -66,7 +66,7 @@ def _bbox_header(bbox: tuple[float, float, float, float]) -> str:
 def _selector(key: str, value: str) -> str:
     clean_key = _escaped(key)
     if not clean_key:
-        raise ValueError("Не задан ключ OSM, например amenity или highway.")
+        raise ValueError("No OSM key was given, for example amenity or highway.")
     if not value:
         return f'["{clean_key}"]'
     return f'["{clean_key}"="{_escaped(value)}"]'

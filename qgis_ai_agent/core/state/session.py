@@ -3,10 +3,12 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
+from qgis_ai_agent.i18n import tr
+
 MAX_MESSAGES = 200
 TITLE_LIMIT = 48
-UNTITLED = "Без названия"
-NO_PROJECT = "без проекта"
+UNTITLED = tr("Untitled")
+NO_PROJECT = "no project"
 
 
 @dataclass

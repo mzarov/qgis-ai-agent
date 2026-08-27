@@ -90,7 +90,7 @@ class AgentLoop(QObject):
             results = self._batch.apply(self._on_apply_start, self._on_apply_finish)
         finally:
             self.busy_changed.emit(False)
-        QgsMessageLog.logMessage(f"Применено изменений: {len(results)}.", LOG_TAG, Qgis.Info)
+        QgsMessageLog.logMessage(f"Applied changes: {len(results)}.", LOG_TAG, Qgis.Info)
         self.applied.emit(results)
 
     def cancel_pending(self) -> None:
@@ -165,7 +165,7 @@ class AgentLoop(QObject):
             queued = self._batch.add(call)
         except Exception as err:
             self.tool_rejected.emit(summarize_tool_call(call.name, call.arguments))
-            QgsMessageLog.logMessage(f"Шаг {call.name} отклонён: {err}", LOG_TAG, Qgis.Warning)
+            QgsMessageLog.logMessage(f"Step {call.name} rejected: {err}", LOG_TAG, Qgis.Warning)
             return ToolResult.failure(call, str(err))
         self.tool_queued.emit(summarize_tool_call(queued.name, queued.arguments))
         return ToolExecutor.queued(queued)
@@ -174,7 +174,7 @@ class AgentLoop(QObject):
         result, loaded = load_skill(call, self._loaded_skills)
         if loaded:
             self.skill_loaded.emit(loaded)
-            QgsMessageLog.logMessage(f"Загружен скилл: {loaded}.", LOG_TAG, Qgis.Info)
+            QgsMessageLog.logMessage(f"Skill loaded: {loaded}.", LOG_TAG, Qgis.Info)
         return result
 
     def _complete(self, text: str) -> None:
@@ -186,7 +186,7 @@ class AgentLoop(QObject):
             self.finished.emit(text)
 
     def _finish_on_limit(self) -> None:
-        QgsMessageLog.logMessage(f"Достигнут лимит в {MAX_ITERATIONS} ходов.", LOG_TAG, Qgis.Warning)
+        QgsMessageLog.logMessage(f"Reached the limit of {MAX_ITERATIONS} turns.", LOG_TAG, Qgis.Warning)
         self._complete(LIMIT_REACHED_MESSAGE)
 
     def _fail(self, message: str) -> None:

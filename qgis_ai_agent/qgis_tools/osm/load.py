@@ -11,10 +11,10 @@ SUBLAYERS = {
     "all": ("points", "lines", "multilinestrings", "multipolygons"),
 }
 READABLE = {
-    "points": "точки",
-    "lines": "линии",
-    "multilinestrings": "линии",
-    "multipolygons": "полигоны",
+    "points": "points",
+    "lines": "lines",
+    "multilinestrings": "lines",
+    "multipolygons": "polygons",
 }
 FOLDER = "qgis_ai_agent_osm"
 SUFFIX = ".osm"

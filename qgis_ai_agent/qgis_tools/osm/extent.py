@@ -7,8 +7,8 @@ PARTS = 4
 MAX_DEGREES = 180.0
 MAX_SPAN_DEGREES = 5.0
 TOO_WIDE = (
-    "Прямоугольник шире {span:.1f}° — Overpass такой объём обычно не отдаёт. "
-    "Сузьте охват или задайте area с именем места."
+    "The rectangle is wider than {span:.1f}° — Overpass usually refuses that much data. "
+    "Narrow the extent down or give area with a place name instead."
 )
 
 
@@ -16,13 +16,13 @@ def parse_bbox(text: str) -> tuple[float, float, float, float]:
     parts = [item.strip() for item in str(text or "").replace(";", ",").split(",")]
     if len(parts) != PARTS:
         raise ValueError(
-            'bbox задаётся четырьмя числами "запад,юг,восток,север" в градусах, '
-            f"получено: «{text}»."
+            'bbox is given as four numbers "west,south,east,north" in degrees, '
+            f"got: '{text}'."
         )
     try:
         west, south, east, north = (float(item) for item in parts)
     except ValueError:
-        raise ValueError(f"В bbox «{text}» есть значение, которое не число.")
+        raise ValueError(f"bbox '{text}' holds a value that is not a number.")
     return _checked(west, south, east, north)
 
 
@@ -30,7 +30,7 @@ def canvas_bbox() -> tuple[float, float, float, float]:
     rectangle, source = _canvas_extent()
     if rectangle is None:
         raise ValueError(
-            "Карта недоступна, текущий вид взять неоткуда. Задайте bbox числами или area."
+            "The map is not available, so the current view cannot be read. Give bbox as numbers, or area."
         )
     if source is not None and source.authid() != WGS84:
         rectangle = _to_wgs84(rectangle, source)
@@ -61,11 +61,11 @@ def _checked(
 ) -> tuple[float, float, float, float]:
     if west >= east or south >= north:
         raise ValueError(
-            "В bbox запад должен быть меньше востока, а юг меньше севера. "
-            f"Получено: запад {west}, юг {south}, восток {east}, север {north}."
+            "In bbox the west must be less than the east, and the south less than the north. "
+            f"Got: west {west}, south {south}, east {east}, north {north}."
         )
     if max(abs(west), abs(east)) > MAX_DEGREES or max(abs(south), abs(north)) > 90.0:
-        raise ValueError("Координаты bbox выходят за пределы градусов широты и долготы.")
+        raise ValueError("The bbox coordinates fall outside the range of latitude and longitude.")
     span = max(east - west, north - south)
     if span > MAX_SPAN_DEGREES:
         raise ValueError(TOO_WIDE.format(span=MAX_SPAN_DEGREES))

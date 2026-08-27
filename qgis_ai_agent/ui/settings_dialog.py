@@ -29,20 +29,24 @@ from qgis_ai_agent.core.settings import (
     set_model,
     set_verify_ssl,
 )
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.ui import settings_fields as fields
 from qgis_ai_agent.ui import style
 from qgis_ai_agent.core.llm.probe import probe
 
-TITLE = "Настройки — QGIS AI Agent"
+TITLE = tr("Settings — QGIS AI Agent")
 MIN_WIDTH = 520
 MARGINS = (16, 16, 16, 14)
 SPACING = 12
-SAVED = "Настройки сохранены."
-TESTING = "Проверяю подключение…"
-KEY_HINT = "Хранится в системном хранилище, не в файле настроек."
-KEYLESS_HINT = "Для локального сервера ключ не нужен — оставьте поле пустым."
-DIALECT_HINT = "auto определяет формат по адресу: api.anthropic.com — Anthropic, остальное — OpenAI."
-AUTH_HINT = "Bearer подходит почти всем; OAuth — для корпоративных шлюзов."
+SAVED = tr("Settings saved.")
+TESTING = tr("Testing the connection…")
+KEY_HINT = tr("Stored in the system keyring, not in the settings file.")
+KEYLESS_HINT = tr("A local server needs no key — leave this empty.")
+DIALECT_HINT = tr(
+    "auto picks the format from the address: api.anthropic.com is Anthropic, "
+    "everything else is OpenAI."
+)
+AUTH_HINT = tr("Bearer suits almost everyone; OAuth is for corporate gateways.")
 
 
 class SettingsDialog(QDialog):
@@ -64,45 +68,45 @@ class SettingsDialog(QDialog):
 
     def _build_connection(self, palette: Any) -> QWidget:
         frame, column = fields.card(palette)
-        column.addWidget(fields.section("Подключение", palette))
+        column.addWidget(fields.section(tr("Connection"), palette))
 
         self.preset_combo = QComboBox()
         self.preset_combo.addItems(TITLES)
         self.preset_combo.currentTextChanged.connect(self._apply_preset)
-        column.addWidget(fields.field("Провайдер", self.preset_combo, "", palette))
+        column.addWidget(fields.field(tr("Provider"), self.preset_combo, "", palette))
 
         self.url_edit = QLineEdit(get_api_url())
         self.url_edit.setPlaceholderText("https://api.openai.com/v1")
         self.url_edit.textChanged.connect(self._sync_preset)
         column.addWidget(
-            fields.field("Базовый URL", self.url_edit, "Без /chat/completions на конце.", palette)
+            fields.field(tr("Base URL"), self.url_edit, tr("Without /chat/completions at the end."), palette)
         )
 
         self.model_edit = QLineEdit(get_model())
-        column.addWidget(fields.field("Модель", self.model_edit, "", palette))
+        column.addWidget(fields.field(tr("Model"), self.model_edit, "", palette))
 
         self.key_edit = QLineEdit(get_api_key())
         self.key_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        self.key_edit.setPlaceholderText("Ключ провайдера")
-        self._key_field = fields.field("API-ключ", self.key_edit, KEY_HINT, palette)
+        self.key_edit.setPlaceholderText(tr("Provider key"))
+        self._key_field = fields.field(tr("API key"), self.key_edit, KEY_HINT, palette)
         column.addWidget(self._key_field)
         return frame
 
     def _build_advanced(self, palette: Any) -> QWidget:
         frame, column = fields.card(palette)
-        column.addWidget(fields.section("Дополнительно", palette))
+        column.addWidget(fields.section(tr("Advanced"), palette))
 
         self.dialect_combo = QComboBox()
         self.dialect_combo.addItems(list(DIALECTS))
         _select(self.dialect_combo, get_dialect())
-        column.addWidget(fields.field("Формат API", self.dialect_combo, DIALECT_HINT, palette))
+        column.addWidget(fields.field(tr("API format"), self.dialect_combo, DIALECT_HINT, palette))
 
         self.auth_type_combo = QComboBox()
         self.auth_type_combo.addItems([AUTH_TYPE_BEARER, AUTH_TYPE_OAUTH])
         _select(self.auth_type_combo, get_auth_type())
-        column.addWidget(fields.field("Тип авторизации", self.auth_type_combo, AUTH_HINT, palette))
+        column.addWidget(fields.field(tr("Authorisation type"), self.auth_type_combo, AUTH_HINT, palette))
 
-        self.verify_ssl_cb = QCheckBox("Проверять SSL-сертификат")
+        self.verify_ssl_cb = QCheckBox(tr("Verify the SSL certificate"))
         self.verify_ssl_cb.setChecked(get_verify_ssl())
         column.addWidget(self.verify_ssl_cb)
         return frame
@@ -110,18 +114,18 @@ class SettingsDialog(QDialog):
     def _build_buttons(self, palette: Any) -> QHBoxLayout:
         row = QHBoxLayout()
         row.setSpacing(8)
-        self.test_btn = QPushButton("Проверить подключение")
+        self.test_btn = QPushButton(tr("Test connection"))
         self.test_btn.setStyleSheet(fields.plain_button(palette))
         self.test_btn.clicked.connect(self._test_connection)
         row.addWidget(self.test_btn)
         row.addStretch(1)
 
-        close_btn = QPushButton("Закрыть")
+        close_btn = QPushButton(tr("Close"))
         close_btn.setStyleSheet(fields.plain_button(palette))
         close_btn.clicked.connect(self.reject)
         row.addWidget(close_btn)
 
-        save_btn = QPushButton("Сохранить")
+        save_btn = QPushButton(tr("Save"))
         save_btn.setStyleSheet(fields.accent_button(palette))
         save_btn.setDefault(True)
         save_btn.clicked.connect(self._save)
@@ -146,7 +150,7 @@ class SettingsDialog(QDialog):
 
     def _paint_key_hint(self, needs_key: bool) -> None:
         self._key_field.setToolTip(KEY_HINT if needs_key else KEYLESS_HINT)
-        self.key_edit.setPlaceholderText("Ключ провайдера" if needs_key else "Не требуется")
+        self.key_edit.setPlaceholderText(tr("Provider key") if needs_key else tr("Not required"))
 
     def _save(self) -> None:
         set_api_url(self.url_edit.text().strip() or None)

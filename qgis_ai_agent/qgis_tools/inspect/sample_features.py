@@ -2,6 +2,7 @@ from typing import Any
 
 from qgis.core import QgsFeatureRequest, QgsVectorLayer
 
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
 from qgis_ai_agent.qgis_tools.common.layers import find_layer_by_name, safe_feature_count
 from qgis_ai_agent.qgis_tools.common.values import clamp_limit, plain_value, wanted_fields
@@ -14,43 +15,43 @@ MAX_VALUE_CHARS = 120
 class SampleFeaturesTool(BaseTool):
     name = "sample_features"
     description = (
-        "Показать несколько реальных записей слоя со значениями атрибутов. "
-        "Нужен, когда схемы полей мало и надо увидеть, что лежит в данных."
+        "Show a few real records of a layer together with their attribute values. "
+        "Needed when the field schema is not enough and you have to see the actual data."
     )
     skill = "inspect"
     safety = SAFETY_READ
-    constraints = ["Слой должен существовать и быть векторным"]
-    examples = ["Покажи пару записей из слоя городов", "Как выглядят данные в этом слое?"]
+    constraints = ["The layer must exist and be a vector layer"]
+    examples = ["Show me a couple of records from the cities layer", "What does the data look like?"]
     params_schema = [
         {
             "name": "layer_name",
             "type": "string",
-            "description": "Имя слоя ровно как в проекте",
+            "description": "Layer name exactly as in the project",
             "required": True,
         },
         {
             "name": "limit",
             "type": "integer",
-            "description": f"Сколько записей вернуть (по умолчанию {DEFAULT_LIMIT})",
+            "description": f"How many records to return (default {DEFAULT_LIMIT})",
             "required": False,
         },
         {
             "name": "fields",
             "type": "array",
             "items": {"type": "string"},
-            "description": "Какие поля показать. По умолчанию все.",
+            "description": "Which fields to show. All of them by default.",
             "required": False,
         },
     ]
 
     def summarize_call(self, params: dict[str, Any]) -> str:
         layer_name = (params.get("layer_name") or "").strip()
-        return f"Смотрю записи слоя «{layer_name}»."
+        return tr("Reading records of layer '{0}'.").format(layer_name)
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = find_layer_by_name(params.get("layer_name") or "")
         if not isinstance(layer, QgsVectorLayer):
-            raise ValueError(f"Слой «{layer.name()}» не векторный, записей у него нет.")
+            raise ValueError(f"Layer '{layer.name()}' is not a vector layer, it has no records.")
         limit = clamp_limit(params.get("limit"), DEFAULT_LIMIT, MAX_LIMIT)
         wanted = wanted_fields(layer, params.get("fields"))
 
@@ -86,7 +87,7 @@ def _geometry_type(feature) -> str:
     try:
         geometry = feature.geometry()
         if geometry.isEmpty():
-            return "пусто"
+            return "empty"
         return str(geometry.type()).split(".")[-1]
     except Exception:
         return ""

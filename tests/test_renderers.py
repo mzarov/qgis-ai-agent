@@ -172,11 +172,11 @@ class DescribeVectorRendererTest(unittest.TestCase):
 
 class RendererSummaryTest(unittest.TestCase):
     def test_single_symbol_reads_plainly(self):
-        self.assertEqual(renderer_summary(Layer(SingleSymbol())), "одиночный символ")
+        self.assertEqual(renderer_summary(Layer(SingleSymbol())), "single symbol")
 
     def test_categorized_names_field_and_count(self):
         summary = renderer_summary(Layer(Categorized()))
-        self.assertIn("«type»", summary)
+        self.assertIn("'type'", summary)
         self.assertIn("2", summary)
 
     def test_missing_renderer_gives_nothing(self):
@@ -186,7 +186,7 @@ class RendererSummaryTest(unittest.TestCase):
 class StyleBlockTest(unittest.TestCase):
     def test_summary_never_travels_without_a_pointer(self):
         block = style_block(Layer(SingleSymbol()))
-        self.assertEqual(block["style_summary"], "одиночный символ")
+        self.assertEqual(block["style_summary"], "single symbol")
         self.assertIn("describe_style", block["style_note"])
 
     def test_pointer_names_the_skill_to_load(self):
@@ -215,7 +215,7 @@ class SymbolInfoTest(unittest.TestCase):
         self.assertEqual([entry["color"] for entry in described["layers"]], ["#000000", "#ff6011"])
 
     def test_symbol_kind_is_named(self):
-        self.assertEqual(symbol_info(Symbol(kind=0))["kind"], "точки")
+        self.assertEqual(symbol_info(Symbol(kind=0))["kind"], "point")
 
 
 if __name__ == "__main__":

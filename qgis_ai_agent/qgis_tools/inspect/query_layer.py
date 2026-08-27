@@ -2,6 +2,7 @@ from typing import Any
 
 from qgis.core import QgsVectorLayer
 
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
 from qgis_ai_agent.qgis_tools.inspect.aggregates import AGGREGATE_FUNCTIONS
 from qgis_ai_agent.qgis_tools.inspect.expressions import build_context, build_request
@@ -12,73 +13,73 @@ from qgis_ai_agent.qgis_tools.common.layers import find_layer_by_name
 class QueryLayerTool(BaseTool):
     name = "query_layer"
     description = (
-        "Запросить данные слоя языком выражений QGIS: посчитать объекты по условию, "
-        "агрегировать, сгруппировать, отсортировать, взять первые N. "
-        "ЛЮБОЙ вопрос «сколько», «самый», «средний», «суммарный», «топ» решается этим тулом. "
-        "Длина и площадь берутся прямо из геометрии выражениями $length и $area: "
-        "отдельного поля с длиной в слое обычно НЕТ, и искать его не нужно."
+        "Query layer data with the QGIS expression language: count features matching a "
+        "condition, aggregate, group, sort, take the first N. "
+        "ANY question about how many, largest, average, total or top is answered by this tool. "
+        "Length and area come straight from the geometry through the $length and $area "
+        "expressions: a separate length field usually does NOT exist, so do not look for one."
     )
     skill = "inspect"
     safety = SAFETY_READ
     constraints = [
-        "Слой должен существовать и быть векторным",
-        "Имена полей в выражениях чувствительны к регистру",
+        "The layer must exist and be a vector layer",
+        "Field names in expressions are case sensitive",
     ]
     examples = [
-        "Сколько дорог типа motorway?",
-        "Топ-5 городов по населению",
-        "Какая река самая длинная?",
-        "Суммарная площадь озёр",
+        "How many roads of type motorway are there?",
+        "Top 5 cities by population",
+        "Which river is the longest?",
+        "Total area of the lakes",
     ]
     params_schema = [
         {
             "name": "layer_name",
             "type": "string",
-            "description": "Имя слоя ровно как в проекте",
+            "description": "Layer name exactly as in the project",
             "required": True,
         },
         {
             "name": "filter",
             "type": "string",
-            "description": "Условие отбора, выражение QGIS: \"highway = 'motorway'\"",
+            "description": "Selection condition as a QGIS expression: \"highway = 'motorway'\"",
             "required": False,
         },
         {
             "name": "aggregate",
             "type": "string",
-            "description": "Агрегатная функция. Без неё возвращаются сами объекты.",
+            "description": "Aggregate function. Without it the features themselves are returned.",
             "required": False,
             "enum": list(AGGREGATE_FUNCTIONS),
         },
         {
             "name": "expression",
             "type": "string",
-            "description": "Поле или выражение для агрегации: \"population\", \"$length\", \"$area\"",
+            "description": "Field or expression to aggregate: \"population\", \"$length\", \"$area\"",
             "required": False,
         },
         {
             "name": "group_by",
             "type": "string",
-            "description": "Поле или выражение для группировки результата",
+            "description": "Field or expression to group the result by",
             "required": False,
         },
         {
             "name": "order_by",
             "type": "string",
-            "description": "Сортировка объектов: \"population DESC\". Только без aggregate.",
+            "description": "Feature ordering: \"population DESC\". Only without aggregate.",
             "required": False,
         },
         {
             "name": "limit",
             "type": "integer",
-            "description": f"Сколько объектов вернуть (по умолчанию {DEFAULT_ROW_LIMIT})",
+            "description": f"How many features to return (default {DEFAULT_ROW_LIMIT})",
             "required": False,
         },
         {
             "name": "fields",
             "type": "array",
             "items": {"type": "string"},
-            "description": "Какие поля показать у объектов. По умолчанию все.",
+            "description": "Which fields to show for the features. All of them by default.",
             "required": False,
         },
     ]
@@ -87,14 +88,14 @@ class QueryLayerTool(BaseTool):
         layer_name = (params.get("layer_name") or "").strip()
         aggregate = (params.get("aggregate") or "").strip()
         condition = (params.get("filter") or "").strip()
-        action = f"считаю {aggregate}" if aggregate else "выбираю объекты"
-        where = f" при условии {condition}" if condition else ""
-        return f"Слой «{layer_name}»: {action}{where}."
+        action = tr("computing {0}").format(aggregate) if aggregate else tr("selecting features")
+        where = tr(" where {0}").format(condition) if condition else ""
+        return tr("Layer '{0}': {1}{2}.").format(layer_name, action, where)
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = find_layer_by_name(params.get("layer_name") or "")
         if not isinstance(layer, QgsVectorLayer):
-            raise ValueError(f"Слой «{layer.name()}» не векторный, запросить его нельзя.")
+            raise ValueError(f"Layer '{layer.name()}' is not a vector layer, it cannot be queried.")
 
         context = build_context(layer)
         request = build_request(params.get("filter") or "", layer)

@@ -25,7 +25,7 @@ class SessionTest(unittest.TestCase):
     def test_assistant_first_leaves_title_empty(self):
         session = Session.create("/p")
         session.add("assistant", "привет")
-        self.assertEqual(session.display_title(), "Без названия")
+        self.assertEqual(session.display_title(), "Untitled")
 
     def test_long_title_is_shortened(self):
         self.assertTrue(shorten("с" * 200).endswith("…"))
@@ -55,7 +55,7 @@ class SessionTest(unittest.TestCase):
         self.assertIsNone(Session.from_dict({"messages": []}))
 
     def test_unknown_project_falls_back(self):
-        self.assertEqual(Session.create("").project, "без проекта")
+        self.assertEqual(Session.create("").project, "no project")
 
 
 class SessionStoreTest(unittest.TestCase):

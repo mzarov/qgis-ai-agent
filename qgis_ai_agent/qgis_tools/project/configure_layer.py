@@ -1,5 +1,6 @@
 from typing import Any
 
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
 from qgis_ai_agent.qgis_tools.common.properties import properties_of, shown
 from qgis_ai_agent.qgis_tools.project.catalogues import LAYER_PROPERTIES
@@ -16,34 +17,34 @@ from qgis_ai_agent.qgis_tools.project.tree import (
 class ConfigureLayerTool(BaseTool):
     name = "configure_layer"
     description = (
-        "Изменить слой в проекте: имя, видимость, группу в дереве слоёв, позицию "
-        "внутри группы. Данные и оформление слоя не трогает."
+        "Change a layer in the project: name, visibility, group in the layer tree, position "
+        "inside the group. Leaves the data and the styling alone."
     )
     skill = "project"
     safety = SAFETY_WRITE
     constraints = [
-        "Слой с указанным именем должен существовать в проекте",
-        "Все свойства идут одним вызовом, а не несколькими",
+        "A layer with this name must exist in the project",
+        "All properties go in one call, not several",
     ]
     examples = [
-        "Спрячь слой дорог",
-        "Переименуй слой в «Дороги города»",
-        "Подними реки наверх",
+        "Hide the roads layer",
+        "Rename the layer to 'City roads'",
+        "Move the rivers to the top",
     ]
     params_schema = [
         {
             "name": "layer_name",
             "type": "string",
-            "description": "Имя слоя ровно как в проекте",
+            "description": "Layer name exactly as in the project",
             "required": True,
         },
         {
             "name": "properties",
             "type": "object",
             "description": (
-                "Что изменить, парами ключ-значение: "
-                '{"name": "Дороги города", "visible": false, "group": "Транспорт", '
-                '"position": 0}. Указывайте только то, что меняется.'
+                "What to change, as key-value pairs: "
+                '{"name": "City roads", "visible": false, "group": "Transport", '
+                '"position": 0}. Pass only what actually changes.'
             ),
             "required": True,
         },
@@ -54,7 +55,7 @@ class ConfigureLayerTool(BaseTool):
         properties = LAYER_PROPERTIES.coerce_all(properties_of(params, LAYER_PROPERTIES.subject))
         if not properties:
             raise ValueError(
-                "Не указано ни одного свойства. Доступны: "
+                "No property was given. Available: "
                 + ", ".join(LAYER_PROPERTIES.names())
                 + "."
             )
@@ -69,8 +70,8 @@ class ConfigureLayerTool(BaseTool):
         try:
             properties = properties_of(params, LAYER_PROPERTIES.subject)
         except ValueError:
-            return f"Меняю слой «{layer_name}»."
-        return f"Меняю слой «{layer_name}»: {shown(properties, LAYER_PROPERTIES)}."
+            return tr("Changing layer '{0}'.").format(layer_name)
+        return tr("Changing layer '{0}': {1}.").format(layer_name, shown(properties, LAYER_PROPERTIES))
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = find_layer(params.get("layer_name") or "")
@@ -111,5 +112,5 @@ def _check_name(properties: dict[str, Any], current: str) -> None:
     if not wanted:
         return
     if wanted != current and wanted in layer_names():
-        raise ValueError(f"Слой с именем «{wanted}» уже есть в проекте — выберите другое.")
+        raise ValueError(f"A layer named '{wanted}' is already in the project — pick another name.")
     properties["name"] = wanted

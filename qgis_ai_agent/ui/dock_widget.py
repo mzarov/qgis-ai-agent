@@ -12,13 +12,14 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.ui import icons, style
 from qgis_ai_agent.ui.composer import Composer
 from qgis_ai_agent.ui.conversation import ConversationView
 
 TITLE = "QGIS AI Agent"
-NEW_SESSION_LABEL = "Новый диалог"
-NO_SESSIONS_LABEL = "Прошлых диалогов нет"
+NEW_SESSION_LABEL = tr("New conversation")
+NO_SESSIONS_LABEL = tr("No past conversations")
 HEADER_MARGINS = (11, 8, 9, 8)
 HEADER_ICON = 15
 HEADER_BUTTON = 24
@@ -64,12 +65,12 @@ class AgentDockWidget(QDockWidget):
         title.setStyleSheet("border: none;")
         row.addWidget(title, 1)
         self._sessions_button = self._build_action(
-            icons.sessions, "⟲", "Диалоги", self._show_sessions
+            icons.sessions, "⟲", tr("Conversations"), self._show_sessions
         )
         row.addWidget(self._sessions_button)
-        row.addWidget(self._build_action(icons.clear, "⌫", "Очистить диалог", self._on_clear))
+        row.addWidget(self._build_action(icons.clear, "⌫", tr("Clear conversation"), self._on_clear))
         row.addWidget(
-            self._build_action(icons.settings, "⚙", "Настройки", self.open_settings_clicked.emit)
+            self._build_action(icons.settings, "⚙", tr("Settings"), self.open_settings_clicked.emit)
         )
         return header
 

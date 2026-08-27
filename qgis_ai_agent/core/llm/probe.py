@@ -1,8 +1,10 @@
 from typing import Any
 
-PROBE_PROMPT = "Ответь одним словом: ок"
+from qgis_ai_agent.i18n import tr
+
+PROBE_PROMPT = "Reply with one word: ok"
 REPLY_LIMIT = 160
-EMPTY_REPLY = "Подключение есть, но модель вернула пустой ответ."
+EMPTY_REPLY = tr("Connected, but the model returned an empty answer.")
 
 
 def probe(overrides: dict[str, Any]) -> tuple[bool, str]:
@@ -14,7 +16,7 @@ def probe(overrides: dict[str, Any]) -> tuple[bool, str]:
         return False, _shortened(str(error) or type(error).__name__)
     if not reply.strip():
         return False, EMPTY_REPLY
-    return True, f"Ответ модели: {_shortened(reply)}"
+    return True, tr("Model replied: {0}").format(_shortened(reply))
 
 
 def _shortened(text: str) -> str:

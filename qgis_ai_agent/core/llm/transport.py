@@ -118,7 +118,7 @@ def _looks_like_tools_unsupported(err: ApiResponseError) -> bool:
 def _first_choice(data: dict[str, Any]) -> dict[str, Any]:
     choices = data.get("choices") or []
     if not choices:
-        raise ValueError("Пустой ответ API.")
+        raise ValueError("The API returned an empty answer.")
     return choices[0]
 
 

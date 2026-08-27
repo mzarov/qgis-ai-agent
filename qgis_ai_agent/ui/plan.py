@@ -8,6 +8,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from qgis_ai_agent.i18n import tr, tr_n
 from qgis_ai_agent.ui import style
 
 STEP_FONT_SCALE = 0.92
@@ -101,14 +102,14 @@ class PlanCard(QFrame):
         row.setContentsMargins(NUMBER_WIDTH + 8, 2, 0, 0)
         row.setSpacing(8)
 
-        apply_button = QPushButton("Применить")
+        apply_button = QPushButton(tr("Apply"))
         apply_button.setMinimumHeight(BUTTON_HEIGHT)
         apply_button.setCursor(apply_button.cursor())
         apply_button.setStyleSheet(_accent_button(palette))
         apply_button.clicked.connect(self.confirmed.emit)
         row.addWidget(apply_button, 1)
 
-        cancel_button = QPushButton("Отмена")
+        cancel_button = QPushButton(tr("Cancel"))
         cancel_button.setMinimumHeight(BUTTON_HEIGHT)
         cancel_button.setStyleSheet(_plain_button(palette))
         cancel_button.clicked.connect(self.cancelled.emit)
@@ -116,10 +117,10 @@ class PlanCard(QFrame):
         return holder
 
     def mark_applied(self) -> None:
-        self._settle(APPLIED_MARK, "Применено", style.success(self.palette()))
+        self._settle(APPLIED_MARK, tr("Applied"), style.success(self.palette()))
 
     def mark_cancelled(self) -> None:
-        self._settle(CANCELLED_MARK, "Отменено", style.muted(self.palette()))
+        self._settle(CANCELLED_MARK, tr("Cancelled"), style.muted(self.palette()))
 
     def _settle(self, mark: str, heading: str, colour) -> None:
         self._mark.setText(mark)
@@ -150,11 +151,4 @@ def _plain_button(palette) -> str:
 
 
 def _heading(count: int) -> str:
-    tail = count % 10
-    if count % 100 in range(11, 15) or tail == 0 or tail > 4:
-        word = "шагов"
-    elif tail == 1:
-        word = "шаг"
-    else:
-        word = "шага"
-    return f"Изменит проект — {count} {word}"
+    return tr_n("Will change the project — %n step(s)", count)

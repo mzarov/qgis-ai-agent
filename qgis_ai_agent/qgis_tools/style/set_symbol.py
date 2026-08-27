@@ -2,6 +2,7 @@ from typing import Any
 
 from qgis.core import QgsSingleSymbolRenderer
 
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
 from qgis_ai_agent.qgis_tools.common.layers import geometry_type_name
 from qgis_ai_agent.qgis_tools.style.apply import refresh, require_vector_layer
@@ -13,37 +14,37 @@ from qgis_ai_agent.qgis_tools.style.symbol_catalogue import SYMBOLS
 class SetSymbolTool(BaseTool):
     name = "set_symbol"
     description = (
-        "Оформить слой одним символом: цвет, прозрачность, размер точки или "
-        "толщина линии, обводка и её штрих, форма значка, штриховка заливки. "
-        "Полный список свойств отдаёт describe_style_options. Заменяет "
-        "текущее оформление слоя."
+        "Style a layer with a single symbol: colour, opacity, point size or "
+        "line width, stroke and its dash pattern, marker shape, fill hatching. "
+        "describe_style_options returns the full list of properties. Replaces "
+        "the current styling of the layer."
     )
     skill = "style"
     safety = SAFETY_WRITE
     constraints = [
-        "Слой должен существовать и быть векторным",
-        "Все свойства идут одним вызовом, а не несколькими",
+        "The layer must exist and be a vector layer",
+        "All properties go in one call, not several",
     ]
     examples = [
-        "Сделай реки синими",
-        "Дороги — тонкие серые пунктирные линии",
-        "Города квадратными значками с белой обводкой",
+        "Make the rivers blue",
+        "Roads as thin grey dashed lines",
+        "Cities as square markers with a white stroke",
     ]
     params_schema = [
         {
             "name": "layer_name",
             "type": "string",
-            "description": "Имя слоя ровно как в проекте",
+            "description": "Layer name exactly as in the project",
             "required": True,
         },
         {
             "name": "properties",
             "type": "object",
             "description": (
-                "Свойства символа парами ключ-значение, например "
+                "Symbol properties as key-value pairs, for example "
                 '{"color": "#1f78b4", "stroke_color": "white", "size": 2}. '
-                "Имена и допустимые значения — describe_style_options "
-                'с kind="symbol". Незнакомый ключ вернёт подсказку.'
+                "Names and allowed values come from describe_style_options "
+                'with kind="symbol". An unknown key comes back with a hint.'
             ),
             "required": True,
         },
@@ -54,8 +55,8 @@ class SetSymbolTool(BaseTool):
         properties = SYMBOLS.coerce_all(properties_of(params, SYMBOLS.subject))
         if not properties:
             raise ValueError(
-                "Не указано ни одного свойства символа. Список доступных — "
-                'describe_style_options с kind="symbol".'
+                "No symbol property was given. describe_style_options "
+                'with kind="symbol" lists the available ones.'
             )
         prepared = dict(params)
         prepared["layer_name"] = layer.name()
@@ -67,8 +68,8 @@ class SetSymbolTool(BaseTool):
         try:
             properties = properties_of(params, SYMBOLS.subject)
         except ValueError:
-            return f"Оформляю слой «{layer_name}»."
-        return f"Оформляю «{layer_name}»: {shown(properties, SYMBOLS)}."
+            return tr("Styling layer '{0}'.").format(layer_name)
+        return tr("Styling '{0}': {1}.").format(layer_name, shown(properties, SYMBOLS))
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = require_vector_layer(params.get("layer_name") or "")

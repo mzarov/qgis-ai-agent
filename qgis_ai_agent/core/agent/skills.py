@@ -11,7 +11,7 @@ def load_skill(call: ToolCall, loaded_skills: list[str]) -> tuple[ToolResult, st
             ToolResult(
                 call=call,
                 ok=False,
-                payload={"error": f"Скилл не найден: {name}.", "available": SKILL_REGISTRY.names()},
+                payload={"error": f"Skill not found: {name}.", "available": SKILL_REGISTRY.names()},
             ),
             "",
         )

@@ -2,6 +2,7 @@ from typing import Any
 
 from qgis.core import Qgis, QgsApplication
 
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
 
 MAX_PROVIDERS = 20
@@ -10,16 +11,16 @@ MAX_PROVIDERS = 20
 class GetQgisInfoTool(BaseTool):
     name = "get_qgis_info"
     description = (
-        "Показать окружение: версию QGIS, язык интерфейса и доступные провайдеры "
-        "алгоритмов обработки. Нужен, чтобы не предлагать недоступное."
+        "Show the environment: QGIS version, interface language and the available "
+        "processing algorithm providers. Needed to avoid offering what is not installed."
     )
     skill = "inspect"
     safety = SAFETY_READ
-    examples = ["Какая у меня версия QGIS?", "Доступен ли GRASS?"]
+    examples = ["Which QGIS version do I have?", "Is GRASS available?"]
     params_schema = []
 
     def summarize_call(self, params: dict[str, Any]) -> str:
-        return "Смотрю версию и окружение QGIS."
+        return tr("Reading the QGIS version and environment.")
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         return {

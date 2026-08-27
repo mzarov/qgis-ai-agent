@@ -7,7 +7,7 @@ SECRET_KEYS = ("password", "passwd", "pwd", "token", "api_key", "apikey", "secre
 SECRET_PATTERN = re.compile(
     r"(?i)\b(" + "|".join(SECRET_KEYS) + r")\s*=\s*('[^']*'|\"[^\"]*\"|\S+)"
 )
-SECRET_PLACEHOLDER = "‹скрыто›"
+SECRET_PLACEHOLDER = "<hidden>"
 MAX_SOURCE_CHARS = 300
 
 
@@ -82,13 +82,13 @@ def describe_source(layer: QgsMapLayer) -> dict[str, Any]:
     }
     if not info["is_valid"]:
         info["warning"] = (
-            "Слой не загрузился: источник недоступен или путь битый. "
-            "Обработка и стилизация по нему работать не будут."
+            "The layer failed to load: the source is unreachable or the path is broken. "
+            "Processing and styling will not work on it."
         )
     filter_expression = subset_filter(layer)
     if filter_expression:
         info["subset_filter"] = filter_expression
-        info["filter_note"] = "Число объектов указано с учётом этого фильтра."
+        info["filter_note"] = "The feature count above already reflects this filter."
     selected = selected_count(layer)
     if selected:
         info["selected_count"] = selected

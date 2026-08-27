@@ -37,12 +37,12 @@ class ComputeTest(unittest.TestCase):
 
     def test_concatenate_truncates(self):
         result = compute("concatenate", [str(index) for index in range(80)], 80)
-        self.assertIn("всего 80", result)
+        self.assertIn("80 in total", result)
 
     def test_text_in_numeric_aggregate_explains(self):
         with self.assertRaises(ValueError) as caught:
             compute("sum", ["текст"], 1)
-        self.assertIn("только с числами", str(caught.exception))
+        self.assertIn("numbers only", str(caught.exception))
 
     def test_unknown_function_lists_available(self):
         with self.assertRaises(ValueError) as caught:

@@ -8,22 +8,22 @@ MAX_LISTED = 12
 def get_project_context() -> str:
     layers = _describe_layers(QgsProject.instance())
     if not layers:
-        return "Слои: нет."
-    return "Слои: " + _join_capped(layers) + "."
+        return "Layers: none."
+    return "Layers: " + _join_capped(layers) + "."
 
 
 def _describe_layers(project: QgsProject) -> list[str]:
     described = []
     for layer in project.mapLayers().values():
-        name = (layer.name() or "Без имени").strip()
+        name = (layer.name() or "Unnamed").strip()
         if layer_kind(layer) == "raster":
-            described.append(f"{name} (растр)")
+            described.append(f"{name} (raster)")
         else:
-            described.append(f"{name} ({geometry_type_name(layer) or 'вектор'})")
+            described.append(f"{name} ({geometry_type_name(layer) or 'vector'})")
     return described
 
 
 def _join_capped(items: list[str]) -> str:
     if len(items) <= MAX_LISTED:
         return ", ".join(items)
-    return ", ".join(items[:MAX_LISTED]) + f" и ещё {len(items) - MAX_LISTED}"
+    return ", ".join(items[:MAX_LISTED]) + f" and {len(items) - MAX_LISTED} more"

@@ -1,6 +1,8 @@
 import hashlib
 from typing import Any
 
+from qgis_ai_agent.i18n import tr
+
 from qgis.core import QgsSettings
 
 SETTINGS_PREFIX = "qgis_ai_agent"
@@ -16,11 +18,11 @@ AUTH_TYPE_OAUTH = "OAuth"
 FALSE_WORDS = ("false", "0", "no", "off")
 URL_KEY_LENGTH = 12
 
-KEYRING_FAILURE_MSG = (
-    "Не удалось сохранить ключ в системном хранилище: {reason}.\n\n"
-    "На Linux для этого нужен запущенный сервис секретов — gnome-keyring или KWallet. "
-    "Если библиотеки keyring нет, установите её в Python QGIS: см. раздел «Зависимости» "
-    "в документации плагина."
+KEYRING_FAILURE_MSG = tr(
+    "Could not save the key to the system keyring: {reason}.\n\n"
+    "On Linux this needs a running secret service — gnome-keyring or KWallet. "
+    "If the keyring library is missing, install it into the QGIS Python: see the "
+    "Dependencies section of the plugin documentation."
 )
 
 

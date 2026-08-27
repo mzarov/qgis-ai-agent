@@ -12,8 +12,8 @@ def compute(function: str, values: list[Any], matched: int) -> Any:
     name = (function or "").strip().lower()
     if name not in AGGREGATE_FUNCTIONS:
         raise ValueError(
-            f"Неизвестная агрегатная функция: «{function}». "
-            f"Доступные: {', '.join(AGGREGATE_FUNCTIONS)}."
+            f"Unknown aggregate function: '{function}'. "
+            f"Available: {', '.join(AGGREGATE_FUNCTIONS)}."
         )
     if name == "count":
         return matched
@@ -29,7 +29,7 @@ def _concatenate(values: list[Any]) -> str:
     shown = [str(value) for value in values[:MAX_CONCAT_ITEMS]]
     text = CONCAT_SEPARATOR.join(shown)
     if len(values) > MAX_CONCAT_ITEMS:
-        return text + f"… (всего {len(values)})"
+        return text + f"… ({len(values)} in total)"
     return text
 
 
@@ -57,8 +57,8 @@ def _as_numbers(name: str, values: list[Any]) -> list[float]:
     for value in values:
         if isinstance(value, bool) or not isinstance(value, (int, float)):
             raise ValueError(
-                f"Функция «{name}» работает только с числами, а встретилось "
-                f"значение {value!r}. Проверьте поле или выражение."
+                f"Function '{name}' works with numbers only, but it met "
+                f"the value {value!r}. Check the field or the expression."
             )
         numbers.append(float(value))
     return numbers

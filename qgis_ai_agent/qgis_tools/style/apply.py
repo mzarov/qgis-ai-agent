@@ -13,8 +13,8 @@ def require_vector_layer(layer_name: str) -> QgsVectorLayer:
     layer = find_layer_by_name(layer_name)
     if not isinstance(layer, QgsVectorLayer):
         raise ValueError(
-            f"Слой «{layer_name}» не векторный. Оформление символами задаётся "
-            "только для векторных слоёв."
+            f"Layer '{layer_name}' is not a vector layer. Symbol styling applies "
+            "to vector layers only."
         )
     return layer
 
@@ -23,7 +23,7 @@ def require_field(layer: QgsVectorLayer, field_name: str) -> str:
     names = field_names(layer)
     if field_name in names:
         return field_name
-    raise ValueError(f"В слое «{layer.name()}» нет поля «{field_name}». {suggest_fields([field_name], names)}")
+    raise ValueError(f"Layer '{layer.name()}' has no field '{field_name}'. {suggest_fields([field_name], names)}")
 
 
 def field_names(layer: QgsVectorLayer) -> list[str]:
@@ -40,30 +40,30 @@ def resolve_ramp(name: str, fallbacks: tuple[str, ...] = ()) -> Any:
     if wanted:
         if wanted in available:
             return style.colorRamp(wanted)
-        raise ValueError(f"Палитры «{wanted}» нет в QGIS. {describe_ramps(available)}")
+        raise ValueError(f"QGIS has no colour ramp called '{wanted}'. {describe_ramps(available)}")
     for candidate in fallbacks:
         if candidate in available:
             return style.colorRamp(candidate)
     if available:
         return style.colorRamp(available[0])
     raise ValueError(
-        "В библиотеке QGIS нет ни одной палитры — задайте цвета списком через colors."
+        "The QGIS library holds no colour ramps at all — pass the colours through colors instead."
     )
 
 
 def describe_ramps(available: list[str]) -> str:
     if not available:
-        return "Библиотека палитр пуста — задайте цвета списком вместо палитры."
+        return "The colour ramp library is empty — pass a list of colours instead of a ramp."
     shown = ", ".join(available[:RAMPS_SHOWN])
     if len(available) > RAMPS_SHOWN:
-        return f"Доступные палитры (первые {RAMPS_SHOWN} из {len(available)}): {shown}."
-    return f"Доступные палитры: {shown}."
+        return f"Available colour ramps (first {RAMPS_SHOWN} of {len(available)}): {shown}."
+    return f"Available colour ramps: {shown}."
 
 
 def base_symbol(layer: QgsVectorLayer) -> QgsSymbol:
     symbol = QgsSymbol.defaultSymbol(layer.geometryType())
     if symbol is None:
-        raise ValueError(f"Не удалось создать символ для слоя «{layer.name()}».")
+        raise ValueError(f"Could not build a symbol for layer '{layer.name()}'.")
     return symbol
 
 

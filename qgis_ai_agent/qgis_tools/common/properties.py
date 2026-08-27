@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, Callable
 
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.common.values import suggest_fields
 from qgis_ai_agent.qgis_tools.common.colors import parse_color
 
@@ -9,7 +10,7 @@ KIND_NUMBER = "number"
 KIND_BOOLEAN = "boolean"
 KIND_COLOR = "color"
 KIND_ENUM = "enum"
-FALSE_WORDS = ("false", "0", "no", "off", "нет")
+FALSE_WORDS = ("false", "0", "no", "off")
 
 
 @dataclass(frozen=True)
@@ -57,9 +58,9 @@ class PropertySet:
         unknown = [key for key in properties if key not in self.by_name]
         if not unknown:
             return
-        listed = ", ".join(f"«{key}»" for key in unknown)
+        listed = ", ".join(f"'{key}'" for key in unknown)
         raise ValueError(
-            f"Неизвестные свойства ({self.subject}): {listed}. "
+            f"Unknown properties ({self.subject}): {listed}. "
             f"{suggest_fields(unknown, self.names())}"
         )
 
@@ -98,7 +99,7 @@ def as_bool(value: Any) -> bool:
 
 def as_color(prop: StyleProperty, value: Any) -> str:
     text = str(value or "").strip()
-    parse_color(text, f"Свойство «{prop.name}»")
+    parse_color(text, f"Property '{prop.name}'")
     return text
 
 
@@ -106,8 +107,8 @@ def as_option(prop: StyleProperty, value: Any) -> str:
     name = str(value or "").strip().lower()
     if name not in prop.options:
         raise ValueError(
-            f"У свойства «{prop.name}» нет значения «{value}». "
-            f"Доступны: {', '.join(prop.options)}."
+            f"Property '{prop.name}' has no value '{value}'. "
+            f"Available: {', '.join(prop.options)}."
         )
     return name
 
@@ -116,14 +117,14 @@ def as_number(prop: StyleProperty, value: Any) -> float:
     try:
         number = float(value)
     except (TypeError, ValueError):
-        raise ValueError(f"Свойство «{prop.name}» задаётся числом, получено «{value}».")
+        raise ValueError(f"Property '{prop.name}' takes a number, got '{value}'.")
     below = prop.minimum is not None and number < prop.minimum
     above = prop.maximum is not None and number > prop.maximum
     if below or above:
         unit = f" {prop.unit}" if prop.unit else ""
         raise ValueError(
-            f"Свойство «{prop.name}» должно быть от {prop.minimum:g} "
-            f"до {prop.maximum:g}{unit}, получено {number:g}."
+            f"Property '{prop.name}' must be between {prop.minimum:g} "
+            f"and {prop.maximum:g}{unit}, got {number:g}."
         )
     return number
 
@@ -163,8 +164,8 @@ def properties_of(params: dict[str, Any], subject: str) -> dict[str, Any]:
         return {}
     if not isinstance(properties, dict):
         raise ValueError(
-            f"Свойства ({subject}) передаются объектом пар ключ-значение, "
-            "а не строкой или списком. Список ключей — describe_style_options."
+            f"Properties ({subject}) are passed as an object of key-value pairs, "
+            "not as a string or a list. Call describe_style_options for the list of keys."
         )
     return dict(properties)
 
@@ -172,8 +173,8 @@ def properties_of(params: dict[str, Any], subject: str) -> dict[str, Any]:
 def shown(properties: dict[str, Any], known: PropertySet) -> str:
     pairs = [f"{key}={value}" for key, value in properties.items() if key in known.by_name]
     if not pairs:
-        return "по умолчанию"
+        return tr("defaults")
     if len(pairs) <= SHOWN_IN_SUMMARY:
         return ", ".join(pairs)
     head = ", ".join(pairs[:SHOWN_IN_SUMMARY])
-    return f"{head} и ещё {len(pairs) - SHOWN_IN_SUMMARY}"
+    return tr("{0} and {1} more").format(head, len(pairs) - SHOWN_IN_SUMMARY)

@@ -18,6 +18,7 @@ from qgis_ai_agent.core.settings import (
     get_supports_tools,
     get_verify_ssl,
 )
+from qgis_ai_agent.i18n import locale_code
 from qgis_ai_agent.qgis_tools.registry import build_tool_schemas, get_tools_for_skills
 from qgis_ai_agent.skills.registry import SKILL_REGISTRY
 
@@ -42,6 +43,7 @@ def build_step_request(
         project_context=get_project_context(),
         loaded_skills=loaded_skills,
         json_protocol=json_protocol,
+        locale=locale_code(),
     )
     if json_protocol:
         tools_block = build_json_tools_block(schemas)

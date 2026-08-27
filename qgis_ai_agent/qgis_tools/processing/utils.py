@@ -24,7 +24,7 @@ def get_registry() -> Any:
     registry = QgsApplication.processingRegistry()
     if registry is None:
         raise RuntimeError(
-            "Реестр Processing недоступен. Проверьте, что модуль Processing включён."
+            "The Processing registry is not available. Check that the Processing plugin is enabled."
         )
     return registry
 
@@ -59,12 +59,12 @@ def _haystack(algorithm) -> dict[str, str]:
 def find_algorithm(algorithm_id: str) -> Any:
     wanted = (algorithm_id or "").strip()
     if not wanted:
-        raise ValueError("Не указан идентификатор алгоритма.")
+        raise ValueError("No algorithm identifier was given.")
     algorithm = get_registry().algorithmById(wanted)
     if algorithm is None:
         raise ValueError(
-            f"Алгоритм не найден: {wanted}. "
-            "Найдите точный идентификатор через search_processing."
+            f"Algorithm not found: {wanted}. "
+            "Look the exact identifier up with search_processing."
         )
     return algorithm
 
@@ -108,7 +108,7 @@ def describe_parameter(parameter: QgsProcessingParameterDefinition) -> dict[str,
         info["options"] = [
             {"value": index, "label": label} for index, label in enumerate(options)
         ]
-        info["value_hint"] = "Передавайте число из поля value, а не текст из label."
+        info["value_hint"] = "Pass the number from the value field, not the text from label."
     return info
 
 

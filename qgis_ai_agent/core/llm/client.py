@@ -1,6 +1,8 @@
 import json
 from typing import Any
 
+from qgis_ai_agent.i18n import tr
+
 from qgis.core import QgsBlockingNetworkRequest
 from qgis.PyQt.QtCore import QByteArray, QUrl
 from qgis.PyQt.QtNetwork import QNetworkRequest
@@ -17,21 +19,21 @@ from qgis_ai_agent.core.settings import (
 
 DEFAULT_TIMEOUT = 120
 LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1", "0.0.0.0", "host.docker.internal")
-MISSING_KEY_MSG = (
-    "Не задан API-ключ. Укажите его в Настройках — или подключитесь к локальной "
-    "модели: для адреса на localhost ключ не нужен."
+MISSING_KEY_MSG = tr(
+    "No API key. Set one in Settings — or connect to a local model: "
+    "an address on localhost needs no key."
 )
 ERROR_BODY_LIMIT = 300
 STATUS_ATTRIBUTE = QNetworkRequest.Attribute.HttpStatusCodeAttribute
-TRANSPORT_FAILED = (
-    "Не удалось связаться с {endpoint}: {reason}. Проверьте адрес, сеть и "
-    "настройки прокси QGIS."
+TRANSPORT_FAILED = tr(
+    "Could not reach {endpoint}: {reason}. Check the address, the network and "
+    "the QGIS proxy settings."
 )
 
 
 class ApiResponseError(RuntimeError):
     def __init__(self, status_code: int, body: str, message: str | None = None):
-        super().__init__(message or f"API вернул {status_code}: {body[:ERROR_BODY_LIMIT]}")
+        super().__init__(message or tr("The API returned {0}: {1}").format(status_code, body[:ERROR_BODY_LIMIT]))
         self.status_code = status_code
         self.body = body
 
@@ -39,7 +41,7 @@ class ApiResponseError(RuntimeError):
 def resolve_endpoint(url_override: str | None = None) -> str:
     url = (url_override or get_api_url() or "").strip().rstrip("/")
     if not url:
-        raise ValueError("Не задан URL API. Укажите его в Настройках.")
+        raise ValueError(tr("No API URL. Set one in Settings."))
     return url
 
 
@@ -115,17 +117,17 @@ def _decoded(text: str, status: int) -> dict[str, Any]:
     try:
         parsed = json.loads(text)
     except ValueError:
-        raise ApiResponseError(status, text, f"API вернул не JSON: {text[:ERROR_BODY_LIMIT]}")
+        raise ApiResponseError(status, text, tr("The API returned non-JSON: {0}").format(text[:ERROR_BODY_LIMIT]))
     if not isinstance(parsed, dict):
-        raise ApiResponseError(status, text, "API вернул не объект JSON.")
+        raise ApiResponseError(status, text, tr("The API returned something that is not a JSON object."))
     return parsed
 
 
 def _reason(caller: Any) -> str:
     try:
-        return caller.errorMessage() or "сервис недоступен"
+        return caller.errorMessage() or tr("service unavailable")
     except Exception:
-        return "сервис недоступен"
+        return tr("service unavailable")
 
 
 def post_chat_completion(
@@ -151,5 +153,5 @@ def chat(messages: list[dict[str, Any]], timeout: int = 60, **overrides: Any) ->
     data = post_chat_completion(messages, timeout=timeout, **overrides)
     choices = data.get("choices") or []
     if not choices:
-        raise ValueError("Пустой ответ API.")
+        raise ValueError(tr("The API returned an empty answer."))
     return ((choices[0].get("message") or {}).get("content") or "").strip()

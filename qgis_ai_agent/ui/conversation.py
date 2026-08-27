@@ -11,6 +11,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.ui import style
 from qgis_ai_agent.ui.activity import ActivityGroup
 from qgis_ai_agent.ui.messages import AssistantMessage, SystemMessage, UserMessage
@@ -19,7 +20,7 @@ from qgis_ai_agent.ui.plan import PlanCard
 MESSAGE_SPACING = 11
 SIDE_PADDING = 12
 PIN_TOLERANCE = 24
-EMPTY_HINT = "Спросите про проект или попросите обработать слои."
+EMPTY_HINT = tr("Ask about the project or ask to process layers.")
 
 
 class ConversationView(QScrollArea):
@@ -130,7 +131,7 @@ class ConversationView(QScrollArea):
 
     def contextMenuEvent(self, event: Any) -> None:
         menu = QMenu(self)
-        copy_action = menu.addAction("Копировать весь диалог")
+        copy_action = menu.addAction(tr("Copy the whole conversation"))
         if menu.exec(event.globalPos()) == copy_action:
             self.copy_all()
 

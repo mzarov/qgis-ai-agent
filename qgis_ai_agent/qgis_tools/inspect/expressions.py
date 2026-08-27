@@ -27,8 +27,8 @@ def compile_expression(text: str, label: str, layer=None) -> QgsExpression:
     expression = QgsExpression(text)
     if expression.hasParserError():
         raise ValueError(
-            f"Ошибка разбора выражения в «{label}»: {expression.parserErrorString().strip()}. "
-            f"Выражение было: {text}"
+            f"Could not parse the expression in '{label}': {expression.parserErrorString().strip()}. "
+            f"The expression was: {text}"
         )
     if layer is not None:
         check_columns(expression, layer, label, text)
@@ -48,9 +48,9 @@ def check_columns(expression: QgsExpression, layer, label: str, text: str) -> No
     if not unknown:
         return
     raise ValueError(
-        f"В выражении «{label}» нет таких полей: {', '.join(unknown)}. "
-        f"Выражение было: {text}. {suggest_fields(unknown, sorted(available))} "
-        "Если это текстовое значение, оно пишется в одинарных кавычках: "
+        f"The expression in '{label}' refers to fields that do not exist: {', '.join(unknown)}. "
+        f"The expression was: {text}. {suggest_fields(unknown, sorted(available))} "
+        "If this was meant as a text value, write it in single quotes: "
         "highway = 'motorway'."
     )
 
@@ -69,7 +69,7 @@ def evaluate(expression: QgsExpression, context: QgsExpressionContext, feature) 
     value = expression.evaluate(context)
     if expression.hasEvalError():
         raise ValueError(
-            f"Ошибка вычисления выражения «{expression.expression()}»: "
+            f"Could not evaluate the expression '{expression.expression()}': "
             f"{expression.evalErrorString().strip()}"
         )
     return plain_value(value)

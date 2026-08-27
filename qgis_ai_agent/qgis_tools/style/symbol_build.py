@@ -21,8 +21,8 @@ ENUM_SOURCES = {
     "fill_style": (BRUSH_STYLES, lambda name: getattr(Qt.BrushStyle, name)),
 }
 NOT_APPLICABLE = (
-    "не применимо к геометрии слоя «{geometry}»: {listed}. "
-    "Это не ошибка — остальное применено; повторять вызов не нужно."
+    "does not apply to the '{geometry}' geometry of the layer: {listed}. "
+    "This is not an error — the rest was applied; there is no need to repeat the call."
 )
 
 
@@ -50,7 +50,7 @@ def _run(subject: Any, pairs: list[tuple[StyleProperty, Any]], landed: set[str])
 
 def native(prop: StyleProperty, value: Any) -> Any:
     if prop.kind == KIND_COLOR:
-        return parse_color(value, f"Свойство «{prop.name}»")
+        return parse_color(value, f"Property '{prop.name}'")
     if prop.kind == KIND_ENUM:
         mapping, resolve = ENUM_SOURCES[prop.name]
         return resolve(mapping[value])

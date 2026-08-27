@@ -8,6 +8,7 @@ from qgis.core import (
     QgsUnitTypes,
 )
 
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
 
 MAX_TREE_DEPTH = 6
@@ -16,17 +17,17 @@ MAX_TREE_DEPTH = 6
 class GetProjectInfoTool(BaseTool):
     name = "get_project_info"
     description = (
-        "Показать проект целиком: название, файл, сохранён ли, систему координат, "
-        "единицы измерения, дерево слоёв с группами, порядком и видимостью, "
-        "а также темы карты."
+        "Show the project as a whole: title, file, whether it is saved, coordinate "
+        "system, measurement units, the layer tree with groups, order and visibility, "
+        "and the map themes."
     )
     skill = "inspect"
     safety = SAFETY_READ
-    examples = ["Расскажи про мой проект", "Какие есть группы слоёв?", "Что сейчас видно на карте?"]
+    examples = ["Tell me about my project", "Which layer groups are there?", "What is on the map now?"]
     params_schema = []
 
     def summarize_call(self, params: dict[str, Any]) -> str:
-        return "Смотрю проект целиком."
+        return tr("Reading the project as a whole.")
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         project = QgsProject.instance()
@@ -34,7 +35,7 @@ class GetProjectInfoTool(BaseTool):
         file_path = self._safe(project.fileName)
         return {
             "title": title,
-            "display_name": title or self._name_from_path(file_path) or "без имени",
+            "display_name": title or self._name_from_path(file_path) or "unnamed",
             "file_path": file_path,
             "has_unsaved_changes": bool(self._safe(project.isDirty, default=False)),
             "crs": self._crs(project),
@@ -62,12 +63,12 @@ class GetProjectInfoTool(BaseTool):
         ellipsoid = cls._safe(project.ellipsoid)
         if ellipsoid and ellipsoid.upper() != "NONE":
             return (
-                f"$length и $area считаются по эллипсоиду {ellipsoid} и возвращаются "
-                "в единицах проекта, даже если слой хранится в градусах."
+                f"$length and $area are measured on ellipsoid {ellipsoid} and returned "
+                "in project units, even when the layer is stored in degrees."
             )
         return (
-            "Эллипсоид не задан: $length и $area возвращаются в единицах CRS слоя. "
-            "Для слоя в градусах такие значения бессмысленны."
+            "No ellipsoid is set: $length and $area are returned in the units of the layer CRS. "
+            "For a layer in degrees such values are meaningless."
         )
 
     @staticmethod

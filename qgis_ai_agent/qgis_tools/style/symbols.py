@@ -1,6 +1,6 @@
 from typing import Any
 
-SYMBOL_KINDS = {0: "точки", 1: "линии", 2: "полигоны"}
+SYMBOL_KINDS = {0: "point", 1: "line", 2: "polygon"}
 MAX_SYMBOL_LAYERS = 6
 LAYER_MEASURES = (("width", "width"), ("size", "size"))
 OPTIONAL_MEASURES = (("offset", "offset"),)
@@ -22,8 +22,8 @@ def symbol_info(symbol) -> dict[str, Any]:
     if len(layers) > 1:
         info["layers"] = layers
         info["layers_note"] = (
-            "символ собран из нескольких слоёв, они рисуются снизу вверх: "
-            "слой 0 под слоем 1 и так далее"
+            "the symbol is built from several layers, drawn bottom up: "
+            "layer 0 sits under layer 1 and so on"
         )
     elif layers:
         info.update({key: value for key, value in layers[0].items() if key.startswith("stroke")})

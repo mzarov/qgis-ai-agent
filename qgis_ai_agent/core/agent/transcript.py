@@ -5,8 +5,8 @@ from typing import Any
 from qgis_ai_agent.core.llm.transport import PROTOCOL_NATIVE, ModelTurn, ToolCall
 
 MAX_RESULT_CHARS = 4000
-TRUNCATION_NOTE = "… (результат обрезан)"
-RESULTS_HEADER = "Результаты вызовов:"
+TRUNCATION_NOTE = "… (result truncated)"
+RESULTS_HEADER = "Tool results:"
 
 
 @dataclass

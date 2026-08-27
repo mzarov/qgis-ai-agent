@@ -2,6 +2,7 @@ from typing import Any
 
 from qgis.core import QgsProject
 
+from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
 from qgis_ai_agent.qgis_tools.common.layers import canvas_extent, extent_dict
 
@@ -9,15 +10,15 @@ from qgis_ai_agent.qgis_tools.common.layers import canvas_extent, extent_dict
 class GetCanvasExtentTool(BaseTool):
     name = "get_canvas_extent"
     description = (
-        "Показать текущий охват (extent) канваса QGIS и систему координат проекта."
+        "Show the current extent of the QGIS canvas and the project coordinate system."
     )
     skill = "inspect"
     safety = SAFETY_READ
-    examples = ["Какой сейчас охват карты?", "Что сейчас видно на экране?"]
+    examples = ["What is the current map extent?", "What is visible on screen right now?"]
     params_schema = []
 
     def summarize_call(self, params: dict[str, Any]) -> str:
-        return "Смотрю текущий охват карты."
+        return tr("Reading the current map extent.")
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         return {

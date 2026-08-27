@@ -12,12 +12,12 @@ saved.
 
 | Ask | Tool |
 |---|---|
-| «загрузи файл», «добавь слой» | `add_layer` |
-| «убери слой», «удали лишний» | `remove_layer` |
-| «переименуй», «спрячь», «в группу», «подними наверх» | `configure_layer` |
-| «смени проекцию проекта», «назови проект» | `configure_project` |
-| «покажи слой», «приблизь к» | `zoom_to_layer` |
-| «сохрани проект» | `save_project` |
+| "load a file", "add a layer" | `add_layer` |
+| "drop a layer", "remove the spare one" | `remove_layer` |
+| "rename", "hide", "into a group", "move to the top" | `configure_layer` |
+| "change the project CRS", "name the project" | `configure_project` |
+| "show me the layer", "zoom to" | `zoom_to_layer` |
+| "save the project" | `save_project` |
 
 ## Finishing the job
 
@@ -48,8 +48,8 @@ explicit `name`, otherwise the tool refuses before anything is queued.
 one layer.
 
 Draw order is what `position` controls: **0 is the top of the group and draws over
-everything below it.** "Подними реки наверх" is `position: 0`; "спрячь под дороги"
-means giving the rivers a larger position than the roads.
+everything below it.** "Move the rivers to the top" is `position: 0`; "tuck them
+under the roads" means giving the rivers a larger position than the roads.
 
 `group` moves the layer into a named group, creating it if it does not exist.
 An empty string moves the layer back to the root.

@@ -67,9 +67,9 @@ class BaseTool(ABC):
     def build_description(self) -> str:
         parts = [self.description]
         if self.constraints:
-            parts.append("Ограничения: " + "; ".join(self.constraints) + ".")
+            parts.append("Constraints: " + "; ".join(self.constraints) + ".")
         if self.examples:
-            parts.append("Примеры запросов: " + "; ".join(self.examples) + ".")
+            parts.append("Example requests: " + "; ".join(self.examples) + ".")
         return " ".join(part for part in parts if part)
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:

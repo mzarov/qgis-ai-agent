@@ -39,12 +39,12 @@ def suggest_fields(unknown: list[str], available: list[str]) -> str:
     for name in unknown:
         close.extend(difflib.get_close_matches(name, available, n=3, cutoff=CLOSE_MATCH_CUTOFF))
     if close:
-        return "Похожие поля: " + ", ".join(dict.fromkeys(close)) + "."
+        return "Similar fields: " + ", ".join(dict.fromkeys(close)) + "."
     ordered = sorted(available)
     shown = ", ".join(ordered[:MAX_LISTED_FIELDS])
     if len(ordered) > MAX_LISTED_FIELDS:
         return (
-            f"Первые {MAX_LISTED_FIELDS} полей: {shown}. "
-            f"Всего полей {len(ordered)}, полный список — describe_layer."
+            f"First {MAX_LISTED_FIELDS} fields: {shown}. "
+            f"There are {len(ordered)} fields in total, call describe_layer for the full list."
         )
-    return f"Доступные поля: {shown}."
+    return f"Available fields: {shown}."
