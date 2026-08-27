@@ -1,6 +1,7 @@
-from typing import Callable
+from typing import Any, Callable
 
 from qgis.PyQt.QtCore import QSize, pyqtSignal
+from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import (
     QDockWidget,
     QHBoxLayout,
@@ -11,14 +12,11 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from qgis_ai_agent.ui import style
+from qgis_ai_agent.ui import icons, style
 from qgis_ai_agent.ui.composer import Composer
 from qgis_ai_agent.ui.conversation import ConversationView
 
 TITLE = "QGIS AI Agent"
-SETTINGS_ICON = "/mActionOptions.svg"
-CLEAR_ICON = "/mActionDeleteSelected.svg"
-SESSIONS_ICON = "/mIconQueryHistory.svg"
 NEW_SESSION_LABEL = "Новый диалог"
 NO_SESSIONS_LABEL = "Прошлых диалогов нет"
 HEADER_MARGINS = (11, 8, 9, 8)
@@ -66,17 +64,21 @@ class AgentDockWidget(QDockWidget):
         title.setStyleSheet("border: none;")
         row.addWidget(title, 1)
         self._sessions_button = self._build_action(
-            SESSIONS_ICON, "⟲", "Диалоги", self._show_sessions
+            icons.sessions, "⟲", "Диалоги", self._show_sessions
         )
         row.addWidget(self._sessions_button)
-        row.addWidget(self._build_action(CLEAR_ICON, "⌫", "Очистить диалог", self._on_clear))
+        row.addWidget(self._build_action(icons.clear, "⌫", "Очистить диалог", self._on_clear))
         row.addWidget(
-            self._build_action(SETTINGS_ICON, "⚙", "Настройки", self.open_settings_clicked.emit)
+            self._build_action(icons.settings, "⚙", "Настройки", self.open_settings_clicked.emit)
         )
         return header
 
     def _build_action(
-        self, icon_name: str, glyph: str, tooltip: str, handler: Callable[[], None]
+        self,
+        paint: Callable[[Any, int], QIcon],
+        glyph: str,
+        tooltip: str,
+        handler: Callable[[], None],
     ) -> QToolButton:
         button = QToolButton()
         button.setAutoRaise(True)
@@ -88,8 +90,8 @@ class AgentDockWidget(QDockWidget):
             f"QToolButton:hover {{ background: {style.css_color(style.card(self.palette()))};"
             "border-radius: 5px; }"
         )
-        icon = style.theme_icon(icon_name)
-        if icon.isNull():
+        icon = _drawn(paint, style.muted(self.palette()), HEADER_ICON)
+        if icon is None:
             button.setText(glyph)
         else:
             button.setIcon(icon)
@@ -175,3 +177,11 @@ class AgentDockWidget(QDockWidget):
 
     def clear_prompt(self) -> None:
         self.composer.clear()
+
+
+def _drawn(paint: Callable[[Any, int], QIcon], colour: Any, size: int) -> QIcon | None:
+    try:
+        icon = paint(colour, size)
+    except Exception:
+        return None
+    return None if icon.isNull() else icon
