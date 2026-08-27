@@ -47,7 +47,7 @@ class DescribeStyleOptionsTool(BaseTool):
         }
 
 
-def _resolve(kind: Any):
+def _resolve(kind: Any) -> Any:
     name = str(kind or "").strip().lower()
     if name not in KINDS:
         raise ValueError(f"Неизвестный вид «{kind}». Доступны: {', '.join(sorted(KINDS))}.")

@@ -34,7 +34,7 @@ def field_names(layer: QgsVectorLayer) -> list[str]:
         return []
 
 
-def resolve_ramp(name: str, fallbacks: tuple[str, ...] = ()):
+def resolve_ramp(name: str, fallbacks: tuple[str, ...] = ()) -> Any:
     style = QgsStyle.defaultStyle()
     available = sorted(style.colorRampNames())
     wanted = (name or "").strip()

@@ -4,7 +4,7 @@ import unittest
 from qgis_ai_agent.core.llm import providers
 from qgis_ai_agent.core.llm.dialects import ANTHROPIC, OPENAI, resolve
 from qgis_ai_agent.ui import settings_fields as fields
-from qgis_ai_agent.ui import settings_probe
+from qgis_ai_agent.core.llm import probe as settings_probe
 
 
 class PresetTest(unittest.TestCase):

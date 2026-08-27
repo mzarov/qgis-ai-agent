@@ -20,7 +20,7 @@ TEMPORARY_OUTPUT = "TEMPORARY_OUTPUT"
 PRIMARY_OUTPUT_KEY = "OUTPUT"
 
 
-def get_registry():
+def get_registry() -> Any:
     registry = QgsApplication.processingRegistry()
     if registry is None:
         raise RuntimeError(
@@ -56,7 +56,7 @@ def _haystack(algorithm) -> dict[str, str]:
     }
 
 
-def find_algorithm(algorithm_id: str):
+def find_algorithm(algorithm_id: str) -> Any:
     wanted = (algorithm_id or "").strip()
     if not wanted:
         raise ValueError("Не указан идентификатор алгоритма.")

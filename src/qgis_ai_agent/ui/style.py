@@ -1,5 +1,4 @@
-from qgis.PyQt.QtGui import QColor, QIcon, QPalette
-from qgis.core import QgsApplication
+from qgis.PyQt.QtGui import QColor, QPalette
 
 CARD_RADIUS = 10
 BUBBLE_RADIUS = 12
@@ -10,14 +9,6 @@ ELEVATED_TINT = 0.9
 BORDER_TINT = 0.8
 MUTED_TINT = 0.38
 PANEL_LIFT = 0.11
-
-
-def theme_icon(name: str) -> QIcon:
-    try:
-        icon = QgsApplication.getThemeIcon(name)
-    except Exception:
-        return QIcon()
-    return icon
 
 
 def blend(first: QColor, second: QColor, ratio: float) -> QColor:

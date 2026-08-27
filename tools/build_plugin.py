@@ -54,7 +54,7 @@ def verify(entries: list[tuple[str, str]]) -> None:
     ]
     if missing:
         raise SystemExit("В сборку не попало обязательное: " + ", ".join(missing))
-    entry_point = f"{PLUGIN_NAME}/src/{PLUGIN_NAME}/core/plugin.py"
+    entry_point = f"{PLUGIN_NAME}/src/{PLUGIN_NAME}/plugin.py"
     if entry_point not in packed:
         raise SystemExit(f"В сборку не попала точка входа {entry_point}")
 

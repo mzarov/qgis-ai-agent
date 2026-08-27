@@ -1,3 +1,5 @@
+from typing import Any
+
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QTextBrowser, QVBoxLayout, QWidget
 
@@ -30,7 +32,7 @@ class UserMessage(QWidget):
         row.addWidget(label, 0)
         self._label = label
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, event: Any) -> None:
         self._fit()
         super().resizeEvent(event)
 
@@ -78,7 +80,7 @@ class AssistantMessage(QWidget):
         document.setTextWidth(max(1, browser.viewport().width()))
         browser.setFixedHeight(int(document.size().height()) + BROWSER_EXTRA_HEIGHT)
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, event: Any) -> None:
         self._fit(self._browser)
         super().resizeEvent(event)
 

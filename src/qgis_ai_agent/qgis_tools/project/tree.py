@@ -24,16 +24,6 @@ def tree_node(layer: Any) -> Any:
     return node
 
 
-def require_group(name: str) -> Any:
-    wanted = (name or "").strip()
-    if not wanted:
-        return layer_tree()
-    found = layer_tree().findGroup(wanted)
-    if found is not None:
-        return found
-    raise ValueError(f"Группы «{wanted}» нет в проекте. {describe_groups()}")
-
-
 def ensure_group(name: str) -> Any:
     wanted = (name or "").strip()
     if not wanted:

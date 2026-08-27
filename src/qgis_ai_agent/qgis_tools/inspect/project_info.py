@@ -47,7 +47,7 @@ class GetProjectInfoTool(BaseTool):
         }
 
     @staticmethod
-    def _safe(getter, default=""):
+    def _safe(getter: Any, default: str = "") -> Any:
         try:
             return getter() or default
         except Exception:

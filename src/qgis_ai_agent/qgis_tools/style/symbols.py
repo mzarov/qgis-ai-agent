@@ -75,7 +75,7 @@ def _symbol_kind(symbol) -> str:
         return ""
 
 
-def _call(owner, method, *args):
+def _call(owner: Any, method: str, *args: Any) -> Any:
     try:
         return getattr(owner, method)(*args)
     except Exception:

@@ -10,7 +10,6 @@ from qgis_ai_agent.qgis_tools.project.tree import (
     ensure_group,
     layer_names,
     project,
-    require_group,
 )
 
 VECTOR_SUFFIXES = (".shp", ".geojson", ".json", ".gpkg", ".kml", ".gml", ".csv", ".tab", ".gpx")
@@ -18,6 +17,7 @@ RASTER_SUFFIXES = (".tif", ".tiff", ".geotiff", ".png", ".jpg", ".jpeg", ".img",
 VECTOR = "vector"
 RASTER = "raster"
 OGR = "ogr"
+MAX_GROUP_NAME = 120
 
 
 class AddLayerTool(BaseTool):
@@ -76,8 +76,7 @@ class AddLayerTool(BaseTool):
                 f"Слой с именем «{prepared['name']}» уже есть в проекте. "
                 "Задайте другое имя через name."
             )
-        if params.get("group"):
-            require_group_or_new(params["group"])
+        check_group_name(params.get("group"))
         return prepared
 
     def summarize_call(self, params: dict[str, Any]) -> str:
@@ -101,11 +100,9 @@ class AddLayerTool(BaseTool):
         return _described(layer, kind, group)
 
 
-def require_group_or_new(name: str) -> None:
-    wanted = (name or "").strip()
-    if not wanted:
-        return
-    if len(wanted) > 120:
+def check_group_name(name: Any) -> None:
+    wanted = str(name or "").strip()
+    if len(wanted) > MAX_GROUP_NAME:
         raise ValueError(f"Имя группы слишком длинное. {describe_groups()}")
 
 

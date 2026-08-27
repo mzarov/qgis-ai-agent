@@ -77,7 +77,7 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(packed, on_disk)
 
     def test_metadata_and_entry_point_are_packed(self):
-        for tail in ("metadata.txt", "__init__.py", "core/plugin.py", "icon.png"):
+        for tail in ("metadata.txt", "__init__.py", "qgis_ai_agent/plugin.py", "icon.png"):
             self.assertTrue(any(name.endswith(tail) for name in self.names), tail)
 
     def test_development_files_stay_out(self):

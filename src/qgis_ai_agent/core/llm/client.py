@@ -1,4 +1,6 @@
-from qgis_ai_agent.core.llm.dialects import headers_for, path_for, resolve
+from typing import Any
+
+from qgis_ai_agent.core.llm.dialects import headers_for, host_of, path_for, resolve
 from qgis_ai_agent.core.settings import (
     get_api_key,
     get_api_url,
@@ -22,7 +24,7 @@ ERROR_BODY_LIMIT = 300
 
 
 class ApiResponseError(RuntimeError):
-    def __init__(self, status_code, body, message=None):
+    def __init__(self, status_code: int, body: str, message: str | None = None):
         super().__init__(message or f"API вернул {status_code}: {body[:ERROR_BODY_LIMIT]}")
         self.status_code = status_code
         self.body = body
@@ -31,7 +33,7 @@ class ApiResponseError(RuntimeError):
 _SESSION = None
 
 
-def get_session():
+def get_session() -> Any:
     global _SESSION
     if _SESSION is None:
         try:
@@ -42,7 +44,7 @@ def get_session():
     return _SESSION
 
 
-def resolve_endpoint(url_override=None):
+def resolve_endpoint(url_override: str | None = None) -> str:
     url = (url_override or get_api_url() or "").strip().rstrip("/")
     if not url:
         raise ValueError("Не задан URL API. Укажите его в Настройках.")
@@ -50,12 +52,12 @@ def resolve_endpoint(url_override=None):
 
 
 def build_request(
-    url_override=None,
-    key_override=None,
-    auth_type_override=None,
-    model_override=None,
-    dialect_override=None,
-):
+    url_override: str | None = None,
+    key_override: str | None = None,
+    auth_type_override: str | None = None,
+    model_override: str | None = None,
+    dialect_override: str | None = None,
+) -> tuple[str, dict[str, str], str]:
     url = resolve_endpoint(url_override)
     key = ((key_override if key_override is not None else get_api_key()) or "").strip()
     if not key and not is_local(url):
@@ -68,19 +70,18 @@ def build_request(
     return url + path_for(dialect), headers, model
 
 
-def is_local(url):
-    host = _host_of(url)
+def is_local(url: str) -> bool:
+    host = host_of(url)
     return host in LOCAL_HOSTS or host.endswith(".local")
 
 
-def _host_of(url):
-    authority = (url or "").split("//")[-1].split("/")[0].strip().lower()
-    if authority.startswith("["):
-        return authority[1:].split("]")[0]
-    return authority.split(":")[0]
-
-
-def post_json(endpoint, headers, body, timeout=DEFAULT_TIMEOUT, verify_override=None):
+def post_json(
+    endpoint: str,
+    headers: dict[str, str],
+    body: dict[str, Any],
+    timeout: int = DEFAULT_TIMEOUT,
+    verify_override: bool | None = None,
+) -> dict[str, Any]:
     session = get_session()
     verify_ssl = bool(verify_override) if verify_override is not None else get_verify_ssl()
     response = session.post(
@@ -92,26 +93,25 @@ def post_json(endpoint, headers, body, timeout=DEFAULT_TIMEOUT, verify_override=
 
 
 def post_chat_completion(
-    messages,
-    extra_body=None,
-    timeout=DEFAULT_TIMEOUT,
-    url_override=None,
-    model_override=None,
-    key_override=None,
-    auth_type_override=None,
-    verify_override=None,
-    dialect_override=None,
-):
+    messages: list[dict[str, Any]],
+    extra_body: dict[str, Any] | None = None,
+    timeout: int = DEFAULT_TIMEOUT,
+    **overrides: Any,
+) -> dict[str, Any]:
     endpoint, headers, model = build_request(
-        url_override, key_override, auth_type_override, model_override, dialect_override
+        overrides.get("url_override"),
+        overrides.get("key_override"),
+        overrides.get("auth_type_override"),
+        overrides.get("model_override"),
+        overrides.get("dialect_override"),
     )
     body = {"model": model, "messages": messages, "stream": False}
     if extra_body:
         body.update(extra_body)
-    return post_json(endpoint, headers, body, timeout, verify_override)
+    return post_json(endpoint, headers, body, timeout, overrides.get("verify_override"))
 
 
-def chat(messages, timeout=60, **overrides):
+def chat(messages: list[dict[str, Any]], timeout: int = 60, **overrides: Any) -> str:
     data = post_chat_completion(messages, timeout=timeout, **overrides)
     choices = data.get("choices") or []
     if not choices:

@@ -1,3 +1,5 @@
+from typing import Any
+
 from qgis.core import QgsMapLayer
 
 STYLE_POINTER = (
@@ -17,7 +19,7 @@ RENDERER_NAMES = {
 }
 
 
-def get_renderer(layer: QgsMapLayer):
+def get_renderer(layer: QgsMapLayer) -> Any:
     try:
         return layer.renderer()
     except Exception:

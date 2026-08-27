@@ -15,7 +15,7 @@ class ModelTurnThread(QThread):
         self._overrides = overrides or {}
         self._timeout = timeout
 
-    def run(self):
+    def run(self) -> None:
         try:
             turn = call_model(
                 self._messages,

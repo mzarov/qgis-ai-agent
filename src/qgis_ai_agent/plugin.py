@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QIcon
@@ -16,19 +17,19 @@ ICON_FILENAME = "icon.png"
 
 
 class QgisAiAgentPlugin:
-    def __init__(self, iface):
+    def __init__(self, iface: Any):
         self.iface = iface
         self.dock_widget = None
         self.menu_action = None
         self._orchestrator = None
 
-    def initGui(self):
+    def initGui(self) -> None:
         self.menu_action = QAction(self._icon(), MENU_TITLE, self.iface.mainWindow())
         self.menu_action.triggered.connect(self.run)
         self.iface.addPluginToMenu(MENU_TITLE, self.menu_action)
         self.iface.addToolBarIcon(self.menu_action)
 
-    def unload(self):
+    def unload(self) -> None:
         if self.menu_action:
             self.iface.removePluginMenu(MENU_TITLE, self.menu_action)
             self.iface.removeToolBarIcon(self.menu_action)
@@ -39,7 +40,7 @@ class QgisAiAgentPlugin:
             self._orchestrator.shutdown()
         self._orchestrator = None
 
-    def run(self):
+    def run(self) -> None:
         if self.dock_widget is None:
             self._build()
         self.iface.addDockWidget(DOCK_AREA, self.dock_widget)
@@ -62,5 +63,5 @@ class QgisAiAgentPlugin:
         icon_path = os.path.join(plugin_root, ICON_FILENAME)
         return QIcon(icon_path) if os.path.isfile(icon_path) else QIcon()
 
-    def _on_open_settings(self):
+    def _on_open_settings(self) -> None:
         SettingsDialog(self.dock_widget).exec()

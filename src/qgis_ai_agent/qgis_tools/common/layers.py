@@ -97,7 +97,7 @@ def extent_dict(rectangle) -> dict[str, float] | None:
         return None
 
 
-def safe_extent(layer: QgsMapLayer):
+def safe_extent(layer: QgsMapLayer) -> Any:
     try:
         return layer.extent()
     except Exception:

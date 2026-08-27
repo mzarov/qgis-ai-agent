@@ -96,7 +96,7 @@ class RunProcessingTool(BaseTool):
         }
 
     @staticmethod
-    def _prepare(params: dict[str, Any]):
+    def _prepare(params: dict[str, Any]) -> dict[str, Any]:
         algorithm = find_algorithm(params.get("algorithm_id") or "")
         arguments = params.get("parameters")
         if not isinstance(arguments, dict):
@@ -111,7 +111,7 @@ class RunProcessingTool(BaseTool):
         return True if load_output is None else bool(load_output)
 
     @staticmethod
-    def _get_runner(load_output: bool):
+    def _get_runner(load_output: bool) -> Any:
         try:
             import processing
         except ImportError:

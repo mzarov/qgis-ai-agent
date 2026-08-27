@@ -1,3 +1,5 @@
+from typing import Any
+
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -6,6 +8,7 @@ from qgis.PyQt.QtWidgets import (
     QLineEdit,
     QPushButton,
     QVBoxLayout,
+    QWidget,
 )
 
 from qgis_ai_agent.core.llm.dialects import DIALECTS
@@ -28,7 +31,7 @@ from qgis_ai_agent.core.settings import (
 )
 from qgis_ai_agent.ui import settings_fields as fields
 from qgis_ai_agent.ui import style
-from qgis_ai_agent.ui.settings_probe import probe
+from qgis_ai_agent.core.llm.probe import probe
 
 TITLE = "Настройки — QGIS AI Agent"
 MIN_WIDTH = 520
@@ -43,7 +46,7 @@ AUTH_HINT = "Bearer подходит почти всем; OAuth — для ко�
 
 
 class SettingsDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent: Any = None):
         super().__init__(parent)
         self.setWindowTitle(TITLE)
         self.setMinimumWidth(MIN_WIDTH)
@@ -59,7 +62,7 @@ class SettingsDialog(QDialog):
         column.addLayout(self._build_buttons(palette))
         self._sync_preset()
 
-    def _build_connection(self, palette):
+    def _build_connection(self, palette: Any) -> QWidget:
         frame, column = fields.card(palette)
         column.addWidget(fields.section("Подключение", palette))
 
@@ -85,7 +88,7 @@ class SettingsDialog(QDialog):
         column.addWidget(self._key_field)
         return frame
 
-    def _build_advanced(self, palette):
+    def _build_advanced(self, palette: Any) -> QWidget:
         frame, column = fields.card(palette)
         column.addWidget(fields.section("Дополнительно", palette))
 
@@ -104,7 +107,7 @@ class SettingsDialog(QDialog):
         column.addWidget(self.verify_ssl_cb)
         return frame
 
-    def _build_buttons(self, palette):
+    def _build_buttons(self, palette: Any) -> QHBoxLayout:
         row = QHBoxLayout()
         row.setSpacing(8)
         self.test_btn = QPushButton("Проверить подключение")
@@ -125,7 +128,7 @@ class SettingsDialog(QDialog):
         row.addWidget(save_btn)
         return row
 
-    def _apply_preset(self, title):
+    def _apply_preset(self, title: str) -> None:
         preset = by_title(title)
         if preset.is_custom:
             self._paint_key_hint(True)
@@ -135,17 +138,17 @@ class SettingsDialog(QDialog):
         self.model_edit.setPlaceholderText(preset.model_hint)
         self._paint_key_hint(preset.needs_key)
 
-    def _sync_preset(self):
+    def _sync_preset(self) -> None:
         preset = matching(self.url_edit.text())
         _select(self.preset_combo, preset.title)
         self.model_edit.setPlaceholderText(preset.model_hint)
         self._paint_key_hint(preset.needs_key or preset.is_custom)
 
-    def _paint_key_hint(self, needs_key):
+    def _paint_key_hint(self, needs_key: bool) -> None:
         self._key_field.setToolTip(KEY_HINT if needs_key else KEYLESS_HINT)
         self.key_edit.setPlaceholderText("Ключ провайдера" if needs_key else "Не требуется")
 
-    def _save(self):
+    def _save(self) -> None:
         set_api_url(self.url_edit.text().strip() or None)
         set_model(self.model_edit.text().strip() or None)
         set_auth_type(self.auth_type_combo.currentText())
@@ -160,7 +163,7 @@ class SettingsDialog(QDialog):
                 return
         self._show(SAVED, style.success(self.palette()))
 
-    def _test_connection(self):
+    def _test_connection(self) -> None:
         self.test_btn.setEnabled(False)
         self._show(TESTING, style.muted(self.palette()))
         try:
@@ -170,7 +173,7 @@ class SettingsDialog(QDialog):
         palette = self.palette()
         self._show(message, style.success(palette) if ok else style.danger(palette))
 
-    def _overrides(self):
+    def _overrides(self) -> dict[str, Any]:
         return {
             "url_override": self.url_edit.text().strip() or None,
             "model_override": self.model_edit.text().strip() or None,
@@ -180,11 +183,11 @@ class SettingsDialog(QDialog):
             "verify_override": self.verify_ssl_cb.isChecked(),
         }
 
-    def _show(self, message, colour):
+    def _show(self, message: str, colour: Any) -> None:
         fields.paint_status(self._status, message, colour)
 
 
-def _select(combo, value):
+def _select(combo: QComboBox, value: str) -> None:
     index = combo.findText(value or "")
     if index >= 0:
         combo.setCurrentIndex(index)

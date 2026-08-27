@@ -25,7 +25,7 @@ def _labels_enabled(layer) -> bool:
         return False
 
 
-def _label_settings(layer):
+def _label_settings(layer: Any) -> Any:
     try:
         return layer.labeling().settings()
     except Exception:

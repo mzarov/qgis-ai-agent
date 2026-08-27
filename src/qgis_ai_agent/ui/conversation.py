@@ -1,3 +1,5 @@
+from typing import Any
+
 from qgis.PyQt.QtCore import QTimer, pyqtSignal
 from qgis.PyQt.QtGui import QGuiApplication
 from qgis.PyQt.QtWidgets import (
@@ -126,7 +128,7 @@ class ConversationView(QScrollArea):
         if text:
             QGuiApplication.clipboard().setText(text)
 
-    def contextMenuEvent(self, event):
+    def contextMenuEvent(self, event: Any) -> None:
         menu = QMenu(self)
         copy_action = menu.addAction("Копировать весь диалог")
         if menu.exec(event.globalPos()) == copy_action:

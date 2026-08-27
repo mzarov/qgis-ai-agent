@@ -1,3 +1,5 @@
+from typing import Any
+
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import (
     QFrame,
@@ -25,7 +27,7 @@ HINT_BUSY = "Работаю… нажмите ■, чтобы остановит
 class PromptEdit(QPlainTextEdit):
     submitted = pyqtSignal()
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: Any) -> None:
         enter = event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter)
         plain = not event.modifiers() & Qt.KeyboardModifier.ShiftModifier
         if enter and plain:
