@@ -87,6 +87,22 @@ means a new test** on fake PyQGIS objects — see `tests/test_style_write.py`
 for the pattern. The tool contract and schema are checked automatically for
 every registered tool.
 
+## Documentation map
+
+Two layers, two readers — never duplicate between them:
+
+- **`CLAUDE.md`** (root and per package) — the agent layer: rules and
+  invariants for AI-assisted work on the code. Always loaded into context, so
+  it stays terse and English-only. Long rationale lives in `docs/` and is
+  linked from the rule.
+- **`docs/`** — the human layer, published as a bilingual MkDocs site. The
+  English page is the original (`page.md`); its Russian twin sits next to it
+  (`page.ru.md`). **When you edit one, mirror the other** —
+  `tests/test_docs.py` fails on an orphan.
+
+Preview locally with `pip install mkdocs-material mkdocs-static-i18n` and
+`mkdocs serve`.
+
 ## Before opening a PR
 
 - [ ] `python3 -m unittest discover -s tests -t .` — green

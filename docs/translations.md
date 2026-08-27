@@ -28,8 +28,27 @@ python3 tools/update_translations.py
 The command needs no dependencies. It extracts the literals from `tr()` /
 `tr_n()` by parsing the AST, appends new entries to the `.ts` (existing
 translations survive), and compiles the `.qm` with our own compiler in
-`tools/qm.py` — its output is byte-identical to Qt's `lrelease`, pinned by the
-`tests/data/golden_ru.qm` fixture.
+`tools/qm.py`.
+
+That is a deliberate departure from the stock QGIS recipe
+(`.pro` → `pylupdate5` → Qt Linguist → `lrelease` → `.qm`), and both replaced
+steps were replaced for measured reasons:
+
+- **Extraction is AST-based, not `pylupdate5`.** That tool does find `tr()`
+  calls, but it reads non-ASCII source as latin-1 (`…` and `■` arrive mangled,
+  so the runtime lookup misses), it does not see `tr_n` at all — plural forms
+  vanish entirely — and it writes the `@default` context instead of
+  `QgisAiAgent`, the one the lookup uses.
+- **Compilation is `tools/qm.py`, not `lrelease`.** That binary ships in the Qt
+  tools, which exist neither in QGIS nor on a typical system — installing
+  349 MB of PySide6 for one executable is absurd next to a 144 KB plugin. The
+  `.qm` format is simple: magic, a language block, an `elfHash(source) → offset`
+  table, message records and plural rules. The output is **byte-identical** to
+  what real `lrelease` produces, pinned by a fixture: `tests/data/golden_ru.qm`
+  was built by `lrelease` once and lives in the repository, and
+  `tests/test_qm.py` requires our compiler to reproduce it. The fixture
+  deliberately covers what is easy to get wrong: non-ASCII, XML-escaped
+  characters, a newline and all three plural forms.
 
 Then fill in the empty `<translation>` entries in the `.ts` and run the command
 again. `tests/test_i18n.py` fails while anything is left untranslated, when a

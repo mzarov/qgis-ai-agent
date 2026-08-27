@@ -5,7 +5,8 @@ plain-language request. It works as a loop — looks at the project, calls tools
 sees the results, decides the next step. Changes are applied only after the user
 confirms them.
 
-**Documentation:** <https://mzarov.github.io/qgis-ai-agent/>
+**Documentation:** <https://mzarov.github.io/qgis-ai-agent/> ·
+по-русски: <https://mzarov.github.io/qgis-ai-agent/ru/>
 
 **What it does** — five domains, 25 tools:
 

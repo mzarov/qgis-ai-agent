@@ -83,8 +83,15 @@ background `while` or as `asyncio` — that crashes QGIS.
 
 - **The repository speaks English — all of it.** Code, identifiers, tool schemas,
   system prompts, `SKILL.md`, error messages, UI text, README, docs, CLAUDE.md
-  files. Russian exists only inside `qgis_ai_agent/translations/` as a
-  translation catalogue. `tests/test_i18n.py` enforces the source side.
+  files. Russian exists in exactly two sanctioned places: the translation
+  catalogue in `qgis_ai_agent/translations/` and the human docs mirror —
+  every `docs/*.md` has a `docs/*.ru.md` twin for the Russian half of the docs
+  site. `tests/test_i18n.py` enforces the source side.
+- **Documentation has two readers and two layers.** `CLAUDE.md` files are the
+  agent layer: rules and invariants, always in context, kept terse, English
+  only. `docs/` is the human layer: the MkDocs site, bilingual. Long rationale
+  belongs in `docs/` with a link from the rule — never duplicated in both.
+  When editing a `docs/*.md`, mirror the change in its `*.ru.md` twin.
 - **User-facing text is wrapped in `tr()`, model-facing text is not.** There are
   two readers and they differ: `summarize_call` and `ui/` are read by a person,
   so `tr("Apply")`; tool `description`s, schemas and errors are read by the
@@ -178,33 +185,15 @@ Updating translations after adding or changing a `tr()` string:
 python3 tools/update_translations.py
 ```
 
-The command needs no dependencies. That is a deliberate departure from the stock
-QGIS recipe (`.pro` → `pylupdate5` → Qt Linguist → `lrelease` → `.qm`), and both
-replaced steps were replaced for measured reasons.
-
-**Extraction is AST-based, not `pylupdate5`.** That tool does find `tr()`
-calls, but it reads non-ASCII source as latin-1 (`…` and `■` arrive mangled, so
-the runtime lookup misses), it does not see `tr_n` at all — plural forms vanish
-entirely — and it writes the `@default` context instead of `QgisAiAgent`.
-
-**Compilation is our own `tools/qm.py`, not `lrelease`.** That binary ships in
-the Qt tools, which exist neither in QGIS nor on the system: installing 349 MB
-of PySide6 for one executable is absurd next to a 144 KB plugin. The `.qm`
-format is simple — magic, language block, an `elfHash(source) → offset` table,
-message records and plural rules. The output is **byte-identical** to what real
-`lrelease` produces, and that is pinned by a fixture: `tests/data/golden_ru.qm`
-was built by `lrelease` once and lives in the repository, and `tests/test_qm.py`
-requires our compiler to reproduce it. The fixture deliberately covers what is
-easy to get wrong: non-ASCII, XML-escaped characters, a newline and all three
-plural forms.
-
-The single consequence: **a new language needs its plural rules** in
-`NUMERUS_RULES`. The compiler refuses unknown languages instead of guessing.
-
-`tests/test_i18n.py` keeps the catalogue honest: no Russian in the sources, the
-catalogue matches the code, nothing is left untranslated, the `{0}` and `%n`
-placeholders survive translation, Russian has all three plural forms, the `.qm`
-ships in the archive while the `.ts` stays out.
+The command needs no dependencies: extraction parses the AST, compilation is
+our own `tools/qm.py` whose output is byte-identical to `lrelease` and pinned
+by the `tests/data/golden_ru.qm` fixture. The reasoning for replacing the stock
+QGIS recipe lives in [docs/translations.md](docs/translations.md). Two rules
+survive here: **a new language needs its plural rules in `NUMERUS_RULES`** (the
+compiler refuses unknown languages instead of guessing), and
+`tests/test_i18n.py` keeps the catalogue honest — no Russian in sources, no
+untranslated entries, placeholders survive, the `.qm` ships while the `.ts`
+stays out.
 
 Tests are stdlib `unittest` — not a single dependency. `tests/stub.py` fakes the
 `qgis` modules when real QGIS is absent, so the suite runs both on plain Python
