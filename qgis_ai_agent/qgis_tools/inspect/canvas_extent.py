@@ -9,9 +9,7 @@ from qgis_ai_agent.qgis_tools.common.layers import canvas_extent, extent_dict
 
 class GetCanvasExtentTool(BaseTool):
     name = "get_canvas_extent"
-    description = (
-        "Show the current extent of the QGIS canvas and the project coordinate system."
-    )
+    description = "Show the current extent of the QGIS canvas and the project coordinate system."
     skill = "inspect"
     safety = SAFETY_READ
     examples = ["What is the current map extent?", "What is visible on screen right now?"]

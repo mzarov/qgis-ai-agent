@@ -129,10 +129,7 @@ def _parse_native_turn(data: dict[str, Any]) -> ModelTurn:
         text=(message.get("content") or "").strip(),
         tool_calls=[
             call
-            for call in (
-                _native_call(index, raw)
-                for index, raw in enumerate(message.get("tool_calls") or [])
-            )
+            for call in (_native_call(index, raw) for index, raw in enumerate(message.get("tool_calls") or []))
             if call is not None
         ],
         finish_reason=(choice.get("finish_reason") or "").strip(),
@@ -165,10 +162,7 @@ def _parse_json_turn(data: dict[str, Any]) -> ModelTurn:
         text=(parsed.get("text") or parsed.get("message") or "").strip(),
         tool_calls=[
             call
-            for call in (
-                _json_call(index, raw)
-                for index, raw in enumerate(parsed.get("tool_calls") or [])
-            )
+            for call in (_json_call(index, raw) for index, raw in enumerate(parsed.get("tool_calls") or []))
             if call is not None
         ],
         protocol=PROTOCOL_JSON,

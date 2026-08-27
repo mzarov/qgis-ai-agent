@@ -47,9 +47,7 @@ def _is_exact(haystack: dict[str, str], query: str) -> bool:
 def _hits(term: str, bag: set) -> bool:
     if term in bag:
         return True
-    return any(
-        word.startswith(term) or (len(word) >= MIN_STEM and term.startswith(word)) for word in bag
-    )
+    return any(word.startswith(term) or (len(word) >= MIN_STEM and term.startswith(word)) for word in bag)
 
 
 def _words(text: str) -> set:

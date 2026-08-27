@@ -1,5 +1,6 @@
 import math
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from qgis.PyQt.QtCore import QPointF, QRectF, Qt
 from qgis.PyQt.QtGui import QGuiApplication, QIcon, QPainter, QPainterPath, QPen, QPixmap

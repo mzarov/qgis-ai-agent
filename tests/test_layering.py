@@ -21,9 +21,7 @@ def internal_imports(path: pathlib.Path) -> list[str]:
         if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith(PACKAGE):
             found.append(node.module)
         elif isinstance(node, ast.Import):
-            found.extend(
-                alias.name for alias in node.names if alias.name.startswith(PACKAGE)
-            )
+            found.extend(alias.name for alias in node.names if alias.name.startswith(PACKAGE))
     return found
 
 
@@ -45,9 +43,7 @@ class LayeringTest(unittest.TestCase):
 
     def test_only_the_composition_root_and_leaves_sit_at_the_top(self):
         top_modules = sorted(
-            item.name
-            for item in SOURCE_ROOT.iterdir()
-            if item.suffix == ".py" and item.name != "__init__.py"
+            item.name for item in SOURCE_ROOT.iterdir() if item.suffix == ".py" and item.name != "__init__.py"
         )
         self.assertEqual(top_modules, sorted(TOP_LEVEL_MODULES))
 

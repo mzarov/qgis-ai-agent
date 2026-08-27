@@ -1,9 +1,10 @@
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from qgis_ai_agent.i18n import tr
-from qgis_ai_agent.qgis_tools.common.values import suggest_fields
 from qgis_ai_agent.qgis_tools.common.colors import parse_color
+from qgis_ai_agent.qgis_tools.common.values import suggest_fields
 
 KIND_TEXT = "text"
 KIND_NUMBER = "number"
@@ -59,10 +60,7 @@ class PropertySet:
         if not unknown:
             return
         listed = ", ".join(f"'{key}'" for key in unknown)
-        raise ValueError(
-            f"Unknown properties ({self.subject}): {listed}. "
-            f"{suggest_fields(unknown, self.names())}"
-        )
+        raise ValueError(f"Unknown properties ({self.subject}): {listed}. {suggest_fields(unknown, self.names())}")
 
     def coerce_all(self, properties: dict[str, Any]) -> dict[str, Any]:
         self.check_known(properties)
@@ -81,11 +79,7 @@ class PropertySet:
         return str(value or "").strip()
 
     def targeted(self, properties: dict[str, Any], target: str) -> list[tuple[StyleProperty, Any]]:
-        return [
-            (self.by_name[key], value)
-            for key, value in properties.items()
-            if self.by_name[key].target == target
-        ]
+        return [(self.by_name[key], value) for key, value in properties.items() if self.by_name[key].target == target]
 
     def mentions(self, properties: dict[str, Any], target: str) -> bool:
         return any(self.by_name[key].target == target for key in properties)
@@ -106,10 +100,7 @@ def as_color(prop: StyleProperty, value: Any) -> str:
 def as_option(prop: StyleProperty, value: Any) -> str:
     name = str(value or "").strip().lower()
     if name not in prop.options:
-        raise ValueError(
-            f"Property '{prop.name}' has no value '{value}'. "
-            f"Available: {', '.join(prop.options)}."
-        )
+        raise ValueError(f"Property '{prop.name}' has no value '{value}'. Available: {', '.join(prop.options)}.")
     return name
 
 
@@ -117,14 +108,13 @@ def as_number(prop: StyleProperty, value: Any) -> float:
     try:
         number = float(value)
     except (TypeError, ValueError):
-        raise ValueError(f"Property '{prop.name}' takes a number, got '{value}'.")
+        raise ValueError(f"Property '{prop.name}' takes a number, got '{value}'.") from None
     below = prop.minimum is not None and number < prop.minimum
     above = prop.maximum is not None and number > prop.maximum
     if below or above:
         unit = f" {prop.unit}" if prop.unit else ""
         raise ValueError(
-            f"Property '{prop.name}' must be between {prop.minimum:g} "
-            f"and {prop.maximum:g}{unit}, got {number:g}."
+            f"Property '{prop.name}' must be between {prop.minimum:g} and {prop.maximum:g}{unit}, got {number:g}."
         )
     return number
 

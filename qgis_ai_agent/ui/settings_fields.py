@@ -35,9 +35,7 @@ def section(title: str, palette: Any) -> QLabel:
     font.setBold(True)
     font.setPointSizeF(max(1.0, font.pointSizeF() * SECTION_SCALE))
     label.setFont(font)
-    label.setStyleSheet(
-        f"color: {style.css_color(style.muted(palette))}; letter-spacing: 1px;"
-    )
+    label.setStyleSheet(f"color: {style.css_color(style.muted(palette))}; letter-spacing: 1px;")
     return label
 
 

@@ -1,7 +1,7 @@
 from typing import Any
 
-from qgis_ai_agent.qgis_tools.inspect.aggregates import compute
 from qgis_ai_agent.qgis_tools.common.values import clamp_limit, wanted_fields
+from qgis_ai_agent.qgis_tools.inspect.aggregates import compute
 from qgis_ai_agent.qgis_tools.inspect.expressions import (
     evaluate,
     parse_order_by,
@@ -102,17 +102,9 @@ def _field_slots(layer, wanted: list[str] | None) -> list[tuple[str, int]]:
         names = layer.fields().names()
     except Exception:
         return []
-    return [
-        (name, index)
-        for index, name in enumerate(names)
-        if wanted is None or name in wanted
-    ]
+    return [(name, index) for index, name in enumerate(names) if wanted is None or name in wanted]
 
 
 def _attributes(feature, slots: list[tuple[str, int]]) -> dict[str, Any]:
     values = feature.attributes()
-    return {
-        name: plain_value(values[index])
-        for name, index in slots
-        if index < len(values)
-    }
+    return {name: plain_value(values[index]) for name, index in slots if index < len(values)}

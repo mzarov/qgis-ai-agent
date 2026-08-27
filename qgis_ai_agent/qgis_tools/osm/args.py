@@ -31,10 +31,7 @@ def required_key(params: dict[str, Any]) -> str:
 def geometry(params: dict[str, Any]) -> str:
     wanted = (params.get("geometry") or DEFAULT_GEOMETRY).strip().lower()
     if wanted not in SUBLAYERS:
-        raise ValueError(
-            f"Unknown geometry '{params.get('geometry')}'. "
-            f"Available: {', '.join(sorted(SUBLAYERS))}."
-        )
+        raise ValueError(f"Unknown geometry '{params.get('geometry')}'. Available: {', '.join(sorted(SUBLAYERS))}.")
     return wanted
 
 

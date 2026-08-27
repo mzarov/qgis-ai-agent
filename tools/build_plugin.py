@@ -52,10 +52,7 @@ def collect() -> list[tuple[str, str]]:
 
 def verify(entries: list[tuple[str, str]]) -> None:
     packed = {arc for _, arc in entries}
-    missing = [
-        tail for tail in REQUIRED_INSIDE
-        if not any(arc.endswith(tail) for arc in packed)
-    ]
+    missing = [tail for tail in REQUIRED_INSIDE if not any(arc.endswith(tail) for arc in packed)]
     if missing:
         raise SystemExit("Required content missing from the build: " + ", ".join(missing))
     for tail in (f"{PLUGIN_NAME}/plugin.py", f"{PLUGIN_NAME}/metadata.txt"):

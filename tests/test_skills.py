@@ -8,15 +8,14 @@ from qgis_ai_agent.skills.registry import SkillRegistry
 
 SKILLS_ROOT = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "qgis_ai_agent", "skills",
+    "qgis_ai_agent",
+    "skills",
 )
 
 
 class FrontmatterTest(unittest.TestCase):
     def test_name_description_and_tools(self):
-        skill = parse_skill_markdown(
-            "---\nname: demo\ndescription: Про демо.\ntools: [a, b]\n---\n\nТело.\n"
-        )
+        skill = parse_skill_markdown("---\nname: demo\ndescription: Про демо.\ntools: [a, b]\n---\n\nТело.\n")
         self.assertEqual(skill.name, "demo")
         self.assertEqual(skill.description, "Про демо.")
         self.assertEqual(skill.tool_names, ["a", "b"])

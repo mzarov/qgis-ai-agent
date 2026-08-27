@@ -56,13 +56,9 @@ class AssistantMessage(QWidget):
         browser.setFrameShape(QFrame.Shape.NoFrame)
         browser.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         browser.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        browser.setStyleSheet(
-            f"background: transparent; color: {style.css_color(style.text(palette))}; border: none;"
-        )
+        browser.setStyleSheet(f"background: transparent; color: {style.css_color(style.text(palette))}; border: none;")
         self._apply_markdown(browser, markdown)
-        browser.document().documentLayout().documentSizeChanged.connect(
-            lambda _: self._fit(browser)
-        )
+        browser.document().documentLayout().documentSizeChanged.connect(lambda _: self._fit(browser))
         column.addWidget(browser)
         self._browser = browser
 

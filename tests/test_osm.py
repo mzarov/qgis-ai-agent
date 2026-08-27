@@ -16,7 +16,7 @@ class BuildQueryTest(unittest.TestCase):
     def test_value_may_be_omitted(self):
         query = overpass.build_query("building", area="Тверь")
         self.assertIn('way["building"](area.searchArea);', query)
-        self.assertNotIn("=\"\"", query)
+        self.assertNotIn('=""', query)
 
     def test_geometry_narrows_the_elements(self):
         points = overpass.build_query("amenity", "cafe", area="Тверь", geometry="points")
@@ -171,15 +171,11 @@ class ToolTest(unittest.TestCase):
 
     def test_key_and_selectors_together_are_rejected(self):
         with self.assertRaises(ValueError) as caught:
-            self.tool.prepare(
-                {"key": "shop", "area": "Тверь", "selectors": ['node["amenity"="cafe"]']}
-            )
+            self.tool.prepare({"key": "shop", "area": "Тверь", "selectors": ['node["amenity"="cafe"]']})
         self.assertIn("not both at once", str(caught.exception))
 
     def test_selectors_alone_are_enough(self):
-        prepared = self.tool.prepare(
-            {"area": "Тверь", "selectors": ['node["amenity"~"cafe|bar"]', 'way["shop"]']}
-        )
+        prepared = self.tool.prepare({"area": "Тверь", "selectors": ['node["amenity"~"cafe|bar"]', 'way["shop"]']})
         self.assertEqual(len(prepared["selectors"]), 2)
         self.assertEqual(prepared["key"], "")
 

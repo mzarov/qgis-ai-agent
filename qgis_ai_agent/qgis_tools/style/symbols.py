@@ -22,8 +22,7 @@ def symbol_info(symbol) -> dict[str, Any]:
     if len(layers) > 1:
         info["layers"] = layers
         info["layers_note"] = (
-            "the symbol is built from several layers, drawn bottom up: "
-            "layer 0 sits under layer 1 and so on"
+            "the symbol is built from several layers, drawn bottom up: layer 0 sits under layer 1 and so on"
         )
     elif layers:
         info.update({key: value for key, value in layers[0].items() if key.startswith("stroke")})

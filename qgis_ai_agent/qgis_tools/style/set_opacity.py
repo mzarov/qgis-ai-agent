@@ -31,10 +31,7 @@ class SetOpacityTool(BaseTool):
         {
             "name": "opacity",
             "type": "number",
-            "description": (
-                "Opacity from 0 to 1, where 1 is fully opaque. "
-                "Values above 1 are read as percentages."
-            ),
+            "description": ("Opacity from 0 to 1, where 1 is fully opaque. Values above 1 are read as percentages."),
             "required": True,
         },
     ]
@@ -66,7 +63,7 @@ def _as_fraction(value: Any) -> float:
     try:
         number = float(value)
     except (TypeError, ValueError):
-        raise ValueError("Opacity is given as a number from 0 to 1, for example 0.6.")
+        raise ValueError("Opacity is given as a number from 0 to 1, for example 0.6.") from None
     if number > PERCENT_THRESHOLD:
         number = number / PERCENT_MAX
     return max(MIN_OPACITY, min(MAX_OPACITY, number))

@@ -1,4 +1,5 @@
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from qgis.PyQt.QtCore import QSize, pyqtSignal
 from qgis.PyQt.QtGui import QIcon
@@ -51,9 +52,7 @@ class AgentDockWidget(QDockWidget):
     def _build_header(self) -> QWidget:
         header = QWidget()
         palette = self.palette()
-        header.setStyleSheet(
-            f"border-bottom: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
-        )
+        header.setStyleSheet(f"border-bottom: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};")
         row = QHBoxLayout(header)
         row.setContentsMargins(*HEADER_MARGINS)
         row.setSpacing(4)
@@ -64,14 +63,10 @@ class AgentDockWidget(QDockWidget):
         title.setFont(font)
         title.setStyleSheet("border: none;")
         row.addWidget(title, 1)
-        self._sessions_button = self._build_action(
-            icons.sessions, "⟲", tr("Conversations"), self._show_sessions
-        )
+        self._sessions_button = self._build_action(icons.sessions, "⟲", tr("Conversations"), self._show_sessions)
         row.addWidget(self._sessions_button)
         row.addWidget(self._build_action(icons.clear, "⌫", tr("Clear conversation"), self._on_clear))
-        row.addWidget(
-            self._build_action(icons.settings, "⚙", tr("Settings"), self.open_settings_clicked.emit)
-        )
+        row.addWidget(self._build_action(icons.settings, "⚙", tr("Settings"), self.open_settings_clicked.emit))
         return header
 
     def _build_action(

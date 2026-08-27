@@ -12,8 +12,7 @@ from qgis_ai_agent.qgis_tools.project.tree import project
 class ConfigureProjectTool(BaseTool):
     name = "configure_project"
     description = (
-        "Change the project settings: title and map coordinate system. "
-        "Leaves the layers and their data alone."
+        "Change the project settings: title and map coordinate system. Leaves the layers and their data alone."
     )
     skill = "project"
     safety = SAFETY_WRITE
@@ -24,23 +23,16 @@ class ConfigureProjectTool(BaseTool):
             "name": "properties",
             "type": "object",
             "description": (
-                'What to change: {"crs": "EPSG:3857", "title": "City transport"}. '
-                "Pass only what actually changes."
+                'What to change: {"crs": "EPSG:3857", "title": "City transport"}. Pass only what actually changes.'
             ),
             "required": True,
         },
     ]
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
-        properties = PROJECT_PROPERTIES.coerce_all(
-            properties_of(params, PROJECT_PROPERTIES.subject)
-        )
+        properties = PROJECT_PROPERTIES.coerce_all(properties_of(params, PROJECT_PROPERTIES.subject))
         if not properties:
-            raise ValueError(
-                "No property was given. Available: "
-                + ", ".join(PROJECT_PROPERTIES.names())
-                + "."
-            )
+            raise ValueError("No property was given. Available: " + ", ".join(PROJECT_PROPERTIES.names()) + ".")
         if "crs" in properties:
             _require_crs(properties["crs"])
         prepared = dict(params)
@@ -55,9 +47,7 @@ class ConfigureProjectTool(BaseTool):
         return tr("Changing the project settings: {0}.").format(shown(properties, PROJECT_PROPERTIES))
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        properties = PROJECT_PROPERTIES.coerce_all(
-            properties_of(params, PROJECT_PROPERTIES.subject)
-        )
+        properties = PROJECT_PROPERTIES.coerce_all(properties_of(params, PROJECT_PROPERTIES.subject))
         instance = project()
         if "title" in properties:
             instance.setTitle(properties["title"])
@@ -71,8 +61,7 @@ def _require_crs(value: Any) -> QgsCoordinateReferenceSystem:
     crs = QgsCoordinateReferenceSystem(text)
     if not crs.isValid():
         raise ValueError(
-            f"'{text}' was not recognised as a coordinate system. Use "
-            "an identifier such as EPSG:4326 or EPSG:3857."
+            f"'{text}' was not recognised as a coordinate system. Use an identifier such as EPSG:4326 or EPSG:3857."
         )
     return crs
 

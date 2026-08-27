@@ -66,13 +66,8 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(tops, {build_plugin.PLUGIN_NAME})
 
     def test_every_skill_body_is_packed(self):
-        on_disk = sorted(
-            path.parent.name
-            for path in (REPO_ROOT / "qgis_ai_agent").rglob("SKILL.md")
-        )
-        packed = sorted(
-            name.rsplit("/", 2)[1] for name in self.names if name.endswith("SKILL.md")
-        )
+        on_disk = sorted(path.parent.name for path in (REPO_ROOT / "qgis_ai_agent").rglob("SKILL.md"))
+        packed = sorted(name.rsplit("/", 2)[1] for name in self.names if name.endswith("SKILL.md"))
         self.assertTrue(on_disk, "в исходниках не найдено ни одного SKILL.md")
         self.assertEqual(packed, on_disk)
 
@@ -109,9 +104,7 @@ class BuildTest(unittest.TestCase):
 
     def test_skills_load_from_the_extracted_copy(self):
         zipfile.ZipFile(self.archive).extractall(self.root)
-        skills_root = os.path.join(
-            self.root, build_plugin.PLUGIN_NAME, "skills"
-        )
+        skills_root = os.path.join(self.root, build_plugin.PLUGIN_NAME, "skills")
         from qgis_ai_agent.skills.registry import SkillRegistry
 
         registry = SkillRegistry(skills_root)

@@ -7,9 +7,7 @@ REMOTE = "https://api.openai.com/v1"
 
 
 def request(url, key):
-    return build_request(
-        url_override=url, key_override=key, auth_type_override="Bearer", model_override="демо"
-    )
+    return build_request(url_override=url, key_override=key, auth_type_override="Bearer", model_override="демо")
 
 
 class LocalHostTest(unittest.TestCase):
@@ -67,11 +65,7 @@ if __name__ == "__main__":
 
 class TransportTest(unittest.TestCase):
     SOURCE = (
-        pathlib.Path(__file__).resolve().parent.parent
-        / "qgis_ai_agent"
-        / "core"
-        / "llm"
-        / "client.py"
+        pathlib.Path(__file__).resolve().parent.parent / "qgis_ai_agent" / "core" / "llm" / "client.py"
     ).read_text(encoding="utf-8")
 
     def test_network_goes_through_qgis_not_requests(self):

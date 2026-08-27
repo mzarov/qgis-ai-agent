@@ -5,8 +5,7 @@ import unittest
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 PACKAGE = REPO_ROOT / "qgis_ai_agent"
 METADATA = PACKAGE / "metadata.txt"
-REQUIRED_FIELDS = ("name", "qgisMinimumVersion", "description", "about", "version",
-                   "author", "email", "repository")
+REQUIRED_FIELDS = ("name", "qgisMinimumVersion", "description", "about", "version", "author", "email", "repository")
 VALID_CATEGORIES = ("Raster", "Vector", "Database", "Mesh", "Web")
 MANDATORY_IN_ZIP = ("metadata.txt", "__init__.py", "LICENSE")
 CYRILLIC = re.compile(r"[а-яё]", re.IGNORECASE)
@@ -96,9 +95,7 @@ class NetworkStackTest(unittest.TestCase):
 
     def test_outgoing_calls_use_the_qgis_stack(self):
         users = [
-            path
-            for path in PACKAGE.rglob("*.py")
-            if "QgsBlockingNetworkRequest" in path.read_text(encoding="utf-8")
+            path for path in PACKAGE.rglob("*.py") if "QgsBlockingNetworkRequest" in path.read_text(encoding="utf-8")
         ]
         self.assertGreaterEqual(len(users), 2)
 

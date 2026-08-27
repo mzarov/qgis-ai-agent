@@ -82,9 +82,7 @@ class Composer(QWidget):
         font = self._hint.font()
         font.setPointSizeF(max(1.0, font.pointSizeF() * HINT_FONT_SCALE))
         self._hint.setFont(font)
-        self._hint.setStyleSheet(
-            f"color: {style.css_color(style.muted(palette))}; border: none;"
-        )
+        self._hint.setStyleSheet(f"color: {style.css_color(style.muted(palette))}; border: none;")
         row.addWidget(self._hint, 1)
 
         self._send = QPushButton(SEND_GLYPH)
@@ -128,8 +126,6 @@ class Composer(QWidget):
         palette = self.palette()
         self._send.setText(STOP_GLYPH if busy else SEND_GLYPH)
         self._send.setToolTip(tr("Stop") if busy else tr("Send"))
-        self._send.setStyleSheet(
-            self._button_style(style.danger(palette) if busy else style.accent(palette))
-        )
+        self._send.setStyleSheet(self._button_style(style.danger(palette) if busy else style.accent(palette)))
         self._edit.setReadOnly(busy)
         self._hint.setText(HINT_BUSY if busy else HINT_IDLE)

@@ -54,11 +54,7 @@ class ConfigureLayerTool(BaseTool):
         layer = find_layer(params.get("layer_name") or "")
         properties = LAYER_PROPERTIES.coerce_all(properties_of(params, LAYER_PROPERTIES.subject))
         if not properties:
-            raise ValueError(
-                "No property was given. Available: "
-                + ", ".join(LAYER_PROPERTIES.names())
-                + "."
-            )
+            raise ValueError("No property was given. Available: " + ", ".join(LAYER_PROPERTIES.names()) + ".")
         _check_name(properties, layer.name())
         prepared = dict(params)
         prepared["layer_name"] = layer.name()

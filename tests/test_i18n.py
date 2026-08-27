@@ -26,8 +26,7 @@ def catalogue_messages() -> list[tuple[str, list[str], bool]]:
         target = message.find("translation")
         forms = [form.text or "" for form in target.findall("numerusform")]
         found.append(
-            (message.findtext("source") or "", forms or [target.text or ""],
-             target.get("type") == "unfinished")
+            (message.findtext("source") or "", forms or [target.text or ""], target.get("type") == "unfinished")
         )
     return found
 
@@ -36,11 +35,7 @@ def russian_constants(folder: pathlib.Path) -> list[str]:
     found = []
     for path in folder.rglob("*.py"):
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
-            if (
-                isinstance(node, ast.Constant)
-                and isinstance(node.value, str)
-                and CYRILLIC.search(node.value)
-            ):
+            if isinstance(node, ast.Constant) and isinstance(node.value, str) and CYRILLIC.search(node.value):
                 found.append(f"{path.relative_to(PACKAGE)}:{node.lineno}")
     return found
 
@@ -136,11 +131,7 @@ class CatalogueTest(unittest.TestCase):
         self.assertEqual(pending, [])
 
     def test_every_translation_is_actually_russian(self):
-        plain = [
-            source
-            for source, forms, _ in self.messages
-            if not any(CYRILLIC.search(form) for form in forms)
-        ]
+        plain = [source for source, forms, _ in self.messages if not any(CYRILLIC.search(form) for form in forms)]
         self.assertEqual(plain, [])
 
     def test_placeholders_survive_translation(self):

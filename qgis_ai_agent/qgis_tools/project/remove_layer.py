@@ -8,8 +8,7 @@ from qgis_ai_agent.qgis_tools.project.tree import find_layer, project
 class RemoveLayerTool(BaseTool):
     name = "remove_layer"
     description = (
-        "Remove a layer from the project. The file on disk is left alone — only the "
-        "layer and its styling go away."
+        "Remove a layer from the project. The file on disk is left alone — only the layer and its styling go away."
     )
     skill = "project"
     safety = SAFETY_WRITE

@@ -1,5 +1,5 @@
-from qgis.PyQt.QtCore import QObject, pyqtSignal
 from qgis.core import Qgis, QgsMessageLog
+from qgis.PyQt.QtCore import QObject, pyqtSignal
 
 from qgis_ai_agent.core.agent.batch import WriteBatch
 from qgis_ai_agent.core.agent.executor import ToolExecutor
@@ -8,8 +8,8 @@ from qgis_ai_agent.core.agent.notices import (
     LIMIT_REACHED_MESSAGE,
 )
 from qgis_ai_agent.core.agent.prompts import LOAD_SKILL_TOOL
-from qgis_ai_agent.core.agent.skills import load_skill
 from qgis_ai_agent.core.agent.request import build_overrides, build_step_request
+from qgis_ai_agent.core.agent.skills import load_skill
 from qgis_ai_agent.core.agent.transcript import ToolResult, Transcript
 from qgis_ai_agent.core.agent.turn_thread import TurnThreadOwner
 from qgis_ai_agent.core.llm.transport import PROTOCOL_JSON, PROTOCOL_NATIVE, ModelTurn, ToolCall
@@ -108,25 +108,17 @@ class AgentLoop(QObject):
             return
         self._iteration += 1
         try:
-            request = build_step_request(
-                self._transcript, self._loaded_skills, self._history, self._overrides
-            )
+            request = build_step_request(self._transcript, self._loaded_skills, self._history, self._overrides)
         except Exception as err:
             self._fail(str(err))
             return
         self._prompt_protocol = request.protocol
-        self._turn.start(
-            request.messages, request.tool_schemas, request.overrides, self._on_turn, self._fail
-        )
+        self._turn.start(request.messages, request.tool_schemas, request.overrides, self._on_turn, self._fail)
 
     def _on_turn(self, turn: ModelTurn) -> None:
         if self._aborted:
             return
-        if (
-            turn.protocol == PROTOCOL_JSON
-            and self._prompt_protocol == PROTOCOL_NATIVE
-            and not self._protocol_retried
-        ):
+        if turn.protocol == PROTOCOL_JSON and self._prompt_protocol == PROTOCOL_NATIVE and not self._protocol_retried:
             self._protocol_retried = True
             self._iteration -= 1
             self._request_step()

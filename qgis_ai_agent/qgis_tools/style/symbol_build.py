@@ -4,8 +4,8 @@ from qgis.core import Qgis, QgsSymbol
 from qgis.PyQt.QtCore import Qt
 
 from qgis_ai_agent.qgis_tools.common.colors import parse_color
-from qgis_ai_agent.qgis_tools.style.apply import base_symbol
 from qgis_ai_agent.qgis_tools.common.properties import KIND_COLOR, KIND_ENUM, StyleProperty
+from qgis_ai_agent.qgis_tools.style.apply import base_symbol
 from qgis_ai_agent.qgis_tools.style.symbol_catalogue import (
     BRUSH_STYLES,
     PEN_STYLES,

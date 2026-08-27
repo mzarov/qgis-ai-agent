@@ -8,6 +8,26 @@ authors = ["mzarov@duck.com"]
 python = "^3.12"
 keyring = "^25.0"
 
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.13"
+pre-commit = "^4.0"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+exclude = ["dist", ".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4"]
+ignore = ["SIM105", "SIM108", "SIM110"]
+
+[tool.ruff.lint.per-file-ignores]
+"qgis_ai_agent/__init__.py" = ["E402"]
+"tests/*" = ["E402"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["qgis_ai_agent"]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

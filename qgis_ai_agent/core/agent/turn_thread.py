@@ -1,4 +1,5 @@
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from qgis_ai_agent.core.llm.worker import ModelTurnThread
 

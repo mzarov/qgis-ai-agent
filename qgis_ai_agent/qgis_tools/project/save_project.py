@@ -29,10 +29,7 @@ class SaveProjectTool(BaseTool):
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
         path = (params.get("path") or "").strip()
         if not path and not _current_path():
-            raise ValueError(
-                "The project has never been saved, so a path is needed: "
-                "give it in the path parameter."
-            )
+            raise ValueError("The project has never been saved, so a path is needed: give it in the path parameter.")
         prepared = dict(params)
         if path:
             prepared["path"] = _with_suffix(path)

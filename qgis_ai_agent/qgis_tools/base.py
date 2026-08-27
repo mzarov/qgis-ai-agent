@@ -82,5 +82,4 @@ class BaseTool(ABC):
         return f"{self.description or self.name}: {shown}"
 
     @abstractmethod
-    def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        ...
+    def execute(self, params: dict[str, Any]) -> dict[str, Any]: ...

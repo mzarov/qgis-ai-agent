@@ -88,12 +88,7 @@ def _translation(forms: list[str], unfinished: bool, is_plural: bool) -> str:
 
 
 def _escaped(text: str) -> str:
-    return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace("\n", "&#10;")
-    )
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\n", "&#10;")
 
 
 def translated(path: pathlib.Path) -> list[tuple[str, str, list[str]]]:

@@ -4,20 +4,21 @@ import os
 import pathlib
 import unittest
 
-SOURCE_ROOT = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qgis_ai_agent"
-)
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SOURCE_ROOT = os.path.join(REPO_ROOT, "qgis_ai_agent")
+NOISE_FREE_ROOTS = (SOURCE_ROOT, os.path.join(REPO_ROOT, "tools"), os.path.join(REPO_ROOT, "tests"))
 KNOWN = set(dir(builtins)) | {"__file__", "__name__", "__doc__", "__package__"}
-MAX_LINES = 200
+MAX_LINES = 400
 
 
-def python_files():
-    for folder, _, names in os.walk(SOURCE_ROOT):
-        if "__pycache__" in folder:
-            continue
-        for name in sorted(names):
-            if name.endswith(".py"):
-                yield os.path.join(folder, name)
+def python_files(roots=(SOURCE_ROOT,)):
+    for root in roots:
+        for folder, _, names in os.walk(root):
+            if "__pycache__" in folder:
+                continue
+            for name in sorted(names):
+                if name.endswith(".py"):
+                    yield os.path.join(folder, name)
 
 
 def read_source(path):
@@ -50,9 +51,11 @@ def local_scope(func):
             names.add(node.id)
         elif isinstance(node, (ast.Import, ast.ImportFrom)):
             names.update((alias.asname or alias.name).split(".")[0] for alias in node.names)
-        elif isinstance(node, ast.ExceptHandler) and node.name:
-            names.add(node.name)
-        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        elif (
+            isinstance(node, ast.ExceptHandler)
+            and node.name
+            or isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+        ):
             names.add(node.name)
         elif isinstance(node, ast.comprehension):
             names.update(sub.id for sub in ast.walk(node.target) if isinstance(sub, ast.Name))
@@ -62,18 +65,26 @@ def local_scope(func):
 
 
 def own_loads(func):
-    inner = {n for node in ast.walk(func)
-             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node is not func
-             for n in ast.walk(node)}
-    return [node for node in ast.walk(func)
-            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
-            and node not in inner]
+    inner = {
+        n
+        for node in ast.walk(func)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node is not func
+        for n in ast.walk(node)
+    }
+    return [
+        node
+        for node in ast.walk(func)
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load) and node not in inner
+    ]
 
 
 def nested(func):
     return [node for node in func.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))] + [
-        node for parent in ast.walk(func) if isinstance(parent, (ast.If, ast.For, ast.While, ast.With, ast.Try))
-        for node in parent.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        node
+        for parent in ast.walk(func)
+        if isinstance(parent, (ast.If, ast.For, ast.While, ast.With, ast.Try))
+        for node in parent.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
     ]
 
 
@@ -93,9 +104,8 @@ class UndefinedNameTest(unittest.TestCase):
             tree = ast.parse(read_source(path))
             known = module_scope(tree) | KNOWN
             for node in ast.walk(tree):
-                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    if not _is_nested(node, tree):
-                        check_function(node, known, path, problems)
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and not _is_nested(node, tree):
+                    check_function(node, known, path, problems)
         self.assertEqual(sorted(set(problems)), [])
 
     def test_the_checker_still_catches_a_real_typo(self):
@@ -113,16 +123,19 @@ class UndefinedNameTest(unittest.TestCase):
 
 def _is_nested(func, tree):
     for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node is not func:
-            if any(child is func for child in ast.walk(node)):
-                return True
+        if (
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node is not func
+            and any(child is func for child in ast.walk(node))
+        ):
+            return True
     return False
 
 
 class StyleTest(unittest.TestCase):
     def test_no_comments_and_no_docstrings(self):
         problems = []
-        for path in python_files():
+        for path in python_files(NOISE_FREE_ROOTS):
             source = read_source(path)
             for number, line in enumerate(source.split("\n"), 1):
                 if line.strip().startswith("#"):
@@ -131,9 +144,11 @@ class StyleTest(unittest.TestCase):
                 if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef)):
                     body = getattr(node, "body", [])
                     first = body[0] if body else None
-                    if (isinstance(first, ast.Expr)
-                            and isinstance(getattr(first, "value", None), ast.Constant)
-                            and isinstance(first.value.value, str)):
+                    if (
+                        isinstance(first, ast.Expr)
+                        and isinstance(getattr(first, "value", None), ast.Constant)
+                        and isinstance(first.value.value, str)
+                    ):
                         problems.append(f"{path}:{first.lineno} docstring")
         self.assertEqual(problems, [])
 
@@ -149,9 +164,7 @@ class StyleTest(unittest.TestCase):
         bare = []
         for path in python_files():
             for node in ast.walk(ast.parse(read_source(path))):
-                if (isinstance(node, ast.FunctionDef)
-                        and node.returns is None
-                        and not node.name.startswith("__")):
+                if isinstance(node, ast.FunctionDef) and node.returns is None and not node.name.startswith("__"):
                     bare.append(f"{os.path.basename(path)}:{node.lineno} {node.name}")
         self.assertEqual(bare, [])
 

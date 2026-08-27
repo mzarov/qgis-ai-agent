@@ -77,9 +77,7 @@ class EndpointTest(unittest.TestCase):
         self.assertTrue(self._endpoint("https://api.anthropic.com/v1").endswith("/v1/messages"))
 
     def test_openai_posts_to_chat_completions(self):
-        self.assertTrue(
-            self._endpoint("https://openrouter.ai/api/v1").endswith("/v1/chat/completions")
-        )
+        self.assertTrue(self._endpoint("https://openrouter.ai/api/v1").endswith("/v1/chat/completions"))
 
 
 class TranslateTest(unittest.TestCase):
@@ -91,9 +89,7 @@ class TranslateTest(unittest.TestCase):
         self.assertEqual(turns, [{"role": "user", "content": "привет"}])
 
     def test_several_system_messages_are_joined(self):
-        system, _ = anthropic.split_system(
-            [{"role": "system", "content": "раз"}, {"role": "system", "content": "два"}]
-        )
+        system, _ = anthropic.split_system([{"role": "system", "content": "раз"}, {"role": "system", "content": "два"}])
         self.assertEqual(system, "раз\n\nдва")
 
     def test_tool_calls_become_tool_use_blocks(self):
@@ -119,9 +115,7 @@ class TranslateTest(unittest.TestCase):
         self.assertEqual(blocks[1]["input"], {"limit": 5})
 
     def test_tool_results_become_a_user_message(self):
-        _, turns = anthropic.split_system(
-            [{"role": "tool", "tool_call_id": "c1", "content": '{"слоёв": 3}'}]
-        )
+        _, turns = anthropic.split_system([{"role": "tool", "tool_call_id": "c1", "content": '{"слоёв": 3}'}])
         self.assertEqual(turns[0]["role"], "user")
         block = turns[0]["content"][0]
         self.assertEqual(block["type"], "tool_result")
@@ -190,9 +184,7 @@ class ParseTest(unittest.TestCase):
         self.assertEqual(anthropic.parse_response({}), ("", [], ""))
 
     def test_unknown_blocks_are_ignored(self):
-        text, calls, _ = anthropic.parse_response(
-            {"content": [{"type": "thinking", "text": "…"}, "мусор"]}
-        )
+        text, calls, _ = anthropic.parse_response({"content": [{"type": "thinking", "text": "…"}, "мусор"]})
         self.assertEqual((text, calls), ("", []))
 
 
@@ -202,12 +194,8 @@ class WholeTranscriptTest(unittest.TestCase):
         transcript = Transcript()
         transcript.add_user("какие у меня слои?")
         transcript.add_turn(ModelTurn(text="смотрю", tool_calls=[call], protocol=PROTOCOL_NATIVE))
-        transcript.add_results(
-            [ToolResult(call=call, payload={"layers": ["Дороги"]})], PROTOCOL_NATIVE
-        )
-        self.body = anthropic.build_body(
-            transcript.build_messages("Ты агент QGIS."), [TOOL_SCHEMA], "claude-demo"
-        )
+        transcript.add_results([ToolResult(call=call, payload={"layers": ["Дороги"]})], PROTOCOL_NATIVE)
+        self.body = anthropic.build_body(transcript.build_messages("Ты агент QGIS."), [TOOL_SCHEMA], "claude-demo")
 
     def test_system_prompt_moves_out_of_the_list(self):
         self.assertEqual(self.body["system"], "Ты агент QGIS.")

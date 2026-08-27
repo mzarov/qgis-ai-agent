@@ -22,8 +22,5 @@ class ListLayersTool(BaseTool):
         return tr("Reading the project layers.")
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        layers = [
-            describe_layer_brief(layer)
-            for layer in QgsProject.instance().mapLayers().values()
-        ]
+        layers = [describe_layer_brief(layer) for layer in QgsProject.instance().mapLayers().values()]
         return {"layers": layers, "count": len(layers)}

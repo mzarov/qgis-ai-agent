@@ -14,19 +14,32 @@ def json_reply(content):
 
 class NativeTurnTest(unittest.TestCase):
     def test_call_name_and_arguments(self):
-        turn = _parse_native_turn(native(None, [
-            {"id": "c1", "type": "function",
-             "function": {"name": "describe_layer", "arguments": '{"layer_name":"Города"}'}}
-        ]))
+        turn = _parse_native_turn(
+            native(
+                None,
+                [
+                    {
+                        "id": "c1",
+                        "type": "function",
+                        "function": {"name": "describe_layer", "arguments": '{"layer_name":"Города"}'},
+                    }
+                ],
+            )
+        )
         self.assertEqual(turn.tool_calls[0].name, "describe_layer")
         self.assertEqual(turn.tool_calls[0].arguments, {"layer_name": "Города"})
         self.assertEqual(turn.protocol, "native")
 
     def test_several_calls_keep_order(self):
-        turn = _parse_native_turn(native(None, [
-            {"id": "a", "function": {"name": "list_layers", "arguments": "{}"}},
-            {"id": "b", "function": {"name": "get_qgis_info", "arguments": "{}"}},
-        ]))
+        turn = _parse_native_turn(
+            native(
+                None,
+                [
+                    {"id": "a", "function": {"name": "list_layers", "arguments": "{}"}},
+                    {"id": "b", "function": {"name": "get_qgis_info", "arguments": "{}"}},
+                ],
+            )
+        )
         self.assertEqual([call.name for call in turn.tool_calls], ["list_layers", "get_qgis_info"])
 
     def test_nameless_call_is_dropped(self):

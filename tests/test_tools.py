@@ -24,8 +24,9 @@ class ToolContractTest(unittest.TestCase):
             self.assertTrue(tool.description.strip(), tool.name)
 
     def test_lookup_by_name(self):
-        self.assertIs(get_tool_by_name("list_layers").name and get_tool_by_name("list_layers"),
-                      get_tool_by_name("list_layers"))
+        self.assertIs(
+            get_tool_by_name("list_layers").name and get_tool_by_name("list_layers"), get_tool_by_name("list_layers")
+        )
         self.assertIsNone(get_tool_by_name("нет_такого"))
 
 

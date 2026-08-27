@@ -46,8 +46,7 @@ PROJECT_PROPERTIES = PropertySet(
         StyleProperty(
             "crs",
             KIND_TEXT,
-            "Project coordinate system such as EPSG:3857. Changes the map projection, "
-            "leaves layer data alone.",
+            "Project coordinate system such as EPSG:3857. Changes the map projection, leaves layer data alone.",
             TARGET_PROJECT,
             ignored(),
         ),

@@ -4,9 +4,7 @@ from typing import Any
 from qgis.core import QgsMapLayer, QgsVectorLayer
 
 SECRET_KEYS = ("password", "passwd", "pwd", "token", "api_key", "apikey", "secret")
-SECRET_PATTERN = re.compile(
-    r"(?i)\b(" + "|".join(SECRET_KEYS) + r")\s*=\s*('[^']*'|\"[^\"]*\"|\S+)"
-)
+SECRET_PATTERN = re.compile(r"(?i)\b(" + "|".join(SECRET_KEYS) + r")\s*=\s*('[^']*'|\"[^\"]*\"|\S+)")
 SECRET_PLACEHOLDER = "<hidden>"
 MAX_SOURCE_CHARS = 300
 
