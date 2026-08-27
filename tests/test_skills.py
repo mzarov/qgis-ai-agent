@@ -8,7 +8,7 @@ from qgis_ai_agent.skills.registry import SkillRegistry
 
 SKILLS_ROOT = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "src", "qgis_ai_agent", "skills",
+    "qgis_ai_agent", "skills",
 )
 
 

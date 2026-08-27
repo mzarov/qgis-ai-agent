@@ -5,7 +5,7 @@ import pathlib
 import unittest
 
 SOURCE_ROOT = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qgis_ai_agent"
 )
 KNOWN = set(dir(builtins)) | {"__file__", "__name__", "__doc__", "__package__"}
 MAX_LINES = 200

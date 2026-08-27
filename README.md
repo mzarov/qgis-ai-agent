@@ -63,8 +63,8 @@ JSON-протокол, включается сам.
 ## Структура
 
 ```
-__init__.py, metadata.txt      корень плагина для QGIS
-src/qgis_ai_agent/
+qgis_ai_agent/                 плагин целиком — только эта папка попадает в QGIS
+  __init__.py, metadata.txt    вход для QGIS
   plugin.py                    корень сборки: связывает QGIS, core и ui
   core/                        цикл, оркестрация, LLM-транспорт, состояние
   qgis_tools/                  тулы по доменам — вся PyQGIS-логика
@@ -72,6 +72,7 @@ src/qgis_ai_agent/
   ui/                          только Qt: рендер и сигналы
 tests/                         unittest, гоняются без QGIS через tests/stub.py
 tools/build_plugin.py          сборка устанавливаемого zip
+docs/                          установка, архитектура, ручной чеклист
 ```
 
 Направление зависимостей: `ui → core → qgis_tools → skills`; обратные импорты
@@ -93,9 +94,9 @@ Python, и внутри Python самого QGIS.
 
 ### Как добавить домен
 
-1. `src/qgis_ai_agent/qgis_tools/<домен>/` — классы тулов
+1. `qgis_ai_agent/qgis_tools/<домен>/` — классы тулов
    (`skill = "<домен>"`, `safety = read|write`)
-2. `src/qgis_ai_agent/skills/<домен>/SKILL.md` — правила домена
+2. `qgis_ai_agent/skills/<домен>/SKILL.md` — правила домена
 3. одна строка в `qgis_tools/registry.py`
 
 Цикл, оркестратор и промпт не трогаются. Новый тул — новый тест на

@@ -11,7 +11,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "tools")
 import build_plugin
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
-METADATA = REPO_ROOT / "metadata.txt"
+METADATA = REPO_ROOT / "qgis_ai_agent" / "metadata.txt"
 REQUIRED_METADATA_KEYS = (
     "name",
     "qgisMinimumVersion",
@@ -49,7 +49,7 @@ class MetadataTest(unittest.TestCase):
         self.assertGreaterEqual(float(self.values["qgisMinimumVersion"]), 4.0)
 
     def test_icon_exists(self):
-        self.assertTrue((REPO_ROOT / self.values["icon"]).is_file())
+        self.assertTrue((REPO_ROOT / "qgis_ai_agent" / self.values["icon"]).is_file())
 
 
 class BuildTest(unittest.TestCase):
@@ -68,7 +68,7 @@ class BuildTest(unittest.TestCase):
     def test_every_skill_body_is_packed(self):
         on_disk = sorted(
             path.parent.name
-            for path in (REPO_ROOT / "src").rglob("SKILL.md")
+            for path in (REPO_ROOT / "qgis_ai_agent").rglob("SKILL.md")
         )
         packed = sorted(
             name.rsplit("/", 2)[1] for name in self.names if name.endswith("SKILL.md")
@@ -77,7 +77,7 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(packed, on_disk)
 
     def test_metadata_and_entry_point_are_packed(self):
-        for tail in ("metadata.txt", "__init__.py", "qgis_ai_agent/plugin.py", "icon.png"):
+        for tail in ("metadata.txt", "__init__.py", "plugin.py", "icon.png"):
             self.assertTrue(any(name.endswith(tail) for name in self.names), tail)
 
     def test_development_files_stay_out(self):
@@ -110,12 +110,12 @@ class BuildTest(unittest.TestCase):
     def test_skills_load_from_the_extracted_copy(self):
         zipfile.ZipFile(self.archive).extractall(self.root)
         skills_root = os.path.join(
-            self.root, build_plugin.PLUGIN_NAME, "src", build_plugin.PLUGIN_NAME, "skills"
+            self.root, build_plugin.PLUGIN_NAME, "skills"
         )
         from qgis_ai_agent.skills.registry import SkillRegistry
 
         registry = SkillRegistry(skills_root)
-        on_disk = sorted(path.parent.name for path in (REPO_ROOT / "src").rglob("SKILL.md"))
+        on_disk = sorted(path.parent.name for path in (REPO_ROOT / "qgis_ai_agent").rglob("SKILL.md"))
         self.assertEqual(sorted(registry.names()), on_disk)
 
 

@@ -63,7 +63,6 @@ class PresetTest(unittest.TestCase):
 
 SOURCE = (
     pathlib.Path(__file__).resolve().parent.parent
-    / "src"
     / "qgis_ai_agent"
     / "ui"
     / "settings_fields.py"
@@ -105,7 +104,6 @@ class StyleSheetTest(unittest.TestCase):
 class PanelLevelTest(unittest.TestCase):
     STYLE = (
         pathlib.Path(__file__).resolve().parent.parent
-        / "src"
         / "qgis_ai_agent"
         / "ui"
         / "style.py"

@@ -110,10 +110,13 @@ import sys; print(sys.executable)
 ```bash
 PLUGINS_DIR="$HOME/Library/Application Support/QGIS/QGIS4/profiles/default/python/plugins"
 mkdir -p "$PLUGINS_DIR"
-ln -sfn "$(pwd)" "$PLUGINS_DIR/qgis_ai_agent"
+ln -sfn "$(pwd)/qgis_ai_agent" "$PLUGINS_DIR/qgis_ai_agent"
 ```
 
-Имя ссылки обязано быть `qgis_ai_agent` — оно становится именем пакета Python.
+Ссылка ведёт на папку пакета, а не на корень репозитория: в QGIS попадает
+только плагин, без tests и docs. Если симлинк стоял на корень репозитория
+со времён старой структуры — пересоздайте его этой командой, иначе QGIS
+перестанет видеть плагин.
 
 При правках кода перезагружайте плагин через **Plugin Reloader** (`Ctrl+F5`). Если
 менялась структура пакетов, нужен полный перезапуск QGIS: снятие галочки не
