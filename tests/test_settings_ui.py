@@ -85,6 +85,14 @@ class StyleSheetTest(unittest.TestCase):
     def test_focus_is_visible_on_inputs(self):
         self.assertIn("QLineEdit:focus, QComboBox:focus", SOURCE)
 
+    def test_card_lifts_instead_of_sinking(self):
+        body = SOURCE.split("def card(")[1].split("\ndef ")[0]
+        self.assertIn("style.panel(palette)", body)
+        self.assertNotIn("style.card(palette)", body)
+
+    def test_inputs_sit_on_the_recessed_surface(self):
+        self.assertIn("style.surface(palette)", SOURCE)
+
     def test_borders_are_not_blanket_erased_on_containers(self):
         offenders = [
             line.strip()
@@ -92,6 +100,33 @@ class StyleSheetTest(unittest.TestCase):
             if "border: none" in line and "drop-down" not in line
         ]
         self.assertEqual(offenders, [])
+
+
+class PanelLevelTest(unittest.TestCase):
+    STYLE = (
+        pathlib.Path(__file__).resolve().parent.parent
+        / "src"
+        / "qgis_ai_agent"
+        / "ui"
+        / "style.py"
+    ).read_text(encoding="utf-8")
+
+    def test_panel_exists_and_lifts_only_in_the_dark(self):
+        self.assertIn("def panel(", self.STYLE)
+        body = self.STYLE.split("def panel(")[1].split("def ")[0]
+        self.assertIn("if not is_dark(palette):", body)
+        self.assertIn("return base", body)
+        self.assertIn("PANEL_LIFT", body)
+
+    def test_lift_is_meaningful(self):
+        self.assertGreater(_constant(self.STYLE, "PANEL_LIFT"), 0.05)
+
+
+def _constant(source, name):
+    for line in source.split("\n"):
+        if line.startswith(name + " ="):
+            return float(line.split("=")[1])
+    raise AssertionError(f"нет константы {name}")
 
 
 class ProbeTest(unittest.TestCase):

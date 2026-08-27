@@ -9,6 +9,7 @@ CARD_TINT = 0.5
 ELEVATED_TINT = 0.9
 BORDER_TINT = 0.8
 MUTED_TINT = 0.38
+PANEL_LIFT = 0.11
 
 
 def theme_icon(name: str) -> QIcon:
@@ -47,6 +48,13 @@ def elevated(palette: QPalette) -> QColor:
     base = palette.base().color()
     lift = QColor(255, 255, 255) if is_dark(palette) else QColor(0, 0, 0)
     return blend(base, lift, 0.07)
+
+
+def panel(palette: QPalette) -> QColor:
+    base = palette.base().color()
+    if not is_dark(palette):
+        return base
+    return blend(base, QColor(255, 255, 255), PANEL_LIFT)
 
 
 def hairline(palette: QPalette) -> QColor:

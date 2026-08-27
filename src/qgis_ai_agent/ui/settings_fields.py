@@ -19,7 +19,7 @@ def card(palette: Any) -> tuple[QFrame, QVBoxLayout]:
     frame = QFrame()
     frame.setObjectName(CARD_NAME)
     frame.setStyleSheet(
-        f"QFrame#{CARD_NAME} {{ background: {style.css_color(style.card(palette))};"
+        f"QFrame#{CARD_NAME} {{ background: {style.css_color(style.panel(palette))};"
         f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
         f"border-radius: {style.CARD_RADIUS}px; }}"
     )
