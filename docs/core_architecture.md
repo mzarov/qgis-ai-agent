@@ -101,6 +101,41 @@ Two adjacent 2026 developments were evaluated and consciously not adopted:
   the same zip; a transport layer between them would add a dependency and
   remove nothing.
 
+## The Python escape hatch
+
+`run_python` executes a PyQGIS snippet inside the running QGIS. It is a
+permanent part of the design, not a temporary crutch: the agent is meant to
+reach the whole QGIS API, and no realistic number of tools covers a thousand
+classes. Everything below is a deliberate choice, so do not "optimise" it away.
+
+**Why it is `destructive` rather than analysed.** Telling a reading snippet
+from a writing one by static analysis is not possible — `getattr` chains defeat
+it, and an AST allowlist would only produce a false sense of safety. So the
+plugin does not pretend to judge the code. Instead the code itself is the
+confirmation: the snippet is shown to the user in the destructive dialog before
+anything runs, and the `intent` field — one plain sentence for a human — is
+mandatory.
+
+**Why the bandit finding is suppressed at the line, not in the config.**
+`B102: exec_used` is a correct finding, not a false positive. Adding it to
+`.bandit` skips would disable the check across the whole package and hide the
+riskiest property of the code from a reviewer. A `#nosec B102` sits on the exec
+line where the risk is, and `tests/test_publish_ready.py` keeps it honest:
+`exec` appears in exactly one file, there is exactly one suppression, and the
+tool using it must be destructive-class.
+
+**Why a shell is not offered.** Everything QGIS can do is reachable from
+Python. A system shell would widen the attack surface without widening what
+the agent can accomplish in GIS terms.
+
+Two guards sit under the confirmation: a line budget via `sys.settrace` stops a
+runaway loop from freezing QGIS, and the snippet is compiled at queue time so a
+syntax error is rejected while the loop is still alive to fix it.
+
+`skills/python/SKILL.md` tells the agent to try a real tool first and to name
+any successful snippet as a missing tool — the escape hatch doubles as a
+signal for what to cover next.
+
 ## Transport
 
 The plugin is not tied to a vendor: it talks to whatever address the user set in
