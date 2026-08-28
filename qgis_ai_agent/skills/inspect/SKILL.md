@@ -1,7 +1,7 @@
 ---
 name: inspect
 description: Read the current QGIS project — structure, layers, attribute data, CRS, environment. Load this whenever you need facts about the project before answering or acting.
-tools: [get_project_info, list_layers, describe_layer, get_field_values, sample_features, query_layer, get_selection, get_canvas_extent, render_map, get_qgis_info]
+tools: [get_project_info, list_layers, describe_layer, get_field_values, sample_features, query_layer, get_selection, select_features, get_canvas_extent, render_map, get_qgis_info]
 ---
 
 # Reading the project
@@ -104,6 +104,16 @@ points at the screen, call `get_selection` first — it lists which layers hold
 selected features and samples their attributes. To compute over exactly those
 features, pass `selected_only=true` to `query_layer`. If nothing is selected,
 say so and ask what to select instead of guessing a filter.
+
+## Answering with the map
+
+`select_features` selects by an expression, zooms there and flashes the
+result. Prefer it whenever the answer is *which* features rather than *how
+many*: "show me the motorways", "which districts have no population" — the
+user sees the answer on their own map instead of reading a list of names.
+
+It is a read tool: selection is view state, it changes no data. Pair it with
+`query_layer` when the user wants both the number and the picture.
 
 ## Seeing the map
 

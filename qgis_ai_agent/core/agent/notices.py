@@ -1,6 +1,11 @@
 LIMIT_REACHED_MESSAGE = (
     "This task ran longer than I am allowed to, so I stopped where I got to. Narrow the request or split it into steps."
 )
+INTERJECTION_HEADER = (
+    "The user broke in while you were working and said this. Treat it as a "
+    "correction to the task, not as a new request: adjust what you are doing, "
+    "drop what no longer applies, and keep going.\n\n"
+)
 APPLY_NOW_WITHOUT_WRITES = (
     "There is nothing queued to apply, so there is nothing to wait for. Queue the write calls first, "
     "or keep going with read tools."

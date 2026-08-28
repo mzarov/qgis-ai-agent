@@ -4,8 +4,9 @@ from qgis.core import Qgis, QgsMessageLog
 
 from qgis_ai_agent.core.agent.loop import AgentLoop
 from qgis_ai_agent.core.agent.prompts import build_verification_prompt
+from qgis_ai_agent.core.llm.client import is_local
 from qgis_ai_agent.core.orchestrator.contracts import DockWidgetContract
-from qgis_ai_agent.core.settings import get_verify_after_apply
+from qgis_ai_agent.core.settings import get_api_key, get_api_url, get_verify_after_apply
 from qgis_ai_agent.core.state.conversation import ConversationState
 from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
@@ -20,6 +21,7 @@ SWITCH_WHILE_PENDING = tr("Apply or cancel the planned changes first.")
 VERIFYING = tr("Checking the applied changes…")
 MAX_VERIFICATION_ROUNDS = 3
 DESTRUCTIVE_DECLINED = tr("Kept everything as it was — the destructive steps were not applied.")
+INTERJECTED = tr("Passed to the agent — it will take this into account on its next step.")
 THOUSAND = 1000
 TOKENS_LABEL = tr("{0} tokens")
 
@@ -34,6 +36,10 @@ class CoreOrchestrator:
         self._plan_message_id: int | None = None
         self._connect_agent()
         self.dock_widget.set_session_source(self.conversation.recent)
+        self.refresh_configured()
+
+    def refresh_configured(self) -> None:
+        self.dock_widget.set_configured(_is_configured())
 
     def _connect_agent(self) -> None:
         self.agent.tool_started.connect(self.on_tool_started)
@@ -92,7 +98,7 @@ class CoreOrchestrator:
             self._push_message(tr("Type a request."), Qgis.Warning)
             return
         if self.agent.is_running:
-            self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
+            self._interject(text)
             return
 
         self.dock_widget.add_user_message(text)
@@ -105,6 +111,15 @@ class CoreOrchestrator:
 
     def on_usage_changed(self, spent: int) -> None:
         self.dock_widget.set_usage(TOKENS_LABEL.format(_compact_number(spent)))
+
+    def _interject(self, text: str) -> None:
+        if not self.agent.interject(text):
+            self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
+            return
+        self.dock_widget.add_user_message(text)
+        self.dock_widget.clear_prompt()
+        self.dock_widget.add_system_message(INTERJECTED)
+        self.conversation.add("user", text)
 
     def on_tool_started(self, summary: str) -> None:
         self._active_tool_message_id = self.dock_widget.add_tool_message(summary)
@@ -230,6 +245,14 @@ class CoreOrchestrator:
 
     def _push_message(self, text: str, level) -> None:
         self.iface.messageBar().pushMessage("QGIS AI Agent", text, level=level, duration=MESSAGE_DURATION_SEC)
+
+
+def _is_configured() -> bool:
+    try:
+        url = (get_api_url() or "").strip()
+        return bool(url) and (bool((get_api_key() or "").strip()) or is_local(url))
+    except Exception:
+        return False
 
 
 def _compact_number(value: int) -> str:

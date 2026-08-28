@@ -7,6 +7,7 @@ LOAD_SKILL_TOOL = "load_skill"
 UPDATE_PLAN_TOOL = "update_plan"
 APPLY_NOW_TOOL = "apply_now"
 TASK_PLAN_HEADER = "Your current task plan (kept by update_plan):"
+PROJECT_NOTES_HEADER = "What you were told to remember about this project:"
 PLAN_STEP_DONE = "[x]"
 PLAN_STEP_PENDING = "[ ]"
 
@@ -173,6 +174,12 @@ def build_update_plan_schema() -> dict[str, Any]:
     }
 
 
+def render_project_notes(notes: list[str]) -> str:
+    if not notes:
+        return ""
+    return "\n".join([PROJECT_NOTES_HEADER] + [f"- {note}" for note in notes])
+
+
 def render_task_plan(steps: list[str], done: int) -> str:
     if not steps:
         return ""
@@ -217,6 +224,7 @@ def build_system_prompt(
     json_protocol: bool = False,
     locale: str = "en",
     task_plan: str = "",
+    project_notes: str = "",
 ) -> str:
     parts = [CORE_PROMPT, language_policy(locale)]
     if json_protocol:
@@ -225,6 +233,8 @@ def build_system_prompt(
     if loaded_skills:
         parts.append(LOADED_SKILLS_HEADER + ", ".join(loaded_skills) + ".")
         parts.append(SKILL_REGISTRY.bodies_block(loaded_skills))
+    if project_notes:
+        parts.append(project_notes)
     if task_plan:
         parts.append(task_plan)
     if project_context:

@@ -7,6 +7,7 @@ from qgis_ai_agent.core.agent.prompts import (
     build_load_skill_schema,
     build_system_prompt,
     build_update_plan_schema,
+    render_project_notes,
 )
 from qgis_ai_agent.core.agent.transcript import Transcript
 from qgis_ai_agent.core.context.project import get_project_context
@@ -22,6 +23,7 @@ from qgis_ai_agent.core.settings import (
     get_verify_ssl,
 )
 from qgis_ai_agent.i18n import locale_code
+from qgis_ai_agent.qgis_tools.project.notes import NoteStore
 from qgis_ai_agent.qgis_tools.registry import build_tool_schemas, get_tools_for_skills
 from qgis_ai_agent.skills.registry import SKILL_REGISTRY
 
@@ -49,6 +51,7 @@ def build_step_request(
         json_protocol=json_protocol,
         locale=locale_code(),
         task_plan=task_plan,
+        project_notes=_project_notes(),
     )
     if json_protocol:
         tools_block = build_json_tools_block(schemas)
@@ -60,6 +63,13 @@ def build_step_request(
         overrides=overrides if overrides is not None else build_overrides(),
         protocol=PROTOCOL_JSON if json_protocol else PROTOCOL_NATIVE,
     )
+
+
+def _project_notes() -> str:
+    try:
+        return render_project_notes(NoteStore().notes())
+    except Exception:
+        return ""
 
 
 def build_tool_schemas_for(loaded_skills: list[str]) -> list[dict[str, Any]]:

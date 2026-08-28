@@ -8,6 +8,7 @@ from qgis_ai_agent.qgis_tools.inspect.qgis_info import GetQgisInfoTool
 from qgis_ai_agent.qgis_tools.inspect.query_layer import QueryLayerTool
 from qgis_ai_agent.qgis_tools.inspect.render_map import RenderMapTool
 from qgis_ai_agent.qgis_tools.inspect.sample_features import SampleFeaturesTool
+from qgis_ai_agent.qgis_tools.inspect.select_features import SelectFeaturesTool
 
 INSPECT_TOOLS = [
     GetProjectInfoTool(),
@@ -17,6 +18,7 @@ INSPECT_TOOLS = [
     SampleFeaturesTool(),
     QueryLayerTool(),
     GetSelectionTool(),
+    SelectFeaturesTool(),
     GetCanvasExtentTool(),
     RenderMapTool(),
     GetQgisInfoTool(),

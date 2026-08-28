@@ -1,7 +1,7 @@
 ---
 name: project
 description: Manage the project itself — add layers from files, basemaps and PostGIS, remove, rename, hide, group and reorder them, change project CRS, zoom the map, save the project. Load this to set a workflow up or to finish it.
-tools: [zoom_to_layer, add_layer, add_basemap, add_service_layer, list_db_connections, list_db_tables, add_db_layer, remove_layer, configure_layer, configure_project, save_project, undo_last_apply, list_views, save_bookmark, save_map_theme]
+tools: [zoom_to_layer, add_layer, add_basemap, add_service_layer, list_db_connections, list_db_tables, add_db_layer, remove_layer, configure_layer, configure_project, save_project, export_layer, undo_last_apply, list_views, remember, list_notes, forget, save_bookmark, save_map_theme]
 ---
 
 # The project as a workspace
@@ -23,6 +23,7 @@ saved.
 | "change the project CRS", "name the project" | `configure_project` |
 | "show me the layer", "zoom to" | `zoom_to_layer` |
 | "save the project" | `save_project` |
+| "save this layer to a file", "export to GeoJSON" | `export_layer` |
 
 ## Basemaps
 
@@ -44,6 +45,17 @@ login will simply fail to load; say that plainly.
 For plain tile basemaps use `add_basemap` instead — it is simpler and places
 the layer at the bottom.
 
+## Getting data out
+
+`export_layer` writes a vector layer to disk: GeoPackage, GeoJSON, Shapefile
+or CSV, picked from the path extension. Two options matter — `selected_only`
+turns "export what I picked" into one call, and `crs` reprojects on the way
+out, which is what "give me this in WGS84" means.
+
+Saving the project and exporting a layer are different requests: the first
+keeps the workspace, the second hands someone a file. Do not substitute one
+for the other.
+
 ## Undo
 
 Before every applied plan the plugin writes a snapshot of the project to a
@@ -53,6 +65,22 @@ styling and layouts.
 Be honest about its reach: it restores the **project**, not data. Attribute
 edits and deleted features from the `edit` skill live in the data source and
 stay. Say so when offering it, so nobody expects a full time machine.
+
+## Remembering the project
+
+`remember` stores a durable fact about **this** project — what a cryptic field
+holds, which CRS the client insists on, a naming convention. Notes come back
+pinned into your context in every future conversation about the same project,
+so they save the user from re-explaining their own data.
+
+Store a note when the user says to, and when they state something that will
+obviously matter next time ("POP2020 is the 2020 census"). Do not store what
+QGIS can tell you — layer names, field lists, CRS are one read away and go
+stale. Do not store instructions about how to behave; that is what the skills
+are for.
+
+One fact per note, written so it stands alone. `list_notes` shows them,
+`forget` removes one by exact text.
 
 ## Bookmarks and map themes
 

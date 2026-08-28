@@ -55,24 +55,28 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    writes still only run after the user's button. What changed is that the run
    no longer dies at the first batch, which is what lets one request finish a
    multi-stage task.
-8. **The transcript compacts itself.** Only the last `KEEP_FULL_RESULTS` tool
+8. **The user can break in mid-run.** `interject` appends the message to the
+   live transcript framed as a correction, so the model sees it on its next
+   step instead of the run having to be restarted. The composer stays editable
+   while busy for exactly this; the ■ button is still an abort, not a send.
+9. **The transcript compacts itself.** Only the last `KEEP_FULL_RESULTS` tool
    results are rendered in full and only the newest image is carried; older ones
    become short notes. Without this a forty-turn run would not fit the model
    window. Compaction happens at render time — the entries themselves are never
    mutated, so the saved conversation stays complete.
-9. **The orchestrator only renders.** Decisions belong to the loop;
+10. **The orchestrator only renders.** Decisions belong to the loop;
    `CoreOrchestrator` subscribes to signals and draws them into the chat.
    Do not add branching logic there.
-10. **A message is written with one call.** `ConversationState.add` puts it both
+11. **A message is written with one call.** `ConversationState.add` puts it both
    into the model's window and into the saved session. Never call
    `HistoryStore` and `Session` separately — they diverge, and the model would
    see something other than what the chat shows.
-11. **Aborting never blocks the main thread.** `abort` does not wait and does not
+12. **Aborting never blocks the main thread.** `abort` does not wait and does not
    kill the thread — it disconnects the signals and lets the HTTP request burn
    out in the background; the result is discarded by the `_aborted` flag. The
    hard `stop` with `terminate` remains only for plugin unload, when QGIS is
    closing anyway.
-12. **Imports** — all at the top, absolute. Code without comments or docstrings
+13. **Imports** — all at the top, absolute. Code without comments or docstrings
     — see the root CLAUDE.md.
 
 ## What lives where
