@@ -84,6 +84,31 @@ class ScannerConfigTest(unittest.TestCase):
         self.assertIn("usedforsecurity=False", settings)
 
 
+class EscapeHatchTest(unittest.TestCase):
+    def test_exec_lives_in_exactly_one_place(self):
+        users = [
+            str(path.relative_to(PACKAGE))
+            for path in PACKAGE.rglob("*.py")
+            if re.search(r"(?<![.\w])exec\(", path.read_text(encoding="utf-8"))
+        ]
+        self.assertEqual(users, ["qgis_tools/python/sandbox.py"])
+
+    def test_the_suppression_is_narrow_and_stays_narrow(self):
+        suppressions = [
+            f"{path.relative_to(PACKAGE)}:{number}"
+            for path in PACKAGE.rglob("*.py")
+            for number, line in enumerate(path.read_text(encoding="utf-8").split("\n"), 1)
+            if "nosec" in line
+        ]
+        self.assertEqual(suppressions, ["qgis_tools/python/sandbox.py:72"])
+
+    def test_the_tool_running_code_asks_the_user_first(self):
+        from qgis_ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
+        from qgis_ai_agent.qgis_tools.python.run_python import RunPythonTool
+
+        self.assertEqual(RunPythonTool().safety, SAFETY_DESTRUCTIVE)
+
+
 class NetworkStackTest(unittest.TestCase):
     def test_no_module_imports_requests(self):
         offenders = [

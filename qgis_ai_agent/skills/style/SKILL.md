@@ -1,7 +1,7 @@
 ---
 name: style
 description: Inspect how a layer is drawn — renderer type, classification field, classes with colours, labels, opacity. Load this for questions about appearance, colours or labelling.
-tools: [describe_style, describe_style_options, set_symbol, set_categories, set_graduated, set_labels, set_opacity]
+tools: [describe_style, describe_style_options, set_symbol, set_categories, set_graduated, set_labels, set_opacity, set_raster_style]
 ---
 
 # Layer appearance
@@ -138,6 +138,29 @@ whole configuration each time rather than patching it.
 Not every symbol property fits every geometry: `shape` is meaningless for lines,
 `fill_style` for points. Such keys come back in `skipped` with a note. That is a
 report, not a failure — the rest was applied, so do not retry the call.
+
+### Rasters
+
+The tools above are for vector layers. A raster gets `set_raster_style`:
+
+| Ask | mode |
+|---|---|
+| colour the values with a ramp, "paint the DEM" | `pseudocolor` |
+| plain grayscale stretch | `gray` |
+| shaded relief, "make it look 3D", "hillshade" | `hillshade` |
+
+`pseudocolor` reads the real min and max off the band, so the ramp always
+covers the actual data — do not invent boundaries. `classes` and
+`interpolation` (`linear`, `discrete`, `exact`) shape the transition; discrete
+suits classified data, linear suits continuous elevation.
+
+`hillshade` expects an elevation band; `azimuth` and `altitude` are the light
+direction in degrees, and the defaults (315/45) are the cartographic
+convention — change them only when asked.
+
+`no_data_values` hides values as transparent on any mode. The classic case is
+a `-9999` filler making the whole ramp useless: hiding it fixes the colours
+without touching the data.
 
 ### Three different opacities
 

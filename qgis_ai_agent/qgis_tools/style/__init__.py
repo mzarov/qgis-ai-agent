@@ -4,6 +4,7 @@ from qgis_ai_agent.qgis_tools.style.set_categories import SetCategoriesTool
 from qgis_ai_agent.qgis_tools.style.set_graduated import SetGraduatedTool
 from qgis_ai_agent.qgis_tools.style.set_labels import SetLabelsTool
 from qgis_ai_agent.qgis_tools.style.set_opacity import SetOpacityTool
+from qgis_ai_agent.qgis_tools.style.set_raster_style import SetRasterStyleTool
 from qgis_ai_agent.qgis_tools.style.set_symbol import SetSymbolTool
 
 STYLE_TOOLS = [
@@ -14,4 +15,5 @@ STYLE_TOOLS = [
     SetGraduatedTool(),
     SetLabelsTool(),
     SetOpacityTool(),
+    SetRasterStyleTool(),
 ]

@@ -11,6 +11,7 @@ from qgis_ai_agent.core.agent.transcript import ToolResult, Transcript
 from qgis_ai_agent.core.agent.turn_thread import TurnThreadOwner
 from qgis_ai_agent.core.llm.transport import PROTOCOL_JSON, PROTOCOL_NATIVE, ModelTurn, ToolCall
 from qgis_ai_agent.qgis_tools.base import SAFETY_READ
+from qgis_ai_agent.qgis_tools.project.snapshots import take_snapshot
 from qgis_ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call
 from qgis_ai_agent.skills.registry import SKILL_REGISTRY
 
@@ -96,6 +97,7 @@ class AgentLoop(QObject):
     def confirm_pending(self) -> None:
         if not self._batch:
             return
+        take_snapshot()
         self.busy_changed.emit(True)
         try:
             results = self._batch.apply(self._on_apply_start, self._on_apply_finish)
