@@ -7,6 +7,7 @@ from qgis_ai_agent.core.agent.notices import (
     APPLY_DECLINED_MESSAGE,
     APPLY_NOW_WITHOUT_WRITES,
     BUDGET_REACHED_MESSAGE,
+    INTERJECTION_HEADER,
     LIMIT_REACHED_MESSAGE,
 )
 from qgis_ai_agent.core.agent.prompts import (
@@ -124,6 +125,14 @@ class AgentLoop(QObject):
 
     def stop(self) -> None:
         self._turn.stop()
+
+    def interject(self, text: str) -> bool:
+        message = (text or "").strip()
+        if not message or not self.is_running:
+            return False
+        self._transcript.add_user(INTERJECTION_HEADER + message)
+        QgsMessageLog.logMessage("The user interjected mid-run.", LOG_TAG, Qgis.Info)
+        return True
 
     def confirm_pending(self) -> None:
         if not self._batch:

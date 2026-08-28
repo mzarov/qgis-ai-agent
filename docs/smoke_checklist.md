@@ -202,8 +202,10 @@ The Conversations button is in the panel header, left of Clear.
    normally.
 5. **Stopping cancels the plan.** Get to a plan card, press ■ (if the run is
    still going) or check that Apply applies nothing after the stop.
-6. **Enter does not send during a run.** Start a long task, type text, press
-   Enter — nothing is sent.
+6. **Enter during a run corrects instead of queueing.** Start a long task,
+   type “actually make it blue, not red”, press Enter → the message appears in
+   the feed with a note that it was passed to the agent, and the agent adjusts
+   on its next step without restarting the task.
 
 ## Changing the styling
 
@@ -581,3 +583,21 @@ These verify the agent solves everyday tasks without wandering through search.
      exists and opens in QGIS; a bad extension is refused before queueing.
 138. **Export of the selection.** Select a few features, “export what I
      selected to GeoJSON” → the file holds only those features.
+
+## Correcting mid-run and project memory
+
+139. **Correction lands mid-run.** Start “colour the roads red”, and while it
+     works type “actually blue” → the message appears with a note that it was
+     passed on, and the agent switches to blue without starting over.
+140. **A correction after the run is an ordinary request** — same words typed
+     when idle start a new run, not an interjection.
+141. **Remembering.** “Remember that POP2020 is the 2020 census” → the plan
+     card shows it; after Apply, `list_notes` returns it.
+142. **Memory survives a restart and is project-scoped.** Restart QGIS, ask
+     “what do you remember?” → the note is there. Open a different project →
+     it is not.
+143. **Notes reach the model.** With that note stored, ask “what is in
+     POP2020?” → the answer uses the remembered meaning without re-reading it
+     from you.
+144. **Forgetting.** “Forget the POP2020 note” → it is gone from list_notes;
+     forgetting something that was never stored is refused with a hint.

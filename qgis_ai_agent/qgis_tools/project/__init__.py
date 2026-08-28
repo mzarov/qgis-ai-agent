@@ -7,6 +7,7 @@ from qgis_ai_agent.qgis_tools.project.configure_project import ConfigureProjectT
 from qgis_ai_agent.qgis_tools.project.export_layer import ExportLayerTool
 from qgis_ai_agent.qgis_tools.project.list_db_connections import ListDbConnectionsTool
 from qgis_ai_agent.qgis_tools.project.list_db_tables import ListDbTablesTool
+from qgis_ai_agent.qgis_tools.project.remember import ForgetTool, ListNotesTool, RememberTool
 from qgis_ai_agent.qgis_tools.project.remove_layer import RemoveLayerTool
 from qgis_ai_agent.qgis_tools.project.save_project import SaveProjectTool
 from qgis_ai_agent.qgis_tools.project.undo_last_apply import UndoLastApplyTool
@@ -28,6 +29,9 @@ PROJECT_TOOLS = [
     ExportLayerTool(),
     UndoLastApplyTool(),
     ListViewsTool(),
+    RememberTool(),
+    ListNotesTool(),
+    ForgetTool(),
     SaveBookmarkTool(),
     SaveMapThemeTool(),
 ]

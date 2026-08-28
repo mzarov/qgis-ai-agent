@@ -1,7 +1,7 @@
 ---
 name: project
 description: Manage the project itself — add layers from files, basemaps and PostGIS, remove, rename, hide, group and reorder them, change project CRS, zoom the map, save the project. Load this to set a workflow up or to finish it.
-tools: [zoom_to_layer, add_layer, add_basemap, add_service_layer, list_db_connections, list_db_tables, add_db_layer, remove_layer, configure_layer, configure_project, save_project, export_layer, undo_last_apply, list_views, save_bookmark, save_map_theme]
+tools: [zoom_to_layer, add_layer, add_basemap, add_service_layer, list_db_connections, list_db_tables, add_db_layer, remove_layer, configure_layer, configure_project, save_project, export_layer, undo_last_apply, list_views, remember, list_notes, forget, save_bookmark, save_map_theme]
 ---
 
 # The project as a workspace
@@ -65,6 +65,22 @@ styling and layouts.
 Be honest about its reach: it restores the **project**, not data. Attribute
 edits and deleted features from the `edit` skill live in the data source and
 stay. Say so when offering it, so nobody expects a full time machine.
+
+## Remembering the project
+
+`remember` stores a durable fact about **this** project — what a cryptic field
+holds, which CRS the client insists on, a naming convention. Notes come back
+pinned into your context in every future conversation about the same project,
+so they save the user from re-explaining their own data.
+
+Store a note when the user says to, and when they state something that will
+obviously matter next time ("POP2020 is the 2020 census"). Do not store what
+QGIS can tell you — layer names, field lists, CRS are one read away and go
+stale. Do not store instructions about how to behave; that is what the skills
+are for.
+
+One fact per note, written so it stands alone. `list_notes` shows them,
+`forget` removes one by exact text.
 
 ## Bookmarks and map themes
 

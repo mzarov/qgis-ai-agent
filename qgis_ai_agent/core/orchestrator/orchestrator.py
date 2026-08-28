@@ -21,6 +21,7 @@ SWITCH_WHILE_PENDING = tr("Apply or cancel the planned changes first.")
 VERIFYING = tr("Checking the applied changes…")
 MAX_VERIFICATION_ROUNDS = 3
 DESTRUCTIVE_DECLINED = tr("Kept everything as it was — the destructive steps were not applied.")
+INTERJECTED = tr("Passed to the agent — it will take this into account on its next step.")
 THOUSAND = 1000
 TOKENS_LABEL = tr("{0} tokens")
 
@@ -97,7 +98,7 @@ class CoreOrchestrator:
             self._push_message(tr("Type a request."), Qgis.Warning)
             return
         if self.agent.is_running:
-            self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
+            self._interject(text)
             return
 
         self.dock_widget.add_user_message(text)
@@ -110,6 +111,15 @@ class CoreOrchestrator:
 
     def on_usage_changed(self, spent: int) -> None:
         self.dock_widget.set_usage(TOKENS_LABEL.format(_compact_number(spent)))
+
+    def _interject(self, text: str) -> None:
+        if not self.agent.interject(text):
+            self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
+            return
+        self.dock_widget.add_user_message(text)
+        self.dock_widget.clear_prompt()
+        self.dock_widget.add_system_message(INTERJECTED)
+        self.conversation.add("user", text)
 
     def on_tool_started(self, summary: str) -> None:
         self._active_tool_message_id = self.dock_widget.add_tool_message(summary)

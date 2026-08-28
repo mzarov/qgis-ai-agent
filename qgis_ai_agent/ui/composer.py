@@ -22,7 +22,7 @@ HINT_FONT_SCALE = 0.85
 SEND_GLYPH = "↑"
 STOP_GLYPH = "■"
 HINT_IDLE = tr("Enter to send, Shift+Enter for a new line")
-HINT_BUSY = tr("Working… press ■ to stop")
+HINT_BUSY = tr("Working… type to correct me, or press ■ to stop")
 
 
 class PromptEdit(QPlainTextEdit):
@@ -114,9 +114,9 @@ class Composer(QWidget):
         return self._edit.fontMetrics().lineSpacing()
 
     def _on_submit(self) -> None:
-        if self._busy:
-            return
-        self.submitted.emit(self._edit.toPlainText().strip())
+        text = self._edit.toPlainText().strip()
+        if text:
+            self.submitted.emit(text)
 
     def clear(self) -> None:
         self._edit.clear()
@@ -127,5 +127,4 @@ class Composer(QWidget):
         self._send.setText(STOP_GLYPH if busy else SEND_GLYPH)
         self._send.setToolTip(tr("Stop") if busy else tr("Send"))
         self._send.setStyleSheet(self._button_style(style.danger(palette) if busy else style.accent(palette)))
-        self._edit.setReadOnly(busy)
         self._hint.setText(HINT_BUSY if busy else HINT_IDLE)

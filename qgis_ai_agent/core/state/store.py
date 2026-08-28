@@ -10,7 +10,7 @@ MAX_SESSIONS = 60
 
 class SessionStore:
     def __init__(self, root: str | None = None):
-        self._root = root or _default_root()
+        self._root = root or default_root()
 
     def save(self, session: Session) -> None:
         if session.is_empty or not self._ensure_root():
@@ -76,7 +76,7 @@ class SessionStore:
         return True
 
 
-def _default_root() -> str:
+def default_root() -> str:
     from qgis.core import QgsApplication
 
     try:
