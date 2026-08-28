@@ -64,6 +64,9 @@ class AgentDockWidget(QDockWidget):
         title.setFont(font)
         title.setStyleSheet("border: none;")
         row.addWidget(title, 1)
+        self._usage_label = QLabel("")
+        self._usage_label.setStyleSheet(f"border: none; color: {style.css_color(style.muted(palette))};")
+        row.addWidget(self._usage_label)
         self._sessions_button = self._build_action(icons.sessions, "⟲", tr("Conversations"), self._show_sessions)
         row.addWidget(self._sessions_button)
         row.addWidget(self._build_action(icons.clear, "⌫", tr("Clear conversation"), self._on_clear))
@@ -182,6 +185,9 @@ class AgentDockWidget(QDockWidget):
 
     def set_busy(self, busy: bool) -> None:
         self.composer.set_busy(busy)
+
+    def set_usage(self, text: str) -> None:
+        self._usage_label.setText(text)
 
     def clear_prompt(self) -> None:
         self.composer.clear()

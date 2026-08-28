@@ -45,21 +45,34 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    remembers the choice in `QgsSettings` under a hash of the URL. All paths
    normalise into `ModelTurn` — the loop does not know which one worked.
    Never add provider SDKs: a dialect is a shape of HTTP, not a library.
-6. **`MAX_ITERATIONS`** guards against endless loops. Do not remove or raise it
-   without a reason.
-7. **The orchestrator only renders.** Decisions belong to the loop;
+6. **`MAX_ITERATIONS`** guards against endless loops, and a token budget from
+   the settings guards the user's wallet. Both end the run through `_complete`
+   with a plain explanation — never by silently stopping.
+7. **A run can pause and resume.** `apply_now` marks the run staged: the loop
+   emits `confirm_needed` but does **not** end. On confirm, the batch executes,
+   its real results go into the same transcript and `_request_step` continues;
+   on cancel the run ends with a stated reason. The invariant is unchanged —
+   writes still only run after the user's button. What changed is that the run
+   no longer dies at the first batch, which is what lets one request finish a
+   multi-stage task.
+8. **The transcript compacts itself.** Only the last `KEEP_FULL_RESULTS` tool
+   results are rendered in full and only the newest image is carried; older ones
+   become short notes. Without this a forty-turn run would not fit the model
+   window. Compaction happens at render time — the entries themselves are never
+   mutated, so the saved conversation stays complete.
+9. **The orchestrator only renders.** Decisions belong to the loop;
    `CoreOrchestrator` subscribes to signals and draws them into the chat.
    Do not add branching logic there.
-8. **A message is written with one call.** `ConversationState.add` puts it both
+10. **A message is written with one call.** `ConversationState.add` puts it both
    into the model's window and into the saved session. Never call
    `HistoryStore` and `Session` separately — they diverge, and the model would
    see something other than what the chat shows.
-9. **Aborting never blocks the main thread.** `abort` does not wait and does not
+11. **Aborting never blocks the main thread.** `abort` does not wait and does not
    kill the thread — it disconnects the signals and lets the HTTP request burn
    out in the background; the result is discarded by the `_aborted` flag. The
    hard `stop` with `terminate` remains only for plugin unload, when QGIS is
    closing anyway.
-10. **Imports** — all at the top, absolute. Code without comments or docstrings
+12. **Imports** — all at the top, absolute. Code without comments or docstrings
     — see the root CLAUDE.md.
 
 ## What lives where

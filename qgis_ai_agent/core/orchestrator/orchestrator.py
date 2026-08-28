@@ -18,7 +18,10 @@ RUN_STOPPED = tr("Run stopped. Any changes the agent had planned were dropped.")
 SWITCH_WHILE_RUNNING = tr("Wait for the current task to finish.")
 SWITCH_WHILE_PENDING = tr("Apply or cancel the planned changes first.")
 VERIFYING = tr("Checking the applied changes…")
+MAX_VERIFICATION_ROUNDS = 3
 DESTRUCTIVE_DECLINED = tr("Kept everything as it was — the destructive steps were not applied.")
+THOUSAND = 1000
+TOKENS_LABEL = tr("{0} tokens")
 
 
 class CoreOrchestrator:
@@ -38,12 +41,14 @@ class CoreOrchestrator:
         self.agent.tool_queued.connect(self.on_tool_queued)
         self.agent.tool_rejected.connect(self.on_tool_rejected)
         self.agent.skill_loaded.connect(self.on_skill_loaded)
+        self.agent.plan_changed.connect(self.on_plan_changed)
         self.agent.confirm_needed.connect(self.on_confirm_needed)
         self.agent.applied.connect(self.on_applied)
         self.agent.finished.connect(self.on_finished)
         self.agent.failed.connect(self.on_failed)
         self.agent.aborted.connect(self.on_aborted)
         self.agent.busy_changed.connect(self.dock_widget.set_busy)
+        self.agent.usage_changed.connect(self.on_usage_changed)
 
     def on_stop(self) -> None:
         self.agent.abort()
@@ -92,10 +97,14 @@ class CoreOrchestrator:
 
         self.dock_widget.add_user_message(text)
         self.dock_widget.clear_prompt()
+        self.dock_widget.set_usage("")
         self._plan_message_id = None
         history = self.conversation.window()
         self.conversation.add("user", text)
         self.agent.start(text, history)
+
+    def on_usage_changed(self, spent: int) -> None:
+        self.dock_widget.set_usage(TOKENS_LABEL.format(_compact_number(spent)))
 
     def on_tool_started(self, summary: str) -> None:
         self._active_tool_message_id = self.dock_widget.add_tool_message(summary)
@@ -112,6 +121,10 @@ class CoreOrchestrator:
 
     def on_tool_rejected(self, summary: str) -> None:
         self.dock_widget.add_rejected_message(tr("Rejected: {0}").format(summary))
+
+    def on_plan_changed(self, steps: list, done: int) -> None:
+        shown = " · ".join(f"✓ {step}" if index < done else step for index, step in enumerate(steps))
+        self.dock_widget.add_tool_message(tr("Plan {0}/{1}: {2}").format(done, len(steps), shown))
 
     def on_skill_loaded(self, name: str) -> None:
         self.dock_widget.add_tool_message(tr("Loading knowledge: {0}").format(name))
@@ -166,16 +179,25 @@ class CoreOrchestrator:
         self._maybe_verify(results)
 
     def _maybe_verify(self, results: list) -> None:
-        if not results or self.agent.is_verification or self.agent.is_running:
+        if not results or self.agent.is_running or not get_verify_after_apply():
             return
-        if not get_verify_after_apply():
+        next_round = self.agent.verification_round + 1
+        if next_round > MAX_VERIFICATION_ROUNDS:
+            QgsMessageLog.logMessage(
+                f"Stopping after {MAX_VERIFICATION_ROUNDS} verification rounds.", LOG_TAG, Qgis.Warning
+            )
             return
         outcomes = [
             {"tool": result.call.name, "ok": result.ok, "error": str(result.payload.get("error", ""))}
             for result in results
         ]
         self.dock_widget.add_system_message(VERIFYING)
-        self.agent.start(build_verification_prompt(outcomes), self.conversation.window(), verification=True)
+        self.agent.start(
+            build_verification_prompt(outcomes),
+            self.conversation.window(),
+            verification=True,
+            verification_round=next_round,
+        )
 
     def on_finished(self, text: str) -> None:
         message = (text or "").strip()
@@ -208,3 +230,9 @@ class CoreOrchestrator:
 
     def _push_message(self, text: str, level) -> None:
         self.iface.messageBar().pushMessage("QGIS AI Agent", text, level=level, duration=MESSAGE_DURATION_SEC)
+
+
+def _compact_number(value: int) -> str:
+    if value < THOUSAND:
+        return str(value)
+    return f"{value / THOUSAND:.1f}k"

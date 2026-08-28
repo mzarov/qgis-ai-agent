@@ -4,6 +4,11 @@ from typing import Any
 from qgis_ai_agent.skills.registry import SKILL_REGISTRY
 
 LOAD_SKILL_TOOL = "load_skill"
+UPDATE_PLAN_TOOL = "update_plan"
+APPLY_NOW_TOOL = "apply_now"
+TASK_PLAN_HEADER = "Your current task plan (kept by update_plan):"
+PLAN_STEP_DONE = "[x]"
+PLAN_STEP_PENDING = "[ ]"
 
 CORE_PROMPT = """You are the QGIS AI Agent, running inside a live QGIS session.
 
@@ -52,6 +57,23 @@ Skills: each skill is a domain package with its own tools and rules. Call
 load_skill before working in a domain whose tools you do not have yet. Loading a
 skill adds its tools to your toolset for the rest of the task.
 
+For a task with more than two stages, call update_plan first with the list of
+steps, and call it again as steps complete. The plan is pinned into your context
+on every turn — it is how you keep track of a long task instead of drifting.
+Do not plan single-step requests.
+
+Staged work — this is how you finish a whole task in one run. When the next
+thing you need to do depends on queued writes having actually happened (you
+must read the layer you are about to create, or look at the styling you just
+queued), call apply_now. The user is shown the queued steps and confirms them;
+if they agree, the steps execute and their real results come back to you and
+you keep working in the same run. If they decline, the run ends.
+
+Use apply_now when you genuinely cannot plan further without the result. Do not
+use it to apply one step at a time out of caution — every call costs the user a
+confirmation click. Queue everything that can be planned blind, then apply once
+and continue.
+
 Finish the task by replying with plain text and no tool calls. That reply is what
 the user sees, so make it a short, concrete summary of what you did or found."""
 
@@ -98,6 +120,69 @@ def build_verification_prompt(outcomes: list[dict[str, Any]]) -> str:
     return VERIFICATION_PROMPT.format(outcomes="\n".join(lines) or "- (nothing ran)")
 
 
+def build_apply_now_schema() -> dict[str, Any]:
+    return {
+        "type": "function",
+        "function": {
+            "name": APPLY_NOW_TOOL,
+            "description": (
+                "Ask the user to apply the queued changes now, then continue the "
+                "same run with their real results. Call it only when you cannot "
+                "plan the next step without those changes having happened."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reason": {
+                        "type": "string",
+                        "description": "One line for the user: why this has to land before you continue",
+                    }
+                },
+                "required": ["reason"],
+            },
+        },
+    }
+
+
+def build_update_plan_schema() -> dict[str, Any]:
+    return {
+        "type": "function",
+        "function": {
+            "name": UPDATE_PLAN_TOOL,
+            "description": (
+                "Set or update the step list of the current task. Call it at the "
+                "start of any multi-stage task and again whenever a step completes. "
+                "Resend the whole list each time."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "steps": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Every step of the task, short, in order",
+                    },
+                    "done": {
+                        "type": "integer",
+                        "description": "How many steps from the start are already finished",
+                    },
+                },
+                "required": ["steps"],
+            },
+        },
+    }
+
+
+def render_task_plan(steps: list[str], done: int) -> str:
+    if not steps:
+        return ""
+    lines = [TASK_PLAN_HEADER]
+    for index, step in enumerate(steps):
+        marker = PLAN_STEP_DONE if index < done else PLAN_STEP_PENDING
+        lines.append(f"{marker} {step}")
+    return "\n".join(lines)
+
+
 def build_load_skill_schema(available_names: list[str]) -> dict[str, Any]:
     return {
         "type": "function",
@@ -131,6 +216,7 @@ def build_system_prompt(
     loaded_skills: list[str],
     json_protocol: bool = False,
     locale: str = "en",
+    task_plan: str = "",
 ) -> str:
     parts = [CORE_PROMPT, language_policy(locale)]
     if json_protocol:
@@ -139,6 +225,8 @@ def build_system_prompt(
     if loaded_skills:
         parts.append(LOADED_SKILLS_HEADER + ", ".join(loaded_skills) + ".")
         parts.append(SKILL_REGISTRY.bodies_block(loaded_skills))
+    if task_plan:
+        parts.append(task_plan)
     if project_context:
         parts.append(PROJECT_CONTEXT_HEADER + "\n" + project_context)
     return "\n\n".join(part for part in parts if part)

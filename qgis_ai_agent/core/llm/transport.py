@@ -49,6 +49,20 @@ class ModelTurn:
     tool_calls: list[ToolCall] = field(default_factory=list)
     finish_reason: str = ""
     protocol: str = PROTOCOL_NATIVE
+    input_tokens: int = 0
+    output_tokens: int = 0
+
+
+def parse_usage(data: dict[str, Any]) -> tuple[int, int]:
+    usage = data.get("usage") or {}
+    if not isinstance(usage, dict):
+        return 0, 0
+    incoming = usage.get("prompt_tokens", usage.get("input_tokens", 0))
+    outgoing = usage.get("completion_tokens", usage.get("output_tokens", 0))
+    try:
+        return int(incoming or 0), int(outgoing or 0)
+    except (TypeError, ValueError):
+        return 0, 0
 
 
 def call_model(
@@ -142,6 +156,7 @@ def _call_anthropic(
     body = anthropic.build_body(messages, tool_schemas, model)
     data = post_json(endpoint, headers, body, timeout, overrides.get("verify_override"))
     text, calls, stop_reason = anthropic.parse_response(data)
+    incoming, outgoing = parse_usage(data)
     return ModelTurn(
         text=text,
         tool_calls=[
@@ -155,6 +170,8 @@ def _call_anthropic(
         ],
         finish_reason=stop_reason,
         protocol=PROTOCOL_NATIVE,
+        input_tokens=incoming,
+        output_tokens=outgoing,
     )
 
 
@@ -175,7 +192,10 @@ def _first_choice(data: dict[str, Any]) -> dict[str, Any]:
 def _parse_native_turn(data: dict[str, Any]) -> ModelTurn:
     choice = _first_choice(data)
     message = choice.get("message") or {}
+    incoming, outgoing = parse_usage(data)
     return ModelTurn(
+        input_tokens=incoming,
+        output_tokens=outgoing,
         text=(message.get("content") or "").strip(),
         tool_calls=[
             call
@@ -200,15 +220,18 @@ def _native_call(index: int, raw: dict[str, Any]) -> ToolCall | None:
 
 
 def _parse_json_turn(data: dict[str, Any]) -> ModelTurn:
+    incoming, outgoing = parse_usage(data)
     content = ((_first_choice(data).get("message") or {}).get("content") or "").strip()
     if not content:
-        return ModelTurn(protocol=PROTOCOL_JSON)
+        return ModelTurn(protocol=PROTOCOL_JSON, input_tokens=incoming, output_tokens=outgoing)
     try:
         parsed = parse_model_json(content)
     except json.JSONDecodeError:
-        return ModelTurn(text=content, protocol=PROTOCOL_JSON)
+        return ModelTurn(text=content, protocol=PROTOCOL_JSON, input_tokens=incoming, output_tokens=outgoing)
 
     return ModelTurn(
+        input_tokens=incoming,
+        output_tokens=outgoing,
         text=(parsed.get("text") or parsed.get("message") or "").strip(),
         tool_calls=[
             call

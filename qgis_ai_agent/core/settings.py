@@ -82,6 +82,23 @@ def set_verify_ssl(value: bool) -> None:
     _write("verify_ssl", "true" if value else "false")
 
 
+DEFAULT_TOKEN_BUDGET = 300000
+
+
+def get_token_budget() -> int:
+    stored = QgsSettings().value(f"{SETTINGS_PREFIX}/token_budget")
+    if stored is None:
+        return DEFAULT_TOKEN_BUDGET
+    try:
+        return max(0, int(stored))
+    except (TypeError, ValueError):
+        return DEFAULT_TOKEN_BUDGET
+
+
+def set_token_budget(value: int) -> None:
+    _write("token_budget", str(max(0, int(value))))
+
+
 def get_verify_after_apply() -> bool:
     stored = QgsSettings().value(f"{SETTINGS_PREFIX}/verify_after_apply")
     return True if stored is None else _as_bool(stored)

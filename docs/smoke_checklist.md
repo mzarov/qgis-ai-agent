@@ -537,3 +537,30 @@ These verify the agent solves everyday tasks without wandering through search.
      to the previous state; the agent says that data edits are not covered.
 124. **Bookmarks and themes.** “Remember this view as centre”, “save this look
      as print” → both appear in list_views and in the QGIS panels.
+
+## Autonomy: staged runs, plan, budget
+
+125. **A whole task in one request.** “Download the cafes of <city> from OSM,
+     colour them, label them, make an A4 layout and export it to PDF” → the
+     agent plans, queues the download, asks to apply it, then **continues in
+     the same run**: reads the new layer, styles it, applies again, builds the
+     layout, looks at it, exports. One request, several Apply clicks, no
+     re-explaining.
+126. **The plan is visible.** During that run the feed shows “Plan 2/5: …”
+     lines that advance as steps complete.
+127. **Declining a stage stops cleanly.** Press Cancel on a staged plan card →
+     the run ends with a message saying the changes were declined; nothing
+     half-applied is left behind.
+128. **apply_now is not abused.** A single-step request (“make the rivers
+     blue”) must still be one plan card at the end, not a staged pause.
+129. **The token counter runs.** The header shows a growing token count during
+     a run and clears when a new request starts.
+130. **The budget stops the run.** Set the budget to something small (say
+     5000) in the settings, start a long task → the run stops politely with an
+     explanation instead of burning through the key.
+131. **A long run does not blow the context.** A 20+ turn run keeps working;
+     older tool results come back compacted rather than failing with a
+     context-length error from the provider.
+132. **Verification iterates.** Force a styling change to land wrongly → the
+     verification pass queues a fix, and if that fix also fails the second
+     round runs; it stops after three rounds instead of looping forever.

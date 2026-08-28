@@ -2,9 +2,11 @@ from dataclasses import dataclass
 from typing import Any
 
 from qgis_ai_agent.core.agent.prompts import (
+    build_apply_now_schema,
     build_json_tools_block,
     build_load_skill_schema,
     build_system_prompt,
+    build_update_plan_schema,
 )
 from qgis_ai_agent.core.agent.transcript import Transcript
 from qgis_ai_agent.core.context.project import get_project_context
@@ -37,6 +39,7 @@ def build_step_request(
     loaded_skills: list[str],
     history: list[dict[str, str]],
     overrides: dict[str, Any] | None = None,
+    task_plan: str = "",
 ) -> StepRequest:
     schemas = build_tool_schemas_for(loaded_skills)
     json_protocol = detect_json_protocol()
@@ -45,6 +48,7 @@ def build_step_request(
         loaded_skills=loaded_skills,
         json_protocol=json_protocol,
         locale=locale_code(),
+        task_plan=task_plan,
     )
     if json_protocol:
         tools_block = build_json_tools_block(schemas)
@@ -60,6 +64,8 @@ def build_step_request(
 
 def build_tool_schemas_for(loaded_skills: list[str]) -> list[dict[str, Any]]:
     schemas = build_tool_schemas(get_tools_for_skills(loaded_skills))
+    schemas.insert(0, build_apply_now_schema())
+    schemas.insert(0, build_update_plan_schema())
     remaining = [name for name in SKILL_REGISTRY.names() if name not in loaded_skills]
     if remaining:
         schemas.insert(0, build_load_skill_schema(remaining))

@@ -17,11 +17,13 @@ from qgis_ai_agent.core.llm.providers import TITLES, by_title, matching
 from qgis_ai_agent.core.settings import (
     AUTH_TYPE_BEARER,
     AUTH_TYPE_OAUTH,
+    DEFAULT_TOKEN_BUDGET,
     get_api_key,
     get_api_url,
     get_auth_type,
     get_dialect,
     get_model,
+    get_token_budget,
     get_verify_after_apply,
     get_verify_ssl,
     set_api_key,
@@ -29,6 +31,7 @@ from qgis_ai_agent.core.settings import (
     set_auth_type,
     set_dialect,
     set_model,
+    set_token_budget,
     set_verify_after_apply,
     set_verify_ssl,
 )
@@ -48,6 +51,8 @@ DIALECT_HINT = tr("auto picks the format from the address: api.anthropic.com is 
 AUTH_HINT = tr("Bearer suits almost everyone; OAuth is for corporate gateways.")
 VERIFY_LABEL = tr("Check the result after applying changes")
 VERIFY_HINT = tr("After you press Apply, the agent re-reads the project and confirms the changes really landed.")
+BUDGET_LABEL = tr("Token budget per run")
+BUDGET_HINT = tr("The run stops politely once it has spent this many tokens. 0 removes the limit.")
 
 
 class SettingsDialog(QDialog):
@@ -115,6 +120,9 @@ class SettingsDialog(QDialog):
         self.verify_apply_cb.setToolTip(VERIFY_HINT)
         self.verify_apply_cb.setChecked(get_verify_after_apply())
         column.addWidget(self.verify_apply_cb)
+
+        self.budget_edit = QLineEdit(str(get_token_budget()))
+        column.addWidget(fields.field(BUDGET_LABEL, self.budget_edit, BUDGET_HINT, palette))
         return frame
 
     def _build_buttons(self, palette: Any) -> QHBoxLayout:
@@ -165,6 +173,7 @@ class SettingsDialog(QDialog):
         set_dialect(self.dialect_combo.currentText())
         set_verify_ssl(self.verify_ssl_cb.isChecked())
         set_verify_after_apply(self.verify_apply_cb.isChecked())
+        set_token_budget(_parsed_budget(self.budget_edit.text()))
         key = self.key_edit.text()
         if key:
             try:
@@ -196,6 +205,13 @@ class SettingsDialog(QDialog):
 
     def _show(self, message: str, colour: Any) -> None:
         fields.paint_status(self._status, message, colour)
+
+
+def _parsed_budget(raw: str) -> int:
+    try:
+        return max(0, int(raw.strip()))
+    except (TypeError, ValueError):
+        return DEFAULT_TOKEN_BUDGET
 
 
 def _select(combo: QComboBox, value: str) -> None:
