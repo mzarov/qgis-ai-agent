@@ -34,6 +34,43 @@ class _Stub(metaclass=_Meta):
         return _Stub()
 
 
+class _BoundSignal:
+    def __init__(self):
+        self._slots = []
+
+    def connect(self, slot):
+        self._slots.append(slot)
+
+    def disconnect(self, slot=None):
+        if slot is None:
+            self._slots.clear()
+        elif slot in self._slots:
+            self._slots.remove(slot)
+        else:
+            raise TypeError("slot was not connected")
+
+    def emit(self, *args):
+        for slot in list(self._slots):
+            slot(*args)
+
+
+class _Signal:
+    def __init__(self, *types):
+        self._name = "signal"
+
+    def __set_name__(self, owner, name):
+        self._name = name
+
+    def __get__(self, instance, owner=None):
+        if instance is None:
+            return self
+        return instance.__dict__.setdefault("_stub_signals", {}).setdefault(self._name, _BoundSignal())
+
+
+def pyqtSignal(*types, **options):
+    return _Signal(*types)
+
+
 def _mod(name, attrs=()):
     m = types.ModuleType(name)
     for a in attrs:
@@ -111,13 +148,12 @@ core = _mod(
 )
 pyqt = _mod("qgis.PyQt")
 pyqt.__path__ = []
-_mod(
+_qtcore = _mod(
     "qgis.PyQt.QtCore",
     [
         "Qt",
         "QThread",
         "QObject",
-        "pyqtSignal",
         "QEvent",
         "QModelIndex",
         "QAbstractListModel",
@@ -184,6 +220,7 @@ _mod(
         "QSizePolicy",
     ],
 )
+_qtcore.pyqtSignal = pyqtSignal
 _mod("qgis.utils", ["iface"])
 qgis.core = sys.modules["qgis.core"]
 qgis.PyQt = pyqt

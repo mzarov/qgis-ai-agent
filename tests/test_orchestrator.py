@@ -46,12 +46,14 @@ class Agent:
         self.is_running = False
         self.has_pending_writes = False
         self.is_verification = False
+        self.verification_round = 0
         self.started = None
         self.verification_started = None
         self.aborts = 0
 
-    def start(self, prompt, history, verification=False):
+    def start(self, prompt, history, verification=False, verification_round=0):
         if verification:
+            self.verification_round = verification_round
             self.verification_started = (prompt, list(history))
         else:
             self.started = (prompt, list(history))
@@ -233,11 +235,20 @@ class OrchestratorSessionTest(unittest.TestCase):
         prompt, _ = self.orchestrator.agent.verification_started
         self.assertIn("FAILED — no such layer", prompt)
 
-    def test_a_verification_run_is_not_verified_again(self):
+    def test_verification_iterates_but_stops_at_the_cap(self):
+        from qgis_ai_agent.core.orchestrator.orchestrator import MAX_VERIFICATION_ROUNDS
+
         self.orchestrator.on_prompt("сделай реки синими")
-        self.orchestrator.agent.is_verification = True
+        self.orchestrator.agent.verification_round = MAX_VERIFICATION_ROUNDS
         self.orchestrator.on_applied([Result()])
         self.assertIsNone(self.orchestrator.agent.verification_started)
+
+    def test_a_failed_fix_gets_another_verification_round(self):
+        self.orchestrator.on_prompt("сделай реки синими")
+        self.orchestrator.agent.verification_round = 1
+        self.orchestrator.on_applied([Result(ok=False, payload={"error": "still wrong"})])
+        self.assertIsNotNone(self.orchestrator.agent.verification_started)
+        self.assertEqual(self.orchestrator.agent.verification_round, 2)
 
     def test_verification_respects_the_setting(self):
         from qgis_ai_agent.core.orchestrator import orchestrator as module
