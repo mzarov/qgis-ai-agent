@@ -69,7 +69,7 @@ def run_snippet(code: str, limit: int = MAX_LINES) -> dict[str, Any]:
     budget = LineBudget(limit)
     try:
         with redirect_stdout(stream), budget:
-            exec(compile(code, "<agent snippet>", "exec"), prepared)  # noqa: S102
+            exec(compile(code, "<agent snippet>", "exec"), prepared)  # nosec B102
     except BudgetExceeded as stopped:
         return _result(stream, budget, error=str(stopped), traceback_text="")
     except BaseException as failure:
