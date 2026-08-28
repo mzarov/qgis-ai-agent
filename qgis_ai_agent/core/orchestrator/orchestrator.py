@@ -4,8 +4,9 @@ from qgis.core import Qgis, QgsMessageLog
 
 from qgis_ai_agent.core.agent.loop import AgentLoop
 from qgis_ai_agent.core.agent.prompts import build_verification_prompt
+from qgis_ai_agent.core.llm.client import is_local
 from qgis_ai_agent.core.orchestrator.contracts import DockWidgetContract
-from qgis_ai_agent.core.settings import get_verify_after_apply
+from qgis_ai_agent.core.settings import get_api_key, get_api_url, get_verify_after_apply
 from qgis_ai_agent.core.state.conversation import ConversationState
 from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
@@ -34,6 +35,10 @@ class CoreOrchestrator:
         self._plan_message_id: int | None = None
         self._connect_agent()
         self.dock_widget.set_session_source(self.conversation.recent)
+        self.refresh_configured()
+
+    def refresh_configured(self) -> None:
+        self.dock_widget.set_configured(_is_configured())
 
     def _connect_agent(self) -> None:
         self.agent.tool_started.connect(self.on_tool_started)
@@ -230,6 +235,14 @@ class CoreOrchestrator:
 
     def _push_message(self, text: str, level) -> None:
         self.iface.messageBar().pushMessage("QGIS AI Agent", text, level=level, duration=MESSAGE_DURATION_SEC)
+
+
+def _is_configured() -> bool:
+    try:
+        url = (get_api_url() or "").strip()
+        return bool(url) and (bool((get_api_key() or "").strip()) or is_local(url))
+    except Exception:
+        return False
 
 
 def _compact_number(value: int) -> str:

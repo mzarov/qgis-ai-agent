@@ -143,6 +143,8 @@ core = _mod(
         "QgsReferencedRectangle",
         "QgsMapThemeCollection",
         "QgsLayerTreeModel",
+        "QgsVectorFileWriter",
+        "QgsCoordinateTransformContext",
         "QgsMapRendererParallelJob",
     ],
 )

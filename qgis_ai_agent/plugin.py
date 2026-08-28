@@ -65,3 +65,5 @@ class QgisAiAgentPlugin:
 
     def _on_open_settings(self) -> None:
         SettingsDialog(self.dock_widget).exec()
+        if self._orchestrator:
+            self._orchestrator.refresh_configured()

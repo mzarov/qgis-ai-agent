@@ -4,6 +4,7 @@ from qgis_ai_agent.qgis_tools.project.add_layer import AddLayerTool
 from qgis_ai_agent.qgis_tools.project.add_service_layer import AddServiceLayerTool
 from qgis_ai_agent.qgis_tools.project.configure_layer import ConfigureLayerTool
 from qgis_ai_agent.qgis_tools.project.configure_project import ConfigureProjectTool
+from qgis_ai_agent.qgis_tools.project.export_layer import ExportLayerTool
 from qgis_ai_agent.qgis_tools.project.list_db_connections import ListDbConnectionsTool
 from qgis_ai_agent.qgis_tools.project.list_db_tables import ListDbTablesTool
 from qgis_ai_agent.qgis_tools.project.remove_layer import RemoveLayerTool
@@ -24,6 +25,7 @@ PROJECT_TOOLS = [
     ConfigureLayerTool(),
     ConfigureProjectTool(),
     SaveProjectTool(),
+    ExportLayerTool(),
     UndoLastApplyTool(),
     ListViewsTool(),
     SaveBookmarkTool(),

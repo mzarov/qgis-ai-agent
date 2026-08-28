@@ -99,10 +99,15 @@ class AgentDockWidget(QDockWidget):
         button.clicked.connect(handler)
         return button
 
+    def set_configured(self, configured: bool) -> None:
+        self.conversation.set_configured(configured)
+
     def _build_conversation(self) -> QWidget:
         self.conversation = ConversationView()
         self.conversation.confirm_requested.connect(self.confirm_plan_clicked.emit)
         self.conversation.cancel_requested.connect(self.cancel_plan_clicked.emit)
+        self.conversation.suggestion_chosen.connect(self.prompt_submitted.emit)
+        self.conversation.settings_requested.connect(self.open_settings_clicked.emit)
         return self.conversation
 
     def _build_composer(self) -> QWidget:

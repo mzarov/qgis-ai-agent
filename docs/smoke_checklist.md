@@ -564,3 +564,20 @@ These verify the agent solves everyday tasks without wandering through search.
 132. **Verification iterates.** Force a styling change to land wrongly → the
      verification pass queues a fix, and if that fix also fails the second
      round runs; it stops after three rounds instead of looping forever.
+
+## Onboarding and answering with the map
+
+133. **The empty panel invites.** Open the plugin on a fresh profile with no
+     key set → the feed shows a card explaining the key is needed, with a
+     button that opens the settings. No cryptic error on the first send.
+134. **After saving a key the card changes** to three clickable example
+     requests; clicking one sends it as if typed.
+135. **Selection as an answer.** “Show me the motorways” → the features are
+     selected, the map zooms to them and they flash; the reply names the
+     count.
+136. **An empty selection is honest.** “Show me the motorways” on a layer
+     with none → the agent says nothing matched instead of reporting success.
+137. **Layer export.** “Save the roads layer to /tmp/roads.gpkg” → the file
+     exists and opens in QGIS; a bad extension is refused before queueing.
+138. **Export of the selection.** Select a few features, “export what I
+     selected to GeoJSON” → the file holds only those features.

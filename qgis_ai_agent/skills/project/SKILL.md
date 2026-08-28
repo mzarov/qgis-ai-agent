@@ -1,7 +1,7 @@
 ---
 name: project
 description: Manage the project itself — add layers from files, basemaps and PostGIS, remove, rename, hide, group and reorder them, change project CRS, zoom the map, save the project. Load this to set a workflow up or to finish it.
-tools: [zoom_to_layer, add_layer, add_basemap, add_service_layer, list_db_connections, list_db_tables, add_db_layer, remove_layer, configure_layer, configure_project, save_project, undo_last_apply, list_views, save_bookmark, save_map_theme]
+tools: [zoom_to_layer, add_layer, add_basemap, add_service_layer, list_db_connections, list_db_tables, add_db_layer, remove_layer, configure_layer, configure_project, save_project, export_layer, undo_last_apply, list_views, save_bookmark, save_map_theme]
 ---
 
 # The project as a workspace
@@ -23,6 +23,7 @@ saved.
 | "change the project CRS", "name the project" | `configure_project` |
 | "show me the layer", "zoom to" | `zoom_to_layer` |
 | "save the project" | `save_project` |
+| "save this layer to a file", "export to GeoJSON" | `export_layer` |
 
 ## Basemaps
 
@@ -43,6 +44,17 @@ login will simply fail to load; say that plainly.
 
 For plain tile basemaps use `add_basemap` instead — it is simpler and places
 the layer at the bottom.
+
+## Getting data out
+
+`export_layer` writes a vector layer to disk: GeoPackage, GeoJSON, Shapefile
+or CSV, picked from the path extension. Two options matter — `selected_only`
+turns "export what I picked" into one call, and `crs` reprojects on the way
+out, which is what "give me this in WGS84" means.
+
+Saving the project and exporting a layer are different requests: the first
+keeps the workspace, the second hands someone a file. Do not substitute one
+for the other.
 
 ## Undo
 

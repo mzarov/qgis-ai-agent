@@ -16,16 +16,18 @@ from qgis_ai_agent.ui import style
 from qgis_ai_agent.ui.activity import ActivityGroup
 from qgis_ai_agent.ui.messages import AssistantMessage, SystemMessage, UserMessage
 from qgis_ai_agent.ui.plan import PlanCard
+from qgis_ai_agent.ui.welcome import WelcomeCard
 
 MESSAGE_SPACING = 11
 SIDE_PADDING = 12
 PIN_TOLERANCE = 24
-EMPTY_HINT = tr("Ask about the project or ask to process layers.")
 
 
 class ConversationView(QScrollArea):
     confirm_requested = pyqtSignal()
     cancel_requested = pyqtSignal()
+    suggestion_chosen = pyqtSignal(str)
+    settings_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -48,14 +50,25 @@ class ConversationView(QScrollArea):
         self._activity: ActivityGroup | None = None
         self._entries: dict[int, object] = {}
         self._next_id = 1
-        self._empty = self._build_hint()
-        self._insert(self._empty)
+        self._configured = True
+        self._empty: QWidget | None = None
+        self._show_welcome()
 
-    def _build_hint(self) -> QLabel:
-        label = QLabel(EMPTY_HINT)
-        label.setWordWrap(True)
-        label.setStyleSheet(f"color: {style.css_color(style.muted(self.palette()))};")
-        return label
+    def set_configured(self, configured: bool) -> None:
+        if configured == self._configured:
+            return
+        self._configured = configured
+        if self._empty is not None:
+            self._empty.deleteLater()
+            self._empty = None
+            self._show_welcome()
+
+    def _show_welcome(self) -> None:
+        card = WelcomeCard(self._configured)
+        card.suggestion_chosen.connect(self.suggestion_chosen.emit)
+        card.settings_requested.connect(self.settings_requested.emit)
+        self._empty = card
+        self._insert(card)
 
     def add_user_message(self, text: str) -> int:
         self._close_activity()
@@ -114,8 +127,8 @@ class ConversationView(QScrollArea):
                 widget.deleteLater()
         self._activity = None
         self._entries.clear()
-        self._empty = self._build_hint()
-        self._insert(self._empty)
+        self._empty = None
+        self._show_welcome()
 
     def copy_all(self) -> None:
         parts = []
