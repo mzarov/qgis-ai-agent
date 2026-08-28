@@ -508,3 +508,32 @@ These verify the agent solves everyday tasks without wandering through search.
      opens; a path into a missing folder is refused before queueing.
 112. **Item ids are addressable.** describe_layout shows map-1/title;
      “move the title down a little” changes exactly that item.
+
+## Full coverage: python, rasters, fields, services, undo
+
+113. **run_python shows the code first.** “Set a blend mode no tool exposes” →
+     the plan card, then Apply → the warning dialog contains the snippet
+     itself, readable. Declining runs nothing.
+114. **A broken snippet is refused at queue time** with the syntax error and
+     the line number, before the user is asked anything.
+115. **An endless loop does not hang QGIS.** Queue `while True: pass` → the
+     line budget stops it and the agent gets an explanation.
+116. **The agent prefers real tools.** “Make the rivers blue” must NOT use
+     run_python — the style tools cover it.
+117. **Raster pseudocolor.** “Colour the DEM with Viridis” → the ramp covers
+     the real min/max of the band, legend shows the classes.
+118. **Hillshade.** “Make a hillshade from the DEM” → shaded relief appears;
+     azimuth 315 by default.
+119. **No-data hiding.** A raster with -9999 filler → “hide the -9999 values”
+     makes them transparent and the colours become usable.
+120. **Virtual field.** “Add a virtual field with the area in hectares” → the
+     column appears in the attribute table, the file on disk is untouched.
+121. **Real field, rename, delete.** Add a text field, rename it, delete it →
+     the deletion asks the destructive confirmation; a read-only source
+     reports a rollback instead of silently failing.
+122. **WMS and WFS.** Add a public WMS layer and a WFS layer → tiles draw,
+     WFS features are queryable with query_layer.
+123. **Undo.** Apply a styling change, then “undo that” → the project returns
+     to the previous state; the agent says that data edits are not covered.
+124. **Bookmarks and themes.** “Remember this view as centre”, “save this look
+     as print” → both appear in list_views and in the QGIS panels.

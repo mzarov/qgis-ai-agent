@@ -2,9 +2,11 @@ from typing import Any
 
 from qgis.core import (
     Qgis,
+    QgsApplication,
     QgsLayoutItemLabel,
     QgsLayoutItemLegend,
     QgsLayoutItemMap,
+    QgsLayoutItemPicture,
     QgsLayoutItemScaleBar,
     QgsLayoutPoint,
     QgsLayoutSize,
@@ -17,13 +19,23 @@ ITEM_MAP = "map"
 ITEM_LEGEND = "legend"
 ITEM_SCALE_BAR = "scale_bar"
 ITEM_LABEL = "label"
-ITEM_TYPES = (ITEM_MAP, ITEM_LEGEND, ITEM_SCALE_BAR, ITEM_LABEL)
+ITEM_NORTH_ARROW = "north_arrow"
+ITEM_PICTURE = "picture"
+ITEM_TYPES = (ITEM_MAP, ITEM_LEGEND, ITEM_SCALE_BAR, ITEM_LABEL, ITEM_NORTH_ARROW, ITEM_PICTURE)
 TYPE_CLASSES = {
     ITEM_MAP: QgsLayoutItemMap,
     ITEM_LEGEND: QgsLayoutItemLegend,
     ITEM_SCALE_BAR: QgsLayoutItemScaleBar,
     ITEM_LABEL: QgsLayoutItemLabel,
+    ITEM_NORTH_ARROW: QgsLayoutItemPicture,
+    ITEM_PICTURE: QgsLayoutItemPicture,
 }
+NORTH_ARROWS = {
+    "simple": "arrows/NorthArrow_02.svg",
+    "compass": "arrows/NorthArrow_04.svg",
+    "triangle": "arrows/NorthArrow_11.svg",
+}
+DEFAULT_NORTH_ARROW = "simple"
 SCALE_BAR_STYLES = {
     "single_box": "Single Box",
     "double_box": "Double Box",
@@ -35,15 +47,33 @@ DEFAULT_SIZES_MM = {
     ITEM_LEGEND: (50.0, 60.0),
     ITEM_SCALE_BAR: (60.0, 12.0),
     ITEM_LABEL: (120.0, 12.0),
+    ITEM_NORTH_ARROW: (18.0, 18.0),
+    ITEM_PICTURE: (40.0, 40.0),
 }
 MM = getattr(getattr(Qgis, "LayoutUnit", None), "Millimeters", None)
 
 
 def item_kind(item: Any) -> str:
+    if isinstance(item, QgsLayoutItemPicture):
+        return ITEM_NORTH_ARROW if _is_north_arrow(item) else ITEM_PICTURE
     for kind, klass in TYPE_CLASSES.items():
         if isinstance(item, klass):
             return kind
     return ""
+
+
+def _is_north_arrow(item: Any) -> bool:
+    try:
+        return "northarrow" in str(item.picturePath() or "").lower().replace("_", "")
+    except Exception:
+        return False
+
+
+def north_arrow_path(style: str) -> str:
+    wanted = (style or DEFAULT_NORTH_ARROW).strip().lower()
+    if wanted not in NORTH_ARROWS:
+        raise ValueError(f"Unknown north arrow style '{style}'. Available: {', '.join(sorted(NORTH_ARROWS))}.")
+    return QgsApplication.svgPaths()[0] + "/" + NORTH_ARROWS[wanted] if QgsApplication.svgPaths() else ""
 
 
 def layout_items(layout: Any) -> list[Any]:

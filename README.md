@@ -8,7 +8,7 @@ confirms them.
 **Documentation:** <https://mzarov.github.io/qgis-ai-agent/> ·
 по-русски: <https://mzarov.github.io/qgis-ai-agent/ru/>
 
-**What it does** — seven domains, 41 tools:
+**What it does** — nine domains, 51 tools:
 
 | Domain | Example requests |
 | --- | --- |
@@ -18,7 +18,9 @@ confirms them.
 | `processing` | “build a 500 m buffer”, “clip by the district boundary”, “compute NDVI” |
 | `osm` | “download the cafes in Tver”, “roads except unpaved ones from OSM” |
 | `edit` | “fix the misspelled name”, “delete the features with no geometry data” |
+| `fields` | “add a virtual field with the area in hectares”, “rename nm to name” |
 | `layout` | “make an A4 map sheet with a legend and export it to PDF” |
+| `python` | the escape hatch: runs a PyQGIS snippet you read and approve first |
 
 The agent can **see**: on a vision model it renders the map or the layout and
 judges the result by eye. After you press Apply it runs a **verification pass**

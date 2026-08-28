@@ -43,7 +43,7 @@
         <translation>Добавляю подложку.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/layout/add_layout_item.py" line="97"/>
+        <location filename="qgis_ai_agent/qgis_tools/layout/add_layout_item.py" line="110"/>
         <source>Adding a {0} to layout '{1}'.</source>
         <translation>Добавляю {0} в макет «{1}».</translation>
     </message>
@@ -53,9 +53,24 @@
         <translation>Добавляю подложку «{0}» под остальные слои.</translation>
     </message>
     <message>
+        <location filename="qgis_ai_agent/qgis_tools/fields/manage_fields.py" line="78"/>
+        <source>Adding field '{0}' to '{1}'.</source>
+        <translation>Добавляю поле «{0}» в «{1}».</translation>
+    </message>
+    <message>
         <location filename="qgis_ai_agent/qgis_tools/project/add_layer.py" line="88"/>
         <source>Adding layer '{0}'{1}.</source>
         <translation>Добавляю слой «{0}»{1}.</translation>
+    </message>
+    <message>
+        <location filename="qgis_ai_agent/qgis_tools/fields/manage_fields.py" line="77"/>
+        <source>Adding virtual field '{0}' to '{1}'.</source>
+        <translation>Добавляю виртуальное поле «{0}» в «{1}».</translation>
+    </message>
+    <message>
+        <location filename="qgis_ai_agent/qgis_tools/project/add_service_layer.py" line="87"/>
+        <source>Adding {0} layer '{1}'.</source>
+        <translation>Добавляю слой {0} «{1}».</translation>
     </message>
     <message>
         <location filename="qgis_ai_agent/ui/settings_dialog.py" line="98"/>
@@ -221,6 +236,11 @@
         <location filename="qgis_ai_agent/qgis_tools/edit/delete_features.py" line="58"/>
         <source>Deleting features from '{0}'.</source>
         <translation>Удаляю объекты из «{0}».</translation>
+    </message>
+    <message>
+        <location filename="qgis_ai_agent/qgis_tools/fields/manage_fields.py" line="165"/>
+        <source>Deleting field '{0}' from '{1}'.</source>
+        <translation>Удаляю поле «{0}» из «{1}».</translation>
     </message>
     <message>
         <location filename="qgis_ai_agent/qgis_tools/edit/delete_features.py" line="57"/>
@@ -419,6 +439,11 @@
         <translation>Смотрю макеты проекта.</translation>
     </message>
     <message>
+        <location filename="qgis_ai_agent/qgis_tools/project/views.py" line="39"/>
+        <source>Reading the saved bookmarks and map themes.</source>
+        <translation>Смотрю сохранённые закладки и темы карты.</translation>
+    </message>
+    <message>
         <location filename="qgis_ai_agent/qgis_tools/project/list_db_connections.py" line="44"/>
         <source>Reading the saved database connections.</source>
         <translation>Смотрю сохранённые подключения к базам.</translation>
@@ -459,6 +484,11 @@
         <translation>Убираю подписи со слоя «{0}».</translation>
     </message>
     <message>
+        <location filename="qgis_ai_agent/qgis_tools/fields/manage_fields.py" line="121"/>
+        <source>Renaming field '{0}' to '{1}'.</source>
+        <translation>Переименовываю поле «{0}» в «{1}».</translation>
+    </message>
+    <message>
         <location filename="qgis_ai_agent/qgis_tools/inspect/render_map.py" line="49"/>
         <source>Rendering layer '{0}' to an image.</source>
         <translation>Делаю снимок слоя «{0}».</translation>
@@ -474,6 +504,11 @@
         <translation>Делаю снимок карты.</translation>
     </message>
     <message>
+        <location filename="qgis_ai_agent/qgis_tools/project/undo_last_apply.py" line="38"/>
+        <source>Rolling the project back to before the last applied plan.</source>
+        <translation>Откатываю проект к состоянию до последнего применения.</translation>
+    </message>
+    <message>
         <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="17"/>
         <source>Run stopped. Any changes the agent had planned were dropped.</source>
         <translation>Прогон остановлен. Запланированные агентом изменения отброшены.</translation>
@@ -484,9 +519,24 @@
         <translation>Запустить {0} ({1}{2}){3}.</translation>
     </message>
     <message>
+        <location filename="qgis_ai_agent/qgis_tools/python/run_python.py" line="60"/>
+        <source>Running Python: {0}</source>
+        <translation>Выполняю Python: {0}</translation>
+    </message>
+    <message>
         <location filename="qgis_ai_agent/ui/settings_dialog.py" line="134"/>
         <source>Save</source>
         <translation>Сохранить</translation>
+    </message>
+    <message>
+        <location filename="qgis_ai_agent/qgis_tools/project/views.py" line="112"/>
+        <source>Saving the current look as map theme '{0}'.</source>
+        <translation>Сохраняю текущий вид как тему карты «{0}».</translation>
+    </message>
+    <message>
+        <location filename="qgis_ai_agent/qgis_tools/project/views.py" line="75"/>
+        <source>Saving the current view as bookmark '{0}'.</source>
+        <translation>Сохраняю текущий охват как закладку «{0}».</translation>
     </message>
     <message>
         <location filename="qgis_ai_agent/qgis_tools/project/save_project.py" line="42"/>
@@ -573,6 +623,11 @@
         <location filename="qgis_ai_agent/qgis_tools/style/set_symbol.py" line="70"/>
         <source>Styling layer '{0}'.</source>
         <translation>Оформляю слой «{0}».</translation>
+    </message>
+    <message>
+        <location filename="qgis_ai_agent/qgis_tools/style/set_raster_style.py" line="124"/>
+        <source>Styling raster '{0}': {1}.</source>
+        <translation>Оформляю растр «{0}»: {1}.</translation>
     </message>
     <message>
         <location filename="qgis_ai_agent/ui/settings_dialog.py" line="123"/>

@@ -1,7 +1,7 @@
 ---
 name: project
 description: Manage the project itself — add layers from files, basemaps and PostGIS, remove, rename, hide, group and reorder them, change project CRS, zoom the map, save the project. Load this to set a workflow up or to finish it.
-tools: [zoom_to_layer, add_layer, add_basemap, list_db_connections, list_db_tables, add_db_layer, remove_layer, configure_layer, configure_project, save_project]
+tools: [zoom_to_layer, add_layer, add_basemap, add_service_layer, list_db_connections, list_db_tables, add_db_layer, remove_layer, configure_layer, configure_project, save_project, undo_last_apply, list_views, save_bookmark, save_map_theme]
 ---
 
 # The project as a workspace
@@ -14,6 +14,9 @@ saved.
 |---|---|
 | "load a file", "add a layer" | `add_layer` |
 | "add a basemap", "OSM background", "satellite under my layers" | `add_basemap` |
+| "add a WMS/WFS layer", "from this service url" | `add_service_layer` |
+| "undo that", "roll it back" | `undo_last_apply` |
+| "remember this view", "save this look" | `save_bookmark`, `save_map_theme` |
 | "load a table from the database", "from PostGIS" | `list_db_connections` → `list_db_tables` → `add_db_layer` |
 | "drop a layer", "remove the spare one" | `remove_layer` |
 | "rename", "hide", "into a group", "move to the top" | `configure_layer` |
@@ -29,6 +32,34 @@ they ask about the source. "Подложка", "фон", "спутник" all me
 `osm` is the safe default, `esri-imagery` is the satellite one. Tiles come from
 public services and need internet; a blank layer usually means no connection,
 not a wrong call.
+
+## Web services
+
+`add_service_layer` covers OGC services: `wms` returns rendered pictures,
+`wfs` returns real features you can then query and style. The published layer
+name comes from the service, not from you — if the user has not given it,
+ask rather than guess. The plugin sends no credentials, so a service behind a
+login will simply fail to load; say that plainly.
+
+For plain tile basemaps use `add_basemap` instead — it is simpler and places
+the layer at the bottom.
+
+## Undo
+
+Before every applied plan the plugin writes a snapshot of the project to a
+temporary file. `undo_last_apply` reads it back, which restores layers,
+styling and layouts.
+
+Be honest about its reach: it restores the **project**, not data. Attribute
+edits and deleted features from the `edit` skill live in the data source and
+stay. Say so when offering it, so nobody expects a full time machine.
+
+## Bookmarks and map themes
+
+`save_bookmark` remembers the current extent under a name; `save_map_theme`
+remembers which layers are visible and how they look. `list_views` reports
+both. Themes are what "save this look" means, and they are also what a layout
+map item can be pinned to later.
 
 ## Databases
 

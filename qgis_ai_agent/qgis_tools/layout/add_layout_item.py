@@ -1,3 +1,4 @@
+import os
 from typing import Any
 
 from qgis.core import QgsRectangle
@@ -6,17 +7,22 @@ from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
 from qgis_ai_agent.qgis_tools.common.layers import canvas_extent, find_layer_by_name, safe_extent
 from qgis_ai_agent.qgis_tools.layout.items import (
+    DEFAULT_NORTH_ARROW,
     DEFAULT_SIZES_MM,
     ITEM_LABEL,
     ITEM_LEGEND,
     ITEM_MAP,
+    ITEM_NORTH_ARROW,
+    ITEM_PICTURE,
     ITEM_SCALE_BAR,
     ITEM_TYPES,
+    NORTH_ARROWS,
     SCALE_BAR_STYLES,
     TYPE_CLASSES,
     apply_label_text,
     check_bounds,
     linked_map,
+    north_arrow_path,
     place,
     unique_item_id,
 )
@@ -75,7 +81,9 @@ class AddLayoutItemTool(BaseTool):
                 "Type-specific settings. label: {text, font_size}. "
                 "map: {extent: 'canvas' or a layer name}. "
                 "legend: {title, map_id}. "
-                f"scale_bar: {{style: {'/'.join(sorted(SCALE_BAR_STYLES))}, map_id}}."
+                f"scale_bar: {{style: {'/'.join(sorted(SCALE_BAR_STYLES))}, map_id}}. "
+                f"north_arrow: {{style: {'/'.join(sorted(NORTH_ARROWS))}}}. "
+                "picture: {path: an image file on disk}."
             ),
             "required": False,
         },
@@ -128,6 +136,14 @@ def _checked_properties(kind: str, raw: Any) -> dict[str, Any]:
     style = str(properties.get("style") or "").strip().lower()
     if kind == ITEM_SCALE_BAR and style and style not in SCALE_BAR_STYLES:
         raise ValueError(f"Unknown scale bar style '{style}'. Available: {', '.join(sorted(SCALE_BAR_STYLES))}.")
+    if kind == ITEM_NORTH_ARROW and style and style not in NORTH_ARROWS:
+        raise ValueError(f"Unknown north arrow style '{style}'. Available: {', '.join(sorted(NORTH_ARROWS))}.")
+    if kind == ITEM_PICTURE:
+        path = str(properties.get("path") or "").strip()
+        if not path:
+            raise ValueError("A picture needs properties.path — the image file to place on the page.")
+        if not os.path.isfile(path):
+            raise ValueError(f"There is no file '{path}' on disk. Check the path.")
     return properties
 
 
@@ -167,6 +183,10 @@ def _configure(layout: Any, item: Any, kind: str, properties: dict[str, Any]) ->
         style = str(properties.get("style") or "single_box").strip().lower()
         item.setStyle(SCALE_BAR_STYLES.get(style, SCALE_BAR_STYLES["single_box"]))
         _apply_default_scale(item)
+    elif kind == ITEM_NORTH_ARROW:
+        _configure_north_arrow(layout, item, properties)
+    elif kind == ITEM_PICTURE:
+        item.setPicturePath(str(properties.get("path") or "").strip())
 
 
 def _map_extent(properties: dict[str, Any]) -> QgsRectangle:
@@ -177,6 +197,16 @@ def _map_extent(properties: dict[str, Any]) -> QgsRectangle:
     if extent is None or extent.isEmpty():
         raise ValueError(f"Layer '{wanted}' has no extent — it may be empty.")
     return extent
+
+
+def _configure_north_arrow(layout: Any, item: Any, properties: dict[str, Any]) -> None:
+    path = north_arrow_path(str(properties.get("style") or DEFAULT_NORTH_ARROW))
+    if path:
+        item.setPicturePath(path)
+    try:
+        item.setLinkedMap(linked_map(layout, properties))
+    except Exception:
+        pass
 
 
 def _apply_default_scale(item: Any) -> None:

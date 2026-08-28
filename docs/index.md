@@ -7,7 +7,7 @@ confirm them.
 
 ## What it does
 
-Seven domains, 41 tools:
+Nine domains, 51 tools:
 
 | Domain | Example requests |
 | --- | --- |
@@ -17,7 +17,9 @@ Seven domains, 41 tools:
 | `processing` | “build a 500 m buffer”, “clip by the district boundary”, “compute NDVI” |
 | `osm` | “download the cafes in Tver”, “roads except unpaved ones from OSM” |
 | `edit` | “fix the misspelled name”, “delete the features I selected” |
+| `fields` | “add a virtual field with the area in hectares”, “rename nm to name” |
 | `layout` | “make an A4 map sheet with a legend and export it to PDF” |
+| `python` | the escape hatch: a PyQGIS snippet you read and approve first |
 
 On a vision-capable model the agent **sees** the map: it renders the canvas or
 a print layout to an image and judges colours, labels and composition by eye.
