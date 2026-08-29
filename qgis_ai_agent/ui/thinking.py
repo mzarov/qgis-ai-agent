@@ -38,6 +38,7 @@ class ThinkingBlock(QFrame):
         column.addWidget(self._build_body(palette))
         self._text = ""
         self._started = time.monotonic()
+        self._deliveries = 0
         self._finished = False
         self._toggle.setChecked(True)
         self._refresh()
@@ -85,8 +86,13 @@ class ThinkingBlock(QFrame):
 
     def append(self, delta: str) -> None:
         self._text += delta
+        self._deliveries += 1
         self._body.setText(self._text)
         self._refresh()
+
+    @property
+    def _watched_live(self) -> bool:
+        return self._deliveries > 1
 
     def finish(self) -> None:
         if self._finished:
@@ -96,9 +102,11 @@ class ThinkingBlock(QFrame):
         self._refresh()
 
     def _refresh(self) -> None:
-        seconds = time.monotonic() - self._started
         self._title.setText(THOUGHT_TITLE if self._finished else THINKING_TITLE)
-        self._elapsed.setText(format_seconds(seconds) if self._finished else "")
+        if self._finished and self._watched_live:
+            self._elapsed.setText(format_seconds(time.monotonic() - self._started))
+        else:
+            self._elapsed.setText("")
 
     def _on_toggled(self, expanded: bool) -> None:
         self._toggle.setText(EXPANDED if expanded else COLLAPSED)

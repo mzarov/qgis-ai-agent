@@ -164,6 +164,39 @@ class AnthropicThinkingTest(unittest.TestCase):
         translated = anthropic.translate_message(message)
         self.assertEqual([block["type"] for block in translated["content"]], ["thinking", "text", "tool_use"])
 
+    def test_blocks_are_not_sent_back_when_thinking_is_off(self):
+        messages = [
+            {
+                "role": "assistant",
+                "content": "answer",
+                "thinking_blocks": [{"type": "thinking", "thinking": "x", "signature": "s"}],
+            }
+        ]
+        body = anthropic.build_body(messages, [], "claude")
+        self.assertEqual([block["type"] for block in body["messages"][0]["content"]], ["text"])
+
+    def test_blocks_are_sent_back_when_thinking_is_on(self):
+        messages = [
+            {
+                "role": "assistant",
+                "content": "answer",
+                "thinking_blocks": [{"type": "thinking", "thinking": "x", "signature": "s"}],
+            }
+        ]
+        body = anthropic.build_body(messages, [], "claude", thinking_budget=2048)
+        self.assertEqual([block["type"] for block in body["messages"][0]["content"]], ["thinking", "text"])
+
+    def test_a_budget_too_small_to_request_also_drops_the_blocks(self):
+        messages = [
+            {
+                "role": "assistant",
+                "content": "answer",
+                "thinking_blocks": [{"type": "thinking", "thinking": "x"}],
+            }
+        ]
+        body = anthropic.build_body(messages, [], "claude", thinking_budget=100)
+        self.assertEqual([block["type"] for block in body["messages"][0]["content"]], ["text"])
+
     def test_an_empty_turn_stays_dropped(self):
         self.assertIsNone(
             anthropic.translate_message(

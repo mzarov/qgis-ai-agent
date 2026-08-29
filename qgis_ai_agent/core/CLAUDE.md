@@ -50,7 +50,12 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    `QgsNetworkAccessManager` with a nested `QEventLoop` — still blocking for
    the caller, still on the background thread. Parsing lives apart from it in
    `llm/stream.py`, pure Python and therefore testable. A refusing endpoint is
-   remembered as `supports_streaming = false` and falls back to one request.
+   remembered as `supports_streaming = false` and falls back to one request —
+   but only a genuine refusal counts. A 401 or a 429 says nothing about
+   streaming, and disabling the feature over one would be permanent and
+   silent; those are raised as themselves. A stream that yields no events at
+   all is a refusal too — that is a server ignoring `stream`, not an empty
+   answer.
    Deltas stop reaching the UI at the first tool call: a preamble is not an
    answer, and the chat must never show what the saved conversation lacks.
 14. **Reasoning is separated, never echoed back.** Three shapes arrive:

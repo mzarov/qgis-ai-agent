@@ -29,20 +29,25 @@ def build_body(
     max_tokens: int = DEFAULT_MAX_TOKENS,
     thinking_budget: int = 0,
 ) -> dict[str, Any]:
-    system, turns = split_system(messages)
     budget = int(thinking_budget or 0)
+    thinking_on = budget >= MIN_THINKING_BUDGET
+    system, turns = split_system(messages if thinking_on else _without_thinking(messages))
     body: dict[str, Any] = {
         "model": model,
-        "max_tokens": max(max_tokens, budget + ANSWER_HEADROOM) if budget else max_tokens,
+        "max_tokens": max(max_tokens, budget + ANSWER_HEADROOM) if thinking_on else max_tokens,
         "messages": turns,
     }
-    if budget >= MIN_THINKING_BUDGET:
+    if thinking_on:
         body["thinking"] = {"type": "enabled", "budget_tokens": budget}
     if system:
         body["system"] = system
     if tool_schemas:
         body["tools"] = [translate_tool(schema) for schema in tool_schemas]
     return body
+
+
+def _without_thinking(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [{key: value for key, value in message.items() if key != THINKING_KEY} for message in messages]
 
 
 def split_system(messages: list[dict[str, Any]]) -> tuple[str, list[dict[str, Any]]]:

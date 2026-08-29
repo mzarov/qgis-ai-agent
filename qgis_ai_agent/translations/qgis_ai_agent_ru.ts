@@ -901,7 +901,7 @@
     </message>
     <message>
         <location filename="qgis_ai_agent/ui/activity.py" line="158"/>
-        <location filename="qgis_ai_agent/ui/thinking.py" line="111"/>
+        <location filename="qgis_ai_agent/ui/thinking.py" line="119"/>
         <source>{0} min {1} s</source>
         <translation>{0} мин {1} с</translation>
     </message>
@@ -912,7 +912,7 @@
     </message>
     <message>
         <location filename="qgis_ai_agent/ui/activity.py" line="157"/>
-        <location filename="qgis_ai_agent/ui/thinking.py" line="110"/>
+        <location filename="qgis_ai_agent/ui/thinking.py" line="118"/>
         <source>{0} s</source>
         <translation>{0} с</translation>
     </message>

@@ -176,6 +176,15 @@ attempted, and an endpoint that refuses is written down as `supports_streaming
 falls through to the ordinary request, so a server without SSE loses the live
 text and nothing else.
 
+A refusal has to be told apart from an outage, or the feature disables itself
+over an unrelated problem: a mistyped key answers 401 and a busy provider
+answers 429, and neither says anything about streaming. Only the
+unsupported-parameter statuses with a matching marker in the body count as a
+refusal; everything else is raised as the error it is. A server that ignores
+`stream` and replies with one ordinary JSON body is caught the same way — the
+stream yields no events at all, which is treated as a refusal rather than as
+an empty answer.
+
 Text is forwarded to the UI only until the first tool-call delta. What the
 model says before calling a tool is a preamble, not an answer: it is kept in
 the transcript for the model, while the chat drops the draft when the tool
