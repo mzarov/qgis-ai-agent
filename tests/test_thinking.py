@@ -92,6 +92,17 @@ class StreamedThinkingTest(unittest.TestCase):
         self.assertEqual("".join(seen_thought), "hmmmm")
         self.assertEqual(data["choices"][0]["message"]["content"], "done")
 
+    def test_both_spellings_at_once_are_not_counted_twice(self):
+        seen: list[str] = []
+        data = consume([delta(reasoning="The", reasoning_content="The")], None, seen.append)
+        self.assertEqual(seen, ["The"])
+        self.assertEqual(data["choices"][0]["message"]["reasoning_content"], "The")
+
+    def test_a_null_reasoning_field_is_ignored(self):
+        seen: list[str] = []
+        consume([delta(reasoning_content=None, content="answer")], None, seen.append)
+        self.assertEqual(seen, [])
+
     def test_an_unclosed_tag_is_flushed_as_thinking_not_as_an_answer(self):
         data = consume([delta(content="<think>never closed")])
         self.assertEqual(data["choices"][0]["message"]["content"], "")
@@ -99,6 +110,12 @@ class StreamedThinkingTest(unittest.TestCase):
 
 
 class NativeTurnThinkingTest(unittest.TestCase):
+    def test_both_spellings_at_once_are_not_joined_twice(self):
+        turn = transport._parse_native_turn(
+            {"choices": [{"message": {"content": "answer", "reasoning": "hmm", "reasoning_content": "hmm"}}]}
+        )
+        self.assertEqual(turn.thinking, "hmm")
+
     def test_a_reasoning_field_lands_on_the_turn(self):
         turn = transport._parse_native_turn(
             {"choices": [{"message": {"content": "answer", "reasoning_content": "pondering"}}]}

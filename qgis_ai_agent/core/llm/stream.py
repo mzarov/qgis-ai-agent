@@ -10,6 +10,14 @@ EVENT_SEPARATOR = "\n"
 REASONING_KEYS = ("reasoning_content", "reasoning")
 
 
+def first_reasoning(payload: dict[str, Any]) -> str:
+    for key in REASONING_KEYS:
+        value = payload.get(key)
+        if isinstance(value, str) and value:
+            return value
+    return ""
+
+
 class SseAccumulator:
     def __init__(self) -> None:
         self._buffer = ""
@@ -68,10 +76,9 @@ class StreamedCompletion:
         delta = choice.get("delta") or {}
         for raw_call in delta.get("tool_calls") or []:
             self._take_call(raw_call)
-        for key in REASONING_KEYS:
-            reasoning = delta.get(key)
-            if isinstance(reasoning, str) and reasoning:
-                self._take_thinking(reasoning)
+        reasoning = first_reasoning(delta)
+        if reasoning:
+            self._take_thinking(reasoning)
         text = delta.get("content")
         if isinstance(text, str) and text:
             visible, thought = self._splitter.feed(text)

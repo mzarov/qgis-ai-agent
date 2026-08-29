@@ -14,7 +14,7 @@ from qgis_ai_agent.core.llm.dialects import ANTHROPIC, resolve
 from qgis_ai_agent.core.llm.images import IMAGE_REJECTED_STATUS_CODES, has_images, without_images
 from qgis_ai_agent.core.llm.parser import parse_model_json, parse_tool_arguments
 from qgis_ai_agent.core.llm.refusals import streaming_unsupported, thinking_unsupported, tools_unsupported
-from qgis_ai_agent.core.llm.stream import REASONING_KEYS, StreamedCompletion
+from qgis_ai_agent.core.llm.stream import StreamedCompletion, first_reasoning
 from qgis_ai_agent.core.llm.stream_runner import post_stream
 from qgis_ai_agent.core.llm.thinking import split_thinking
 from qgis_ai_agent.core.settings import (
@@ -241,8 +241,7 @@ def _parse_native_turn(data: dict[str, Any]) -> ModelTurn:
 
 
 def _joined_thinking(message: dict[str, Any], inline: str) -> str:
-    parts = [str(message.get(key) or "") for key in REASONING_KEYS]
-    parts.append(inline)
+    parts = [first_reasoning(message), inline]
     return "\n".join(part.strip() for part in parts if part.strip())
 
 
