@@ -140,6 +140,14 @@ with the place name spelled differently** — all spellings are already tried at
 once, so that only burns another Overpass call. Change the tag, widen the
 territory, or switch to a bbox.
 
+## Downloads arrive editable
+
+Each sublayer is converted to a GeoPackage on load, so the ordinary edit tools —
+delete_features, update_attributes, the field tools — work on downloaded data.
+If the conversion ever fails the layer stays a read-only .osm view; editing it
+then means extracting what you need with native:extractbyexpression into a new
+layer and removing the old one.
+
 ## Tags become fields by themselves
 
 The OSM reader promotes only a handful of tags to real columns — `name`,

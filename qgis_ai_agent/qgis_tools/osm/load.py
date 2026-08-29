@@ -2,7 +2,14 @@ import os
 import tempfile
 from typing import Any
 
-from qgis.core import QgsProject, QgsVectorLayer
+from qgis.core import (
+    Qgis,
+    QgsCoordinateTransformContext,
+    QgsMessageLog,
+    QgsProject,
+    QgsVectorFileWriter,
+    QgsVectorLayer,
+)
 
 from qgis_ai_agent.qgis_tools.osm.tags import promote_tags
 
@@ -19,6 +26,7 @@ READABLE = {
     "multipolygons": "polygons",
 }
 FOLDER = "qgis_ai_agent_osm"
+LOG_TAG = "QGIS AI Agent"
 SUFFIX = ".osm"
 OGR = "ogr"
 
@@ -42,18 +50,40 @@ def load_sublayers(path: str, geometry: str, name: str) -> list[dict[str, Any]]:
 
 
 def _load_one(path: str, sublayer: str, name: str, geometry: str) -> dict[str, Any] | None:
-    layer = QgsVectorLayer(f"{path}|layername={sublayer}", _title(name, sublayer, geometry), OGR)
-    if not layer.isValid():
+    raw = QgsVectorLayer(f"{path}|layername={sublayer}", _title(name, sublayer, geometry), OGR)
+    if not raw.isValid():
         return None
-    count = _count(layer)
+    count = _count(raw)
     if not count:
         return None
+    layer = _materialized(raw, path, sublayer) or raw
     promoted = promote_tags(layer)
     QgsProject.instance().addMapLayer(layer)
     described = {"name": layer.name(), "kind": READABLE.get(sublayer, sublayer), "feature_count": count}
     if promoted:
         described["tag_fields"] = promoted
     return described
+
+
+def _materialized(raw: Any, path: str, sublayer: str) -> Any:
+    target = f"{path[: -len(SUFFIX)]}_{sublayer}.gpkg"
+    options = QgsVectorFileWriter.SaveVectorOptions()
+    options.driverName = "GPKG"
+    options.actionOnExistingFile = QgsVectorFileWriter.ActionOnExistingFile.CreateOrOverwriteFile
+    try:
+        error = QgsVectorFileWriter.writeAsVectorFormatV3(raw, target, QgsCoordinateTransformContext(), options)
+        code = error[0] if isinstance(error, tuple) else error
+        if code != QgsVectorFileWriter.WriterError.NoError:
+            raise ValueError(str(error))
+        layer = QgsVectorLayer(target, raw.name(), OGR)
+        if not layer.isValid() or not _count(layer):
+            raise ValueError("the GeoPackage copy came back empty")
+    except Exception as err:
+        QgsMessageLog.logMessage(
+            f"OSM layer stays read-only, GeoPackage conversion failed: {err}", LOG_TAG, Qgis.Warning
+        )
+        return None
+    return layer
 
 
 def _title(name: str, sublayer: str, geometry: str) -> str:
