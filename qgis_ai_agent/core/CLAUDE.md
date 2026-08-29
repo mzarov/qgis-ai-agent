@@ -53,6 +53,16 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    remembered as `supports_streaming = false` and falls back to one request.
    Deltas stop reaching the UI at the first tool call: a preamble is not an
    answer, and the chat must never show what the saved conversation lacks.
+14. **Reasoning is separated, never echoed back.** Three shapes arrive:
+   `<think>` inside `content` (local servers), a `reasoning_content` field
+   (DeepSeek, OpenRouter) and Anthropic `thinking` blocks. `llm/thinking.py`
+   cuts the tags out — across chunk boundaries, and before the JSON protocol
+   parses, or the parser may pick a candidate object out of the reasoning.
+   The reasoning **text** goes to the UI only and never back to the model or
+   into the saved conversation. Anthropic blocks are the exception: with tools
+   in the run the API demands them back verbatim with their `signature`, so
+   `ModelTurn` carries them, the transcript keeps them and `_assistant_message`
+   re-emits them first.
 6. **`MAX_ITERATIONS`** guards against endless loops, and a token budget from
    the settings guards the user's wallet. Both end the run through `_complete`
    with a plain explanation — never by silently stopping.
@@ -99,6 +109,9 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `agent/transcript.py`    | the run transcript and rendering for both protocols |
 | `agent/prompts.py`       | the system prompt core, the `load_skill` meta-tool  |
 | `llm/transport.py`       | dialect choice, feature detect, ModelTurn normalising |
+| `llm/stream.py`          | SSE framing and delta folding, pure Python           |
+| `llm/stream_runner.py`   | the streaming request itself: NAM, nested event loop |
+| `llm/thinking.py`        | cutting `<think>` out of content, across chunks      |
 | `llm/dialects.py`        | dialect detection from the address, paths, headers  |
 | `llm/anthropic.py`       | messages and tool schemas in the Anthropic format   |
 | `llm/client.py`          | the HTTP layer, URL/key/header resolution           |

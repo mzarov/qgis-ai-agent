@@ -117,6 +117,29 @@ def set_supports_images(url: str, value: bool) -> None:
     _write(f"supports_images/{_url_settings_key(url)}", "true" if value else "false")
 
 
+def get_thinking_budget() -> int:
+    stored = QgsSettings().value(f"{SETTINGS_PREFIX}/thinking_budget")
+    if stored is None:
+        return 0
+    try:
+        return max(0, int(stored))
+    except (TypeError, ValueError):
+        return 0
+
+
+def set_thinking_budget(value: int) -> None:
+    _write("thinking_budget", str(max(0, int(value or 0))))
+
+
+def get_supports_thinking(url: str) -> bool | None:
+    stored = QgsSettings().value(f"{SETTINGS_PREFIX}/supports_thinking/{_url_settings_key(url)}")
+    return None if stored is None else _as_bool(stored)
+
+
+def set_supports_thinking(url: str, value: bool) -> None:
+    _write(f"supports_thinking/{_url_settings_key(url)}", "true" if value else "false")
+
+
 def get_supports_streaming(url: str) -> bool | None:
     stored = QgsSettings().value(f"{SETTINGS_PREFIX}/supports_streaming/{_url_settings_key(url)}")
     return None if stored is None else _as_bool(stored)

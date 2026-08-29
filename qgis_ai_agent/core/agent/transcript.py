@@ -2,6 +2,7 @@ import json
 from dataclasses import dataclass, field
 from typing import Any
 
+from qgis_ai_agent.core.llm.anthropic import THINKING_KEY
 from qgis_ai_agent.core.llm.transport import PROTOCOL_NATIVE, ModelTurn, ToolCall
 
 MAX_RESULT_CHARS = 4000
@@ -107,6 +108,8 @@ class Transcript:
         message: dict[str, Any] = {"role": "assistant", "content": turn.text or None}
         if turn.tool_calls:
             message["tool_calls"] = [cls._render_call(call) for call in turn.tool_calls]
+        if turn.thinking_blocks:
+            message[THINKING_KEY] = turn.thinking_blocks
         return message
 
     @staticmethod

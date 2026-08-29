@@ -16,6 +16,7 @@ from qgis_ai_agent.ui import style
 from qgis_ai_agent.ui.activity import ActivityGroup
 from qgis_ai_agent.ui.messages import AssistantMessage, SystemMessage, UserMessage
 from qgis_ai_agent.ui.plan import PlanCard
+from qgis_ai_agent.ui.thinking import ThinkingBlock
 from qgis_ai_agent.ui.welcome import WelcomeCard
 
 MESSAGE_SPACING = 11
@@ -49,6 +50,7 @@ class ConversationView(QScrollArea):
 
         self._activity: ActivityGroup | None = None
         self._draft: AssistantMessage | None = None
+        self._thinking: ThinkingBlock | None = None
         self._entries: dict[int, object] = {}
         self._next_id = 1
         self._configured = True
@@ -83,6 +85,21 @@ class ConversationView(QScrollArea):
         self._close_activity()
         return self._append(SystemMessage(text))
 
+    def append_thinking(self, delta: str) -> None:
+        if self._thinking is None:
+            self._close_activity()
+            block = ThinkingBlock()
+            self._append(block)
+            self._thinking = block
+        self._thinking.append(delta)
+        QTimer.singleShot(0, self._scroll_to_bottom)
+
+    def _close_thinking(self) -> None:
+        if self._thinking is None:
+            return
+        self._thinking.finish()
+        self._thinking = None
+
     def append_draft(self, delta: str) -> None:
         if self._draft is None:
             self._close_activity()
@@ -109,6 +126,7 @@ class ConversationView(QScrollArea):
 
     def add_activity_step(self, text: str) -> int:
         self._drop_draft()
+        self._close_thinking()
         if self._activity is None:
             self._activity = ActivityGroup()
             self._append(self._activity)
@@ -153,6 +171,7 @@ class ConversationView(QScrollArea):
                 widget.deleteLater()
         self._activity = None
         self._draft = None
+        self._thinking = None
         self._entries.clear()
         self._empty = None
         self._show_welcome()
@@ -175,6 +194,7 @@ class ConversationView(QScrollArea):
 
     def _append(self, widget: QWidget) -> int:
         self._drop_draft()
+        self._close_thinking()
         if self._empty is not None:
             self._empty.deleteLater()
             self._empty = None

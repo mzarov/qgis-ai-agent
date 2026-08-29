@@ -183,6 +183,38 @@ starts. Otherwise the chat would show text that the saved conversation does
 not contain, and the next run would see something other than what the user
 read.
 
+### Reasoning models
+
+Reasoning arrives in three different shapes and all three are handled, because
+the plugin cannot choose its endpoint.
+
+Local servers — Ollama, llama.cpp, LM Studio — put the reasoning straight into
+`content`, wrapped in `<think>` tags. Left alone it becomes the visible answer,
+lands in the transcript and is re-sent on every later step. `llm/thinking.py`
+cuts it out with a small state machine, which is needed because a tag can be
+split across two chunks: `<thi` in one, `nk>` in the next. Stripping happens
+before the JSON protocol parses anything — a model reasoning about which tool
+to call writes candidate objects, and the parser would otherwise be free to
+pick one of them over the real answer.
+
+DeepSeek and OpenRouter send a separate `reasoning_content` (or `reasoning`)
+field. It never touches `content`, so nothing breaks — but without reading the
+deltas the panel would sit still for the whole minute a model spends thinking,
+which is exactly when a sign of life is worth most.
+
+Anthropic returns typed `thinking` blocks carrying a `signature`. These are the
+one kind of reasoning that **must** travel back: with extended thinking and
+tool use in the same run, the API rejects an assistant turn whose thinking
+blocks are missing or reordered. So `ModelTurn` carries the raw blocks, the
+transcript keeps them beside the turn, and `_assistant_message` puts them back
+first, ahead of text and tool calls. Extended thinking is off until a budget is
+set in the settings — it costs tokens — and an endpoint that refuses the
+parameter is remembered like any other unsupported feature.
+
+The reasoning **text** is never sent back to any endpoint and never enters the
+saved conversation. In the chat it lives in its own collapsible block: open
+while it grows, folded into one line once the answer starts.
+
 ## Adding a new domain
 
 1. `qgis_tools/<domain>/` — tool classes with `skill = "<domain>"` and `safety`

@@ -42,6 +42,7 @@ class AgentLoop(QObject):
     confirm_needed = pyqtSignal(object, str)
     usage_changed = pyqtSignal(int)
     answer_chunk = pyqtSignal(str)
+    thinking_chunk = pyqtSignal(str)
     applied = pyqtSignal(object)
     finished = pyqtSignal(str)
     failed = pyqtSignal(str)
@@ -69,6 +70,7 @@ class AgentLoop(QObject):
         self._staged = False
         self._pending_protocol = PROTOCOL_NATIVE
         self._verification_round = 0
+        self._streamed_thinking = False
 
     @property
     def is_running(self) -> bool:
@@ -119,7 +121,7 @@ class AgentLoop(QObject):
         if not self.is_running and not self._batch:
             return
         self._aborted = True
-        self._turn.detach(self._on_turn, self._fail, self._on_chunk)
+        self._turn.detach(self._on_turn, self._fail, self._on_chunk, self._on_thinking)
         self._batch.clear()
         self.busy_changed.emit(False)
         self.aborted.emit()
@@ -183,6 +185,7 @@ class AgentLoop(QObject):
             self._finish_on_budget()
             return
         self._iteration += 1
+        self._streamed_thinking = False
         try:
             request = build_step_request(
                 self._transcript,
@@ -203,11 +206,22 @@ class AgentLoop(QObject):
             self._on_turn,
             self._fail,
             self._on_chunk,
+            self._on_thinking,
         )
 
     def _on_chunk(self, text: str) -> None:
         if not self._aborted and text:
             self.answer_chunk.emit(text)
+
+    def _on_thinking(self, text: str) -> None:
+        if self._aborted or not text:
+            return
+        self._streamed_thinking = True
+        self.thinking_chunk.emit(text)
+
+    def _replay_thinking(self, turn: ModelTurn) -> None:
+        if turn.thinking and not self._streamed_thinking:
+            self.thinking_chunk.emit(turn.thinking)
 
     def _on_turn(self, turn: ModelTurn) -> None:
         if self._aborted:
@@ -218,6 +232,7 @@ class AgentLoop(QObject):
             self._request_step()
             return
 
+        self._replay_thinking(turn)
         self._track_usage(turn)
         self._transcript.add_turn(turn)
         if not turn.tool_calls:

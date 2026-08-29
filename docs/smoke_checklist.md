@@ -621,3 +621,29 @@ These verify the agent solves everyday tasks without wandering through search.
      the next request goes straight to the ordinary path.
 150. **Stop during a stream.** Press ■ while the text is growing → the run
      stops, the draft stops growing and QGIS does not freeze.
+
+## Reasoning models
+
+151. **A local reasoning model does not leak its monologue.** Point the plugin
+     at Ollama with a DeepSeek-R1 distill or QwQ, ask anything → the answer is
+     the answer; the reasoning sits in its own block, not in the reply text.
+152. **The block folds itself away.** While the model reasons the block is open
+     and grows; as soon as the answer starts it collapses to one line with the
+     elapsed time, and clicking it opens the reasoning again.
+153. **DeepSeek shows life while it thinks.** With the DeepSeek endpoint and a
+     reasoner model, the block fills during the pause instead of the panel
+     sitting still.
+154. **Reasoning is not re-sent.** After a reasoning answer, ask a follow-up →
+     the token count for the next step does not carry the previous monologue,
+     and the model does not refer to it.
+155. **A multi-step task with a reasoning model completes.** Ask for something
+     that needs tools → each step may show its own block, and the tool calls
+     still run in order.
+156. **Anthropic extended thinking, off by default.** With the budget left at
+     0, Claude answers exactly as before.
+157. **Anthropic extended thinking, switched on.** Set the budget to 4096, ask
+     for something needing tools → the reasoning block appears, the tools run,
+     and the run finishes without an API error about thinking blocks.
+158. **A model that cannot think is not broken by the setting.** With a budget
+     set, point at a model without extended thinking → the answer still
+     arrives, the refusal is remembered and later requests go straight through.

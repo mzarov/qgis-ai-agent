@@ -12,13 +12,18 @@ from qgis_ai_agent.core.llm.client import (
 )
 from qgis_ai_agent.core.llm.dialects import ANTHROPIC, resolve
 from qgis_ai_agent.core.llm.parser import parse_model_json, parse_tool_arguments
+from qgis_ai_agent.core.llm.stream import REASONING_KEYS
 from qgis_ai_agent.core.llm.stream_runner import post_stream
+from qgis_ai_agent.core.llm.thinking import split_thinking
 from qgis_ai_agent.core.settings import (
     get_dialect,
     get_supports_streaming,
+    get_supports_thinking,
     get_supports_tools,
+    get_thinking_budget,
     set_supports_images,
     set_supports_streaming,
+    set_supports_thinking,
     set_supports_tools,
 )
 
@@ -37,6 +42,7 @@ UNSUPPORTED_MARKERS = (
     "unknown field",
     "not supported",
 )
+THINKING_MARKERS = ("thinking", "budget_tokens", "reasoning")
 
 
 @dataclass
@@ -54,6 +60,8 @@ class ModelTurn:
     protocol: str = PROTOCOL_NATIVE
     input_tokens: int = 0
     output_tokens: int = 0
+    thinking: str = ""
+    thinking_blocks: list[dict[str, Any]] = field(default_factory=list)
 
 
 def parse_usage(data: dict[str, Any]) -> tuple[int, int]:
@@ -74,15 +82,16 @@ def call_model(
     overrides: dict[str, Any] | None = None,
     timeout: int = 120,
     on_chunk: Any = None,
+    on_thinking: Any = None,
 ) -> ModelTurn:
     overrides = dict(overrides or {})
     url = resolve_endpoint(overrides.get("url_override"))
     try:
-        return _dispatch(messages, tool_schemas, overrides, timeout, url, on_chunk)
+        return _dispatch(messages, tool_schemas, overrides, timeout, url, on_chunk, on_thinking)
     except ApiResponseError as err:
         if not (_has_images(messages) and err.status_code in IMAGE_REJECTED_STATUS_CODES):
             raise
-        turn = _dispatch(_without_images(messages), tool_schemas, overrides, timeout, url, on_chunk)
+        turn = _dispatch(_without_images(messages), tool_schemas, overrides, timeout, url, on_chunk, on_thinking)
         set_supports_images(url, False)
         return turn
 
@@ -119,14 +128,15 @@ def _dispatch(
     timeout: int,
     url: str,
     on_chunk: Any = None,
+    on_thinking: Any = None,
 ) -> ModelTurn:
     chosen = overrides.get("dialect_override")
     if resolve(url, chosen if chosen is not None else get_dialect()) == ANTHROPIC:
-        return _call_anthropic(messages, tool_schemas, overrides, timeout)
+        return _call_anthropic(messages, tool_schemas, overrides, timeout, url)
     supports_tools = get_supports_tools(url)
 
     if supports_tools is not False and tool_schemas:
-        streamed = _try_streaming(messages, tool_schemas, overrides, timeout, url, on_chunk)
+        streamed = _try_streaming(messages, tool_schemas, overrides, timeout, url, on_chunk, on_thinking)
         if streamed is not None:
             return streamed
         try:
@@ -153,6 +163,7 @@ def _call_anthropic(
     tool_schemas: list[dict[str, Any]],
     overrides: dict[str, Any],
     timeout: int,
+    url: str,
 ) -> ModelTurn:
     endpoint, headers, model = build_request(
         overrides.get("url_override"),
@@ -161,12 +172,23 @@ def _call_anthropic(
         overrides.get("model_override"),
         overrides.get("dialect_override"),
     )
-    body = anthropic.build_body(messages, tool_schemas, model)
-    data = post_json(endpoint, headers, body, timeout, overrides.get("verify_override"))
+    budget = get_thinking_budget() if get_supports_thinking(url) is not False else 0
+    body = anthropic.build_body(messages, tool_schemas, model, thinking_budget=budget)
+    try:
+        data = post_json(endpoint, headers, body, timeout, overrides.get("verify_override"))
+    except ApiResponseError as err:
+        if not budget or not _looks_like_thinking_unsupported(err):
+            raise
+        set_supports_thinking(url, False)
+        body = anthropic.build_body(messages, tool_schemas, model)
+        data = post_json(endpoint, headers, body, timeout, overrides.get("verify_override"))
     text, calls, stop_reason = anthropic.parse_response(data)
+    thinking, thinking_blocks = anthropic.parse_thinking(data)
     incoming, outgoing = parse_usage(data)
     return ModelTurn(
         text=text,
+        thinking=thinking,
+        thinking_blocks=thinking_blocks,
         tool_calls=[
             ToolCall(
                 id=call["id"] or f"call_{index}",
@@ -190,6 +212,7 @@ def _try_streaming(
     timeout: int,
     url: str,
     on_chunk: Any,
+    on_thinking: Any = None,
 ) -> ModelTurn | None:
     if on_chunk is None or get_supports_streaming(url) is False:
         return None
@@ -209,7 +232,7 @@ def _try_streaming(
         "tool_choice": "auto",
     }
     try:
-        data = post_stream(endpoint, headers, body, on_chunk, timeout, overrides.get("verify_override"))
+        data = post_stream(endpoint, headers, body, on_chunk, timeout, overrides.get("verify_override"), on_thinking)
     except ApiResponseError:
         set_supports_streaming(url, False)
         return None
@@ -218,6 +241,12 @@ def _try_streaming(
         set_supports_streaming(url, True)
         set_supports_tools(url, True)
     return turn
+
+
+def _looks_like_thinking_unsupported(err: ApiResponseError) -> bool:
+    if err.status_code not in UNSUPPORTED_STATUS_CODES:
+        return False
+    return any(marker in (err.body or "").lower() for marker in THINKING_MARKERS)
 
 
 def _looks_like_tools_unsupported(err: ApiResponseError) -> bool:
@@ -238,10 +267,12 @@ def _parse_native_turn(data: dict[str, Any]) -> ModelTurn:
     choice = _first_choice(data)
     message = choice.get("message") or {}
     incoming, outgoing = parse_usage(data)
+    visible, inline_thinking = split_thinking(message.get("content") or "")
     return ModelTurn(
         input_tokens=incoming,
         output_tokens=outgoing,
-        text=(message.get("content") or "").strip(),
+        thinking=_joined_thinking(message, inline_thinking),
+        text=visible.strip(),
         tool_calls=[
             call
             for call in (_native_call(index, raw) for index, raw in enumerate(message.get("tool_calls") or []))
@@ -250,6 +281,12 @@ def _parse_native_turn(data: dict[str, Any]) -> ModelTurn:
         finish_reason=(choice.get("finish_reason") or "").strip(),
         protocol=PROTOCOL_NATIVE,
     )
+
+
+def _joined_thinking(message: dict[str, Any], inline: str) -> str:
+    parts = [str(message.get(key) or "") for key in REASONING_KEYS]
+    parts.append(inline)
+    return "\n".join(part.strip() for part in parts if part.strip())
 
 
 def _native_call(index: int, raw: dict[str, Any]) -> ToolCall | None:
@@ -266,17 +303,27 @@ def _native_call(index: int, raw: dict[str, Any]) -> ToolCall | None:
 
 def _parse_json_turn(data: dict[str, Any]) -> ModelTurn:
     incoming, outgoing = parse_usage(data)
-    content = ((_first_choice(data).get("message") or {}).get("content") or "").strip()
+    message = _first_choice(data).get("message") or {}
+    visible, inline_thinking = split_thinking(message.get("content") or "")
+    content = visible.strip()
+    thinking = _joined_thinking(message, inline_thinking)
     if not content:
-        return ModelTurn(protocol=PROTOCOL_JSON, input_tokens=incoming, output_tokens=outgoing)
+        return ModelTurn(protocol=PROTOCOL_JSON, input_tokens=incoming, output_tokens=outgoing, thinking=thinking)
     try:
         parsed = parse_model_json(content)
     except json.JSONDecodeError:
-        return ModelTurn(text=content, protocol=PROTOCOL_JSON, input_tokens=incoming, output_tokens=outgoing)
+        return ModelTurn(
+            text=content,
+            protocol=PROTOCOL_JSON,
+            input_tokens=incoming,
+            output_tokens=outgoing,
+            thinking=thinking,
+        )
 
     return ModelTurn(
         input_tokens=incoming,
         output_tokens=outgoing,
+        thinking=thinking,
         text=(parsed.get("text") or parsed.get("message") or "").strip(),
         tool_calls=[
             call
