@@ -6,6 +6,7 @@ DEFAULT_ENDPOINT = "https://overpass-api.de/api/interpreter"
 SETTINGS_KEY = "qgis_ai_agent/overpass_url"
 QUERY_TIMEOUT_SEC = 90
 ELEMENTS = ("node", "way", "relation")
+AREA_NAME_KEYS = ("name", "name:en", "int_name")
 GEOMETRY_ELEMENTS = {
     "points": ("node",),
     "lines": ("way",),
@@ -49,7 +50,9 @@ def _wrapped(statements: list[str], header: str, binding: str) -> str:
 
 
 def _area_header(area: str) -> str:
-    return f'[out:xml][timeout:{QUERY_TIMEOUT_SEC}];\narea["name"="{_escaped(area)}"]->.searchArea;\n'
+    clean = _escaped(area)
+    matches = "\n".join(f'  area["{key}"="{clean}"];' for key in AREA_NAME_KEYS)
+    return f"[out:xml][timeout:{QUERY_TIMEOUT_SEC}];\n(\n{matches}\n)->.searchArea;\n"
 
 
 def _bbox_header(bbox: tuple[float, float, float, float]) -> str:

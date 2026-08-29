@@ -108,7 +108,7 @@
         <translation>Спросите о проекте или попросите обработать слои</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/welcome.py" line="18"/>
+        <location filename="qgis_ai_agent/ui/welcome.py" line="23"/>
         <source>Ask in plain language</source>
         <translation>Спрашивайте обычными словами</translation>
     </message>
@@ -188,7 +188,7 @@
         <translation>Закрыть</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/welcome.py" line="22"/>
+        <location filename="qgis_ai_agent/ui/welcome.py" line="27"/>
         <source>Colour the layer by its type and label the features</source>
         <translation>Раскрась слой по типу и подпиши объекты</translation>
     </message>
@@ -218,7 +218,7 @@
         <translation>Диалоги</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/conversation.py" line="191"/>
+        <location filename="qgis_ai_agent/ui/conversation.py" line="203"/>
         <source>Copy the whole conversation</source>
         <translation>Скопировать весь диалог</translation>
     </message>
@@ -268,12 +268,12 @@
         <translation>Готово: применено шагов — {0}.{1}</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/welcome.py" line="23"/>
+        <location filename="qgis_ai_agent/ui/welcome.py" line="28"/>
         <source>Download the cafes in Tver from OpenStreetMap</source>
         <translation>Скачай кафе в Твери из OpenStreetMap</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/osm/download_osm.py" line="122"/>
+        <location filename="qgis_ai_agent/qgis_tools/osm/download_osm.py" line="125"/>
         <source>Downloading '{0}' from OSM in {1}.</source>
         <translation>Скачиваю из OSM «{0}» в {1}.</translation>
     </message>
@@ -383,12 +383,12 @@
         <translation>Не обязателен</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/welcome.py" line="12"/>
+        <location filename="qgis_ai_agent/ui/welcome.py" line="17"/>
         <source>One step before we start</source>
         <translation>Один шаг до начала</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/welcome.py" line="17"/>
+        <location filename="qgis_ai_agent/ui/welcome.py" line="22"/>
         <source>Open settings</source>
         <translation>Открыть настройки</translation>
     </message>
@@ -725,12 +725,12 @@
         <translation>API вернул {0}: {1}</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/welcome.py" line="19"/>
+        <location filename="qgis_ai_agent/ui/welcome.py" line="24"/>
         <source>The agent reads the project itself. Nothing changes until you press Apply.</source>
         <translation>Агент сам прочитает проект. Ничего не изменится, пока вы не нажмёте «Применить».</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/welcome.py" line="13"/>
+        <location filename="qgis_ai_agent/ui/welcome.py" line="18"/>
         <source>The agent talks to a language model of your choice, so it needs an address and a key — or nothing at all if you run a local model on localhost.</source>
         <translation>Агент обращается к языковой модели на ваш выбор, поэтому ему нужен адрес и ключ — либо вообще ничего, если модель работает локально на localhost.</translation>
     </message>
@@ -805,7 +805,7 @@
         <translation>Дождитесь окончания текущей задачи.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/welcome.py" line="21"/>
+        <location filename="qgis_ai_agent/ui/welcome.py" line="26"/>
         <source>What layers do I have and what is in them?</source>
         <translation>Какие у меня слои и что в них?</translation>
     </message>
@@ -875,7 +875,7 @@
         <translation>заданную величину</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/osm/download_osm.py" line="121"/>
+        <location filename="qgis_ai_agent/qgis_tools/osm/download_osm.py" line="124"/>
         <source>the given extent</source>
         <translation>заданном охвате</translation>
     </message>

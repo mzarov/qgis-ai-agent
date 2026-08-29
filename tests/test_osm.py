@@ -9,6 +9,22 @@ class BuildQueryTest(unittest.TestCase):
         self.assertIn('area["name"="Москва"]', query)
         self.assertIn('node["amenity"="cafe"](area.searchArea);', query)
 
+    def test_an_english_place_name_is_matched_too(self):
+        query = overpass.build_query("amenity", "cafe", area="Tver")
+        self.assertIn('area["name"="Tver"]', query)
+        self.assertIn('area["name:en"="Tver"]', query)
+        self.assertIn('area["int_name"="Tver"]', query)
+
+    def test_every_spelling_lands_in_one_search_area(self):
+        query = overpass.build_query("amenity", "cafe", area="Tver")
+        self.assertEqual(query.count("->.searchArea"), 1)
+        self.assertEqual(query.count("area["), len(overpass.AREA_NAME_KEYS))
+
+    def test_the_place_name_is_still_escaped_in_every_spelling(self):
+        query = overpass.build_query("amenity", "cafe", area='Tver"]; out; //')
+        self.assertNotIn('"]; out;', query)
+        self.assertEqual(query.count("area["), len(overpass.AREA_NAME_KEYS))
+
     def test_bbox_query_uses_overpass_order(self):
         query = overpass.build_query("highway", "primary", bbox=(37.0, 55.0, 38.0, 56.0))
         self.assertIn("[bbox:55.000000,37.000000,56.000000,38.000000]", query)

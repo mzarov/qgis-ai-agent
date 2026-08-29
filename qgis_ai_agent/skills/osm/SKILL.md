@@ -23,9 +23,10 @@ exists, `inspect` and `processing` are the right skills instead.
 
 OSM tags are English regardless of what language the user speaks. A request for
 cafes in Berlin is `key=amenity`, `value=cafe`, `area=Berlin`. When the user writes
-in another language, translate the *tag* into English but leave the *place name* as
-OSM itself spells it: a translated tag matches nothing at all, and a translated
-place name usually does not exist in the data.
+in another language, translate the *tag* into English — a translated tag matches
+nothing at all. The *place name* may be given either way: the territory is matched
+against `name`, `name:en` and `int_name`, so both `Тверь` and `Tver` find the same
+city.
 
 The tags that cover most requests:
 
@@ -70,9 +71,10 @@ only decides which of the resulting layers to keep.
 
 ## Territory: area or bbox, never both
 
-`area` takes a place name as OSM knows it and is the friendlier option: it follows
-real administrative boundaries. If Overpass does not recognise the name, nothing
-comes back — try the local spelling or fall back to a bbox.
+`area` takes a place name and is the friendlier option: it follows real
+administrative boundaries. Both the local and the English spelling work. If the
+name is still not recognised, nothing comes back — fall back to a bbox rather
+than guessing further spellings.
 
 `bbox` takes `"west,south,east,north"` in degrees, or the literal `"canvas"` for
 whatever the user is currently looking at. **`"canvas"` is the right answer to
@@ -102,8 +104,11 @@ Overpass is a free public service. It is often busy, and a rejection is not a bu
 in the request — say so plainly and offer to retry or narrow the query rather than
 firing the same thing again.
 
-An empty result usually means the tag is wrong, not that the area is empty. Check
-the key and value against the table above before blaming the territory.
+An empty result means the tag is wrong or nothing of that kind is mapped there.
+Check the key and value against the table above. **Do not retry the same request
+with the place name spelled differently** — all spellings are already tried at
+once, so that only burns another Overpass call. Change the tag, widen the
+territory, or switch to a bbox.
 
 ## After downloading
 
