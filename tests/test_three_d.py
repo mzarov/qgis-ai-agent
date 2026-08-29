@@ -1,7 +1,7 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.three_d import open_3d_view as module
-from qgis_ai_agent.qgis_tools.three_d.open_3d_view import Open3dViewTool
+from ai_agent.qgis_tools.three_d import open_3d_view as module
+from ai_agent.qgis_tools.three_d.open_3d_view import Open3dViewTool
 
 
 class OpenViewTest(unittest.TestCase):

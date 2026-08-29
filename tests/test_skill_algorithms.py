@@ -2,9 +2,9 @@ import pathlib
 import re
 import unittest
 
-from qgis_ai_agent.qgis_tools.processing.utils import get_registry
+from ai_agent.qgis_tools.processing.utils import get_registry
 
-SKILLS_ROOT = pathlib.Path(__file__).resolve().parent.parent / "qgis_ai_agent" / "skills"
+SKILLS_ROOT = pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "skills"
 ID_PATTERN = re.compile(r"`((?:native|qgis|gdal|grass|3d):[a-z0-9_.]+)`")
 
 

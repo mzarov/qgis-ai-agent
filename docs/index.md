@@ -1,4 +1,4 @@
-# QGIS AI Agent
+# AI Agent
 
 An AI agent inside QGIS 4: it inspects your project and processes data from a
 plain-language request. It works as a loop — looks at the project, calls tools,

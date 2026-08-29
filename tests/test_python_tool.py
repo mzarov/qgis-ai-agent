@@ -1,8 +1,8 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
-from qgis_ai_agent.qgis_tools.python.run_python import MAX_CODE_CHARS, RunPythonTool, _checked_code
-from qgis_ai_agent.qgis_tools.python.sandbox import BudgetExceeded, LineBudget, run_snippet
+from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
+from ai_agent.qgis_tools.python.run_python import MAX_CODE_CHARS, RunPythonTool, _checked_code
+from ai_agent.qgis_tools.python.sandbox import BudgetExceeded, LineBudget, run_snippet
 
 
 class CheckedCodeTest(unittest.TestCase):

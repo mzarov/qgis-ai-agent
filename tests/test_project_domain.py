@@ -3,7 +3,7 @@ import shutil
 import tempfile
 import unittest
 
-from qgis_ai_agent.qgis_tools.project import (
+from ai_agent.qgis_tools.project import (
     add_layer,
     configure_layer,
     configure_project,

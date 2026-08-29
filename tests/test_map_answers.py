@@ -4,11 +4,11 @@ import unittest
 
 from qgis.core import QgsVectorLayer
 
-from qgis_ai_agent.qgis_tools.inspect import select_features as select_module
-from qgis_ai_agent.qgis_tools.inspect.select_features import SelectFeaturesTool
-from qgis_ai_agent.qgis_tools.project import export_layer as export_module
-from qgis_ai_agent.qgis_tools.project.export_layer import FORMATS, ExportLayerTool, _checked_path, _suffix
-from qgis_ai_agent.ui import welcome
+from ai_agent.qgis_tools.inspect import select_features as select_module
+from ai_agent.qgis_tools.inspect.select_features import SelectFeaturesTool
+from ai_agent.qgis_tools.project import export_layer as export_module
+from ai_agent.qgis_tools.project.export_layer import FORMATS, ExportLayerTool, _checked_path, _suffix
+from ai_agent.ui import welcome
 
 
 class SelectableLayer(QgsVectorLayer):

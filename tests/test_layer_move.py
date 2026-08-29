@@ -1,8 +1,8 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.project import configure_layer as module
-from qgis_ai_agent.qgis_tools.project import reorder_layers as reorder_module
-from qgis_ai_agent.qgis_tools.project.reorder_layers import ReorderLayersTool
+from ai_agent.qgis_tools.project import configure_layer as module
+from ai_agent.qgis_tools.project import reorder_layers as reorder_module
+from ai_agent.qgis_tools.project.reorder_layers import ReorderLayersTool
 
 LAYER_ID = "roads_2024"
 

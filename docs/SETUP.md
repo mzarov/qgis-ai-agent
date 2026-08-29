@@ -12,11 +12,11 @@ A ready-to-install archive is built from the repository with one command:
 python3 tools/build_plugin.py
 ```
 
-It writes `dist/qgis_ai_agent-<version>.zip` — exactly the shape QGIS expects:
-a single `qgis_ai_agent/` folder inside the archive.
+It writes `dist/ai_agent-<version>.zip` — exactly the shape QGIS expects:
+a single `ai_agent/` folder inside the archive.
 
 Then in QGIS: **Plugins → Manage and Install Plugins → Install from ZIP**, pick
-the file, press **Install Plugin**. After installation **QGIS AI Agent** appears
+the file, press **Install Plugin**. After installation **AI Agent** appears
 in the menu.
 
 Do **not** download the zip with GitHub's “Code → Download ZIP” button: that
@@ -115,7 +115,7 @@ then `python/plugins`.
 ```bash
 PLUGINS_DIR="$HOME/Library/Application Support/QGIS/QGIS4/profiles/default/python/plugins"
 mkdir -p "$PLUGINS_DIR"
-ln -sfn "$(pwd)/qgis_ai_agent" "$PLUGINS_DIR/qgis_ai_agent"
+ln -sfn "$(pwd)/ai_agent" "$PLUGINS_DIR/ai_agent"
 ```
 
 The link points at the package folder, not the repository root: only the plugin
@@ -129,7 +129,7 @@ plugin does not unload submodules from `sys.modules`. The Python console keeps
 its own cache; reset it with:
 
 ```python
-import sys; [sys.modules.pop(n) for n in list(sys.modules) if n.startswith("qgis_ai_agent")]
+import sys; [sys.modules.pop(n) for n in list(sys.modules) if n.startswith("ai_agent")]
 ```
 
 ## 5. Verification

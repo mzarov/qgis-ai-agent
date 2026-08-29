@@ -1,6 +1,6 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.processing.ranking import EXACT, score
+from ai_agent.qgis_tools.processing.ranking import EXACT, score
 
 
 def haystack(name, bare="", tags="", group=""):

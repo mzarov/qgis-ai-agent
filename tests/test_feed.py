@@ -1,8 +1,8 @@
 import unittest
 
-from qgis_ai_agent.ui.conversation import ConversationView
-from qgis_ai_agent.ui.messages import AssistantMessage
-from qgis_ai_agent.ui.thinking import ThinkingBlock
+from ai_agent.ui.conversation import ConversationView
+from ai_agent.ui.messages import AssistantMessage
+from ai_agent.ui.thinking import ThinkingBlock
 
 
 class DraftTest(unittest.TestCase):
@@ -232,7 +232,7 @@ class ActivityTitleTest(unittest.TestCase):
 
 class FailedPlanCardTest(unittest.TestCase):
     def test_a_failed_apply_still_settles_the_card(self):
-        from qgis_ai_agent.ui.plan import PlanCard
+        from ai_agent.ui.plan import PlanCard
 
         card = PlanCard(["step"])
         card.mark_failed()
@@ -241,8 +241,8 @@ class FailedPlanCardTest(unittest.TestCase):
 
 class CapabilitiesTest(unittest.TestCase):
     def test_every_skill_arrives_with_its_tools(self):
-        from qgis_ai_agent.core.orchestrator.capabilities import describe_capabilities
-        from qgis_ai_agent.skills.registry import SKILL_REGISTRY
+        from ai_agent.core.orchestrator.capabilities import describe_capabilities
+        from ai_agent.skills.registry import SKILL_REGISTRY
 
         described = describe_capabilities()
         self.assertEqual([skill["name"] for skill in described], SKILL_REGISTRY.names())
@@ -253,7 +253,7 @@ class CapabilitiesTest(unittest.TestCase):
         self.assertTrue(all(tool["safety"] for skill in described for tool in skill["tools"]))
 
     def test_the_browser_dialog_builds_from_the_description(self):
-        from qgis_ai_agent.core.orchestrator.capabilities import describe_capabilities
-        from qgis_ai_agent.ui.tool_browser import ToolBrowserDialog
+        from ai_agent.core.orchestrator.capabilities import describe_capabilities
+        from ai_agent.ui.tool_browser import ToolBrowserDialog
 
         ToolBrowserDialog(describe_capabilities())

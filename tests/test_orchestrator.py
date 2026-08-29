@@ -2,10 +2,10 @@ import shutil
 import tempfile
 import unittest
 
-from qgis_ai_agent.core.orchestrator import orchestrator as orchestrator_module
-from qgis_ai_agent.core.orchestrator.orchestrator import CoreOrchestrator
-from qgis_ai_agent.core.state.conversation import ConversationState
-from qgis_ai_agent.core.state.store import SessionStore, current_project_key
+from ai_agent.core.orchestrator import orchestrator as orchestrator_module
+from ai_agent.core.orchestrator.orchestrator import CoreOrchestrator
+from ai_agent.core.state.conversation import ConversationState
+from ai_agent.core.state.store import SessionStore, current_project_key
 
 
 class Dock:
@@ -212,7 +212,7 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.assertIn("нет такого слоя", str(self.orchestrator.agent.started[1]))
 
     def test_destructive_steps_ask_an_extra_confirmation(self):
-        from qgis_ai_agent.core.orchestrator import orchestrator as module
+        from ai_agent.core.orchestrator import orchestrator as module
 
         saved = module.get_tool_by_name
 
@@ -231,7 +231,7 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.assertTrue(any("destructive" in text or "не применены" in text for text in self.dock.system))
 
     def test_accepted_destructive_steps_apply(self):
-        from qgis_ai_agent.core.orchestrator import orchestrator as module
+        from ai_agent.core.orchestrator import orchestrator as module
 
         saved = module.get_tool_by_name
 
@@ -272,7 +272,7 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.assertIn("FAILED — no such layer", prompt)
 
     def test_verification_iterates_but_stops_at_the_cap(self):
-        from qgis_ai_agent.core.orchestrator.orchestrator import MAX_VERIFICATION_ROUNDS
+        from ai_agent.core.orchestrator.orchestrator import MAX_VERIFICATION_ROUNDS
 
         self.orchestrator.on_prompt("сделай реки синими")
         self.orchestrator.agent.verification_round = MAX_VERIFICATION_ROUNDS
@@ -287,7 +287,7 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.assertEqual(self.orchestrator.agent.verification_round, 2)
 
     def test_verification_respects_the_setting(self):
-        from qgis_ai_agent.core.orchestrator import orchestrator as module
+        from ai_agent.core.orchestrator import orchestrator as module
 
         saved = module.get_verify_after_apply
         module.get_verify_after_apply = lambda: False

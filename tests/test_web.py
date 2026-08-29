@@ -1,12 +1,12 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.web import geocode as geocode_module
-from qgis_ai_agent.qgis_tools.web import search_web as search_module
-from qgis_ai_agent.qgis_tools.web.fetch_url import FetchUrlTool, _limit
-from qgis_ai_agent.qgis_tools.web.geocode import GeocodeTool, parse_matches
-from qgis_ai_agent.qgis_tools.web.html_text import html_to_text
-from qgis_ai_agent.qgis_tools.web.http import checked_url
-from qgis_ai_agent.qgis_tools.web.search_web import SearchWebTool, parse_results
+from ai_agent.qgis_tools.web import geocode as geocode_module
+from ai_agent.qgis_tools.web import search_web as search_module
+from ai_agent.qgis_tools.web.fetch_url import FetchUrlTool, _limit
+from ai_agent.qgis_tools.web.geocode import GeocodeTool, parse_matches
+from ai_agent.qgis_tools.web.html_text import html_to_text
+from ai_agent.qgis_tools.web.http import checked_url
+from ai_agent.qgis_tools.web.search_web import SearchWebTool, parse_results
 
 PAGE = """<html><head><title>t</title><style>.a{color:red}</style></head>
 <body><script>alert(1)</script><h1>Заголовок</h1><p>Первый  абзац &amp; хвост.</p>
@@ -162,7 +162,7 @@ class GeocodeParseTest(unittest.TestCase):
 
 class FetchToolTest(unittest.TestCase):
     def test_html_is_stripped_and_truncated(self):
-        import qgis_ai_agent.qgis_tools.web.fetch_url as module
+        import ai_agent.qgis_tools.web.fetch_url as module
 
         saved = module.get_text
         module.get_text = lambda url: PAGE

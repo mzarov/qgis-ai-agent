@@ -11,7 +11,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "tools")
 import build_plugin
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
-METADATA = REPO_ROOT / "qgis_ai_agent" / "metadata.txt"
+METADATA = REPO_ROOT / "ai_agent" / "metadata.txt"
 REQUIRED_METADATA_KEYS = (
     "name",
     "qgisMinimumVersion",
@@ -49,7 +49,7 @@ class MetadataTest(unittest.TestCase):
         self.assertGreaterEqual(float(self.values["qgisMinimumVersion"]), 4.0)
 
     def test_icon_exists(self):
-        self.assertTrue((REPO_ROOT / "qgis_ai_agent" / self.values["icon"]).is_file())
+        self.assertTrue((REPO_ROOT / "ai_agent" / self.values["icon"]).is_file())
 
 
 class BuildTest(unittest.TestCase):
@@ -66,7 +66,7 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(tops, {build_plugin.PLUGIN_NAME})
 
     def test_every_skill_body_is_packed(self):
-        on_disk = sorted(path.parent.name for path in (REPO_ROOT / "qgis_ai_agent").rglob("SKILL.md"))
+        on_disk = sorted(path.parent.name for path in (REPO_ROOT / "ai_agent").rglob("SKILL.md"))
         packed = sorted(name.rsplit("/", 2)[1] for name in self.names if name.endswith("SKILL.md"))
         self.assertTrue(on_disk, "в исходниках не найдено ни одного SKILL.md")
         self.assertEqual(packed, on_disk)
@@ -105,10 +105,10 @@ class BuildTest(unittest.TestCase):
     def test_skills_load_from_the_extracted_copy(self):
         zipfile.ZipFile(self.archive).extractall(self.root)
         skills_root = os.path.join(self.root, build_plugin.PLUGIN_NAME, "skills")
-        from qgis_ai_agent.skills.registry import SkillRegistry
+        from ai_agent.skills.registry import SkillRegistry
 
         registry = SkillRegistry(skills_root)
-        on_disk = sorted(path.parent.name for path in (REPO_ROOT / "qgis_ai_agent").rglob("SKILL.md"))
+        on_disk = sorted(path.parent.name for path in (REPO_ROOT / "ai_agent").rglob("SKILL.md"))
         self.assertEqual(sorted(registry.names()), on_disk)
 
 

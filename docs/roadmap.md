@@ -1,17 +1,17 @@
 # Roadmap
 
-Items 2–8 below shipped on 2026-08-29; what remains open is the rename.
+Everything below shipped on 2026-08-29, the rename included: the package and catalogue id is now `ai_agent`, the display name “AI Agent”.
 
 What comes next, in order. The list was last revised after comparing the
 plugin against the QGIS plugin catalogue — in particular the
-[GeoGPT AI Agent](https://plugins.qgis.org/plugins/qgis_ai_agent/) listing,
-which occupies the `qgis_ai_agent` slug. That plugin has no released version
+[GeoGPT AI Agent](https://plugins.qgis.org/plugins/ai_agent/) listing,
+which occupies the `ai_agent` slug. That plugin has no released version
 and no visible source, so the comparison is against its claims, not its code;
 the claims still mark out territory users expect an agent to cover.
 
 ## Blocking the first release
 
-1. **Rename before publishing.** The catalogue slug `qgis_ai_agent` is taken.
+1. **Done — renamed to `ai_agent`.** The catalogue slug `ai_agent` is taken.
    The plugin needs a distinct name and package id before the first
    submission; the version stays 0.0.1 until then.
 

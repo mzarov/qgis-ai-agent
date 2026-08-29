@@ -1,18 +1,18 @@
 import base64
 import unittest
 
-from qgis_ai_agent.core.agent.executor import ToolExecutor
-from qgis_ai_agent.core.agent.prompts import build_verification_prompt
-from qgis_ai_agent.core.agent.transcript import (
+from ai_agent.core.agent.executor import ToolExecutor
+from ai_agent.core.agent.prompts import build_verification_prompt
+from ai_agent.core.agent.transcript import (
     IMAGE_OMITTED_NOTE,
     ToolResult,
     Transcript,
 )
-from qgis_ai_agent.core.llm import anthropic, transport
-from qgis_ai_agent.core.llm.client import ApiResponseError
-from qgis_ai_agent.core.llm.transport import ModelTurn, ToolCall
-from qgis_ai_agent.qgis_tools.base import RESULT_IMAGE_KEY
-from qgis_ai_agent.qgis_tools.inspect.render_map import (
+from ai_agent.core.llm import anthropic, transport
+from ai_agent.core.llm.client import ApiResponseError
+from ai_agent.core.llm.transport import ModelTurn, ToolCall
+from ai_agent.qgis_tools.base import RESULT_IMAGE_KEY
+from ai_agent.qgis_tools.inspect.render_map import (
     DEFAULT_WIDTH,
     MAX_WIDTH,
     MIN_WIDTH,
@@ -148,7 +148,7 @@ class StripRetryTest(unittest.TestCase):
 class ExecutorImageTest(unittest.TestCase):
     def test_the_image_key_is_lifted_out_of_the_payload(self):
         executor = ToolExecutor()
-        from qgis_ai_agent.core.agent import executor as module
+        from ai_agent.core.agent import executor as module
 
         saved = module.execute_tool
         module.execute_tool = lambda name, params: {"width": 2, RESULT_IMAGE_KEY: PIXEL}

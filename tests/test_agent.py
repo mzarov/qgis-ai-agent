@@ -1,12 +1,12 @@
 import unittest
 
-from qgis_ai_agent.core.agent import batch as batch_module
-from qgis_ai_agent.core.agent.batch import WriteBatch
-from qgis_ai_agent.core.agent.loop import AgentLoop
-from qgis_ai_agent.core.agent.transcript import ToolResult
-from qgis_ai_agent.core.llm.transport import ToolCall
-from qgis_ai_agent.qgis_tools.registry import ALL_TOOLS, get_tool_by_name
-from qgis_ai_agent.skills.registry import SKILL_REGISTRY
+from ai_agent.core.agent import batch as batch_module
+from ai_agent.core.agent.batch import WriteBatch
+from ai_agent.core.agent.loop import AgentLoop
+from ai_agent.core.agent.transcript import ToolResult
+from ai_agent.core.llm.transport import ToolCall
+from ai_agent.qgis_tools.registry import ALL_TOOLS, get_tool_by_name
+from ai_agent.skills.registry import SKILL_REGISTRY
 
 
 class FakeExecutor:

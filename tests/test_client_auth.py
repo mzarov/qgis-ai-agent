@@ -1,7 +1,7 @@
 import pathlib
 import unittest
 
-from qgis_ai_agent.core.llm.client import build_request, is_local, resolve_endpoint
+from ai_agent.core.llm.client import build_request, is_local, resolve_endpoint
 
 REMOTE = "https://api.openai.com/v1"
 
@@ -64,9 +64,9 @@ if __name__ == "__main__":
 
 
 class TransportTest(unittest.TestCase):
-    SOURCE = (
-        pathlib.Path(__file__).resolve().parent.parent / "qgis_ai_agent" / "core" / "llm" / "client.py"
-    ).read_text(encoding="utf-8")
+    SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "core" / "llm" / "client.py").read_text(
+        encoding="utf-8"
+    )
 
     def test_network_goes_through_qgis_not_requests(self):
         self.assertIn("QgsBlockingNetworkRequest", self.SOURCE)

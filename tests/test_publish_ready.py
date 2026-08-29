@@ -3,7 +3,7 @@ import re
 import unittest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
-PACKAGE = REPO_ROOT / "qgis_ai_agent"
+PACKAGE = REPO_ROOT / "ai_agent"
 METADATA = PACKAGE / "metadata.txt"
 REQUIRED_FIELDS = ("name", "qgisMinimumVersion", "description", "about", "version", "author", "email", "repository")
 VALID_CATEGORIES = ("Raster", "Vector", "Database", "Mesh", "Web")
@@ -103,8 +103,8 @@ class EscapeHatchTest(unittest.TestCase):
         self.assertEqual(suppressions, ["qgis_tools/python/sandbox.py:72"])
 
     def test_the_tool_running_code_asks_the_user_first(self):
-        from qgis_ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
-        from qgis_ai_agent.qgis_tools.python.run_python import RunPythonTool
+        from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
+        from ai_agent.qgis_tools.python.run_python import RunPythonTool
 
         self.assertEqual(RunPythonTool().safety, SAFETY_DESTRUCTIVE)
 

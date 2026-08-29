@@ -2,8 +2,8 @@ import ast
 import pathlib
 import unittest
 
-SOURCE_ROOT = pathlib.Path(__file__).resolve().parent.parent / "qgis_ai_agent"
-PACKAGE = "qgis_ai_agent"
+SOURCE_ROOT = pathlib.Path(__file__).resolve().parent.parent / "ai_agent"
+PACKAGE = "ai_agent"
 FORBIDDEN = {
     "core": ("ui",),
     "qgis_tools": ("core", "ui"),

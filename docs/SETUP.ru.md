@@ -11,11 +11,11 @@
 python3 tools/build_plugin.py
 ```
 
-Он кладёт `dist/qgis_ai_agent-<версия>.zip` — ровно в том виде, который ждёт QGIS:
-одна папка `qgis_ai_agent/` внутри архива.
+Он кладёт `dist/ai_agent-<версия>.zip` — ровно в том виде, который ждёт QGIS:
+одна папка `ai_agent/` внутри архива.
 
 Дальше в QGIS: **Модули → Управление модулями → Установить из ZIP**, выбрать файл,
-нажать **Установить модуль**. После установки в меню появится **QGIS AI Agent**.
+нажать **Установить модуль**. После установки в меню появится **AI Agent**.
 
 Скачивать zip кнопкой «Code → Download ZIP» на GitHub **нельзя**: архив
 распаковывается папкой `qgis-ai-agent-main`, а имя папки задаёт имя пакета Python —
@@ -113,7 +113,7 @@ import sys; print(sys.executable)
 ```bash
 PLUGINS_DIR="$HOME/Library/Application Support/QGIS/QGIS4/profiles/default/python/plugins"
 mkdir -p "$PLUGINS_DIR"
-ln -sfn "$(pwd)/qgis_ai_agent" "$PLUGINS_DIR/qgis_ai_agent"
+ln -sfn "$(pwd)/ai_agent" "$PLUGINS_DIR/ai_agent"
 ```
 
 Ссылка ведёт на папку пакета, а не на корень репозитория: в QGIS попадает
@@ -127,7 +127,7 @@ ln -sfn "$(pwd)/qgis_ai_agent" "$PLUGINS_DIR/qgis_ai_agent"
 можно так:
 
 ```python
-import sys; [sys.modules.pop(n) for n in list(sys.modules) if n.startswith("qgis_ai_agent")]
+import sys; [sys.modules.pop(n) for n in list(sys.modules) if n.startswith("ai_agent")]
 ```
 
 ## 5. Проверка

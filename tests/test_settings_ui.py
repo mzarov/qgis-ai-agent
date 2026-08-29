@@ -1,9 +1,9 @@
 import pathlib
 import unittest
 
-from qgis_ai_agent.core.llm import probe as settings_probe
-from qgis_ai_agent.core.llm import providers
-from qgis_ai_agent.core.llm.dialects import ANTHROPIC, OPENAI, resolve
+from ai_agent.core.llm import probe as settings_probe
+from ai_agent.core.llm import providers
+from ai_agent.core.llm.dialects import ANTHROPIC, OPENAI, resolve
 
 
 class PresetTest(unittest.TestCase):
@@ -60,7 +60,7 @@ class PresetTest(unittest.TestCase):
             self.assertEqual(preset.dialect, OPENAI, preset.title)
 
 
-SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "qgis_ai_agent" / "ui" / "settings_fields.py").read_text(
+SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "settings_fields.py").read_text(
     encoding="utf-8"
 )
 
@@ -94,7 +94,7 @@ class StyleSheetTest(unittest.TestCase):
 
 
 class PanelLevelTest(unittest.TestCase):
-    STYLE = (pathlib.Path(__file__).resolve().parent.parent / "qgis_ai_agent" / "ui" / "style.py").read_text(
+    STYLE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "style.py").read_text(
         encoding="utf-8"
     )
 
@@ -118,7 +118,7 @@ def _constant(source, name):
 
 class ProbeTest(unittest.TestCase):
     def _with_chat(self, fake):
-        module = __import__("qgis_ai_agent.core.llm.client", fromlist=["chat"])
+        module = __import__("ai_agent.core.llm.client", fromlist=["chat"])
         saved = module.chat
         module.chat = fake
         self.addCleanup(lambda: setattr(module, "chat", saved))

@@ -1,12 +1,12 @@
 import json
 import unittest
 
-from qgis_ai_agent.core.agent.loop import AgentLoop
-from qgis_ai_agent.core.agent.transcript import Transcript
-from qgis_ai_agent.core.llm import anthropic, transport
-from qgis_ai_agent.core.llm.stream import consume
-from qgis_ai_agent.core.llm.thinking import ThinkSplitter, split_thinking
-from qgis_ai_agent.core.llm.transport import PROTOCOL_JSON, ModelTurn
+from ai_agent.core.agent.loop import AgentLoop
+from ai_agent.core.agent.transcript import Transcript
+from ai_agent.core.llm import anthropic, transport
+from ai_agent.core.llm.stream import consume
+from ai_agent.core.llm.thinking import ThinkSplitter, split_thinking
+from ai_agent.core.llm.transport import PROTOCOL_JSON, ModelTurn
 
 
 def event(payload: dict) -> bytes:

@@ -1,6 +1,6 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.processing.utils import _coerce_enum_value
+from ai_agent.qgis_tools.processing.utils import _coerce_enum_value
 
 
 class CoerceEnumTest(unittest.TestCase):
