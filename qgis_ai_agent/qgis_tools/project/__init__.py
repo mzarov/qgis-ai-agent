@@ -9,6 +9,7 @@ from qgis_ai_agent.qgis_tools.project.list_db_connections import ListDbConnectio
 from qgis_ai_agent.qgis_tools.project.list_db_tables import ListDbTablesTool
 from qgis_ai_agent.qgis_tools.project.remember import ForgetTool, ListNotesTool, RememberTool
 from qgis_ai_agent.qgis_tools.project.remove_layer import RemoveLayerTool
+from qgis_ai_agent.qgis_tools.project.reorder_layers import ReorderLayersTool
 from qgis_ai_agent.qgis_tools.project.save_project import SaveProjectTool
 from qgis_ai_agent.qgis_tools.project.undo_last_apply import UndoLastApplyTool
 from qgis_ai_agent.qgis_tools.project.views import ListViewsTool, SaveBookmarkTool, SaveMapThemeTool
@@ -23,6 +24,7 @@ PROJECT_TOOLS = [
     ListDbTablesTool(),
     AddDbLayerTool(),
     RemoveLayerTool(),
+    ReorderLayersTool(),
     ConfigureLayerTool(),
     ConfigureProjectTool(),
     SaveProjectTool(),
