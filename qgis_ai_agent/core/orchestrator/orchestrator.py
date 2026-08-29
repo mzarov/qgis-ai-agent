@@ -54,6 +54,7 @@ class CoreOrchestrator:
         self.agent.question_asked.connect(self.on_question_asked)
         self.agent.preamble.connect(self.on_preamble)
         self.agent.applied.connect(self.on_applied)
+        self.agent.stage_applied.connect(self.on_stage_applied)
         self.agent.finished.connect(self.on_finished)
         self.agent.failed.connect(self.on_failed)
         self.agent.aborted.connect(self.on_aborted)
@@ -204,6 +205,11 @@ class CoreOrchestrator:
         self.agent.cancel_pending()
         if self._plan_message_id is not None:
             self.dock_widget.mark_plan_cancelled(self._plan_message_id)
+        self._plan_message_id = None
+
+    def on_stage_applied(self, results: list) -> None:
+        if self._plan_message_id is not None:
+            self.dock_widget.mark_plan_completed(self._plan_message_id)
         self._plan_message_id = None
 
     def on_applied(self, results: list) -> None:

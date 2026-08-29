@@ -91,7 +91,11 @@ class PlanDock(Dock):
     def __init__(self):
         super().__init__()
         self.cancelled_plans = []
+        self.completed_plans = []
         self.plan_lines = None
+
+    def mark_plan_completed(self, message_id):
+        self.completed_plans.append(message_id)
 
     def add_plan_message(self, lines):
         self.plan_lines = list(lines)
@@ -432,3 +436,20 @@ class PreambleFlowTest(unittest.TestCase):
         self.orchestrator.on_preamble("Сейчас скачаю кафе.")
         self.assertEqual(self.orchestrator.conversation.messages[-1]["content"], "Сейчас скачаю кафе.")
         self.assertEqual(self.orchestrator.conversation.messages[-1]["role"], "assistant")
+
+
+class StageAppliedTest(unittest.TestCase):
+    def setUp(self):
+        self.dock = PlanDock()
+        self.orchestrator = CoreOrchestrator(Iface(), self.dock)
+        self.orchestrator.agent = Agent()
+
+    def test_a_staged_apply_settles_its_card(self):
+        self.orchestrator.on_confirm_needed([Call()], "")
+        self.orchestrator.on_stage_applied([Result()])
+        self.assertEqual(self.dock.completed_plans, [7])
+        self.assertIsNone(self.orchestrator._plan_message_id)
+
+    def test_without_a_card_nothing_is_marked(self):
+        self.orchestrator.on_stage_applied([Result()])
+        self.assertEqual(self.dock.completed_plans, [])

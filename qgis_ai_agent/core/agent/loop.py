@@ -48,6 +48,7 @@ class AgentLoop(QObject):
     answer_chunk = pyqtSignal(str)
     thinking_chunk = pyqtSignal(str)
     applied = pyqtSignal(object)
+    stage_applied = pyqtSignal(object)
     finished = pyqtSignal(str)
     failed = pyqtSignal(str)
     busy_changed = pyqtSignal(bool)
@@ -162,6 +163,7 @@ class AgentLoop(QObject):
                 self.busy_changed.emit(False)
         QgsMessageLog.logMessage(f"Applied changes: {len(results)}.", LOG_TAG, Qgis.Info)
         if staged:
+            self.stage_applied.emit(results)
             self._resume_after_stage(results)
             return
         self.applied.emit(results)
