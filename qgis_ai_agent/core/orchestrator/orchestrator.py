@@ -55,6 +55,7 @@ class CoreOrchestrator:
         self.agent.preamble.connect(self.on_preamble)
         self.agent.applied.connect(self.on_applied)
         self.agent.stage_applied.connect(self.on_stage_applied)
+        self.agent.journal_written.connect(self.on_journal_written)
         self.agent.finished.connect(self.on_finished)
         self.agent.failed.connect(self.on_failed)
         self.agent.aborted.connect(self.on_aborted)
@@ -214,6 +215,9 @@ class CoreOrchestrator:
         if self._plan_message_id is not None:
             self.dock_widget.mark_plan_cancelled(self._plan_message_id)
         self._plan_message_id = None
+
+    def on_journal_written(self, path: str) -> None:
+        self.dock_widget.add_system_message(tr("Run journal: {0}").format(path))
 
     def on_stage_applied(self, results: list) -> None:
         if self._plan_message_id is not None:
