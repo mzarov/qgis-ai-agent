@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 from typing import Any
 
+from qgis_ai_agent.qgis_tools.annotations import ANNOTATIONS_TOOLS
 from qgis_ai_agent.qgis_tools.base import BaseTool
 from qgis_ai_agent.qgis_tools.edit import EDIT_TOOLS
 from qgis_ai_agent.qgis_tools.fields import FIELDS_TOOLS
@@ -18,6 +19,7 @@ ALL_TOOLS: list[BaseTool] = [
     *PROJECT_TOOLS,
     *OSM_TOOLS,
     *WEB_TOOLS,
+    *ANNOTATIONS_TOOLS,
     *STYLE_TOOLS,
     *PROCESSING_TOOLS,
     *EDIT_TOOLS,

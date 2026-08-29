@@ -316,6 +316,9 @@ core = _mod(
         "QgsCoordinateTransformContext",
         "QgsNetworkAccessManager",
         "QgsMapRendererParallelJob",
+        "QgsAnnotationMarkerItem",
+        "QgsAnnotationPointTextItem",
+        "QgsPoint",
     ],
 )
 pyqt = _mod("qgis.PyQt")
