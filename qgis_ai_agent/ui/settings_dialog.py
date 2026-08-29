@@ -23,6 +23,7 @@ from qgis_ai_agent.core.settings import (
     get_auth_type,
     get_dialect,
     get_model,
+    get_thinking_budget,
     get_token_budget,
     get_verify_after_apply,
     get_verify_ssl,
@@ -31,6 +32,7 @@ from qgis_ai_agent.core.settings import (
     set_auth_type,
     set_dialect,
     set_model,
+    set_thinking_budget,
     set_token_budget,
     set_verify_after_apply,
     set_verify_ssl,
@@ -53,6 +55,11 @@ VERIFY_LABEL = tr("Check the result after applying changes")
 VERIFY_HINT = tr("After you press Apply, the agent re-reads the project and confirms the changes really landed.")
 BUDGET_LABEL = tr("Token budget per run")
 BUDGET_HINT = tr("The run stops politely once it has spent this many tokens. 0 removes the limit.")
+THINKING_LABEL = tr("Extended thinking budget")
+THINKING_HINT = tr(
+    "Anthropic only: how many tokens the model may spend reasoning before it answers. "
+    "0 turns it off. Below 1024 the API refuses. Models that reason on their own need nothing here."
+)
 
 
 class SettingsDialog(QDialog):
@@ -123,6 +130,9 @@ class SettingsDialog(QDialog):
 
         self.budget_edit = QLineEdit(str(get_token_budget()))
         column.addWidget(fields.field(BUDGET_LABEL, self.budget_edit, BUDGET_HINT, palette))
+
+        self.thinking_edit = QLineEdit(str(get_thinking_budget()))
+        column.addWidget(fields.field(THINKING_LABEL, self.thinking_edit, THINKING_HINT, palette))
         return frame
 
     def _build_buttons(self, palette: Any) -> QHBoxLayout:
@@ -174,6 +184,7 @@ class SettingsDialog(QDialog):
         set_verify_ssl(self.verify_ssl_cb.isChecked())
         set_verify_after_apply(self.verify_apply_cb.isChecked())
         set_token_budget(_parsed_budget(self.budget_edit.text()))
+        set_thinking_budget(_parsed_budget(self.thinking_edit.text()))
         key = self.key_edit.text()
         if key:
             try:

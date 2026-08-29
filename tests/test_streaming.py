@@ -159,7 +159,7 @@ class StreamingDispatchTest(unittest.TestCase):
     def test_the_request_body_asks_for_a_stream_with_usage(self):
         seen = {}
 
-        def fake(endpoint, headers, body, on_text, timeout, verify=None):
+        def fake(endpoint, headers, body, on_text, timeout, verify=None, on_thinking=None):
             seen.update(body)
             return consume([text_delta("ok")])
 
@@ -180,7 +180,7 @@ class StreamingDispatchTest(unittest.TestCase):
     def test_deltas_reach_the_callback(self):
         seen = []
 
-        def fake(endpoint, headers, body, on_text, timeout, verify=None):
+        def fake(endpoint, headers, body, on_text, timeout, verify=None, on_thinking=None):
             return consume([text_delta("a"), text_delta("b")], on_text)
 
         transport.post_stream = fake
@@ -190,7 +190,7 @@ class StreamingDispatchTest(unittest.TestCase):
     def test_the_ssl_setting_reaches_the_stream(self):
         seen = []
 
-        def fake(endpoint, headers, body, on_text, timeout, verify=None):
+        def fake(endpoint, headers, body, on_text, timeout, verify=None, on_thinking=None):
             seen.append(verify)
             return consume([text_delta("ok")])
 

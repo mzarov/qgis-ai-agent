@@ -2,9 +2,12 @@ import json
 from collections.abc import Callable
 from typing import Any
 
+from qgis_ai_agent.core.llm.thinking import ThinkSplitter
+
 DATA_PREFIX = "data:"
 DONE_MARKER = "[DONE]"
 EVENT_SEPARATOR = "\n"
+REASONING_KEYS = ("reasoning_content", "reasoning")
 
 
 class SseAccumulator:
@@ -29,9 +32,16 @@ class SseAccumulator:
 
 
 class StreamedCompletion:
-    def __init__(self, on_text: Callable[[str], None] | None = None):
+    def __init__(
+        self,
+        on_text: Callable[[str], None] | None = None,
+        on_thinking: Callable[[str], None] | None = None,
+    ):
         self._on_text = on_text
+        self._on_thinking = on_thinking
         self._text_parts: list[str] = []
+        self._thinking_parts: list[str] = []
+        self._splitter = ThinkSplitter()
         self._calls: dict[int, dict[str, Any]] = {}
         self._finish_reason = ""
         self._usage: dict[str, Any] = {}
@@ -58,11 +68,24 @@ class StreamedCompletion:
         delta = choice.get("delta") or {}
         for raw_call in delta.get("tool_calls") or []:
             self._take_call(raw_call)
+        for key in REASONING_KEYS:
+            reasoning = delta.get(key)
+            if isinstance(reasoning, str) and reasoning:
+                self._take_thinking(reasoning)
         text = delta.get("content")
         if isinstance(text, str) and text:
-            self._text_parts.append(text)
-            if self._on_text is not None and not self._calls:
-                self._on_text(text)
+            visible, thought = self._splitter.feed(text)
+            if thought:
+                self._take_thinking(thought)
+            if visible:
+                self._text_parts.append(visible)
+                if self._on_text is not None and not self._calls:
+                    self._on_text(visible)
+
+    def _take_thinking(self, text: str) -> None:
+        self._thinking_parts.append(text)
+        if self._on_thinking is not None:
+            self._on_thinking(text)
 
     def _take_call(self, raw: dict[str, Any]) -> None:
         index = int(raw.get("index") or 0)
@@ -76,7 +99,14 @@ class StreamedCompletion:
             slot["arguments"] += str(function["arguments"])
 
     def response(self) -> dict[str, Any]:
+        visible, thought = self._splitter.flush()
+        if thought:
+            self._take_thinking(thought)
+        if visible:
+            self._text_parts.append(visible)
         message: dict[str, Any] = {"role": "assistant", "content": "".join(self._text_parts)}
+        if self._thinking_parts:
+            message["reasoning_content"] = "".join(self._thinking_parts)
         if self._calls:
             message["tool_calls"] = [
                 {
@@ -92,9 +122,13 @@ class StreamedCompletion:
         return built
 
 
-def consume(chunks: list[bytes], on_text: Callable[[str], None] | None = None) -> dict[str, Any]:
+def consume(
+    chunks: list[bytes],
+    on_text: Callable[[str], None] | None = None,
+    on_thinking: Callable[[str], None] | None = None,
+) -> dict[str, Any]:
     accumulator = SseAccumulator()
-    completion = StreamedCompletion(on_text)
+    completion = StreamedCompletion(on_text, on_thinking)
     for chunk in chunks:
         for event in accumulator.feed(chunk):
             completion.take(event)

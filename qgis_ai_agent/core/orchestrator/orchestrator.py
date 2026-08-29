@@ -56,6 +56,7 @@ class CoreOrchestrator:
         self.agent.busy_changed.connect(self.dock_widget.set_busy)
         self.agent.usage_changed.connect(self.on_usage_changed)
         self.agent.answer_chunk.connect(self.dock_widget.add_stream_chunk)
+        self.agent.thinking_chunk.connect(self.dock_widget.add_thinking_chunk)
 
     def on_stop(self) -> None:
         self.agent.abort()

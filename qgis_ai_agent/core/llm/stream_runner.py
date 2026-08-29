@@ -24,13 +24,14 @@ def post_stream(
     on_text: Callable[[str], None],
     timeout: int,
     verify_override: bool | None = None,
+    on_thinking: Callable[[str], None] | None = None,
 ) -> dict[str, Any]:
     request = build_network_request(endpoint, {**headers, **ACCEPT_HEADER}, verify_override)
     payload = QByteArray(json.dumps(body, ensure_ascii=False).encode("utf-8"))
     reply = QgsNetworkAccessManager.instance().post(request, payload)
 
     accumulator = SseAccumulator()
-    completion = StreamedCompletion(on_text)
+    completion = StreamedCompletion(on_text, on_thinking)
     error_tail: list[bytes] = []
     loop = QEventLoop()
     watchdog = QTimer()

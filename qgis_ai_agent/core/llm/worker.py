@@ -7,6 +7,7 @@ from qgis_ai_agent.core.llm.transport import call_model
 class ModelTurnThread(QThread):
     finished_turn = pyqtSignal(object)
     chunk = pyqtSignal(str)
+    thinking = pyqtSignal(str)
     error = pyqtSignal(str)
 
     def __init__(self, messages, tool_schemas, overrides, timeout=DEFAULT_TIMEOUT, parent=None):
@@ -20,6 +21,10 @@ class ModelTurnThread(QThread):
         if not self.isInterruptionRequested():
             self.chunk.emit(text)
 
+    def _emit_thinking(self, text: str) -> None:
+        if not self.isInterruptionRequested():
+            self.thinking.emit(text)
+
     def run(self) -> None:
         try:
             turn = call_model(
@@ -28,6 +33,7 @@ class ModelTurnThread(QThread):
                 overrides=self._overrides,
                 timeout=self._timeout,
                 on_chunk=self._emit_chunk,
+                on_thinking=self._emit_thinking,
             )
         except Exception as err:
             if not self.isInterruptionRequested():

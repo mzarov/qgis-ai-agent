@@ -162,6 +162,9 @@ class AgentDockWidget(QDockWidget):
     def add_stream_chunk(self, text: str) -> None:
         self.conversation.append_draft(text)
 
+    def add_thinking_chunk(self, text: str) -> None:
+        self.conversation.append_thinking(text)
+
     def finish_stream(self, markdown: str) -> bool:
         return self.conversation.finish_draft(markdown)
 

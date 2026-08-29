@@ -14,6 +14,12 @@ USER = "user"
 ASSISTANT = "assistant"
 SYSTEM = "system"
 TOOL = "tool"
+THINKING_BLOCK = "thinking"
+REDACTED_THINKING_BLOCK = "redacted_thinking"
+THINKING_BLOCKS = (THINKING_BLOCK, REDACTED_THINKING_BLOCK)
+THINKING_KEY = "thinking_blocks"
+MIN_THINKING_BUDGET = 1024
+ANSWER_HEADROOM = 4096
 
 
 def build_body(
@@ -21,13 +27,17 @@ def build_body(
     tool_schemas: list[dict[str, Any]] | None,
     model: str,
     max_tokens: int = DEFAULT_MAX_TOKENS,
+    thinking_budget: int = 0,
 ) -> dict[str, Any]:
     system, turns = split_system(messages)
+    budget = int(thinking_budget or 0)
     body: dict[str, Any] = {
         "model": model,
-        "max_tokens": max_tokens,
+        "max_tokens": max(max_tokens, budget + ANSWER_HEADROOM) if budget else max_tokens,
         "messages": turns,
     }
+    if budget >= MIN_THINKING_BUDGET:
+        body["thinking"] = {"type": "enabled", "budget_tokens": budget}
     if system:
         body["system"] = system
     if tool_schemas:
@@ -111,6 +121,14 @@ def parse_response(data: dict[str, Any]) -> tuple[str, list[dict[str, Any]], str
     return "\n".join(part for part in text_parts if part).strip(), calls, _stop(data)
 
 
+def parse_thinking(data: dict[str, Any]) -> tuple[str, list[dict[str, Any]]]:
+    blocks = [
+        block for block in data.get("content") or [] if isinstance(block, dict) and block.get("type") in THINKING_BLOCKS
+    ]
+    text = "\n".join(str(block.get(THINKING_BLOCK) or "") for block in blocks if block.get(THINKING_BLOCK))
+    return text.strip(), blocks
+
+
 def _assistant_message(message: dict[str, Any]) -> dict[str, Any] | None:
     blocks: list[dict[str, Any]] = []
     text = str(message.get("content") or "")
@@ -126,7 +144,10 @@ def _assistant_message(message: dict[str, Any]) -> dict[str, Any] | None:
                 "input": _as_object(function.get("arguments")),
             }
         )
-    return {"role": ASSISTANT, "content": blocks} if blocks else None
+    if not blocks:
+        return None
+    thought = [block for block in message.get(THINKING_KEY) or [] if isinstance(block, dict)]
+    return {"role": ASSISTANT, "content": thought + blocks}
 
 
 def _result_message(message: dict[str, Any]) -> dict[str, Any]:
