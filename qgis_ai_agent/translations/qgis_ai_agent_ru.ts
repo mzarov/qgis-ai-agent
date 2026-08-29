@@ -353,6 +353,11 @@
         <translation>Загружаю таблицу {0}.{1} из базы данных.</translation>
     </message>
     <message>
+        <location filename="qgis_ai_agent/qgis_tools/web/geocode.py" line="29"/>
+        <source>Looking up '{0}' on the map.</source>
+        <translation>Ищу «{0}» на карте.</translation>
+    </message>
+    <message>
         <location filename="qgis_ai_agent/ui/settings_dialog.py" line="99"/>
         <source>Model</source>
         <translation>Модель</translation>
@@ -534,6 +539,11 @@
         <translation>Смотрю, что запомнено об этом проекте.</translation>
     </message>
     <message>
+        <location filename="qgis_ai_agent/qgis_tools/web/fetch_url.py" line="34"/>
+        <source>Reading {0}.</source>
+        <translation>Читаю {0}.</translation>
+    </message>
+    <message>
         <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="171"/>
         <source>Rejected: {0}</source>
         <translation>Отклонено: {0}</translation>
@@ -637,6 +647,11 @@
         <location filename="qgis_ai_agent/qgis_tools/processing/search_processing.py" line="42"/>
         <source>Searching for an algorithm: '{0}'.</source>
         <translation>Ищу алгоритм: «{0}».</translation>
+    </message>
+    <message>
+        <location filename="qgis_ai_agent/qgis_tools/web/search_web.py" line="33"/>
+        <source>Searching the web: {0}.</source>
+        <translation>Ищу в интернете: {0}.</translation>
     </message>
     <message>
         <location filename="qgis_ai_agent/qgis_tools/inspect/select_features.py" line="52"/>
