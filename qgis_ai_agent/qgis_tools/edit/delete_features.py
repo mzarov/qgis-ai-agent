@@ -61,7 +61,12 @@ class DeleteFeaturesTool(BaseTool):
         layer = _require_vector(params.get("layer_name") or "")
         ids = _matched_ids(layer, params.get("filter") or "")
         if not layer.startEditing():
-            raise ValueError(f"Layer '{layer.name()}' cannot be switched into editing mode.")
+            raise ValueError(
+                f"Layer '{layer.name()}' cannot be switched into editing mode — "
+                "its data source is read-only. Extract what you need into a new editable "
+                "layer instead: native:extractbyexpression with the features to KEEP, "
+                "then remove the old layer."
+            )
         layer.deleteFeatures(ids)
         if not layer.commitChanges():
             reason = "; ".join(layer.commitErrors() or []) or "provider refused"

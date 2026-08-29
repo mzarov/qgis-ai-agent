@@ -1,3 +1,4 @@
+import pathlib
 import unittest
 
 from qgis_ai_agent.qgis_tools.osm import download_osm, extent, load, overpass, run_overpass, selectors, tags
@@ -428,3 +429,23 @@ class RunOverpassTest(unittest.TestCase):
 
     def test_it_is_a_write_tool_so_it_waits_for_the_button(self):
         self.assertFalse(self.tool.is_read_only)
+
+
+class EditableDownloadTest(unittest.TestCase):
+    SOURCE = pathlib.Path("qgis_ai_agent/qgis_tools/osm/load.py").read_text(encoding="utf-8")
+
+    def test_the_sublayer_is_materialized_into_a_geopackage(self):
+        self.assertIn('"GPKG"', self.SOURCE)
+        self.assertIn("CreateOrOverwriteFile", self.SOURCE)
+
+    def test_a_failed_conversion_falls_back_to_the_raw_layer(self):
+        self.assertIn("_materialized(raw, path, sublayer) or raw", self.SOURCE)
+
+    def test_the_read_only_refusal_names_the_way_out(self):
+        for path in (
+            "qgis_ai_agent/qgis_tools/edit/delete_features.py",
+            "qgis_ai_agent/qgis_tools/edit/update_attributes.py",
+            "qgis_ai_agent/qgis_tools/fields/schema.py",
+        ):
+            source = pathlib.Path(path).read_text(encoding="utf-8")
+            self.assertIn("extractbyexpression", source, path)

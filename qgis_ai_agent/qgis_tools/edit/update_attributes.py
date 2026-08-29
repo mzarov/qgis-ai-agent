@@ -75,7 +75,12 @@ class UpdateAttributesTool(BaseTool):
         request = build_request((params.get("filter") or "").strip(), layer)
         build_context(layer)
         if not layer.startEditing():
-            raise ValueError(f"Layer '{layer.name()}' cannot be switched into editing mode.")
+            raise ValueError(
+                f"Layer '{layer.name()}' cannot be switched into editing mode — "
+                "its data source is read-only. Extract what you need into a new editable "
+                "layer instead: native:extractbyexpression with the features to KEEP, "
+                "then remove the old layer."
+            )
         updated = 0
         for feature in layer.getFeatures(request):
             for name, value in values.items():
