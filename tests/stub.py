@@ -133,6 +133,12 @@ class _Colour:
     def name(self):
         return "#" + "".join(f"{part:02x}" for part in self._parts)
 
+    def lighter(self, factor=150):
+        return _Colour(*[min(WHITE, part * factor // 100) for part in self._parts])
+
+    def darker(self, factor=200):
+        return _Colour(*[part * 100 // max(1, factor) for part in self._parts])
+
     def isValid(self):
         return True
 

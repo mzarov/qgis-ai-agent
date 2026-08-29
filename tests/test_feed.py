@@ -54,6 +54,33 @@ class DraftTest(unittest.TestCase):
         self.assertIsNone(self.view._draft)
 
 
+class WelcomeFeedTest(unittest.TestCase):
+    def setUp(self):
+        self.view = ConversationView()
+
+    def test_an_empty_feed_shows_the_welcome_card(self):
+        self.assertIsNotNone(self.view._empty)
+
+    def test_the_first_message_replaces_it(self):
+        self.view.add_user_message("hello")
+        self.assertIsNone(self.view._empty)
+
+    def test_a_streamed_answer_also_replaces_it(self):
+        self.view.append_draft("hi")
+        self.assertIsNone(self.view._empty)
+
+    def test_clearing_brings_it_back(self):
+        self.view.add_user_message("hello")
+        self.view.clear()
+        self.assertIsNotNone(self.view._empty)
+
+    def test_changing_configuration_rebuilds_it(self):
+        first = self.view._empty
+        self.view.set_configured(False)
+        self.assertIsNotNone(self.view._empty)
+        self.assertIsNot(self.view._empty, first)
+
+
 class ThinkingFeedTest(unittest.TestCase):
     def setUp(self):
         self.view = ConversationView()

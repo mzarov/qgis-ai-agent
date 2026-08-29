@@ -20,6 +20,8 @@ from qgis_ai_agent.ui.thinking import ThinkingBlock
 from qgis_ai_agent.ui.welcome import WelcomeCard
 
 MESSAGE_SPACING = 11
+WELCOME_STRETCH = 1
+TAIL_STRETCH = 1
 SIDE_PADDING = 12
 PIN_TOLERANCE = 24
 
@@ -62,8 +64,7 @@ class ConversationView(QScrollArea):
             return
         self._configured = configured
         if self._empty is not None:
-            self._empty.deleteLater()
-            self._empty = None
+            self._drop_welcome()
             self._show_welcome()
 
     def _show_welcome(self) -> None:
@@ -71,7 +72,18 @@ class ConversationView(QScrollArea):
         card.suggestion_chosen.connect(self.suggestion_chosen.emit)
         card.settings_requested.connect(self.settings_requested.emit)
         self._empty = card
-        self._insert(card)
+        self._insert(card, WELCOME_STRETCH)
+        self._set_tail_stretch(0)
+
+    def _drop_welcome(self) -> None:
+        if self._empty is None:
+            return
+        self._empty.deleteLater()
+        self._empty = None
+        self._set_tail_stretch(TAIL_STRETCH)
+
+    def _set_tail_stretch(self, stretch: int) -> None:
+        self._column.setStretch(self._column.count() - 1, stretch)
 
     def add_user_message(self, text: str) -> int:
         self._close_activity()
@@ -195,15 +207,13 @@ class ConversationView(QScrollArea):
     def _append(self, widget: QWidget) -> int:
         self._drop_draft()
         self._close_thinking()
-        if self._empty is not None:
-            self._empty.deleteLater()
-            self._empty = None
+        self._drop_welcome()
         self._insert(widget)
         QTimer.singleShot(0, self._scroll_to_bottom)
         return self._remember(widget)
 
-    def _insert(self, widget: QWidget) -> None:
-        self._column.insertWidget(self._column.count() - 1, widget)
+    def _insert(self, widget: QWidget, stretch: int = 0) -> None:
+        self._column.insertWidget(self._column.count() - 1, widget, stretch)
 
     def _remember(self, entry: object) -> int:
         entry_id = self._next_id

@@ -99,6 +99,16 @@ it was watched arriving: reasoning that came whole at the end of a
 non-streaming request has no measurable duration, and printing `0.0 s` for a
 minute of thought would be a lie.
 
+## The empty state fills the panel
+
+`WelcomeCard` is not a small card pinned to the top: with an empty feed it takes
+the whole height and centres its own content, because a compact card left two
+thirds of the panel as a void and read as a rendering fault rather than as a
+starting point. The feed's trailing stretch is what fought it — while the
+welcome is shown that stretch drops to zero and the card carries the stretch
+instead; `_drop_welcome` hands it back. Both live in one pair of methods so the
+two states cannot drift apart.
+
 ## Action grouping
 
 `ConversationView` itself folds consecutive tool calls into one

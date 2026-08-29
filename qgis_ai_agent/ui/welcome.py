@@ -1,7 +1,7 @@
 from typing import Any
 
 from qgis.PyQt.QtCore import pyqtSignal
-from qgis.PyQt.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
 from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.ui import settings_fields as fields
@@ -38,18 +38,21 @@ class WelcomeCard(QWidget):
         super().__init__(parent)
         palette = self.palette()
         title, body, suggestions = welcome_content(configured)
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(CARD_SPACING)
         frame, inner = fields.card(palette)
         inner.setSpacing(CARD_SPACING)
+        inner.addStretch(1)
         inner.addWidget(_title(title, palette))
         inner.addWidget(_body(body, palette))
         for text in suggestions:
             inner.addWidget(self._suggestion(text, palette))
         if not suggestions:
             inner.addWidget(self._settings_button(palette))
-        column.addWidget(frame)
+        inner.addStretch(1)
+        column.addWidget(frame, 1)
 
     def _suggestion(self, text: str, palette: Any) -> QPushButton:
         button = QPushButton(text)
