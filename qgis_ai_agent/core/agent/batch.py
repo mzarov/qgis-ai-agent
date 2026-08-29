@@ -8,7 +8,7 @@ from qgis.PyQt.QtWidgets import QApplication
 from qgis_ai_agent.core.agent.executor import ToolExecutor
 from qgis_ai_agent.core.agent.transcript import ToolResult
 from qgis_ai_agent.core.llm.transport import ToolCall
-from qgis_ai_agent.qgis_tools.registry import prepare_tool_call
+from qgis_ai_agent.qgis_tools.registry import prepare_tool_call, summarize_tool_call
 
 
 def _signature(call: ToolCall) -> str:
@@ -48,6 +48,9 @@ class WriteBatch:
 
     def pending(self) -> list[ToolCall]:
         return list(self._calls)
+
+    def pending_summaries(self) -> list[str]:
+        return [summarize_tool_call(call.name, call.arguments) for call in self._calls]
 
     def apply(
         self,

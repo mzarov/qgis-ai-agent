@@ -3,6 +3,7 @@ from qgis.PyQt.QtCore import QObject, pyqtSignal
 
 from qgis_ai_agent.core.agent.batch import WriteBatch
 from qgis_ai_agent.core.agent.executor import ToolExecutor
+from qgis_ai_agent.core.agent.journal import record_run
 from qgis_ai_agent.core.agent.notices import (
     APPLY_DECLINED_MESSAGE,
     APPLY_NOW_WITHOUT_WRITES,
@@ -49,6 +50,7 @@ class AgentLoop(QObject):
     thinking_chunk = pyqtSignal(str)
     applied = pyqtSignal(object)
     stage_applied = pyqtSignal(object)
+    journal_written = pyqtSignal(str)
     finished = pyqtSignal(str)
     failed = pyqtSignal(str)
     busy_changed = pyqtSignal(bool)
@@ -77,6 +79,8 @@ class AgentLoop(QObject):
         self._verification_round = 0
         self._streamed_thinking = False
         self._question = ""
+        self._prompt = ""
+        self._applied_steps = 0
 
     @property
     def is_running(self) -> bool:
@@ -110,6 +114,8 @@ class AgentLoop(QObject):
     ) -> None:
         self._transcript = Transcript()
         self._transcript.add_user(prompt)
+        self._prompt = prompt
+        self._applied_steps = 0
         self._history = list(history or [])
         self._is_verification = verification
         self._verification_round = verification_round
@@ -161,6 +167,7 @@ class AgentLoop(QObject):
         finally:
             if not staged:
                 self.busy_changed.emit(False)
+        self._applied_steps += len(results)
         QgsMessageLog.logMessage(f"Applied changes: {len(results)}.", LOG_TAG, Qgis.Info)
         if staged:
             self.stage_applied.emit(results)
@@ -192,10 +199,12 @@ class AgentLoop(QObject):
 
     def _request_step(self) -> None:
         if self._iteration >= MAX_ITERATIONS:
-            self._finish_on_limit()
+            QgsMessageLog.logMessage(f"Reached the limit of {MAX_ITERATIONS} turns.", LOG_TAG, Qgis.Warning)
+            self._complete(LIMIT_REACHED_MESSAGE)
             return
         if self._token_budget and self._tokens_spent >= self._token_budget:
-            self._finish_on_budget()
+            QgsMessageLog.logMessage(f"Token budget hit: {self._tokens_spent}.", LOG_TAG, Qgis.Warning)
+            self._complete(BUDGET_REACHED_MESSAGE)
             return
         self._iteration += 1
         self._streamed_thinking = False
@@ -224,7 +233,7 @@ class AgentLoop(QObject):
         )
 
     def _queued_summaries(self) -> str:
-        return render_queued_steps([summarize_tool_call(call.name, call.arguments) for call in self._batch.pending()])
+        return render_queued_steps(self._batch.pending_summaries())
 
     def _on_chunk(self, text: str) -> None:
         if not self._aborted and text:
@@ -359,7 +368,19 @@ class AgentLoop(QObject):
         if self._batch:
             self.confirm_needed.emit(self._batch.pending(), text)
         else:
+            self._write_journal(text)
             self.finished.emit(text)
+
+    def _write_journal(self, outcome: str) -> None:
+        if not self._applied_steps:
+            return
+        try:
+            path = record_run(self._prompt, self._transcript.entries, outcome, self._applied_steps)
+        except Exception as err:
+            QgsMessageLog.logMessage(f"Journal not written: {err}", LOG_TAG, Qgis.Warning)
+            return
+        QgsMessageLog.logMessage(f"Run journal: {path}", LOG_TAG, Qgis.Info)
+        self.journal_written.emit(path)
 
     def _track_usage(self, turn: ModelTurn) -> None:
         spent = int(turn.input_tokens) + int(turn.output_tokens)
@@ -367,16 +388,6 @@ class AgentLoop(QObject):
             return
         self._tokens_spent += spent
         self.usage_changed.emit(self._tokens_spent)
-
-    def _finish_on_limit(self) -> None:
-        QgsMessageLog.logMessage(f"Reached the limit of {MAX_ITERATIONS} turns.", LOG_TAG, Qgis.Warning)
-        self._complete(LIMIT_REACHED_MESSAGE)
-
-    def _finish_on_budget(self) -> None:
-        QgsMessageLog.logMessage(
-            f"Token budget hit: {self._tokens_spent} of {self._token_budget}.", LOG_TAG, Qgis.Warning
-        )
-        self._complete(BUDGET_REACHED_MESSAGE)
 
     def _fail(self, message: str) -> None:
         if self._aborted:
