@@ -787,12 +787,12 @@
     <message>
         <location filename="qgis_ai_agent/ui/thinking.py" line="21"/>
         <source>Thinking…</source>
-        <translation>Думает…</translation>
+        <translation>Размышляет…</translation>
     </message>
     <message>
         <location filename="qgis_ai_agent/ui/thinking.py" line="22"/>
         <source>Thought</source>
-        <translation>Думал</translation>
+        <translation>Рассуждение</translation>
     </message>
     <message>
         <location filename="qgis_ai_agent/ui/settings_dialog.py" line="56"/>
@@ -936,7 +936,7 @@
     </message>
     <message>
         <location filename="qgis_ai_agent/ui/activity.py" line="169"/>
-        <location filename="qgis_ai_agent/ui/thinking.py" line="124"/>
+        <location filename="qgis_ai_agent/ui/thinking.py" line="131"/>
         <source>{0} min {1} s</source>
         <translation>{0} мин {1} с</translation>
     </message>
@@ -947,7 +947,7 @@
     </message>
     <message>
         <location filename="qgis_ai_agent/ui/activity.py" line="168"/>
-        <location filename="qgis_ai_agent/ui/thinking.py" line="123"/>
+        <location filename="qgis_ai_agent/ui/thinking.py" line="130"/>
         <source>{0} s</source>
         <translation>{0} с</translation>
     </message>
