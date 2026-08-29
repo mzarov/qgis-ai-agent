@@ -5,6 +5,7 @@ from qgis.core import Qgis, QgsMessageLog
 from qgis_ai_agent.core.agent.loop import AgentLoop
 from qgis_ai_agent.core.agent.prompts import build_verification_prompt
 from qgis_ai_agent.core.llm.client import is_local
+from qgis_ai_agent.core.orchestrator.capabilities import describe_capabilities
 from qgis_ai_agent.core.orchestrator.contracts import DockWidgetContract
 from qgis_ai_agent.core.settings import get_api_key, get_api_url, get_verify_after_apply
 from qgis_ai_agent.core.state.conversation import ConversationState
@@ -38,6 +39,7 @@ class CoreOrchestrator:
         self._plan_message_id: int | None = None
         self._connect_agent()
         self.dock_widget.set_session_source(self.conversation.recent)
+        self.dock_widget.set_capabilities_source(describe_capabilities)
         self.refresh_configured()
 
     def refresh_configured(self) -> None:
