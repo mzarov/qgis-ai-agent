@@ -1,14 +1,19 @@
 from typing import Any
 
-from qgis.PyQt.QtCore import pyqtSignal
+from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
 from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.ui import settings_fields as fields
 from qgis_ai_agent.ui import style
 
-CARD_SPACING = 7
-SUGGESTION_PADDING = 7
+HEADING_SPACING = 5
+GROUP_SPACING = 18
+BLOCK_SPACING = 8
+BLOCK_PADDING = 13
+BLOCK_SIDE_PADDING = 15
+TITLE_SCALE = 1.15
+SIDE_INSET = 4
 NEEDS_KEY_TITLE = tr("One step before we start")
 NEEDS_KEY_BODY = tr(
     "The agent talks to a language model of your choice, so it needs an address "
@@ -40,29 +45,32 @@ class WelcomeCard(QWidget):
         title, body, suggestions = welcome_content(configured)
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
         column = QVBoxLayout(self)
-        column.setContentsMargins(0, 0, 0, 0)
-        column.setSpacing(CARD_SPACING)
-        frame, inner = fields.card(palette)
-        inner.setSpacing(CARD_SPACING)
-        inner.addStretch(1)
-        inner.addWidget(_title(title, palette))
-        inner.addWidget(_body(body, palette))
-        for text in suggestions:
-            inner.addWidget(self._suggestion(text, palette))
+        column.setContentsMargins(SIDE_INSET, 0, SIDE_INSET, 0)
+        column.setSpacing(HEADING_SPACING)
+        column.addStretch(1)
+        column.addWidget(_title(title, palette))
+        column.addWidget(_body(body, palette))
+        column.addSpacing(GROUP_SPACING)
+        for index, text in enumerate(suggestions):
+            if index:
+                column.addSpacing(BLOCK_SPACING)
+            column.addWidget(self._suggestion(text, palette))
         if not suggestions:
-            inner.addWidget(self._settings_button(palette))
-        inner.addStretch(1)
-        column.addWidget(frame, 1)
+            column.addWidget(self._settings_button(palette))
+        column.addStretch(1)
 
     def _suggestion(self, text: str, palette: Any) -> QPushButton:
         button = QPushButton(text)
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.setStyleSheet(
-            f"QPushButton {{ text-align: left; padding: {SUGGESTION_PADDING}px 10px;"
+            f"QPushButton {{ text-align: left;"
+            f" padding: {BLOCK_PADDING}px {BLOCK_SIDE_PADDING}px;"
             f" border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
-            f" border-radius: {style.BUBBLE_RADIUS}px;"
-            f" background: {style.css_color(style.panel(palette))};"
+            f" border-radius: {style.CARD_RADIUS}px;"
+            f" background: {style.css_color(style.card(palette))};"
             f" color: {style.css_color(style.text(palette))}; }}"
-            f"QPushButton:hover {{ border-color: {style.css_color(style.accent(palette))}; }}"
+            f"QPushButton:hover {{ border-color: {style.css_color(style.accent(palette))};"
+            f" background: {style.css_color(style.elevated(palette))}; }}"
         )
         button.clicked.connect(lambda: self.suggestion_chosen.emit(text))
         return button
@@ -79,6 +87,7 @@ def _title(text: str, palette: Any) -> QLabel:
     label.setWordWrap(True)
     font = label.font()
     font.setBold(True)
+    font.setPointSizeF(max(1.0, font.pointSizeF() * TITLE_SCALE))
     label.setFont(font)
     label.setStyleSheet(f"color: {style.css_color(style.text(palette))}; border: none;")
     return label
