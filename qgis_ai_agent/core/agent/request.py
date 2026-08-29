@@ -42,6 +42,7 @@ def build_step_request(
     history: list[dict[str, str]],
     overrides: dict[str, Any] | None = None,
     task_plan: str = "",
+    queued_steps: str = "",
 ) -> StepRequest:
     schemas = build_tool_schemas_for(loaded_skills)
     json_protocol = detect_json_protocol()
@@ -51,6 +52,7 @@ def build_step_request(
         json_protocol=json_protocol,
         locale=locale_code(),
         task_plan=task_plan,
+        queued_steps=queued_steps,
         project_notes=_project_notes(),
     )
     if json_protocol:

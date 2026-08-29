@@ -14,6 +14,7 @@ from qgis_ai_agent.core.agent.prompts import (
     APPLY_NOW_TOOL,
     LOAD_SKILL_TOOL,
     UPDATE_PLAN_TOOL,
+    render_queued_steps,
     render_task_plan,
 )
 from qgis_ai_agent.core.agent.request import build_overrides, build_step_request
@@ -193,6 +194,7 @@ class AgentLoop(QObject):
                 self._history,
                 self._overrides,
                 render_task_plan(self._plan_steps, self._plan_done),
+                self._queued_summaries(),
             )
         except Exception as err:
             self._fail(str(err))
@@ -208,6 +210,9 @@ class AgentLoop(QObject):
             self._on_chunk,
             self._on_thinking,
         )
+
+    def _queued_summaries(self) -> str:
+        return render_queued_steps([summarize_tool_call(call.name, call.arguments) for call in self._batch.pending()])
 
     def _on_chunk(self, text: str) -> None:
         if not self._aborted and text:
