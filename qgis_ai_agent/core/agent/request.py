@@ -3,6 +3,7 @@ from typing import Any
 
 from qgis_ai_agent.core.agent.prompts import (
     build_apply_now_schema,
+    build_ask_user_schema,
     build_json_tools_block,
     build_load_skill_schema,
     build_system_prompt,
@@ -77,6 +78,7 @@ def _project_notes() -> str:
 def build_tool_schemas_for(loaded_skills: list[str]) -> list[dict[str, Any]]:
     schemas = build_tool_schemas(get_tools_for_skills(loaded_skills))
     schemas.insert(0, build_apply_now_schema())
+    schemas.insert(0, build_ask_user_schema())
     schemas.insert(0, build_update_plan_schema())
     remaining = [name for name in SKILL_REGISTRY.names() if name not in loaded_skills]
     if remaining:

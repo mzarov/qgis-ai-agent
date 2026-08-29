@@ -46,6 +46,8 @@ class Agent:
     def __init__(self):
         self.is_running = False
         self.has_pending_writes = False
+        self.is_awaiting_answer = False
+        self.answered = None
         self.is_verification = False
         self.verification_round = 0
         self.started = None
@@ -69,10 +71,17 @@ class Agent:
         self.cancelled = True
         self.has_pending_writes = False
 
+    def answer(self, text):
+        self.answered = text
+        self.is_awaiting_answer = False
+        return True
+
     def abort(self):
         self.aborts += 1
         self.is_running = False
         self.has_pending_writes = False
+        self.is_awaiting_answer = False
+        self.answered = None
 
     def stop(self):
         return None
@@ -382,3 +391,32 @@ class PlanCardLinesTest(unittest.TestCase):
     def test_every_call_still_gets_a_line(self):
         self.orchestrator.on_confirm_needed([Call(), Call("set_labels"), Call("add_basemap")], "")
         self.assertEqual(len(self.dock.plan_lines), 3)
+
+
+class AskUserFlowTest(unittest.TestCase):
+    def setUp(self):
+        self.dock = PlanDock()
+        self.orchestrator = CoreOrchestrator(Iface(), self.dock)
+        self.orchestrator.agent = Agent()
+
+    def test_the_question_lands_in_the_chat_with_a_hint(self):
+        self.orchestrator.on_question_asked("Какой из двух слоёв дорог брать?")
+        self.assertIn(orchestrator_module.AWAITING_ANSWER, self.dock.system)
+        self.assertEqual(self.orchestrator.conversation.messages[-1]["content"], "Какой из двух слоёв дорог брать?")
+
+    def test_the_next_message_is_routed_as_the_answer(self):
+        self.orchestrator.agent.is_awaiting_answer = True
+        self.orchestrator.on_prompt("бери layer_roads_2024")
+        self.assertEqual(self.orchestrator.agent.answered, "бери layer_roads_2024")
+        self.assertIsNone(self.orchestrator.agent.started)
+
+    def test_an_answer_does_not_drop_the_queued_plan(self):
+        self.orchestrator.agent.is_awaiting_answer = True
+        self.orchestrator.agent.has_pending_writes = True
+        self.orchestrator.on_prompt("бери первый")
+        self.assertFalse(getattr(self.orchestrator.agent, "cancelled", False))
+
+    def test_without_a_question_the_message_starts_a_run_as_before(self):
+        self.orchestrator.on_prompt("сколько слоёв?")
+        self.assertEqual(self.orchestrator.agent.started[0], "сколько слоёв?")
+        self.assertIsNone(self.orchestrator.agent.answered)

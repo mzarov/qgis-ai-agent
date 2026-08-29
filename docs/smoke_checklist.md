@@ -661,3 +661,14 @@ These verify the agent solves everyday tasks without wandering through search.
 162. **The thinking refusal is not confused with a streaming refusal.** With a
      budget set, point at a model without extended thinking → the answer
      arrives streamed; only thinking is switched off, not streaming.
+
+## Asking the user
+
+163. **A real ambiguity becomes a question, not a guess.** With two similarly
+     named layers, ask to style "the roads" → the agent asks which one, the
+     panel says it waits, and your next message continues the same run.
+164. **The answer resumes, not restarts.** After replying, the agent uses the
+     answer directly — no re-reading the project from scratch, the task plan
+     survives.
+165. **No permission questions.** Ordinary requests still end in a plan card,
+     never in "shall I proceed?".

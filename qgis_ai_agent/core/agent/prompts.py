@@ -6,6 +6,7 @@ from qgis_ai_agent.skills.registry import SKILL_REGISTRY
 LOAD_SKILL_TOOL = "load_skill"
 UPDATE_PLAN_TOOL = "update_plan"
 APPLY_NOW_TOOL = "apply_now"
+ASK_USER_TOOL = "ask_user"
 TASK_PLAN_HEADER = "Your current task plan (kept by update_plan):"
 QUEUED_HEADER = "Already queued this run, waiting for the user to apply — do not queue these again:"
 PROJECT_NOTES_HEADER = "What you were told to remember about this project:"
@@ -88,6 +89,14 @@ use it to apply one step at a time out of caution — every call costs the user 
 confirmation click. Queue everything that can be planned blind, then apply once
 and continue.
 
+Ask only when you are genuinely stuck. If the task cannot move without a
+decision that is truly the user's — which of two similarly named layers they
+meant, which territory to take when the request is ambiguous — call ask_user
+with one short, concrete question. The run pauses, the question is shown, and
+the reply comes back into this same run. Never use it to ask permission to
+proceed or to have a plan approved: queueing the steps IS the proposal. Never
+ask what a read tool can answer.
+
 Finish the task by replying with plain text and no tool calls. That reply is what
 the user sees, so make it a short, concrete summary of what you did or found."""
 
@@ -153,6 +162,31 @@ def build_apply_now_schema() -> dict[str, Any]:
                     }
                 },
                 "required": ["reason"],
+            },
+        },
+    }
+
+
+def build_ask_user_schema() -> dict[str, Any]:
+    return {
+        "type": "function",
+        "function": {
+            "name": ASK_USER_TOOL,
+            "description": (
+                "Pause the run and ask the user one question you cannot answer "
+                "with any tool. Their reply comes back into this same run. Only "
+                "for decisions that are genuinely theirs — never for plan "
+                "approval and never for facts a read tool can fetch."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "question": {
+                        "type": "string",
+                        "description": "One short, concrete question for the user",
+                    }
+                },
+                "required": ["question"],
             },
         },
     }
