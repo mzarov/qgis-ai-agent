@@ -1,6 +1,6 @@
 from typing import Any
 
-from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtCore import Qt, QTimer
 from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QTextBrowser, QVBoxLayout, QWidget
 
 from qgis_ai_agent.ui import style
@@ -10,6 +10,7 @@ BUBBLE_PADDING = 8
 BUBBLE_SIDE_PADDING = 11
 BROWSER_EXTRA_HEIGHT = 6
 SYSTEM_FONT_SCALE = 0.92
+REPAINT_INTERVAL_MS = 80
 
 
 class UserMessage(QWidget):
@@ -62,13 +63,23 @@ class AssistantMessage(QWidget):
         column.addWidget(browser)
         self._browser = browser
         self._markdown = markdown
+        self._repaint = QTimer(self)
+        self._repaint.setSingleShot(True)
+        self._repaint.setInterval(REPAINT_INTERVAL_MS)
+        self._repaint.timeout.connect(self._render)
 
     def append(self, delta: str) -> None:
-        self.set_markdown(self._markdown + delta)
+        self._markdown += delta
+        if not self._repaint.isActive():
+            self._repaint.start()
 
     def set_markdown(self, markdown: str) -> None:
+        self._repaint.stop()
         self._markdown = markdown
-        self._apply_markdown(self._browser, markdown)
+        self._render()
+
+    def _render(self) -> None:
+        self._apply_markdown(self._browser, self._markdown)
         self._fit(self._browser)
 
     @staticmethod

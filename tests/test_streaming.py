@@ -177,6 +177,31 @@ class StreamingDispatchTest(unittest.TestCase):
         self.assertEqual(self._call(lambda text: None).text, "not streamed")
         self.assertEqual(self.flags, [False])
 
+    def test_a_bad_key_does_not_disable_streaming_for_ever(self):
+        def fake(*args):
+            raise ApiResponseError(401, "Incorrect API key provided")
+
+        transport.post_stream = fake
+        transport.post_chat_completion = fake
+        with self.assertRaises(ApiResponseError):
+            self._call(lambda text: None)
+        self.assertEqual(self.flags, [])
+
+    def test_a_rate_limit_does_not_disable_streaming_either(self):
+        def fake(*args):
+            raise ApiResponseError(429, "Rate limit reached")
+
+        transport.post_stream = fake
+        transport.post_chat_completion = fake
+        with self.assertRaises(ApiResponseError):
+            self._call(lambda text: None)
+        self.assertEqual(self.flags, [])
+
+    def test_a_server_that_ignores_the_stream_flag_falls_back(self):
+        transport.post_stream = lambda *args: consume([b'{"choices": [{"message": {"content": "plain"}}]}'])
+        self.assertEqual(self._call(lambda text: None).text, "not streamed")
+        self.assertEqual(self.flags, [False])
+
     def test_deltas_reach_the_callback(self):
         seen = []
 

@@ -207,7 +207,12 @@ stays out.
 
 Tests are stdlib `unittest` — not a single dependency. `tests/stub.py` fakes the
 `qgis` modules when real QGIS is absent, so the suite runs both on plain Python
-and inside the QGIS Python against live PyQGIS.
+and inside the QGIS Python against live PyQGIS. Most names become an inert
+`_Stub`, but the **value types are real**: `QColor` does arithmetic, `QLabel`
+remembers its text, `QToolButton` its checked state, `QTimer` its start/stop.
+That is what makes widgets buildable in tests, so feed behaviour — which
+transient survives which event — is checked by running it rather than by
+grepping the source. Fake behaviour, never; fake a value, gladly.
 
 What is covered: pure logic (aggregates, expressions, value coercion, UTM zones,
 secret scrubbing), both transport protocols, the run transcript, every renderer

@@ -74,6 +74,31 @@ model writes bold, lists and code — all of it must display, not show as
 asterisks. The height follows the content, because there is a single scroll —
 the feed's.
 
+While an answer streams, `append` does **not** render. Re-parsing the whole
+document per token is quadratic work on the main thread, and the tokens arrive
+faster than an eye can read them. Deltas accumulate and a single-shot timer
+repaints at `REPAINT_INTERVAL_MS`; `set_markdown` stops that timer and renders
+the final text at once. The timer is parented to the widget, so a dropped
+draft cannot fire a repaint into a deleted browser.
+
+## Transients in the feed
+
+Three things in the feed are alive only for the current turn: the activity
+group, the streaming draft and the thinking block. `ConversationView` owns the
+discipline so the orchestrator does not have to: **every** append goes through
+`_append`, which drops the draft and folds the thinking block. The one path
+that bypasses it — `add_activity_step` with a group already open — repeats
+both calls explicitly.
+
+Drop and fold are different on purpose. A draft is text the model wrote before
+calling a tool: it is a preamble, not an answer, and it is **dropped**, because
+the saved conversation never contains it and the chat must not show what the
+conversation lacks. A thinking block is **folded** — it stays in the feed as
+one line the user can open again. The block shows how long it took only when
+it was watched arriving: reasoning that came whole at the end of a
+non-streaming request has no measurable duration, and printing `0.0 s` for a
+minute of thought would be a lie.
+
 ## Action grouping
 
 `ConversationView` itself folds consecutive tool calls into one

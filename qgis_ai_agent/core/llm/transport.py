@@ -43,6 +43,7 @@ UNSUPPORTED_MARKERS = (
     "not supported",
 )
 THINKING_MARKERS = ("thinking", "budget_tokens", "reasoning")
+STREAMING_MARKERS = UNSUPPORTED_MARKERS + ("stream", "sse", "event-stream")
 
 
 @dataclass
@@ -233,14 +234,25 @@ def _try_streaming(
     }
     try:
         data = post_stream(endpoint, headers, body, on_chunk, timeout, overrides.get("verify_override"), on_thinking)
-    except ApiResponseError:
+    except ApiResponseError as err:
+        if _looks_like_streaming_unsupported(err):
+            set_supports_streaming(url, False)
+            return None
+        raise
+    turn = _parse_native_turn(data)
+    if not turn.text and not turn.tool_calls:
         set_supports_streaming(url, False)
         return None
-    turn = _parse_native_turn(data)
     if get_supports_streaming(url) is None:
         set_supports_streaming(url, True)
         set_supports_tools(url, True)
     return turn
+
+
+def _looks_like_streaming_unsupported(err: ApiResponseError) -> bool:
+    if err.status_code not in UNSUPPORTED_STATUS_CODES:
+        return False
+    return any(marker in (err.body or "").lower() for marker in STREAMING_MARKERS)
 
 
 def _looks_like_thinking_unsupported(err: ApiResponseError) -> bool:

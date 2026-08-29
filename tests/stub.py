@@ -33,6 +33,45 @@ class _Stub(metaclass=_Meta):
     def __call__(self, *a, **k):
         return _Stub()
 
+    def palette(self):
+        return _Palette()
+
+    def __int__(self):
+        return 0
+
+    def __float__(self):
+        return 0.0
+
+    def __index__(self):
+        return 0
+
+    def __sub__(self, other):
+        return 0
+
+    def __add__(self, other):
+        return other
+
+    def __radd__(self, other):
+        return other
+
+    def __mul__(self, other):
+        return 0
+
+    def __rmul__(self, other):
+        return 0
+
+    def __lt__(self, other):
+        return True
+
+    def __le__(self, other):
+        return True
+
+    def __gt__(self, other):
+        return False
+
+    def __ge__(self, other):
+        return False
+
 
 class _BoundSignal:
     def __init__(self):
@@ -71,10 +110,128 @@ def pyqtSignal(*types, **options):
     return _Signal(*types)
 
 
+WHITE = 255
+MID_LIGHTNESS = 128
+
+
+class _Colour:
+    def __init__(self, red=0, green=0, blue=0, *rest):
+        self._parts = (int(red), int(green), int(blue))
+
+    def red(self):
+        return self._parts[0]
+
+    def green(self):
+        return self._parts[1]
+
+    def blue(self):
+        return self._parts[2]
+
+    def lightness(self):
+        return (max(self._parts) + min(self._parts)) // 2
+
+    def name(self):
+        return "#" + "".join(f"{part:02x}" for part in self._parts)
+
+    def isValid(self):
+        return True
+
+
+class _Brush:
+    def __init__(self, colour):
+        self._colour = colour
+
+    def color(self):
+        return self._colour
+
+
+class _Palette:
+    def __init__(self, *a, **k):
+        self._colour = _Colour(WHITE, WHITE, WHITE)
+
+    def base(self):
+        return _Brush(self._colour)
+
+    def window(self):
+        return _Brush(self._colour)
+
+    def text(self):
+        return _Brush(_Colour(0, 0, 0))
+
+    def highlight(self):
+        return _Brush(_Colour(0, 90, 180))
+
+    def __getattr__(self, name):
+        return lambda *a, **k: _Brush(self._colour)
+
+
+class _Label(_Stub):
+    def __init__(self, text="", *a, **k):
+        self._text = str(text)
+
+    def setText(self, text):
+        self._text = str(text)
+
+    def text(self):
+        return self._text
+
+
+class _Toggle(_Label):
+    def __init__(self, *a, **k):
+        super().__init__(*a, **k)
+        self._checked = False
+        self.toggled = _BoundSignal()
+
+    def setChecked(self, checked):
+        if bool(checked) == self._checked:
+            return
+        self._checked = bool(checked)
+        self.toggled.emit(self._checked)
+
+    def isChecked(self):
+        return self._checked
+
+
+class _Timer(_Stub):
+    def __init__(self, *a, **k):
+        self._active = False
+        self.started = 0
+        self.stopped = 0
+        self.timeout = _BoundSignal()
+
+    def start(self, *a):
+        self._active = True
+        self.started += 1
+
+    def stop(self):
+        self._active = False
+        self.stopped += 1
+
+    def isActive(self):
+        return self._active
+
+    def fire(self):
+        self._active = False
+        self.timeout.emit()
+
+    @staticmethod
+    def singleShot(*a, **k):
+        return None
+
+
+_FAKES = {
+    "QColor": _Colour,
+    "QPalette": _Palette,
+    "QLabel": _Label,
+    "QToolButton": _Toggle,
+    "QTimer": _Timer,
+}
+
+
 def _mod(name, attrs=()):
     m = types.ModuleType(name)
     for a in attrs:
-        setattr(m, a, type(a, (_Stub,), {}))
+        setattr(m, a, _FAKES.get(a) or type(a, (_Stub,), {}))
     sys.modules[name] = m
     return m
 
