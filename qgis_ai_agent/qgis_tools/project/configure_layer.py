@@ -88,12 +88,21 @@ class ConfigureLayerTool(BaseTool):
 
 
 def _move(layer: Any, node: Any, properties: dict[str, Any]) -> Any:
-    target = ensure_group(properties["group"]) if "group" in properties else parent_of(node)
+    source = parent_of(node)
+    target = ensure_group(properties["group"]) if "group" in properties else source
     clone = node.clone()
-    parent_of(node).removeChildNode(node)
-    index = int(properties.get("position", 0)) if "position" in properties else 0
-    target.insertChildNode(min(index, len(target.children())), clone)
+    target.insertChildNode(_insertion_index(node, source, target, properties), clone)
+    source.removeChildNode(node)
     return clone
+
+
+def _insertion_index(node: Any, source: Any, target: Any, properties: dict[str, Any]) -> int:
+    wanted = max(0, int(properties.get("position", 0))) if "position" in properties else 0
+    siblings = list(target.children())
+    index = min(wanted, len(siblings))
+    if target is source and node in siblings and siblings.index(node) < index:
+        index += 1
+    return min(index, len(siblings))
 
 
 def _visible(node: Any) -> bool:
