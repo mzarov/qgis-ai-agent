@@ -52,6 +52,7 @@ plugins:
             Development: Разработка
             Translations: Переводы
             Smoke checklist: Смоук-чеклист
+            Roadmap: План развития
 
 nav:
   - Home: index.md
@@ -61,3 +62,4 @@ nav:
   - Development:
       - Translations: translations.md
       - Smoke checklist: smoke_checklist.md
+  - Roadmap: roadmap.md
