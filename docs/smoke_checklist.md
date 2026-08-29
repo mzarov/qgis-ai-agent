@@ -647,3 +647,17 @@ These verify the agent solves everyday tasks without wandering through search.
 158. **A model that cannot think is not broken by the setting.** With a budget
      set, point at a model without extended thinking → the answer still
      arrives, the refusal is remembered and later requests go straight through.
+
+## Streaming on Anthropic
+
+159. **Claude streams too.** With the Anthropic endpoint, ask for a long answer
+     → the text grows word by word, exactly as on an OpenAI-compatible one.
+160. **Thinking streams with it.** Set the budget to 4096 and ask something
+     hard → the reasoning block fills during the pause instead of appearing
+     whole at the end, and it reports how long it took.
+161. **Tools still work through the stream.** Ask for something needing tools →
+     the arguments arrive in pieces but the call runs with the right values,
+     and the plan card lists what it should.
+162. **The thinking refusal is not confused with a streaming refusal.** With a
+     budget set, point at a model without extended thinking → the answer
+     arrives streamed; only thinking is switched off, not streaming.

@@ -58,6 +58,11 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    answer.
    Deltas stop reaching the UI at the first tool call: a preamble is not an
    answer, and the chat must never show what the saved conversation lacks.
+   Both dialects stream, each with its own fold: openai has one delta shape,
+   anthropic a typed event per step ending in `message_stop`, not `[DONE]`.
+   `refusals.py` keeps the three refusals apart — mixing them up disables the
+   wrong feature, so a thinking complaint must be raised, not swallowed as a
+   streaming one.
 14. **Reasoning is separated, never echoed back.** Three shapes arrive:
    `<think>` inside `content` (local servers), a `reasoning_content` field
    (DeepSeek, OpenRouter) and Anthropic `thinking` blocks. `llm/thinking.py`
@@ -114,8 +119,11 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `agent/transcript.py`    | the run transcript and rendering for both protocols |
 | `agent/prompts.py`       | the system prompt core, the `load_skill` meta-tool  |
 | `llm/transport.py`       | dialect choice, feature detect, ModelTurn normalising |
-| `llm/stream.py`          | SSE framing and delta folding, pure Python           |
+| `llm/stream.py`          | SSE framing, openai delta folding, pure Python       |
+| `llm/anthropic_stream.py`| anthropic event folding and its streaming exchange   |
 | `llm/stream_runner.py`   | the streaming request itself: NAM, nested event loop |
+| `llm/refusals.py`        | telling an unsupported feature from a broken request |
+| `llm/images.py`          | finding and stripping image blocks in messages       |
 | `llm/thinking.py`        | cutting `<think>` out of content, across chunks      |
 | `llm/dialects.py`        | dialect detection from the address, paths, headers  |
 | `llm/anthropic.py`       | messages and tool schemas in the Anthropic format   |

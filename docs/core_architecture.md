@@ -192,6 +192,23 @@ starts. Otherwise the chat would show text that the saved conversation does
 not contain, and the next run would see something other than what the user
 read.
 
+### Streaming on both dialects
+
+The two dialects frame a stream differently, so each gets its own fold while
+the socket work stays shared. OpenAI sends one `choices[].delta` shape;
+Anthropic sends a typed event per step — `content_block_start`, then
+`text_delta`, `thinking_delta`, `signature_delta` or `input_json_delta`, then
+`content_block_stop` — and ends with `message_stop` rather than a `[DONE]`
+marker. `anthropic_stream.py` folds those events back into exactly the
+response shape `parse_response` and `parse_thinking` already read, so nothing
+downstream learns that the answer arrived in pieces.
+
+Tool arguments arrive as `partial_json` split across events and are parsed
+only when the block closes. That is why a refusal on Anthropic has to be told
+apart carefully: a message about `thinking` is raised for the caller to retry
+without it, and only a genuine complaint about streaming disables streaming.
+Getting that order wrong would disable the wrong feature.
+
 ### Reasoning models
 
 Reasoning arrives in three different shapes and all three are handled, because

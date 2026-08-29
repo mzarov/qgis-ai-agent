@@ -10,6 +10,17 @@ SCHEMAS = [{"type": "function", "function": {"name": "list_layers", "parameters"
 URL = "https://api.example/v1"
 
 
+def streaming(*chunks):
+    def fake(endpoint, headers, body, completion, timeout, verify=None):
+        accumulator = SseAccumulator()
+        for chunk in chunks:
+            for stream_event in accumulator.feed(chunk):
+                completion.take(stream_event)
+        return completion.response()
+
+    return fake
+
+
 def event(payload: dict) -> bytes:
     return f"data: {json.dumps(payload)}\n\n".encode()
 
@@ -152,16 +163,16 @@ class StreamingDispatchTest(unittest.TestCase):
         self.assertEqual(self._call(lambda text: None).text, "not streamed")
 
     def test_a_working_stream_is_remembered(self):
-        transport.post_stream = lambda *args: consume([text_delta("streamed")])
+        transport.post_stream = streaming(text_delta("streamed"))
         self.assertEqual(self._call(lambda text: None).text, "streamed")
         self.assertEqual(self.flags, [True])
 
     def test_the_request_body_asks_for_a_stream_with_usage(self):
         seen = {}
 
-        def fake(endpoint, headers, body, on_text, timeout, verify=None, on_thinking=None):
+        def fake(endpoint, headers, body, completion, timeout, verify=None):
             seen.update(body)
-            return consume([text_delta("ok")])
+            return streaming(text_delta("ok"))(endpoint, headers, body, completion, timeout, verify)
 
         transport.post_stream = fake
         self._call(lambda text: None)
@@ -198,26 +209,23 @@ class StreamingDispatchTest(unittest.TestCase):
         self.assertEqual(self.flags, [])
 
     def test_a_server_that_ignores_the_stream_flag_falls_back(self):
-        transport.post_stream = lambda *args: consume([b'{"choices": [{"message": {"content": "plain"}}]}'])
+        transport.post_stream = streaming(b'{"choices": [{"message": {"content": "plain"}}]}')
         self.assertEqual(self._call(lambda text: None).text, "not streamed")
         self.assertEqual(self.flags, [False])
 
     def test_deltas_reach_the_callback(self):
         seen = []
 
-        def fake(endpoint, headers, body, on_text, timeout, verify=None, on_thinking=None):
-            return consume([text_delta("a"), text_delta("b")], on_text)
-
-        transport.post_stream = fake
+        transport.post_stream = streaming(text_delta("a"), text_delta("b"))
         self._call(seen.append)
         self.assertEqual(seen, ["a", "b"])
 
     def test_the_ssl_setting_reaches_the_stream(self):
         seen = []
 
-        def fake(endpoint, headers, body, on_text, timeout, verify=None, on_thinking=None):
+        def fake(endpoint, headers, body, completion, timeout, verify=None):
             seen.append(verify)
-            return consume([text_delta("ok")])
+            return streaming(text_delta("ok"))(endpoint, headers, body, completion, timeout, verify)
 
         transport.post_stream = fake
         transport._dispatch([], SCHEMAS, {"verify_override": False}, 10, URL, lambda text: None)

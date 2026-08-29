@@ -3,16 +3,18 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from qgis_ai_agent.core.llm import anthropic
+from qgis_ai_agent.core.llm.anthropic_stream import AnthropicExchange
 from qgis_ai_agent.core.llm.client import (
     ApiResponseError,
     build_request,
     post_chat_completion,
-    post_json,
     resolve_endpoint,
 )
 from qgis_ai_agent.core.llm.dialects import ANTHROPIC, resolve
+from qgis_ai_agent.core.llm.images import IMAGE_REJECTED_STATUS_CODES, has_images, without_images
 from qgis_ai_agent.core.llm.parser import parse_model_json, parse_tool_arguments
-from qgis_ai_agent.core.llm.stream import REASONING_KEYS
+from qgis_ai_agent.core.llm.refusals import streaming_unsupported, thinking_unsupported, tools_unsupported
+from qgis_ai_agent.core.llm.stream import REASONING_KEYS, StreamedCompletion
 from qgis_ai_agent.core.llm.stream_runner import post_stream
 from qgis_ai_agent.core.llm.thinking import split_thinking
 from qgis_ai_agent.core.settings import (
@@ -29,21 +31,6 @@ from qgis_ai_agent.core.settings import (
 
 PROTOCOL_NATIVE = "native"
 PROTOCOL_JSON = "json"
-UNSUPPORTED_STATUS_CODES = (400, 404, 422, 501)
-IMAGE_REJECTED_STATUS_CODES = (400, 413, 415, 422)
-IMAGE_URL_BLOCK = "image_url"
-IMAGE_STRIPPED_NOTE = "[image omitted: this endpoint rejected image input]"
-UNSUPPORTED_MARKERS = (
-    "tools",
-    "tool_choice",
-    "function",
-    "unsupported",
-    "unrecognized",
-    "unknown field",
-    "not supported",
-)
-THINKING_MARKERS = ("thinking", "budget_tokens", "reasoning")
-STREAMING_MARKERS = UNSUPPORTED_MARKERS + ("stream", "sse", "event-stream")
 
 
 @dataclass
@@ -90,36 +77,11 @@ def call_model(
     try:
         return _dispatch(messages, tool_schemas, overrides, timeout, url, on_chunk, on_thinking)
     except ApiResponseError as err:
-        if not (_has_images(messages) and err.status_code in IMAGE_REJECTED_STATUS_CODES):
+        if not (has_images(messages) and err.status_code in IMAGE_REJECTED_STATUS_CODES):
             raise
-        turn = _dispatch(_without_images(messages), tool_schemas, overrides, timeout, url, on_chunk, on_thinking)
+        turn = _dispatch(without_images(messages), tool_schemas, overrides, timeout, url, on_chunk, on_thinking)
         set_supports_images(url, False)
         return turn
-
-
-def _has_images(messages: list[dict[str, Any]]) -> bool:
-    return any(
-        isinstance(block, dict) and block.get("type") == IMAGE_URL_BLOCK
-        for message in messages
-        if isinstance(message.get("content"), list)
-        for block in message["content"]
-    )
-
-
-def _without_images(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    cleaned = []
-    for message in messages:
-        content = message.get("content")
-        if not isinstance(content, list):
-            cleaned.append(message)
-            continue
-        parts = [
-            str(block.get("text") or "") if block.get("type") != IMAGE_URL_BLOCK else IMAGE_STRIPPED_NOTE
-            for block in content
-            if isinstance(block, dict)
-        ]
-        cleaned.append({**message, "content": "\n".join(part for part in parts if part)})
-    return cleaned
 
 
 def _dispatch(
@@ -133,7 +95,7 @@ def _dispatch(
 ) -> ModelTurn:
     chosen = overrides.get("dialect_override")
     if resolve(url, chosen if chosen is not None else get_dialect()) == ANTHROPIC:
-        return _call_anthropic(messages, tool_schemas, overrides, timeout, url)
+        return _call_anthropic(messages, tool_schemas, overrides, timeout, url, on_chunk, on_thinking)
     supports_tools = get_supports_tools(url)
 
     if supports_tools is not False and tool_schemas:
@@ -148,7 +110,7 @@ def _dispatch(
                 **overrides,
             )
         except ApiResponseError as err:
-            if not _looks_like_tools_unsupported(err):
+            if not tools_unsupported(err):
                 raise
             set_supports_tools(url, False)
         else:
@@ -165,6 +127,8 @@ def _call_anthropic(
     overrides: dict[str, Any],
     timeout: int,
     url: str,
+    on_chunk: Any = None,
+    on_thinking: Any = None,
 ) -> ModelTurn:
     endpoint, headers, model = build_request(
         overrides.get("url_override"),
@@ -174,15 +138,14 @@ def _call_anthropic(
         overrides.get("dialect_override"),
     )
     budget = get_thinking_budget() if get_supports_thinking(url) is not False else 0
-    body = anthropic.build_body(messages, tool_schemas, model, thinking_budget=budget)
+    exchange = AnthropicExchange(endpoint, headers, timeout, url, overrides, on_chunk, on_thinking)
     try:
-        data = post_json(endpoint, headers, body, timeout, overrides.get("verify_override"))
+        data = exchange.send(anthropic.build_body(messages, tool_schemas, model, thinking_budget=budget))
     except ApiResponseError as err:
-        if not budget or not _looks_like_thinking_unsupported(err):
+        if not budget or not thinking_unsupported(err):
             raise
         set_supports_thinking(url, False)
-        body = anthropic.build_body(messages, tool_schemas, model)
-        data = post_json(endpoint, headers, body, timeout, overrides.get("verify_override"))
+        data = exchange.send(anthropic.build_body(messages, tool_schemas, model))
     text, calls, stop_reason = anthropic.parse_response(data)
     thinking, thinking_blocks = anthropic.parse_thinking(data)
     incoming, outgoing = parse_usage(data)
@@ -233,9 +196,10 @@ def _try_streaming(
         "tool_choice": "auto",
     }
     try:
-        data = post_stream(endpoint, headers, body, on_chunk, timeout, overrides.get("verify_override"), on_thinking)
+        completion = StreamedCompletion(on_chunk, on_thinking)
+        data = post_stream(endpoint, headers, body, completion, timeout, overrides.get("verify_override"))
     except ApiResponseError as err:
-        if _looks_like_streaming_unsupported(err):
+        if streaming_unsupported(err):
             set_supports_streaming(url, False)
             return None
         raise
@@ -247,25 +211,6 @@ def _try_streaming(
         set_supports_streaming(url, True)
         set_supports_tools(url, True)
     return turn
-
-
-def _looks_like_streaming_unsupported(err: ApiResponseError) -> bool:
-    if err.status_code not in UNSUPPORTED_STATUS_CODES:
-        return False
-    return any(marker in (err.body or "").lower() for marker in STREAMING_MARKERS)
-
-
-def _looks_like_thinking_unsupported(err: ApiResponseError) -> bool:
-    if err.status_code not in UNSUPPORTED_STATUS_CODES:
-        return False
-    return any(marker in (err.body or "").lower() for marker in THINKING_MARKERS)
-
-
-def _looks_like_tools_unsupported(err: ApiResponseError) -> bool:
-    if err.status_code not in UNSUPPORTED_STATUS_CODES:
-        return False
-    body = (err.body or "").lower()
-    return any(marker in body for marker in UNSUPPORTED_MARKERS)
 
 
 def _first_choice(data: dict[str, Any]) -> dict[str, Any]:
