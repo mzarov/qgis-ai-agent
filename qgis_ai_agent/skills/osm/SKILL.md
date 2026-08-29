@@ -1,7 +1,7 @@
 ---
 name: osm
 description: Download OpenStreetMap data through Overpass and add it to the project as layers — cafes, roads, buildings, water, land use, anything with an OSM key. Load this when the user wants data they do not have yet.
-tools: [download_osm]
+tools: [download_osm, run_overpass]
 ---
 
 # Data from OpenStreetMap
@@ -69,6 +69,36 @@ everything in the territory.
 When you use `selectors`, you choose the element types yourself, so `geometry`
 only decides which of the resulting layers to keep.
 
+## When download_osm is not enough
+
+`download_osm` covers a tag inside a territory, which is most requests. Anything
+else — `around:` radius searches, `is_in`, recursion upwards, unions of unrelated
+queries, filters by element count — goes to `run_overpass`, where the whole query
+is yours.
+
+Two rules there, and the second one is not optional:
+
+1. Ask for `[out:xml]`. The loader reads OSM XML, not JSON.
+2. **End the query with `(._;>;);` and then `out body;`.** Not `out body; >; out
+   skel qt;` — that common idiom prints the ways before the nodes they are made
+   of, and the reader in QGIS goes through the file once, so the geometry cannot
+   be built and the layer comes out empty. Points would survive; lines and
+   polygons would not.
+
+```
+[out:xml][timeout:90];
+area["name"="Тверь"]->.a;
+(
+  way["leisure"="park"](area.a);
+);
+(._;>;);
+out body;
+```
+
+Prefer `download_osm` when it fits: it is checked before it runs and its plan
+line is readable, while a raw query is approved by a person who has to read
+Overpass QL.
+
 ## Territory: area or bbox, never both
 
 `area` takes a place name and is the friendlier option: it follows real
@@ -109,6 +139,18 @@ Check the key and value against the table above. **Do not retry the same request
 with the place name spelled differently** — all spellings are already tried at
 once, so that only burns another Overpass call. Change the tag, widen the
 territory, or switch to a bbox.
+
+## Tags become fields by themselves
+
+The OSM reader promotes only a handful of tags to real columns — `name`,
+`highway`, `place` and a few more. Everything else arrives packed into one
+`other_tags` string. The plugin unpacks it on load: the tags actually present
+become ordinary fields, so `cuisine`, `opening_hours`, `shop` and `addr:street`
+can be styled, labelled and filtered like any other attribute. The result of the
+download lists them under `tag_fields`.
+
+So do not build expressions over `other_tags` by hand, and do not add virtual
+fields for tags — read the field list first, the tag is probably already there.
 
 ## After downloading
 

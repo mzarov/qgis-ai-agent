@@ -4,6 +4,8 @@ from typing import Any
 
 from qgis.core import QgsProject, QgsVectorLayer
 
+from qgis_ai_agent.qgis_tools.osm.tags import promote_tags
+
 SUBLAYERS = {
     "points": ("points",),
     "lines": ("lines", "multilinestrings"),
@@ -46,8 +48,12 @@ def _load_one(path: str, sublayer: str, name: str, geometry: str) -> dict[str, A
     count = _count(layer)
     if not count:
         return None
+    promoted = promote_tags(layer)
     QgsProject.instance().addMapLayer(layer)
-    return {"name": layer.name(), "kind": READABLE.get(sublayer, sublayer), "feature_count": count}
+    described = {"name": layer.name(), "kind": READABLE.get(sublayer, sublayer), "feature_count": count}
+    if promoted:
+        described["tag_fields"] = promoted
+    return described
 
 
 def _title(name: str, sublayer: str, geometry: str) -> str:

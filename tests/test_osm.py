@@ -1,6 +1,7 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.osm import download_osm, extent, load, overpass, selectors
+from qgis_ai_agent.qgis_tools.osm import download_osm, extent, load, overpass, run_overpass, selectors, tags
+from qgis_ai_agent.qgis_tools.osm.run_overpass import RunOverpassTool
 
 
 class BuildQueryTest(unittest.TestCase):
@@ -308,3 +309,122 @@ class _Broken:
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TagLayer:
+    def __init__(self, rows, names=("osm_id", "name", "other_tags")):
+        self._rows = list(rows)
+        self._names = list(names)
+        self.added = []
+
+    def fields(self):
+        return self
+
+    def names(self):
+        return list(self._names)
+
+    def getFeatures(self):
+        return list(self._rows)
+
+    def addExpressionField(self, expression, field):
+        self.added.append((expression, field))
+        self._names.append(getattr(field, "_stub_name", "field"))
+
+
+class Row(dict):
+    pass
+
+
+class NamedField:
+    def __init__(self, name, *rest):
+        self._stub_name = name
+
+
+class PromoteTagsTest(unittest.TestCase):
+    def setUp(self):
+        self.saved = tags.QgsField
+        tags.QgsField = NamedField
+
+    def tearDown(self):
+        tags.QgsField = self.saved
+
+    def _layer(self, *hstores):
+        return TagLayer([Row({"other_tags": text}) for text in hstores])
+
+    def test_a_tag_becomes_a_field(self):
+        layer = self._layer('"amenity"=>"cafe","cuisine"=>"burger"')
+        self.assertEqual(tags.promote_tags(layer), ["amenity", "cuisine"])
+
+    def test_the_expression_reads_it_out_of_the_hstore(self):
+        layer = self._layer('"cuisine"=>"burger"')
+        tags.promote_tags(layer)
+        self.assertIn("hstore_to_map", layer.added[0][0])
+        self.assertIn("'cuisine'", layer.added[0][0])
+
+    def test_the_commonest_tags_come_first(self):
+        layer = self._layer('"a"=>"1"', '"b"=>"1"', '"b"=>"2"')
+        self.assertEqual(tags.promote_tags(layer)[0], "b")
+
+    def test_a_layer_without_the_column_is_left_alone(self):
+        layer = TagLayer([], names=("osm_id", "name"))
+        self.assertEqual(tags.promote_tags(layer), [])
+        self.assertEqual(layer.added, [])
+
+    def test_a_tag_that_already_is_a_field_is_not_doubled(self):
+        layer = TagLayer([Row({"other_tags": '"name"=>"x","shop"=>"bakery"'})])
+        self.assertEqual(tags.promote_tags(layer), ["shop"])
+
+    def test_a_quote_in_a_tag_name_is_refused(self):
+        layer = self._layer('"we\'ird"=>"1","fine"=>"2"')
+        self.assertEqual(tags.promote_tags(layer), ["fine"])
+
+    def test_the_number_of_fields_is_capped(self):
+        many = ",".join(f'"tag{index}"=>"v"' for index in range(tags.MAX_PROMOTED + 10))
+        self.assertEqual(len(tags.promote_tags(self._layer(many))), tags.MAX_PROMOTED)
+
+    def test_empty_hstore_values_are_survived(self):
+        layer = TagLayer([Row({"other_tags": None}), Row({"other_tags": '"shop"=>"x"'})])
+        self.assertEqual(tags.promote_tags(layer), ["shop"])
+
+
+class RunOverpassTest(unittest.TestCase):
+    def setUp(self):
+        self.tool = RunOverpassTool()
+
+    def _query(self, tail="(._;>;);\nout body;"):
+        return f'[out:xml][timeout:90];\nnode["amenity"="cafe"](55,37,56,38);\n{tail}'
+
+    def test_a_whole_query_passes_through_untouched(self):
+        prepared = self.tool.prepare({"query": self._query(), "name": "Cafes"})
+        self.assertEqual(prepared["query"], self._query())
+
+    def test_an_empty_query_is_refused(self):
+        with self.assertRaises(ValueError):
+            self.tool.prepare({"query": "  ", "name": "Cafes"})
+
+    def test_a_query_without_output_is_refused(self):
+        with self.assertRaises(ValueError) as caught:
+            self.tool.prepare({"query": '[out:xml];node["shop"](55,37,56,38);', "name": "Shops"})
+        self.assertIn("out body", str(caught.exception))
+
+    def test_the_skeleton_output_is_refused_with_the_reason(self):
+        with self.assertRaises(ValueError) as caught:
+            self.tool.prepare({"query": self._query("out body;\n>;\nout skel qt;"), "name": "Cafes"})
+        self.assertIn("nodes", str(caught.exception))
+        self.assertIn("(._;>;);", str(caught.exception))
+
+    def test_an_overlong_query_is_refused(self):
+        with self.assertRaises(ValueError):
+            self.tool.prepare({"query": "out body; " + "x" * run_overpass.MAX_QUERY_CHARS, "name": "X"})
+
+    def test_the_summary_shows_what_will_run(self):
+        summary = self.tool.summarize_call({"query": self._query(), "name": "Cafes"})
+        self.assertIn("Cafes", summary)
+        self.assertIn("out:xml", summary)
+
+    def test_a_long_query_is_shortened_in_the_summary(self):
+        summary = self.tool.summarize_call({"query": "out body; " + "y" * 500, "name": "X"})
+        self.assertLess(len(summary), 200)
+
+    def test_it_is_a_write_tool_so_it_waits_for_the_button(self):
+        self.assertFalse(self.tool.is_read_only)
