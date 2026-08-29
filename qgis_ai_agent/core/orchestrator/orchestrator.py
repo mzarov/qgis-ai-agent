@@ -52,6 +52,7 @@ class CoreOrchestrator:
         self.agent.plan_changed.connect(self.on_plan_changed)
         self.agent.confirm_needed.connect(self.on_confirm_needed)
         self.agent.question_asked.connect(self.on_question_asked)
+        self.agent.preamble.connect(self.on_preamble)
         self.agent.applied.connect(self.on_applied)
         self.agent.finished.connect(self.on_finished)
         self.agent.failed.connect(self.on_failed)
@@ -128,6 +129,9 @@ class CoreOrchestrator:
 
     def on_usage_changed(self, spent: int) -> None:
         self.dock_widget.set_usage(TOKENS_LABEL.format(_compact_number(spent)))
+
+    def on_preamble(self, text: str) -> None:
+        self._render_answer(text)
 
     def on_question_asked(self, question: str) -> None:
         self.dock_widget.add_result_message(question)

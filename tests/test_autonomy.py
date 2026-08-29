@@ -346,3 +346,34 @@ class AskUserTest(unittest.TestCase):
         results = self.loop._transcript.entries[-1]["results"]
         self.assertTrue(results[0].ok)
         self.assertEqual(results[0].payload["status"], "waiting_for_user")
+
+
+class PreambleTest(unittest.TestCase):
+    def setUp(self):
+        self.loop = AgentLoop()
+        self.preambles = []
+        self.confirms = []
+        self.loop.preamble.connect(self.preambles.append)
+        self.loop.confirm_needed.connect(lambda calls, text: self.confirms.append(text))
+        self.loop._request_step = lambda: None
+
+    def _turn(self, text, tool="get_project_info"):
+        return ModelTurn(text=text, tool_calls=[ToolCall(id="c1", name=tool, arguments={})])
+
+    def test_text_before_tool_calls_is_announced_not_lost(self):
+        self.loop._on_turn(self._turn("Сейчас посмотрю проект."))
+        self.assertEqual(self.preambles, ["Сейчас посмотрю проект."])
+
+    def test_a_final_answer_is_not_a_preamble(self):
+        self.loop._on_turn(ModelTurn(text="Готово."))
+        self.assertEqual(self.preambles, [])
+
+    def test_blank_text_is_not_announced(self):
+        self.loop._on_turn(self._turn("   "))
+        self.assertEqual(self.preambles, [])
+
+    def test_a_staged_pause_does_not_show_the_text_twice(self):
+        self.loop._batch._calls.append(ToolCall(id="w1", name="add_basemap", arguments={}))
+        self.loop._on_turn(self._turn("Применяю первую часть.", tool=prompts.APPLY_NOW_TOOL))
+        self.assertEqual(self.preambles, ["Применяю первую часть."])
+        self.assertEqual(self.confirms, [""])
