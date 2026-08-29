@@ -122,6 +122,43 @@ class ThinkingFeedTest(unittest.TestCase):
         self.assertIsNone(self.view._thinking)
 
 
+class CompactFeedTest(unittest.TestCase):
+    def setUp(self):
+        self.view = ConversationView()
+
+    def test_thinking_no_longer_breaks_the_activity_group(self):
+        self.view.add_activity_step("read the project")
+        group = self.view._activity
+        self.view.append_thinking("hmm")
+        self.view.add_activity_step("download the cafes")
+        self.assertIs(self.view._activity, group)
+
+    def test_a_whole_turn_chain_is_one_group(self):
+        self.view.append_thinking("plan")
+        group = self.view._activity
+        for step in ("one", "two", "three"):
+            self.view.add_activity_step(step)
+            self.view.append_thinking("next")
+        self.assertIs(self.view._activity, group)
+
+    def test_thinking_starts_inside_an_open_group(self):
+        self.view.append_thinking("hmm")
+        self.assertTrue(self.view._activity._toggle.isChecked())
+
+    def test_the_answer_folds_the_whole_group(self):
+        self.view.append_thinking("hmm")
+        group = self.view._activity
+        self.view.add_assistant_message("done")
+        self.assertFalse(group._toggle.isChecked())
+        self.assertIsNone(self.view._activity)
+
+    def test_a_streamed_answer_folds_it_too(self):
+        self.view.append_thinking("hmm")
+        group = self.view._activity
+        self.view.append_draft("the answer")
+        self.assertFalse(group._toggle.isChecked())
+
+
 class ThinkingBlockTest(unittest.TestCase):
     def test_it_starts_open_so_the_reasoning_is_visible(self):
         self.assertTrue(ThinkingBlock()._toggle.isChecked())

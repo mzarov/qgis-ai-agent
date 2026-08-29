@@ -99,9 +99,13 @@ class ConversationView(QScrollArea):
 
     def append_thinking(self, delta: str) -> None:
         if self._thinking is None:
-            self._close_activity()
-            block = ThinkingBlock()
-            self._append(block)
+            self._drop_draft()
+            if self._activity is None:
+                self._activity = ActivityGroup()
+                self._append(self._activity)
+            block = ThinkingBlock(framed=False)
+            self._activity.add_widget(block)
+            self._activity.reveal()
             self._thinking = block
         self._thinking.append(delta)
         QTimer.singleShot(0, self._scroll_to_bottom)
@@ -222,6 +226,8 @@ class ConversationView(QScrollArea):
         return entry_id
 
     def _close_activity(self) -> None:
+        if self._activity is not None:
+            self._activity.rest()
         self._activity = None
 
     def _on_value_changed(self, value: int) -> None:

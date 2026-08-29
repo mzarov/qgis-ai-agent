@@ -91,6 +91,16 @@ class ActivityGroup(QFrame):
         self._refresh()
         return row
 
+    def add_widget(self, widget: QWidget) -> None:
+        self._steps.addWidget(widget)
+        self._refresh()
+
+    def reveal(self) -> None:
+        self._toggle.setChecked(True)
+
+    def rest(self) -> None:
+        self._toggle.setChecked(False)
+
     def mark_step(self, row: "StepRow", ok: bool) -> None:
         row.set_state(DONE if ok else FAILED, ok)
         if not ok:

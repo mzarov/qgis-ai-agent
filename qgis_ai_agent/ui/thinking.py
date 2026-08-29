@@ -23,14 +23,17 @@ THOUGHT_TITLE = tr("Thought")
 
 
 class ThinkingBlock(QFrame):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, framed: bool = True):
         super().__init__(parent)
         palette = self.palette()
-        self.setStyleSheet(
-            f"QFrame {{ background: {style.css_color(style.card(palette))};"
-            f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
-            f"border-radius: {style.CARD_RADIUS}px; }}"
-        )
+        if framed:
+            self.setStyleSheet(
+                f"QFrame {{ background: {style.css_color(style.card(palette))};"
+                f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
+                f"border-radius: {style.CARD_RADIUS}px; }}"
+            )
+        else:
+            self.setStyleSheet("QFrame { background: transparent; border: none; }")
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(0)

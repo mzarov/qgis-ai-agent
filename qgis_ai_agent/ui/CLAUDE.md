@@ -90,6 +90,12 @@ discipline so the orchestrator does not have to: **every** append goes through
 that bypasses it — `add_activity_step` with a group already open — repeats
 both calls explicitly.
 
+A thinking block does not break the group: it is added **inside** the
+activity group as a frameless row, so a whole think–act–think–act chain folds
+into one box. The group opens itself while reasoning streams and `_close_activity`
+rests it when a message arrives — the feed stays compact without hiding anything:
+one click reopens the turn.
+
 Drop and fold are different on purpose. A draft is text the model wrote before
 calling a tool: it is a preamble, not an answer, and it is **dropped**, because
 the saved conversation never contains it and the chat must not show what the
