@@ -1,5 +1,4 @@
 import json
-from collections.abc import Callable
 from typing import Any
 
 from qgis.core import QgsNetworkAccessManager
@@ -7,7 +6,7 @@ from qgis.PyQt.QtCore import QByteArray, QEventLoop, QTimer
 from qgis.PyQt.QtNetwork import QNetworkRequest
 
 from qgis_ai_agent.core.llm.client import ApiResponseError, build_network_request
-from qgis_ai_agent.core.llm.stream import SseAccumulator, StreamedCompletion
+from qgis_ai_agent.core.llm.stream import SseAccumulator
 
 STATUS_ATTRIBUTE = QNetworkRequest.Attribute.HttpStatusCodeAttribute
 MILLISECONDS = 1000
@@ -21,17 +20,15 @@ def post_stream(
     endpoint: str,
     headers: dict[str, str],
     body: dict[str, Any],
-    on_text: Callable[[str], None],
+    completion: Any,
     timeout: int,
     verify_override: bool | None = None,
-    on_thinking: Callable[[str], None] | None = None,
 ) -> dict[str, Any]:
     request = build_network_request(endpoint, {**headers, **ACCEPT_HEADER}, verify_override)
     payload = QByteArray(json.dumps(body, ensure_ascii=False).encode("utf-8"))
     reply = QgsNetworkAccessManager.instance().post(request, payload)
 
     accumulator = SseAccumulator()
-    completion = StreamedCompletion(on_text, on_thinking)
     error_tail: list[bytes] = []
     loop = QEventLoop()
     watchdog = QTimer()
