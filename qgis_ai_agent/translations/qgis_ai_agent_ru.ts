@@ -418,6 +418,16 @@
         <translation>Передано агенту — он учтёт это на следующем шаге.</translation>
     </message>
     <message>
+        <location filename="qgis_ai_agent/qgis_tools/annotations/add_annotation.py" line="68"/>
+        <source>Placing a marker on the map.</source>
+        <translation>Ставлю маркер на карту.</translation>
+    </message>
+    <message>
+        <location filename="qgis_ai_agent/qgis_tools/annotations/add_annotation.py" line="69"/>
+        <source>Placing a note on the map: {0}</source>
+        <translation>Ставлю заметку на карту: {0}</translation>
+    </message>
+    <message>
         <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="175"/>
         <source>Plan {0}/{1}: {2}</source>
         <translation>План {0}/{1}: {2}</translation>
@@ -489,6 +499,11 @@
         <translation>Смотрю слой.</translation>
     </message>
     <message>
+        <location filename="qgis_ai_agent/qgis_tools/annotations/manage_annotations.py" line="17"/>
+        <source>Reading the map annotations.</source>
+        <translation>Читаю аннотации на карте.</translation>
+    </message>
+    <message>
         <location filename="qgis_ai_agent/qgis_tools/processing/describe_processing.py" line="33"/>
         <source>Reading the parameters of {0}.</source>
         <translation>Смотрю параметры {0}.</translation>
@@ -552,6 +567,11 @@
         <location filename="qgis_ai_agent/qgis_tools/project/remember.py" line="47"/>
         <source>Remembering: {0}</source>
         <translation>Запоминаю: {0}</translation>
+    </message>
+    <message>
+        <location filename="qgis_ai_agent/qgis_tools/annotations/manage_annotations.py" line="36"/>
+        <source>Removing annotation {0}.</source>
+        <translation>Убираю аннотацию {0}.</translation>
     </message>
     <message>
         <location filename="qgis_ai_agent/qgis_tools/layout/remove_layout_item.py" line="41"/>
@@ -649,7 +669,7 @@
         <translation>Ищу алгоритм: «{0}».</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/web/search_web.py" line="33"/>
+        <location filename="qgis_ai_agent/qgis_tools/web/search_web.py" line="44"/>
         <source>Searching the web: {0}.</source>
         <translation>Ищу в интернете: {0}.</translation>
     </message>
