@@ -7,6 +7,7 @@ SETTINGS_KEY = "qgis_ai_agent/overpass_url"
 QUERY_TIMEOUT_SEC = 90
 ELEMENTS = ("node", "way", "relation")
 AREA_NAME_KEYS = ("name", "name:en", "int_name")
+RECURSE_DOWN = "(._;>;);"
 GEOMETRY_ELEMENTS = {
     "points": ("node",),
     "lines": ("way",),
@@ -46,7 +47,7 @@ def _from_tag(key: str, value: str, geometry: str) -> list[str]:
 
 def _wrapped(statements: list[str], header: str, binding: str) -> str:
     body = "\n".join(f"  {statement}{binding};" for statement in statements)
-    return f"{header}(\n{body}\n);\nout body;\n>;\nout skel qt;"
+    return f"{header}(\n{body}\n);\n{RECURSE_DOWN}\nout body;"
 
 
 def _area_header(area: str) -> str:

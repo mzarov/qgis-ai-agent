@@ -4,6 +4,20 @@ from qgis_ai_agent.qgis_tools.osm import download_osm, extent, load, overpass, s
 
 
 class BuildQueryTest(unittest.TestCase):
+    def test_nodes_come_before_the_ways_that_use_them(self):
+        query = overpass.build_query("leisure", "park", area="Тверь", geometry="polygons")
+        self.assertTrue(query.rstrip().endswith("out body;"))
+        self.assertIn(overpass.RECURSE_DOWN, query)
+        self.assertLess(query.index(overpass.RECURSE_DOWN), query.rindex("out body;"))
+
+    def test_the_skeleton_form_that_ogr_cannot_read_is_gone(self):
+        query = overpass.build_query("leisure", "park", area="Тверь", geometry="polygons")
+        self.assertNotIn("out skel", query)
+
+    def test_a_bbox_query_recurses_down_as_well(self):
+        query = overpass.build_query("building", bbox=(37.0, 55.0, 37.5, 55.5))
+        self.assertIn(overpass.RECURSE_DOWN, query)
+
     def test_area_query_names_the_place(self):
         query = overpass.build_query("amenity", "cafe", area="Москва")
         self.assertIn('area["name"="Москва"]', query)
