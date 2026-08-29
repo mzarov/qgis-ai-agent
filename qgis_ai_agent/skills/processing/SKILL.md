@@ -121,6 +121,60 @@ first — that gives `extent` and `crs` — and only then run. Take the cell siz
 `describe_layer` of the same raster rather than inventing one: a foreign value
 silently resamples the result.
 
+## Analysis recipes
+
+Named chains for the analysis requests that otherwise take a round of
+exploration. Ids are stable core QGIS; still confirm parameters with
+`describe_processing` before running.
+
+**Cluster points (k-means).** `native:kmeansclustering` with `INPUT` and
+`CLUSTERS` adds a `CLUSTER_ID` field. Colour the result with `set_categories`
+on `CLUSTER_ID`. When the user has no cluster count in mind, prefer DBSCAN.
+
+**Cluster points by density (DBSCAN).** `native:dbscanclustering` takes `EPS`
+(a distance in layer units — metric CRS first, as always) and `MIN_SIZE`.
+Noise points get NULL `CLUSTER_ID`; mention that instead of hiding it.
+
+**Hotspots as a heatmap.** `qgis:heatmapkerneldensityestimation` over the
+points: `RADIUS` in layer units, `PIXEL_SIZE` sensible for the extent (a city
+at 10 m, a region at 100 m). Then `set_raster_style` with a pseudocolour ramp.
+The input must be in a metric CRS or the radius is degrees.
+
+**Hotspots as a grid.** When the user wants countable cells rather than a
+smooth surface: `native:creategrid` (hexagon type, `HSPACING`/`VSPACING`
+metric, `EXTENT` from `describe_layer` of the points) → 
+`native:countpointsinpolygon` → `set_graduated` on `NUMPOINTS` →
+`native:extractbyexpression` with `NUMPOINTS > 0` if the empty cells drown
+the picture.
+
+**Regression.** Core QGIS ships no regression algorithm. For a simple linear
+relation between two fields the honest route is `run_python` with numpy
+(`numpy.polyfit(x, y, 1)` over values read from the layer) and a clear
+statement of what was fitted. Do not fake it with the raster calculator.
+
+## Terrain and interpolation recipes
+
+**Slope / aspect / hillshade.** The DEM must be in a metric CRS —
+`gdal:warpreproject` first if `describe_layer` says degrees. Then
+`native:slope`, `native:aspect` or `native:hillshade`; hillshade takes
+`AZIMUTH` (315 is the cartographic default) and `V_ANGLE`. Style slope with
+`set_raster_style` pseudocolour.
+
+**Contour lines.** `gdal:contour` with `INTERVAL` in the DEM's height units
+and `BAND` 1. Label them with `set_labels` on the `ELEV` field.
+
+**IDW interpolation.** Prefer `gdal:gridinversedistance` — it takes the points
+layer and `Z_FIELD` by name, no special syntax. Set `-outsize` via
+`WIDTH`/`HEIGHT` if offered; otherwise defaults are fine for a first look.
+
+**TIN interpolation.** `qgis:tininterpolation` takes its input as one packed
+string: `INTERPOLATION_DATA` is
+`"<layer source>::~::0::~::<field index>::~::0"` — layer source, use-z flag,
+the numeric index of the value field, and the geometry type. Get the field
+index from `describe_layer` (fields are listed in order, starting at 0). It
+also requires `EXTENT` and `PIXEL_SIZE`, both from the points layer. When
+this feels fragile, `gdal:gridlinear` is the simpler cousin.
+
 ## Parameters
 
 - Input layers are given by their project layer name. Confirm the name with
