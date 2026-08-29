@@ -60,19 +60,20 @@ class ThinkingBlock(QFrame):
         self._toggle.setFixedWidth(MARKER_WIDTH)
         self._toggle.setStyleSheet(
             f"QToolButton {{ border: none; background: transparent;"
-            f"color: {style.css_color(style.muted(palette))}; font-size: 15px; }}"
+            f"color: {style.css_color(style.muted(palette))}; font-size: 12px; padding: 0; }}"
         )
+        self._toggle.setFixedHeight(MARKER_WIDTH + 2)
         self._toggle.toggled.connect(self._on_toggled)
-        row.addWidget(self._toggle)
+        row.addWidget(self._toggle, 0, Qt.AlignmentFlag.AlignVCenter)
 
         self._title = QLabel()
         self._title.setStyleSheet(f"color: {style.css_color(style.muted(palette))}; border: none;")
-        row.addWidget(self._title, 1)
+        row.addWidget(self._title, 1, Qt.AlignmentFlag.AlignVCenter)
 
         self._elapsed = QLabel()
         self._elapsed.setStyleSheet(f"color: {style.css_color(style.muted(palette))}; border: none;")
         _shrink(self._elapsed)
-        row.addWidget(self._elapsed)
+        row.addWidget(self._elapsed, 0, Qt.AlignmentFlag.AlignVCenter)
         return header
 
     def _build_body(self, palette) -> QWidget:

@@ -1,5 +1,6 @@
 import time
 
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -31,7 +32,8 @@ class ActivityGroup(QFrame):
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(0)
-        column.addWidget(self._build_header(palette))
+        self._header = self._build_header(palette)
+        column.addWidget(self._header)
         column.addWidget(self._build_steps(palette))
         self._count = 0
         self._failed = False
@@ -52,24 +54,25 @@ class ActivityGroup(QFrame):
         self._toggle.setFixedWidth(MARKER_WIDTH)
         self._toggle.setStyleSheet(
             f"QToolButton {{ border: none; background: transparent;"
-            f"color: {style.css_color(style.muted(palette))}; font-size: 15px; }}"
+            f"color: {style.css_color(style.muted(palette))}; font-size: 12px; padding: 0; }}"
         )
+        self._toggle.setFixedHeight(MARKER_WIDTH + 2)
         self._toggle.toggled.connect(self._on_toggled)
-        row.addWidget(self._toggle)
+        row.addWidget(self._toggle, 0, Qt.AlignmentFlag.AlignVCenter)
 
         self._title = QLabel()
         self._title.setStyleSheet(f"color: {style.css_color(style.muted(palette))}; border: none;")
-        row.addWidget(self._title, 1)
+        row.addWidget(self._title, 1, Qt.AlignmentFlag.AlignVCenter)
 
         self._elapsed = QLabel()
         self._elapsed.setStyleSheet(f"color: {style.css_color(style.muted(palette))}; border: none;")
         self._shrink(self._elapsed)
-        row.addWidget(self._elapsed)
+        row.addWidget(self._elapsed, 0, Qt.AlignmentFlag.AlignVCenter)
 
         self._status = QLabel()
         self._status.setStyleSheet("border: none;")
         self._status.setFixedWidth(MARKER_WIDTH)
-        row.addWidget(self._status)
+        row.addWidget(self._status, 0, Qt.AlignmentFlag.AlignVCenter)
         return header
 
     def _build_steps(self, palette) -> QWidget:
@@ -110,10 +113,9 @@ class ActivityGroup(QFrame):
 
     def _refresh(self) -> None:
         palette = self.palette()
-        if self._count:
-            self._title.setText(tr_n("%n action(s)", self._count))
-        else:
-            self._title.setText(tr("Thinking"))
+        self._header.setVisible(bool(self._count))
+        self._steps.setContentsMargins(STEPS_INDENT if self._count else 0, 2, 2, 4)
+        self._title.setText(tr_n("%n action(s)", self._count))
         self._status.setText(FAILED if self._failed else DONE)
         colour = style.danger(palette) if self._failed else style.success(palette)
         self._status.setStyleSheet(f"color: {style.css_color(colour)}; border: none;")

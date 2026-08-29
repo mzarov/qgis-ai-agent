@@ -785,11 +785,6 @@
         <translation>Эти шаги меняют или удаляют данные, и отменить их будет нельзя:&#10;&#10;{0}&#10;&#10;Применить их?</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/activity.py" line="120"/>
-        <source>Thinking</source>
-        <translation>Думает</translation>
-    </message>
-    <message>
         <location filename="qgis_ai_agent/ui/thinking.py" line="21"/>
         <source>Thinking…</source>
         <translation>Думает…</translation>
@@ -940,19 +935,19 @@
         <translation>{0} и ещё {1}</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/activity.py" line="171"/>
-        <location filename="qgis_ai_agent/ui/thinking.py" line="122"/>
+        <location filename="qgis_ai_agent/ui/activity.py" line="169"/>
+        <location filename="qgis_ai_agent/ui/thinking.py" line="124"/>
         <source>{0} min {1} s</source>
         <translation>{0} мин {1} с</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/activity.py" line="168"/>
+        <location filename="qgis_ai_agent/ui/activity.py" line="166"/>
         <source>{0} ms</source>
         <translation>{0} мс</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/activity.py" line="170"/>
-        <location filename="qgis_ai_agent/ui/thinking.py" line="121"/>
+        <location filename="qgis_ai_agent/ui/activity.py" line="168"/>
+        <location filename="qgis_ai_agent/ui/thinking.py" line="123"/>
         <source>{0} s</source>
         <translation>{0} с</translation>
     </message>
