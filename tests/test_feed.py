@@ -210,3 +210,25 @@ class AssistantMessageTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ActivityTitleTest(unittest.TestCase):
+    def test_a_thinking_only_group_is_not_zero_actions(self):
+        view = ConversationView()
+        view.append_thinking("hmm")
+        title = view._activity._title.text()
+        self.assertNotIn("0", title)
+
+    def test_a_group_with_actions_counts_them(self):
+        view = ConversationView()
+        view.add_activity_step("Reading the project.")
+        self.assertIn("1", view._activity._title.text())
+
+
+class FailedPlanCardTest(unittest.TestCase):
+    def test_a_failed_apply_still_settles_the_card(self):
+        from qgis_ai_agent.ui.plan import PlanCard
+
+        card = PlanCard(["step"])
+        card.mark_failed()
+        self.assertFalse(card._buttons.isVisible())

@@ -76,6 +76,9 @@ class BaseTool(ABC):
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
         return params
 
+    def detail_call(self, params: dict[str, Any]) -> str:
+        return ""
+
     def summarize_call(self, params: dict[str, Any]) -> str:
         if not params:
             return self.description or self.name

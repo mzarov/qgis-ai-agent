@@ -114,7 +114,10 @@ class ActivityGroup(QFrame):
 
     def _refresh(self) -> None:
         palette = self.palette()
-        self._title.setText(tr_n("%n action(s)", self._count))
+        if self._count:
+            self._title.setText(tr_n("%n action(s)", self._count))
+        else:
+            self._title.setText(tr("Thinking"))
         self._status.setText(FAILED if self._failed else DONE)
         colour = style.danger(palette) if self._failed else style.success(palette)
         self._status.setStyleSheet(f"color: {style.css_color(colour)}; border: none;")

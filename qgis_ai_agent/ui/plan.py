@@ -16,6 +16,7 @@ BUTTON_HEIGHT = 30
 PENDING_MARK = "◆"
 APPLIED_MARK = "✓"
 CANCELLED_MARK = "—"
+FAILED_MARK = "✕"
 NUMBER_WIDTH = 16
 
 
@@ -120,6 +121,9 @@ class PlanCard(QFrame):
 
     def mark_cancelled(self) -> None:
         self._settle(CANCELLED_MARK, tr("Cancelled"), style.muted(self.palette()))
+
+    def mark_failed(self) -> None:
+        self._settle(FAILED_MARK, tr("Applied with errors"), style.danger(self.palette()))
 
     def _settle(self, mark: str, heading: str, colour) -> None:
         self._mark.setText(mark)

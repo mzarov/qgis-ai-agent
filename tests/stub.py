@@ -36,6 +36,12 @@ class _Stub(metaclass=_Meta):
     def palette(self):
         return _Palette()
 
+    def setVisible(self, visible):
+        self.__dict__["_stub_visible"] = bool(visible)
+
+    def isVisible(self):
+        return self.__dict__.get("_stub_visible", True)
+
     def __int__(self):
         return 0
 

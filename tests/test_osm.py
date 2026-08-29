@@ -395,37 +395,46 @@ class RunOverpassTest(unittest.TestCase):
     def _query(self, tail="(._;>;);\nout body;"):
         return f'[out:xml][timeout:90];\nnode["amenity"="cafe"](55,37,56,38);\n{tail}'
 
+    def _params(self, **overrides):
+        params = {"query": self._query(), "name": "Cafes", "intent": "все кафе в прямоугольнике"}
+        params.update(overrides)
+        return params
+
     def test_a_whole_query_passes_through_untouched(self):
-        prepared = self.tool.prepare({"query": self._query(), "name": "Cafes"})
+        prepared = self.tool.prepare(self._params())
         self.assertEqual(prepared["query"], self._query())
+
+    def test_a_missing_intent_is_refused(self):
+        with self.assertRaises(ValueError) as caught:
+            self.tool.prepare(self._params(intent="  "))
+        self.assertIn("intent", str(caught.exception))
+
+    def test_the_summary_shows_the_intent_not_the_query(self):
+        summary = self.tool.summarize_call(self._params())
+        self.assertIn("все кафе", summary)
+        self.assertNotIn("out:xml", summary)
+
+    def test_the_raw_query_moves_to_the_details(self):
+        self.assertIn("out:xml", self.tool.detail_call(self._params()))
 
     def test_an_empty_query_is_refused(self):
         with self.assertRaises(ValueError):
-            self.tool.prepare({"query": "  ", "name": "Cafes"})
+            self.tool.prepare(self._params(query="  "))
 
     def test_a_query_without_output_is_refused(self):
         with self.assertRaises(ValueError) as caught:
-            self.tool.prepare({"query": '[out:xml];node["shop"](55,37,56,38);', "name": "Shops"})
+            self.tool.prepare(self._params(query='[out:xml];node["shop"](55,37,56,38);'))
         self.assertIn("out body", str(caught.exception))
 
     def test_the_skeleton_output_is_refused_with_the_reason(self):
         with self.assertRaises(ValueError) as caught:
-            self.tool.prepare({"query": self._query("out body;\n>;\nout skel qt;"), "name": "Cafes"})
+            self.tool.prepare(self._params(query=self._query("out body;\n>;\nout skel qt;")))
         self.assertIn("nodes", str(caught.exception))
         self.assertIn("(._;>;);", str(caught.exception))
 
     def test_an_overlong_query_is_refused(self):
         with self.assertRaises(ValueError):
-            self.tool.prepare({"query": "out body; " + "x" * run_overpass.MAX_QUERY_CHARS, "name": "X"})
-
-    def test_the_summary_shows_what_will_run(self):
-        summary = self.tool.summarize_call({"query": self._query(), "name": "Cafes"})
-        self.assertIn("Cafes", summary)
-        self.assertIn("out:xml", summary)
-
-    def test_a_long_query_is_shortened_in_the_summary(self):
-        summary = self.tool.summarize_call({"query": "out body; " + "y" * 500, "name": "X"})
-        self.assertLess(len(summary), 200)
+            self.tool.prepare(self._params(query="out body; " + "x" * run_overpass.MAX_QUERY_CHARS))
 
     def test_it_is_a_write_tool_so_it_waits_for_the_button(self):
         self.assertFalse(self.tool.is_read_only)
