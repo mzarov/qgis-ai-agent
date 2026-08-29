@@ -18,6 +18,7 @@ from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.ui import icons, style
 from qgis_ai_agent.ui.composer import Composer
 from qgis_ai_agent.ui.conversation import ConversationView
+from qgis_ai_agent.ui.tool_browser import ToolBrowserDialog
 
 TITLE = "QGIS AI Agent"
 NEW_SESSION_LABEL = tr("New conversation")
@@ -41,6 +42,7 @@ class AgentDockWidget(QDockWidget):
         super().__init__(parent)
         self.setWindowTitle(TITLE)
         self._sessions_provider: Callable[[], list[tuple[str, str]]] = list
+        self._capabilities_provider: Callable[[], list] = list
         body = QWidget()
         column = QVBoxLayout(body)
         column.setContentsMargins(0, 0, 0, 0)
@@ -67,6 +69,7 @@ class AgentDockWidget(QDockWidget):
         self._usage_label = QLabel("")
         self._usage_label.setStyleSheet(f"border: none; color: {style.css_color(style.muted(palette))};")
         row.addWidget(self._usage_label)
+        row.addWidget(self._build_action(icons.sessions, "?", tr("What the agent can do"), self._show_capabilities))
         self._sessions_button = self._build_action(icons.sessions, "⟲", tr("Conversations"), self._show_sessions)
         row.addWidget(self._sessions_button)
         row.addWidget(self._build_action(icons.clear, "⌫", tr("Clear conversation"), self._on_clear))
@@ -125,6 +128,12 @@ class AgentDockWidget(QDockWidget):
 
     def set_session_source(self, provider: Callable[[], list[tuple[str, str]]]) -> None:
         self._sessions_provider = provider
+
+    def set_capabilities_source(self, provider: Callable[[], list]) -> None:
+        self._capabilities_provider = provider
+
+    def _show_capabilities(self) -> None:
+        ToolBrowserDialog(self._capabilities_provider(), self).exec()
 
     def _show_sessions(self) -> None:
         menu = QMenu(self)

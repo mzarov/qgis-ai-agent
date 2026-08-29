@@ -237,3 +237,23 @@ class FailedPlanCardTest(unittest.TestCase):
         card = PlanCard(["step"])
         card.mark_failed()
         self.assertFalse(card._buttons.isVisible())
+
+
+class CapabilitiesTest(unittest.TestCase):
+    def test_every_skill_arrives_with_its_tools(self):
+        from qgis_ai_agent.core.orchestrator.capabilities import describe_capabilities
+        from qgis_ai_agent.skills.registry import SKILL_REGISTRY
+
+        described = describe_capabilities()
+        self.assertEqual([skill["name"] for skill in described], SKILL_REGISTRY.names())
+        web = next(skill for skill in described if skill["name"] == "web")
+        names = [tool["name"] for tool in web["tools"]]
+        self.assertEqual(names, sorted(names))
+        self.assertIn("geocode", names)
+        self.assertTrue(all(tool["safety"] for skill in described for tool in skill["tools"]))
+
+    def test_the_browser_dialog_builds_from_the_description(self):
+        from qgis_ai_agent.core.orchestrator.capabilities import describe_capabilities
+        from qgis_ai_agent.ui.tool_browser import ToolBrowserDialog
+
+        ToolBrowserDialog(describe_capabilities())
