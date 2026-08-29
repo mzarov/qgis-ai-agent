@@ -601,3 +601,23 @@ These verify the agent solves everyday tasks without wandering through search.
      from you.
 144. **Forgetting.** “Forget the POP2020 note” → it is gone from list_notes;
      forgetting something that was never stored is refused with a hint.
+
+## Streaming
+
+145. **The answer grows.** Ask something that needs a long reply — “explain
+     what is in this project and what you would fix” → the text appears word
+     by word, not all at once after the pause.
+146. **Markdown is right at the end.** Ask for an answer with a list and bold
+     text → while it streams the formatting may be half-built, but the
+     finished message renders as proper markdown, with no stray asterisks.
+147. **A tool call drops the draft.** Ask something that makes the agent read
+     the project first → whatever it said before the tool disappears when the
+     tool line appears; nothing is shown twice.
+148. **The saved conversation matches the screen.** After a streamed answer,
+     switch to another conversation and back → the reply is there, in one
+     copy, exactly as it was read.
+149. **An endpoint without SSE still works.** Point the plugin at a server
+     that refuses streaming → the answer arrives whole, without an error, and
+     the next request goes straight to the ordinary path.
+150. **Stop during a stream.** Press ■ while the text is growing → the run
+     stops, the draft stops growing and QGIS does not freeze.

@@ -117,6 +117,15 @@ def set_supports_images(url: str, value: bool) -> None:
     _write(f"supports_images/{_url_settings_key(url)}", "true" if value else "false")
 
 
+def get_supports_streaming(url: str) -> bool | None:
+    stored = QgsSettings().value(f"{SETTINGS_PREFIX}/supports_streaming/{_url_settings_key(url)}")
+    return None if stored is None else _as_bool(stored)
+
+
+def set_supports_streaming(url: str, value: bool) -> None:
+    _write(f"supports_streaming/{_url_settings_key(url)}", "true" if value else "false")
+
+
 def get_supports_tools(url: str) -> bool | None:
     stored = QgsSettings().value(f"{SETTINGS_PREFIX}/supports_tools/{_url_settings_key(url)}")
     return None if stored is None else _as_bool(stored)

@@ -12,10 +12,13 @@ from qgis_ai_agent.core.llm.client import (
 )
 from qgis_ai_agent.core.llm.dialects import ANTHROPIC, resolve
 from qgis_ai_agent.core.llm.parser import parse_model_json, parse_tool_arguments
+from qgis_ai_agent.core.llm.stream_runner import post_stream
 from qgis_ai_agent.core.settings import (
     get_dialect,
+    get_supports_streaming,
     get_supports_tools,
     set_supports_images,
+    set_supports_streaming,
     set_supports_tools,
 )
 
@@ -70,15 +73,16 @@ def call_model(
     tool_schemas: list[dict[str, Any]],
     overrides: dict[str, Any] | None = None,
     timeout: int = 120,
+    on_chunk: Any = None,
 ) -> ModelTurn:
     overrides = dict(overrides or {})
     url = resolve_endpoint(overrides.get("url_override"))
     try:
-        return _dispatch(messages, tool_schemas, overrides, timeout, url)
+        return _dispatch(messages, tool_schemas, overrides, timeout, url, on_chunk)
     except ApiResponseError as err:
         if not (_has_images(messages) and err.status_code in IMAGE_REJECTED_STATUS_CODES):
             raise
-        turn = _dispatch(_without_images(messages), tool_schemas, overrides, timeout, url)
+        turn = _dispatch(_without_images(messages), tool_schemas, overrides, timeout, url, on_chunk)
         set_supports_images(url, False)
         return turn
 
@@ -114,6 +118,7 @@ def _dispatch(
     overrides: dict[str, Any],
     timeout: int,
     url: str,
+    on_chunk: Any = None,
 ) -> ModelTurn:
     chosen = overrides.get("dialect_override")
     if resolve(url, chosen if chosen is not None else get_dialect()) == ANTHROPIC:
@@ -121,6 +126,9 @@ def _dispatch(
     supports_tools = get_supports_tools(url)
 
     if supports_tools is not False and tool_schemas:
+        streamed = _try_streaming(messages, tool_schemas, overrides, timeout, url, on_chunk)
+        if streamed is not None:
+            return streamed
         try:
             data = post_chat_completion(
                 messages,
@@ -173,6 +181,43 @@ def _call_anthropic(
         input_tokens=incoming,
         output_tokens=outgoing,
     )
+
+
+def _try_streaming(
+    messages: list[dict[str, Any]],
+    tool_schemas: list[dict[str, Any]],
+    overrides: dict[str, Any],
+    timeout: int,
+    url: str,
+    on_chunk: Any,
+) -> ModelTurn | None:
+    if on_chunk is None or get_supports_streaming(url) is False:
+        return None
+    endpoint, headers, model = build_request(
+        overrides.get("url_override"),
+        overrides.get("key_override"),
+        overrides.get("auth_type_override"),
+        overrides.get("model_override"),
+        overrides.get("dialect_override"),
+    )
+    body = {
+        "model": model,
+        "messages": messages,
+        "stream": True,
+        "stream_options": {"include_usage": True},
+        "tools": tool_schemas,
+        "tool_choice": "auto",
+    }
+    try:
+        data = post_stream(endpoint, headers, body, on_chunk, timeout)
+    except ApiResponseError:
+        set_supports_streaming(url, False)
+        return None
+    turn = _parse_native_turn(data)
+    if get_supports_streaming(url) is None:
+        set_supports_streaming(url, True)
+        set_supports_tools(url, True)
+    return turn
 
 
 def _looks_like_tools_unsupported(err: ApiResponseError) -> bool:

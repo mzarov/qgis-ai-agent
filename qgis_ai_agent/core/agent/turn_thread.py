@@ -21,10 +21,13 @@ class TurnThreadOwner:
         overrides: dict[str, Any],
         on_turn: Callable[[Any], None],
         on_error: Callable[[str], None],
+        on_chunk: Callable[[str], None] | None = None,
     ) -> None:
         thread = ModelTurnThread(messages, tool_schemas, overrides)
         thread.finished_turn.connect(on_turn)
         thread.error.connect(on_error)
+        if on_chunk is not None:
+            thread.chunk.connect(on_chunk)
         thread.finished.connect(thread.deleteLater)
         self._thread = thread
         thread.start()
@@ -32,12 +35,20 @@ class TurnThreadOwner:
     def release(self) -> None:
         self._thread = None
 
-    def detach(self, on_turn: Callable[[Any], None], on_error: Callable[[str], None]) -> None:
+    def detach(
+        self,
+        on_turn: Callable[[Any], None],
+        on_error: Callable[[str], None],
+        on_chunk: Callable[[str], None] | None = None,
+    ) -> None:
         thread = self._thread
         self._thread = None
         if thread is None:
             return
-        for signal, slot in ((thread.finished_turn, on_turn), (thread.error, on_error)):
+        pairs = [(thread.finished_turn, on_turn), (thread.error, on_error)]
+        if on_chunk is not None:
+            pairs.append((thread.chunk, on_chunk))
+        for signal, slot in pairs:
             try:
                 signal.disconnect(slot)
             except (TypeError, RuntimeError):

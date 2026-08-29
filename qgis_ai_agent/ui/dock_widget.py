@@ -159,6 +159,12 @@ class AgentDockWidget(QDockWidget):
     def add_result_message(self, text: str) -> int:
         return self.conversation.add_assistant_message(text)
 
+    def add_stream_chunk(self, text: str) -> None:
+        self.conversation.append_draft(text)
+
+    def finish_stream(self, markdown: str) -> bool:
+        return self.conversation.finish_draft(markdown)
+
     def add_tool_message(self, text: str) -> int:
         return self.conversation.add_activity_step(text)
 
