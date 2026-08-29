@@ -204,7 +204,7 @@ def _try_streaming(
             return None
         raise
     turn = _parse_native_turn(data)
-    if not turn.text and not turn.tool_calls:
+    if not turn.text and not turn.tool_calls and not turn.thinking:
         set_supports_streaming(url, False)
         return None
     if get_supports_streaming(url) is None:

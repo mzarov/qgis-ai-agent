@@ -208,6 +208,13 @@ class StreamingDispatchTest(unittest.TestCase):
             self._call(lambda text: None)
         self.assertEqual(self.flags, [])
 
+    def test_a_thinking_only_turn_does_not_disable_streaming(self):
+        reasoning = event({"choices": [{"delta": {"reasoning_content": "the whole turn is thought"}}]})
+        transport.post_stream = streaming(reasoning)
+        turn = self._call(lambda text: None)
+        self.assertEqual(turn.thinking, "the whole turn is thought")
+        self.assertEqual(self.flags, [True])
+
     def test_a_server_that_ignores_the_stream_flag_falls_back(self):
         transport.post_stream = streaming(b'{"choices": [{"message": {"content": "plain"}}]}')
         self.assertEqual(self._call(lambda text: None).text, "not streamed")
