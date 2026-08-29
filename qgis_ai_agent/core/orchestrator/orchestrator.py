@@ -22,6 +22,7 @@ VERIFYING = tr("Checking the applied changes…")
 MAX_VERIFICATION_ROUNDS = 3
 DESTRUCTIVE_DECLINED = tr("Kept everything as it was — the destructive steps were not applied.")
 INTERJECTED = tr("Passed to the agent — it will take this into account on its next step.")
+PLAN_DROPPED = tr("The planned changes were dropped — they were not applied. Starting over from your message.")
 THOUSAND = 1000
 TOKENS_LABEL = tr("{0} tokens")
 
@@ -105,11 +106,20 @@ class CoreOrchestrator:
 
         self.dock_widget.add_user_message(text)
         self.dock_widget.clear_prompt()
+        self._drop_pending_plan()
         self.dock_widget.set_usage("")
-        self._plan_message_id = None
         history = self.conversation.window()
         self.conversation.add("user", text)
         self.agent.start(text, history)
+
+    def _drop_pending_plan(self) -> None:
+        pending = self.agent.has_pending_writes
+        if pending:
+            self.agent.cancel_pending()
+            if self._plan_message_id is not None:
+                self.dock_widget.mark_plan_cancelled(self._plan_message_id)
+            self.dock_widget.add_system_message(PLAN_DROPPED)
+        self._plan_message_id = None
 
     def on_usage_changed(self, spent: int) -> None:
         self.dock_widget.set_usage(TOKENS_LABEL.format(_compact_number(spent)))
