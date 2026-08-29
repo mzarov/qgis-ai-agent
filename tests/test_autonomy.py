@@ -377,3 +377,24 @@ class PreambleTest(unittest.TestCase):
         self.loop._on_turn(self._turn("Применяю первую часть.", tool=prompts.APPLY_NOW_TOOL))
         self.assertEqual(self.preambles, ["Применяю первую часть."])
         self.assertEqual(self.confirms, [""])
+
+
+class StageAppliedSignalTest(unittest.TestCase):
+    def test_a_staged_apply_announces_itself(self):
+        loop = AgentLoop()
+        loop._staged = True
+        loop._batch._calls.append(ToolCall(id="w", name="add_basemap", arguments={}))
+        loop._batch.apply = lambda on_start, on_finish: ["done"]
+        loop._request_step = lambda: None
+        saved = loop_module.take_snapshot
+        loop_module.take_snapshot = lambda: None
+        seen = []
+        applied = []
+        loop.stage_applied.connect(seen.append)
+        loop.applied.connect(applied.append)
+        try:
+            loop.confirm_pending()
+        finally:
+            loop_module.take_snapshot = saved
+        self.assertEqual(seen, [["done"]])
+        self.assertEqual(applied, [])
