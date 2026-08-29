@@ -274,8 +274,8 @@
     </message>
     <message>
         <location filename="qgis_ai_agent/qgis_tools/osm/download_osm.py" line="125"/>
-        <source>Downloading '{0}' from OSM in {1}.</source>
-        <translation>Скачиваю из OSM «{0}» в {1}.</translation>
+        <source>Downloading '{0}' ({1}) from OSM in {2}.</source>
+        <translation>Скачиваю из OSM «{0}» ({1}) в {2}.</translation>
     </message>
     <message>
         <location filename="qgis_ai_agent/ui/composer.py" line="24"/>
@@ -862,6 +862,11 @@
         <location filename="qgis_ai_agent/qgis_tools/common/properties.py" line="166"/>
         <source>defaults</source>
         <translation>по умолчанию</translation>
+    </message>
+    <message>
+        <location filename="qgis_ai_agent/qgis_tools/osm/download_osm.py" line="152"/>
+        <source>no tag</source>
+        <translation>без тега</translation>
     </message>
     <message>
         <location filename="qgis_ai_agent/qgis_tools/inspect/query_layer.py" line="97"/>

@@ -122,7 +122,7 @@ class DownloadOsmTool(BaseTool):
     def summarize_call(self, params: dict[str, Any]) -> str:
         name = wanted_name(params)
         where = (params.get("area") or "").strip() or tr("the given extent")
-        return tr("Downloading '{0}' from OSM in {1}.").format(name, where)
+        return tr("Downloading '{0}' ({1}) from OSM in {2}.").format(name, _what(params), where)
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         chosen = selectors(params)
@@ -140,3 +140,14 @@ class DownloadOsmTool(BaseTool):
             "total_features": sum(item["feature_count"] for item in loaded),
             "source": path,
         }
+
+
+def _what(params: dict[str, Any]) -> str:
+    chosen = params.get("selectors") or []
+    if chosen:
+        return "; ".join(str(item) for item in chosen)
+    key = (params.get("key") or "").strip()
+    value = (params.get("value") or "").strip()
+    if not key:
+        return tr("no tag")
+    return f"{key}={value}" if value else key
