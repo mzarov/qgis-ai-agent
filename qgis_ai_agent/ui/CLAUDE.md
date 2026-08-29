@@ -101,13 +101,17 @@ minute of thought would be a lie.
 
 ## The empty state fills the panel
 
-`WelcomeCard` is not a small card pinned to the top: with an empty feed it takes
-the whole height and centres its own content, because a compact card left two
-thirds of the panel as a void and read as a rendering fault rather than as a
-starting point. The feed's trailing stretch is what fought it — while the
-welcome is shown that stretch drops to zero and the card carries the stretch
-instead; `_drop_welcome` hands it back. Both live in one pair of methods so the
-two states cannot drift apart.
+`WelcomeCard` has **no wrapping frame**. A card pinned to the top left two
+thirds of the panel as a void; stretching that same card to full height only
+turned the void into a huge empty box — worse, because a border draws attention
+to the emptiness it encloses. What works is the opposite: no container at all,
+and the suggestions themselves are the blocks. The group is centred vertically
+in the free space, so the balance is deliberate rather than leftover.
+
+The feed's trailing stretch is what fought the centring — it exists to push
+messages upwards. While the welcome is shown that stretch drops to zero and the
+card carries it instead; `_drop_welcome` hands it back. Both halves live in one
+pair of methods so the two states cannot drift apart.
 
 ## Action grouping
 
