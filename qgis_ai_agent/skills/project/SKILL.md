@@ -1,7 +1,7 @@
 ---
 name: project
 description: Manage the project itself — add layers from files, basemaps and PostGIS, remove, rename, hide, group and reorder them, change project CRS, zoom the map, save the project. Load this to set a workflow up or to finish it.
-tools: [zoom_to_layer, add_layer, add_basemap, add_service_layer, list_db_connections, list_db_tables, add_db_layer, remove_layer, configure_layer, configure_project, save_project, export_layer, undo_last_apply, list_views, remember, list_notes, forget, save_bookmark, save_map_theme]
+tools: [zoom_to_layer, add_layer, add_basemap, add_service_layer, list_db_connections, list_db_tables, add_db_layer, remove_layer, reorder_layers, configure_layer, configure_project, save_project, export_layer, undo_last_apply, list_views, remember, list_notes, forget, save_bookmark, save_map_theme]
 ---
 
 # The project as a workspace
@@ -127,9 +127,15 @@ explicit `name`, otherwise the tool refuses before anything is queued.
 `position`. Set them all in one call rather than queueing the tool repeatedly for
 one layer.
 
-Draw order is what `position` controls: **0 is the top of the group and draws over
-everything below it.** "Move the rivers to the top" is `position: 0`; "tuck them
-under the roads" means giving the rivers a larger position than the roads.
+For the whole panel use `reorder_layers`: name the layers top to bottom in one
+call — points first, then lines, then polygons, basemap last — and the tool does
+the arithmetic. Do not queue a `position` per layer to arrange everything: six
+absolute indices are six chances to invert the map.
+
+For a single layer, draw order is what `position` controls: **0 is the top of the
+group and draws over everything below it.** "Move the rivers to the top" is
+`position: 0`; "tuck them under the roads" means giving the rivers a larger
+position than the roads.
 
 `group` moves the layer into a named group, creating it if it does not exist.
 An empty string moves the layer back to the root.
