@@ -213,11 +213,16 @@ if __name__ == "__main__":
 
 
 class ActivityTitleTest(unittest.TestCase):
-    def test_a_thinking_only_group_is_not_zero_actions(self):
+    def test_a_thinking_only_group_hides_its_own_header(self):
         view = ConversationView()
         view.append_thinking("hmm")
-        title = view._activity._title.text()
-        self.assertNotIn("0", title)
+        self.assertFalse(view._activity._header.isVisible())
+
+    def test_the_first_action_brings_the_header_back(self):
+        view = ConversationView()
+        view.append_thinking("hmm")
+        view.add_activity_step("Reading the project.")
+        self.assertTrue(view._activity._header.isVisible())
 
     def test_a_group_with_actions_counts_them(self):
         view = ConversationView()
