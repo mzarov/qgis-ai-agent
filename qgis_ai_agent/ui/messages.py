@@ -9,6 +9,7 @@ USER_MAX_WIDTH_RATIO = 0.82
 BUBBLE_PADDING = 8
 BUBBLE_SIDE_PADDING = 11
 BROWSER_EXTRA_HEIGHT = 6
+WRAP_SLACK = 10
 SYSTEM_FONT_SCALE = 0.92
 REPAINT_INTERVAL_MS = 80
 
@@ -39,10 +40,10 @@ class UserMessage(QWidget):
 
     def _fit(self) -> None:
         metrics = self._label.fontMetrics()
-        lines = self._label.text().split("\n")
-        natural = max(metrics.horizontalAdvance(line) for line in lines) if lines else 0
+        lines = self._label.text().split("\n") or [""]
+        natural = max(_line_width(metrics, line) for line in lines)
         limit = int(self.width() * USER_MAX_WIDTH_RATIO)
-        self._label.setFixedWidth(min(natural + BUBBLE_SIDE_PADDING * 2 + 2, limit))
+        self._label.setFixedWidth(min(natural + BUBBLE_SIDE_PADDING * 2 + WRAP_SLACK, limit))
 
 
 class AssistantMessage(QWidget):
@@ -120,3 +121,12 @@ class SystemMessage(QWidget):
             "padding: 2px 0 2px 9px;"
         )
         row.addWidget(label, 1)
+
+
+def _line_width(metrics: Any, line: str) -> int:
+    advance = metrics.horizontalAdvance(line)
+    try:
+        painted = metrics.boundingRect(line).width()
+    except Exception:
+        painted = 0
+    return max(int(advance), int(painted))
