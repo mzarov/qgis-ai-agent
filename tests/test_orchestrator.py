@@ -54,6 +54,9 @@ class Agent:
         self.started = None
         self.verification_started = None
         self.aborts = 0
+        self.stops = 0
+        self.is_applying = False
+        self.active_apply_tool = ""
 
     def start(self, prompt, history, verification=False, verification_round=0):
         if verification:
@@ -80,12 +83,14 @@ class Agent:
     def abort(self):
         self.aborts += 1
         self.is_running = False
+        self.is_applying = False
         self.has_pending_writes = False
         self.is_awaiting_answer = False
         self.answered = None
 
     def stop(self):
-        return None
+        self.stops += 1
+        self.abort()
 
 
 class PlanDock(Dock):
@@ -205,11 +210,105 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.assertEqual(self.dock.replayed, [])
         self.assertIn(orchestrator_module.PROJECT_CHANGED, self.dock.system)
 
+    def test_interrupted_apply_from_old_project_never_pollutes_the_new_session(self):
+        self._ask("work in the old project")
+        old_identifier = self.orchestrator.conversation.session_identifier
+        self.orchestrator.agent.has_pending_writes = True
+        self.orchestrator.on_confirm_plan()
+        self.orchestrator.agent.is_applying = True
+        drawn = []
+        self.dock.add_result_message = drawn.append
+        saved = conversation_module.current_project_key
+        conversation_module.current_project_key = lambda: "/new/project.qgz"
+        try:
+            self.orchestrator.on_project_changed()
+        finally:
+            conversation_module.current_project_key = saved
+
+        self.orchestrator.on_apply_interrupted([Result(ok=True, name="set_symbol")])
+
+        self.assertEqual(self.orchestrator.conversation.project_key, "/new/project.qgz")
+        self.assertEqual(self.orchestrator.conversation.messages, [])
+        self.assertEqual(drawn, [])
+        old_session = self.store.load(old_identifier)
+        self.assertTrue(any("Stopped after 1 completed step" in item["content"] for item in old_session.messages))
+        self.assertIn(orchestrator_module.PREVIOUS_APPLY_INTERRUPTED, self.dock.system)
+        self.assertIsNone(self.orchestrator._apply_scope)
+
     def test_transient_filename_signal_does_not_restart_the_conversation(self):
         self._ask("тот же проект")
         identifier = self.orchestrator.conversation.session_identifier
         self.orchestrator.on_project_changed()
         self.assertEqual(self.orchestrator.conversation.session_identifier, identifier)
+
+    def test_clear_reload_same_key_aborts_apply_and_starts_a_fresh_session(self):
+        self._ask("delete selected parcels")
+        identifier = self.orchestrator.conversation.session_identifier
+        self.orchestrator.agent.has_pending_writes = True
+        self.orchestrator.agent.is_applying = True
+        saved = conversation_module.current_project_key
+        conversation_module.current_project_key = lambda: self.orchestrator.conversation.project_key
+        try:
+            self.orchestrator.on_project_cleared()
+            self.assertEqual(self.orchestrator.agent.aborts, 1)
+            self.orchestrator.on_project_changed(force_new=True)
+        finally:
+            conversation_module.current_project_key = saved
+
+        self.assertFalse(self.orchestrator.agent.has_pending_writes)
+        self.assertFalse(self.orchestrator.agent.is_applying)
+        self.assertNotEqual(self.orchestrator.conversation.session_identifier, identifier)
+        self.assertEqual(self.orchestrator.conversation.messages, [])
+        self.assertEqual(self.dock.replayed, [])
+
+    def test_partial_result_before_deferred_reload_is_reported_after_replay(self):
+        self._ask("change the old project")
+        old_identifier = self.orchestrator.conversation.session_identifier
+        self.orchestrator.agent.has_pending_writes = True
+        self.orchestrator.on_confirm_plan()
+        self.orchestrator.agent.is_applying = True
+        drawn = []
+        self.dock.add_result_message = drawn.append
+
+        self.assertTrue(self.orchestrator.on_project_cleared())
+        self.orchestrator.on_apply_interrupted([Result(ok=True, name="set_symbol")])
+        self.assertEqual(drawn, [])
+        self.assertNotIn(orchestrator_module.PREVIOUS_APPLY_INTERRUPTED, self.dock.system)
+
+        saved = conversation_module.current_project_key
+        conversation_module.current_project_key = lambda: self.orchestrator.conversation.project_key
+        try:
+            self.orchestrator.on_project_changed(force_new=True)
+        finally:
+            conversation_module.current_project_key = saved
+
+        self.assertEqual(self.orchestrator.conversation.messages, [])
+        self.assertIn(orchestrator_module.PREVIOUS_APPLY_INTERRUPTED, self.dock.system)
+        self.assertTrue(any("Stopped after 1 completed step" in message for message in self.dock.system))
+        old_session = self.store.load(old_identifier)
+        self.assertTrue(any("Stopped after 1 completed step" in item["content"] for item in old_session.messages))
+
+    def test_clear_from_the_executing_undo_does_not_cancel_that_undo(self):
+        self.orchestrator.agent.has_pending_writes = True
+        self.orchestrator.agent.is_applying = True
+        self.orchestrator.agent.active_apply_tool = "undo_last_apply"
+
+        self.assertFalse(self.orchestrator.on_project_cleared())
+        self.assertEqual(self.orchestrator.agent.aborts, 0)
+        self.assertTrue(self.orchestrator.agent.has_pending_writes)
+
+    def test_transient_filename_from_the_executing_undo_is_ignored(self):
+        identifier = self.orchestrator.conversation.session_identifier
+        self.orchestrator.agent.active_apply_tool = "undo_last_apply"
+        saved = conversation_module.current_project_key
+        conversation_module.current_project_key = lambda: "/temporary/snapshot.qgz"
+        try:
+            self.orchestrator.on_project_changed()
+        finally:
+            conversation_module.current_project_key = saved
+
+        self.assertEqual(self.orchestrator.conversation.session_identifier, identifier)
+        self.assertEqual(self.orchestrator.agent.aborts, 0)
 
     def test_switching_drops_the_stale_plan_card(self):
         self._ask("вопрос")
@@ -384,6 +483,17 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.orchestrator.on_stop()
         self.assertEqual(self.orchestrator.agent.aborts, 1)
 
+    def test_prompt_during_apply_is_refused_without_cancelling_or_starting(self):
+        self.orchestrator.agent.is_applying = True
+        self.orchestrator.agent.has_pending_writes = True
+
+        self.orchestrator.on_prompt("start another run")
+
+        self.assertIsNone(self.orchestrator.agent.started)
+        self.assertFalse(getattr(self.orchestrator.agent, "cancelled", False))
+        self.assertEqual(self.orchestrator.conversation.messages, [])
+        self.assertIn(orchestrator_module.SWITCH_WHILE_RUNNING, self.dock.system)
+
     def test_aborted_run_is_reported_and_unblocks_switching(self):
         self.orchestrator.on_prompt("долгая задача")
         self.orchestrator.agent.is_running = True
@@ -398,6 +508,15 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.orchestrator.on_aborted()
         self.assertIsNone(self.orchestrator._plan_message_id)
 
+    def test_abort_while_applying_reports_that_completed_changes_remain(self):
+        self.orchestrator.agent.is_applying = True
+        self.orchestrator._plan_message_id = 3
+
+        self.orchestrator.on_aborted()
+
+        self.assertIn(orchestrator_module.APPLY_STOPPED, self.dock.system)
+        self.assertNotIn("were dropped", self.dock.system[-1])
+
     def test_question_asked_before_stop_stays_in_the_session(self):
         self.orchestrator.on_prompt("долгая задача")
         self.orchestrator.agent.is_running = True
@@ -410,6 +529,7 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.orchestrator.shutdown()
         stored = self.store.recent(current_project_key())
         self.assertEqual(stored[0].messages[0]["content"], "последний вопрос")
+        self.assertEqual(self.orchestrator.agent.stops, 1)
 
 
 if __name__ == "__main__":
@@ -549,6 +669,27 @@ class StageAppliedTest(unittest.TestCase):
         self.orchestrator.on_confirm_needed([Call()], "")
         self.orchestrator.on_stage_applied([Result(ok=False, payload={"error": "snapshot failed"})])
         self.assertEqual(self.dock.failed_plans, [7])
+
+    def test_interrupted_mixed_batch_surfaces_partial_success_without_verification(self):
+        self.orchestrator.agent.is_applying = True
+        self.orchestrator._apply_scope = (
+            self.orchestrator.conversation.project_key,
+            self.orchestrator.conversation.session_identifier,
+        )
+        self.orchestrator.on_confirm_needed([Call("set_symbol"), Call("fetch_url")], "")
+        self.orchestrator.on_aborted()
+        results = [
+            Result(ok=True, payload={"result_layer_name": "styled roads"}, name="set_symbol"),
+            Result(ok=False, payload={"error": "request cancelled"}, name="fetch_url"),
+        ]
+
+        self.orchestrator.on_apply_interrupted(results)
+
+        self.assertEqual(self.dock.failed_plans, [7])
+        messages = [item["content"] for item in self.orchestrator.conversation.messages]
+        self.assertTrue(any("Stopped after 1 completed step" in text for text in messages))
+        self.assertTrue(any("pending steps were cancelled" in text for text in messages))
+        self.assertIsNone(self.orchestrator.agent.verification_started)
 
 
 class FailedApplySettlesTest(unittest.TestCase):

@@ -10,7 +10,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from qgis_ai_agent.i18n import tr_n
+from qgis_ai_agent.i18n import tr, tr_n
 from qgis_ai_agent.ui import style
 
 COLLAPSED = "›"
@@ -168,14 +168,15 @@ class StepRow(QWidget):
         self._marker.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
         row.addWidget(self._marker)
 
-        label = QLabel(text)
-        label.setWordWrap(True)
-        label.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
-        font = label.font()
+        self._label = QLabel(text)
+        self._label.setTextFormat(Qt.TextFormat.PlainText)
+        self._label.setWordWrap(True)
+        self._label.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
+        font = self._label.font()
         font.setPointSizeF(max(1.0, font.pointSizeF() * STEP_FONT_SCALE))
-        label.setFont(font)
+        self._label.setFont(font)
         self._marker.setFont(font)
-        row.addWidget(label, 1)
+        row.addWidget(self._label, 1)
 
     def set_state(self, marker: str, ok: bool) -> None:
         palette = self.palette()

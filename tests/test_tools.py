@@ -5,6 +5,7 @@ from qgis_ai_agent.qgis_tools.base import (
     SAFETY_DESTRUCTIVE,
     SAFETY_READ,
     SAFETY_WRITE,
+    BaseTool,
 )
 from qgis_ai_agent.qgis_tools.registry import ALL_TOOLS, get_tool_by_name
 
@@ -71,9 +72,12 @@ class SafetyTest(unittest.TestCase):
             self.assertEqual(tool.is_read_only, tool.safety == SAFETY_READ, tool.name)
 
     def test_prepare_defaults_to_passthrough(self):
+        checked = []
         for tool in ALL_TOOLS:
-            if tool.is_read_only:
+            if tool.__class__.prepare is BaseTool.prepare:
                 self.assertEqual(tool.prepare({"a": 1}), {"a": 1}, tool.name)
+                checked.append(tool.name)
+        self.assertTrue(checked)
 
 
 if __name__ == "__main__":

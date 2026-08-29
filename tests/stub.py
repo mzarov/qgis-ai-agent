@@ -194,6 +194,12 @@ class _Label(_Stub):
     def text(self):
         return self._text
 
+    def setTextFormat(self, text_format):
+        self._text_format = text_format
+
+    def textFormat(self):
+        return getattr(self, "_text_format", None)
+
 
 class _Toggle(_Label):
     def __init__(self, *a, **k):
@@ -389,7 +395,17 @@ _qtcore = _mod(
         "QCoreApplication",
     ],
 )
-_mod("qgis.PyQt.QtNetwork", ["QNetworkRequest", "QSslSocket"])
+_mod(
+    "qgis.PyQt.QtNetwork",
+    [
+        "QHostInfo",
+        "QNetworkProxy",
+        "QNetworkProxyFactory",
+        "QNetworkProxyQuery",
+        "QNetworkRequest",
+        "QSslSocket",
+    ],
+)
 _mod(
     "qgis.PyQt.QtGui",
     [

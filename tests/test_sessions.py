@@ -270,6 +270,18 @@ class ConversationStateTest(unittest.TestCase):
         finally:
             conversation_module.current_project_key = saved_key
 
+    def test_forced_project_sync_starts_fresh_even_when_the_key_is_unchanged(self):
+        self.state.add("user", "stale plan context")
+        identifier = self.state.session_identifier
+        saved_key = conversation_module.current_project_key
+        conversation_module.current_project_key = lambda: self.state.project_key
+        try:
+            self.assertTrue(self.state.sync_project(force_new=True))
+        finally:
+            conversation_module.current_project_key = saved_key
+        self.assertNotEqual(self.state.session_identifier, identifier)
+        self.assertEqual(self.state.messages, [])
+
 
 class ProjectIdentityTest(unittest.TestCase):
     def test_saved_projects_with_the_same_basename_do_not_collide(self):

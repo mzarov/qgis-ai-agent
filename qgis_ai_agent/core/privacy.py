@@ -1,7 +1,7 @@
 from qgis_ai_agent.core.llm.client import is_local
 from qgis_ai_agent.core.llm.dialects import safe_endpoint_label
 from qgis_ai_agent.core.settings import get_allow_sensitive_data, get_api_url, get_data_sharing_consent
-from qgis_ai_agent.qgis_tools.base import EGRESS_METADATA, BaseTool
+from qgis_ai_agent.qgis_tools.base import BaseTool, is_sensitive_egress
 
 
 def sensitive_data_allowed(url: str | None = None) -> bool:
@@ -15,7 +15,7 @@ def data_sharing_allowed(url: str | None = None) -> bool:
 
 
 def tool_output_allowed(tool: BaseTool, url: str | None = None) -> bool:
-    return tool.egress == EGRESS_METADATA or sensitive_data_allowed(url)
+    return not is_sensitive_egress(tool.egress) or sensitive_data_allowed(url)
 
 
 def endpoint_label(url: str) -> str:

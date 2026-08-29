@@ -12,7 +12,8 @@ class), `fields` (attribute schema and virtual fields), `layout` (print
 layouts and export), `python` (the `run_python` escape hatch to the whole
 QGIS API, destructive so the user reads the code first — it is a permanent
 part of the design, never propose cutting it for review reasons; the
-reasoning is in [docs/core_architecture.md](docs/core_architecture.md)).
+reasoning is in [docs/core_architecture.md](docs/core_architecture.md)), and
+`web` (confirmed public-HTTPS search, page reading and geocoding).
 After
 the user applies a batch, the orchestrator starts a verification run: the agent
 re-reads the result with read tools and, for visual changes, looks at a
@@ -34,11 +35,13 @@ agent. Do not ask permission for routine decisions — write the code.
   words only: local servers (Ollama, LM Studio) require no keys.
 - Dependencies: Poetry, Python `^3.12`. The plugin runs inside QGIS, so every new
   dependency is an installation problem for the user. Add one only when strictly
-  necessary; today there is exactly one — `keyring`. **All HTTP goes through
-  `QgsBlockingNetworkRequest`**, not `requests`: the QGIS plugin repository rules
-  require it, and it also spins the event loop (the UI does not freeze, the
-  main-thread rule is not violated) and honours the QGIS proxy and
-  authentication settings.
+  necessary; today there is exactly one — `keyring`. **All HTTP stays on the
+  QGIS network stack**, never `requests`: ordinary calls use
+  `QgsBlockingNetworkRequest`; streaming and web redirects use
+  `QgsNetworkAccessManager` with a nested event loop. Web requests validate all
+  DNS answers, pin one public IP while verifying the original TLS host, and
+  follow only manually checked same-origin redirects. A QGIS proxy-route
+  mismatch fails closed.
 
 ## Architecture
 
@@ -51,12 +54,14 @@ Details: [docs/core_architecture.md](docs/core_architecture.md).
    next step. It is **not** a one-shot planner. A run ends when the model replies
    without tool calls.
 3. **Safety classes instead of “plan → confirm”.** Every tool declares `safety`:
-   - `read` — executes immediately, no confirmation asked
+   - `read` — executes immediately unless it declares `network_access`
    - `write` — collected into a batch, applied after the user presses the button
    - `destructive` — reserved for per-call confirmation
 
    A write call returns `{"status": "queued"}` to the model — that is success,
    not an error.
+   A network read also queues, pauses automatically for exact per-call consent,
+   and skips the project snapshot when the batch contains no mutation.
 4. **A tool and a skill are different things — do not mix the words:**
    - **tool** — one `BaseTool` subclass in `qgis_tools/<domain>/`, one class per file
    - **skill** — a domain package `skills/<domain>/SKILL.md`: frontmatter (`name`,

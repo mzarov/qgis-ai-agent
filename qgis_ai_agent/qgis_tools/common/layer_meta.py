@@ -16,6 +16,7 @@ SECRET_KEYS = (
     "authorization",
 )
 SIGNED_QUERY_KEYS = (
+    "key",
     "sig",
     "signature",
     "x-amz-signature",

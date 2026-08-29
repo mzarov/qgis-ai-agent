@@ -28,9 +28,10 @@ For a development install into live QGIS see [docs/SETUP.md](docs/SETUP.md).
 ## The mental model
 
 The plugin is an agent loop on the Qt main thread. The model calls tools, sees
-the results, decides the next step. Reading tools execute immediately; writing
-tools queue into a batch the user confirms with one button. Domains are
-packaged as skills and load progressively. The full picture is in
+the results, decides the next step. Local reading tools execute immediately;
+network reads and writes queue into a batch the user confirms. A web-only batch
+does not take a project snapshot. Domains are packaged as skills and load
+progressively. The full picture is in
 [docs/core_architecture.md](docs/core_architecture.md).
 
 ```
@@ -63,8 +64,12 @@ The domain-specific ones:
 
 - GUI imports only through `qgis.PyQt`; never `PyQt5`/`PyQt6` directly, no
   `.ui` files.
-- All HTTP through `QgsBlockingNetworkRequest` — the QGIS plugin repository
-  requires it, and it keeps the UI responsive.
+- All HTTP stays on the QGIS network stack — never `requests`. Ordinary calls
+  use `QgsBlockingNetworkRequest`; streaming and web redirects use
+  `QgsNetworkAccessManager` with a nested event loop. Web DNS answers must all
+  be public; one validated IP is pinned while TLS verifies the approved host.
+  Only manually validated, same-origin redirects are followed, and a proxy-route
+  mismatch fails closed.
 - PyQGIS and Qt objects are touched from the main thread only. Never move tool
   execution into a background thread.
 - New dependencies are a last resort: the plugin runs inside the QGIS Python,
@@ -78,7 +83,8 @@ The domain-specific ones:
 ## Adding a tool or a domain
 
 1. `qgis_ai_agent/qgis_tools/<domain>/` — one `BaseTool` subclass per file,
-   with `skill`, `safety`, `params_schema`.
+   with `skill`, `safety`, `params_schema`, and `network_access = True` when it
+   contacts an external service.
 2. `qgis_ai_agent/skills/<domain>/SKILL.md` — the domain rules; the `tools`
    list must match the registry.
 3. One line in `qgis_tools/registry.py`.

@@ -6,7 +6,7 @@ from qgis_ai_agent.core.agent import request as request_module
 from qgis_ai_agent.core.agent.loop import AgentLoop
 from qgis_ai_agent.core.agent.transcript import Transcript
 from qgis_ai_agent.core.llm.transport import ToolCall
-from qgis_ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, EGRESS_IMAGE, EGRESS_METADATA
+from qgis_ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, EGRESS_IMAGE, EGRESS_METADATA, EGRESS_WEB_CONTENT
 from qgis_ai_agent.qgis_tools.inspect.canvas_extent import GetCanvasExtentTool
 from qgis_ai_agent.qgis_tools.inspect.describe_layer import DescribeLayerTool
 from qgis_ai_agent.qgis_tools.inspect.field_values import GetFieldValuesTool
@@ -17,6 +17,9 @@ from qgis_ai_agent.qgis_tools.project.views import SaveBookmarkTool
 from qgis_ai_agent.qgis_tools.project.zoom_to_layer import ZoomToLayerTool
 from qgis_ai_agent.qgis_tools.python.run_python import RunPythonTool
 from qgis_ai_agent.qgis_tools.style.describe_style import DescribeStyleTool
+from qgis_ai_agent.qgis_tools.web.fetch_url import FetchUrlTool
+from qgis_ai_agent.qgis_tools.web.geocode import GeocodeTool
+from qgis_ai_agent.qgis_tools.web.search_web import SearchWebTool
 
 
 class PrivacyClassificationTest(unittest.TestCase):
@@ -41,6 +44,17 @@ class PrivacyClassificationTest(unittest.TestCase):
         self.assertEqual(GetCanvasExtentTool().egress, EGRESS_FEATURE_VALUES)
         self.assertEqual(ZoomToLayerTool().egress, EGRESS_FEATURE_VALUES)
         self.assertEqual(SaveBookmarkTool().egress, EGRESS_FEATURE_VALUES)
+
+    def test_web_content_is_distinct_from_sensitive_gis_egress(self):
+        web_tools = (FetchUrlTool(), SearchWebTool(), GeocodeTool())
+        self.assertTrue(all(tool.egress == EGRESS_WEB_CONTENT for tool in web_tools))
+        saved = privacy.sensitive_data_allowed
+        privacy.sensitive_data_allowed = lambda endpoint=None: False
+        try:
+            self.assertTrue(all(privacy.tool_output_allowed(tool, "https://model.example/v1") for tool in web_tools))
+            self.assertFalse(privacy.tool_output_allowed(SampleFeaturesTool(), "https://model.example/v1"))
+        finally:
+            privacy.sensitive_data_allowed = saved
 
     def test_local_endpoint_keeps_sensitive_tools_on_device(self):
         self.assertTrue(privacy.sensitive_data_allowed("http://127.0.0.1:11434/v1"))

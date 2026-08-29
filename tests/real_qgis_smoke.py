@@ -7,11 +7,12 @@ import zipfile
 
 from qgis.core import Qgis, QgsApplication, QgsFeature, QgsGeometry, QgsProject, QgsVectorLayer
 from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtNetwork import QNetworkRequest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 MINIMUM_QGIS_VERSION = 40000
-EXPECTED_TOOLS = 58
-EXPECTED_SKILLS = 9
+EXPECTED_TOOLS = 61
+EXPECTED_SKILLS = 10
 
 
 def main() -> int:
@@ -51,6 +52,7 @@ def _run_checks(package_root: pathlib.Path) -> int:
         take_snapshot,
     )
     from qgis_ai_agent.qgis_tools.registry import ALL_TOOLS
+    from qgis_ai_agent.qgis_tools.web.http import TIMEOUT_MS, _network_request
     from qgis_ai_agent.skills.registry import SKILL_REGISTRY
 
     plugin = qgis_ai_agent.classFactory(object())
@@ -72,6 +74,8 @@ def _run_checks(package_root: pathlib.Path) -> int:
     snapshot_path = take_snapshot()
     snapshot_preserved = bool(snapshot_path) and not project.fileName() and project_identity(project) == second_identity
     duplicate_guard, id_resolution = _duplicate_layer_checks(project, find_layer_by_name, find_layer_by_id)
+    web_request_policy = _web_request_policy(_network_request, TIMEOUT_MS)
+    tool_names = {tool.name for tool in ALL_TOOLS}
     project.setFileName("geopackage:/tmp/qgis-ai-agent-projects.gpkg?projectName=smoke")
     storage_identity = project_identity(project)
     storage_uri_hashed = storage_identity.startswith(STORAGE_PREFIX) and "geopackage" not in storage_identity
@@ -93,6 +97,8 @@ def _run_checks(package_root: pathlib.Path) -> int:
         "duplicate layer names are rejected": duplicate_guard,
         "duplicate layers resolve by id": id_resolution,
         "tool registry": len(ALL_TOOLS) == EXPECTED_TOOLS,
+        "web tools in registry": {"search_web", "fetch_url", "geocode"}.issubset(tool_names),
+        "web network policy": web_request_policy,
         "skill registry": len(SKILL_REGISTRY.names()) == EXPECTED_SKILLS,
     }
     failed = [name for name, passed in checks.items() if not passed]
@@ -138,6 +144,28 @@ def _active_edit_buffer_checks(project, ensure_read_safe, take_project_snapshot,
     finally:
         layer.rollBack()
         project.removeMapLayer(layer.id())
+
+
+def _web_request_policy(build_request, timeout_ms: int) -> bool:
+    request = build_request("https://example.com/", {}, address="93.184.216.34")
+    return (
+        request.url().host() == "93.184.216.34"
+        and request.peerVerifyName() == "example.com"
+        and bytes(request.rawHeader(b"Host")) == b"example.com"
+        and request.attribute(QNetworkRequest.Attribute.RedirectPolicyAttribute)
+        == QNetworkRequest.RedirectPolicy.ManualRedirectPolicy
+        and request.attribute(QNetworkRequest.Attribute.CacheLoadControlAttribute)
+        == QNetworkRequest.CacheLoadControl.AlwaysNetwork
+        and request.attribute(QNetworkRequest.Attribute.CacheSaveControlAttribute) is False
+        and request.attribute(QNetworkRequest.Attribute.Http2AllowedAttribute) is False
+        and request.attribute(QNetworkRequest.Attribute.CookieLoadControlAttribute)
+        == QNetworkRequest.LoadControl.Manual
+        and request.attribute(QNetworkRequest.Attribute.CookieSaveControlAttribute)
+        == QNetworkRequest.LoadControl.Manual
+        and request.attribute(QNetworkRequest.Attribute.AuthenticationReuseAttribute)
+        == QNetworkRequest.LoadControl.Manual
+        and request.transferTimeout() == timeout_ms
+    )
 
 
 if __name__ == "__main__":

@@ -8,6 +8,8 @@ SAFETY_DESTRUCTIVE = "destructive"
 EGRESS_METADATA = "metadata"
 EGRESS_FEATURE_VALUES = "feature_values"
 EGRESS_IMAGE = "image"
+EGRESS_WEB_CONTENT = "web_content"
+SENSITIVE_EGRESS = frozenset({EGRESS_FEATURE_VALUES, EGRESS_IMAGE})
 
 JSON_SCHEMA_TYPES = {
     "string": "string",
@@ -29,6 +31,7 @@ class BaseTool(ABC):
     safety: str = SAFETY_WRITE
     egress: str = EGRESS_METADATA
     external_effect: bool = False
+    network_access: bool = False
 
     @property
     def is_read_only(self) -> bool:
@@ -39,6 +42,9 @@ class BaseTool(ABC):
 
     def has_external_effect(self, params: dict[str, Any]) -> bool:
         return self.external_effect
+
+    def has_network_access(self, params: dict[str, Any]) -> bool:
+        return self.network_access
 
     def get_openai_schema(self) -> dict[str, Any]:
         properties: dict[str, Any] = {}
@@ -112,3 +118,14 @@ def has_external_effect(tool: BaseTool, params: dict[str, Any]) -> bool:
     if callable(resolver):
         return bool(resolver(params))
     return bool(getattr(tool, "external_effect", False))
+
+
+def has_network_access(tool: BaseTool, params: dict[str, Any]) -> bool:
+    resolver = getattr(tool, "has_network_access", None)
+    if callable(resolver):
+        return bool(resolver(params))
+    return bool(getattr(tool, "network_access", False))
+
+
+def is_sensitive_egress(egress: str) -> bool:
+    return egress in SENSITIVE_EGRESS

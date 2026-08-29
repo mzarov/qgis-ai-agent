@@ -13,7 +13,7 @@ confirms them.
 **Documentation:** <https://mzarov.github.io/qgis-ai-agent/> ·
 по-русски: <https://mzarov.github.io/qgis-ai-agent/ru/>
 
-**What it does** — nine domains, 58 tools:
+**What it does** — ten domains, 61 tools:
 
 | Domain | Example requests |
 | --- | --- |
@@ -26,6 +26,7 @@ confirms them.
 | `fields` | “add a virtual field with the area in hectares”, “rename nm to name” |
 | `layout` | “make an A4 map sheet with a legend and export it to PDF” |
 | `python` | the escape hatch: runs a PyQGIS snippet you read and approve first |
+| `web` | “find the EPSG code”, “read this documentation page”, “geocode this place” |
 
 The agent can **see**: on a vision model it renders the map or the layout and
 judges the result by eye. After you press Apply it runs a **verification pass**
@@ -69,10 +70,21 @@ diagnostic request when you click it, independently of agent-run consent.
 Sharing sensitive GIS data and tool results is a second option that stays off by
 default. It covers feature attribute values, exact map and layer extents, layer
 filters and sources, style categories, Processing and Python results, and
-rendered map or layout images; those tools are hidden and blocked until the
-option is enabled. The configured model can otherwise receive the prompt, recent
-chat context, project notes and basic layer and field metadata. Conversation
+rendered map or layout images; those tools are hidden and
+blocked until the option is enabled. The configured model can otherwise receive
+the prompt, recent chat context, project notes and basic layer and field
+metadata. Conversation
 messages and project notes are saved as plain JSON in the active QGIS profile.
+
+The three optional web tools have a separate boundary: every search, geocode or
+page fetch waits for per-call confirmation, including when the model endpoint is
+local. Search terms go to DuckDuckGo, with Wikipedia as a fallback; geocoding
+goes to the Nominatim-compatible HTTPS service you explicitly provide; and
+`fetch_url` contacts the public HTTPS host you approve. The public OSMF
+Nominatim instance is intentionally not offered as a built-in service. Private
+hosts and URLs containing credentials are rejected. Web results are untrusted
+data, may be forwarded to the configured model as tool results and are not
+cached on disk.
 
 Review [the complete data boundary](docs/privacy.md) before connecting a
 sensitive project to a remote provider. Local endpoints are allowed without the
@@ -86,15 +98,16 @@ user → CoreOrchestrator → AgentLoop (main thread)
                              │  HTTP in background (ModelTurnThread)
                              ▼
                     the model calls tools
-               read — immediately │ write — into a batch
+        local read — immediately │ network read/write — into a batch
                              ▼
                  plan card → the Apply button
 ```
 
 Three ideas everything rests on:
 
-- **Safety classes instead of “plan → confirm”.** A reading tool runs
-  immediately; a writing tool is collected into a batch and waits for the button.
+- **Safety classes instead of “plan → confirm”.** A local reading tool runs
+  immediately; a network read or writing tool is collected into a batch and
+  waits for the button.
 - **Progressive disclosure.** The prompt permanently holds one line per domain;
   the rule bodies and tool schemas are loaded by the `load_skill` meta-tool.
 - **Vendor neutrality.** Any OpenAI-compatible API plus the Anthropic dialect;

@@ -28,6 +28,7 @@ REQUIRED_INSIDE = (
     "skills/project/SKILL.md",
     "skills/python/SKILL.md",
     "skills/style/SKILL.md",
+    "skills/web/SKILL.md",
     "translations/qgis_ai_agent_ru.qm",
 )
 ARCHIVE_TIMESTAMP = (1980, 1, 1, 0, 0, 0)

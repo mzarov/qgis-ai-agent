@@ -1,5 +1,6 @@
 import pathlib
 import unittest
+from unittest import mock
 
 from qgis_ai_agent.ui.conversation import ConversationView
 from qgis_ai_agent.ui.messages import AssistantMessage
@@ -263,6 +264,15 @@ class ActivityTitleTest(unittest.TestCase):
         view.add_rejected_step("Bad arguments")
         self.assertEqual(view._activity._status.text(), "↺")
 
+    def test_activity_steps_are_rendered_as_plain_text(self):
+        from qgis.PyQt.QtCore import Qt
+        from qgis.PyQt.QtWidgets import QWidget
+
+        from qgis_ai_agent.ui.activity import StepRow
+
+        row = StepRow("<b>visible literally</b><!-- hidden -->", QWidget().palette())
+        self.assertEqual(row._label.textFormat(), Qt.TextFormat.PlainText)
+
 
 class FailedPlanCardTest(unittest.TestCase):
     def test_a_failed_apply_still_settles_the_card(self):
@@ -271,3 +281,24 @@ class FailedPlanCardTest(unittest.TestCase):
         card = PlanCard(["step"])
         card.mark_failed()
         self.assertFalse(card._buttons.isVisible())
+
+    def test_plan_steps_are_rendered_as_plain_text(self):
+        from qgis.PyQt.QtCore import Qt
+        from qgis.PyQt.QtWidgets import QLabel, QWidget
+
+        from qgis_ai_agent.ui import plan as plan_module
+
+        labels = []
+
+        class RecordingLabel(QLabel):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                labels.append(self)
+
+        with mock.patch.object(plan_module, "QLabel", RecordingLabel):
+            plan_module.PlanCard._build_step(
+                1,
+                "<b>weather</b><!-- hidden -->",
+                QWidget().palette(),
+            )
+        self.assertEqual(labels[-1].textFormat(), Qt.TextFormat.PlainText)

@@ -3,9 +3,12 @@ import unittest
 from qgis_ai_agent.qgis_tools.common import layers as layers_module
 from qgis_ai_agent.qgis_tools.common.layer_meta import sanitize_source
 from qgis_ai_agent.qgis_tools.common.layers import (
+    LAYER_PINS_KEY,
     bind_layer_reference,
     find_layer_by_id,
     find_layer_by_name,
+    layer_pin_error,
+    pin_layer_references,
     utm_authid,
 )
 
@@ -86,6 +89,11 @@ class SanitizeSourceTest(unittest.TestCase):
     def test_primary_key_column_is_kept(self):
         self.assertIn("key='gid'", sanitize_source("dbname='g' key='gid' password='x'"))
 
+    def test_url_key_query_value_is_redacted(self):
+        cleaned = sanitize_source("https://tiles.example/data?key=DEADBEEF&layer=roads")
+        self.assertNotIn("DEADBEEF", cleaned)
+        self.assertIn("layer=roads", cleaned)
+
     def test_file_path_untouched(self):
         path = "/Users/mzarov/data/Города.shp|layerid=0"
         self.assertEqual(sanitize_source(path), path)
@@ -150,6 +158,52 @@ class LayerIdentityTest(unittest.TestCase):
         prepared = bind_layer_reference({"layer_name": "roads"}, self.second)
         self.assertEqual(prepared["layer_name"], "roads")
         self.assertEqual(prepared["layer_id"], "roads_b")
+
+    def test_hidden_pin_detects_a_same_name_replacement(self):
+        project = LayerProject([NamedLayer("old", "roads")])
+        layers_module.QgsProject = type("ProjectHolder", (), {"instance": staticmethod(lambda: project)})
+        prepared = pin_layer_references({"layer_name": "roads"})
+        self.assertEqual(layer_pin_error(prepared), "")
+
+        project.layers = {"new": NamedLayer("new", "roads")}
+
+        self.assertIn("changed or disappeared", layer_pin_error(prepared))
+
+    def test_name_and_id_must_identify_the_same_layer(self):
+        project = LayerProject([NamedLayer("roads", "roads"), NamedLayer("rivers", "rivers")])
+        layers_module.QgsProject = type("ProjectHolder", (), {"instance": staticmethod(lambda: project)})
+
+        with self.assertRaisesRegex(ValueError, "identify different layers"):
+            pin_layer_references({"layer_name": "roads", "layer_id": "rivers"})
+
+        prepared = pin_layer_references({"layer_name": "roads", "layer_id": "roads"})
+        self.assertEqual(prepared[LAYER_PINS_KEY], [{"name": "roads", "id": "roads"}])
+
+    def test_caller_cannot_forge_hidden_layer_pins(self):
+        project = LayerProject([NamedLayer("roads", "roads"), NamedLayer("rivers", "rivers")])
+        layers_module.QgsProject = type("ProjectHolder", (), {"instance": staticmethod(lambda: project)})
+        prepared = pin_layer_references(
+            {
+                "layer_id": "roads",
+                LAYER_PINS_KEY: [{"name": "rivers", "id": "rivers"}],
+            }
+        )
+
+        self.assertEqual(prepared[LAYER_PINS_KEY], [{"name": "roads", "id": "roads"}])
+
+    def test_forged_hidden_pin_without_a_public_reference_is_removed(self):
+        prepared = pin_layer_references({LAYER_PINS_KEY: [{"name": "roads", "id": "roads"}]})
+
+        self.assertNotIn(LAYER_PINS_KEY, prepared)
+
+    def test_layer_name_lists_are_pinned_as_a_set_of_exact_targets(self):
+        project = LayerProject([NamedLayer("roads", "roads"), NamedLayer("rivers", "rivers")])
+        layers_module.QgsProject = type("ProjectHolder", (), {"instance": staticmethod(lambda: project)})
+        prepared = pin_layer_references({"layer_names": ["roads", "rivers"]})
+
+        project.layers.pop("rivers")
+
+        self.assertIn("rivers", layer_pin_error(prepared))
 
 
 if __name__ == "__main__":

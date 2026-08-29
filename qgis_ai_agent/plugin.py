@@ -23,6 +23,7 @@ class QgisAiAgentPlugin:
         self.menu_action = None
         self._orchestrator = None
         self._project_sync_pending = False
+        self._project_reset_pending = False
 
     def initGui(self) -> None:
         self.menu_action = QAction(self._icon(), MENU_TITLE, self.iface.mainWindow())
@@ -73,17 +74,23 @@ class QgisAiAgentPlugin:
 
     def _connect_project_lifecycle(self) -> None:
         project = QgsProject.instance()
-        for signal_name in ("fileNameChanged", "cleared"):
+        for signal_name, handler in (
+            ("fileNameChanged", self._schedule_project_sync),
+            ("cleared", self._schedule_project_reset),
+        ):
             try:
-                getattr(project, signal_name).connect(self._schedule_project_sync)
+                getattr(project, signal_name).connect(handler)
             except (AttributeError, TypeError):
                 continue
 
     def _disconnect_project_lifecycle(self) -> None:
         project = QgsProject.instance()
-        for signal_name in ("fileNameChanged", "cleared"):
+        for signal_name, handler in (
+            ("fileNameChanged", self._schedule_project_sync),
+            ("cleared", self._schedule_project_reset),
+        ):
             try:
-                getattr(project, signal_name).disconnect(self._schedule_project_sync)
+                getattr(project, signal_name).disconnect(handler)
             except (AttributeError, TypeError):
                 continue
 
@@ -93,7 +100,14 @@ class QgisAiAgentPlugin:
         self._project_sync_pending = True
         QTimer.singleShot(0, self._sync_project)
 
+    def _schedule_project_reset(self, *args: Any) -> None:
+        force_new = self._orchestrator is None or self._orchestrator.on_project_cleared()
+        self._project_reset_pending = self._project_reset_pending or force_new
+        self._schedule_project_sync()
+
     def _sync_project(self) -> None:
+        force_new = self._project_reset_pending
         self._project_sync_pending = False
+        self._project_reset_pending = False
         if self._orchestrator is not None:
-            self._orchestrator.on_project_changed()
+            self._orchestrator.on_project_changed(force_new=force_new)

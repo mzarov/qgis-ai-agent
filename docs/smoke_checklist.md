@@ -675,15 +675,19 @@ These verify the agent solves everyday tasks without wandering through search.
 
 ## The internet
 
-166. **A place becomes a bbox.** "Download the cafes in Divnomorskoye" → the
-     agent geocodes the village, passes the bbox to download_osm, and the
-     points arrive without a single guessed coordinate.
+166. **A place becomes a bbox through an approved service.** Give the agent a
+     permitted Nominatim-compatible test service URL, then ask "Download the
+     cafes in Divnomorskoye" → the plan names that geocoder host; after its
+     separate confirmation the agent passes the returned bbox to download_osm.
 167. **A question the project cannot answer goes to the web.** "What is the
-     EPSG code for Kazan's UTM zone?" → search_web runs, the answer names its
-     source link.
+     EPSG code for Kazan's UTM zone?" → the plan names DuckDuckGo/Wikipedia;
+     after confirmation search_web runs and the answer names its source link.
 168. **A pasted link is read.** Paste a documentation URL and ask what it says
-     → fetch_url returns readable text, the answer quotes the page, not a
-     hallucination.
+     → the plan shows the public HTTPS host; after confirmation fetch_url
+     returns readable text, and the answer quotes the page, not a hallucination.
 169. **A blocked network degrades loudly.** On a network where the search
      engine is unreachable, search_web falls back to Wikipedia and the answer
      says so — no silent pretending it searched the whole web.
+170. **The public OSMF geocoder stays blocked.** Try
+     `https://nominatim.openstreetmap.org` as `service_url` → the call is
+     rejected before any request, with a pointer to the OSMF usage policy.

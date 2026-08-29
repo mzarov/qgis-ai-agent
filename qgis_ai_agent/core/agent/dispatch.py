@@ -12,7 +12,7 @@ from qgis_ai_agent.core.agent.skills import load_skill
 from qgis_ai_agent.core.agent.transcript import ToolResult
 from qgis_ai_agent.core.llm.transport import ToolCall
 from qgis_ai_agent.core.privacy import tool_output_allowed
-from qgis_ai_agent.qgis_tools.base import SAFETY_READ, effective_safety
+from qgis_ai_agent.qgis_tools.base import SAFETY_READ, effective_safety, has_network_access
 from qgis_ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call
 
 LOG_TAG = "QGIS AI Agent"
@@ -32,7 +32,9 @@ class DispatchMixin:
         if tool is not None and not tool_output_allowed(tool, self.endpoint):
             self.tool_rejected.emit(summarize_tool_call(call.name, call.arguments))
             return ToolResult.failure(call, notices.SENSITIVE_DATA_BLOCKED)
-        if tool is None or effective_safety(tool, call.arguments) == SAFETY_READ:
+        if tool is None:
+            return self._run_now(call)
+        if effective_safety(tool, call.arguments) == SAFETY_READ and not has_network_access(tool, call.arguments):
             return self._run_now(call)
         return self._queue_write(call)
 
@@ -53,6 +55,9 @@ class DispatchMixin:
                 Qgis.Warning,
             )
             return ToolResult.failure(call, str(err))
+        tool = get_tool_by_name(queued.name)
+        if tool is not None and effective_safety(tool, queued.arguments) == SAFETY_READ:
+            self._staged = self._staged or has_network_access(tool, queued.arguments)
         self.tool_queued.emit(summarize_tool_call(queued.name, queued.arguments))
         return ToolExecutor.queued(queued)
 
@@ -77,6 +82,9 @@ class DispatchMixin:
         if not self._batch:
             return ToolResult.failure(call, notices.APPLY_NOW_WITHOUT_WRITES)
         if self._staged:
+            if self._stage_call is None:
+                self._stage_call = call
+                return ToolResult(call=call, ok=True, payload={"status": "awaiting_user"})
             return ToolResult.failure(call, "Apply has already been requested for this stage.")
         self._staged = True
         self._stage_call = call

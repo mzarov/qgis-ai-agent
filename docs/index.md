@@ -7,7 +7,7 @@ confirm them.
 
 ## What it does
 
-Nine domains, 58 tools:
+Ten domains, 61 tools:
 
 | Domain | Example requests |
 | --- | --- |
@@ -20,6 +20,7 @@ Nine domains, 58 tools:
 | `fields` | “add a virtual field with the area in hectares”, “rename nm to name” |
 | `layout` | “make an A4 map sheet with a legend and export it to PDF” |
 | `python` | the escape hatch: a PyQGIS snippet you read and approve first |
+| `web` | “find the EPSG code”, “read this documentation page”, “geocode this place” |
 
 On a vision-capable model the agent **sees** the map: it renders the canvas or
 a print layout to an image and judges colours, labels and composition by eye.
@@ -31,9 +32,11 @@ off.
 
 You never watch the agent mutate your project unsupervised:
 
-- **Reading** tools (listing layers, describing fields, querying data) run
-  immediately — they cannot change anything. Their results may still be sent
-  to the configured model as part of the agent loop.
+- **Local reading** tools (listing layers, describing fields, querying data)
+  run immediately — they cannot change anything. Their results may still be
+  sent to the configured model as part of the agent loop.
+- **Network reading** tools wait in a plan for per-call confirmation. A web-only
+  batch does not change or snapshot the QGIS project.
 - **Writing** tools (styling, processing, loading data) are collected into a
   plan card. Nothing runs until you press **Apply**; **Cancel** discards the
   whole batch.
@@ -57,6 +60,14 @@ plan instead of producing garbage.
   and rendered map or layout images—is a separate option that is off by default.
   Local servers can still store or forward data. Read
   [Data and privacy](privacy.md) before opening a sensitive project.
+- Each optional web call is confirmed separately. Search terms go to
+  DuckDuckGo or, on fallback, Wikipedia; geocoding goes to the
+  Nominatim-compatible HTTPS service you explicitly provide; and page reads
+  contact the approved public HTTPS host. The public OSMF Nominatim instance is
+  intentionally not built in. Private hosts and credential-bearing URLs are
+  rejected. Returned web content is untrusted data, can be forwarded to the
+  chosen model and is not cached on disk. This flow is controlled by the
+  per-call web confirmation, not by the sensitive-GIS-data option.
 - API keys are stored in the system keychain, never in the project or QGIS
   settings. The external `keyring` Python library is not bundled and may need
   to be installed separately.

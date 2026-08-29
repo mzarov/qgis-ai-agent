@@ -4,6 +4,7 @@ from typing import Any
 
 from qgis_ai_agent.core.llm.anthropic import THINKING_KEY
 from qgis_ai_agent.core.llm.transport import PROTOCOL_NATIVE, ModelTurn, ToolCall
+from qgis_ai_agent.qgis_tools.base import is_sensitive_egress
 
 MAX_RESULT_CHARS = 4000
 COMPACT_RESULT_CHARS = 500
@@ -185,7 +186,7 @@ class Transcript:
             lines = [f"{result.call.name} -> {cls._result_text(result, limit, allow_sensitive)}" for result in results]
             rendered = [{"role": "user", "content": RESULTS_HEADER + "\n" + "\n".join(lines)}]
         for result in results:
-            if not allow_sensitive and result.egress != "metadata":
+            if not allow_sensitive and is_sensitive_egress(result.egress):
                 continue
             attachment = cls._image_message(result, carries_image, images_allowed)
             if attachment is not None:
@@ -194,7 +195,7 @@ class Transcript:
 
     @staticmethod
     def _result_text(result: ToolResult, limit: int, allow_sensitive: bool) -> str:
-        if not allow_sensitive and result.egress != "metadata":
+        if not allow_sensitive and is_sensitive_egress(result.egress):
             return SENSITIVE_RESULT_OMITTED
         return result.to_text(limit)
 

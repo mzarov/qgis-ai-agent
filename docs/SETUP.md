@@ -102,9 +102,12 @@ One external library is needed — `keyring`, for storing the key in the system
 keychain. It is declared for development but deliberately not bundled in the
 plugin ZIP, so its availability depends on the QGIS distribution and operating
 system.
-Network requests go through `QgsBlockingNetworkRequest`, that is through the
-QGIS network stack itself: no third-party HTTP client, and the QGIS proxy and
-authentication settings apply automatically.
+Network requests stay on the QGIS network stack: ordinary calls use
+`QgsBlockingNetworkRequest`, while streaming and the pinned web transport use
+`QgsNetworkAccessManager` with a nested event loop. The latter accepts only
+public DNS answers, pins a checked IP while TLS verifies the original host, and
+follows only same-origin redirects. There is no third-party HTTP client; a
+QGIS proxy-route mismatch is blocked rather than bypassed.
 
 If your build lacks `keyring`, or on Linux no secret service is running
 (gnome-keyring, KWallet), saving the key shows a message with the reason.

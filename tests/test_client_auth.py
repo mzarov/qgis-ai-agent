@@ -1,6 +1,7 @@
 import pathlib
 import unittest
 
+from qgis_ai_agent.core import settings
 from qgis_ai_agent.core.llm import client
 from qgis_ai_agent.core.llm.client import build_request, is_local, resolve_endpoint
 from qgis_ai_agent.core.llm.dialects import safe_endpoint_label
@@ -41,6 +42,13 @@ class LocalHostTest(unittest.TestCase):
 
 
 class BuildRequestTest(unittest.TestCase):
+    def setUp(self):
+        self.saved_credential_store_error = settings._credential_store_error
+        settings._credential_store_error = ""
+
+    def tearDown(self):
+        settings._credential_store_error = self.saved_credential_store_error
+
     def test_local_endpoint_needs_no_key(self):
         endpoint, headers, model = request("http://localhost:11434/v1", "")
         self.assertEqual(endpoint, "http://localhost:11434/v1/chat/completions")

@@ -14,6 +14,7 @@ COORD_PRECISION = 6
 FALLBACK_EXTENT = (0.0, 0.0, 100.0, 100.0)
 FALLBACK_CRS = "EPSG:3857"
 GEOMETRY_NAMES = ("point", "line", "polygon")
+LAYER_PINS_KEY = "_qgis_ai_agent_layer_pins"
 
 
 def geometry_type_name(layer: QgsMapLayer) -> str:
@@ -199,6 +200,79 @@ def bind_layer_reference(params: dict[str, Any], layer: QgsMapLayer) -> dict[str
     if identifier:
         prepared["layer_id"] = identifier
     return prepared
+
+
+def validate_public_layer_references(params: dict[str, Any]) -> dict[str, Any]:
+    prepared = dict(params)
+    prepared.pop(LAYER_PINS_KEY, None)
+    layer_name = str(prepared.get("layer_name") or "").strip()
+    layer_id = str(prepared.get("layer_id") or "").strip()
+    if layer_name and layer_id:
+        _resolve_layer_reference(layer_name, layer_id)
+    return prepared
+
+
+def pin_layer_references(params: dict[str, Any]) -> dict[str, Any]:
+    prepared = validate_public_layer_references(params)
+    pins: list[dict[str, str]] = []
+    layer_name = str(prepared.get("layer_name") or "").strip()
+    layer_id = str(prepared.get("layer_id") or "").strip()
+    if layer_name or layer_id:
+        layer = _resolve_layer_reference(layer_name, layer_id)
+        identifier = layer_identifier(layer)
+        if identifier:
+            pins.append({"name": (layer.name() or "").strip(), "id": identifier})
+    raw_names = prepared.get("layer_names")
+    if isinstance(raw_names, (list, tuple)):
+        for raw_name in raw_names:
+            name = str(raw_name or "").strip()
+            if not name:
+                continue
+            layer = find_layer_by_name(name)
+            identifier = layer_identifier(layer)
+            if identifier:
+                pins.append({"name": (layer.name() or "").strip(), "id": identifier})
+    if pins:
+        prepared[LAYER_PINS_KEY] = pins
+    return prepared
+
+
+def layer_pin_error(params: dict[str, Any]) -> str:
+    raw_pins = params.get(LAYER_PINS_KEY)
+    if not isinstance(raw_pins, list):
+        return ""
+    try:
+        layers = QgsProject.instance().mapLayers()
+    except Exception:
+        layers = {}
+    for pin in raw_pins:
+        if not isinstance(pin, dict):
+            return "A planned layer target became invalid before apply. Nothing was run."
+        name = str(pin.get("name") or "").strip()
+        identifier = str(pin.get("id") or "").strip()
+        layer = layers.get(identifier)
+        current_name = str(layer.name() or "").strip() if layer is not None else ""
+        if layer is None or current_name != name:
+            shown = name or identifier or "unknown"
+            return f"The planned target layer '{shown}' changed or disappeared before apply. Nothing was run."
+    return ""
+
+
+def _resolve_layer_reference(layer_name: str, layer_id: str) -> QgsMapLayer:
+    layer_by_name = find_layer_by_name(layer_name) if layer_name else None
+    layer_by_id = find_layer_by_id(layer_id) if layer_id else None
+    if layer_by_name is not None and layer_by_id is not None:
+        name_identifier = layer_identifier(layer_by_name)
+        id_identifier = layer_identifier(layer_by_id)
+        if not name_identifier or name_identifier != id_identifier:
+            raise ValueError(
+                f"layer_name '{layer_name}' and layer_id '{layer_id}' identify different layers. "
+                "Use a matching name and id from list_layers."
+            )
+    layer = layer_by_id if layer_by_id is not None else layer_by_name
+    if layer is None:
+        raise ValueError("A layer_name or layer_id is required.")
+    return layer
 
 
 def _ambiguous_layer(name: str, matches: list[QgsMapLayer]) -> ValueError:

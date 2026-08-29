@@ -32,6 +32,18 @@ class ConversationState:
         self._session.add(role, text)
         self._store.save(self._session)
 
+    def add_scoped(self, scope: tuple[str, str], role: str, text: str) -> bool:
+        project, identifier = scope
+        if (self.project_key, self.session_identifier) == scope:
+            self.add(role, text)
+            return True
+        session = self._store.load(identifier)
+        if session is None or session.project != project:
+            return False
+        session.add(role, text)
+        self._store.save(session)
+        return True
+
     def save(self) -> None:
         self._store.save(self._session)
 
@@ -42,9 +54,9 @@ class ConversationState:
         self.save()
         self._adopt(Session.create(self.project_key))
 
-    def sync_project(self) -> bool:
+    def sync_project(self, force_new: bool = False) -> bool:
         key = current_project_key()
-        if key == self.project_key:
+        if not force_new and key == self.project_key:
             return False
         self.save()
         self._adopt(Session.create(key))

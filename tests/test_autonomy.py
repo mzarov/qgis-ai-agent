@@ -1,5 +1,6 @@
 import unittest
 
+from qgis_ai_agent.core.agent import batch_apply as batch_apply_module
 from qgis_ai_agent.core.agent import loop as loop_module
 from qgis_ai_agent.core.agent import prompts
 from qgis_ai_agent.core.agent.loop import MAX_ITERATIONS, AgentLoop
@@ -154,11 +155,11 @@ class StagedRunTest(unittest.TestCase):
         self.loop = AgentLoop()
         self.loop._executor = FakeExecutor()
         self.loop._batch._executor = FakeExecutor()
-        self.saved_snapshot = loop_module.take_snapshot
-        loop_module.take_snapshot = lambda: "/tmp/snapshot.qgz"
+        self.saved_snapshot = batch_apply_module.take_snapshot
+        batch_apply_module.take_snapshot = lambda: "/tmp/snapshot.qgz"
 
     def tearDown(self):
-        loop_module.take_snapshot = self.saved_snapshot
+        batch_apply_module.take_snapshot = self.saved_snapshot
 
     def test_apply_now_without_queued_writes_is_an_error(self):
         result = self.loop._dispatch(_call(APPLY_NOW_TOOL, reason="need it"))
@@ -202,7 +203,7 @@ class StagedRunTest(unittest.TestCase):
         self.loop.applied.connect(finished.append)
         self.loop._batch._calls = [_call("set_opacity")]
         self.loop._batch.apply = lambda *args: applied.append(True) or []
-        loop_module.take_snapshot = lambda: ""
+        batch_apply_module.take_snapshot = lambda: ""
         self.loop.confirm_pending()
         self.assertEqual(applied, [])
         self.assertEqual(len(finished), 1)
@@ -401,8 +402,8 @@ class StageAppliedSignalTest(unittest.TestCase):
         loop._batch._calls.append(call)
         loop._batch.apply = lambda on_start, on_finish, expected_project_identity=None: [result]
         loop._request_step = lambda: None
-        saved = loop_module.take_snapshot
-        loop_module.take_snapshot = lambda: "/tmp/snapshot.qgz"
+        saved = batch_apply_module.take_snapshot
+        batch_apply_module.take_snapshot = lambda: "/tmp/snapshot.qgz"
         seen = []
         applied = []
         loop.stage_applied.connect(seen.append)
@@ -410,7 +411,7 @@ class StageAppliedSignalTest(unittest.TestCase):
         try:
             loop.confirm_pending()
         finally:
-            loop_module.take_snapshot = saved
+            batch_apply_module.take_snapshot = saved
         self.assertEqual(seen, [[result]])
         self.assertEqual(applied, [])
 

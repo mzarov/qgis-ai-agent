@@ -18,15 +18,52 @@ consent.
 The separate **Allow sensitive GIS data and tool results** option is off by
 default for remote endpoints. It covers feature attribute values, exact map and
 layer extents, layer filters and sources, style categories, Processing and
-Python results, and rendered map or layout images. While it is off, tools that
-can expose those details are omitted from the model's tool schemas and are also
-blocked if the model invents a call anyway. Prompts, recent chat, remembered
+Python results, and rendered map or layout images. While
+it is off, tools that can expose those details are omitted from the model's tool
+schemas and are also blocked if the model invents a call anyway. Prompts, recent
+chat, remembered
 notes and basic project metadata are still covered by the main consent; they are
 not automatically private or safe.
 
 Addresses recognised as local do not show the remote-consent prompt and permit
 sensitive tools. A local server can still log or forward data, so review its
 configuration.
+
+## Web tools
+
+The optional `search_web`, `geocode` and `fetch_url` tools have a separate,
+per-call consent boundary. Each call is queued in a plan even though it cannot
+change the QGIS project; the network request starts only after **Apply** and
+**Cancel** discards it. This confirmation is required with both remote and local
+model endpoints. A batch containing only web reads does not create a project
+snapshot.
+
+The recipients and data are:
+
+- `search_web` sends the search phrase to DuckDuckGo; if that service fails, it
+  sends the same phrase to the English or Russian Wikipedia search API;
+- `geocode` sends the place name to the Nominatim-compatible public HTTPS host
+  supplied explicitly in that call as `service_url`;
+- `fetch_url` sends a request to the public HTTPS host in the URL you approved.
+
+The public OSMF Nominatim instance at `nominatim.openstreetmap.org` is
+intentionally rejected rather than offered as generic agent geocoding. Bring a
+service whose operator permits this use and review the official
+[Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/).
+
+Web tools accept only public HTTPS destinations. Local, private, link-local and
+reserved addresses, credential-bearing or signed URLs, and cross-origin
+redirects are rejected. Every DNS answer must be globally routable; one checked
+IP is pinned through all same-origin hops while TLS verifies the approved host
+name. If QGIS selects different proxy routes for those two forms, the request
+fails closed. Cookie persistence and cached HTTP-authentication reuse are
+disabled for these requests. Responses are treated as untrusted data, never as
+instructions: a page cannot authorise more requests or ask the agent to reveal
+prompts, project data, credentials or other tool results.
+
+Search, geocode and fetched-page results become tool results and may therefore
+be forwarded to the model endpoint chosen in Settings. The per-call web
+confirmation does not replace consent for the model endpoint.
 
 ## What reaches the model endpoint
 
@@ -64,14 +101,15 @@ under the active QGIS profile in `qgis_ai_agent_sessions`. Atomic writes keep a
 previous `.bak` copy so a power loss or partial write does not destroy the last
 valid state. These files are not encrypted. Tool results and rendered images
 remain in memory unless their content is repeated in a saved chat message or
-written by another operation.
+written by another operation. Web responses are not cached on disk.
 
 ## Other network requests
 
-The plugin contains no telemetry. It contacts the model endpoint you configure.
-When requested, GIS tools can also contact services such as Overpass, tile
-servers, WMS/WFS endpoints or databases selected by the user. QGIS and installed
-providers may make their own network requests independently of this plugin.
+The plugin contains no telemetry. It contacts the model endpoint you configure
+and the per-call web recipients listed above. When requested, GIS tools can also
+contact services such as Overpass, tile servers, WMS/WFS endpoints or databases
+selected by the user. QGIS and installed providers may make their own network
+requests independently of this plugin.
 
 ## Working with sensitive projects
 

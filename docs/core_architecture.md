@@ -17,8 +17,8 @@ The architecture of `qgis_ai_agent`: an agent loop with skills.
 - `core/context/` — the short starting summary of the project
 - `core/state/` — the model's history window and the saved conversations
 - `qgis_tools/common/` — shared across domains: layers, CRS, values, renderer summary
-- `qgis_tools/` — tools in nine domains: `inspect/`, `project/`, `style/`,
-  `processing/`, `osm/`, `edit/`, `fields/`, `layout/`, `python/`
+- `qgis_tools/` — tools in ten domains: `inspect/`, `project/`, `style/`,
+  `processing/`, `osm/`, `edit/`, `fields/`, `layout/`, `python/`, `web/`
 - `skills/` — knowledge packages `<skill>/SKILL.md` and the registry
 
 ## Runtime Flow
@@ -28,7 +28,8 @@ The architecture of `qgis_ai_agent`: an agent loop with skills.
 2. The orchestrator hands the user's request to `AgentLoop.start()`.
 3. The loop assembles the request (`request.py`) and sends the turn to
    `ModelTurnThread`.
-4. The reply arrives as a signal on the main thread — tools execute right there.
+4. The reply arrives as a signal on the main thread — local reads execute there;
+   writes and network reads enter the confirmation queue.
 5. The loop repeats while the model keeps calling tools.
 6. When the model replies without calls, the collected changes go to the user
    for confirmation.
@@ -45,12 +46,18 @@ Every tool declares `safety`:
 
 | Class         | Behaviour                                              |
 | ------------- | ------------------------------------------------------ |
-| `read`        | runs immediately, no confirmation asked                |
+| `read`        | runs immediately unless it declares network access     |
 | `write`       | collected into a batch, applied after the user's button |
 | `destructive` | reserved for per-call confirmation                     |
 
 A write call returns `{"status": "queued"}` to the model — a normal success
 response, not an error. Changes apply only after the button is pressed.
+
+Network access is a capability separate from mutation safety. A read tool with
+`network_access = True` is queued and automatically pauses the run for explicit
+per-call confirmation. After approval its result enters the same transcript and
+the run resumes. A web-only batch does not mutate QGIS and therefore does not
+take a project snapshot; a batch containing a write still does.
 
 ## Validation before the queue
 
@@ -98,7 +105,7 @@ Two adjacent 2026 developments were evaluated and consciously not adopted:
   in-plugin loop — which vendor neutrality and the main-thread rule both
   require.
 - **Skills served over MCP.** Useful when one organisation feeds many agents
-  from a central skill registry. We have one agent and nine skills shipped in
+  from a central skill registry. We have one agent and ten skills shipped in
   the same zip; a transport layer between them would add a dependency and
   remove nothing.
 
@@ -154,12 +161,35 @@ choice in `QgsSettings` under a hash of the URL. Both paths normalise into one
 If an endpoint with a fundamentally different format appears, it gets its own
 adapter next to `transport.py`, not edits to the loop.
 
+### QGIS network stack
+
+Ordinary one-shot model calls use `QgsBlockingNetworkRequest`. Streaming and
+the web tools are the two deliberate exceptions: both use
+`QgsNetworkAccessManager` with a nested `QEventLoop`. Streaming needs access to
+the body while it arrives. The web runner resolves DNS asynchronously with Qt,
+rejects the host if any answer is not a globally routable address, and pins one
+validated address for the entire request. TLS still verifies the original host
+name (`setPeerVerifyName`), while HTTP/1.1 carries that host in `Host`; there is
+no retry through an unresolved name.
+
+Redirect handling is manual: at most three same-origin redirects are accepted,
+and a raw `Location` value is validated before the next hop. The validated IP
+remains pinned across those hops. Before sending, the runner compares QGIS's
+proxy route for the approved host with the route for its pinned address; a
+difference is blocked rather than used to bypass proxy policy. Cancellation
+aborts both DNS lookup and reply, and a generation guard prevents fallback
+searches from starting afterward. Cookie loading/saving and cached HTTP
+authentication reuse are disabled so hosts sharing a CDN address cannot share
+state through the pinned IP. The caller still sees a blocking operation, all
+paths stay on the QGIS network stack, and a web request starts only after its
+individual confirmation.
+
 ### Streaming
 
 The answer arrives word by word instead of appearing whole after a long pause.
-This is the one place where `QgsBlockingNetworkRequest` cannot be used — it
+This is one place where `QgsBlockingNetworkRequest` cannot be used — it
 hands back a finished reply and there is no way to read the body as it comes.
-So the streaming path alone goes through `QgsNetworkAccessManager` with a
+So the streaming path goes through `QgsNetworkAccessManager` with a
 nested `QEventLoop`: from the caller's point of view the call still blocks, so
 it stays inside the same background thread and the loop above it is unchanged.
 The proxy and authentication settings of QGIS are honoured either way — both
