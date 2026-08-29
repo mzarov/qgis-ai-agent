@@ -200,6 +200,7 @@ class VerificationPromptTest(unittest.TestCase):
         self.assertIn("- set_symbol: ok", prompt)
         self.assertIn("- run_processing: FAILED — boom", prompt)
         self.assertIn("render_map", prompt)
+        self.assertIn("frames it", prompt)
 
     def test_verification_asks_for_a_tidy_project(self):
         prompt = build_verification_prompt([{"tool": "download_osm", "ok": True}])
