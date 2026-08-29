@@ -159,7 +159,7 @@ class CoreOrchestrator:
     def on_confirm_needed(self, calls: list, final_text: str) -> None:
         if final_text:
             self._render_answer(final_text)
-        lines = [f"{index}. {summarize_tool_call(call.name, call.arguments)}" for index, call in enumerate(calls, 1)]
+        lines = [summarize_tool_call(call.name, call.arguments) for call in calls]
         self._plan_message_id = self.dock_widget.add_plan_message(lines)
 
     def on_confirm_plan(self) -> None:
