@@ -48,6 +48,7 @@ class ConversationView(QScrollArea):
         bar.valueChanged.connect(self._on_value_changed)
 
         self._activity: ActivityGroup | None = None
+        self._draft: AssistantMessage | None = None
         self._entries: dict[int, object] = {}
         self._next_id = 1
         self._configured = True
@@ -82,7 +83,32 @@ class ConversationView(QScrollArea):
         self._close_activity()
         return self._append(SystemMessage(text))
 
+    def append_draft(self, delta: str) -> None:
+        if self._draft is None:
+            self._close_activity()
+            draft = AssistantMessage("")
+            self._append(draft)
+            self._draft = draft
+        self._draft.append(delta)
+        QTimer.singleShot(0, self._scroll_to_bottom)
+
+    def finish_draft(self, markdown: str) -> bool:
+        draft = self._draft
+        self._draft = None
+        if draft is None:
+            return False
+        draft.set_markdown(markdown)
+        QTimer.singleShot(0, self._scroll_to_bottom)
+        return True
+
+    def _drop_draft(self) -> None:
+        if self._draft is None:
+            return
+        self._draft.deleteLater()
+        self._draft = None
+
     def add_activity_step(self, text: str) -> int:
+        self._drop_draft()
         if self._activity is None:
             self._activity = ActivityGroup()
             self._append(self._activity)
@@ -126,6 +152,7 @@ class ConversationView(QScrollArea):
             if widget is not None:
                 widget.deleteLater()
         self._activity = None
+        self._draft = None
         self._entries.clear()
         self._empty = None
         self._show_welcome()
@@ -147,6 +174,7 @@ class ConversationView(QScrollArea):
             self.copy_all()
 
     def _append(self, widget: QWidget) -> int:
+        self._drop_draft()
         if self._empty is not None:
             self._empty.deleteLater()
             self._empty = None

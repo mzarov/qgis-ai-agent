@@ -41,6 +41,7 @@ class AgentLoop(QObject):
     plan_changed = pyqtSignal(object, int)
     confirm_needed = pyqtSignal(object, str)
     usage_changed = pyqtSignal(int)
+    answer_chunk = pyqtSignal(str)
     applied = pyqtSignal(object)
     finished = pyqtSignal(str)
     failed = pyqtSignal(str)
@@ -118,7 +119,7 @@ class AgentLoop(QObject):
         if not self.is_running and not self._batch:
             return
         self._aborted = True
-        self._turn.detach(self._on_turn, self._fail)
+        self._turn.detach(self._on_turn, self._fail, self._on_chunk)
         self._batch.clear()
         self.busy_changed.emit(False)
         self.aborted.emit()
@@ -195,7 +196,18 @@ class AgentLoop(QObject):
             return
         self._prompt_protocol = request.protocol
         self._pending_protocol = request.protocol
-        self._turn.start(request.messages, request.tool_schemas, request.overrides, self._on_turn, self._fail)
+        self._turn.start(
+            request.messages,
+            request.tool_schemas,
+            request.overrides,
+            self._on_turn,
+            self._fail,
+            self._on_chunk,
+        )
+
+    def _on_chunk(self, text: str) -> None:
+        if not self._aborted and text:
+            self.answer_chunk.emit(text)
 
     def _on_turn(self, turn: ModelTurn) -> None:
         if self._aborted:

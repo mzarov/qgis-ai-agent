@@ -110,7 +110,7 @@ class StripRetryTest(unittest.TestCase):
         ]
 
     def test_rejected_images_are_stripped_and_retried_once(self):
-        def fake(messages, tool_schemas, overrides, timeout, url):
+        def fake(messages, tool_schemas, overrides, timeout, url, on_chunk=None):
             self.calls.append(messages)
             if len(self.calls) == 1:
                 raise ApiResponseError(400, "invalid content")
@@ -126,7 +126,7 @@ class StripRetryTest(unittest.TestCase):
         self.assertEqual(self.flags, [False])
 
     def test_flag_is_not_written_when_the_retry_fails_too(self):
-        def fake(messages, tool_schemas, overrides, timeout, url):
+        def fake(messages, tool_schemas, overrides, timeout, url, on_chunk=None):
             raise ApiResponseError(400, "still broken")
 
         transport._dispatch = fake
@@ -135,7 +135,7 @@ class StripRetryTest(unittest.TestCase):
         self.assertEqual(self.flags, [])
 
     def test_errors_without_images_pass_straight_through(self):
-        def fake(messages, tool_schemas, overrides, timeout, url):
+        def fake(messages, tool_schemas, overrides, timeout, url, on_chunk=None):
             self.calls.append(messages)
             raise ApiResponseError(400, "bad request")
 

@@ -55,6 +55,7 @@ class CoreOrchestrator:
         self.agent.aborted.connect(self.on_aborted)
         self.agent.busy_changed.connect(self.dock_widget.set_busy)
         self.agent.usage_changed.connect(self.on_usage_changed)
+        self.agent.answer_chunk.connect(self.dock_widget.add_stream_chunk)
 
     def on_stop(self) -> None:
         self.agent.abort()
@@ -146,8 +147,7 @@ class CoreOrchestrator:
 
     def on_confirm_needed(self, calls: list, final_text: str) -> None:
         if final_text:
-            self.dock_widget.add_result_message(final_text)
-            self.conversation.add("assistant", final_text)
+            self._render_answer(final_text)
         lines = [f"{index}. {summarize_tool_call(call.name, call.arguments)}" for index, call in enumerate(calls, 1)]
         self._plan_message_id = self.dock_widget.add_plan_message(lines)
 
@@ -219,7 +219,11 @@ class CoreOrchestrator:
         if not message:
             self.dock_widget.add_system_message(tr("The model returned nothing. Try rephrasing."))
             return
-        self.dock_widget.add_result_message(message)
+        self._render_answer(message)
+
+    def _render_answer(self, message: str) -> None:
+        if not self.dock_widget.finish_stream(message):
+            self.dock_widget.add_result_message(message)
         self.conversation.add("assistant", message)
 
     def on_failed(self, message: str) -> None:

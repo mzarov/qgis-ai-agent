@@ -213,7 +213,7 @@
         <translation>Диалоги</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/conversation.py" line="145"/>
+        <location filename="qgis_ai_agent/ui/conversation.py" line="172"/>
         <source>Copy the whole conversation</source>
         <translation>Скопировать весь диалог</translation>
     </message>
@@ -253,7 +253,7 @@
         <translation>Удаляю объектов: {0} — из «{1}».</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/dock_widget.py" line="178"/>
+        <location filename="qgis_ai_agent/ui/dock_widget.py" line="184"/>
         <source>Destructive steps</source>
         <translation>Необратимые шаги</translation>
     </message>
@@ -278,7 +278,7 @@
         <translation>Enter — отправить, Shift+Enter — новая строка</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="228"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="232"/>
         <source>Error: {0}</source>
         <translation>Ошибка: {0}</translation>
     </message>
@@ -298,7 +298,7 @@
         <translation>Подгоняю вид карты.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/project/remember.py" line="98"/>
+        <location filename="qgis_ai_agent/qgis_tools/project/remember.py" line="95"/>
         <source>Forgetting: {0}</source>
         <translation>Забываю: {0}</translation>
     </message>
@@ -318,7 +318,7 @@
         <translation>Слой «{0}»: {1}{2}.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="145"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="146"/>
         <source>Loading knowledge: {0}</source>
         <translation>Загружаю знания: {0}</translation>
     </message>
@@ -343,7 +343,7 @@
         <translation>Новый диалог</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="241"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="245"/>
         <source>New layers: {0}.</source>
         <translation>Новые слои: {0}.</translation>
     </message>
@@ -388,7 +388,7 @@
         <translation>Передано агенту — он учтёт это на следующем шаге.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="142"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="143"/>
         <source>Plan {0}/{1}: {2}</source>
         <translation>План {0}/{1}: {2}</translation>
     </message>
@@ -504,17 +504,17 @@
         <translation>Смотрю значения поля «{0}» в слое «{1}».</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/project/remember.py" line="66"/>
+        <location filename="qgis_ai_agent/qgis_tools/project/remember.py" line="63"/>
         <source>Reading what is remembered about this project.</source>
         <translation>Смотрю, что запомнено об этом проекте.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="138"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="139"/>
         <source>Rejected: {0}</source>
         <translation>Отклонено: {0}</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/qgis_tools/project/remember.py" line="50"/>
+        <location filename="qgis_ai_agent/qgis_tools/project/remember.py" line="47"/>
         <source>Remembering: {0}</source>
         <translation>Запоминаю: {0}</translation>
     </message>
@@ -730,7 +730,7 @@
         <translation>Модель ничего не вернула. Попробуйте переформулировать.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="243"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="247"/>
         <source>The result is in the layer panel.</source>
         <translation>Результат — на панели слоёв.</translation>
     </message>
@@ -745,7 +745,7 @@
         <translation>Применять нечего.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/ui/dock_widget.py" line="179"/>
+        <location filename="qgis_ai_agent/ui/dock_widget.py" line="185"/>
         <source>These steps change or delete data and cannot be undone:&#10;&#10;{0}&#10;&#10;Apply them?</source>
         <translation>Эти шаги меняют или удаляют данные, и отменить их будет нельзя:&#10;&#10;{0}&#10;&#10;Применить их?</translation>
     </message>
@@ -755,7 +755,7 @@
         <translation>Бюджет токенов на прогон</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="98"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="99"/>
         <source>Type a request.</source>
         <translation>Введите запрос.</translation>
     </message>

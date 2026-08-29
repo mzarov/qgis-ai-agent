@@ -153,6 +153,36 @@ choice in `QgsSettings` under a hash of the URL. Both paths normalise into one
 If an endpoint with a fundamentally different format appears, it gets its own
 adapter next to `transport.py`, not edits to the loop.
 
+### Streaming
+
+The answer arrives word by word instead of appearing whole after a long pause.
+This is the one place where `QgsBlockingNetworkRequest` cannot be used — it
+hands back a finished reply and there is no way to read the body as it comes.
+So the streaming path alone goes through `QgsNetworkAccessManager` with a
+nested `QEventLoop`: from the caller's point of view the call still blocks, so
+it stays inside the same background thread and the loop above it is unchanged.
+The proxy and authentication settings of QGIS are honoured either way — both
+classes sit on the same network stack.
+
+The parsing splits in two on purpose. `llm/stream.py` is pure Python: it
+reassembles Server-Sent Events across chunk boundaries and folds the deltas
+into the ordinary completion shape, so `_parse_native_turn` handles a streamed
+answer and a normal one identically. `llm/stream_runner.py` holds everything
+Qt- and network-shaped. Only the first half needs tests, and it gets them.
+
+Streaming follows the same feature-detect rule as `tools` and images: it is
+attempted, and an endpoint that refuses is written down as `supports_streaming
+= false` under the hash of its URL and never asked again. A failed attempt
+falls through to the ordinary request, so a server without SSE loses the live
+text and nothing else.
+
+Text is forwarded to the UI only until the first tool-call delta. What the
+model says before calling a tool is a preamble, not an answer: it is kept in
+the transcript for the model, while the chat drops the draft when the tool
+starts. Otherwise the chat would show text that the saved conversation does
+not contain, and the next run would see something other than what the user
+read.
+
 ## Adding a new domain
 
 1. `qgis_tools/<domain>/` — tool classes with `skill = "<domain>"` and `safety`

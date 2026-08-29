@@ -45,6 +45,14 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    remembers the choice in `QgsSettings` under a hash of the URL. All paths
    normalise into `ModelTurn` — the loop does not know which one worked.
    Never add provider SDKs: a dialect is a shape of HTTP, not a library.
+   Streaming is the one exception to `QgsBlockingNetworkRequest`: it cannot
+   read a body as it arrives, so `llm/stream_runner.py` uses
+   `QgsNetworkAccessManager` with a nested `QEventLoop` — still blocking for
+   the caller, still on the background thread. Parsing lives apart from it in
+   `llm/stream.py`, pure Python and therefore testable. A refusing endpoint is
+   remembered as `supports_streaming = false` and falls back to one request.
+   Deltas stop reaching the UI at the first tool call: a preamble is not an
+   answer, and the chat must never show what the saved conversation lacks.
 6. **`MAX_ITERATIONS`** guards against endless loops, and a token budget from
    the settings guards the user's wallet. Both end the run through `_complete`
    with a plain explanation — never by silently stopping.

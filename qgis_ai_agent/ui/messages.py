@@ -61,6 +61,15 @@ class AssistantMessage(QWidget):
         browser.document().documentLayout().documentSizeChanged.connect(lambda _: self._fit(browser))
         column.addWidget(browser)
         self._browser = browser
+        self._markdown = markdown
+
+    def append(self, delta: str) -> None:
+        self.set_markdown(self._markdown + delta)
+
+    def set_markdown(self, markdown: str) -> None:
+        self._markdown = markdown
+        self._apply_markdown(self._browser, markdown)
+        self._fit(self._browser)
 
     @staticmethod
     def _apply_markdown(browser: QTextBrowser, markdown: str) -> None:

@@ -145,6 +145,7 @@ core = _mod(
         "QgsLayerTreeModel",
         "QgsVectorFileWriter",
         "QgsCoordinateTransformContext",
+        "QgsNetworkAccessManager",
         "QgsMapRendererParallelJob",
     ],
 )
@@ -165,6 +166,7 @@ _qtcore = _mod(
         "QByteArray",
         "QBuffer",
         "QIODevice",
+        "QEventLoop",
         "QUrl",
         "QPointF",
         "QRectF",
