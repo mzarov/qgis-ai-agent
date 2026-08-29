@@ -672,3 +672,18 @@ These verify the agent solves everyday tasks without wandering through search.
      survives.
 165. **No permission questions.** Ordinary requests still end in a plan card,
      never in "shall I proceed?".
+
+## The internet
+
+166. **A place becomes a bbox.** "Download the cafes in Divnomorskoye" → the
+     agent geocodes the village, passes the bbox to download_osm, and the
+     points arrive without a single guessed coordinate.
+167. **A question the project cannot answer goes to the web.** "What is the
+     EPSG code for Kazan's UTM zone?" → search_web runs, the answer names its
+     source link.
+168. **A pasted link is read.** Paste a documentation URL and ask what it says
+     → fetch_url returns readable text, the answer quotes the page, not a
+     hallucination.
+169. **A blocked network degrades loudly.** On a network where the search
+     engine is unreachable, search_web falls back to Wikipedia and the answer
+     says so — no silent pretending it searched the whole web.
