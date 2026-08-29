@@ -1,7 +1,7 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.common.layer_meta import sanitize_source
-from qgis_ai_agent.qgis_tools.common.layers import utm_authid
+from ai_agent.qgis_tools.common.layer_meta import sanitize_source
+from ai_agent.qgis_tools.common.layers import utm_authid
 
 
 class Extent:

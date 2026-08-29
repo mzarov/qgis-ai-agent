@@ -1,8 +1,8 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.common.renderers import renderer_summary, style_block
-from qgis_ai_agent.qgis_tools.style.renderers import describe_vector_renderer
-from qgis_ai_agent.qgis_tools.style.symbols import symbol_info
+from ai_agent.qgis_tools.common.renderers import renderer_summary, style_block
+from ai_agent.qgis_tools.style.renderers import describe_vector_renderer
+from ai_agent.qgis_tools.style.symbols import symbol_info
 
 
 class Colour:

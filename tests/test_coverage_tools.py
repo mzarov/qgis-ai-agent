@@ -2,16 +2,16 @@ import os
 import tempfile
 import unittest
 
-from qgis_ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
-from qgis_ai_agent.qgis_tools.fields import manage_fields as fields_module
-from qgis_ai_agent.qgis_tools.fields.manage_fields import AddFieldTool, DeleteFieldTool, RenameFieldTool
-from qgis_ai_agent.qgis_tools.fields.schema import build_field, checked_new_name
-from qgis_ai_agent.qgis_tools.project import snapshots
-from qgis_ai_agent.qgis_tools.project import views as views_module
-from qgis_ai_agent.qgis_tools.project.add_service_layer import AddServiceLayerTool, _checked_service, _checked_url
-from qgis_ai_agent.qgis_tools.project.undo_last_apply import UndoLastApplyTool
-from qgis_ai_agent.qgis_tools.style import raster
-from qgis_ai_agent.qgis_tools.style.set_raster_style import SetRasterStyleTool
+from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
+from ai_agent.qgis_tools.fields import manage_fields as fields_module
+from ai_agent.qgis_tools.fields.manage_fields import AddFieldTool, DeleteFieldTool, RenameFieldTool
+from ai_agent.qgis_tools.fields.schema import build_field, checked_new_name
+from ai_agent.qgis_tools.project import snapshots
+from ai_agent.qgis_tools.project import views as views_module
+from ai_agent.qgis_tools.project.add_service_layer import AddServiceLayerTool, _checked_service, _checked_url
+from ai_agent.qgis_tools.project.undo_last_apply import UndoLastApplyTool
+from ai_agent.qgis_tools.style import raster
+from ai_agent.qgis_tools.style.set_raster_style import SetRasterStyleTool
 
 
 class Fields:
@@ -155,7 +155,7 @@ class SchemaHelpersTest(unittest.TestCase):
         self.assertIn("truncate", str(caught.exception))
 
     def test_every_type_builds(self):
-        from qgis_ai_agent.qgis_tools.fields.schema import FIELD_TYPES
+        from ai_agent.qgis_tools.fields.schema import FIELD_TYPES
 
         for kind in FIELD_TYPES:
             self.assertIsNotNone(build_field("f", kind))
@@ -201,7 +201,7 @@ class RasterToolTest(unittest.TestCase):
         self.tool = SetRasterStyleTool()
 
     def test_unknown_mode_lists_the_available(self):
-        from qgis_ai_agent.qgis_tools.style.set_raster_style import _checked_mode
+        from ai_agent.qgis_tools.style.set_raster_style import _checked_mode
 
         with self.assertRaises(ValueError) as caught:
             _checked_mode("rainbow")
@@ -268,7 +268,7 @@ class SnapshotTest(unittest.TestCase):
         self.assertEqual(UndoLastApplyTool().safety, SAFETY_DESTRUCTIVE)
 
     def test_the_scope_limit_is_stated_to_the_model(self):
-        from qgis_ai_agent.qgis_tools.project.undo_last_apply import SCOPE_NOTE
+        from ai_agent.qgis_tools.project.undo_last_apply import SCOPE_NOTE
 
         self.assertIn("NOT undone", SCOPE_NOTE)
         self.assertIn("cannot undo edits", UndoLastApplyTool().description)

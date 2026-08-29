@@ -28,13 +28,13 @@ jobs:
         if: matrix.python == '3.12'
         run: |
           python3 -m pip install --quiet bandit detect-secrets
-          cd qgis_ai_agent && bandit -r . -q
-          cd .. && detect-secrets scan qgis_ai_agent/ > /dev/null
+          cd ai_agent && bandit -r . -q
+          cd .. && detect-secrets scan ai_agent/ > /dev/null
       - name: Plugin build
         run: python3 tools/build_plugin.py
       - name: Archive as artifact
         if: matrix.python == '3.12'
         uses: actions/upload-artifact@v4
         with:
-          name: qgis_ai_agent
+          name: ai_agent
           path: dist/*.zip

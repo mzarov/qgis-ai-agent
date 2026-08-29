@@ -7,10 +7,10 @@ import xml.etree.ElementTree as ElementTree
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "tools"))
 
-from qgis_ai_agent import i18n
-from qgis_ai_agent.core.agent.prompts import DEFAULT_LANGUAGE, LANGUAGE_NAMES, language_policy
+from ai_agent import i18n
+from ai_agent.core.agent.prompts import DEFAULT_LANGUAGE, LANGUAGE_NAMES, language_policy
 
-PACKAGE = pathlib.Path(__file__).resolve().parent.parent / "qgis_ai_agent"
+PACKAGE = pathlib.Path(__file__).resolve().parent.parent / "ai_agent"
 CYRILLIC = re.compile(r"[а-яА-ЯёЁ]")
 TRANSLATED_LAYERS = ("ui", "core", "qgis_tools")
 SOURCE = (PACKAGE / "i18n.py").read_text(encoding="utf-8")
@@ -170,16 +170,16 @@ class InstallOrderTest(unittest.TestCase):
         original_settings = qgis.core.QgsSettings
         qt.QTranslator = _probe(original_translator, loaded)
         qgis.core.QgsSettings = _RussianSettings
-        stale = [name for name in sys.modules if name.startswith("qgis_ai_agent")]
+        stale = [name for name in sys.modules if name.startswith("ai_agent")]
         saved = {name: sys.modules.pop(name) for name in stale}
         try:
-            __import__("qgis_ai_agent")
+            __import__("ai_agent")
             self.assertTrue(loaded, "переводчик так и не создался")
-            self.assertEqual(loaded[0], ["qgis_ai_agent.i18n"])
+            self.assertEqual(loaded[0], ["ai_agent.i18n"])
         finally:
             qt.QTranslator = original_translator
             qgis.core.QgsSettings = original_settings
-            for name in [n for n in sys.modules if n.startswith("qgis_ai_agent")]:
+            for name in [n for n in sys.modules if n.startswith("ai_agent")]:
                 del sys.modules[name]
             sys.modules.update(saved)
 
@@ -192,7 +192,7 @@ class _RussianSettings:
 def _probe(base: type, loaded: list[list[str]]) -> type:
     class Probe(base):
         def __init__(self, *args, **kwargs):
-            loaded.append(sorted(n for n in sys.modules if n.startswith("qgis_ai_agent.")))
+            loaded.append(sorted(n for n in sys.modules if n.startswith("ai_agent.")))
             super().__init__(*args, **kwargs)
 
     return Probe
@@ -205,7 +205,7 @@ class ShippingTest(unittest.TestCase):
         self.packed = {arc for _, arc in build_plugin.collect()}
 
     def test_the_compiled_catalogue_ships(self):
-        self.assertIn(f"qgis_ai_agent/{i18n.FOLDER}/{COMPILED.name}", self.packed)
+        self.assertIn(f"ai_agent/{i18n.FOLDER}/{COMPILED.name}", self.packed)
 
     def test_the_source_catalogue_stays_out(self):
         self.assertEqual([name for name in self.packed if name.endswith(".ts")], [])

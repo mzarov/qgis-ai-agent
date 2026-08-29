@@ -2,7 +2,7 @@ import os
 import sys
 import zipfile
 
-PLUGIN_NAME = "qgis_ai_agent"
+PLUGIN_NAME = "ai_agent"
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PACKAGE_DIR = os.path.join(REPO_ROOT, PLUGIN_NAME)
 DIST_DIR = os.path.join(REPO_ROOT, "dist")
@@ -14,7 +14,7 @@ REQUIRED_INSIDE = (
     "skills/inspect/SKILL.md",
     "skills/style/SKILL.md",
     "skills/processing/SKILL.md",
-    "translations/qgis_ai_agent_ru.qm",
+    "translations/ai_agent_ru.qm",
 )
 
 

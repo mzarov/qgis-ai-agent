@@ -1,7 +1,7 @@
 import unittest
 
-from qgis_ai_agent.core.llm.parser import parse_model_json, parse_tool_arguments
-from qgis_ai_agent.core.llm.transport import _parse_json_turn, _parse_native_turn
+from ai_agent.core.llm.parser import parse_model_json, parse_tool_arguments
+from ai_agent.core.llm.transport import _parse_json_turn, _parse_native_turn
 
 
 def native(content, calls):

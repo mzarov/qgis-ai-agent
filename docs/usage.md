@@ -1,6 +1,6 @@
 # Usage
 
-Open the panel from the **QGIS AI Agent** menu entry or the toolbar icon, type a
+Open the panel from the **AI Agent** menu entry or the toolbar icon, type a
 request, press Enter. Shift+Enter breaks the line; while the agent works, the
 send button becomes a stop button.
 

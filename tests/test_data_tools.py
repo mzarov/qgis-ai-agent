@@ -1,14 +1,14 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.inspect import get_selection as selection_module
-from qgis_ai_agent.qgis_tools.inspect.get_selection import GetSelectionTool
-from qgis_ai_agent.qgis_tools.inspect.query_layer import _restrict_to_selection
-from qgis_ai_agent.qgis_tools.project import add_basemap as basemap_module
-from qgis_ai_agent.qgis_tools.project import list_db_connections as connections_module
-from qgis_ai_agent.qgis_tools.project.add_basemap import AddBasemapTool, _resolved, _xyz_source
-from qgis_ai_agent.qgis_tools.project.add_db_layer import AddDbLayerTool
-from qgis_ai_agent.qgis_tools.project.list_db_connections import ListDbConnectionsTool, require_connection
-from qgis_ai_agent.qgis_tools.project.list_db_tables import ListDbTablesTool
+from ai_agent.qgis_tools.inspect import get_selection as selection_module
+from ai_agent.qgis_tools.inspect.get_selection import GetSelectionTool
+from ai_agent.qgis_tools.inspect.query_layer import _restrict_to_selection
+from ai_agent.qgis_tools.project import add_basemap as basemap_module
+from ai_agent.qgis_tools.project import list_db_connections as connections_module
+from ai_agent.qgis_tools.project.add_basemap import AddBasemapTool, _resolved, _xyz_source
+from ai_agent.qgis_tools.project.add_db_layer import AddDbLayerTool
+from ai_agent.qgis_tools.project.list_db_connections import ListDbConnectionsTool, require_connection
+from ai_agent.qgis_tools.project.list_db_tables import ListDbTablesTool
 
 
 class BasemapTest(unittest.TestCase):

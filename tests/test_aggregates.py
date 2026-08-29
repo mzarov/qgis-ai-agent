@@ -1,6 +1,6 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.inspect.aggregates import AGGREGATE_FUNCTIONS, compute
+from ai_agent.qgis_tools.inspect.aggregates import AGGREGATE_FUNCTIONS, compute
 
 
 class ComputeTest(unittest.TestCase):

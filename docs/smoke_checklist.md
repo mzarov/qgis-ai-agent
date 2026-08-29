@@ -17,7 +17,7 @@ The suite runs without QGIS. If it is red, going into live QGIS is premature.
 Open a project with layers, then **Plugins → Python Console**:
 
 ```python
-from qgis_ai_agent.qgis_tools.registry import execute_tool
+from ai_agent.qgis_tools.registry import execute_tool
 execute_tool("get_project_info", {})
 execute_tool("list_layers", {})
 execute_tool("describe_layer", {"layer_name": "LAYER_NAME"})
@@ -63,7 +63,7 @@ renderer back — nothing remains in the project:
 
 ```python
 from qgis.core import QgsProject, QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsSymbol
-from qgis_ai_agent.qgis_tools.registry import execute_tool
+from ai_agent.qgis_tools.registry import execute_tool
 
 layer = QgsProject.instance().mapLayersByName("LAYER_NAME")[0]
 saved = layer.renderer().clone()
@@ -148,7 +148,7 @@ Additionally:
   stored under a hash of the URL.
 
 ```python
-from qgis_ai_agent.core.settings import get_api_url, get_supports_tools
+from ai_agent.core.settings import get_api_url, get_supports_tools
 get_supports_tools(get_api_url())
 ```
 

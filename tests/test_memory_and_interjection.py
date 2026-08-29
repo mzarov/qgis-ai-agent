@@ -3,13 +3,13 @@ import shutil
 import tempfile
 import unittest
 
-from qgis_ai_agent.core.agent.loop import AgentLoop
-from qgis_ai_agent.core.agent.notices import INTERJECTION_HEADER
-from qgis_ai_agent.core.agent.prompts import build_system_prompt, render_project_notes
-from qgis_ai_agent.qgis_tools.project import notes as notes_module
-from qgis_ai_agent.qgis_tools.project import remember as remember_module
-from qgis_ai_agent.qgis_tools.project.notes import MAX_NOTE_CHARS, MAX_NOTES, NoteStore
-from qgis_ai_agent.qgis_tools.project.remember import ForgetTool, ListNotesTool, RememberTool
+from ai_agent.core.agent.loop import AgentLoop
+from ai_agent.core.agent.notices import INTERJECTION_HEADER
+from ai_agent.core.agent.prompts import build_system_prompt, render_project_notes
+from ai_agent.qgis_tools.project import notes as notes_module
+from ai_agent.qgis_tools.project import remember as remember_module
+from ai_agent.qgis_tools.project.notes import MAX_NOTE_CHARS, MAX_NOTES, NoteStore
+from ai_agent.qgis_tools.project.remember import ForgetTool, ListNotesTool, RememberTool
 
 PROJECT = "city.qgz"
 

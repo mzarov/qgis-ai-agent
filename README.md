@@ -1,4 +1,4 @@
-# QGIS AI Agent
+# AI Agent
 
 An AI agent inside QGIS 4: it inspects your project and processes data from a
 plain-language request. It works as a loop — looks at the project, calls tools,
@@ -75,7 +75,7 @@ The full picture: [docs/core_architecture.md](docs/core_architecture.md).
 ## Layout
 
 ```
-qgis_ai_agent/                 the whole plugin — only this folder reaches QGIS
+ai_agent/                 the whole plugin — only this folder reaches QGIS
   __init__.py, metadata.txt    the QGIS entry point
   plugin.py                    composition root: wires QGIS, core and ui
   core/                        loop, orchestration, LLM transport, state
@@ -109,8 +109,8 @@ them too:
 
 ```bash
 pip install bandit detect-secrets ruff
-cd qgis_ai_agent && bandit -r . && cd ..
-detect-secrets scan qgis_ai_agent/
+cd ai_agent && bandit -r . && cd ..
+detect-secrets scan ai_agent/
 ruff check . && ruff format --check .
 ```
 
@@ -125,9 +125,9 @@ eyeballing reviews.
 
 ### Adding a domain
 
-1. `qgis_ai_agent/qgis_tools/<domain>/` — tool classes
+1. `ai_agent/qgis_tools/<domain>/` — tool classes
    (`skill = "<domain>"`, `safety = read|write`)
-2. `qgis_ai_agent/skills/<domain>/SKILL.md` — the domain rules
+2. `ai_agent/skills/<domain>/SKILL.md` — the domain rules
 3. one line in `qgis_tools/registry.py`
 
 The loop, the orchestrator and the prompt stay untouched. A new tool means a new

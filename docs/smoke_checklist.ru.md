@@ -16,7 +16,7 @@ python3 -m unittest discover -s tests -t .
 Открыть проект со слоями, затем **Плагины → Консоль Python**:
 
 ```python
-from qgis_ai_agent.qgis_tools.registry import execute_tool
+from ai_agent.qgis_tools.registry import execute_tool
 execute_tool("get_project_info", {})
 execute_tool("list_layers", {})
 execute_tool("describe_layer", {"layer_name": "ИМЯ_СЛОЯ"})
@@ -60,7 +60,7 @@ execute_tool("describe_processing", {"algorithm_id": "native:buffer"})
 
 ```python
 from qgis.core import QgsProject, QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsSymbol
-from qgis_ai_agent.qgis_tools.registry import execute_tool
+from ai_agent.qgis_tools.registry import execute_tool
 
 layer = QgsProject.instance().mapLayersByName("ИМЯ_СЛОЯ")[0]
 saved = layer.renderer().clone()
@@ -143,7 +143,7 @@ execute_tool("describe_layer", {"layer_name": "ИМЯ_СЛОЯ_POSTGIS"})["sourc
 - Смена URL в настройках не ломает выбор: флаг хранится по хешу URL.
 
 ```python
-from qgis_ai_agent.core.settings import get_api_url, get_supports_tools
+from ai_agent.core.settings import get_api_url, get_supports_tools
 get_supports_tools(get_api_url())
 ```
 

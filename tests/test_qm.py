@@ -62,7 +62,7 @@ class CompileTest(unittest.TestCase):
         self.assertIn("plural rules", str(caught.exception))
 
     def test_every_offered_language_has_plural_rules(self):
-        from qgis_ai_agent import i18n
+        from ai_agent import i18n
 
         for language in i18n.SUPPORTED_LOCALES:
             self.assertIn(language, NUMERUS_RULES, language)

@@ -33,7 +33,7 @@ packaged as skills and load progressively. The full picture is in
 [docs/core_architecture.md](docs/core_architecture.md).
 
 ```
-qgis_ai_agent/   the plugin — the only folder that reaches QGIS
+ai_agent/   the plugin — the only folder that reaches QGIS
   core/          loop, orchestration, LLM transport, state
   qgis_tools/    tools by domain — all the PyQGIS logic
   skills/        domain knowledge (SKILL.md)
@@ -53,7 +53,7 @@ The unusual ones first — all of them checked by `tests/test_sources.py`:
   and named constants. If a line needs a comment, rename or split instead.
 - **English everywhere.** Identifiers, tool descriptions, error messages, docs.
   Russian exists only as a translation catalogue in
-  `qgis_ai_agent/translations/`.
+  `ai_agent/translations/`.
 - **Files around 200 lines; the hard cap is 400.** Growing past the target is a
   hint to extract a module, not an automatic failure.
 - Type hints on every function, absolute imports only, all imports at the top.
@@ -76,9 +76,9 @@ The domain-specific ones:
 
 ## Adding a tool or a domain
 
-1. `qgis_ai_agent/qgis_tools/<domain>/` — one `BaseTool` subclass per file,
+1. `ai_agent/qgis_tools/<domain>/` — one `BaseTool` subclass per file,
    with `skill`, `safety`, `params_schema`.
-2. `qgis_ai_agent/skills/<domain>/SKILL.md` — the domain rules; the `tools`
+2. `ai_agent/skills/<domain>/SKILL.md` — the domain rules; the `tools`
    list must match the registry.
 3. One line in `qgis_tools/registry.py`.
 

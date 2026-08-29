@@ -1,7 +1,7 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.common import colors
-from qgis_ai_agent.qgis_tools.style import (
+from ai_agent.qgis_tools.common import colors
+from ai_agent.qgis_tools.style import (
     apply,
     describe_options,
     label_build,

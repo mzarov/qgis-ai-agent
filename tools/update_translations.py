@@ -6,10 +6,10 @@ import xml.etree.ElementTree as ElementTree
 from qm import compile_qm
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
-PACKAGE = REPO_ROOT / "qgis_ai_agent"
+PACKAGE = REPO_ROOT / "ai_agent"
 FOLDER = PACKAGE / "translations"
 CONTEXT = "QgisAiAgent"
-PREFIX = "qgis_ai_agent"
+PREFIX = "ai_agent"
 LANGUAGES = ("ru",)
 CALLS = ("tr", "tr_n")
 UNFINISHED = "unfinished"

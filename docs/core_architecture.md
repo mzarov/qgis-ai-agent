@@ -1,6 +1,6 @@
 # Core Architecture
 
-The architecture of `qgis_ai_agent`: an agent loop with skills.
+The architecture of `ai_agent`: an agent loop with skills.
 
 ## Goals
 
@@ -263,7 +263,7 @@ One message is added with one `add(role, text)` call — the two stores must nev
 diverge. Saving happens right after every message, so a QGIS crash does not eat
 the conversation.
 
-`SessionStore` writes one JSON per conversation into `qgis_ai_agent_sessions/`
+`SessionStore` writes one JSON per conversation into `ai_agent_sessions/`
 inside the QGIS profile. A conversation is bound to its project: `recent()`
 returns only those started in the currently open project, and an unsaved project
 gets the shared “no project” bucket. The title comes from the user's first

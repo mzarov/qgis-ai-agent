@@ -1,9 +1,9 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.annotations import add_annotation as add_module
-from qgis_ai_agent.qgis_tools.annotations import store as store_module
-from qgis_ai_agent.qgis_tools.annotations.add_annotation import AddAnnotationTool
-from qgis_ai_agent.qgis_tools.annotations.manage_annotations import ListAnnotationsTool, RemoveAnnotationTool
+from ai_agent.qgis_tools.annotations import add_annotation as add_module
+from ai_agent.qgis_tools.annotations import store as store_module
+from ai_agent.qgis_tools.annotations.add_annotation import AddAnnotationTool
+from ai_agent.qgis_tools.annotations.manage_annotations import ListAnnotationsTool, RemoveAnnotationTool
 
 
 class FakeItem:
