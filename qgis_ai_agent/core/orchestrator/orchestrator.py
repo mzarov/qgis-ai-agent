@@ -23,6 +23,7 @@ MAX_VERIFICATION_ROUNDS = 3
 DESTRUCTIVE_DECLINED = tr("Kept everything as it was — the destructive steps were not applied.")
 INTERJECTED = tr("Passed to the agent — it will take this into account on its next step.")
 PLAN_DROPPED = tr("The planned changes were dropped — they were not applied. Starting over from your message.")
+AWAITING_ANSWER = tr("Waiting for your answer — the run continues from it.")
 THOUSAND = 1000
 TOKENS_LABEL = tr("{0} tokens")
 
@@ -50,6 +51,7 @@ class CoreOrchestrator:
         self.agent.skill_loaded.connect(self.on_skill_loaded)
         self.agent.plan_changed.connect(self.on_plan_changed)
         self.agent.confirm_needed.connect(self.on_confirm_needed)
+        self.agent.question_asked.connect(self.on_question_asked)
         self.agent.applied.connect(self.on_applied)
         self.agent.finished.connect(self.on_finished)
         self.agent.failed.connect(self.on_failed)
@@ -103,6 +105,9 @@ class CoreOrchestrator:
         if self.agent.is_running:
             self._interject(text)
             return
+        if self.agent.is_awaiting_answer:
+            self._answer(text)
+            return
 
         self.dock_widget.add_user_message(text)
         self.dock_widget.clear_prompt()
@@ -123,6 +128,17 @@ class CoreOrchestrator:
 
     def on_usage_changed(self, spent: int) -> None:
         self.dock_widget.set_usage(TOKENS_LABEL.format(_compact_number(spent)))
+
+    def on_question_asked(self, question: str) -> None:
+        self.dock_widget.add_result_message(question)
+        self.conversation.add("assistant", question)
+        self.dock_widget.add_system_message(AWAITING_ANSWER)
+
+    def _answer(self, text: str) -> None:
+        self.dock_widget.add_user_message(text)
+        self.dock_widget.clear_prompt()
+        self.conversation.add("user", text)
+        self.agent.answer(text)
 
     def _interject(self, text: str) -> None:
         if not self.agent.interject(text):

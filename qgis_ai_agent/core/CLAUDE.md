@@ -63,7 +63,7 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    `refusals.py` keeps the three refusals apart — mixing them up disables the
    wrong feature, so a thinking complaint must be raised, not swallowed as a
    streaming one.
-14. **Reasoning is separated, never echoed back.** Three shapes arrive:
+6. **Reasoning is separated, never echoed back.** Three shapes arrive:
    `<think>` inside `content` (local servers), a `reasoning_content` field
    (DeepSeek, OpenRouter) and Anthropic `thinking` blocks. `llm/thinking.py`
    cuts the tags out — across chunk boundaries, and before the JSON protocol
@@ -73,38 +73,44 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    in the run the API demands them back verbatim with their `signature`, so
    `ModelTurn` carries them, the transcript keeps them and `_assistant_message`
    re-emits them first.
-6. **`MAX_ITERATIONS`** guards against endless loops, and a token budget from
+7. **`MAX_ITERATIONS`** guards against endless loops, and a token budget from
    the settings guards the user's wallet. Both end the run through `_complete`
    with a plain explanation — never by silently stopping.
-7. **A run can pause and resume.** `apply_now` marks the run staged: the loop
+8. **A run can pause and resume.** `apply_now` marks the run staged: the loop
    emits `confirm_needed` but does **not** end. On confirm, the batch executes,
    its real results go into the same transcript and `_request_step` continues;
    on cancel the run ends with a stated reason. The invariant is unchanged —
    writes still only run after the user's button. What changed is that the run
    no longer dies at the first batch, which is what lets one request finish a
    multi-stage task.
-8. **The user can break in mid-run.** `interject` appends the message to the
+9. **The run can also pause on a question.** `ask_user` is the second use of
+   the same pause mechanic as `apply_now`: the loop emits `question_asked`,
+   releases the thread, and the user's next message resumes the SAME run via
+   `answer()` instead of starting a new one. The prompt forbids using it for
+   plan approval — queueing is the proposal; a question is only for decisions
+   that are genuinely the user's.
+10. **The user can break in mid-run.** `interject` appends the message to the
    live transcript framed as a correction, so the model sees it on its next
    step instead of the run having to be restarted. The composer stays editable
    while busy for exactly this; the ■ button is still an abort, not a send.
-9. **The transcript compacts itself.** Only the last `KEEP_FULL_RESULTS` tool
+11. **The transcript compacts itself.** Only the last `KEEP_FULL_RESULTS` tool
    results are rendered in full and only the newest image is carried; older ones
    become short notes. Without this a forty-turn run would not fit the model
    window. Compaction happens at render time — the entries themselves are never
    mutated, so the saved conversation stays complete.
-10. **The orchestrator only renders.** Decisions belong to the loop;
+12. **The orchestrator only renders.** Decisions belong to the loop;
    `CoreOrchestrator` subscribes to signals and draws them into the chat.
    Do not add branching logic there.
-11. **A message is written with one call.** `ConversationState.add` puts it both
+13. **A message is written with one call.** `ConversationState.add` puts it both
    into the model's window and into the saved session. Never call
    `HistoryStore` and `Session` separately — they diverge, and the model would
    see something other than what the chat shows.
-12. **Aborting never blocks the main thread.** `abort` does not wait and does not
+14. **Aborting never blocks the main thread.** `abort` does not wait and does not
    kill the thread — it disconnects the signals and lets the HTTP request burn
    out in the background; the result is discarded by the `_aborted` flag. The
    hard `stop` with `terminate` remains only for plugin unload, when QGIS is
    closing anyway.
-13. **Imports** — all at the top, absolute. Code without comments or docstrings
+15. **Imports** — all at the top, absolute. Code without comments or docstrings
     — see the root CLAUDE.md.
 
 ## What lives where

@@ -291,3 +291,58 @@ class QueuedStepsInPromptTest(unittest.TestCase):
 
     def test_an_empty_batch_reports_nothing(self):
         self.assertEqual(AgentLoop()._queued_summaries(), "")
+
+
+class AskUserTest(unittest.TestCase):
+    def setUp(self):
+        self.loop = AgentLoop()
+        self.questions = []
+        self.busy = []
+        self.steps = 0
+        self.loop.question_asked.connect(self.questions.append)
+        self.loop.busy_changed.connect(self.busy.append)
+        self.loop._request_step = lambda: setattr(self, "steps", self.steps + 1)
+
+    def _turn_with_question(self, question="Какой слой брать?"):
+        return ModelTurn(tool_calls=[ToolCall(id="q1", name=prompts.ASK_USER_TOOL, arguments={"question": question})])
+
+    def test_the_schema_is_offered_to_the_model(self):
+        schemas = build_tool_schemas_for([])
+        names = [s["function"]["name"] for s in schemas]
+        self.assertIn(prompts.ASK_USER_TOOL, names)
+
+    def test_a_question_pauses_the_run_instead_of_ending_it(self):
+        self.loop._on_turn(self._turn_with_question())
+        self.assertEqual(self.questions, ["Какой слой брать?"])
+        self.assertEqual(self.busy[-1], False)
+        self.assertEqual(self.steps, 0)
+        self.assertTrue(self.loop.is_awaiting_answer)
+
+    def test_the_answer_resumes_the_same_run(self):
+        self.loop._on_turn(self._turn_with_question())
+        self.assertTrue(self.loop.answer("бери первый"))
+        self.assertEqual(self.steps, 1)
+        self.assertFalse(self.loop.is_awaiting_answer)
+        texts = [entry["text"] for entry in self.loop._transcript.entries if entry["kind"] == "user"]
+        self.assertIn("бери первый", texts)
+
+    def test_an_empty_question_is_rejected_and_the_run_goes_on(self):
+        self.loop._on_turn(self._turn_with_question(""))
+        self.assertEqual(self.questions, [])
+        self.assertEqual(self.steps, 1)
+
+    def test_an_answer_out_of_the_blue_is_refused(self):
+        self.assertFalse(self.loop.answer("что?"))
+        self.assertEqual(self.steps, 0)
+
+    def test_abort_clears_the_pending_question(self):
+        self.loop._on_turn(self._turn_with_question())
+        self.loop.abort()
+        self.assertFalse(self.loop.is_awaiting_answer)
+        self.assertFalse(self.loop.answer("поздно"))
+
+    def test_the_model_sees_a_waiting_status_not_an_error(self):
+        self.loop._on_turn(self._turn_with_question())
+        results = self.loop._transcript.entries[-1]["results"]
+        self.assertTrue(results[0].ok)
+        self.assertEqual(results[0].payload["status"], "waiting_for_user")

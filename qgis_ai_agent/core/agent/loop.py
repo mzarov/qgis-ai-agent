@@ -12,6 +12,7 @@ from qgis_ai_agent.core.agent.notices import (
 )
 from qgis_ai_agent.core.agent.prompts import (
     APPLY_NOW_TOOL,
+    ASK_USER_TOOL,
     LOAD_SKILL_TOOL,
     UPDATE_PLAN_TOOL,
     render_queued_steps,
@@ -41,6 +42,7 @@ class AgentLoop(QObject):
     skill_loaded = pyqtSignal(str)
     plan_changed = pyqtSignal(object, int)
     confirm_needed = pyqtSignal(object, str)
+    question_asked = pyqtSignal(str)
     usage_changed = pyqtSignal(int)
     answer_chunk = pyqtSignal(str)
     thinking_chunk = pyqtSignal(str)
@@ -72,6 +74,7 @@ class AgentLoop(QObject):
         self._pending_protocol = PROTOCOL_NATIVE
         self._verification_round = 0
         self._streamed_thinking = False
+        self._question = ""
 
     @property
     def is_running(self) -> bool:
@@ -83,6 +86,10 @@ class AgentLoop(QObject):
 
     def pending_writes(self) -> list[ToolCall]:
         return self._batch.pending()
+
+    @property
+    def is_awaiting_answer(self) -> bool:
+        return bool(self._question)
 
     @property
     def is_verification(self) -> bool:
@@ -109,6 +116,7 @@ class AgentLoop(QObject):
         self._plan_steps = []
         self._plan_done = 0
         self._staged = False
+        self._question = ""
         self._loaded_skills = [name for name in PRELOADED_SKILLS if SKILL_REGISTRY.get(name)]
         self._batch.clear()
         self._iteration = 0
@@ -119,8 +127,9 @@ class AgentLoop(QObject):
         self._request_step()
 
     def abort(self) -> None:
-        if not self.is_running and not self._batch:
+        if not self.is_running and not self._batch and not self._question:
             return
+        self._question = ""
         self._aborted = True
         self._turn.detach(self._on_turn, self._fail, self._on_chunk, self._on_thinking)
         self._batch.clear()
@@ -246,10 +255,18 @@ class AgentLoop(QObject):
 
         results = [self._dispatch(call) for call in turn.tool_calls]
         self._transcript.add_results(results, turn.protocol)
+        if self._question:
+            self._pause_for_question()
+            return
         if self._staged:
             self._pause_for_stage(turn.text)
             return
         self._request_step()
+
+    def _pause_for_question(self) -> None:
+        self._turn.release()
+        self.busy_changed.emit(False)
+        self.question_asked.emit(self._question)
 
     def _pause_for_stage(self, text: str) -> None:
         self._turn.release()
@@ -263,6 +280,8 @@ class AgentLoop(QObject):
             return self._update_plan(call)
         if call.name == APPLY_NOW_TOOL:
             return self._request_stage(call)
+        if call.name == ASK_USER_TOOL:
+            return self._take_question(call)
 
         tool = get_tool_by_name(call.name)
         if tool is None or tool.safety == SAFETY_READ:
@@ -284,6 +303,23 @@ class AgentLoop(QObject):
             return ToolResult.failure(call, str(err))
         self.tool_queued.emit(summarize_tool_call(queued.name, queued.arguments))
         return ToolExecutor.queued(queued)
+
+    def _take_question(self, call: ToolCall) -> ToolResult:
+        question = str(call.arguments.get("question") or "").strip()
+        if not question:
+            return ToolResult.failure(call, "The question is empty — say what you need to know.")
+        self._question = question
+        return ToolResult(call=call, ok=True, payload={"status": "waiting_for_user"})
+
+    def answer(self, text: str) -> bool:
+        reply = (text or "").strip()
+        if not reply or not self._question:
+            return False
+        self._question = ""
+        self._transcript.add_user(reply)
+        self.busy_changed.emit(True)
+        self._request_step()
+        return True
 
     def _request_stage(self, call: ToolCall) -> ToolResult:
         if not self._batch:
