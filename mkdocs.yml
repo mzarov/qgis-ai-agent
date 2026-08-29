@@ -47,6 +47,7 @@ plugins:
           nav_translations:
             Home: Главная
             Setup: Установка
+            Data and privacy: Данные и конфиденциальность
             Usage: Использование
             Architecture: Архитектура
             Development: Разработка
@@ -57,6 +58,7 @@ plugins:
 nav:
   - Home: index.md
   - Setup: SETUP.md
+  - Data and privacy: privacy.md
   - Usage: usage.md
   - Architecture: core_architecture.md
   - Development:

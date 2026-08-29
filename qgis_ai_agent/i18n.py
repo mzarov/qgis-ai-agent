@@ -27,6 +27,8 @@ def tr_n(text: str, count: int) -> str:
         translated = ""
     if not isinstance(translated, str) or not translated:
         translated = text
+    if translated == text and "(s)" in translated:
+        translated = translated.replace("(s)", "" if count == 1 else "s")
     return translated.replace("%n", str(count))
 
 

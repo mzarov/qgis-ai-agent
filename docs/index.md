@@ -7,7 +7,7 @@ confirm them.
 
 ## What it does
 
-Nine domains, 51 tools:
+Nine domains, 58 tools:
 
 | Domain | Example requests |
 | --- | --- |
@@ -32,7 +32,8 @@ off.
 You never watch the agent mutate your project unsupervised:
 
 - **Reading** tools (listing layers, describing fields, querying data) run
-  immediately — they cannot change anything.
+  immediately — they cannot change anything. Their results may still be sent
+  to the configured model as part of the agent loop.
 - **Writing** tools (styling, processing, loading data) are collected into a
   plan card. Nothing runs until you press **Apply**; **Cancel** discards the
   whole batch.
@@ -47,9 +48,18 @@ plan instead of producing garbage.
 - **An account and an API key** with a language-model provider — any
   OpenAI-compatible endpoint or Anthropic. Local servers (Ollama, LM Studio)
   need no key at all.
-- Your prompts and short summaries of the project — layer names, field names,
-  CRS — are sent to the provider you configure, so pick one you trust. The key
-  is stored in the system keychain, never in the project or the settings file.
+- The first agent run against a remote endpoint waits for your consent for that
+  endpoint. The explicit Test connection action is separate and sends one short
+  diagnostic request when clicked. After consent the endpoint can receive
+  prompts, recent chat, project notes and tool results. Sharing sensitive GIS
+  data and tool results—feature attribute values, exact map and layer extents,
+  layer filters and sources, style categories, Processing and Python results,
+  and rendered map or layout images—is a separate option that is off by default.
+  Local servers can still store or forward data. Read
+  [Data and privacy](privacy.md) before opening a sensitive project.
+- API keys are stored in the system keychain, never in the project or QGIS
+  settings. The external `keyring` Python library is not bundled and may need
+  to be installed separately.
 
 Ready to try? Start with [Setup](SETUP.md), then see [Usage](usage.md) for what
 to ask.

@@ -1,8 +1,11 @@
 from typing import Any
 
+from qgis.core import QgsVectorLayer
+
 from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE, SAFETY_WRITE, BaseTool
 from qgis_ai_agent.qgis_tools.common.expressions import compile_expression
+from qgis_ai_agent.qgis_tools.common.layers import bind_layer_reference, find_layer_by_id
 from qgis_ai_agent.qgis_tools.fields.schema import (
     FIELD_TYPES,
     build_field,
@@ -41,6 +44,12 @@ class AddFieldTool(BaseTool):
             "description": "Layer name exactly as in the project",
             "required": True,
         },
+        {
+            "name": "layer_id",
+            "type": "string",
+            "description": "Stable layer id from list_layers; required when names are duplicated",
+            "required": False,
+        },
         {"name": "name", "type": "string", "description": "New field name", "required": True},
         {
             "name": "type",
@@ -57,16 +66,18 @@ class AddFieldTool(BaseTool):
         },
     ]
 
+    def has_external_effect(self, params: dict[str, Any]) -> bool:
+        return not bool(str(params.get("expression") or "").strip())
+
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = require_vector(params.get("layer_name") or "")
+        layer = _field_target(params)
         name = checked_new_name(layer, params.get("name"))
         expression = str(params.get("expression") or "").strip()
         if expression:
             compile_expression(expression, name, layer)
         else:
             build_field(name, params.get("type") or "text")
-        prepared = dict(params)
-        prepared["layer_name"] = layer.name()
+        prepared = bind_layer_reference(params, layer)
         prepared["name"] = name
         return prepared
 
@@ -78,7 +89,7 @@ class AddFieldTool(BaseTool):
         return tr("Adding field '{0}' to '{1}'.").format(name, layer_name)
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = require_vector(params.get("layer_name") or "")
+        layer = _field_target(params)
         name = checked_new_name(layer, params.get("name"))
         expression = str(params.get("expression") or "").strip()
         if expression:
@@ -96,6 +107,7 @@ class RenameFieldTool(BaseTool):
     description = "Rename an attribute field of a vector layer, keeping its values."
     skill = "fields"
     safety = SAFETY_WRITE
+    external_effect = True
     constraints = ["The old field must exist and the new name must be free"]
     examples = ["Rename nm to name"]
     params_schema = [
@@ -105,17 +117,21 @@ class RenameFieldTool(BaseTool):
             "description": "Layer name exactly as in the project",
             "required": True,
         },
+        {
+            "name": "layer_id",
+            "type": "string",
+            "description": "Stable layer id from list_layers; required when names are duplicated",
+            "required": False,
+        },
         {"name": "name", "type": "string", "description": "Current field name", "required": True},
         {"name": "new_name", "type": "string", "description": "New field name", "required": True},
     ]
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = require_vector(params.get("layer_name") or "")
+        layer = _field_target(params)
         require_field_index(layer, params.get("name") or "")
         checked_new_name(layer, params.get("new_name"))
-        prepared = dict(params)
-        prepared["layer_name"] = layer.name()
-        return prepared
+        return bind_layer_reference(params, layer)
 
     def summarize_call(self, params: dict[str, Any]) -> str:
         return tr("Renaming field '{0}' to '{1}'.").format(
@@ -123,7 +139,7 @@ class RenameFieldTool(BaseTool):
         )
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = require_vector(params.get("layer_name") or "")
+        layer = _field_target(params)
         index = require_field_index(layer, params.get("name") or "")
         new_name = checked_new_name(layer, params.get("new_name"))
         start_editing(layer)
@@ -140,6 +156,7 @@ class DeleteFieldTool(BaseTool):
     )
     skill = "fields"
     safety = SAFETY_DESTRUCTIVE
+    external_effect = True
     constraints = ["The field must exist", "The layer must keep at least one field"]
     examples = ["Delete the empty notes column"]
     params_schema = [
@@ -149,17 +166,21 @@ class DeleteFieldTool(BaseTool):
             "description": "Layer name exactly as in the project",
             "required": True,
         },
+        {
+            "name": "layer_id",
+            "type": "string",
+            "description": "Stable layer id from list_layers; required when names are duplicated",
+            "required": False,
+        },
         {"name": "name", "type": "string", "description": "Field to remove", "required": True},
     ]
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = require_vector(params.get("layer_name") or "")
+        layer = _field_target(params)
         require_field_index(layer, params.get("name") or "")
         if len(field_names(layer)) <= 1:
             raise ValueError("This is the layer's only field — removing it would leave no attributes at all.")
-        prepared = dict(params)
-        prepared["layer_name"] = layer.name()
-        return prepared
+        return bind_layer_reference(params, layer)
 
     def summarize_call(self, params: dict[str, Any]) -> str:
         return tr("Deleting field '{0}' from '{1}'.").format(
@@ -167,9 +188,19 @@ class DeleteFieldTool(BaseTool):
         )
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = require_vector(params.get("layer_name") or "")
+        layer = _field_target(params)
         index = require_field_index(layer, params.get("name") or "")
         start_editing(layer)
         layer.deleteAttribute(index)
         commit(layer)
         return {"layer": layer.name(), "deleted": params.get("name")}
+
+
+def _field_target(params: dict[str, Any]) -> QgsVectorLayer:
+    layer_id = str(params.get("layer_id") or "").strip()
+    if not layer_id:
+        return require_vector(params.get("layer_name") or "")
+    layer = find_layer_by_id(layer_id)
+    if not isinstance(layer, QgsVectorLayer):
+        raise ValueError(f"Layer '{layer.name()}' is not a vector layer, it has no attribute schema.")
+    return layer

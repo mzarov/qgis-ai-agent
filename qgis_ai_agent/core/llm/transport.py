@@ -10,7 +10,7 @@ from qgis_ai_agent.core.llm.client import (
     post_chat_completion,
     resolve_endpoint,
 )
-from qgis_ai_agent.core.llm.dialects import ANTHROPIC, resolve
+from qgis_ai_agent.core.llm.dialects import ANTHROPIC, host_of, resolve
 from qgis_ai_agent.core.llm.images import IMAGE_REJECTED_STATUS_CODES, has_images, without_images
 from qgis_ai_agent.core.llm.parser import parse_model_json, parse_tool_arguments
 from qgis_ai_agent.core.llm.refusals import streaming_unsupported, thinking_unsupported, tools_unsupported
@@ -19,10 +19,12 @@ from qgis_ai_agent.core.llm.stream_runner import post_stream
 from qgis_ai_agent.core.llm.thinking import split_thinking
 from qgis_ai_agent.core.settings import (
     get_dialect,
+    get_model,
     get_supports_streaming,
     get_supports_thinking,
     get_supports_tools,
     get_thinking_budget,
+    get_verify_ssl,
     set_supports_images,
     set_supports_streaming,
     set_supports_thinking,
@@ -74,13 +76,16 @@ def call_model(
 ) -> ModelTurn:
     overrides = dict(overrides or {})
     url = resolve_endpoint(overrides.get("url_override"))
+    if overrides.get("verify_override") is None:
+        overrides["verify_override"] = get_verify_ssl(url)
     try:
         return _dispatch(messages, tool_schemas, overrides, timeout, url, on_chunk, on_thinking)
     except ApiResponseError as err:
         if not (has_images(messages) and err.status_code in IMAGE_REJECTED_STATUS_CODES):
             raise
         turn = _dispatch(without_images(messages), tool_schemas, overrides, timeout, url, on_chunk, on_thinking)
-        set_supports_images(url, False)
+        cache_url, cache_model, cache_dialect = _capability_scope(url, overrides)
+        set_supports_images(cache_url, False, cache_model, cache_dialect)
         return turn
 
 
@@ -93,10 +98,10 @@ def _dispatch(
     on_chunk: Any = None,
     on_thinking: Any = None,
 ) -> ModelTurn:
-    chosen = overrides.get("dialect_override")
-    if resolve(url, chosen if chosen is not None else get_dialect()) == ANTHROPIC:
+    cache_url, cache_model, cache_dialect = _capability_scope(url, overrides)
+    if cache_dialect == ANTHROPIC:
         return _call_anthropic(messages, tool_schemas, overrides, timeout, url, on_chunk, on_thinking)
-    supports_tools = get_supports_tools(url)
+    supports_tools = get_supports_tools(cache_url, cache_model, cache_dialect)
 
     if supports_tools is not False and tool_schemas:
         streamed = _try_streaming(messages, tool_schemas, overrides, timeout, url, on_chunk, on_thinking)
@@ -105,20 +110,22 @@ def _dispatch(
         try:
             data = post_chat_completion(
                 messages,
-                extra_body={"tools": tool_schemas, "tool_choice": "auto"},
+                extra_body=_openai_options(url, tool_schemas),
                 timeout=timeout,
                 **overrides,
             )
         except ApiResponseError as err:
             if not tools_unsupported(err):
                 raise
-            set_supports_tools(url, False)
+            set_supports_tools(cache_url, False, cache_model, cache_dialect)
         else:
             if supports_tools is None:
-                set_supports_tools(url, True)
+                set_supports_tools(cache_url, True, cache_model, cache_dialect)
             return _parse_native_turn(data)
 
-    return _parse_json_turn(post_chat_completion(messages, timeout=timeout, **overrides))
+    return _parse_json_turn(
+        post_chat_completion(messages, extra_body=_openai_options(url), timeout=timeout, **overrides)
+    )
 
 
 def _call_anthropic(
@@ -130,6 +137,7 @@ def _call_anthropic(
     on_chunk: Any = None,
     on_thinking: Any = None,
 ) -> ModelTurn:
+    cache_url, cache_model, cache_dialect = _capability_scope(url, overrides)
     endpoint, headers, model = build_request(
         overrides.get("url_override"),
         overrides.get("key_override"),
@@ -137,14 +145,14 @@ def _call_anthropic(
         overrides.get("model_override"),
         overrides.get("dialect_override"),
     )
-    budget = get_thinking_budget() if get_supports_thinking(url) is not False else 0
+    budget = get_thinking_budget() if get_supports_thinking(cache_url, cache_model, cache_dialect) is not False else 0
     exchange = AnthropicExchange(endpoint, headers, timeout, url, overrides, on_chunk, on_thinking)
     try:
         data = exchange.send(anthropic.build_body(messages, tool_schemas, model, thinking_budget=budget))
     except ApiResponseError as err:
         if not budget or not thinking_unsupported(err):
             raise
-        set_supports_thinking(url, False)
+        set_supports_thinking(cache_url, False, cache_model, cache_dialect)
         data = exchange.send(anthropic.build_body(messages, tool_schemas, model))
     text, calls, stop_reason = anthropic.parse_response(data)
     thinking, thinking_blocks = anthropic.parse_thinking(data)
@@ -178,7 +186,8 @@ def _try_streaming(
     on_chunk: Any,
     on_thinking: Any = None,
 ) -> ModelTurn | None:
-    if on_chunk is None or get_supports_streaming(url) is False:
+    cache_url, cache_model, cache_dialect = _capability_scope(url, overrides)
+    if on_chunk is None or get_supports_streaming(cache_url, cache_model, cache_dialect) is False:
         return None
     endpoint, headers, model = build_request(
         overrides.get("url_override"),
@@ -192,25 +201,54 @@ def _try_streaming(
         "messages": messages,
         "stream": True,
         "stream_options": {"include_usage": True},
-        "tools": tool_schemas,
-        "tool_choice": "auto",
     }
+    body.update(_openai_options(url, tool_schemas))
     try:
         completion = StreamedCompletion(on_chunk, on_thinking)
-        data = post_stream(endpoint, headers, body, completion, timeout, overrides.get("verify_override"))
+        stream_options = {}
+        if overrides.get("feedback_override") is not None:
+            stream_options["feedback"] = overrides["feedback_override"]
+        data = post_stream(
+            endpoint,
+            headers,
+            body,
+            completion,
+            timeout,
+            overrides.get("verify_override"),
+            **stream_options,
+        )
     except ApiResponseError as err:
         if streaming_unsupported(err):
-            set_supports_streaming(url, False)
+            set_supports_streaming(cache_url, False, cache_model, cache_dialect)
             return None
         raise
     turn = _parse_native_turn(data)
     if not turn.text and not turn.tool_calls and not turn.thinking:
-        set_supports_streaming(url, False)
+        set_supports_streaming(cache_url, False, cache_model, cache_dialect)
         return None
-    if get_supports_streaming(url) is None:
-        set_supports_streaming(url, True)
-        set_supports_tools(url, True)
+    if get_supports_streaming(cache_url, cache_model, cache_dialect) is None:
+        set_supports_streaming(cache_url, True, cache_model, cache_dialect)
+        set_supports_tools(cache_url, True, cache_model, cache_dialect)
     return turn
+
+
+def _capability_scope(url: str, overrides: dict[str, Any]) -> tuple[str, str, str]:
+    chosen = overrides.get("dialect_override")
+    dialect = resolve(url, chosen if chosen is not None else get_dialect())
+    overridden_model = overrides.get("model_override")
+    model = (overridden_model if overridden_model is not None else get_model()) or ""
+    return url, model, dialect
+
+
+def _openai_options(url: str, tool_schemas: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    body: dict[str, Any] = {}
+    if tool_schemas:
+        body["tools"] = tool_schemas
+    if host_of(url) == "api.deepseek.com":
+        body["thinking"] = {"type": "disabled"}
+    elif tool_schemas:
+        body["tool_choice"] = "auto"
+    return body
 
 
 def _first_choice(data: dict[str, Any]) -> dict[str, Any]:

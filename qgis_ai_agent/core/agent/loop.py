@@ -1,31 +1,18 @@
-from qgis.core import Qgis, QgsMessageLog
+from qgis.core import Qgis, QgsMessageLog, QgsProject
 from qgis.PyQt.QtCore import QObject, pyqtSignal
 
+from qgis_ai_agent.core.agent import notices
 from qgis_ai_agent.core.agent.batch import WriteBatch
+from qgis_ai_agent.core.agent.dispatch import DispatchMixin
 from qgis_ai_agent.core.agent.executor import ToolExecutor
-from qgis_ai_agent.core.agent.notices import (
-    APPLY_DECLINED_MESSAGE,
-    APPLY_NOW_WITHOUT_WRITES,
-    BUDGET_REACHED_MESSAGE,
-    INTERJECTION_HEADER,
-    LIMIT_REACHED_MESSAGE,
-)
-from qgis_ai_agent.core.agent.prompts import (
-    APPLY_NOW_TOOL,
-    ASK_USER_TOOL,
-    LOAD_SKILL_TOOL,
-    UPDATE_PLAN_TOOL,
-    render_queued_steps,
-    render_task_plan,
-)
+from qgis_ai_agent.core.agent.prompts import render_queued_steps, render_task_plan
 from qgis_ai_agent.core.agent.request import build_overrides, build_step_request
-from qgis_ai_agent.core.agent.skills import load_skill
 from qgis_ai_agent.core.agent.transcript import ToolResult, Transcript
 from qgis_ai_agent.core.agent.turn_thread import TurnThreadOwner
 from qgis_ai_agent.core.llm.transport import PROTOCOL_JSON, PROTOCOL_NATIVE, ModelTurn, ToolCall
 from qgis_ai_agent.core.settings import get_token_budget
-from qgis_ai_agent.qgis_tools.base import SAFETY_READ
-from qgis_ai_agent.qgis_tools.project.snapshots import take_snapshot
+from qgis_ai_agent.qgis_tools.common.project_identity import project_identity
+from qgis_ai_agent.qgis_tools.project.snapshots import snapshot_error, take_snapshot
 from qgis_ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call
 from qgis_ai_agent.skills.registry import SKILL_REGISTRY
 
@@ -34,7 +21,7 @@ MAX_ITERATIONS = 40
 PRELOADED_SKILLS = ("inspect",)
 
 
-class AgentLoop(QObject):
+class AgentLoop(DispatchMixin, QObject):
     tool_started = pyqtSignal(str)
     tool_finished = pyqtSignal(str, bool)
     tool_queued = pyqtSignal(str)
@@ -77,14 +64,23 @@ class AgentLoop(QObject):
         self._verification_round = 0
         self._streamed_thinking = False
         self._question = ""
+        self._stage_call: ToolCall | None = None
 
     @property
     def is_running(self) -> bool:
         return self._turn.is_running
 
     @property
+    def endpoint(self) -> str:
+        return str(self._overrides.get("url_override") or "")
+
+    @property
     def has_pending_writes(self) -> bool:
         return bool(self._batch)
+
+    @property
+    def is_applying(self) -> bool:
+        return self._batch.is_applying
 
     def pending_writes(self) -> list[ToolCall]:
         return self._batch.pending()
@@ -119,6 +115,7 @@ class AgentLoop(QObject):
         self._plan_done = 0
         self._staged = False
         self._question = ""
+        self._stage_call = None
         self._loaded_skills = [name for name in PRELOADED_SKILLS if SKILL_REGISTRY.get(name)]
         self._batch.clear()
         self._iteration = 0
@@ -132,6 +129,7 @@ class AgentLoop(QObject):
         if not self.is_running and not self._batch and not self._question:
             return
         self._question = ""
+        self._stage_call = None
         self._aborted = True
         self._turn.detach(self._on_turn, self._fail, self._on_chunk, self._on_thinking)
         self._batch.clear()
@@ -145,25 +143,46 @@ class AgentLoop(QObject):
         message = (text or "").strip()
         if not message or not self.is_running:
             return False
-        self._transcript.add_user(INTERJECTION_HEADER + message)
+        self._transcript.add_user(notices.INTERJECTION_HEADER + message)
         QgsMessageLog.logMessage("The user interjected mid-run.", LOG_TAG, Qgis.Info)
         return True
 
     def confirm_pending(self) -> None:
-        if not self._batch:
+        if not self._batch or self._batch.is_applying:
             return
-        take_snapshot()
-        self.busy_changed.emit(True)
         staged = self._staged
         self._staged = False
+        calls = self._batch.pending()
+        undo_only = len(calls) == 1 and calls[0].name == "undo_last_apply"
+        expected_project_identity = project_identity(QgsProject.instance())
+        if not undo_only and not take_snapshot():
+            self._batch.clear()
+            failure_message = snapshot_error() or notices.SNAPSHOT_FAILED_MESSAGE
+            results = [ToolResult.failure(call, failure_message, _call_egress(call)) for call in calls]
+            QgsMessageLog.logMessage(failure_message, LOG_TAG, Qgis.Critical)
+            if staged:
+                self.stage_applied.emit(results)
+                self._resume_after_stage(results)
+            else:
+                self.applied.emit(results)
+            return
+        self.busy_changed.emit(True)
         try:
-            results = self._batch.apply(self._on_apply_start, self._on_apply_finish)
+            results = self._batch.apply(
+                self._on_apply_start,
+                self._on_apply_finish,
+                expected_project_identity,
+            )
         finally:
             if not staged:
                 self.busy_changed.emit(False)
+        if self._aborted:
+            return
         QgsMessageLog.logMessage(f"Applied changes: {len(results)}.", LOG_TAG, Qgis.Info)
         if staged:
             self.stage_applied.emit(results)
+            if self._aborted:
+                return
             self._resume_after_stage(results)
             return
         self.applied.emit(results)
@@ -171,12 +190,18 @@ class AgentLoop(QObject):
     def cancel_pending(self) -> None:
         staged = self._staged
         self._staged = False
+        self._stage_call = None
         self._batch.clear()
         if staged:
-            self._complete(APPLY_DECLINED_MESSAGE)
+            self._complete(notices.APPLY_DECLINED_MESSAGE)
 
     def _resume_after_stage(self, results: list[ToolResult]) -> None:
-        self._transcript.add_results(results, self._pending_protocol)
+        replacements = list(results)
+        if self._stage_call is not None:
+            status = "applied" if all(result.ok for result in results) else "failed"
+            replacements.append(ToolResult(call=self._stage_call, payload={"status": status}))
+        self._stage_call = None
+        self._transcript.replace_results(replacements, self._pending_protocol)
         QgsMessageLog.logMessage("Stage applied, the run continues.", LOG_TAG, Qgis.Info)
         self._request_step()
 
@@ -278,81 +303,6 @@ class AgentLoop(QObject):
         self.busy_changed.emit(False)
         self.confirm_needed.emit(self._batch.pending(), text)
 
-    def _dispatch(self, call: ToolCall) -> ToolResult:
-        if call.name == LOAD_SKILL_TOOL:
-            return self._load_skill(call)
-        if call.name == UPDATE_PLAN_TOOL:
-            return self._update_plan(call)
-        if call.name == APPLY_NOW_TOOL:
-            return self._request_stage(call)
-        if call.name == ASK_USER_TOOL:
-            return self._take_question(call)
-
-        tool = get_tool_by_name(call.name)
-        if tool is None or tool.safety == SAFETY_READ:
-            return self._run_now(call)
-        return self._queue_write(call)
-
-    def _run_now(self, call: ToolCall) -> ToolResult:
-        self.tool_started.emit(summarize_tool_call(call.name, call.arguments))
-        result = self._executor.run(call)
-        self.tool_finished.emit(call.name, result.ok)
-        return result
-
-    def _queue_write(self, call: ToolCall) -> ToolResult:
-        try:
-            queued = self._batch.add(call)
-        except Exception as err:
-            self.tool_rejected.emit(summarize_tool_call(call.name, call.arguments))
-            QgsMessageLog.logMessage(f"Step {call.name} rejected: {err}", LOG_TAG, Qgis.Warning)
-            return ToolResult.failure(call, str(err))
-        self.tool_queued.emit(summarize_tool_call(queued.name, queued.arguments))
-        return ToolExecutor.queued(queued)
-
-    def _take_question(self, call: ToolCall) -> ToolResult:
-        question = str(call.arguments.get("question") or "").strip()
-        if not question:
-            return ToolResult.failure(call, "The question is empty — say what you need to know.")
-        self._question = question
-        return ToolResult(call=call, ok=True, payload={"status": "waiting_for_user"})
-
-    def answer(self, text: str) -> bool:
-        reply = (text or "").strip()
-        if not reply or not self._question:
-            return False
-        self._question = ""
-        self._transcript.add_user(reply)
-        self.busy_changed.emit(True)
-        self._request_step()
-        return True
-
-    def _request_stage(self, call: ToolCall) -> ToolResult:
-        if not self._batch:
-            return ToolResult.failure(call, APPLY_NOW_WITHOUT_WRITES)
-        self._staged = True
-        return ToolResult(call=call, ok=True, payload={"status": "awaiting_user"})
-
-    def _update_plan(self, call: ToolCall) -> ToolResult:
-        raw_steps = call.arguments.get("steps")
-        if not isinstance(raw_steps, list) or not raw_steps:
-            return ToolResult.failure(call, "steps must be a non-empty list of short strings.")
-        steps = [str(step).strip() for step in raw_steps if str(step).strip()]
-        try:
-            done = max(0, min(len(steps), int(call.arguments.get("done") or 0)))
-        except (TypeError, ValueError):
-            done = 0
-        self._plan_steps = steps
-        self._plan_done = done
-        self.plan_changed.emit(list(steps), done)
-        return ToolResult(call=call, ok=True, payload={"steps": len(steps), "done": done})
-
-    def _load_skill(self, call: ToolCall) -> ToolResult:
-        result, loaded = load_skill(call, self._loaded_skills)
-        if loaded:
-            self.skill_loaded.emit(loaded)
-            QgsMessageLog.logMessage(f"Skill loaded: {loaded}.", LOG_TAG, Qgis.Info)
-        return result
-
     def _complete(self, text: str) -> None:
         self._turn.release()
         self.busy_changed.emit(False)
@@ -370,18 +320,24 @@ class AgentLoop(QObject):
 
     def _finish_on_limit(self) -> None:
         QgsMessageLog.logMessage(f"Reached the limit of {MAX_ITERATIONS} turns.", LOG_TAG, Qgis.Warning)
-        self._complete(LIMIT_REACHED_MESSAGE)
+        self._complete(notices.LIMIT_REACHED_MESSAGE)
 
     def _finish_on_budget(self) -> None:
         QgsMessageLog.logMessage(
             f"Token budget hit: {self._tokens_spent} of {self._token_budget}.", LOG_TAG, Qgis.Warning
         )
-        self._complete(BUDGET_REACHED_MESSAGE)
+        self._complete(notices.BUDGET_REACHED_MESSAGE)
 
     def _fail(self, message: str) -> None:
         if self._aborted:
             return
         self._turn.release()
+        self._stage_call = None
         self._batch.clear()
         self.busy_changed.emit(False)
         self.failed.emit(message)
+
+
+def _call_egress(call: ToolCall) -> str:
+    tool = get_tool_by_name(call.name)
+    return tool.egress if tool is not None else "metadata"

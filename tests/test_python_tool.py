@@ -1,8 +1,16 @@
+import pathlib
 import unittest
 
+from qgis_ai_agent.core.agent.executor import ToolExecutor
+from qgis_ai_agent.core.llm.transport import ToolCall
 from qgis_ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
 from qgis_ai_agent.qgis_tools.python.run_python import MAX_CODE_CHARS, RunPythonTool, _checked_code
 from qgis_ai_agent.qgis_tools.python.sandbox import BudgetExceeded, LineBudget, run_snippet
+from qgis_ai_agent.ui.dock_widget import _destructive_confirmation_text
+
+DOCK_SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "qgis_ai_agent" / "ui" / "dock_widget.py").read_text(
+    encoding="utf-8"
+)
 
 
 class CheckedCodeTest(unittest.TestCase):
@@ -28,7 +36,8 @@ class CheckedCodeTest(unittest.TestCase):
 class BudgetTest(unittest.TestCase):
     def test_a_loop_is_stopped_by_the_budget(self):
         result = run_snippet("while True:\n    pass\n", limit=500)
-        self.assertIn("endless loop", result["error"])
+        self.assertIn("best-effort budget", result["error"])
+        self.assertIn("not a security sandbox", result["error"])
         self.assertGreaterEqual(result["lines_executed"], 500)
 
     def test_the_budget_restores_the_previous_tracer(self):
@@ -61,6 +70,10 @@ class RunSnippetTest(unittest.TestCase):
         result = run_snippet("raise ValueError('boom')")
         self.assertIn("boom", result["error"])
         self.assertIn("ValueError", result["traceback"])
+
+    def test_exception_with_an_empty_message_is_still_a_failure(self):
+        result = run_snippet("raise RuntimeError()")
+        self.assertEqual(result["error"], "RuntimeError")
 
     def test_long_output_is_truncated(self):
         result = run_snippet("print('x' * 20000)")
@@ -104,6 +117,34 @@ class ToolTest(unittest.TestCase):
         result = self.tool.execute({"code": "print('ok')", "intent": "smoke"})
         self.assertEqual(result["intent"], "smoke")
         self.assertIn("ok", result["output"])
+
+    def test_description_does_not_promise_a_security_sandbox(self):
+        self.assertIn("not a security sandbox", self.tool.build_description())
+
+    def test_runtime_error_is_a_failed_tool_result_with_context(self):
+        result = ToolExecutor().run(
+            ToolCall(
+                id="python_1",
+                name="run_python",
+                arguments={"code": "print('before')\nraise RuntimeError('boom')", "intent": "test failure"},
+            )
+        )
+        self.assertFalse(result.ok)
+        self.assertIn("before", result.payload["output"])
+        self.assertIn("boom", result.payload["error"])
+
+    def test_exact_code_is_in_the_always_visible_confirmation_text(self):
+        code = "print('<exact>')\nproject.clear()"
+        text = _destructive_confirmation_text(["Running Python: smoke"], code)
+        self.assertIn("Exact code to be executed", text)
+        self.assertIn(code, text)
+
+    def test_code_confirmation_uses_a_permanently_visible_fixed_font_editor(self):
+        body = DOCK_SOURCE.split("def _confirm_code(")[1].split("\ndef ")[0]
+        self.assertIn("QPlainTextEdit", body)
+        self.assertIn("setReadOnly(True)", body)
+        self.assertIn("SystemFont.FixedFont", body)
+        self.assertIn("setMinimumHeight", body)
 
 
 if __name__ == "__main__":

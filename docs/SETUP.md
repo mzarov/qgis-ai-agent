@@ -6,7 +6,12 @@ from Python 3.10.
 
 ## 1. Installing from a zip
 
-A ready-to-install archive is built from the repository with one command:
+For a published version, download the `qgis_ai_agent-<version>.zip` asset from
+the [latest GitHub Release](https://github.com/mzarov/qgis-ai-agent/releases/latest).
+Do not pick either of GitHub's auto-generated “Source code” archives: their
+top-level folder has the wrong name for a QGIS plugin.
+
+To build the release archive from a checkout instead, run:
 
 ```bash
 python3 tools/build_plugin.py
@@ -40,6 +45,14 @@ press the gear icon:
 The **Test connection** button sends one short request and shows the model's
 reply — proof that the URL, the key and the model name agree with each other.
 
+The first agent run against a remote endpoint asks for explicit consent. In
+Settings, **Share project context with the model provider** controls that choice
+per endpoint. **Allow sensitive GIS data and tool results** is a separate,
+off-by-default permission for feature attribute values, exact map and layer
+extents, layer filters and sources, style categories, Processing and Python
+results, and rendered map or layout images. The connection test is an
+intentional diagnostic request and does not wait for agent-run consent.
+
 ### Verified providers
 
 The plugin speaks two formats. `auto` picks one from the address, so usually
@@ -72,6 +85,9 @@ connect.
 | LM Studio | `http://localhost:1234/v1` |
 | llama.cpp server | `http://localhost:8080/v1` |
 
+The plugin treats these addresses as local, but that does not guarantee the
+server keeps data on this device. Review whether it stores or forwards requests.
+
 Mind the size: the agent runs a loop over two dozen tools, and a small 7–8B
 model will get lost in the calls. The sensible minimum is a ~30B-class model
 with function calling support.
@@ -82,14 +98,16 @@ remembers the choice for that URL.
 
 ## 3. Dependencies
 
-One library is needed — `keyring`, for storing the key in the system keychain.
+One external library is needed — `keyring`, for storing the key in the system
+keychain. It is declared for development but deliberately not bundled in the
+plugin ZIP, so its availability depends on the QGIS distribution and operating
+system.
 Network requests go through `QgsBlockingNetworkRequest`, that is through the
 QGIS network stack itself: no third-party HTTP client, and the QGIS proxy and
 authentication settings apply automatically.
 
-`keyring` ships with QGIS 4 on macOS; if your build lacks it, or on Linux no
-secret service is running (gnome-keyring, KWallet), saving the key shows a
-message with the reason.
+If your build lacks `keyring`, or on Linux no secret service is running
+(gnome-keyring, KWallet), saving the key shows a message with the reason.
 
 Install it into the Python that runs QGIS. To find its path: **Plugins →
 Python Console**, then
@@ -103,6 +121,12 @@ Close QGIS and run in a terminal (the quotes matter if the path has spaces):
 ```bash
 "/path/from/the/console" -m pip install keyring
 ```
+
+Before connecting a project to a remote provider, read
+[Data and privacy](privacy.md). Tool results sent to the model can contain
+attribute values, exact map or layer extents, layer filters and sources, style
+categories, Processing or Python results, and rendered map or layout images—not
+just basic schema metadata.
 
 ## 4. Development install
 
@@ -138,6 +162,7 @@ import sys; [sys.modules.pop(n) for n in list(sys.modules) if n.startswith("qgis
 python3 -m unittest discover -s tests -t .
 ```
 
-The suite runs both on plain Python and inside the QGIS Python — in the latter
-case against live PyQGIS. Whatever tests cannot reach is checked by hand,
-following [smoke_checklist.md](smoke_checklist.md).
+The command above is the fast unit suite and uses QGIS stand-ins when PyQGIS is
+absent. CI also runs a focused import, icon and registry smoke test in the
+official QGIS 4 container. Full workflows against live layers and the QGIS UI
+are checked by hand following [smoke_checklist.md](smoke_checklist.md).

@@ -3,7 +3,7 @@ from typing import Any
 from qgis.core import QgsProject
 
 from qgis_ai_agent.i18n import tr
-from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
+from qgis_ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
 from qgis_ai_agent.qgis_tools.common.layer_meta import selected_count
 from qgis_ai_agent.qgis_tools.common.values import plain_value
 
@@ -23,6 +23,7 @@ class GetSelectionTool(BaseTool):
     )
     skill = "inspect"
     safety = SAFETY_READ
+    egress = EGRESS_FEATURE_VALUES
     examples = ["What did I select?", "Compute the area of the selected polygons"]
     params_schema = []
 

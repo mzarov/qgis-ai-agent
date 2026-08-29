@@ -1,14 +1,17 @@
 from collections.abc import Callable
 from typing import Any
 
-from qgis.PyQt.QtCore import QSize, pyqtSignal
-from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtCore import QSize, Qt, pyqtSignal
+from qgis.PyQt.QtGui import QFontDatabase, QIcon
 from qgis.PyQt.QtWidgets import (
+    QDialog,
+    QDialogButtonBox,
     QDockWidget,
     QHBoxLayout,
     QLabel,
     QMenu,
     QMessageBox,
+    QPlainTextEdit,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -69,7 +72,7 @@ class AgentDockWidget(QDockWidget):
         row.addWidget(self._usage_label)
         self._sessions_button = self._build_action(icons.sessions, "⟲", tr("Conversations"), self._show_sessions)
         row.addWidget(self._sessions_button)
-        row.addWidget(self._build_action(icons.clear, "⌫", tr("Clear conversation"), self._on_clear))
+        row.addWidget(self._build_action(icons.clear, "+", tr("New conversation"), self.new_session_clicked.emit))
         row.addWidget(self._build_action(icons.settings, "⚙", tr("Settings"), self.open_settings_clicked.emit))
         return header
 
@@ -119,9 +122,6 @@ class AgentDockWidget(QDockWidget):
         self.composer.stopped.connect(self.stop_clicked.emit)
         layout.addWidget(self.composer)
         return holder
-
-    def _on_clear(self) -> None:
-        self.conversation.clear()
 
     def set_session_source(self, provider: Callable[[], list[tuple[str, str]]]) -> None:
         self._sessions_provider = provider
@@ -181,13 +181,32 @@ class AgentDockWidget(QDockWidget):
         return self.conversation.add_plan_card(plan_lines)
 
     def confirm_destructive(self, lines: list[str], details: str = "") -> bool:
-        listed = "\n".join(f"• {line}" for line in lines)
+        if (details or "").strip():
+            return _confirm_code(self, lines, details)
         box = QMessageBox(self)
         box.setIcon(QMessageBox.Icon.Warning)
         box.setWindowTitle(tr("Destructive steps"))
-        box.setText(tr("These steps change or delete data and cannot be undone:\n\n{0}\n\nApply them?").format(listed))
-        if details:
-            box.setDetailedText(details)
+        box.setTextFormat(Qt.TextFormat.PlainText)
+        box.setText(_destructive_confirmation_text(lines, details))
+        box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        box.setDefaultButton(QMessageBox.StandardButton.No)
+        return box.exec() == QMessageBox.StandardButton.Yes
+
+    def confirm_data_sharing(self, endpoint: str) -> bool:
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Warning)
+        box.setWindowTitle(tr("Share project data?"))
+        box.setTextFormat(Qt.TextFormat.PlainText)
+        box.setText(
+            tr(
+                "The request will be sent to {0}.\n\n"
+                "The provider may receive your prompt, layer and field names, CRS, project notes, "
+                "tool results and generated plans. Feature values, exact extents, layer sources and filters, "
+                "Processing or Python results, and rendered images remain blocked unless you separately "
+                "enable sensitive data in Settings.\n\n"
+                "Continue and remember this choice for this endpoint?"
+            ).format(endpoint)
+        )
         box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         box.setDefaultButton(QMessageBox.StandardButton.No)
         return box.exec() == QMessageBox.StandardButton.Yes
@@ -217,3 +236,41 @@ def _drawn(paint: Callable[[Any, int], QIcon], colour: Any, size: int) -> QIcon 
     except Exception:
         return None
     return None if icon.isNull() else icon
+
+
+def _confirm_code(parent: QWidget, lines: list[str], details: str) -> bool:
+    dialog = QDialog(parent)
+    dialog.setWindowTitle(tr("Destructive steps"))
+    dialog.setMinimumWidth(720)
+    column = QVBoxLayout(dialog)
+    summary = QLabel(_destructive_steps_text(lines))
+    summary.setWordWrap(True)
+    column.addWidget(summary)
+    code_title = QLabel(tr("\n\nExact code to be executed:\n\n{0}").format("").strip())
+    column.addWidget(code_title)
+    code = QPlainTextEdit((details or "").strip())
+    code.setReadOnly(True)
+    code.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
+    code.setMinimumHeight(240)
+    column.addWidget(code)
+    question = QLabel(tr("\n\nApply them?").strip())
+    column.addWidget(question)
+    buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Yes | QDialogButtonBox.StandardButton.No)
+    buttons.accepted.connect(dialog.accept)
+    buttons.rejected.connect(dialog.reject)
+    buttons.button(QDialogButtonBox.StandardButton.No).setDefault(True)
+    column.addWidget(buttons)
+    return dialog.exec() == QDialog.DialogCode.Accepted
+
+
+def _destructive_steps_text(lines: list[str]) -> str:
+    listed = "\n".join(f"• {line}" for line in lines)
+    return tr("These steps change or delete data and cannot be undone:\n\n{0}").format(listed)
+
+
+def _destructive_confirmation_text(lines: list[str], details: str = "") -> str:
+    message = _destructive_steps_text(lines)
+    exact = (details or "").strip()
+    if exact:
+        message += tr("\n\nExact code to be executed:\n\n{0}").format(exact)
+    return message + tr("\n\nApply them?")

@@ -1,7 +1,7 @@
 from typing import Any
 
 from qgis_ai_agent.i18n import tr
-from qgis_ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE, BaseTool
+from qgis_ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_DESTRUCTIVE, BaseTool
 from qgis_ai_agent.qgis_tools.python.sandbox import MAX_LINES, run_snippet
 
 MAX_CODE_CHARS = 6000
@@ -13,15 +13,21 @@ class RunPythonTool(BaseTool):
     description = (
         "Run a PyQGIS snippet inside the running QGIS. The last resort for what "
         "no other tool covers — the whole QGIS API is reachable from here. "
-        "The user reads the exact code and confirms it before it runs, so keep "
-        "it short and readable. Use print() to report results back."
+        "Imports, files and the network are reachable too: this is not a security "
+        "sandbox. The user sees the exact code in the confirmation and approves "
+        "it before it runs, so keep it short and readable. Use print() to report "
+        "results back."
     )
     skill = "python"
     safety = SAFETY_DESTRUCTIVE
+    egress = EGRESS_FEATURE_VALUES
     constraints = [
         "Try the dedicated tools first — this one asks the user to read code",
         "print() what you want to see; the return value is not captured",
-        f"The snippet is stopped after {MAX_LINES} executed lines",
+        (
+            f"A best-effort current-thread trace interrupts after {MAX_LINES} "
+            "Python lines; it is a runaway-work guard, not isolation"
+        ),
     ]
     examples = [
         "Set a custom blend mode on the roads layer",

@@ -3,7 +3,7 @@ from typing import Any
 from qgis.core import QgsRasterLayer, QgsVectorLayer
 
 from qgis_ai_agent.i18n import tr
-from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
+from qgis_ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
 from qgis_ai_agent.qgis_tools.common.layer_meta import layer_opacity
 from qgis_ai_agent.qgis_tools.common.layers import find_layer_by_name, layer_kind
 from qgis_ai_agent.qgis_tools.style.labeling import describe_labeling
@@ -21,6 +21,7 @@ class DescribeStyleTool(BaseTool):
     )
     skill = "style"
     safety = SAFETY_READ
+    egress = EGRESS_FEATURE_VALUES
     constraints = ["A layer with this name must exist in the project"]
     examples = ["Why are the cities red?", "How is the roads layer coloured right now?"]
     params_schema = [

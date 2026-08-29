@@ -3,8 +3,32 @@ from typing import Any
 
 from qgis.core import QgsMapLayer, QgsVectorLayer
 
-SECRET_KEYS = ("password", "passwd", "pwd", "token", "api_key", "apikey", "secret")
-SECRET_PATTERN = re.compile(r"(?i)\b(" + "|".join(SECRET_KEYS) + r")\s*=\s*('[^']*'|\"[^\"]*\"|\S+)")
+SECRET_KEYS = (
+    "password",
+    "passwd",
+    "pwd",
+    "token",
+    "access_token",
+    "api_key",
+    "apikey",
+    "secret",
+    "client_secret",
+    "authorization",
+)
+SIGNED_QUERY_KEYS = (
+    "sig",
+    "signature",
+    "x-amz-signature",
+    "x-amz-credential",
+    "x-goog-signature",
+    "credential",
+    "access_key",
+    "awsaccesskeyid",
+    "sas",
+)
+SECRET_PATTERN = re.compile(r"(?i)\b(" + "|".join(SECRET_KEYS) + r")\s*=\s*('[^']*'|\"[^\"]*\"|[^\s&;]+)")
+SIGNED_QUERY_PATTERN = re.compile(r"(?i)([?&](?:" + "|".join(SIGNED_QUERY_KEYS) + r")=)([^&\s'\"]+)")
+URL_USERINFO_PATTERN = re.compile(r"(?i)([a-z][a-z0-9+.-]*://)([^/@\s]+@)")
 SECRET_PLACEHOLDER = "<hidden>"
 MAX_SOURCE_CHARS = 300
 
@@ -12,7 +36,9 @@ MAX_SOURCE_CHARS = 300
 def sanitize_source(source: str) -> str:
     if not source:
         return ""
-    cleaned = SECRET_PATTERN.sub(lambda m: f"{m.group(1)}={SECRET_PLACEHOLDER}", source)
+    cleaned = URL_USERINFO_PATTERN.sub(lambda m: f"{m.group(1)}{SECRET_PLACEHOLDER}@", source)
+    cleaned = SIGNED_QUERY_PATTERN.sub(lambda m: f"{m.group(1)}{SECRET_PLACEHOLDER}", cleaned)
+    cleaned = SECRET_PATTERN.sub(lambda m: f"{m.group(1)}={SECRET_PLACEHOLDER}", cleaned)
     if len(cleaned) > MAX_SOURCE_CHARS:
         return cleaned[:MAX_SOURCE_CHARS] + "…"
     return cleaned

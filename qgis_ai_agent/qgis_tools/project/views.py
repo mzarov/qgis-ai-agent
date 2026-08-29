@@ -3,7 +3,7 @@ from typing import Any
 from qgis.core import QgsApplication, QgsBookmark, QgsProject, QgsReferencedRectangle
 
 from qgis_ai_agent.i18n import tr
-from qgis_ai_agent.qgis_tools.base import SAFETY_READ, SAFETY_WRITE, BaseTool
+from qgis_ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, SAFETY_WRITE, BaseTool
 from qgis_ai_agent.qgis_tools.common.layers import canvas_extent, extent_dict
 from qgis_ai_agent.qgis_tools.project.tree import project
 
@@ -52,6 +52,7 @@ class SaveBookmarkTool(BaseTool):
     description = "Save the current map view as a named spatial bookmark, so it can be returned to later."
     skill = "project"
     safety = SAFETY_WRITE
+    egress = EGRESS_FEATURE_VALUES
     constraints = ["The bookmark name must be new"]
     examples = ["Remember this view as 'city centre'"]
     params_schema = [

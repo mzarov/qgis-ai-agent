@@ -116,6 +116,13 @@ def pyqtSignal(*types, **options):
     return _Signal(*types)
 
 
+def pyqtSlot(*types, **options):
+    def decorate(function):
+        return function
+
+    return decorate
+
+
 WHITE = 255
 MID_LIGHTNESS = 128
 
@@ -231,12 +238,49 @@ class _Timer(_Stub):
         return None
 
 
+class _Feedback(_Stub):
+    def __init__(self, *a, **k):
+        self._cancelled = False
+        self.canceled = _BoundSignal()
+
+    def cancel(self):
+        if self._cancelled:
+            return
+        self._cancelled = True
+        self.canceled.emit()
+
+    def isCanceled(self):
+        return self._cancelled
+
+
+class _Project(_Stub):
+    _singleton = None
+
+    def __init__(self, *a, **k):
+        self._path = ""
+        self.cleared = _BoundSignal()
+
+    @classmethod
+    def instance(cls):
+        if cls._singleton is None:
+            cls._singleton = cls()
+        return cls._singleton
+
+    def fileName(self):
+        return self._path
+
+    def mapLayers(self):
+        return {}
+
+
 _FAKES = {
     "QColor": _Colour,
     "QPalette": _Palette,
     "QLabel": _Label,
     "QToolButton": _Toggle,
     "QTimer": _Timer,
+    "QgsFeedback": _Feedback,
+    "QgsProject": _Project,
 }
 
 
@@ -264,6 +308,7 @@ core = _mod(
         "QgsApplication",
         "QgsProcessingParameterDefinition",
         "QgsProcessingFeedback",
+        "QgsFeedback",
         "QgsLayerTreeGroup",
         "QgsLayerTreeLayer",
         "QgsUnitTypes",
@@ -344,7 +389,7 @@ _qtcore = _mod(
         "QCoreApplication",
     ],
 )
-_mod("qgis.PyQt.QtNetwork", ["QNetworkRequest"])
+_mod("qgis.PyQt.QtNetwork", ["QNetworkRequest", "QSslSocket"])
 _mod(
     "qgis.PyQt.QtGui",
     [
@@ -353,6 +398,7 @@ _mod(
         "QGuiApplication",
         "QKeySequence",
         "QFont",
+        "QFontDatabase",
         "QFontMetrics",
         "QPainter",
         "QPen",
@@ -394,6 +440,7 @@ _mod(
     ],
 )
 _qtcore.pyqtSignal = pyqtSignal
+_qtcore.pyqtSlot = pyqtSlot
 _mod("qgis.utils", ["iface"])
 qgis.core = sys.modules["qgis.core"]
 qgis.PyQt = pyqt

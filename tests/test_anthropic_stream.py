@@ -147,8 +147,8 @@ class ExchangeTest(unittest.TestCase):
         )
         self.flags: list[bool] = []
         self.supported = None
-        module.get_supports_streaming = lambda url: self.supported
-        module.set_supports_streaming = lambda url, value: self.flags.append(value)
+        module.get_supports_streaming = lambda url, model=None, dialect=None: self.supported
+        module.set_supports_streaming = lambda url, value, model=None, dialect=None: self.flags.append(value)
         module.post_json = lambda *a, **k: {"content": [{"type": "text", "text": "plain"}]}
 
     def tearDown(self):
@@ -240,12 +240,12 @@ class CallAnthropicTest(unittest.TestCase):
         self.saved_transport = (transport.build_request, transport.get_supports_thinking, transport.get_thinking_budget)
         self.thinking_flags: list[bool] = []
         self.budget = 0
-        stream_module.get_supports_streaming = lambda url: None
-        stream_module.set_supports_streaming = lambda url, value: None
+        stream_module.get_supports_streaming = lambda url, model=None, dialect=None: None
+        stream_module.set_supports_streaming = lambda url, value, model=None, dialect=None: None
         transport.build_request = lambda *a: ("https://api.anthropic.com/v1/messages", {}, "claude")
-        transport.get_supports_thinking = lambda url: None
+        transport.get_supports_thinking = lambda url, model=None, dialect=None: None
         transport.get_thinking_budget = lambda: self.budget
-        transport.set_supports_thinking = lambda url, value: self.thinking_flags.append(value)
+        transport.set_supports_thinking = lambda url, value, model=None, dialect=None: self.thinking_flags.append(value)
 
     def tearDown(self):
         self.stream_module.post_stream, self.stream_module.get_supports_streaming = self.saved_stream

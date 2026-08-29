@@ -66,17 +66,17 @@ class TrTest(unittest.TestCase):
             i18n.QCoreApplication = saved
 
     def test_plural_substitutes_the_count(self):
-        self.assertEqual(i18n.tr_n("%n action(s)", 3), "3 action(s)")
+        self.assertEqual(i18n.tr_n("%n action(s)", 3), "3 actions")
 
     def test_plural_handles_zero_and_one(self):
-        self.assertEqual(i18n.tr_n("%n step(s)", 0), "0 step(s)")
-        self.assertEqual(i18n.tr_n("%n step(s)", 1), "1 step(s)")
+        self.assertEqual(i18n.tr_n("%n step(s)", 0), "0 steps")
+        self.assertEqual(i18n.tr_n("%n step(s)", 1), "1 step")
 
     def test_plural_never_raises(self):
         saved = i18n.QCoreApplication
         i18n.QCoreApplication = None
         try:
-            self.assertEqual(i18n.tr_n("%n step(s)", 2), "2 step(s)")
+            self.assertEqual(i18n.tr_n("%n step(s)", 2), "2 steps")
         finally:
             i18n.QCoreApplication = saved
 

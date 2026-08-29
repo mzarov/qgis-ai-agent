@@ -1,5 +1,10 @@
 # QGIS AI Agent
 
+[![Tests](https://github.com/mzarov/qgis-ai-agent/actions/workflows/tests.yml/badge.svg)](https://github.com/mzarov/qgis-ai-agent/actions/workflows/tests.yml)
+[![Documentation](https://github.com/mzarov/qgis-ai-agent/actions/workflows/docs.yml/badge.svg)](https://github.com/mzarov/qgis-ai-agent/actions/workflows/docs.yml)
+[![License: GPL-2.0](https://img.shields.io/badge/license-GPL--2.0-blue.svg)](LICENSE)
+[![QGIS 4.0+](https://img.shields.io/badge/QGIS-4.0%2B-589632.svg)](https://qgis.org/)
+
 An AI agent inside QGIS 4: it inspects your project and processes data from a
 plain-language request. It works as a loop — looks at the project, calls tools,
 sees the results, decides the next step. Changes are applied only after the user
@@ -8,7 +13,7 @@ confirms them.
 **Documentation:** <https://mzarov.github.io/qgis-ai-agent/> ·
 по-русски: <https://mzarov.github.io/qgis-ai-agent/ru/>
 
-**What it does** — nine domains, 51 tools:
+**What it does** — nine domains, 58 tools:
 
 | Domain | Example requests |
 | --- | --- |
@@ -29,15 +34,21 @@ really landed, queueing fixes when they did not.
 
 ## Installation
 
-Requires **QGIS 4.0+**. Build the archive and install it through
-**Plugins → Manage and Install Plugins → Install from ZIP**:
+Requires **QGIS 4.0+**. For a published version, download the
+`qgis_ai_agent-<version>.zip` asset from the
+[latest GitHub Release](https://github.com/mzarov/qgis-ai-agent/releases/latest).
+Do not use GitHub's auto-generated “Source code” archives. Install the plugin
+archive through **Plugins → Manage and Install Plugins → Install from ZIP**.
+
+To build the same deterministic archive from a checkout:
 
 ```bash
 python3 tools/build_plugin.py
 ```
 
-The archive appears in `dist/`. Details, dependencies and the development
-install are in [docs/SETUP.md](docs/SETUP.md).
+The archive appears in `dist/`. The external Python dependency `keyring` is not
+bundled and may need to be installed into QGIS's Python. Details, dependencies
+and the development install are in [docs/SETUP.md](docs/SETUP.md).
 
 ## Configuration
 
@@ -48,6 +59,25 @@ stored in the system keychain, not in the config.
 
 The model must support function calling; for endpoints without it there is a
 text JSON protocol that switches on by itself.
+
+## Data and privacy
+
+“Read-only” means a tool does not mutate QGIS; it does not mean its result stays
+on the device. The first agent run against a remote endpoint requires explicit,
+per-endpoint consent. The separate **Test connection** action sends one short
+diagnostic request when you click it, independently of agent-run consent.
+Sharing sensitive GIS data and tool results is a second option that stays off by
+default. It covers feature attribute values, exact map and layer extents, layer
+filters and sources, style categories, Processing and Python results, and
+rendered map or layout images; those tools are hidden and blocked until the
+option is enabled. The configured model can otherwise receive the prompt, recent
+chat context, project notes and basic layer and field metadata. Conversation
+messages and project notes are saved as plain JSON in the active QGIS profile.
+
+Review [the complete data boundary](docs/privacy.md) before connecting a
+sensitive project to a remote provider. Local endpoints are allowed without the
+remote-consent prompt and may access sensitive tools, but a local server can
+still store or forward data, so review its storage and logging configuration.
 
 ## How it works
 
@@ -108,20 +138,25 @@ Before a PR, run the same scanners the QGIS plugin repository runs — CI runs
 them too:
 
 ```bash
-pip install bandit detect-secrets ruff
-cd qgis_ai_agent && bandit -r . && cd ..
-detect-secrets scan qgis_ai_agent/
+pip install bandit detect-secrets==1.5.0 ruff
+bandit -r qgis_ai_agent -q
+git ls-files -z | xargs -0 detect-secrets-hook --baseline .secrets.baseline
 ruff check . && ruff format --check .
 ```
 
-The test suite itself has zero dependencies: stdlib only. When real QGIS is
-absent, `tests/stub.py` fakes the `qgis` modules — so the suite runs both on
-plain Python and inside the QGIS Python.
+The unit suite itself has zero dependencies: stdlib only. On plain Python,
+`tests/stub.py` supplies narrow stand-ins for QGIS values. CI separately runs a
+focused import, icon and registry smoke test in the official QGIS 4 container;
+the full live workflow remains in the manual smoke checklist.
 
 Code rules live in [CLAUDE.md](CLAUDE.md) and in each package's `CLAUDE.md`.
 In short: no comments or docstrings, files around 200 lines (hard cap 400),
 type hints everywhere, absolute imports. All of it is enforced by tests, not by
 eyeballing reviews.
+
+Contributions follow [CONTRIBUTING.md](CONTRIBUTING.md), the
+[Code of Conduct](CODE_OF_CONDUCT.md) and the private reporting process in
+[SECURITY.md](SECURITY.md).
 
 ### Adding a domain
 

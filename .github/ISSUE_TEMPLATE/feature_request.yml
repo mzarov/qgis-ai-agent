@@ -1,0 +1,36 @@
+name: Feature request
+description: Propose a user outcome or workflow improvement
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Describe the GIS workflow and who it helps.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: Include an example prompt and the result you would expect in QGIS.
+    validations:
+      required: true
+  - type: dropdown
+    id: effect
+    attributes:
+      label: Expected effect
+      options:
+        - Read or inspect only
+        - Change the open project
+        - Change data or external files
+        - Contact a new network service
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Data and privacy considerations
+      description: State what project data, if any, would leave the computer.

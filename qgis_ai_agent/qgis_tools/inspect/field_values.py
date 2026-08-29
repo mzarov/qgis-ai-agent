@@ -3,7 +3,7 @@ from typing import Any
 from qgis.core import QgsVectorLayer
 
 from qgis_ai_agent.i18n import tr
-from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
+from qgis_ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
 from qgis_ai_agent.qgis_tools.common.layers import find_layer_by_name
 from qgis_ai_agent.qgis_tools.common.values import clamp_limit, plain_value, suggest_fields
 
@@ -21,6 +21,7 @@ class GetFieldValuesTool(BaseTool):
     )
     skill = "inspect"
     safety = SAFETY_READ
+    egress = EGRESS_FEATURE_VALUES
     constraints = ["The layer and the field must exist", "The layer must be a vector layer"]
     examples = ["Which values does the type field hold?", "What is the range of city population?"]
     params_schema = [

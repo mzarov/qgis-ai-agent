@@ -4,9 +4,41 @@ import tempfile
 import time
 import unittest
 
+from qgis_ai_agent.core.state import conversation as conversation_module
 from qgis_ai_agent.core.state.conversation import ConversationState
 from qgis_ai_agent.core.state.session import MAX_MESSAGES, Session, shorten
 from qgis_ai_agent.core.state.store import MAX_SESSIONS, SessionStore, current_project_key
+from qgis_ai_agent.qgis_tools.common import persistence
+from qgis_ai_agent.qgis_tools.common.project_identity import STORAGE_PREFIX, project_identity, restore_project_identity
+
+
+class Signal:
+    def __init__(self):
+        self._slots = []
+
+    def connect(self, slot):
+        self._slots.append(slot)
+
+    def emit(self):
+        for slot in self._slots:
+            slot()
+
+
+class Project:
+    def __init__(self, path=""):
+        self.path = path
+        self.cleared = Signal()
+
+    def fileName(self):
+        return self.path
+
+
+class StorageProject(Project):
+    def absoluteFilePath(self):
+        return ""
+
+    def projectStorage(self):
+        return object()
 
 
 class SessionTest(unittest.TestCase):
@@ -97,6 +129,8 @@ class SessionStoreTest(unittest.TestCase):
 
     def test_delete(self):
         session = self._saved()
+        session.add("assistant", "answer")
+        self.store.save(session)
         self.store.delete(session.identifier)
         self.assertIsNone(self.store.load(session.identifier))
 
@@ -108,6 +142,22 @@ class SessionStoreTest(unittest.TestCase):
             handle.write("не json")
         self._saved()
         self.assertEqual(len(self.store.recent("/p.qgz")), 1)
+
+    def test_valid_json_with_a_wrong_message_shape_is_safely_loaded(self):
+        path = os.path.join(self.root, "badshape.json")
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write('{"identifier":"badshape","project":"/p.qgz","messages":42}')
+        loaded = self.store.load("badshape")
+        self.assertEqual(loaded.messages, [])
+
+    def test_a_corrupt_primary_recovers_the_previous_valid_session(self):
+        session = self._saved(text="first")
+        session.add("assistant", "second")
+        self.store.save(session)
+        with open(self.store._path(session.identifier), "w", encoding="utf-8") as handle:
+            handle.write("not json")
+        restored = self.store.load(session.identifier)
+        self.assertEqual([item["content"] for item in restored.messages], ["first"])
 
     def test_old_sessions_are_trimmed(self):
         for index in range(MAX_SESSIONS + 5):
@@ -131,6 +181,10 @@ class ConversationStateTest(unittest.TestCase):
         self.state.add("user", "привет")
         self.assertEqual(self.state.window()[-1]["content"], "привет")
         self.assertEqual(self.state.messages[-1]["content"], "привет")
+
+    def test_current_session_identity_is_read_only_state(self):
+        self.assertTrue(self.state.session_identifier)
+        self.assertEqual(self.state.project_key, current_project_key())
 
     def test_message_is_persisted_at_once(self):
         self.state.add("user", "вопрос")
@@ -181,6 +235,14 @@ class ConversationStateTest(unittest.TestCase):
         self.assertFalse(self.state.restore("нет-такого"))
         self.assertEqual(self.state.messages[-1]["content"], "текущее")
 
+    def test_restore_refuses_a_session_owned_by_another_project(self):
+        other = Session.create("/another/project.qgz")
+        other.add("user", "private")
+        self.store.save(other)
+        self.state.add("user", "current")
+        self.assertFalse(self.state.restore(other.identifier))
+        self.assertEqual(self.state.messages[-1]["content"], "current")
+
     def test_recent_gives_identifier_and_title(self):
         self.state.add("user", "про слои")
         self.assertEqual([title for _, title in self.state.recent()], ["про слои"])
@@ -193,6 +255,98 @@ class ConversationStateTest(unittest.TestCase):
         self.state.start_new()
         self.state.start_new()
         self.assertEqual(self.state.recent(), [])
+
+    def test_sync_project_adopts_a_fresh_session_only_when_the_project_changes(self):
+        saved_key = conversation_module.current_project_key
+        keys = iter((self.state.project_key, "/different/project.qgz"))
+        conversation_module.current_project_key = lambda: next(keys)
+        try:
+            identifier = self.state.session_identifier
+            self.assertFalse(self.state.sync_project())
+            self.assertTrue(self.state.sync_project())
+            self.assertNotEqual(self.state.session_identifier, identifier)
+            self.assertEqual(self.state.project_key, "/different/project.qgz")
+            self.assertEqual(self.state.messages, [])
+        finally:
+            conversation_module.current_project_key = saved_key
+
+
+class ProjectIdentityTest(unittest.TestCase):
+    def test_saved_projects_with_the_same_basename_do_not_collide(self):
+        first = project_identity(Project("/clients/acme/map.qgz"))
+        second = project_identity(Project("/clients/other/map.qgz"))
+        self.assertNotEqual(first, second)
+
+    def test_relative_saved_path_is_canonical(self):
+        key = project_identity(Project("projects/../map.qgz"))
+        self.assertTrue(os.path.isabs(key))
+        self.assertEqual(key, os.path.realpath(os.path.abspath("map.qgz")))
+
+    def test_unsaved_identity_is_stable_until_the_project_is_cleared(self):
+        project = Project()
+        first = project_identity(project)
+        self.assertEqual(project_identity(project), first)
+        project.cleared.emit()
+        self.assertNotEqual(project_identity(project), first)
+
+    def test_two_unsaved_projects_do_not_share_an_identity(self):
+        self.assertNotEqual(project_identity(Project()), project_identity(Project()))
+
+    def test_storage_uri_is_hashed_without_credentials_and_is_order_independent(self):
+        first_uri = (
+            "postgresql://alice:first@DB.EXAMPLE:5432/projects?password=first&schema=maps&project=city&dbname=gis"
+        )
+        second_uri = (
+            "postgresql://bob:second@db.example:5432/projects?dbname=gis&project=city&schema=maps&password=second"
+        )
+        first = project_identity(StorageProject(first_uri))
+        second = project_identity(StorageProject(second_uri))
+        self.assertEqual(first, second)
+        self.assertTrue(first.startswith(STORAGE_PREFIX))
+        for secret in ("alice", "first", "bob", "second", "db.example"):
+            self.assertNotIn(secret, first)
+
+    def test_different_stored_projects_have_different_identities(self):
+        first = project_identity(StorageProject("geopackage:/data/projects.gpkg?projectName=first"))
+        second = project_identity(StorageProject("geopackage:/data/projects.gpkg?projectName=second"))
+        self.assertNotEqual(first, second)
+
+    def test_qgis_project_storage_supports_custom_uri_schemes(self):
+        first = project_identity(StorageProject("cloud-store:workspace/map?project=city&authcfg=first"))
+        second = project_identity(StorageProject("cloud-store:workspace/map?authcfg=second&project=city"))
+        self.assertEqual(first, second)
+        self.assertTrue(first.startswith(STORAGE_PREFIX))
+        self.assertNotIn("cloud-store", first)
+
+    def test_unsaved_identity_can_be_restored_after_a_snapshot_read(self):
+        project = Project()
+        original = project_identity(project)
+        project.cleared.emit()
+        self.assertNotEqual(project_identity(project), original)
+        restore_project_identity(project, original)
+        self.assertEqual(project_identity(project), original)
+
+
+class AtomicPersistenceTest(unittest.TestCase):
+    def test_failed_replacement_keeps_the_previous_primary_readable(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = os.path.join(root, "state.json")
+            persistence.atomic_write_json(path, {"version": 1})
+            saved_replace = persistence.os.replace
+
+            def fail_primary(source, target):
+                if target == path:
+                    raise OSError("simulated interruption")
+                return saved_replace(source, target)
+
+            persistence.os.replace = fail_primary
+            try:
+                with self.assertRaises(OSError):
+                    persistence.atomic_write_json(path, {"version": 2})
+            finally:
+                persistence.os.replace = saved_replace
+            self.assertEqual(persistence.read_json(path), {"version": 1})
+            self.assertFalse(any(name.endswith(".tmp") for name in os.listdir(root)))
 
 
 if __name__ == "__main__":

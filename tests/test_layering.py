@@ -10,7 +10,7 @@ FORBIDDEN = {
     "ui": ("qgis_tools", "skills"),
     "skills": ("core", "ui", "qgis_tools"),
 }
-DOMAINS = ("inspect", "style", "processing", "project", "osm")
+DOMAINS = ("edit", "fields", "inspect", "layout", "osm", "processing", "project", "python", "style")
 TOP_LEVEL_MODULES = ("i18n.py", "plugin.py")
 LEAF_MODULES = ("i18n.py",)
 

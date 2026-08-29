@@ -55,6 +55,27 @@ class MetadataRulesTest(unittest.TestCase):
         about = self.values.get("about", "").lower()
         self.assertIn("api key", about)
 
+    def test_actual_model_data_is_disclosed(self):
+        about = self.values.get("about", "").lower()
+        for phrase in (
+            "feature attribute values",
+            "exact map and layer extents",
+            "layer filters and sources",
+            "processing and python results",
+            "rendered map or layout images",
+            "plain json",
+        ):
+            self.assertIn(phrase, about)
+        self.assertIn("per-endpoint consent", about)
+        self.assertIn("off by default", about)
+        self.assertIn("test connection", about)
+        self.assertIn("independently of agent-run consent", about)
+
+    def test_external_keyring_dependency_is_disclosed(self):
+        about = self.values.get("about", "").lower()
+        self.assertIn("external python dependency", about)
+        self.assertIn("keyring is not bundled", about)
+
     def test_name_does_not_repeat_the_word_plugin(self):
         self.assertNotIn("plugin", self.values.get("name", "").lower())
 

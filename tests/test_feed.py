@@ -1,8 +1,13 @@
+import pathlib
 import unittest
 
 from qgis_ai_agent.ui.conversation import ConversationView
 from qgis_ai_agent.ui.messages import AssistantMessage
 from qgis_ai_agent.ui.thinking import ThinkingBlock
+
+DOCK_SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "qgis_ai_agent" / "ui" / "dock_widget.py").read_text(
+    encoding="utf-8"
+)
 
 
 class DraftTest(unittest.TestCase):
@@ -52,6 +57,19 @@ class DraftTest(unittest.TestCase):
         self.view.append_draft("half a")
         self.view.clear()
         self.assertIsNone(self.view._draft)
+
+    def test_delayed_autoscroll_respects_a_user_who_scrolled_up(self):
+        scrolled = []
+        self.view._pinned = False
+        self.view._scroll_to_bottom = lambda: scrolled.append(True)
+        self.view._scroll_if_still_pinned()
+        self.assertEqual(scrolled, [])
+
+
+class DockHeaderContractTest(unittest.TestCase):
+    def test_header_starts_a_real_new_conversation(self):
+        self.assertIn('tr("New conversation"), self.new_session_clicked.emit', DOCK_SOURCE)
+        self.assertNotIn("def _on_clear", DOCK_SOURCE)
 
 
 class WelcomeFeedTest(unittest.TestCase):
@@ -207,6 +225,10 @@ class AssistantMessageTest(unittest.TestCase):
         self.assertEqual(message._markdown, "final")
         self.assertEqual(message._repaint.stopped, 1)
 
+    def test_copy_text_keeps_the_whole_answer(self):
+        message = AssistantMessage("**answer**")
+        self.assertEqual(message.plain_text(), "**answer**")
+
 
 if __name__ == "__main__":
     unittest.main()
@@ -228,6 +250,18 @@ class ActivityTitleTest(unittest.TestCase):
         view = ConversationView()
         view.add_activity_step("Reading the project.")
         self.assertIn("1", view._activity._title.text())
+
+    def test_a_new_action_is_running_not_already_done(self):
+        view = ConversationView()
+        entry_id = view.add_activity_step("Reading the project.")
+        self.assertEqual(view._activity._status.text(), "●")
+        view.mark_activity_step(entry_id, True)
+        self.assertEqual(view._activity._status.text(), "✓")
+
+    def test_a_rejected_attempt_is_shown_as_recovered_not_failed(self):
+        view = ConversationView()
+        view.add_rejected_step("Bad arguments")
+        self.assertEqual(view._activity._status.text(), "↺")
 
 
 class FailedPlanCardTest(unittest.TestCase):

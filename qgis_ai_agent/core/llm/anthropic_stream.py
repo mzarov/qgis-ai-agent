@@ -4,10 +4,16 @@ from typing import Any
 
 from qgis_ai_agent.core.llm.anthropic import TEXT_BLOCK, THINKING_BLOCK, TOOL_USE
 from qgis_ai_agent.core.llm.client import ApiResponseError, post_json
+from qgis_ai_agent.core.llm.dialects import resolve
 from qgis_ai_agent.core.llm.refusals import streaming_unsupported, thinking_unsupported
 from qgis_ai_agent.core.llm.stream import SseAccumulator
 from qgis_ai_agent.core.llm.stream_runner import post_stream
-from qgis_ai_agent.core.settings import get_supports_streaming, set_supports_streaming
+from qgis_ai_agent.core.settings import (
+    get_dialect,
+    get_model,
+    get_supports_streaming,
+    set_supports_streaming,
+)
 
 MESSAGE_START = "message_start"
 MESSAGE_DELTA = "message_delta"
@@ -121,6 +127,11 @@ class AnthropicExchange:
         self._timeout = timeout
         self._url = url
         self._verify = overrides.get("verify_override")
+        overridden_model = overrides.get("model_override")
+        self._model = (overridden_model if overridden_model is not None else get_model()) or ""
+        chosen = overrides.get("dialect_override")
+        self._dialect = resolve(url, chosen if chosen is not None else get_dialect())
+        self._feedback = overrides.get("feedback_override")
         self._on_chunk = on_chunk
         self._on_thinking = on_thinking
 
@@ -128,13 +139,23 @@ class AnthropicExchange:
         streamed = self._streamed(body)
         if streamed is not None:
             return streamed
-        return post_json(self._endpoint, self._headers, body, self._timeout, self._verify)
+        return post_json(
+            self._endpoint,
+            self._headers,
+            body,
+            self._timeout,
+            self._verify,
+            self._feedback,
+        )
 
     def _streamed(self, body: dict[str, Any]) -> dict[str, Any] | None:
-        if self._on_chunk is None or get_supports_streaming(self._url) is False:
+        if self._on_chunk is None or get_supports_streaming(self._url, self._model, self._dialect) is False:
             return None
         message = StreamedMessage(self._on_chunk, self._on_thinking)
         try:
+            stream_options = {}
+            if self._feedback is not None:
+                stream_options["feedback"] = self._feedback
             data = post_stream(
                 self._endpoint,
                 self._headers,
@@ -142,17 +163,18 @@ class AnthropicExchange:
                 message,
                 self._timeout,
                 self._verify,
+                **stream_options,
             )
         except ApiResponseError as err:
             if thinking_unsupported(err) or not streaming_unsupported(err):
                 raise
-            set_supports_streaming(self._url, False)
+            set_supports_streaming(self._url, False, self._model, self._dialect)
             return None
         if not data.get("content"):
-            set_supports_streaming(self._url, False)
+            set_supports_streaming(self._url, False, self._model, self._dialect)
             return None
-        if get_supports_streaming(self._url) is None:
-            set_supports_streaming(self._url, True)
+        if get_supports_streaming(self._url, self._model, self._dialect) is None:
+            set_supports_streaming(self._url, True, self._model, self._dialect)
         return data
 
 

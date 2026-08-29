@@ -4,7 +4,7 @@ from qgis.core import QgsMapRendererParallelJob, QgsMapSettings
 from qgis.PyQt.QtCore import QSize
 
 from qgis_ai_agent.i18n import tr
-from qgis_ai_agent.qgis_tools.base import RESULT_IMAGE_KEY, SAFETY_READ, BaseTool
+from qgis_ai_agent.qgis_tools.base import EGRESS_IMAGE, RESULT_IMAGE_KEY, SAFETY_READ, BaseTool
 from qgis_ai_agent.qgis_tools.common.images import encoded_png
 from qgis_ai_agent.qgis_tools.common.layers import extent_dict, find_layer_by_name, safe_extent
 
@@ -25,6 +25,7 @@ class RenderMapTool(BaseTool):
     )
     skill = "inspect"
     safety = SAFETY_READ
+    egress = EGRESS_IMAGE
     constraints = ["Needs the QGIS window; unavailable in headless runs"]
     examples = ["Show me what the map looks like now", "Check that the rivers really turned blue"]
     params_schema = [

@@ -10,7 +10,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from qgis_ai_agent.i18n import tr, tr_n
+from qgis_ai_agent.i18n import tr_n
 from qgis_ai_agent.ui import style
 
 COLLAPSED = "›"
@@ -19,6 +19,7 @@ PENDING = "●"
 DONE = "✓"
 FAILED = "✕"
 REJECTED = "⊘"
+RECOVERED = "↺"
 STEP_FONT_SCALE = 0.9
 MARKER_WIDTH = 14
 STEPS_INDENT = 26
@@ -36,7 +37,10 @@ class ActivityGroup(QFrame):
         column.addWidget(self._header)
         column.addWidget(self._build_steps(palette))
         self._count = 0
+        self._pending = 0
         self._failed = False
+        self._rejected = False
+        self._closed = False
         self._started = time.monotonic()
         self._steps_holder.setVisible(False)
 
@@ -87,6 +91,7 @@ class ActivityGroup(QFrame):
         row = StepRow(text, self.palette())
         self._steps.addWidget(row)
         self._count += 1
+        self._pending += 1
         self._refresh()
         return row
 
@@ -98,17 +103,23 @@ class ActivityGroup(QFrame):
         self._toggle.setChecked(True)
 
     def rest(self) -> None:
+        self._closed = True
         self._toggle.setChecked(False)
+        self._refresh()
 
     def mark_step(self, row: "StepRow", ok: bool) -> None:
+        if row.state == PENDING:
+            self._pending = max(0, self._pending - 1)
         row.set_state(DONE if ok else FAILED, ok)
         if not ok:
             self._failed = True
         self._refresh()
 
     def mark_rejected(self, row: "StepRow") -> None:
+        if row.state == PENDING:
+            self._pending = max(0, self._pending - 1)
         row.set_state(REJECTED, False)
-        self._failed = True
+        self._rejected = True
         self._refresh()
 
     def _refresh(self) -> None:
@@ -116,8 +127,19 @@ class ActivityGroup(QFrame):
         self._header.setVisible(bool(self._count))
         self._steps.setContentsMargins(STEPS_INDENT if self._count else 0, 2, 2, 4)
         self._title.setText(tr_n("%n action(s)", self._count))
-        self._status.setText(FAILED if self._failed else DONE)
-        colour = style.danger(palette) if self._failed else style.success(palette)
+        if self._pending and not self._closed:
+            marker = PENDING
+            colour = style.accent(palette)
+        elif self._failed:
+            marker = FAILED
+            colour = style.danger(palette)
+        elif self._rejected:
+            marker = RECOVERED
+            colour = style.warning(palette)
+        else:
+            marker = DONE
+            colour = style.success(palette)
+        self._status.setText(marker)
         self._status.setStyleSheet(f"color: {style.css_color(colour)}; border: none;")
         self._elapsed.setText(_format_seconds(time.monotonic() - self._started))
 
@@ -141,6 +163,7 @@ class StepRow(QWidget):
         row.setSpacing(8)
 
         self._marker = QLabel(PENDING)
+        self.state = PENDING
         self._marker.setFixedWidth(MARKER_WIDTH)
         self._marker.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
         row.addWidget(self._marker)
@@ -158,6 +181,7 @@ class StepRow(QWidget):
         palette = self.palette()
         colour = style.success(palette) if ok else style.danger(palette)
         self._marker.setText(marker)
+        self.state = marker
         self._marker.setStyleSheet(f"color: {style.css_color(colour)};")
 
 

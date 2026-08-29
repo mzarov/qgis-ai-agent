@@ -4,7 +4,6 @@ from qgis.PyQt.QtCore import QTimer, pyqtSignal
 from qgis.PyQt.QtGui import QGuiApplication
 from qgis.PyQt.QtWidgets import (
     QFrame,
-    QLabel,
     QMenu,
     QScrollArea,
     QVBoxLayout,
@@ -108,7 +107,7 @@ class ConversationView(QScrollArea):
             self._activity.reveal()
             self._thinking = block
         self._thinking.append(delta)
-        QTimer.singleShot(0, self._scroll_to_bottom)
+        self._scroll_when_pinned()
 
     def _close_thinking(self) -> None:
         if self._thinking is None:
@@ -123,7 +122,7 @@ class ConversationView(QScrollArea):
             self._append(draft)
             self._draft = draft
         self._draft.append(delta)
-        QTimer.singleShot(0, self._scroll_to_bottom)
+        self._scroll_when_pinned()
 
     def finish_draft(self, markdown: str) -> bool:
         draft = self._draft
@@ -131,7 +130,7 @@ class ConversationView(QScrollArea):
         if draft is None:
             return False
         draft.set_markdown(markdown)
-        QTimer.singleShot(0, self._scroll_to_bottom)
+        self._scroll_when_pinned()
         return True
 
     def _drop_draft(self) -> None:
@@ -147,7 +146,7 @@ class ConversationView(QScrollArea):
             self._activity = ActivityGroup()
             self._append(self._activity)
         step = self._activity.add_step(text)
-        QTimer.singleShot(0, self._scroll_to_bottom)
+        self._scroll_when_pinned()
         return self._remember(step)
 
     def mark_activity_step(self, entry_id: int, ok: bool) -> None:
@@ -202,7 +201,7 @@ class ConversationView(QScrollArea):
         for index in range(self._column.count() - 1):
             widget = self._column.itemAt(index).widget()
             if isinstance(widget, (UserMessage, AssistantMessage, SystemMessage)):
-                parts.append(widget.findChild(QLabel).text() if widget.findChild(QLabel) else "")
+                parts.append(widget.plain_text())
         text = "\n\n".join(part for part in parts if part)
         if text:
             QGuiApplication.clipboard().setText(text)
@@ -218,7 +217,7 @@ class ConversationView(QScrollArea):
         self._close_thinking()
         self._drop_welcome()
         self._insert(widget)
-        QTimer.singleShot(0, self._scroll_to_bottom)
+        self._scroll_when_pinned()
         return self._remember(widget)
 
     def _insert(self, widget: QWidget, stretch: int = 0) -> None:
@@ -246,3 +245,11 @@ class ConversationView(QScrollArea):
         self._pinned = True
         bar = self.verticalScrollBar()
         bar.setValue(bar.maximum())
+
+    def _scroll_when_pinned(self) -> None:
+        if self._pinned:
+            QTimer.singleShot(0, self._scroll_if_still_pinned)
+
+    def _scroll_if_still_pinned(self) -> None:
+        if self._pinned:
+            self._scroll_to_bottom()

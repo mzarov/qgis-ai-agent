@@ -1,3 +1,6 @@
+import ipaddress
+from urllib.parse import urlsplit
+
 OPENAI = "openai"
 ANTHROPIC = "anthropic"
 AUTO = "auto"
@@ -11,6 +14,7 @@ OPENROUTER_HOSTS = ("openrouter.ai",)
 REFERER = "https://github.com/mzarov/qgis-ai-agent"
 TITLE = "QGIS AI Agent"
 DEFAULT_MAX_TOKENS = 4096
+LOOPBACK_HOSTS = ("localhost", "0.0.0.0")
 
 
 def detect(url: str) -> str:
@@ -33,10 +37,38 @@ def is_openrouter(url: str) -> bool:
 
 
 def host_of(url: str) -> str:
-    authority = (url or "").split("//")[-1].split("/")[0].strip().lower()
-    if authority.startswith("["):
-        return authority[1:].split("]")[0]
-    return authority.split(":")[0]
+    text = (url or "").strip()
+    if not text:
+        return ""
+    try:
+        parsed = urlsplit(text if "://" in text else f"//{text}")
+    except ValueError:
+        return ""
+    return (parsed.hostname or "").lower()
+
+
+def is_loopback_host(host: str) -> bool:
+    normalized = (host or "").strip().lower()
+    if normalized in LOOPBACK_HOSTS:
+        return True
+    try:
+        return ipaddress.ip_address(normalized).is_loopback
+    except ValueError:
+        return False
+
+
+def safe_endpoint_label(url: str) -> str:
+    try:
+        parsed = urlsplit((url or "").strip())
+    except ValueError:
+        return "configured endpoint"
+    host = parsed.hostname or ""
+    try:
+        parsed_port = parsed.port
+    except ValueError:
+        parsed_port = None
+    port = f":{parsed_port}" if parsed_port else ""
+    return f"{parsed.scheme or 'https'}://{host}{port}" if host else "configured endpoint"
 
 
 def path_for(dialect: str) -> str:

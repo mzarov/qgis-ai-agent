@@ -6,10 +6,17 @@ from qgis_ai_agent.core.agent.loop import AgentLoop
 from qgis_ai_agent.core.agent.prompts import build_verification_prompt
 from qgis_ai_agent.core.llm.client import is_local
 from qgis_ai_agent.core.orchestrator.contracts import DockWidgetContract
-from qgis_ai_agent.core.settings import get_api_key, get_api_url, get_verify_after_apply
+from qgis_ai_agent.core.privacy import endpoint_label
+from qgis_ai_agent.core.settings import (
+    get_api_key,
+    get_api_url,
+    get_data_sharing_consent,
+    get_verify_after_apply,
+    set_data_sharing_consent,
+)
 from qgis_ai_agent.core.state.conversation import ConversationState
-from qgis_ai_agent.i18n import tr
-from qgis_ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
+from qgis_ai_agent.i18n import tr, tr_n
+from qgis_ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE, effective_safety, has_external_effect
 from qgis_ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call
 
 LOG_TAG = "QGIS AI Agent"
@@ -18,14 +25,20 @@ SESSION_MISSING = tr("Conversation not found.")
 RUN_STOPPED = tr("Run stopped. Any changes the agent had planned were dropped.")
 SWITCH_WHILE_RUNNING = tr("Wait for the current task to finish.")
 SWITCH_WHILE_PENDING = tr("Apply or cancel the planned changes first.")
+SWITCH_WHILE_AWAITING = tr("Answer or stop the current question before switching conversations.")
 VERIFYING = tr("Checking the applied changes…")
 MAX_VERIFICATION_ROUNDS = 3
 DESTRUCTIVE_DECLINED = tr("Kept everything as it was — the destructive steps were not applied.")
 INTERJECTED = tr("Passed to the agent — it will take this into account on its next step.")
 PLAN_DROPPED = tr("The planned changes were dropped — they were not applied. Starting over from your message.")
 AWAITING_ANSWER = tr("Waiting for your answer — the run continues from it.")
+PROJECT_CHANGED = tr("The QGIS project changed. A new project-scoped conversation was started.")
+DATA_SHARING_DECLINED = tr("Request not sent. Project data sharing remains disabled for this endpoint.")
 THOUSAND = 1000
 TOKENS_LABEL = tr("{0} tokens")
+EFFECT_SNAPSHOT = tr("project snapshot available")
+EFFECT_EXTERNAL = tr("writes outside the project; Undo does not restore it")
+EFFECT_IRREVERSIBLE = tr("may be irreversible; extra confirmation required")
 
 
 class CoreOrchestrator:
@@ -85,9 +98,20 @@ class CoreOrchestrator:
             return
         self._replay()
 
+    def on_project_changed(self) -> None:
+        if not self.conversation.sync_project():
+            return
+        if self.agent.is_running or self.agent.has_pending_writes or self.agent.is_awaiting_answer:
+            self.agent.abort()
+        self._replay()
+        self.dock_widget.add_system_message(PROJECT_CHANGED)
+
     def _busy_with_current(self) -> bool:
         if self.agent.is_running:
             self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
+            return True
+        if self.agent.is_awaiting_answer:
+            self.dock_widget.add_system_message(SWITCH_WHILE_AWAITING)
             return True
         if self.agent.has_pending_writes:
             self.dock_widget.add_system_message(SWITCH_WHILE_PENDING)
@@ -110,6 +134,8 @@ class CoreOrchestrator:
         if self.agent.is_awaiting_answer:
             self._answer(text)
             return
+        if not self._ensure_data_sharing_consent():
+            return
 
         self.dock_widget.add_user_message(text)
         self.dock_widget.clear_prompt()
@@ -118,6 +144,18 @@ class CoreOrchestrator:
         history = self.conversation.window()
         self.conversation.add("user", text)
         self.agent.start(text, history)
+
+    def _ensure_data_sharing_consent(self, endpoint: str | None = None) -> bool:
+        if not _is_configured():
+            return True
+        url = (endpoint if endpoint is not None else get_api_url() or "").strip()
+        if not url or is_local(url) or get_data_sharing_consent(url):
+            return True
+        if not self.dock_widget.confirm_data_sharing(endpoint_label(url)):
+            self.dock_widget.add_system_message(DATA_SHARING_DECLINED)
+            return False
+        set_data_sharing_consent(True, url)
+        return True
 
     def _drop_pending_plan(self) -> None:
         pending = self.agent.has_pending_writes
@@ -140,6 +178,8 @@ class CoreOrchestrator:
         self.dock_widget.add_system_message(AWAITING_ANSWER)
 
     def _answer(self, text: str) -> None:
+        if not self._ensure_data_sharing_consent(getattr(self.agent, "endpoint", None)):
+            return
         self.dock_widget.add_user_message(text)
         self.dock_widget.clear_prompt()
         self.conversation.add("user", text)
@@ -164,8 +204,8 @@ class CoreOrchestrator:
         if not ok:
             QgsMessageLog.logMessage(f"Tool {tool_name} failed.", LOG_TAG, Qgis.Warning)
 
-    def on_tool_queued(self, summary: str) -> None:
-        QgsMessageLog.logMessage(f"Added to plan: {summary}", LOG_TAG, Qgis.Info)
+    def on_tool_queued(self, _summary: str) -> None:
+        QgsMessageLog.logMessage("A validated step was added to the plan.", LOG_TAG, Qgis.Info)
 
     def on_tool_rejected(self, summary: str) -> None:
         self.dock_widget.add_rejected_message(tr("Rejected: {0}").format(summary))
@@ -180,8 +220,23 @@ class CoreOrchestrator:
     def on_confirm_needed(self, calls: list, final_text: str) -> None:
         if final_text:
             self._render_answer(final_text)
-        lines = [summarize_tool_call(call.name, call.arguments) for call in calls]
+        lines = [self._plan_line(call) for call in calls]
         self._plan_message_id = self.dock_widget.add_plan_message(lines)
+
+    @staticmethod
+    def _plan_line(call) -> str:
+        summary = summarize_tool_call(call.name, call.arguments)
+        tool = get_tool_by_name(call.name)
+        if tool is None:
+            return summary
+        risk = effective_safety(tool, call.arguments)
+        if has_external_effect(tool, call.arguments):
+            effect = EFFECT_EXTERNAL
+        elif risk == SAFETY_DESTRUCTIVE:
+            effect = EFFECT_IRREVERSIBLE
+        else:
+            effect = EFFECT_SNAPSHOT
+        return f"{summary} · {effect}"
 
     def on_confirm_plan(self) -> None:
         if not self.agent.has_pending_writes:
@@ -198,7 +253,7 @@ class CoreOrchestrator:
         details = []
         for call in self.agent.pending_writes():
             tool = get_tool_by_name(call.name)
-            if tool is not None and tool.safety == SAFETY_DESTRUCTIVE:
+            if tool is not None and effective_safety(tool, call.arguments) == SAFETY_DESTRUCTIVE:
                 lines.append(summarize_tool_call(call.name, call.arguments))
                 detail = ""
                 try:
@@ -217,7 +272,10 @@ class CoreOrchestrator:
 
     def on_stage_applied(self, results: list) -> None:
         if self._plan_message_id is not None:
-            self.dock_widget.mark_plan_completed(self._plan_message_id)
+            if any(not result.ok for result in results):
+                self.dock_widget.mark_plan_failed(self._plan_message_id)
+            else:
+                self.dock_widget.mark_plan_completed(self._plan_message_id)
         self._plan_message_id = None
 
     def on_applied(self, results: list) -> None:
@@ -235,7 +293,7 @@ class CoreOrchestrator:
             self.conversation.add("assistant", outcome)
             self._push_message(tr("Not all changes were applied."), Qgis.Warning)
         else:
-            outcome = tr("Done: {0} step(s) applied.{1}").format(len(results), self._where_to_look(results))
+            outcome = tr_n("Done: %n step(s) applied.{0}", len(results)).format(self._where_to_look(results))
             self.dock_widget.add_result_message(outcome)
             self.conversation.add("assistant", outcome)
             self._push_message(tr("Changes applied."), Qgis.Success)

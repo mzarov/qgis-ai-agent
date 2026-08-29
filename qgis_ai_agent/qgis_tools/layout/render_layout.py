@@ -4,7 +4,7 @@ from qgis.core import QgsLayoutExporter
 from qgis.PyQt.QtCore import QSize
 
 from qgis_ai_agent.i18n import tr
-from qgis_ai_agent.qgis_tools.base import RESULT_IMAGE_KEY, SAFETY_READ, BaseTool
+from qgis_ai_agent.qgis_tools.base import EGRESS_IMAGE, RESULT_IMAGE_KEY, SAFETY_READ, BaseTool
 from qgis_ai_agent.qgis_tools.common.images import encoded_png
 from qgis_ai_agent.qgis_tools.layout.pages import current_page_mm, find_layout
 
@@ -28,6 +28,7 @@ class RenderLayoutTool(BaseTool):
     )
     skill = "layout"
     safety = SAFETY_READ
+    egress = EGRESS_IMAGE
     constraints = ["The layout must exist (see list_layouts)"]
     examples = ["Show me the layout", "Check that the legend does not cover the map"]
     params_schema = [

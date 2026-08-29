@@ -15,3 +15,8 @@ BUDGET_REACHED_MESSAGE = (
     "This task hit the token budget set in the settings, so I stopped where I got to. "
     "Raise the budget or split the request into smaller steps."
 )
+SNAPSHOT_FAILED_MESSAGE = "Could not create the safety snapshot. No planned changes were applied."
+SENSITIVE_DATA_BLOCKED = (
+    "Privacy mode blocked this tool because its result can contain sensitive GIS data. "
+    "The user can allow sensitive data for this endpoint in Settings."
+)

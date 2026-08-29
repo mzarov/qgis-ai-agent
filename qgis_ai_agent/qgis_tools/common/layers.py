@@ -123,6 +123,7 @@ def canvas_extent() -> QgsRectangle:
 def describe_layer_brief(layer: QgsMapLayer) -> dict[str, Any]:
     kind = layer_kind(layer)
     brief: dict[str, Any] = {
+        "id": layer_identifier(layer),
         "name": (layer.name() or "Unnamed").strip(),
         "kind": kind,
         "crs": crs_authid(layer),
@@ -149,12 +150,66 @@ def find_layer_by_name(name: str) -> QgsMapLayer:
     project = QgsProject.instance()
     if wanted:
         matches = project.mapLayersByName(wanted)
-        if matches:
+        if len(matches) == 1:
             return matches[0]
+        if len(matches) > 1:
+            raise _ambiguous_layer(wanted, matches)
         lowered = wanted.lower()
-        for layer in project.mapLayers().values():
-            if (layer.name() or "").strip().lower() == lowered:
-                return layer
-    available = [(layer.name() or "").strip() for layer in project.mapLayers().values()]
+        insensitive = [
+            layer for layer in project.mapLayers().values() if (layer.name() or "").strip().lower() == lowered
+        ]
+        if len(insensitive) == 1:
+            return insensitive[0]
+        if len(insensitive) > 1:
+            raise _ambiguous_layer(wanted, insensitive)
+    available = [_layer_reference(layer) for layer in project.mapLayers().values()]
     hint = ", ".join(available) if available else "the project has no layers"
     raise ValueError(f"Layer not found: '{wanted}'. Available layers: {hint}.")
+
+
+def find_layer_by_id(layer_id: str) -> QgsMapLayer:
+    wanted = (layer_id or "").strip()
+    if not wanted:
+        raise ValueError("layer_id is empty — use the id returned by list_layers.")
+    project = QgsProject.instance()
+    try:
+        layers = project.mapLayers()
+    except Exception:
+        layers = {}
+    layer = layers.get(wanted)
+    if layer is not None:
+        return layer
+    available = [_layer_reference(item) for item in project.mapLayers().values()]
+    hint = ", ".join(available) if available else "the project has no layers"
+    raise ValueError(f"Layer id not found: '{wanted}'. Available layers: {hint}.")
+
+
+def layer_identifier(layer: QgsMapLayer) -> str:
+    try:
+        identifier = layer.id()
+    except Exception:
+        return ""
+    return identifier if isinstance(identifier, str) else ""
+
+
+def bind_layer_reference(params: dict[str, Any], layer: QgsMapLayer) -> dict[str, Any]:
+    prepared = dict(params)
+    prepared["layer_name"] = (layer.name() or "").strip()
+    identifier = layer_identifier(layer)
+    if identifier:
+        prepared["layer_id"] = identifier
+    return prepared
+
+
+def _ambiguous_layer(name: str, matches: list[QgsMapLayer]) -> ValueError:
+    choices = ", ".join(_layer_reference(layer) for layer in matches)
+    return ValueError(
+        f"Layer name '{name}' is ambiguous: {len(matches)} project layers match ({choices}). "
+        "Use layer_id from list_layers for a stable target."
+    )
+
+
+def _layer_reference(layer: QgsMapLayer) -> str:
+    name = (layer.name() or "Unnamed").strip()
+    identifier = layer_identifier(layer)
+    return f"'{name}' [id={identifier}]" if identifier else f"'{name}'"

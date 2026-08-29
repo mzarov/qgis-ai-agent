@@ -5,6 +5,9 @@ RESULT_IMAGE_KEY = "image_base64"
 SAFETY_READ = "read"
 SAFETY_WRITE = "write"
 SAFETY_DESTRUCTIVE = "destructive"
+EGRESS_METADATA = "metadata"
+EGRESS_FEATURE_VALUES = "feature_values"
+EGRESS_IMAGE = "image"
 
 JSON_SCHEMA_TYPES = {
     "string": "string",
@@ -24,10 +27,18 @@ class BaseTool(ABC):
     examples: list[str] = []
     skill: str = ""
     safety: str = SAFETY_WRITE
+    egress: str = EGRESS_METADATA
+    external_effect: bool = False
 
     @property
     def is_read_only(self) -> bool:
         return self.safety == SAFETY_READ
+
+    def safety_for(self, params: dict[str, Any]) -> str:
+        return self.safety
+
+    def has_external_effect(self, params: dict[str, Any]) -> bool:
+        return self.external_effect
 
     def get_openai_schema(self) -> dict[str, Any]:
         properties: dict[str, Any] = {}
@@ -87,3 +98,17 @@ class BaseTool(ABC):
 
     @abstractmethod
     def execute(self, params: dict[str, Any]) -> dict[str, Any]: ...
+
+
+def effective_safety(tool: BaseTool, params: dict[str, Any]) -> str:
+    resolver = getattr(tool, "safety_for", None)
+    if callable(resolver):
+        return str(resolver(params))
+    return str(tool.safety)
+
+
+def has_external_effect(tool: BaseTool, params: dict[str, Any]) -> bool:
+    resolver = getattr(tool, "has_external_effect", None)
+    if callable(resolver):
+        return bool(resolver(params))
+    return bool(getattr(tool, "external_effect", False))

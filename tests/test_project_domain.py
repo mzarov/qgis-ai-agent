@@ -3,6 +3,7 @@ import shutil
 import tempfile
 import unittest
 
+from qgis_ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE, SAFETY_WRITE
 from qgis_ai_agent.qgis_tools.project import (
     add_layer,
     configure_layer,
@@ -344,6 +345,62 @@ class SaveProjectTest(ProjectCase):
         with self.assertRaises(ValueError) as caught:
             self.tool.execute({"path": "/data/город"})
         self.assertIn("could not write", str(caught.exception))
+
+    def test_save_as_refuses_to_replace_another_project_without_opt_in(self):
+        self.project._path = "/data/current.qgz"
+        with tempfile.TemporaryDirectory() as folder:
+            target = os.path.join(folder, "existing.qgz")
+            open(target, "w").close()
+            with self.assertRaises(ValueError) as caught:
+                self.tool.prepare({"path": target})
+        self.assertIn("overwrite=true", str(caught.exception))
+
+    def test_explicit_overwrite_of_another_project_is_destructive(self):
+        self.project._path = "/data/current.qgz"
+        with tempfile.TemporaryDirectory() as folder:
+            target = os.path.join(folder, "existing.qgz")
+            open(target, "w").close()
+            prepared = self.tool.prepare({"path": target, "overwrite": True})
+            self.assertEqual(self.tool.safety_for(prepared), SAFETY_DESTRUCTIVE)
+
+    def test_target_created_after_planning_is_not_silently_replaced(self):
+        self.project._path = "/data/current.qgz"
+        with tempfile.TemporaryDirectory() as folder:
+            target = os.path.join(folder, "appears-later.qgz")
+            prepared = self.tool.prepare({"path": target})
+            open(target, "w").close()
+            with self.assertRaises(ValueError):
+                self.tool.execute(prepared)
+
+    def test_saving_the_current_project_path_remains_an_ordinary_write(self):
+        with tempfile.TemporaryDirectory() as folder:
+            current = os.path.join(folder, "current.qgz")
+            open(current, "w").close()
+            self.project._path = current
+            prepared = self.tool.prepare({"path": current})
+            self.assertEqual(self.tool.safety_for(prepared), SAFETY_WRITE)
+
+    def test_save_project_is_an_external_effect(self):
+        self.assertTrue(self.tool.external_effect)
+
+    def test_qgs_save_as_refuses_to_replace_an_existing_attachment_archive(self):
+        folder = tempfile.mkdtemp()
+        self.addCleanup(lambda: shutil.rmtree(folder, ignore_errors=True))
+        target = os.path.join(folder, "city.qgs")
+        with open(os.path.join(folder, "city_attachments.zip"), "wb") as handle:
+            handle.write(b"existing attachments")
+        with self.assertRaisesRegex(ValueError, "overwrite=true"):
+            self.tool.prepare({"path": target})
+
+    def test_current_qgs_sidecars_remain_exempt_from_save_as_collision_guard(self):
+        folder = tempfile.mkdtemp()
+        self.addCleanup(lambda: shutil.rmtree(folder, ignore_errors=True))
+        target = os.path.join(folder, "city.qgs")
+        for path in (target, os.path.join(folder, "city.qgd"), os.path.join(folder, "city_attachments.zip")):
+            with open(path, "wb") as handle:
+                handle.write(b"current project")
+        self.project._path = target
+        self.assertEqual(self.tool.prepare({"path": target})["path"], target)
 
 
 class ZoomToLayerTest(ProjectCase):

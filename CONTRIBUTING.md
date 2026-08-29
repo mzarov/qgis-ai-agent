@@ -16,7 +16,8 @@ poetry run pre-commit install
 The pre-commit hook runs `ruff check --fix` and `ruff format` on every commit —
 style and import order are not review topics here, the machine owns them.
 
-Run the suite (no QGIS needed — `tests/stub.py` fakes the `qgis` modules):
+Run the fast unit suite (`tests/stub.py` supplies QGIS stand-ins when PyQGIS is
+not installed):
 
 ```bash
 python3 -m unittest discover -s tests -t .
@@ -112,4 +113,21 @@ Preview locally with `pip install mkdocs-material mkdocs-static-i18n` and
       [docs/smoke_checklist.md](docs/smoke_checklist.md)
 
 CI repeats the suite on Python 3.12–3.14, runs ruff, and runs the same
-scanners the QGIS plugin repository applies (bandit, detect-secrets).
+scanners the QGIS plugin repository applies (bandit, detect-secrets). A separate
+job runs the import, icon, project-identity and registry smoke checks in the
+official QGIS 4 container.
+
+## Making a release
+
+1. Confirm that the display name and Python package identifier are not already
+   owned in the official QGIS plugin repository.
+2. Update the version in both `metadata.txt` and `pyproject.toml`, and write a
+   user-facing changelog entry.
+3. Run the full unit, lint, scanner, package and live-QGIS checks. Inspect the
+   ZIP and confirm it has one `qgis_ai_agent/` top-level folder.
+4. Build twice from the same source and compare SHA-256 hashes. The build uses a
+   fixed manifest, timestamps and permissions, so the archives must match.
+5. Tag that exact commit, create a GitHub Release and attach the generated plugin
+   ZIP rather than a GitHub “Source code” archive. Publish its SHA-256 checksum.
+6. Upload the same ZIP to the QGIS repository only after the GitHub release and
+   install it once into a clean QGIS profile.

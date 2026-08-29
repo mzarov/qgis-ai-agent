@@ -1,7 +1,13 @@
 import unittest
 
+from qgis_ai_agent.qgis_tools.common import layers as layers_module
 from qgis_ai_agent.qgis_tools.common.layer_meta import sanitize_source
-from qgis_ai_agent.qgis_tools.common.layers import utm_authid
+from qgis_ai_agent.qgis_tools.common.layers import (
+    bind_layer_reference,
+    find_layer_by_id,
+    find_layer_by_name,
+    utm_authid,
+)
 
 
 class Extent:
@@ -64,6 +70,19 @@ class SanitizeSourceTest(unittest.TestCase):
     def test_apikey_is_hidden(self):
         self.assertNotIn("DEADBEEF", sanitize_source("url=https://x&apikey=DEADBEEF"))
 
+    def test_url_userinfo_is_hidden(self):
+        cleaned = sanitize_source("https://alice:secret@db.example/data")
+        self.assertNotIn("alice", cleaned)
+        self.assertNotIn("secret", cleaned)
+        self.assertIn("db.example", cleaned)
+
+    def test_s3_and_azure_signed_url_credentials_are_hidden(self):
+        source = "https://bucket.s3/x?X-Amz-Credential=AKIA_TEST&X-Amz-Signature=deadbeef&sig=azure-supersecret"
+        cleaned = sanitize_source(source)
+        for secret in ("AKIA_TEST", "deadbeef", "azure-supersecret"):
+            self.assertNotIn(secret, cleaned)
+        self.assertIn("<hidden>", cleaned)
+
     def test_primary_key_column_is_kept(self):
         self.assertIn("key='gid'", sanitize_source("dbname='g' key='gid' password='x'"))
 
@@ -73,6 +92,64 @@ class SanitizeSourceTest(unittest.TestCase):
 
     def test_long_source_is_truncated(self):
         self.assertLessEqual(len(sanitize_source("x" * 900)), 320)
+
+
+class NamedLayer:
+    def __init__(self, identifier, name):
+        self._identifier = identifier
+        self._name = name
+
+    def id(self):
+        return self._identifier
+
+    def name(self):
+        return self._name
+
+
+class LayerProject:
+    def __init__(self, layers):
+        self.layers = {layer.id(): layer for layer in layers}
+
+    def mapLayers(self):
+        return dict(self.layers)
+
+    def mapLayersByName(self, name):
+        return [layer for layer in self.layers.values() if layer.name() == name]
+
+
+class LayerIdentityTest(unittest.TestCase):
+    def setUp(self):
+        self.first = NamedLayer("roads_a", "roads")
+        self.second = NamedLayer("roads_b", "roads")
+        project = LayerProject([self.first, self.second])
+        self.saved = layers_module.QgsProject
+        layers_module.QgsProject = type("ProjectHolder", (), {"instance": staticmethod(lambda: project)})
+
+    def tearDown(self):
+        layers_module.QgsProject = self.saved
+
+    def test_duplicate_exact_names_are_never_resolved_by_order(self):
+        with self.assertRaises(ValueError) as caught:
+            find_layer_by_name("roads")
+        message = str(caught.exception)
+        self.assertIn("ambiguous", message)
+        self.assertIn("roads_a", message)
+        self.assertIn("roads_b", message)
+
+    def test_case_insensitive_fallback_is_also_ambiguity_safe(self):
+        project = LayerProject([NamedLayer("upper", "Roads"), NamedLayer("caps", "ROADS")])
+        layers_module.QgsProject = type("ProjectHolder", (), {"instance": staticmethod(lambda: project)})
+        with self.assertRaises(ValueError) as caught:
+            find_layer_by_name("roads")
+        self.assertIn("ambiguous", str(caught.exception))
+
+    def test_layer_id_selects_one_stable_target(self):
+        self.assertIs(find_layer_by_id("roads_b"), self.second)
+
+    def test_prepared_reference_keeps_both_human_name_and_stable_id(self):
+        prepared = bind_layer_reference({"layer_name": "roads"}, self.second)
+        self.assertEqual(prepared["layer_name"], "roads")
+        self.assertEqual(prepared["layer_id"], "roads_b")
 
 
 if __name__ == "__main__":

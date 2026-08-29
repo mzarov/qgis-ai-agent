@@ -70,6 +70,20 @@ class NoteStoreTest(unittest.TestCase):
             handle.write("{ not json")
         self.assertEqual(self.store.notes(PROJECT), [])
 
+    def test_a_corrupt_primary_recovers_the_previous_valid_notes(self):
+        self.store.remember("first", PROJECT)
+        self.store.remember("second", PROJECT)
+        with open(self.store.path(), "w", encoding="utf-8") as handle:
+            handle.write("{ not json")
+        self.assertEqual(self.store.notes(PROJECT), ["first"])
+
+    def test_valid_json_with_a_wrong_note_shape_is_treated_as_empty(self):
+        os.makedirs(self.root, exist_ok=True)
+        with open(self.store.path(), "w", encoding="utf-8") as handle:
+            handle.write('{"city.qgz": 42}')
+        self.assertEqual(self.store.notes(PROJECT), [])
+        self.assertEqual(self.store.remember("safe", PROJECT), ["safe"])
+
 
 class RememberToolTest(unittest.TestCase):
     def setUp(self):

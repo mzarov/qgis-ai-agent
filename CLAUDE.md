@@ -143,7 +143,7 @@ Code lives under `qgis_ai_agent/`:
 | `ui/`         | Qt only: rendering and signals                              |
 
 The plugin is the `qgis_ai_agent/` folder as a whole: `__init__.py`,
-`metadata.txt`, `icon.png` and the code inside. Only that folder goes into the
+`metadata.txt`, `icon.svg` and the code inside. Only that folder goes into the
 zip and into the QGIS symlink; `tests/`, `tools/`, `docs/` are repository-level
 and never reach QGIS. The composition root is `qgis_ai_agent/plugin.py`: the
 only module allowed to import both `core` and `ui`. The layer direction

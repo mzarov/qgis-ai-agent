@@ -10,11 +10,25 @@ from qgis.core import (
 from qgis_ai_agent.qgis_tools.common.layers import find_layer_by_name
 
 DESTINATION_TYPES = {
+    "filedestination",
+    "folderdestination",
+    "pointclouddestination",
+    "rasterdestination",
     "sink",
-    "vectorDestination",
-    "rasterDestination",
-    "fileDestination",
-    "folderDestination",
+    "vectordestination",
+    "vectortiledestination",
+}
+LAYER_PARAMETER_TYPES = {
+    "annotation",
+    "layer",
+    "maplayer",
+    "mesh",
+    "multilayer",
+    "multiplelayers",
+    "pointcloud",
+    "raster",
+    "source",
+    "vector",
 }
 TEMPORARY_OUTPUT = "TEMPORARY_OUTPUT"
 PRIMARY_OUTPUT_KEY = "OUTPUT"
@@ -117,12 +131,47 @@ def coerce_parameters(algorithm, arguments: dict[str, Any]) -> dict[str, Any]:
     result = dict(arguments)
     for parameter in algorithm.parameterDefinitions():
         name = parameter.name()
-        param_type = parameter.type()
+        param_type = str(parameter.type()).lower()
         if param_type == "enum" and name in result:
             result[name] = _coerce_enum(parameter, result[name])
+        elif param_type in LAYER_PARAMETER_TYPES and name in result:
+            result[name] = _coerce_layer_reference(result[name])
         elif param_type in DESTINATION_TYPES and name not in result and not is_optional(parameter):
             result[name] = TEMPORARY_OUTPUT
     return result
+
+
+def destination_parameter_names(algorithm: Any) -> list[str]:
+    return [parameter.name() for parameter in algorithm.parameterDefinitions() if _is_destination(parameter)]
+
+
+def _is_destination(parameter: Any) -> bool:
+    try:
+        if parameter.isDestination():
+            return True
+    except Exception:
+        pass
+    return str(parameter.type()).lower() in DESTINATION_TYPES
+
+
+def _coerce_layer_reference(value: Any) -> Any:
+    if isinstance(value, (list, tuple)):
+        return [_coerce_layer_reference(item) for item in value]
+    if isinstance(value, QgsMapLayer):
+        return value.id()
+    if not isinstance(value, str) or not value.strip():
+        return value
+    text = value.strip()
+    layer = QgsProject.instance().mapLayer(text)
+    if layer is not None:
+        return layer.id()
+    try:
+        layer = find_layer_by_name(text)
+    except ValueError as failure:
+        if "ambiguous" in str(failure).lower():
+            raise
+        return value
+    return layer.id()
 
 
 def _coerce_enum(parameter, value: Any) -> Any:

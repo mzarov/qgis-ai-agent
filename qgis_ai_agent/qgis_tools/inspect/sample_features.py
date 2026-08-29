@@ -3,7 +3,7 @@ from typing import Any
 from qgis.core import QgsFeatureRequest, QgsVectorLayer
 
 from qgis_ai_agent.i18n import tr
-from qgis_ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
+from qgis_ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
 from qgis_ai_agent.qgis_tools.common.layers import find_layer_by_name, safe_feature_count
 from qgis_ai_agent.qgis_tools.common.values import clamp_limit, plain_value, wanted_fields
 
@@ -20,6 +20,7 @@ class SampleFeaturesTool(BaseTool):
     )
     skill = "inspect"
     safety = SAFETY_READ
+    egress = EGRESS_FEATURE_VALUES
     constraints = ["The layer must exist and be a vector layer"]
     examples = ["Show me a couple of records from the cities layer", "What does the data look like?"]
     params_schema = [

@@ -40,6 +40,9 @@ class EditableLayer(QgsVectorLayer):
     def name(self):
         return "Дороги"
 
+    def id(self):
+        return "roads_stable_id"
+
     def fields(self):
         return self._fields
 
@@ -77,14 +80,16 @@ class EditTestBase(unittest.TestCase):
         )
         self._saved = []
         for module in (update_module, delete_module):
-            self._saved.append((module, module.find_layer_by_name, module.build_request))
+            self._saved.append((module, module.find_layer_by_name, module.find_layer_by_id, module.build_request))
             module.find_layer_by_name = lambda name: self.layer
+            module.find_layer_by_id = lambda identifier: self.layer
             module.build_request = lambda text, layer=None: None
         update_module.build_context = lambda layer: None
 
     def tearDown(self):
-        for module, finder, builder in self._saved:
+        for module, finder, id_finder, builder in self._saved:
             module.find_layer_by_name = finder
+            module.find_layer_by_id = id_finder
             module.build_request = builder
 
 
@@ -105,11 +110,33 @@ class UpdateAttributesTest(EditTestBase):
     def test_prepare_counts_the_matches(self):
         prepared = self.tool.prepare({"layer_name": "Дороги", "values": {"type": "new"}})
         self.assertEqual(prepared["matched_estimate"], 2)
+        self.assertEqual(prepared["layer_id"], "roads_stable_id")
+        self.assertEqual(prepared["_feature_ids"], [1, 2])
+
+    def test_apply_uses_the_layer_id_bound_during_prepare(self):
+        prepared = self.tool.prepare({"layer_name": "Дороги", "values": {"type": "new"}})
+        update_module.find_layer_by_name = lambda name: (_ for _ in ()).throw(AssertionError("name lookup used"))
+        result = self.tool.execute(prepared)
+        self.assertEqual(result["updated"], 2)
 
     def test_execute_changes_every_matching_feature(self):
         result = self.tool.execute({"layer_name": "Дороги", "values": {"type": "new"}})
         self.assertEqual(result["updated"], 2)
         self.assertTrue(all(f.attributes["type"] == "new" for f in self.layer._features))
+
+    def test_apply_updates_only_the_feature_ids_bound_during_prepare(self):
+        prepared = self.tool.prepare({"layer_name": "Дороги", "values": {"type": "new"}})
+        self.layer._features.append(Feature(3, {"name": "c", "type": "old"}))
+        result = self.tool.execute(prepared)
+        self.assertEqual(result["updated"], 2)
+        self.assertEqual(self.layer._features[-1].attributes["type"], "old")
+
+    def test_missing_prepared_feature_aborts_before_editing(self):
+        prepared = self.tool.prepare({"layer_name": "Дороги", "values": {"type": "new"}})
+        self.layer._features = self.layer._features[:1]
+        with self.assertRaisesRegex(ValueError, "no longer exist"):
+            self.tool.execute(prepared)
+        self.assertFalse(self.layer.editing)
 
     def test_failed_commit_rolls_back_and_reports(self):
         self.layer._commit_ok = False
@@ -146,6 +173,26 @@ class DeleteFeaturesTest(EditTestBase):
         self.assertEqual(result["deleted"], 2)
         self.assertEqual(self.layer._features, [])
 
+    def test_apply_uses_the_layer_id_bound_during_prepare(self):
+        prepared = self.tool.prepare({"layer_name": "Дороги", "filter": "all"})
+        delete_module.find_layer_by_name = lambda name: (_ for _ in ()).throw(AssertionError("name lookup used"))
+        result = self.tool.execute(prepared)
+        self.assertEqual(result["deleted"], 2)
+
+    def test_apply_deletes_only_the_feature_ids_bound_during_prepare(self):
+        prepared = self.tool.prepare({"layer_name": "Дороги", "filter": "all"})
+        self.layer._features.append(Feature(3, {"name": "c", "type": "new"}))
+        result = self.tool.execute(prepared)
+        self.assertEqual(result["deleted"], 2)
+        self.assertEqual([feature.id() for feature in self.layer._features], [3])
+
+    def test_missing_prepared_feature_aborts_before_editing(self):
+        prepared = self.tool.prepare({"layer_name": "Дороги", "filter": "all"})
+        self.layer._features = self.layer._features[:1]
+        with self.assertRaisesRegex(ValueError, "no longer exist"):
+            self.tool.execute(prepared)
+        self.assertFalse(self.layer.editing)
+
     def test_too_many_matches_are_refused(self):
         self.layer._features = [Feature(i, {}) for i in range(delete_module.MAX_DELETE + 1)]
         with self.assertRaises(ValueError) as caught:
@@ -169,6 +216,10 @@ class ContractTest(unittest.TestCase):
 
         self.assertEqual(UpdateAttributesTool().safety, SAFETY_DESTRUCTIVE)
         self.assertEqual(DeleteFeaturesTool().safety, SAFETY_DESTRUCTIVE)
+
+    def test_committed_data_source_edits_are_external_to_project_undo(self):
+        self.assertTrue(UpdateAttributesTool().external_effect)
+        self.assertTrue(DeleteFeaturesTool().external_effect)
 
 
 if __name__ == "__main__":

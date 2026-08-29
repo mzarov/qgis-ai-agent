@@ -33,10 +33,11 @@ class GetProjectInfoTool(BaseTool):
         project = QgsProject.instance()
         title = self._safe(project.title)
         file_path = self._safe(project.fileName)
+        file_name = os.path.basename(file_path or "")
         return {
             "title": title,
             "display_name": title or self._name_from_path(file_path) or "unnamed",
-            "file_path": file_path,
+            "file_name": file_name,
             "has_unsaved_changes": bool(self._safe(project.isDirty, default=False)),
             "crs": self._crs(project),
             "distance_units": self._units(project, "distanceUnits"),

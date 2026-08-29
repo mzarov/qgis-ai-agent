@@ -1,11 +1,11 @@
 from typing import Any
 
-from qgis.core import QgsVectorLayer
+from qgis.core import QgsFeatureRequest, QgsVectorLayer
 
 from qgis_ai_agent.i18n import tr
 from qgis_ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE, BaseTool
 from qgis_ai_agent.qgis_tools.common.expressions import build_context, build_request
-from qgis_ai_agent.qgis_tools.common.layers import find_layer_by_name
+from qgis_ai_agent.qgis_tools.common.layers import bind_layer_reference, find_layer_by_id, find_layer_by_name
 from qgis_ai_agent.qgis_tools.common.values import suggest_fields
 
 MAX_SCAN = 50000
@@ -22,6 +22,7 @@ class UpdateAttributesTool(BaseTool):
     )
     skill = "edit"
     safety = SAFETY_DESTRUCTIVE
+    external_effect = True
     constraints = [
         "The layer must be an editable vector layer",
         "The fields must exist; values are constants, not expressions",
@@ -34,6 +35,12 @@ class UpdateAttributesTool(BaseTool):
             "type": "string",
             "description": "Layer name exactly as in the project",
             "required": True,
+        },
+        {
+            "name": "layer_id",
+            "type": "string",
+            "description": "Stable layer id from list_layers; required when names are duplicated",
+            "required": False,
         },
         {
             "name": "values",
@@ -50,13 +57,13 @@ class UpdateAttributesTool(BaseTool):
     ]
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = _require_editable(params.get("layer_name") or "")
+        layer = _require_editable(params.get("layer_name") or "", params.get("layer_id") or "")
         values = _checked_values(layer, params.get("values"))
-        matched = _matched_count(layer, (params.get("filter") or "").strip())
-        prepared = dict(params)
-        prepared["layer_name"] = layer.name()
+        feature_ids = _matched_ids(layer, (params.get("filter") or "").strip())
+        prepared = bind_layer_reference(params, layer)
         prepared["values"] = values
-        prepared["matched_estimate"] = matched
+        prepared["matched_estimate"] = len(feature_ids)
+        prepared["_feature_ids"] = feature_ids
         return prepared
 
     def summarize_call(self, params: dict[str, Any]) -> str:
@@ -69,10 +76,10 @@ class UpdateAttributesTool(BaseTool):
         return tr("Updating features of '{0}': {1}.").format(layer_name, fields)
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = _require_editable(params.get("layer_name") or "")
+        layer = _require_editable(params.get("layer_name") or "", params.get("layer_id") or "")
         values = _checked_values(layer, params.get("values"))
         indexes = {name: layer.fields().indexFromName(name) for name in values}
-        request = build_request((params.get("filter") or "").strip(), layer)
+        features = _prepared_features(layer, params)
         build_context(layer)
         if not layer.startEditing():
             raise ValueError(
@@ -82,7 +89,7 @@ class UpdateAttributesTool(BaseTool):
                 "then remove the old layer."
             )
         updated = 0
-        for feature in layer.getFeatures(request):
+        for feature in features:
             for name, value in values.items():
                 layer.changeAttributeValue(feature.id(), indexes[name], value)
             updated += 1
@@ -93,8 +100,8 @@ class UpdateAttributesTool(BaseTool):
         return {"layer": layer.name(), "updated": updated, "fields": sorted(values)}
 
 
-def _require_editable(layer_name: str) -> QgsVectorLayer:
-    layer = find_layer_by_name(layer_name)
+def _require_editable(layer_name: str, layer_id: str = "") -> QgsVectorLayer:
+    layer = find_layer_by_id(layer_id) if layer_id else find_layer_by_name(layer_name)
     if not isinstance(layer, QgsVectorLayer):
         raise ValueError(f"Layer '{layer.name()}' is not a vector layer, it has no attributes to edit.")
     return layer
@@ -112,18 +119,37 @@ def _checked_values(layer: QgsVectorLayer, raw: Any) -> dict[str, Any]:
     return dict(raw)
 
 
-def _matched_count(layer: QgsVectorLayer, filter_text: str) -> int:
+def _matched_ids(layer: QgsVectorLayer, filter_text: str) -> list[int]:
     request = build_request(filter_text, layer)
-    matched = 0
-    for _ in layer.getFeatures(request):
-        matched += 1
-        if matched > MAX_SCAN:
+    matched = []
+    for feature in layer.getFeatures(request):
+        matched.append(feature.id())
+        if len(matched) > MAX_SCAN:
             raise ValueError(
                 f"More than {MAX_SCAN} features match — narrow the filter before editing that much at once."
             )
-    if matched == 0:
+    if not matched:
         raise ValueError(
             "No features match this filter, so there is nothing to update. "
             "Check the values with get_field_values or query_layer first."
         )
     return matched
+
+
+def _prepared_features(layer: QgsVectorLayer, params: dict[str, Any]) -> list[Any]:
+    pinned = params.get("_feature_ids")
+    if not isinstance(pinned, list):
+        request = build_request((params.get("filter") or "").strip(), layer)
+        return list(layer.getFeatures(request))
+    wanted = {int(identifier) for identifier in pinned}
+    request = QgsFeatureRequest()
+    request.setFilterFids(list(wanted))
+    features = [feature for feature in layer.getFeatures(request) if feature.id() in wanted]
+    found = {feature.id() for feature in features}
+    missing = wanted - found
+    if missing:
+        raise ValueError(
+            f"{len(missing)} feature(s) selected during planning no longer exist. "
+            "Nothing was updated; review the layer and plan again."
+        )
+    return features

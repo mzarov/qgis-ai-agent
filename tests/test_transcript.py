@@ -39,6 +39,52 @@ class NativeRenderingTest(unittest.TestCase):
         roles = [m["role"] for m in transcript.build_messages("S", [{"role": "user", "content": "раньше"}])]
         self.assertEqual(roles, ["system", "user", "user"])
 
+    def test_duplicate_and_blank_tool_call_ids_are_normalised(self):
+        calls = [
+            ToolCall(id="same", name="list_layers"),
+            ToolCall(id="same", name="get_qgis_info"),
+            ToolCall(id="", name="render_map"),
+        ]
+        results = [ToolResult(call=item, payload={}) for item in calls]
+        turn = ModelTurn(tool_calls=calls, protocol="native")
+        transcript = Transcript()
+        transcript.add_turn(turn)
+        identifiers = [item["id"] for item in transcript.build_messages("S")[1]["tool_calls"]]
+        self.assertEqual(identifiers, ["same", "same_2", "call_3"])
+        self.assertEqual([item.id for item in turn.tool_calls], identifiers)
+        self.assertEqual([result.call.id for result in results], identifiers)
+
+    def test_staged_result_replaces_queued_acknowledgement(self):
+        transcript = Transcript()
+        queued = ToolResult(call=call(), payload={"status": "queued"})
+        applied = ToolResult(call=call(), payload={"status": "applied"})
+        transcript.add_results([queued], "native")
+        transcript.replace_results([applied], "native")
+
+        messages = transcript.build_messages("S")
+
+        self.assertEqual([message["tool_call_id"] for message in messages[1:]], ["c1"])
+        self.assertIn("applied", messages[1]["content"])
+        self.assertNotIn("queued", messages[1]["content"])
+
+    def test_revoked_sensitive_permission_redacts_staged_result_and_image(self):
+        transcript = Transcript()
+        sensitive = ToolResult(
+            call=call("sample_features"),
+            payload={"value": "sentinel-feature-value"},
+            image="sentinel-image-base64",
+            egress="feature_values",
+        )
+        transcript.add_results([sensitive], "native")
+
+        messages = transcript.build_messages("S", allow_sensitive=False)
+        rendered = json.dumps(messages)
+
+        self.assertNotIn("sentinel-feature-value", rendered)
+        self.assertNotIn("sentinel-image-base64", rendered)
+        self.assertEqual(messages[1]["tool_call_id"], "c1")
+        self.assertIn("sensitive tool result omitted", messages[1]["content"])
+
 
 class JsonRenderingTest(unittest.TestCase):
     def test_results_come_back_as_user_message(self):

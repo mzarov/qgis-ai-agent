@@ -1,3 +1,5 @@
+import hashlib
+import json
 import os
 import pathlib
 import shutil
@@ -9,9 +11,13 @@ import zipfile
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "tools"))
 
 import build_plugin
+import check_secrets
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 METADATA = REPO_ROOT / "qgis_ai_agent" / "metadata.txt"
+SECRET_BASELINE = REPO_ROOT / ".secrets.baseline"
+TESTS_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "tests.yml"
+REAL_QGIS_SMOKE = REPO_ROOT / "tests" / "real_qgis_smoke.py"
 REQUIRED_METADATA_KEYS = (
     "name",
     "qgisMinimumVersion",
@@ -55,8 +61,9 @@ class MetadataTest(unittest.TestCase):
 class BuildTest(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp()
-        self.archive = pathlib.Path(build_plugin.build())
-        self.names = zipfile.ZipFile(self.archive).namelist()
+        self.archive = pathlib.Path(build_plugin.build(self.root))
+        with zipfile.ZipFile(self.archive) as archive:
+            self.names = archive.namelist()
 
     def tearDown(self):
         shutil.rmtree(self.root, ignore_errors=True)
@@ -72,7 +79,7 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(packed, on_disk)
 
     def test_metadata_and_entry_point_are_packed(self):
-        for tail in ("metadata.txt", "__init__.py", "plugin.py", "icon.png"):
+        for tail in ("metadata.txt", "__init__.py", "plugin.py", "icon.svg"):
             self.assertTrue(any(name.endswith(tail) for name in self.names), tail)
 
     def test_development_files_stay_out(self):
@@ -86,6 +93,23 @@ class BuildTest(unittest.TestCase):
             or "/docs/" in name
         ]
         self.assertEqual(unwanted, [])
+
+    def test_package_uses_an_explicit_runtime_allowlist(self):
+        self.assertFalse(build_plugin.is_package_file_allowed(".env"))
+        self.assertFalse(build_plugin.is_package_file_allowed("keys.json"))
+        self.assertFalse(build_plugin.is_package_file_allowed("icon.png"))
+        self.assertFalse(build_plugin.is_package_file_allowed("skills/CLAUDE.md"))
+        self.assertTrue(build_plugin.is_package_file_allowed("core/agent/loop.py"))
+        self.assertTrue(build_plugin.is_package_file_allowed("skills/inspect/SKILL.md"))
+
+    def test_build_is_reproducible_and_uses_the_requested_directory(self):
+        second = pathlib.Path(build_plugin.build(os.path.join(self.root, "second")))
+        first_hash = hashlib.sha256(self.archive.read_bytes()).digest()
+        second_hash = hashlib.sha256(second.read_bytes()).digest()
+        self.assertEqual(self.archive.parent, pathlib.Path(self.root))
+        self.assertEqual(first_hash, second_hash)
+        with zipfile.ZipFile(self.archive) as archive:
+            self.assertEqual({item.date_time for item in archive.infolist()}, {build_plugin.ARCHIVE_TIMESTAMP})
 
     def test_extracted_plugin_imports_and_builds(self):
         zipfile.ZipFile(self.archive).extractall(self.root)
@@ -110,6 +134,53 @@ class BuildTest(unittest.TestCase):
         registry = SkillRegistry(skills_root)
         on_disk = sorted(path.parent.name for path in (REPO_ROOT / "qgis_ai_agent").rglob("SKILL.md"))
         self.assertEqual(sorted(registry.names()), on_disk)
+
+
+class SecretScanTest(unittest.TestCase):
+    def test_empty_detect_secrets_report_passes(self):
+        self.assertEqual(check_secrets.findings({"results": {}}), [])
+
+    def test_any_detected_secret_is_a_finding(self):
+        payload = {"results": {"qgis_ai_agent/example.py": [{"line_number": 3, "type": "Secret Keyword"}]}}
+        self.assertEqual(
+            check_secrets.findings(payload),
+            [("qgis_ai_agent/example.py", 3, "Secret Keyword")],
+        )
+
+    def test_malformed_report_is_not_treated_as_clean(self):
+        with self.assertRaises(ValueError):
+            check_secrets.findings({})
+        with self.assertRaises(ValueError):
+            check_secrets.findings({"results": {"file.py": ["not a finding"]}})
+
+    def test_ci_scans_every_tracked_file_with_keyword_detection(self):
+        workflow = TESTS_WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("git ls-files -z", workflow)
+        self.assertIn("detect-secrets-hook --baseline .secrets.baseline", workflow)
+        self.assertNotIn("--disable-plugin KeywordDetector", workflow)
+
+    def test_secret_baseline_is_narrow_and_audited(self):
+        baseline = json.loads(SECRET_BASELINE.read_text(encoding="utf-8"))
+        plugins = {item["name"] for item in baseline["plugins_used"]}
+        self.assertIn("KeywordDetector", plugins)
+        findings = [finding for entries in baseline["results"].values() for finding in entries]
+        self.assertEqual(len(findings), 6)
+        self.assertTrue(all(finding.get("is_secret") is False for finding in findings))
+
+
+class RealQgisCiTest(unittest.TestCase):
+    def test_minimum_and_stable_qgis_images_are_exercised(self):
+        workflow = TESTS_WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn('qgis_image: ["4.0-trixie", "stable-trixie"]', workflow)
+
+    def test_live_smoke_imports_the_built_archive(self):
+        source = REAL_QGIS_SMOKE.read_text(encoding="utf-8")
+        self.assertIn("build_plugin.build(root)", source)
+        self.assertIn("archive.extractall(installation)", source)
+        self.assertIn("qgis_ai_agent.__file__", source)
+        self.assertIn("snapshot preserves unsaved identity", source)
+        self.assertIn("active edit buffer blocks snapshot", source)
+        self.assertIn("duplicate layer names are rejected", source)
 
 
 if __name__ == "__main__":

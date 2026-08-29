@@ -16,6 +16,14 @@ class ConversationState:
     def messages(self) -> list[dict[str, str]]:
         return self._session.messages
 
+    @property
+    def session_identifier(self) -> str:
+        return self._session.identifier
+
+    @property
+    def project_key(self) -> str:
+        return self._session.project
+
     def window(self) -> list[dict[str, str]]:
         return self._history.get()
 
@@ -28,15 +36,23 @@ class ConversationState:
         self._store.save(self._session)
 
     def recent(self) -> list[tuple[str, str]]:
-        return [(session.identifier, session.display_title()) for session in self._store.recent(current_project_key())]
+        return [(session.identifier, session.display_title()) for session in self._store.recent(self.project_key)]
 
     def start_new(self) -> None:
         self.save()
-        self._adopt(Session.create(current_project_key()))
+        self._adopt(Session.create(self.project_key))
+
+    def sync_project(self) -> bool:
+        key = current_project_key()
+        if key == self.project_key:
+            return False
+        self.save()
+        self._adopt(Session.create(key))
+        return True
 
     def restore(self, identifier: str) -> bool:
         session = self._store.load(identifier)
-        if session is None:
+        if session is None or session.project != self.project_key:
             return False
         self.save()
         self._adopt(session)

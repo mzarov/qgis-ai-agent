@@ -157,6 +157,51 @@ class TranslateTest(unittest.TestCase):
         body = anthropic.build_body([{"role": "user", "content": "привет"}], [], "claude-demo")
         self.assertNotIn("tools", body)
 
+    def test_sonnet_5_explicitly_disables_default_adaptive_thinking(self):
+        body = anthropic.build_body(
+            [{"role": "user", "content": "привет"}],
+            [TOOL_SCHEMA],
+            "claude-sonnet-5",
+        )
+        self.assertEqual(body["thinking"], {"type": "disabled"})
+
+    def test_positive_sonnet_5_setting_uses_adaptive_not_manual_budget(self):
+        body = anthropic.build_body(
+            [{"role": "user", "content": "привет"}],
+            [TOOL_SCHEMA],
+            "claude-sonnet-5",
+            thinking_budget=4096,
+        )
+        self.assertEqual(body["thinking"], {"type": "adaptive"})
+        self.assertNotIn("budget_tokens", body["thinking"])
+
+    def test_sonnet_5_disabled_thinking_drops_prior_thinking_blocks(self):
+        messages = [
+            {
+                "role": "assistant",
+                "content": "answer",
+                "thinking_blocks": [{"type": "thinking", "thinking": "private", "signature": "sig"}],
+            }
+        ]
+        body = anthropic.build_body(messages, [], "claude-sonnet-5", thinking_budget=0)
+        self.assertEqual(body["thinking"], {"type": "disabled"})
+        self.assertEqual([block["type"] for block in body["messages"][0]["content"]], ["text"])
+
+    def test_sonnet_5_adaptive_thinking_preserves_prior_thinking_blocks(self):
+        messages = [
+            {
+                "role": "assistant",
+                "content": "answer",
+                "thinking_blocks": [{"type": "thinking", "thinking": "private", "signature": "sig"}],
+            }
+        ]
+        body = anthropic.build_body(messages, [], "claude-sonnet-5", thinking_budget=1)
+        self.assertEqual(body["thinking"], {"type": "adaptive"})
+        self.assertEqual(
+            [block["type"] for block in body["messages"][0]["content"]],
+            ["thinking", "text"],
+        )
+
 
 class ParseTest(unittest.TestCase):
     def test_text_and_tool_use_are_split(self):

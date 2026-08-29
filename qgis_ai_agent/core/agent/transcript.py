@@ -15,6 +15,7 @@ EARLIER_IMAGE_NOTE = "[an earlier image was dropped to save space — render aga
 IMAGE_MEDIA = "image/png"
 IMAGE_INTRO = "Image rendered by {tool}:"
 IMAGE_OMITTED_NOTE = "[image omitted: this endpoint does not accept image input]"
+SENSITIVE_RESULT_OMITTED = "[sensitive tool result omitted because sharing is disabled]"
 
 
 @dataclass
@@ -23,13 +24,15 @@ class ToolResult:
     payload: dict[str, Any]
     ok: bool = True
     image: str = ""
+    egress: str = "metadata"
 
     @classmethod
-    def failure(cls, call: ToolCall, error: str) -> "ToolResult":
+    def failure(cls, call: ToolCall, error: str, egress: str = "metadata") -> "ToolResult":
         return cls(
             call=call,
             ok=False,
             payload={"error": error, "arguments_sent": call.arguments},
+            egress=egress,
         )
 
     def to_text(self, limit: int = MAX_RESULT_CHARS) -> str:
@@ -51,17 +54,32 @@ class Transcript:
         self.entries.append({"kind": "user", "text": text})
 
     def add_turn(self, turn: ModelTurn) -> None:
+        turn.tool_calls = _unique_tool_calls(turn.tool_calls)
         self.entries.append({"kind": "turn", "turn": turn})
 
     def add_results(self, results: list[ToolResult], protocol: str) -> None:
         if results:
             self.entries.append({"kind": "results", "results": results, "protocol": protocol})
 
+    def replace_results(self, results: list[ToolResult], protocol: str) -> None:
+        remaining = {result.call.id: result for result in results}
+        for entry in reversed(self.entries):
+            if entry.get("kind") != "results":
+                continue
+            for index, existing in enumerate(entry["results"]):
+                replacement = remaining.pop(existing.call.id, None)
+                if replacement is not None:
+                    entry["results"][index] = replacement
+            if not remaining:
+                return
+        self.add_results(list(remaining.values()), protocol)
+
     def build_messages(
         self,
         system_prompt: str,
         history: list[dict[str, str]] | None = None,
         include_images: bool = True,
+        allow_sensitive: bool = True,
     ) -> list[dict[str, Any]]:
         messages: list[dict[str, Any]] = [{"role": "system", "content": system_prompt}]
         if history:
@@ -69,7 +87,15 @@ class Transcript:
         fresh_results = self._fresh_result_ids()
         last_image = self._last_image_id() if include_images else None
         for index, entry in enumerate(self.entries):
-            messages.extend(self._render(entry, index in fresh_results, index == last_image, include_images))
+            messages.extend(
+                self._render(
+                    entry,
+                    index in fresh_results,
+                    index == last_image,
+                    include_images,
+                    allow_sensitive,
+                )
+            )
         return messages
 
     def _fresh_result_ids(self) -> set[int]:
@@ -85,7 +111,12 @@ class Transcript:
 
     @classmethod
     def _render(
-        cls, entry: dict[str, Any], fresh: bool, carries_image: bool, images_allowed: bool
+        cls,
+        entry: dict[str, Any],
+        fresh: bool,
+        carries_image: bool,
+        images_allowed: bool,
+        allow_sensitive: bool,
     ) -> list[dict[str, Any]]:
         kind = entry["kind"]
         if kind == "user":
@@ -93,7 +124,14 @@ class Transcript:
         if kind == "turn":
             return [cls._render_turn(entry["turn"])]
         if kind == "results":
-            return cls._render_results(entry["results"], entry["protocol"], fresh, carries_image, images_allowed)
+            return cls._render_results(
+                entry["results"],
+                entry["protocol"],
+                fresh,
+                carries_image,
+                images_allowed,
+                allow_sensitive,
+            )
         return []
 
     @classmethod
@@ -125,21 +163,40 @@ class Transcript:
 
     @classmethod
     def _render_results(
-        cls, results: list[ToolResult], protocol: str, fresh: bool, carries_image: bool, images_allowed: bool
+        cls,
+        results: list[ToolResult],
+        protocol: str,
+        fresh: bool,
+        carries_image: bool,
+        images_allowed: bool,
+        allow_sensitive: bool,
     ) -> list[dict[str, Any]]:
         limit = MAX_RESULT_CHARS if fresh else COMPACT_RESULT_CHARS
         if protocol == PROTOCOL_NATIVE:
             rendered = [
-                {"role": "tool", "tool_call_id": result.call.id, "content": result.to_text(limit)} for result in results
+                {
+                    "role": "tool",
+                    "tool_call_id": result.call.id,
+                    "content": cls._result_text(result, limit, allow_sensitive),
+                }
+                for result in results
             ]
         else:
-            lines = [f"{result.call.name} -> {result.to_text(limit)}" for result in results]
+            lines = [f"{result.call.name} -> {cls._result_text(result, limit, allow_sensitive)}" for result in results]
             rendered = [{"role": "user", "content": RESULTS_HEADER + "\n" + "\n".join(lines)}]
         for result in results:
+            if not allow_sensitive and result.egress != "metadata":
+                continue
             attachment = cls._image_message(result, carries_image, images_allowed)
             if attachment is not None:
                 rendered.append(attachment)
         return rendered
+
+    @staticmethod
+    def _result_text(result: ToolResult, limit: int, allow_sensitive: bool) -> str:
+        if not allow_sensitive and result.egress != "metadata":
+            return SENSITIVE_RESULT_OMITTED
+        return result.to_text(limit)
 
     @staticmethod
     def _image_message(result: ToolResult, carries_image: bool, images_allowed: bool) -> dict[str, Any] | None:
@@ -160,3 +217,19 @@ class Transcript:
                 },
             ],
         }
+
+
+def _unique_tool_calls(calls: list[ToolCall]) -> list[ToolCall]:
+    used: set[str] = set()
+    prepared: list[ToolCall] = []
+    for index, call in enumerate(calls, start=1):
+        base = str(call.id or "").strip() or f"call_{index}"
+        identifier = base
+        suffix = 2
+        while identifier in used:
+            identifier = f"{base}_{suffix}"
+            suffix += 1
+        used.add(identifier)
+        call.id = identifier
+        prepared.append(call)
+    return prepared

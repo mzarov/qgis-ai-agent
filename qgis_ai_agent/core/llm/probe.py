@@ -8,12 +8,18 @@ EMPTY_REPLY = tr("Connected, but the model returned an empty answer.")
 
 
 def probe(overrides: dict[str, Any]) -> tuple[bool, str]:
-    from qgis_ai_agent.core.llm.client import chat
+    from qgis_ai_agent.core.llm.transport import call_model
 
     try:
-        reply = chat([{"role": "user", "content": PROBE_PROMPT}], **overrides)
+        turn = call_model(
+            [{"role": "user", "content": PROBE_PROMPT}],
+            [],
+            overrides=overrides,
+            timeout=60,
+        )
     except Exception as error:
         return False, _shortened(str(error) or type(error).__name__)
+    reply = turn.text
     if not reply.strip():
         return False, EMPTY_REPLY
     return True, tr("Model replied: {0}").format(_shortened(reply))
