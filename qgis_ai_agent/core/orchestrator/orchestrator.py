@@ -187,19 +187,27 @@ class CoreOrchestrator:
         if not self.agent.has_pending_writes:
             self.dock_widget.add_system_message(tr("There are no changes to apply."))
             return
-        destructive = self._destructive_lines()
-        if destructive and not self.dock_widget.confirm_destructive(destructive):
+        destructive, details = self._destructive_lines()
+        if destructive and not self.dock_widget.confirm_destructive(destructive, details):
             self.dock_widget.add_system_message(DESTRUCTIVE_DECLINED)
             return
         self.agent.confirm_pending()
 
-    def _destructive_lines(self) -> list[str]:
+    def _destructive_lines(self) -> tuple[list[str], str]:
         lines = []
+        details = []
         for call in self.agent.pending_writes():
             tool = get_tool_by_name(call.name)
             if tool is not None and tool.safety == SAFETY_DESTRUCTIVE:
                 lines.append(summarize_tool_call(call.name, call.arguments))
-        return lines
+                detail = ""
+                try:
+                    detail = tool.detail_call(call.arguments)
+                except Exception:
+                    detail = ""
+                if detail:
+                    details.append(detail)
+        return lines, "\n\n".join(details)
 
     def on_cancel_plan(self) -> None:
         self.agent.cancel_pending()
@@ -214,8 +222,11 @@ class CoreOrchestrator:
 
     def on_applied(self, results: list) -> None:
         failed = [result for result in results if not result.ok]
-        if self._plan_message_id is not None and not failed:
-            self.dock_widget.mark_plan_completed(self._plan_message_id)
+        if self._plan_message_id is not None:
+            if failed:
+                self.dock_widget.mark_plan_failed(self._plan_message_id)
+            else:
+                self.dock_widget.mark_plan_completed(self._plan_message_id)
         self._plan_message_id = None
         if failed:
             details = "; ".join(str(result.payload.get("error", "")) for result in failed)

@@ -63,6 +63,12 @@ class RunOverpassTool(BaseTool):
             "required": True,
         },
         {
+            "name": "intent",
+            "type": "string",
+            "description": "One plain-language line for the user: what this query fetches and why.",
+            "required": True,
+        },
+        {
             "name": "geometry",
             "type": "string",
             "enum": sorted(SUBLAYERS),
@@ -73,15 +79,18 @@ class RunOverpassTool(BaseTool):
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
         prepared = dict(params)
+        prepared["intent"] = _checked_intent(params.get("intent"))
         prepared["query"] = _checked_query(params.get("query"))
         prepared["geometry"] = geometry(params)
         prepared["name"] = wanted_name(params)
         return prepared
 
     def summarize_call(self, params: dict[str, Any]) -> str:
-        return tr("Running an Overpass query for '{0}': {1}").format(
-            wanted_name(params), _shortened(params.get("query"))
-        )
+        intent = str(params.get("intent") or "").strip() or _shortened(params.get("query"))
+        return tr("Running an Overpass query for '{0}': {1}").format(wanted_name(params), intent)
+
+    def detail_call(self, params: dict[str, Any]) -> str:
+        return str(params.get("query") or "").strip()
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         query = _checked_query(params.get("query"))
@@ -96,6 +105,13 @@ class RunOverpassTool(BaseTool):
             "total_features": sum(item["feature_count"] for item in loaded),
             "source": path,
         }
+
+
+def _checked_intent(raw: Any) -> str:
+    intent = str(raw or "").strip()
+    if not intent:
+        raise ValueError("intent is required: one plain line telling the user what this query fetches.")
+    return intent
 
 
 def _checked_query(raw: Any) -> str:

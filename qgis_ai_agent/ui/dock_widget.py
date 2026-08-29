@@ -180,19 +180,23 @@ class AgentDockWidget(QDockWidget):
     def add_plan_message(self, plan_lines: list[str]) -> int:
         return self.conversation.add_plan_card(plan_lines)
 
-    def confirm_destructive(self, lines: list[str]) -> bool:
+    def confirm_destructive(self, lines: list[str], details: str = "") -> bool:
         listed = "\n".join(f"• {line}" for line in lines)
-        answer = QMessageBox.warning(
-            self,
-            tr("Destructive steps"),
-            tr("These steps change or delete data and cannot be undone:\n\n{0}\n\nApply them?").format(listed),
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        )
-        return answer == QMessageBox.StandardButton.Yes
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Warning)
+        box.setWindowTitle(tr("Destructive steps"))
+        box.setText(tr("These steps change or delete data and cannot be undone:\n\n{0}\n\nApply them?").format(listed))
+        if details:
+            box.setDetailedText(details)
+        box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        box.setDefaultButton(QMessageBox.StandardButton.No)
+        return box.exec() == QMessageBox.StandardButton.Yes
 
     def mark_plan_completed(self, message_id: int) -> None:
         self.conversation.mark_plan_applied(message_id)
+
+    def mark_plan_failed(self, message_id: int) -> None:
+        self.conversation.mark_plan_failed(message_id)
 
     def mark_plan_cancelled(self, message_id: int) -> None:
         self.conversation.mark_plan_cancelled(message_id)

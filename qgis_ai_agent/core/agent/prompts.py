@@ -141,7 +141,8 @@ VERIFICATION_PROMPT = (
     "- Order: one reorder_layers call naming the layers top to bottom — points, "
     "lines, polygons, basemaps last.\n"
     "- Visibility: every layer the task is about is visible; helpers that must "
-    "stay (a boundary used for clipping) are hidden, not deleted.\n"
+    "stay (a boundary used for clipping) are hidden, not deleted. The basemap "
+    "is context, not a helper — leave it visible unless asked otherwise.\n"
     "Queue the tidy-up in the same batch as the corrections."
 )
 OUTCOME_LINE = "- {tool}: {status}"

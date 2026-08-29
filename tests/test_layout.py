@@ -1,3 +1,4 @@
+import pathlib
 import unittest
 
 from qgis_ai_agent.qgis_tools.layout import add_layout_item as add_module
@@ -246,3 +247,21 @@ class ExportPathTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class MapZoomOrderTest(unittest.TestCase):
+    SOURCE = pathlib.Path("qgis_ai_agent/qgis_tools/layout/add_layout_item.py").read_text(encoding="utf-8")
+
+    def test_the_map_is_zoomed_only_after_it_has_a_size(self):
+        body = self.SOURCE.split("def execute", 1)[1].split("def _checked_kind", 1)[0]
+        self.assertIn("_zoom_map", body)
+        self.assertLess(body.index("place(item"), body.index("_zoom_map(item"))
+
+    def test_the_extent_is_no_longer_set_on_a_zero_sized_item(self):
+        configure = self.SOURCE.split("def _configure", 1)[1].split("def _zoom_map", 1)[0]
+        self.assertNotIn("setExtent", configure)
+
+    def test_zoom_falls_back_to_set_extent(self):
+        zoom = self.SOURCE.split("def _zoom_map", 1)[1].split("def _map_extent", 1)[0]
+        self.assertIn("zoomToExtent", zoom)
+        self.assertIn("setExtent", zoom)

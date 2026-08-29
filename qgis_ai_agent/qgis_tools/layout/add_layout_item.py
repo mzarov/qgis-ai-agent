@@ -119,6 +119,8 @@ class AddLayoutItemTool(BaseTool):
         _configure(layout, item, kind, properties)
         layout.addLayoutItem(item)
         place(item, x, y, width, height)
+        if kind == ITEM_MAP:
+            _zoom_map(item, properties)
         return {"layout": layout.name(), "id": str(item.id()), "type": kind}
 
 
@@ -169,7 +171,6 @@ def _size(raw: Any, default: float) -> float:
 
 def _configure(layout: Any, item: Any, kind: str, properties: dict[str, Any]) -> None:
     if kind == ITEM_MAP:
-        item.setExtent(_map_extent(properties))
         item.setFrameEnabled(True)
     elif kind == ITEM_LABEL:
         apply_label_text(item, str(properties.get("text") or ""), properties.get("font_size"))
@@ -187,6 +188,14 @@ def _configure(layout: Any, item: Any, kind: str, properties: dict[str, Any]) ->
         _configure_north_arrow(layout, item, properties)
     elif kind == ITEM_PICTURE:
         item.setPicturePath(str(properties.get("path") or "").strip())
+
+
+def _zoom_map(item: Any, properties: dict[str, Any]) -> None:
+    extent = _map_extent(properties)
+    try:
+        item.zoomToExtent(extent)
+    except Exception:
+        item.setExtent(extent)
 
 
 def _map_extent(properties: dict[str, Any]) -> QgsRectangle:

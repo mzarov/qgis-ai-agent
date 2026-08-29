@@ -92,10 +92,14 @@ class PlanDock(Dock):
         super().__init__()
         self.cancelled_plans = []
         self.completed_plans = []
+        self.failed_plans = []
         self.plan_lines = None
 
     def mark_plan_completed(self, message_id):
         self.completed_plans.append(message_id)
+
+    def mark_plan_failed(self, message_id):
+        self.failed_plans.append(message_id)
 
     def add_plan_message(self, lines):
         self.plan_lines = list(lines)
@@ -218,7 +222,7 @@ class OrchestratorSessionTest(unittest.TestCase):
         module.get_tool_by_name = lambda name: Destructive()
         self.orchestrator.agent.has_pending_writes = True
         self.orchestrator.agent.pending = [Call("delete_features")]
-        self.dock.confirm_destructive = lambda lines: False
+        self.dock.confirm_destructive = lambda lines, details="": False
         try:
             self.orchestrator.on_confirm_plan()
         finally:
@@ -237,7 +241,7 @@ class OrchestratorSessionTest(unittest.TestCase):
         module.get_tool_by_name = lambda name: Destructive()
         self.orchestrator.agent.has_pending_writes = True
         self.orchestrator.agent.pending = [Call("delete_features")]
-        self.dock.confirm_destructive = lambda lines: True
+        self.dock.confirm_destructive = lambda lines, details="": True
         try:
             self.orchestrator.on_confirm_plan()
         finally:
@@ -248,7 +252,7 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.orchestrator.agent.has_pending_writes = True
         self.orchestrator.agent.pending = [Call("set_symbol")]
         asked = []
-        self.dock.confirm_destructive = lambda lines: asked.append(lines) or True
+        self.dock.confirm_destructive = lambda lines, details="": asked.append(lines) or True
         self.orchestrator.on_confirm_plan()
         self.assertEqual(asked, [])
         self.assertTrue(self.orchestrator.agent.confirmed)
@@ -453,3 +457,15 @@ class StageAppliedTest(unittest.TestCase):
     def test_without_a_card_nothing_is_marked(self):
         self.orchestrator.on_stage_applied([Result()])
         self.assertEqual(self.dock.completed_plans, [])
+
+
+class FailedApplySettlesTest(unittest.TestCase):
+    def test_a_failed_apply_marks_the_card_instead_of_leaving_it_live(self):
+        dock = PlanDock()
+        orchestrator = CoreOrchestrator(Iface(), dock)
+        orchestrator.agent = Agent()
+        orchestrator.on_confirm_needed([Call()], "")
+        orchestrator.on_applied([Result(ok=False, payload={"error": "boom"})])
+        self.assertEqual(dock.failed_plans, [7])
+        self.assertEqual(dock.completed_plans, [])
+        self.assertIsNone(orchestrator._plan_message_id)

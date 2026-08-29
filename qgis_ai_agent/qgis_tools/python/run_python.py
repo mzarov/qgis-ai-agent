@@ -59,6 +59,9 @@ class RunPythonTool(BaseTool):
             intent = str(params.get("code") or "").strip().replace("\n", " ")[:SUMMARY_CHARS]
         return tr("Running Python: {0}").format(intent)
 
+    def detail_call(self, params: dict[str, Any]) -> str:
+        return str(params.get("code") or "").strip()
+
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         code = _checked_code(params.get("code"))
         result = run_snippet(code)
