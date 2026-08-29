@@ -3,16 +3,18 @@ from collections.abc import Callable
 from typing import Any
 
 from qgis.core import QgsNetworkAccessManager
-from qgis.PyQt.QtCore import QByteArray, QEventLoop, QTimer, QUrl
+from qgis.PyQt.QtCore import QByteArray, QEventLoop, QTimer
 from qgis.PyQt.QtNetwork import QNetworkRequest
 
-from qgis_ai_agent.core.llm.client import ApiResponseError
+from qgis_ai_agent.core.llm.client import ApiResponseError, build_network_request
 from qgis_ai_agent.core.llm.stream import SseAccumulator, StreamedCompletion
 
 STATUS_ATTRIBUTE = QNetworkRequest.Attribute.HttpStatusCodeAttribute
 MILLISECONDS = 1000
 STREAM_TIMED_OUT = "The streaming connection to {endpoint} went quiet and was closed."
+STREAM_FAILED = "Could not stream from {endpoint}: {reason}."
 ERROR_BODY_LIMIT = 300
+ACCEPT_HEADER = {"Accept": "text/event-stream"}
 
 
 def post_stream(
@@ -21,14 +23,12 @@ def post_stream(
     body: dict[str, Any],
     on_text: Callable[[str], None],
     timeout: int,
+    verify_override: bool | None = None,
 ) -> dict[str, Any]:
-    request = QNetworkRequest(QUrl(endpoint))
-    for name, value in headers.items():
-        request.setRawHeader(name.encode("utf-8"), value.encode("utf-8"))
+    request = build_network_request(endpoint, {**headers, **ACCEPT_HEADER}, verify_override)
     payload = QByteArray(json.dumps(body, ensure_ascii=False).encode("utf-8"))
+    reply = QgsNetworkAccessManager.instance().post(request, payload)
 
-    manager = QgsNetworkAccessManager.instance()
-    reply = manager.post(request, payload)
     accumulator = SseAccumulator()
     completion = StreamedCompletion(on_text)
     error_tail: list[bytes] = []
@@ -39,32 +39,38 @@ def post_stream(
     watchdog.timeout.connect(loop.quit)
 
     def drain() -> None:
-        watchdog.start()
         raw = bytes(reply.readAll())
+        if not raw:
+            return
         if _status_of(reply) >= 400:
             error_tail.append(raw)
             return
         for event in accumulator.feed(raw):
             completion.take(event)
 
+    reply.readyRead.connect(watchdog.start)
     reply.readyRead.connect(drain)
     reply.finished.connect(loop.quit)
     watchdog.start()
-    loop.exec()
+    if not reply.isFinished():
+        loop.exec()
+    watchdog.stop()
 
-    timed_out = not watchdog.isActive() and not reply.isFinished()
+    timed_out = not reply.isFinished()
     if timed_out:
         reply.abort()
     drain()
     status = _status_of(reply)
+    failure = _failure_of(reply)
     reply.deleteLater()
+
     if timed_out:
         raise ConnectionError(STREAM_TIMED_OUT.format(endpoint=endpoint))
     if status >= 400:
         text = b"".join(error_tail).decode("utf-8", errors="replace")
         raise ApiResponseError(status, text[:ERROR_BODY_LIMIT] or f"HTTP {status}")
-    if reply.error() != reply.NetworkError.NoError:
-        raise ConnectionError(f"Could not stream from {endpoint}: {reply.errorString()}.")
+    if failure:
+        raise ConnectionError(STREAM_FAILED.format(endpoint=endpoint, reason=failure))
     return completion.response()
 
 
@@ -73,3 +79,12 @@ def _status_of(reply: Any) -> int:
         return int(reply.attribute(STATUS_ATTRIBUTE))
     except Exception:
         return 0
+
+
+def _failure_of(reply: Any) -> str:
+    try:
+        if int(reply.error()) == 0:
+            return ""
+        return str(reply.errorString())
+    except Exception:
+        return ""

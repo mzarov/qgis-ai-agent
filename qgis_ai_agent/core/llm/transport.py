@@ -209,7 +209,7 @@ def _try_streaming(
         "tool_choice": "auto",
     }
     try:
-        data = post_stream(endpoint, headers, body, on_chunk, timeout)
+        data = post_stream(endpoint, headers, body, on_chunk, timeout, overrides.get("verify_override"))
     except ApiResponseError:
         set_supports_streaming(url, False)
         return None

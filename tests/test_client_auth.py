@@ -74,7 +74,7 @@ class TransportTest(unittest.TestCase):
         self.assertNotIn("session.post", self.SOURCE)
 
     def test_headers_are_carried_onto_the_request(self):
-        body = self.SOURCE.split("def _build_network_request(")[1].split("\ndef ")[0]
+        body = self.SOURCE.split("def build_network_request(")[1].split("\ndef ")[0]
         self.assertIn("setRawHeader", body)
 
     def test_transport_failure_is_distinct_from_an_api_error(self):

@@ -1,4 +1,5 @@
 import json
+import pathlib
 import unittest
 
 from qgis_ai_agent.core.llm import transport
@@ -158,7 +159,7 @@ class StreamingDispatchTest(unittest.TestCase):
     def test_the_request_body_asks_for_a_stream_with_usage(self):
         seen = {}
 
-        def fake(endpoint, headers, body, on_text, timeout):
+        def fake(endpoint, headers, body, on_text, timeout, verify=None):
             seen.update(body)
             return consume([text_delta("ok")])
 
@@ -179,12 +180,40 @@ class StreamingDispatchTest(unittest.TestCase):
     def test_deltas_reach_the_callback(self):
         seen = []
 
-        def fake(endpoint, headers, body, on_text, timeout):
+        def fake(endpoint, headers, body, on_text, timeout, verify=None):
             return consume([text_delta("a"), text_delta("b")], on_text)
 
         transport.post_stream = fake
         self._call(seen.append)
         self.assertEqual(seen, ["a", "b"])
+
+    def test_the_ssl_setting_reaches_the_stream(self):
+        seen = []
+
+        def fake(endpoint, headers, body, on_text, timeout, verify=None):
+            seen.append(verify)
+            return consume([text_delta("ok")])
+
+        transport.post_stream = fake
+        transport._dispatch([], SCHEMAS, {"verify_override": False}, 10, URL, lambda text: None)
+        self.assertEqual(seen, [False])
+
+
+class StreamRunnerSourceTest(unittest.TestCase):
+    SOURCE = (pathlib.Path(__file__).parent.parent / "qgis_ai_agent/core/llm/stream_runner.py").read_text()
+
+    def test_the_request_is_built_the_same_way_as_every_other_one(self):
+        self.assertIn("build_network_request", self.SOURCE)
+
+    def test_no_third_party_http_library_sneaks_in(self):
+        self.assertNotIn("import requests", self.SOURCE)
+        self.assertNotIn("urllib", self.SOURCE)
+
+    def test_an_instantly_finished_reply_does_not_enter_the_loop(self):
+        self.assertIn("if not reply.isFinished():", self.SOURCE)
+
+    def test_the_watchdog_restarts_on_every_incoming_chunk(self):
+        self.assertIn("reply.readyRead.connect(watchdog.start)", self.SOURCE)
 
 
 if __name__ == "__main__":

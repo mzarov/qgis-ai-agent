@@ -73,7 +73,7 @@ def post_json(
     timeout: int = DEFAULT_TIMEOUT,
     verify_override: bool | None = None,
 ) -> dict[str, Any]:
-    request = _build_network_request(endpoint, headers, verify_override)
+    request = build_network_request(endpoint, headers, verify_override)
     caller = QgsBlockingNetworkRequest()
     payload = QByteArray(json.dumps(body, ensure_ascii=False).encode("utf-8"))
     if caller.post(request, payload) != QgsBlockingNetworkRequest.ErrorCode.NoError:
@@ -86,7 +86,7 @@ def post_json(
     return _decoded(text, status)
 
 
-def _build_network_request(endpoint: str, headers: dict[str, str], verify_override: bool | None) -> QNetworkRequest:
+def build_network_request(endpoint: str, headers: dict[str, str], verify_override: bool | None) -> QNetworkRequest:
     request = QNetworkRequest(QUrl(endpoint))
     for name, value in headers.items():
         request.setRawHeader(name.encode("utf-8"), value.encode("utf-8"))
