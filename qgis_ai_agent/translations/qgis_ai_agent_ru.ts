@@ -138,7 +138,7 @@
         <translation>Отменено</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="194"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="204"/>
         <source>Changes applied.</source>
         <translation>Изменения применены.</translation>
     </message>
@@ -263,7 +263,7 @@
         <translation>Необратимые шаги</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="191"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="201"/>
         <source>Done: {0} step(s) applied.{1}</source>
         <translation>Готово: применено шагов — {0}.{1}</translation>
     </message>
@@ -283,7 +283,7 @@
         <translation>Enter — отправить, Shift+Enter — новая строка</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="233"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="243"/>
         <source>Error: {0}</source>
         <translation>Ошибка: {0}</translation>
     </message>
@@ -328,7 +328,7 @@
         <translation>Слой «{0}»: {1}{2}.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="147"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="157"/>
         <source>Loading knowledge: {0}</source>
         <translation>Загружаю знания: {0}</translation>
     </message>
@@ -353,7 +353,7 @@
         <translation>Новый диалог</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="246"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="256"/>
         <source>New layers: {0}.</source>
         <translation>Новые слои: {0}.</translation>
     </message>
@@ -373,7 +373,7 @@
         <translation>Прошлых диалогов нет</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="189"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="199"/>
         <source>Not all changes were applied.</source>
         <translation>Применились не все изменения.</translation>
     </message>
@@ -398,7 +398,7 @@
         <translation>Передано агенту — он учтёт это на следующем шаге.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="144"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="154"/>
         <source>Plan {0}/{1}: {2}</source>
         <translation>План {0}/{1}: {2}</translation>
     </message>
@@ -519,7 +519,7 @@
         <translation>Смотрю, что запомнено об этом проекте.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="140"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="150"/>
         <source>Rejected: {0}</source>
         <translation>Отклонено: {0}</translation>
     </message>
@@ -665,7 +665,7 @@
         <translation>Показываю слой «{0}» целиком.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="186"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="196"/>
         <source>Some steps did not run: {0}</source>
         <translation>Часть шагов не выполнилась: {0}</translation>
     </message>
@@ -735,12 +735,17 @@
         <translation>Агент обращается к языковой модели на ваш выбор, поэтому ему нужен адрес и ключ — либо вообще ничего, если модель работает локально на localhost.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="221"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="231"/>
         <source>The model returned nothing. Try rephrasing.</source>
         <translation>Модель ничего не вернула. Попробуйте переформулировать.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="248"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="25"/>
+        <source>The planned changes were dropped — they were not applied. Starting over from your message.</source>
+        <translation>Запланированные изменения сняты — они не применялись. Начинаю заново с вашего сообщения.</translation>
+    </message>
+    <message>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="258"/>
         <source>The result is in the layer panel.</source>
         <translation>Результат — на панели слоёв.</translation>
     </message>
@@ -750,7 +755,7 @@
         <translation>Прогон вежливо останавливается, потратив столько токенов. 0 снимает ограничение.</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="157"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="167"/>
         <source>There are no changes to apply.</source>
         <translation>Применять нечего.</translation>
     </message>
@@ -775,7 +780,7 @@
         <translation>Бюджет токенов на прогон</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="100"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="101"/>
         <source>Type a request.</source>
         <translation>Введите запрос.</translation>
     </message>
@@ -917,7 +922,7 @@
         <translation>{0} с</translation>
     </message>
     <message>
-        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="26"/>
+        <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="27"/>
         <source>{0} tokens</source>
         <translation>{0} токенов</translation>
     </message>

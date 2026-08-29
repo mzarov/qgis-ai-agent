@@ -2,6 +2,7 @@ import shutil
 import tempfile
 import unittest
 
+from qgis_ai_agent.core.orchestrator import orchestrator as orchestrator_module
 from qgis_ai_agent.core.orchestrator.orchestrator import CoreOrchestrator
 from qgis_ai_agent.core.state.conversation import ConversationState
 from qgis_ai_agent.core.state.store import SessionStore, current_project_key
@@ -64,6 +65,10 @@ class Agent:
     def confirm_pending(self):
         self.confirmed = True
 
+    def cancel_pending(self):
+        self.cancelled = True
+        self.has_pending_writes = False
+
     def abort(self):
         self.aborts += 1
         self.is_running = False
@@ -71,6 +76,18 @@ class Agent:
 
     def stop(self):
         return None
+
+
+class PlanDock(Dock):
+    def __init__(self):
+        super().__init__()
+        self.cancelled_plans = []
+
+    def add_plan_message(self, lines):
+        return 7
+
+    def mark_plan_cancelled(self, message_id):
+        self.cancelled_plans.append(message_id)
 
 
 class Call:
@@ -303,3 +320,46 @@ class OrchestratorSessionTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PendingPlanTest(unittest.TestCase):
+    def setUp(self):
+        self.dock = PlanDock()
+        self.orchestrator = CoreOrchestrator(Iface(), self.dock)
+        self.orchestrator.agent = Agent()
+
+    def _pending(self):
+        self.orchestrator.on_confirm_needed([Call()], "")
+        self.orchestrator.agent.has_pending_writes = True
+
+    def test_a_new_message_cancels_the_pending_plan(self):
+        self._pending()
+        self.orchestrator.on_prompt("ты же уже снял?")
+        self.assertTrue(self.orchestrator.agent.cancelled)
+
+    def test_the_stale_card_is_marked_instead_of_staying_live(self):
+        self._pending()
+        self.orchestrator.on_prompt("ты же уже снял?")
+        self.assertEqual(self.dock.cancelled_plans, [7])
+
+    def test_the_user_is_told_the_plan_was_dropped(self):
+        self._pending()
+        self.orchestrator.on_prompt("ты же уже снял?")
+        self.assertIn(orchestrator_module.PLAN_DROPPED, self.dock.system)
+
+    def test_the_new_run_still_starts(self):
+        self._pending()
+        self.orchestrator.on_prompt("ты же уже снял?")
+        self.assertEqual(self.orchestrator.agent.started[0], "ты же уже снял?")
+
+    def test_nothing_is_cancelled_when_no_plan_is_pending(self):
+        self.orchestrator.on_prompt("сколько слоёв?")
+        self.assertFalse(getattr(self.orchestrator.agent, "cancelled", False))
+        self.assertEqual(self.dock.cancelled_plans, [])
+
+    def test_a_running_agent_is_still_interjected_not_cancelled(self):
+        self._pending()
+        self.orchestrator.agent.is_running = True
+        self.orchestrator.agent.interject = lambda text: True
+        self.orchestrator.on_prompt("подожди")
+        self.assertFalse(getattr(self.orchestrator.agent, "cancelled", False))
