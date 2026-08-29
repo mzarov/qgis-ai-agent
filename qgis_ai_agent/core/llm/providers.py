@@ -26,6 +26,7 @@ PRESETS: list[Preset] = [
     Preset("Anthropic", "https://api.anthropic.com/v1", ANTHROPIC, "claude-sonnet-4-20250514"),
     Preset("DeepSeek", "https://api.deepseek.com/v1", OPENAI, "deepseek-chat"),
     Preset("Groq", "https://api.groq.com/openai/v1", OPENAI, tr("a model name from the Groq console")),
+    Preset("Google Gemini", "https://generativelanguage.googleapis.com/v1beta/openai", OPENAI, "gemini-2.5-flash"),
     Preset("Mistral", "https://api.mistral.ai/v1", OPENAI, "mistral-large-latest"),
     Preset("Ollama", "http://localhost:11434/v1", OPENAI, tr("a name from ollama list"), needs_key=False),
     Preset("LM Studio", "http://localhost:1234/v1", OPENAI, tr("a name from LM Studio"), needs_key=False),
