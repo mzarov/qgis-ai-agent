@@ -17,7 +17,7 @@ The suite runs without QGIS. If it is red, going into live QGIS is premature.
 Open a project with layers, then **Plugins → Python Console**:
 
 ```python
-from qgis_ai_agent.qgis_tools.registry import execute_tool
+from ai_agent.qgis_tools.registry import execute_tool
 execute_tool("get_project_info", {})
 execute_tool("list_layers", {})
 execute_tool("describe_layer", {"layer_name": "LAYER_NAME"})
@@ -63,7 +63,7 @@ renderer back — nothing remains in the project:
 
 ```python
 from qgis.core import QgsProject, QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsSymbol
-from qgis_ai_agent.qgis_tools.registry import execute_tool
+from ai_agent.qgis_tools.registry import execute_tool
 
 layer = QgsProject.instance().mapLayersByName("LAYER_NAME")[0]
 saved = layer.renderer().clone()
@@ -148,7 +148,7 @@ Additionally:
   stored under a hash of the URL.
 
 ```python
-from qgis_ai_agent.core.settings import get_api_url, get_supports_tools
+from ai_agent.core.settings import get_api_url, get_supports_tools
 get_supports_tools(get_api_url())
 ```
 
@@ -691,3 +691,24 @@ These verify the agent solves everyday tasks without wandering through search.
 170. **The public OSMF geocoder stays blocked.** Try
      `https://nominatim.openstreetmap.org` as `service_url` → the call is
      rejected before any request, with a pointer to the OSMF usage policy.
+
+## New capabilities and audit trail
+
+171. **The tool browser tells the safety truth.** Press **?** → all twelve
+     domains appear; `fetch_url`, `geocode` and `search_web` say that they wait
+     for **Apply**, not that they run immediately.
+172. **Annotations round-trip.** Ask for a text note and a marker → both wait in
+     the plan, appear after **Apply**, show up in `list_annotations`, and can be
+     removed by id.
+173. **A 3D view opens narrowly.** Ask to open a named 3D view → the plan says it
+     only opens the window; after **Apply** the view appears, or an unsupported
+     QGIS build returns the explicit fallback guidance.
+174. **The run journal is visible and honest.** After applying a plan, the chat
+     reports a Markdown path under `ai_agent_runs` in the active QGIS profile.
+     Confirm the directory/file modes are `0700`/`0600` where supported, then
+     open it and check for shortened request/agent text, tool names, failed-call
+     errors, applied count and outcome, but no separately dumped successful
+     result payloads.
+175. **Gemini uses the common dialect.** Pick the Google Gemini preset, supply a
+     valid key and model, and run **Test connection** → it uses the documented
+     OpenAI-compatible base URL and returns the diagnostic reply.

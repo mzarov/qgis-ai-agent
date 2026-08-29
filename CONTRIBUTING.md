@@ -35,7 +35,7 @@ progressively. The full picture is in
 [docs/core_architecture.md](docs/core_architecture.md).
 
 ```
-qgis_ai_agent/   the plugin — the only folder that reaches QGIS
+ai_agent/   the plugin — the only folder that reaches QGIS
   core/          loop, orchestration, LLM transport, state
   qgis_tools/    tools by domain — all the PyQGIS logic
   skills/        domain knowledge (SKILL.md)
@@ -55,7 +55,7 @@ The unusual ones first — all of them checked by `tests/test_sources.py`:
   and named constants. If a line needs a comment, rename or split instead.
 - **English everywhere.** Identifiers, tool descriptions, error messages, docs.
   Russian exists only as a translation catalogue in
-  `qgis_ai_agent/translations/`.
+  `ai_agent/translations/`.
 - **Files around 200 lines; the hard cap is 400.** Growing past the target is a
   hint to extract a module, not an automatic failure.
 - Type hints on every function, absolute imports only, all imports at the top.
@@ -82,10 +82,10 @@ The domain-specific ones:
 
 ## Adding a tool or a domain
 
-1. `qgis_ai_agent/qgis_tools/<domain>/` — one `BaseTool` subclass per file,
+1. `ai_agent/qgis_tools/<domain>/` — one `BaseTool` subclass per file,
    with `skill`, `safety`, `params_schema`, and `network_access = True` when it
    contacts an external service.
-2. `qgis_ai_agent/skills/<domain>/SKILL.md` — the domain rules; the `tools`
+2. `ai_agent/skills/<domain>/SKILL.md` — the domain rules; the `tools`
    list must match the registry.
 3. One line in `qgis_tools/registry.py`.
 
@@ -130,7 +130,7 @@ official QGIS 4 container.
 2. Update the version in both `metadata.txt` and `pyproject.toml`, and write a
    user-facing changelog entry.
 3. Run the full unit, lint, scanner, package and live-QGIS checks. Inspect the
-   ZIP and confirm it has one `qgis_ai_agent/` top-level folder.
+   ZIP and confirm it has one `ai_agent/` top-level folder.
 4. Build twice from the same source and compare SHA-256 hashes. The build uses a
    fixed manifest, timestamps and permissions, so the archives must match.
 5. Tag that exact commit, create a GitHub Release and attach the generated plugin

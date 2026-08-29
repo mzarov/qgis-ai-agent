@@ -11,8 +11,8 @@ from qgis.PyQt.QtNetwork import QNetworkRequest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 MINIMUM_QGIS_VERSION = 40000
-EXPECTED_TOOLS = 61
-EXPECTED_SKILLS = 10
+EXPECTED_TOOLS = 65
+EXPECTED_SKILLS = 12
 
 
 def main() -> int:
@@ -29,7 +29,7 @@ def main() -> int:
 
 def _build_and_extract(root: pathlib.Path) -> pathlib.Path:
     source = REPO_ROOT / "tools" / "build_plugin.py"
-    spec = importlib.util.spec_from_file_location("qgis_ai_agent_build_plugin", source)
+    spec = importlib.util.spec_from_file_location("ai_agent_build_plugin", source)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"Could not load the plugin builder at {source}")
     build_plugin = importlib.util.module_from_spec(spec)
@@ -42,22 +42,22 @@ def _build_and_extract(root: pathlib.Path) -> pathlib.Path:
 
 
 def _run_checks(package_root: pathlib.Path) -> int:
-    import qgis_ai_agent
-    from qgis_ai_agent.qgis_tools.common.layers import find_layer_by_id, find_layer_by_name
-    from qgis_ai_agent.qgis_tools.common.project_identity import STORAGE_PREFIX, project_identity
-    from qgis_ai_agent.qgis_tools.project.snapshots import (
+    import ai_agent
+    from ai_agent.qgis_tools.common.layers import find_layer_by_id, find_layer_by_name
+    from ai_agent.qgis_tools.common.project_identity import STORAGE_PREFIX, project_identity
+    from ai_agent.qgis_tools.project.snapshots import (
         drop_last,
         ensure_project_read_safe,
         snapshot_error,
         take_snapshot,
     )
-    from qgis_ai_agent.qgis_tools.registry import ALL_TOOLS
-    from qgis_ai_agent.qgis_tools.web.http import TIMEOUT_MS, _network_request
-    from qgis_ai_agent.skills.registry import SKILL_REGISTRY
+    from ai_agent.qgis_tools.registry import ALL_TOOLS
+    from ai_agent.qgis_tools.web.http import TIMEOUT_MS, _network_request
+    from ai_agent.skills.registry import SKILL_REGISTRY
 
-    plugin = qgis_ai_agent.classFactory(object())
+    plugin = ai_agent.classFactory(object())
     icon = QIcon(os.fspath(package_root / "icon.svg"))
-    loaded_package = pathlib.Path(qgis_ai_agent.__file__).resolve().parent
+    loaded_package = pathlib.Path(ai_agent.__file__).resolve().parent
     project = QgsProject.instance()
     project.clear()
     first_identity = project_identity(project)
@@ -76,7 +76,7 @@ def _run_checks(package_root: pathlib.Path) -> int:
     duplicate_guard, id_resolution = _duplicate_layer_checks(project, find_layer_by_name, find_layer_by_id)
     web_request_policy = _web_request_policy(_network_request, TIMEOUT_MS)
     tool_names = {tool.name for tool in ALL_TOOLS}
-    project.setFileName("geopackage:/tmp/qgis-ai-agent-projects.gpkg?projectName=smoke")
+    project.setFileName("geopackage:/tmp/ai-agent-projects.gpkg?projectName=smoke")
     storage_identity = project_identity(project)
     storage_uri_hashed = storage_identity.startswith(STORAGE_PREFIX) and "geopackage" not in storage_identity
     project.clear()
@@ -97,7 +97,15 @@ def _run_checks(package_root: pathlib.Path) -> int:
         "duplicate layer names are rejected": duplicate_guard,
         "duplicate layers resolve by id": id_resolution,
         "tool registry": len(ALL_TOOLS) == EXPECTED_TOOLS,
-        "web tools in registry": {"search_web", "fetch_url", "geocode"}.issubset(tool_names),
+        "new tools in registry": {
+            "search_web",
+            "fetch_url",
+            "geocode",
+            "add_annotation",
+            "list_annotations",
+            "remove_annotation",
+            "open_3d_view",
+        }.issubset(tool_names),
         "web network policy": web_request_policy,
         "skill registry": len(SKILL_REGISTRY.names()) == EXPECTED_SKILLS,
     }

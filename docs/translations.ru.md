@@ -11,8 +11,8 @@
 | Файл | Что это | Правят руками? |
 | --- | --- | --- |
 | `*.py` с `tr("Apply")` | английский оригинал | да — это и есть код |
-| `qgis_ai_agent/translations/qgis_ai_agent_ru.ts` | XML, английский → русский | да, только колонку перевода |
-| `qgis_ai_agent/translations/qgis_ai_agent_ru.qm` | скомпилированный бинарник, его грузит QGIS | никогда — генерируется |
+| `ai_agent/translations/ai_agent_ru.ts` | XML, английский → русский | да, только колонку перевода |
+| `ai_agent/translations/ai_agent_ru.qm` | скомпилированный бинарник, его грузит QGIS | никогда — генерируется |
 
 Отдельного ключа нет: ключом служит сама английская строка. Отсутствующий
 перевод безвреден — `tr()` вернёт английский оригинал.
@@ -66,7 +66,7 @@ python3 tools/update_translations.py
 
 ## Добавление языка
 
-1. Добавьте локаль в `SUPPORTED_LOCALES` в `qgis_ai_agent/i18n.py` и в
+1. Добавьте локаль в `SUPPORTED_LOCALES` в `ai_agent/i18n.py` и в
    `LANGUAGE_NAMES` в `core/agent/prompts.py`.
 2. Добавьте её правила множественного числа в `NUMERUS_RULES` в
    `tools/qm.py` — неизвестный язык компилятор не угадывает, а отказывается

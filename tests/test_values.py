@@ -1,6 +1,6 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.common.values import (
+from ai_agent.qgis_tools.common.values import (
     clamp_limit,
     plain_value,
     suggest_fields,

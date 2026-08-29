@@ -4,7 +4,7 @@ import tempfile
 import zipfile
 from pathlib import PurePosixPath
 
-PLUGIN_NAME = "qgis_ai_agent"
+PLUGIN_NAME = "ai_agent"
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PACKAGE_DIR = os.path.join(REPO_ROOT, PLUGIN_NAME)
 DIST_DIR = os.path.join(REPO_ROOT, "dist")
@@ -19,6 +19,7 @@ TREE_SUFFIXES = {
 }
 BLOCKED_PARTS = {"__pycache__", ".git", ".mypy_cache", ".ruff_cache"}
 REQUIRED_INSIDE = (
+    "skills/annotations/SKILL.md",
     "skills/edit/SKILL.md",
     "skills/fields/SKILL.md",
     "skills/inspect/SKILL.md",
@@ -28,8 +29,9 @@ REQUIRED_INSIDE = (
     "skills/project/SKILL.md",
     "skills/python/SKILL.md",
     "skills/style/SKILL.md",
+    "skills/three_d/SKILL.md",
     "skills/web/SKILL.md",
-    "translations/qgis_ai_agent_ru.qm",
+    "translations/ai_agent_ru.qm",
 )
 ARCHIVE_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
 ARCHIVE_MODE = 0o100644

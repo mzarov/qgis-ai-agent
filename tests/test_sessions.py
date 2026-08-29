@@ -4,12 +4,12 @@ import tempfile
 import time
 import unittest
 
-from qgis_ai_agent.core.state import conversation as conversation_module
-from qgis_ai_agent.core.state.conversation import ConversationState
-from qgis_ai_agent.core.state.session import MAX_MESSAGES, Session, shorten
-from qgis_ai_agent.core.state.store import MAX_SESSIONS, SessionStore, current_project_key
-from qgis_ai_agent.qgis_tools.common import persistence
-from qgis_ai_agent.qgis_tools.common.project_identity import STORAGE_PREFIX, project_identity, restore_project_identity
+from ai_agent.core.state import conversation as conversation_module
+from ai_agent.core.state.conversation import ConversationState
+from ai_agent.core.state.session import MAX_MESSAGES, Session, shorten
+from ai_agent.core.state.store import MAX_SESSIONS, SessionStore, current_project_key
+from ai_agent.qgis_tools.common import persistence
+from ai_agent.qgis_tools.common.project_identity import STORAGE_PREFIX, project_identity, restore_project_identity
 
 
 class Signal:

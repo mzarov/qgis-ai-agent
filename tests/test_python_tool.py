@@ -1,14 +1,20 @@
 import pathlib
 import unittest
 
-from qgis_ai_agent.core.agent.executor import ToolExecutor
-from qgis_ai_agent.core.llm.transport import ToolCall
-from qgis_ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
-from qgis_ai_agent.qgis_tools.python.run_python import MAX_CODE_CHARS, RunPythonTool, _checked_code
-from qgis_ai_agent.qgis_tools.python.sandbox import BudgetExceeded, LineBudget, run_snippet
-from qgis_ai_agent.ui.dock_widget import _destructive_confirmation_text
+from ai_agent.core.agent.executor import ToolExecutor
+from ai_agent.core.llm.transport import ToolCall
+from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
+from ai_agent.qgis_tools.python.run_python import (
+    MAX_CODE_CHARS,
+    MAX_INTENT_CHARS,
+    RunPythonTool,
+    _checked_code,
+    _checked_intent,
+)
+from ai_agent.qgis_tools.python.sandbox import BudgetExceeded, LineBudget, run_snippet
+from ai_agent.ui.dock_widget import _destructive_confirmation_text
 
-DOCK_SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "qgis_ai_agent" / "ui" / "dock_widget.py").read_text(
+DOCK_SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "dock_widget.py").read_text(
     encoding="utf-8"
 )
 
@@ -31,6 +37,21 @@ class CheckedCodeTest(unittest.TestCase):
 
     def test_valid_code_passes_through(self):
         self.assertEqual(_checked_code(" print(1) "), "print(1)")
+
+
+class CheckedIntentTest(unittest.TestCase):
+    def test_rich_text_markers_remain_literal_plain_text(self):
+        intent = "<style>* { color: transparent; }</style> inspect the project"
+        self.assertEqual(_checked_intent(intent), intent)
+
+    def test_control_and_formatting_characters_are_refused(self):
+        for intent in ("first\nsecond", "first\tsecond", "safe\u202eevil"):
+            with self.subTest(intent=repr(intent)), self.assertRaisesRegex(ValueError, "plain-text line"):
+                _checked_intent(intent)
+
+    def test_oversized_intent_is_refused(self):
+        with self.assertRaisesRegex(ValueError, str(MAX_INTENT_CHARS)):
+            _checked_intent("x" * (MAX_INTENT_CHARS + 1))
 
 
 class BudgetTest(unittest.TestCase):
@@ -105,6 +126,11 @@ class ToolTest(unittest.TestCase):
     def test_prepare_accepts_a_documented_snippet(self):
         prepared = self.tool.prepare({"code": "print(1)", "intent": "check something"})
         self.assertEqual(prepared["code"], "print(1)")
+        self.assertEqual(prepared["intent"], "check something")
+
+    def test_execute_revalidates_intent_fail_closed(self):
+        with self.assertRaisesRegex(ValueError, "plain-text line"):
+            self.tool.execute({"code": "print('unsafe')", "intent": "hidden\u202etext"})
 
     def test_summary_shows_the_intent_and_never_raises(self):
         self.assertIn("check the CRS", self.tool.summarize_call({"intent": "check the CRS"}))
@@ -145,6 +171,9 @@ class ToolTest(unittest.TestCase):
         self.assertIn("setReadOnly(True)", body)
         self.assertIn("SystemFont.FixedFont", body)
         self.assertIn("setMinimumHeight", body)
+        self.assertIn("summary.setTextFormat(Qt.TextFormat.PlainText)", body)
+        self.assertIn("code_title.setTextFormat(Qt.TextFormat.PlainText)", body)
+        self.assertIn("question.setTextFormat(Qt.TextFormat.PlainText)", body)
 
 
 if __name__ == "__main__":

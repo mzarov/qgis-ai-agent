@@ -3,17 +3,15 @@ import re
 import unittest
 import xml.etree.ElementTree as ElementTree
 
-from qgis_ai_agent.ui import icons
+from ai_agent.ui import icons
 
-SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "qgis_ai_agent" / "ui" / "icons.py").read_text(
-    encoding="utf-8"
-)
-DOCK = (pathlib.Path(__file__).resolve().parent.parent / "qgis_ai_agent" / "ui" / "dock_widget.py").read_text(
+SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "icons.py").read_text(encoding="utf-8")
+DOCK = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "dock_widget.py").read_text(
     encoding="utf-8"
 )
 COORDINATE = re.compile(r"QPointF\(([0-9.]+), ([0-9.]+)\)")
-PLUGIN = pathlib.Path(__file__).resolve().parent.parent / "qgis_ai_agent" / "plugin.py"
-BRAND_ICON = pathlib.Path(__file__).resolve().parent.parent / "qgis_ai_agent" / "icon.svg"
+PLUGIN = pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "plugin.py"
+BRAND_ICON = pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "icon.svg"
 
 
 class ApiTest(unittest.TestCase):

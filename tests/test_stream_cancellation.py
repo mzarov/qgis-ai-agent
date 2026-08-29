@@ -1,7 +1,7 @@
 import pathlib
 import unittest
 
-from qgis_ai_agent.core.llm import stream_runner
+from ai_agent.core.llm import stream_runner
 
 
 class _Target:

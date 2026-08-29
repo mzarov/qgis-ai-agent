@@ -2,10 +2,10 @@ import json
 import pathlib
 import unittest
 
-from qgis_ai_agent.core.llm import transport, worker
-from qgis_ai_agent.core.llm.client import ApiResponseError
-from qgis_ai_agent.core.llm.stream import SseAccumulator, consume
-from qgis_ai_agent.core.llm.transport import ModelTurn, _openai_options
+from ai_agent.core.llm import transport, worker
+from ai_agent.core.llm.client import ApiResponseError
+from ai_agent.core.llm.stream import SseAccumulator, consume
+from ai_agent.core.llm.transport import ModelTurn, _openai_options
 
 SCHEMAS = [{"type": "function", "function": {"name": "list_layers", "parameters": {}}}]
 URL = "https://api.example/v1"
@@ -253,7 +253,7 @@ class StreamingDispatchTest(unittest.TestCase):
 
 
 class StreamRunnerSourceTest(unittest.TestCase):
-    SOURCE = (pathlib.Path(__file__).parent.parent / "qgis_ai_agent/core/llm/stream_runner.py").read_text()
+    SOURCE = (pathlib.Path(__file__).parent.parent / "ai_agent/core/llm/stream_runner.py").read_text()
 
     def test_the_request_is_built_the_same_way_as_every_other_one(self):
         self.assertIn("build_network_request", self.SOURCE)
@@ -323,7 +323,7 @@ class ModelWorkerCancellationTest(unittest.TestCase):
         self.assertTrue(thread._feedback.isCanceled())
 
     def test_owner_never_uses_unsafe_qthread_termination(self):
-        source = (pathlib.Path(__file__).parent.parent / "qgis_ai_agent/core/agent/turn_thread.py").read_text(
+        source = (pathlib.Path(__file__).parent.parent / "ai_agent/core/agent/turn_thread.py").read_text(
             encoding="utf-8"
         )
         self.assertNotIn(".terminate()", source)

@@ -14,7 +14,7 @@ import build_plugin
 import check_secrets
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
-METADATA = REPO_ROOT / "qgis_ai_agent" / "metadata.txt"
+METADATA = REPO_ROOT / "ai_agent" / "metadata.txt"
 SECRET_BASELINE = REPO_ROOT / ".secrets.baseline"
 TESTS_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "tests.yml"
 REAL_QGIS_SMOKE = REPO_ROOT / "tests" / "real_qgis_smoke.py"
@@ -55,7 +55,11 @@ class MetadataTest(unittest.TestCase):
         self.assertGreaterEqual(float(self.values["qgisMinimumVersion"]), 4.0)
 
     def test_icon_exists(self):
-        self.assertTrue((REPO_ROOT / "qgis_ai_agent" / self.values["icon"]).is_file())
+        self.assertTrue((REPO_ROOT / "ai_agent" / self.values["icon"]).is_file())
+
+    def test_source_tree_uses_only_the_svg_brand_icon(self):
+        self.assertEqual(self.values["icon"], "icon.svg")
+        self.assertFalse((REPO_ROOT / "ai_agent" / "icon.png").exists())
 
 
 class BuildTest(unittest.TestCase):
@@ -73,7 +77,7 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(tops, {build_plugin.PLUGIN_NAME})
 
     def test_every_skill_body_is_packed(self):
-        on_disk = sorted(path.parent.name for path in (REPO_ROOT / "qgis_ai_agent").rglob("SKILL.md"))
+        on_disk = sorted(path.parent.name for path in (REPO_ROOT / "ai_agent").rglob("SKILL.md"))
         packed = sorted(name.rsplit("/", 2)[1] for name in self.names if name.endswith("SKILL.md"))
         self.assertTrue(on_disk, "в исходниках не найдено ни одного SKILL.md")
         self.assertEqual(packed, on_disk)
@@ -129,10 +133,10 @@ class BuildTest(unittest.TestCase):
     def test_skills_load_from_the_extracted_copy(self):
         zipfile.ZipFile(self.archive).extractall(self.root)
         skills_root = os.path.join(self.root, build_plugin.PLUGIN_NAME, "skills")
-        from qgis_ai_agent.skills.registry import SkillRegistry
+        from ai_agent.skills.registry import SkillRegistry
 
         registry = SkillRegistry(skills_root)
-        on_disk = sorted(path.parent.name for path in (REPO_ROOT / "qgis_ai_agent").rglob("SKILL.md"))
+        on_disk = sorted(path.parent.name for path in (REPO_ROOT / "ai_agent").rglob("SKILL.md"))
         self.assertEqual(sorted(registry.names()), on_disk)
 
 
@@ -141,10 +145,10 @@ class SecretScanTest(unittest.TestCase):
         self.assertEqual(check_secrets.findings({"results": {}}), [])
 
     def test_any_detected_secret_is_a_finding(self):
-        payload = {"results": {"qgis_ai_agent/example.py": [{"line_number": 3, "type": "Secret Keyword"}]}}
+        payload = {"results": {"ai_agent/example.py": [{"line_number": 3, "type": "Secret Keyword"}]}}
         self.assertEqual(
             check_secrets.findings(payload),
-            [("qgis_ai_agent/example.py", 3, "Secret Keyword")],
+            [("ai_agent/example.py", 3, "Secret Keyword")],
         )
 
     def test_malformed_report_is_not_treated_as_clean(self):
@@ -177,7 +181,7 @@ class RealQgisCiTest(unittest.TestCase):
         source = REAL_QGIS_SMOKE.read_text(encoding="utf-8")
         self.assertIn("build_plugin.build(root)", source)
         self.assertIn("archive.extractall(installation)", source)
-        self.assertIn("qgis_ai_agent.__file__", source)
+        self.assertIn("ai_agent.__file__", source)
         self.assertIn("snapshot preserves unsaved identity", source)
         self.assertIn("active edit buffer blocks snapshot", source)
         self.assertIn("duplicate layer names are rejected", source)

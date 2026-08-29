@@ -1,8 +1,8 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.common import layers as layers_module
-from qgis_ai_agent.qgis_tools.common.layer_meta import sanitize_source
-from qgis_ai_agent.qgis_tools.common.layers import (
+from ai_agent.qgis_tools.common import layers as layers_module
+from ai_agent.qgis_tools.common.layer_meta import sanitize_source
+from ai_agent.qgis_tools.common.layers import (
     LAYER_PINS_KEY,
     bind_layer_reference,
     find_layer_by_id,

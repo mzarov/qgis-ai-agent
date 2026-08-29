@@ -1,6 +1,6 @@
 # Data and privacy
 
-QGIS AI Agent runs in QGIS, but a remote language model cannot reason about the
+AI Agent runs in QGIS, but a remote language model cannot reason about the
 project without receiving context. “Read-only” in the plan means that a tool
 does not mutate QGIS. It is not a promise that the tool result remains on the
 device.
@@ -97,11 +97,23 @@ uses the external `keyring` Python library for that integration and does not
 write keys to a QGIS project or settings file.
 
 Conversation messages and remembered project notes are stored as plain JSON
-under the active QGIS profile in `qgis_ai_agent_sessions`. Atomic writes keep a
+under the active QGIS profile in `ai_agent_sessions`. Atomic writes keep a
 previous `.bak` copy so a power loss or partial write does not destroy the last
 valid state. These files are not encrypted. Tool results and rendered images
 remain in memory unless their content is repeated in a saved chat message or
 written by another operation. Web responses are not cached on disk.
+
+After an applied run, the plugin also writes a plaintext Markdown audit journal
+under `ai_agent_runs` in the active QGIS profile and reports the exact path in
+the conversation and QGIS log. It records shortened versions of the request and
+agent messages, tool names, failed-tool error text, the number of applied steps
+and the final outcome. The plugin refuses a symbolic-link journal directory,
+sets the directory to owner-only mode `0700` and each atomically written file to
+`0600` where the platform supports those permissions. This limits other local
+accounts but is not encryption. Journals persist across QGIS restarts and remain
+until the user deletes them. They do not add tool arguments or successful
+tool-result payloads, but recorded text and errors can still contain sensitive
+information.
 
 ## Other network requests
 
@@ -120,6 +132,7 @@ requests independently of this plugin.
   not needed.
 - Limit requested fields before sampling records.
 - Avoid rendering a map when its geography or labels are sensitive.
-- Remove saved conversations, project notes and their `.bak` files from the
-  QGIS profile when the local record is no longer required.
+- Remove saved conversations, project notes and their `.bak` files, and
+  Markdown journals from the profile's `ai_agent_runs` directory, when the
+  local record is no longer required.
 - Review the configured provider's retention policy before sending client data.

@@ -2,13 +2,13 @@ import os
 import pathlib
 import unittest
 
-from qgis_ai_agent.qgis_tools.registry import get_tools_for_skills
-from qgis_ai_agent.skills.base import parse_skill_markdown
-from qgis_ai_agent.skills.registry import SkillRegistry
+from ai_agent.qgis_tools.registry import get_tools_for_skills
+from ai_agent.skills.base import parse_skill_markdown
+from ai_agent.skills.registry import SkillRegistry
 
 SKILLS_ROOT = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "qgis_ai_agent",
+    "ai_agent",
     "skills",
 )
 

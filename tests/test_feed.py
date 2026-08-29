@@ -2,11 +2,11 @@ import pathlib
 import unittest
 from unittest import mock
 
-from qgis_ai_agent.ui.conversation import ConversationView
-from qgis_ai_agent.ui.messages import AssistantMessage
-from qgis_ai_agent.ui.thinking import ThinkingBlock
+from ai_agent.ui.conversation import ConversationView
+from ai_agent.ui.messages import AssistantMessage
+from ai_agent.ui.thinking import ThinkingBlock
 
-DOCK_SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "qgis_ai_agent" / "ui" / "dock_widget.py").read_text(
+DOCK_SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "dock_widget.py").read_text(
     encoding="utf-8"
 )
 
@@ -268,7 +268,7 @@ class ActivityTitleTest(unittest.TestCase):
         from qgis.PyQt.QtCore import Qt
         from qgis.PyQt.QtWidgets import QWidget
 
-        from qgis_ai_agent.ui.activity import StepRow
+        from ai_agent.ui.activity import StepRow
 
         row = StepRow("<b>visible literally</b><!-- hidden -->", QWidget().palette())
         self.assertEqual(row._label.textFormat(), Qt.TextFormat.PlainText)
@@ -276,7 +276,7 @@ class ActivityTitleTest(unittest.TestCase):
 
 class FailedPlanCardTest(unittest.TestCase):
     def test_a_failed_apply_still_settles_the_card(self):
-        from qgis_ai_agent.ui.plan import PlanCard
+        from ai_agent.ui.plan import PlanCard
 
         card = PlanCard(["step"])
         card.mark_failed()
@@ -286,7 +286,7 @@ class FailedPlanCardTest(unittest.TestCase):
         from qgis.PyQt.QtCore import Qt
         from qgis.PyQt.QtWidgets import QLabel, QWidget
 
-        from qgis_ai_agent.ui import plan as plan_module
+        from ai_agent.ui import plan as plan_module
 
         labels = []
 
@@ -302,3 +302,54 @@ class FailedPlanCardTest(unittest.TestCase):
                 QWidget().palette(),
             )
         self.assertEqual(labels[-1].textFormat(), Qt.TextFormat.PlainText)
+
+
+class CapabilitiesTest(unittest.TestCase):
+    def test_every_skill_arrives_with_its_tools(self):
+        from ai_agent.core.orchestrator.capabilities import describe_capabilities
+        from ai_agent.skills.registry import SKILL_REGISTRY
+
+        described = describe_capabilities()
+        self.assertEqual([skill["name"] for skill in described], SKILL_REGISTRY.names())
+        web = next(skill for skill in described if skill["name"] == "web")
+        names = [tool["name"] for tool in web["tools"]]
+        self.assertEqual(names, sorted(names))
+        self.assertIn("geocode", names)
+        self.assertTrue(all(tool["network_access"] for tool in web["tools"]))
+        self.assertTrue(all(tool["safety"] for skill in described for tool in skill["tools"]))
+
+    def test_the_browser_dialog_builds_from_the_description(self):
+        from ai_agent.core.orchestrator.capabilities import describe_capabilities
+        from ai_agent.ui.tool_browser import ToolBrowserDialog
+
+        ToolBrowserDialog(describe_capabilities())
+
+    def test_network_reads_are_not_labelled_as_immediate(self):
+        from qgis.PyQt.QtCore import Qt
+
+        from ai_agent.ui.tool_browser import NETWORK_LABEL, _tool_row
+
+        row = _tool_row(
+            {
+                "name": "fetch_url",
+                "safety": "read",
+                "network_access": True,
+                "description": "Read a page.",
+            },
+            ConversationView().palette(),
+        )
+        self.assertIn(NETWORK_LABEL, row.text())
+        self.assertNotIn("runs immediately", row.text())
+        self.assertEqual(row.textFormat(), Qt.TextFormat.PlainText)
+
+    def test_capability_headers_are_plain_text(self):
+        from qgis.PyQt.QtCore import Qt
+
+        from ai_agent.ui.tool_browser import _skill_header
+
+        header = _skill_header(
+            {"name": "<b>web</b>", "description": "<!-- hidden -->"},
+            ConversationView().palette(),
+        )
+        self.assertIn("<b>web</b>", header.text())
+        self.assertEqual(header.textFormat(), Qt.TextFormat.PlainText)

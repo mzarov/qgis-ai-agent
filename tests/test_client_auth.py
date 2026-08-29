@@ -1,10 +1,10 @@
 import pathlib
 import unittest
 
-from qgis_ai_agent.core import settings
-from qgis_ai_agent.core.llm import client
-from qgis_ai_agent.core.llm.client import build_request, is_local, resolve_endpoint
-from qgis_ai_agent.core.llm.dialects import safe_endpoint_label
+from ai_agent.core import settings
+from ai_agent.core.llm import client
+from ai_agent.core.llm.client import build_request, is_local, resolve_endpoint
+from ai_agent.core.llm.dialects import safe_endpoint_label
 
 REMOTE = "https://api.openai.com/v1"
 USERINFO_URL = "https://localhost:password@evil.example/v1"
@@ -119,9 +119,9 @@ if __name__ == "__main__":
 
 
 class TransportTest(unittest.TestCase):
-    SOURCE = (
-        pathlib.Path(__file__).resolve().parent.parent / "qgis_ai_agent" / "core" / "llm" / "client.py"
-    ).read_text(encoding="utf-8")
+    SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "core" / "llm" / "client.py").read_text(
+        encoding="utf-8"
+    )
 
     def test_network_goes_through_qgis_not_requests(self):
         self.assertIn("QgsBlockingNetworkRequest", self.SOURCE)
@@ -174,6 +174,15 @@ class NetworkRequestConfigurationTest(unittest.TestCase):
             client.get_verify_ssl = saved
         self.assertIsNone(request.applied_ssl)
 
+    def test_request_does_not_reuse_shared_cookies_authentication_or_cache(self):
+        request = client.build_network_request("https://example.test", {}, True)
+        attributes = request.attributes
+        self.assertEqual(attributes["cache-load"], "always-network")
+        self.assertIs(attributes["cache-save"], False)
+        self.assertEqual(attributes["cookie-load"], "manual")
+        self.assertEqual(attributes["cookie-save"], "manual")
+        self.assertEqual(attributes["authentication-reuse"], "manual")
+
 
 class _SslConfiguration:
     def __init__(self):
@@ -186,9 +195,20 @@ class _SslConfiguration:
 class _NetworkRequest:
     class Attribute:
         RedirectPolicyAttribute = "redirect"
+        CacheLoadControlAttribute = "cache-load"
+        CacheSaveControlAttribute = "cache-save"
+        CookieLoadControlAttribute = "cookie-load"
+        CookieSaveControlAttribute = "cookie-save"
+        AuthenticationReuseAttribute = "authentication-reuse"
 
     class RedirectPolicy:
         SameOriginRedirectPolicy = "same-origin"
+
+    class CacheLoadControl:
+        AlwaysNetwork = "always-network"
+
+    class LoadControl:
+        Manual = "manual"
 
     def __init__(self, url):
         self.url = url
@@ -197,6 +217,7 @@ class _NetworkRequest:
         self.configuration = _SslConfiguration()
         self.applied_ssl = None
         self.redirect_policy = None
+        self.attributes = {}
 
     def setRawHeader(self, name, value):
         self.headers[name] = value
@@ -205,6 +226,7 @@ class _NetworkRequest:
         self.timeout = timeout
 
     def setAttribute(self, attribute, value):
+        self.attributes[attribute] = value
         if attribute == self.Attribute.RedirectPolicyAttribute:
             self.redirect_policy = value
 

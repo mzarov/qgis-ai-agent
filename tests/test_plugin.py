@@ -1,8 +1,8 @@
 import unittest
 from unittest import mock
 
-from qgis_ai_agent import plugin as plugin_module
-from qgis_ai_agent.plugin import QgisAiAgentPlugin
+from ai_agent import plugin as plugin_module
+from ai_agent.plugin import QgisAiAgentPlugin
 
 
 class Signal:

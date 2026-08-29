@@ -16,7 +16,7 @@ python3 -m unittest discover -s tests -t .
 Открыть проект со слоями, затем **Плагины → Консоль Python**:
 
 ```python
-from qgis_ai_agent.qgis_tools.registry import execute_tool
+from ai_agent.qgis_tools.registry import execute_tool
 execute_tool("get_project_info", {})
 execute_tool("list_layers", {})
 execute_tool("describe_layer", {"layer_name": "ИМЯ_СЛОЯ"})
@@ -60,7 +60,7 @@ execute_tool("describe_processing", {"algorithm_id": "native:buffer"})
 
 ```python
 from qgis.core import QgsProject, QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsSymbol
-from qgis_ai_agent.qgis_tools.registry import execute_tool
+from ai_agent.qgis_tools.registry import execute_tool
 
 layer = QgsProject.instance().mapLayersByName("ИМЯ_СЛОЯ")[0]
 saved = layer.renderer().clone()
@@ -143,7 +143,7 @@ execute_tool("describe_layer", {"layer_name": "ИМЯ_СЛОЯ_POSTGIS"})["sourc
 - Смена URL в настройках не ломает выбор: флаг хранится по хешу URL.
 
 ```python
-from qgis_ai_agent.core.settings import get_api_url, get_supports_tools
+from ai_agent.core.settings import get_api_url, get_supports_tools
 get_supports_tools(get_api_url())
 ```
 
@@ -680,3 +680,24 @@ get_supports_tools(get_api_url())
 170. **Публичный геокодер OSMF остаётся заблокирован.** Передать
      `https://nominatim.openstreetmap.org` как `service_url` → вызов отклоняется
      до сетевого запроса со ссылкой на правила использования OSMF.
+
+## Новые возможности и журнал аудита
+
+171. **Браузер инструментов честно показывает безопасность.** Нажать **?** →
+     видны все двенадцать доменов; у `fetch_url`, `geocode` и `search_web`
+     написано, что они ждут **Применить**, а не выполняются сразу.
+172. **Аннотации проходят полный цикл.** Попросить текстовую заметку и маркер →
+     оба ждут в плане, появляются после **Применить**, видны в
+     `list_annotations` и удаляются по id.
+173. **3D-вид открывается в заявленных границах.** Попросить именованный 3D-вид
+     → план говорит, что инструмент только открывает окно; после **Применить**
+     вид появляется, а сборка QGIS без нужного API возвращает явную подсказку.
+174. **Журнал прогона видим и точен.** После применения плана чат сообщает путь
+     к Markdown-файлу в каталоге `ai_agent_runs` активного профиля QGIS. Где
+     поддерживается, проверить права каталога/файла `0700`/`0600`, затем открыть
+     файл и проверить сокращённые тексты запроса и агента, имена инструментов,
+     ошибки неудачных вызовов, число применённых шагов и итог; отдельной
+     выгрузки успешных результатов быть не должно.
+175. **Gemini использует общий диалект.** Выбрать пресет Google Gemini, указать
+     действующие ключ и модель, нажать **Проверить подключение** → запрос идёт
+     на документированный OpenAI-совместимый адрес и возвращает ответ проверки.

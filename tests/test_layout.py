@@ -1,13 +1,13 @@
 import pathlib
 import unittest
 
-from qgis_ai_agent.qgis_tools.layout import add_layout_item as add_module
-from qgis_ai_agent.qgis_tools.layout import configure_layout_item as configure_module
-from qgis_ai_agent.qgis_tools.layout import export_layout as export_module
-from qgis_ai_agent.qgis_tools.layout import items, pages
-from qgis_ai_agent.qgis_tools.layout.add_layout_item import AddLayoutItemTool
-from qgis_ai_agent.qgis_tools.layout.configure_layout_item import ConfigureLayoutItemTool
-from qgis_ai_agent.qgis_tools.layout.export_layout import ExportLayoutTool, _checked_path
+from ai_agent.qgis_tools.layout import add_layout_item as add_module
+from ai_agent.qgis_tools.layout import configure_layout_item as configure_module
+from ai_agent.qgis_tools.layout import export_layout as export_module
+from ai_agent.qgis_tools.layout import items, pages
+from ai_agent.qgis_tools.layout.add_layout_item import AddLayoutItemTool
+from ai_agent.qgis_tools.layout.configure_layout_item import ConfigureLayoutItemTool
+from ai_agent.qgis_tools.layout.export_layout import ExportLayoutTool, _checked_path
 
 
 class PageSizeTest(unittest.TestCase):
@@ -250,7 +250,7 @@ if __name__ == "__main__":
 
 
 class MapZoomOrderTest(unittest.TestCase):
-    SOURCE = pathlib.Path("qgis_ai_agent/qgis_tools/layout/add_layout_item.py").read_text(encoding="utf-8")
+    SOURCE = pathlib.Path("ai_agent/qgis_tools/layout/add_layout_item.py").read_text(encoding="utf-8")
 
     def test_the_map_is_zoomed_only_after_it_has_a_size(self):
         body = self.SOURCE.split("def execute", 1)[1].split("def _checked_kind", 1)[0]

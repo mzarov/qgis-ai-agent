@@ -28,7 +28,7 @@ jobs:
         if: matrix.python == '3.12'
         run: |
           python3 -m pip install --quiet bandit detect-secrets==1.5.0
-          bandit -r qgis_ai_agent -q
+          bandit -r ai_agent -q
           git ls-files -z | xargs -0 detect-secrets-hook --baseline .secrets.baseline
       - name: Plugin build
         run: python3 tools/build_plugin.py
@@ -36,7 +36,7 @@ jobs:
         if: matrix.python == '3.12'
         uses: actions/upload-artifact@v4
         with:
-          name: qgis_ai_agent
+          name: ai_agent
           path: dist/*.zip
 
   real-qgis-smoke:

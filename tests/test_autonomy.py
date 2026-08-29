@@ -1,24 +1,24 @@
 import unittest
 
-from qgis_ai_agent.core.agent import batch_apply as batch_apply_module
-from qgis_ai_agent.core.agent import loop as loop_module
-from qgis_ai_agent.core.agent import prompts
-from qgis_ai_agent.core.agent.loop import MAX_ITERATIONS, AgentLoop
-from qgis_ai_agent.core.agent.notices import APPLY_DECLINED_MESSAGE, BUDGET_REACHED_MESSAGE
-from qgis_ai_agent.core.agent.prompts import (
+from ai_agent.core.agent import batch_apply as batch_apply_module
+from ai_agent.core.agent import loop as loop_module
+from ai_agent.core.agent import prompts
+from ai_agent.core.agent.loop import MAX_ITERATIONS, AgentLoop
+from ai_agent.core.agent.notices import APPLY_DECLINED_MESSAGE, BUDGET_REACHED_MESSAGE
+from ai_agent.core.agent.prompts import (
     APPLY_NOW_TOOL,
     UPDATE_PLAN_TOOL,
     build_system_prompt,
     render_task_plan,
 )
-from qgis_ai_agent.core.agent.request import build_tool_schemas_for
-from qgis_ai_agent.core.agent.transcript import (
+from ai_agent.core.agent.request import build_tool_schemas_for
+from ai_agent.core.agent.transcript import (
     COMPACT_RESULT_CHARS,
     KEEP_FULL_RESULTS,
     ToolResult,
     Transcript,
 )
-from qgis_ai_agent.core.llm.transport import ModelTurn, ToolCall, parse_usage
+from ai_agent.core.llm.transport import ModelTurn, ToolCall, parse_usage
 
 
 def _call(tool, **arguments):

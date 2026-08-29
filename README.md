@@ -1,4 +1,4 @@
-# QGIS AI Agent
+# AI Agent
 
 [![Tests](https://github.com/mzarov/qgis-ai-agent/actions/workflows/tests.yml/badge.svg)](https://github.com/mzarov/qgis-ai-agent/actions/workflows/tests.yml)
 [![Documentation](https://github.com/mzarov/qgis-ai-agent/actions/workflows/docs.yml/badge.svg)](https://github.com/mzarov/qgis-ai-agent/actions/workflows/docs.yml)
@@ -13,7 +13,7 @@ confirms them.
 **Documentation:** <https://mzarov.github.io/qgis-ai-agent/> ·
 по-русски: <https://mzarov.github.io/qgis-ai-agent/ru/>
 
-**What it does** — ten domains, 61 tools:
+**What it does** — twelve domains, 65 tools:
 
 | Domain | Example requests |
 | --- | --- |
@@ -27,6 +27,8 @@ confirms them.
 | `layout` | “make an A4 map sheet with a legend and export it to PDF” |
 | `python` | the escape hatch: runs a PyQGIS snippet you read and approve first |
 | `web` | “find the EPSG code”, “read this documentation page”, “geocode this place” |
+| `annotations` | “mark this place”, “add a note to the map”, “remove that annotation” |
+| `three_d` | “open a 3D view of this project” |
 
 The agent can **see**: on a vision model it renders the map or the layout and
 judges the result by eye. After you press Apply it runs a **verification pass**
@@ -36,7 +38,7 @@ really landed, queueing fixes when they did not.
 ## Installation
 
 Requires **QGIS 4.0+**. For a published version, download the
-`qgis_ai_agent-<version>.zip` asset from the
+`ai_agent-<version>.zip` asset from the
 [latest GitHub Release](https://github.com/mzarov/qgis-ai-agent/releases/latest).
 Do not use GitHub's auto-generated “Source code” archives. Install the plugin
 archive through **Plugins → Manage and Install Plugins → Install from ZIP**.
@@ -54,9 +56,9 @@ and the development install are in [docs/SETUP.md](docs/SETUP.md).
 ## Configuration
 
 The gear icon on the plugin panel. Picking a provider fills in the address and
-the API format — OpenAI, OpenRouter, Anthropic, DeepSeek, Groq, Mistral and the
-local Ollama / LM Studio are supported (no key needed for localhost). The key is
-stored in the system keychain, not in the config.
+the API format — OpenAI, OpenRouter, Anthropic, Google Gemini, DeepSeek, Groq,
+Mistral and the local Ollama / LM Studio are supported (no key needed for
+localhost). The key is stored in the system keychain, not in the config.
 
 The model must support function calling; for endpoints without it there is a
 text JSON protocol that switches on by itself.
@@ -73,8 +75,12 @@ filters and sources, style categories, Processing and Python results, and
 rendered map or layout images; those tools are hidden and
 blocked until the option is enabled. The configured model can otherwise receive
 the prompt, recent chat context, project notes and basic layer and field
-metadata. Conversation
-messages and project notes are saved as plain JSON in the active QGIS profile.
+metadata. Conversation messages and project notes are saved as plain JSON in
+the active QGIS profile. When an applied run produces an audit journal, it is
+saved as a plaintext Markdown file in that profile's `ai_agent_runs` directory;
+the UI reports the exact path. The directory and files use owner-only
+permissions where the platform supports them, but they are not encrypted and
+remain until you delete them. Treat both stores as sensitive.
 
 The three optional web tools have a separate boundary: every search, geocode or
 page fetch waits for per-call confirmation, including when the model endpoint is
@@ -118,7 +124,7 @@ The full picture: [docs/core_architecture.md](docs/core_architecture.md).
 ## Layout
 
 ```
-qgis_ai_agent/                 the whole plugin — only this folder reaches QGIS
+ai_agent/                 the whole plugin — only this folder reaches QGIS
   __init__.py, metadata.txt    the QGIS entry point
   plugin.py                    composition root: wires QGIS, core and ui
   core/                        loop, orchestration, LLM transport, state
@@ -152,7 +158,7 @@ them too:
 
 ```bash
 pip install bandit detect-secrets==1.5.0 ruff
-bandit -r qgis_ai_agent -q
+bandit -r ai_agent -q
 git ls-files -z | xargs -0 detect-secrets-hook --baseline .secrets.baseline
 ruff check . && ruff format --check .
 ```
@@ -173,9 +179,9 @@ Contributions follow [CONTRIBUTING.md](CONTRIBUTING.md), the
 
 ### Adding a domain
 
-1. `qgis_ai_agent/qgis_tools/<domain>/` — tool classes
+1. `ai_agent/qgis_tools/<domain>/` — tool classes
    (`skill = "<domain>"`, `safety = read|write`)
-2. `qgis_ai_agent/skills/<domain>/SKILL.md` — the domain rules
+2. `ai_agent/skills/<domain>/SKILL.md` — the domain rules
 3. one line in `qgis_tools/registry.py`
 
 The loop, the orchestrator and the prompt stay untouched. A new tool means a new

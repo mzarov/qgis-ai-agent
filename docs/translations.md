@@ -11,8 +11,8 @@ Three files, of which you only ever edit the middle one:
 | File | What it is | Edited by hand? |
 | --- | --- | --- |
 | `*.py` with `tr("Apply")` | the English original | yes — that is the code |
-| `qgis_ai_agent/translations/qgis_ai_agent_ru.ts` | XML, English → Russian | yes, the translation column only |
-| `qgis_ai_agent/translations/qgis_ai_agent_ru.qm` | the compiled binary QGIS loads | never — generated |
+| `ai_agent/translations/ai_agent_ru.ts` | XML, English → Russian | yes, the translation column only |
+| `ai_agent/translations/ai_agent_ru.qm` | the compiled binary QGIS loads | never — generated |
 
 There is no separate key: the English string itself is the key. A missing
 translation is harmless — `tr()` falls back to the English original.
@@ -68,7 +68,7 @@ from the code.
 
 ## Adding a language
 
-1. Add the locale to `SUPPORTED_LOCALES` in `qgis_ai_agent/i18n.py` and to
+1. Add the locale to `SUPPORTED_LOCALES` in `ai_agent/i18n.py` and to
    `LANGUAGE_NAMES` in `core/agent/prompts.py`.
 2. Add its plural rules to `NUMERUS_RULES` in `tools/qm.py` — the compiler
    refuses unknown languages instead of guessing.

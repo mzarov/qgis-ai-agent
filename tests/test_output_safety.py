@@ -3,17 +3,17 @@ import shutil
 import tempfile
 import unittest
 
-from qgis_ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE, SAFETY_WRITE
-from qgis_ai_agent.qgis_tools.layout import export_layout as layout_module
-from qgis_ai_agent.qgis_tools.layout.export_layout import ExportLayoutTool
-from qgis_ai_agent.qgis_tools.processing.run_processing import (
+from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE, SAFETY_WRITE
+from ai_agent.qgis_tools.layout import export_layout as layout_module
+from ai_agent.qgis_tools.layout.export_layout import ExportLayoutTool
+from ai_agent.qgis_tools.processing.run_processing import (
     RunProcessingTool,
     _check_destinations,
     _destination_paths,
     _destination_values,
 )
-from qgis_ai_agent.qgis_tools.project import export_layer as layer_module
-from qgis_ai_agent.qgis_tools.project.export_layer import ExportLayerTool
+from ai_agent.qgis_tools.project import export_layer as layer_module
+from ai_agent.qgis_tools.project.export_layer import ExportLayerTool
 
 
 class _Layer:

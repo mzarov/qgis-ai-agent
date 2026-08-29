@@ -1,6 +1,6 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.inspect.queries import run_rows
+from ai_agent.qgis_tools.inspect.queries import run_rows
 
 
 class _Fields:

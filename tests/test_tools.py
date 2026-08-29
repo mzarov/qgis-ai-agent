@@ -1,13 +1,13 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.base import (
+from ai_agent.qgis_tools.base import (
     JSON_SCHEMA_TYPES,
     SAFETY_DESTRUCTIVE,
     SAFETY_READ,
     SAFETY_WRITE,
     BaseTool,
 )
-from qgis_ai_agent.qgis_tools.registry import ALL_TOOLS, get_tool_by_name
+from ai_agent.qgis_tools.registry import ALL_TOOLS, get_tool_by_name
 
 
 class ToolContractTest(unittest.TestCase):

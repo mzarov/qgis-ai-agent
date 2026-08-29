@@ -1,6 +1,6 @@
 import unittest
 
-from qgis_ai_agent.qgis_tools.inspect import project_info
+from ai_agent.qgis_tools.inspect import project_info
 
 
 class _EmptyTree:

@@ -1,25 +1,25 @@
 import unittest
 
-from qgis_ai_agent.core import privacy
-from qgis_ai_agent.core.agent import dispatch as dispatch_module
-from qgis_ai_agent.core.agent import request as request_module
-from qgis_ai_agent.core.agent.loop import AgentLoop
-from qgis_ai_agent.core.agent.transcript import Transcript
-from qgis_ai_agent.core.llm.transport import ToolCall
-from qgis_ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, EGRESS_IMAGE, EGRESS_METADATA, EGRESS_WEB_CONTENT
-from qgis_ai_agent.qgis_tools.inspect.canvas_extent import GetCanvasExtentTool
-from qgis_ai_agent.qgis_tools.inspect.describe_layer import DescribeLayerTool
-from qgis_ai_agent.qgis_tools.inspect.field_values import GetFieldValuesTool
-from qgis_ai_agent.qgis_tools.inspect.list_layers import ListLayersTool
-from qgis_ai_agent.qgis_tools.inspect.render_map import RenderMapTool
-from qgis_ai_agent.qgis_tools.inspect.sample_features import SampleFeaturesTool
-from qgis_ai_agent.qgis_tools.project.views import SaveBookmarkTool
-from qgis_ai_agent.qgis_tools.project.zoom_to_layer import ZoomToLayerTool
-from qgis_ai_agent.qgis_tools.python.run_python import RunPythonTool
-from qgis_ai_agent.qgis_tools.style.describe_style import DescribeStyleTool
-from qgis_ai_agent.qgis_tools.web.fetch_url import FetchUrlTool
-from qgis_ai_agent.qgis_tools.web.geocode import GeocodeTool
-from qgis_ai_agent.qgis_tools.web.search_web import SearchWebTool
+from ai_agent.core import privacy
+from ai_agent.core.agent import dispatch as dispatch_module
+from ai_agent.core.agent import request as request_module
+from ai_agent.core.agent.loop import AgentLoop
+from ai_agent.core.agent.transcript import Transcript
+from ai_agent.core.llm.transport import ToolCall
+from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, EGRESS_IMAGE, EGRESS_METADATA, EGRESS_WEB_CONTENT
+from ai_agent.qgis_tools.inspect.canvas_extent import GetCanvasExtentTool
+from ai_agent.qgis_tools.inspect.describe_layer import DescribeLayerTool
+from ai_agent.qgis_tools.inspect.field_values import GetFieldValuesTool
+from ai_agent.qgis_tools.inspect.list_layers import ListLayersTool
+from ai_agent.qgis_tools.inspect.render_map import RenderMapTool
+from ai_agent.qgis_tools.inspect.sample_features import SampleFeaturesTool
+from ai_agent.qgis_tools.project.views import SaveBookmarkTool
+from ai_agent.qgis_tools.project.zoom_to_layer import ZoomToLayerTool
+from ai_agent.qgis_tools.python.run_python import RunPythonTool
+from ai_agent.qgis_tools.style.describe_style import DescribeStyleTool
+from ai_agent.qgis_tools.web.fetch_url import FetchUrlTool
+from ai_agent.qgis_tools.web.geocode import GeocodeTool
+from ai_agent.qgis_tools.web.search_web import SearchWebTool
 
 
 class PrivacyClassificationTest(unittest.TestCase):

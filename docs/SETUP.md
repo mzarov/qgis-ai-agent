@@ -6,7 +6,7 @@ from Python 3.10.
 
 ## 1. Installing from a zip
 
-For a published version, download the `qgis_ai_agent-<version>.zip` asset from
+For a published version, download the `ai_agent-<version>.zip` asset from
 the [latest GitHub Release](https://github.com/mzarov/qgis-ai-agent/releases/latest).
 Do not pick either of GitHub's auto-generated “Source code” archives: their
 top-level folder has the wrong name for a QGIS plugin.
@@ -17,11 +17,11 @@ To build the release archive from a checkout instead, run:
 python3 tools/build_plugin.py
 ```
 
-It writes `dist/qgis_ai_agent-<version>.zip` — exactly the shape QGIS expects:
-a single `qgis_ai_agent/` folder inside the archive.
+It writes `dist/ai_agent-<version>.zip` — exactly the shape QGIS expects:
+a single `ai_agent/` folder inside the archive.
 
 Then in QGIS: **Plugins → Manage and Install Plugins → Install from ZIP**, pick
-the file, press **Install Plugin**. After installation **QGIS AI Agent** appears
+the file, press **Install Plugin**. After installation **AI Agent** appears
 in the menu.
 
 Do **not** download the zip with GitHub's “Code → Download ZIP” button: that
@@ -63,6 +63,7 @@ pasting the URL, the key and the model name is enough.
 | OpenAI | `https://api.openai.com/v1` | openai |
 | OpenRouter | `https://openrouter.ai/api/v1` | openai |
 | Anthropic | `https://api.anthropic.com/v1` | anthropic |
+| Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | openai |
 | DeepSeek | `https://api.deepseek.com/v1` | openai |
 | Groq | `https://api.groq.com/openai/v1` | openai |
 | Mistral | `https://api.mistral.ai/v1` | openai |
@@ -88,7 +89,7 @@ connect.
 The plugin treats these addresses as local, but that does not guarantee the
 server keeps data on this device. Review whether it stores or forwards requests.
 
-Mind the size: the agent runs a loop over two dozen tools, and a small 7–8B
+Mind the size: the agent runs a loop over 65 tools, and a small 7–8B
 model will get lost in the calls. The sensible minimum is a ~30B-class model
 with function calling support.
 
@@ -142,7 +143,7 @@ then `python/plugins`.
 ```bash
 PLUGINS_DIR="$HOME/Library/Application Support/QGIS/QGIS4/profiles/default/python/plugins"
 mkdir -p "$PLUGINS_DIR"
-ln -sfn "$(pwd)/qgis_ai_agent" "$PLUGINS_DIR/qgis_ai_agent"
+ln -sfn "$(pwd)/ai_agent" "$PLUGINS_DIR/ai_agent"
 ```
 
 The link points at the package folder, not the repository root: only the plugin
@@ -156,7 +157,7 @@ plugin does not unload submodules from `sys.modules`. The Python console keeps
 its own cache; reset it with:
 
 ```python
-import sys; [sys.modules.pop(n) for n in list(sys.modules) if n.startswith("qgis_ai_agent")]
+import sys; [sys.modules.pop(n) for n in list(sys.modules) if n.startswith("ai_agent")]
 ```
 
 ## 5. Verification

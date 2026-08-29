@@ -3,19 +3,19 @@ from unittest import mock
 
 from qgis.core import QgsVectorLayer
 
-from qgis_ai_agent.core.agent import batch as batch_module
-from qgis_ai_agent.core.agent import batch_apply as batch_apply_module
-from qgis_ai_agent.core.agent import executor as executor_module
-from qgis_ai_agent.core.agent import loop as loop_module
-from qgis_ai_agent.core.agent.batch import WriteBatch
-from qgis_ai_agent.core.agent.executor import ToolExecutor
-from qgis_ai_agent.core.agent.loop import AgentLoop
-from qgis_ai_agent.core.agent.prompts import APPLY_NOW_TOOL
-from qgis_ai_agent.core.agent.transcript import ToolResult
-from qgis_ai_agent.core.llm.transport import ModelTurn, ToolCall
-from qgis_ai_agent.qgis_tools.registry import ALL_TOOLS, get_tool_by_name
-from qgis_ai_agent.qgis_tools.web import http as http_module
-from qgis_ai_agent.skills.registry import SKILL_REGISTRY
+from ai_agent.core.agent import batch as batch_module
+from ai_agent.core.agent import batch_apply as batch_apply_module
+from ai_agent.core.agent import executor as executor_module
+from ai_agent.core.agent import loop as loop_module
+from ai_agent.core.agent.batch import WriteBatch
+from ai_agent.core.agent.executor import ToolExecutor
+from ai_agent.core.agent.loop import AgentLoop
+from ai_agent.core.agent.prompts import APPLY_NOW_TOOL
+from ai_agent.core.agent.transcript import ToolResult
+from ai_agent.core.llm.transport import ModelTurn, ToolCall
+from ai_agent.qgis_tools.registry import ALL_TOOLS, get_tool_by_name
+from ai_agent.qgis_tools.web import http as http_module
+from ai_agent.skills.registry import SKILL_REGISTRY
 
 
 class FakeExecutor:
@@ -463,6 +463,44 @@ class BatchDedupTest(unittest.TestCase):
         self.batch.add(call("set_opacity", layer_name="Дороги", opacity=0.5))
         results = self.batch.apply(lambda item: None, lambda item, result: None)
         self.assertEqual(len(results), 1)
+
+    def test_duplicate_alias_gets_the_actual_result_after_final_and_staged_apply(self):
+        for staged in (False, True):
+            with self.subTest(staged=staged):
+                executor = FakeExecutor()
+                loop = AgentLoop()
+                loop._batch = WriteBatch(executor)
+                first = ToolCall(
+                    id="write_1",
+                    name="set_opacity",
+                    arguments={"layer_name": "Дороги", "opacity": 0.5},
+                )
+                duplicate = ToolCall(
+                    id="write_2",
+                    name="set_opacity",
+                    arguments={"layer_name": "Дороги", "opacity": 0.5},
+                )
+                acknowledgements = [
+                    ToolExecutor.queued(loop._batch.add(first)),
+                    ToolExecutor.queued(loop._batch.add(duplicate)),
+                ]
+                loop._transcript.add_results(acknowledgements, "native")
+                loop._staged = staged
+                loop._journal_saved = True
+                loop._request_step = lambda: None
+
+                with mock.patch.object(batch_apply_module, "take_snapshot", return_value="/tmp/snapshot.qgz"):
+                    loop.confirm_pending()
+
+                recorded = loop._transcript.entries[0]["results"]
+                by_id = {result.call.id: result for result in recorded}
+                self.assertEqual(executor.ran, ["set_opacity"])
+                self.assertEqual(loop._applied_steps, 1)
+                self.assertEqual(set(by_id), {"write_1", "write_2"})
+                self.assertNotEqual(by_id["write_1"].payload.get("status"), "queued")
+                self.assertNotEqual(by_id["write_2"].payload.get("status"), "queued")
+                self.assertTrue(by_id["write_2"].payload["deduplicated"])
+                self.assertEqual(by_id["write_2"].payload["covered_by"], "write_1")
 
     def test_undo_cannot_be_mixed_with_other_writes(self):
         self.batch.add(call("undo_last_apply"))

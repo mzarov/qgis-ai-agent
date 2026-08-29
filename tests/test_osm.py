@@ -5,8 +5,8 @@ import tempfile
 import unittest
 from unittest import mock
 
-from qgis_ai_agent.qgis_tools.osm import download_osm, extent, load, overpass, run_overpass, selectors, tags
-from qgis_ai_agent.qgis_tools.osm.run_overpass import RunOverpassTool
+from ai_agent.qgis_tools.osm import download_osm, extent, load, overpass, run_overpass, selectors, tags
+from ai_agent.qgis_tools.osm.run_overpass import RunOverpassTool
 
 
 class BuildQueryTest(unittest.TestCase):
@@ -463,7 +463,7 @@ class RunOverpassTest(unittest.TestCase):
 
 
 class EditableDownloadTest(unittest.TestCase):
-    SOURCE = pathlib.Path("qgis_ai_agent/qgis_tools/osm/load.py").read_text(encoding="utf-8")
+    SOURCE = pathlib.Path("ai_agent/qgis_tools/osm/load.py").read_text(encoding="utf-8")
 
     def test_the_sublayer_is_materialized_into_a_geopackage(self):
         self.assertIn('"GPKG"', self.SOURCE)
@@ -474,9 +474,9 @@ class EditableDownloadTest(unittest.TestCase):
 
     def test_the_read_only_refusal_names_the_way_out(self):
         for path in (
-            "qgis_ai_agent/qgis_tools/edit/delete_features.py",
-            "qgis_ai_agent/qgis_tools/edit/update_attributes.py",
-            "qgis_ai_agent/qgis_tools/fields/schema.py",
+            "ai_agent/qgis_tools/edit/delete_features.py",
+            "ai_agent/qgis_tools/edit/update_attributes.py",
+            "ai_agent/qgis_tools/fields/schema.py",
         ):
             source = pathlib.Path(path).read_text(encoding="utf-8")
             self.assertIn("extractbyexpression", source, path)

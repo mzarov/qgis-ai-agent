@@ -1,4 +1,4 @@
-# QGIS AI Agent
+# AI Agent
 
 A plugin for QGIS 4 LTR: an AI agent that inspects the project and processes data
 from a plain-language request.
@@ -13,7 +13,8 @@ layouts and export), `python` (the `run_python` escape hatch to the whole
 QGIS API, destructive so the user reads the code first — it is a permanent
 part of the design, never propose cutting it for review reasons; the
 reasoning is in [docs/core_architecture.md](docs/core_architecture.md)), and
-`web` (confirmed public-HTTPS search, page reading and geocoding).
+`web` (confirmed public-HTTPS search, page reading and geocoding),
+`annotations` (map notes and markers), and `three_d` (opening a 3D map view).
 After
 the user applies a batch, the orchestrator starts a verification run: the agent
 re-reads the result with read tools and, for visual changes, looks at a
@@ -99,7 +100,7 @@ background `while` or as `asyncio` — that crashes QGIS.
 - **The repository speaks English — all of it.** Code, identifiers, tool schemas,
   system prompts, `SKILL.md`, error messages, UI text, README, docs, CLAUDE.md
   files. Russian exists in exactly two sanctioned places: the translation
-  catalogue in `qgis_ai_agent/translations/` and the human docs mirror —
+  catalogue in `ai_agent/translations/` and the human docs mirror —
   every `docs/*.md` has a `docs/*.ru.md` twin for the Russian half of the docs
   site. `tests/test_i18n.py` enforces the source side.
 - **Documentation has two readers and two layers.** `CLAUDE.md` files are the
@@ -128,7 +129,7 @@ background `while` or as `asyncio` — that crashes QGIS.
   `ruff check --fix`), wired as a pre-commit hook. Do not hand-format against it.
 - `try/except` around anything that can crash QGIS.
 - Log the important steps:
-  `QgsMessageLog.logMessage("Message", "QGIS AI Agent", Qgis.Info)`.
+  `QgsMessageLog.logMessage("Message", "AI Agent", Qgis.Info)`.
 - Do **not** add `# -*- coding: utf-8 -*-` (Python 3 is UTF-8 already).
 - Aim for files around 200 lines; the hard cap enforced by tests is 400. Growing
   past the target is a signal to consider extracting a neighbouring module, not
@@ -138,7 +139,7 @@ background `while` or as `asyncio` — that crashes QGIS.
 
 ## Layout and imports
 
-Code lives under `qgis_ai_agent/`:
+Code lives under `ai_agent/`:
 
 | Package       | Purpose                                                     |
 | ------------- | ----------------------------------------------------------- |
@@ -147,10 +148,10 @@ Code lives under `qgis_ai_agent/`:
 | `skills/`     | domain knowledge packages (`SKILL.md`)                      |
 | `ui/`         | Qt only: rendering and signals                              |
 
-The plugin is the `qgis_ai_agent/` folder as a whole: `__init__.py`,
+The plugin is the `ai_agent/` folder as a whole: `__init__.py`,
 `metadata.txt`, `icon.svg` and the code inside. Only that folder goes into the
 zip and into the QGIS symlink; `tests/`, `tools/`, `docs/` are repository-level
-and never reach QGIS. The composition root is `qgis_ai_agent/plugin.py`: the
+and never reach QGIS. The composition root is `ai_agent/plugin.py`: the
 only module allowed to import both `core` and `ui`. The layer direction
 (`ui → core → qgis_tools`, never backwards) is guarded by `tests/test_layering.py`.
 
@@ -165,7 +166,7 @@ runtime must land in the archive — `SKILL.md` files are read from disk, so a
 this.
 
 Imports are absolute only, with the package prefix:
-`from qgis_ai_agent.ui.dock_widget import ...`. No relative imports
+`from ai_agent.ui.dock_widget import ...`. No relative imports
 (`from .foo`, `from ..bar`). All imports at the top of the file.
 
 ## Verification

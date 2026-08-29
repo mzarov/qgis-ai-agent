@@ -1,4 +1,4 @@
-# QGIS AI Agent
+# AI Agent
 
 An AI agent inside QGIS 4: it inspects your project and processes data from a
 plain-language request. It works as a loop — looks at the project, calls tools,
@@ -7,7 +7,7 @@ confirm them.
 
 ## What it does
 
-Ten domains, 61 tools:
+Twelve domains, 65 tools:
 
 | Domain | Example requests |
 | --- | --- |
@@ -21,6 +21,8 @@ Ten domains, 61 tools:
 | `layout` | “make an A4 map sheet with a legend and export it to PDF” |
 | `python` | the escape hatch: a PyQGIS snippet you read and approve first |
 | `web` | “find the EPSG code”, “read this documentation page”, “geocode this place” |
+| `annotations` | “mark this place”, “add a note to the map”, “remove that annotation” |
+| `three_d` | “open a 3D view of this project” |
 
 On a vision-capable model the agent **sees** the map: it renders the canvas or
 a print layout to an image and judges colours, labels and composition by eye.

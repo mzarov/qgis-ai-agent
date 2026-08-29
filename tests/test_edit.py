@@ -2,10 +2,10 @@ import unittest
 
 from qgis.core import QgsVectorLayer
 
-from qgis_ai_agent.qgis_tools.edit import delete_features as delete_module
-from qgis_ai_agent.qgis_tools.edit import update_attributes as update_module
-from qgis_ai_agent.qgis_tools.edit.delete_features import DeleteFeaturesTool
-from qgis_ai_agent.qgis_tools.edit.update_attributes import UpdateAttributesTool
+from ai_agent.qgis_tools.edit import delete_features as delete_module
+from ai_agent.qgis_tools.edit import update_attributes as update_module
+from ai_agent.qgis_tools.edit.delete_features import DeleteFeaturesTool
+from ai_agent.qgis_tools.edit.update_attributes import UpdateAttributesTool
 
 
 class Fields:
@@ -212,7 +212,7 @@ class DeleteFeaturesTest(EditTestBase):
 
 class ContractTest(unittest.TestCase):
     def test_both_tools_are_destructive(self):
-        from qgis_ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
+        from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
 
         self.assertEqual(UpdateAttributesTool().safety, SAFETY_DESTRUCTIVE)
         self.assertEqual(DeleteFeaturesTool().safety, SAFETY_DESTRUCTIVE)

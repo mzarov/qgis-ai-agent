@@ -3,12 +3,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from qgis_ai_agent.core.agent.loop import AgentLoop
-from qgis_ai_agent.core.llm.transport import ToolCall
-from qgis_ai_agent.qgis_tools.common.project_identity import project_identity
-from qgis_ai_agent.qgis_tools.project import snapshots
-from qgis_ai_agent.qgis_tools.project import undo_last_apply as undo_module
-from qgis_ai_agent.qgis_tools.project.undo_last_apply import UndoLastApplyTool
+from ai_agent.core.agent.loop import AgentLoop
+from ai_agent.core.llm.transport import ToolCall
+from ai_agent.qgis_tools.common.project_identity import project_identity
+from ai_agent.qgis_tools.project import snapshots
+from ai_agent.qgis_tools.project import undo_last_apply as undo_module
+from ai_agent.qgis_tools.project.undo_last_apply import UndoLastApplyTool
 
 
 class Signal:

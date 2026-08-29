@@ -2,8 +2,8 @@ import sys
 import types
 import unittest
 
-from qgis_ai_agent.core import settings
-from qgis_ai_agent.core.llm import client
+from ai_agent.core import settings
+from ai_agent.core.llm import client
 
 REMOTE = "https://api.openai.com/v1"
 OTHER_REMOTE = "https://api.anthropic.com/v1"
@@ -174,8 +174,8 @@ class ScopedCapabilityTest(unittest.TestCase):
     def test_corrupt_opt_in_values_fail_closed(self):
         suffix = settings._url_settings_key(REMOTE)
         for raw in ("", "garbage", "enabled-ish"):
-            MemorySettings.values[f"qgis_ai_agent/data_sharing_consent/{suffix}"] = raw
-            MemorySettings.values[f"qgis_ai_agent/allow_sensitive_data/{suffix}"] = raw
+            MemorySettings.values[f"ai_agent/data_sharing_consent/{suffix}"] = raw
+            MemorySettings.values[f"ai_agent/allow_sensitive_data/{suffix}"] = raw
             self.assertFalse(settings.get_data_sharing_consent(REMOTE), raw)
             self.assertFalse(settings.get_allow_sensitive_data(REMOTE), raw)
 

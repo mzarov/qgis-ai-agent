@@ -1,10 +1,10 @@
 import json
 import unittest
 
-from qgis_ai_agent.core.llm import anthropic, transport
-from qgis_ai_agent.core.llm.anthropic_stream import AnthropicExchange, StreamedMessage, consume_anthropic
-from qgis_ai_agent.core.llm.client import ApiResponseError
-from qgis_ai_agent.core.llm.stream import SseAccumulator
+from ai_agent.core.llm import anthropic, transport
+from ai_agent.core.llm.anthropic_stream import AnthropicExchange, StreamedMessage, consume_anthropic
+from ai_agent.core.llm.client import ApiResponseError
+from ai_agent.core.llm.stream import SseAccumulator
 
 URL = "https://api.anthropic.com"
 
@@ -136,7 +136,7 @@ class FoldingTest(unittest.TestCase):
 
 class ExchangeTest(unittest.TestCase):
     def setUp(self):
-        import qgis_ai_agent.core.llm.anthropic_stream as module
+        import ai_agent.core.llm.anthropic_stream as module
 
         self.module = module
         self.saved = (
@@ -233,7 +233,7 @@ class ExchangeTest(unittest.TestCase):
 
 class CallAnthropicTest(unittest.TestCase):
     def setUp(self):
-        import qgis_ai_agent.core.llm.anthropic_stream as stream_module
+        import ai_agent.core.llm.anthropic_stream as stream_module
 
         self.stream_module = stream_module
         self.saved_stream = (stream_module.post_stream, stream_module.get_supports_streaming)

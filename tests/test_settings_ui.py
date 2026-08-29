@@ -1,16 +1,16 @@
 import pathlib
 import unittest
 
-from qgis_ai_agent.core.llm import (
+from ai_agent.core.llm import (
     anthropic_stream,
     probe_worker,
     providers,
     transport,
 )
-from qgis_ai_agent.core.llm import (
+from ai_agent.core.llm import (
     probe as settings_probe,
 )
-from qgis_ai_agent.core.llm.dialects import ANTHROPIC, OPENAI, resolve
+from ai_agent.core.llm.dialects import ANTHROPIC, OPENAI, resolve
 
 
 class PresetTest(unittest.TestCase):
@@ -76,12 +76,12 @@ class PresetTest(unittest.TestCase):
             self.assertEqual(preset.dialect, OPENAI, preset.title)
 
 
-SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "qgis_ai_agent" / "ui" / "settings_fields.py").read_text(
+SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "settings_fields.py").read_text(
     encoding="utf-8"
 )
-DIALOG_SOURCE = (
-    pathlib.Path(__file__).resolve().parent.parent / "qgis_ai_agent" / "ui" / "settings_dialog.py"
-).read_text(encoding="utf-8")
+DIALOG_SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "settings_dialog.py").read_text(
+    encoding="utf-8"
+)
 
 
 class StyleSheetTest(unittest.TestCase):
@@ -158,7 +158,7 @@ class CredentialUiContractTest(unittest.TestCase):
 
 
 class PanelLevelTest(unittest.TestCase):
-    STYLE = (pathlib.Path(__file__).resolve().parent.parent / "qgis_ai_agent" / "ui" / "style.py").read_text(
+    STYLE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "style.py").read_text(
         encoding="utf-8"
     )
 

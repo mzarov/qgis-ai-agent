@@ -1,6 +1,6 @@
 # Core Architecture
 
-The architecture of `qgis_ai_agent`: an agent loop with skills.
+The architecture of `ai_agent`: an agent loop with skills.
 
 ## Goals
 
@@ -17,8 +17,9 @@ The architecture of `qgis_ai_agent`: an agent loop with skills.
 - `core/context/` — the short starting summary of the project
 - `core/state/` — the model's history window and the saved conversations
 - `qgis_tools/common/` — shared across domains: layers, CRS, values, renderer summary
-- `qgis_tools/` — tools in ten domains: `inspect/`, `project/`, `style/`,
-  `processing/`, `osm/`, `edit/`, `fields/`, `layout/`, `python/`, `web/`
+- `qgis_tools/` — tools in twelve domains: `inspect/`, `project/`, `style/`,
+  `processing/`, `osm/`, `edit/`, `fields/`, `layout/`, `python/`, `web/`,
+  `annotations/`, `three_d/`
 - `skills/` — knowledge packages `<skill>/SKILL.md` and the registry
 
 ## Runtime Flow
@@ -105,7 +106,7 @@ Two adjacent 2026 developments were evaluated and consciously not adopted:
   in-plugin loop — which vendor neutrality and the main-thread rule both
   require.
 - **Skills served over MCP.** Useful when one organisation feeds many agents
-  from a central skill registry. We have one agent and ten skills shipped in
+  from a central skill registry. We have one agent and twelve skills shipped in
   the same zip; a transport layer between them would add a dependency and
   remove nothing.
 
@@ -294,7 +295,7 @@ One message is added with one `add(role, text)` call — the two stores must nev
 diverge. Saving happens right after every message, so a QGIS crash does not eat
 the conversation.
 
-`SessionStore` writes one JSON per conversation into `qgis_ai_agent_sessions/`
+`SessionStore` writes one JSON per conversation into `ai_agent_sessions/`
 inside the QGIS profile. A conversation is bound to its project: `recent()`
 returns only those started in the currently open project, and an unsaved project
 gets the shared “no project” bucket. The title comes from the user's first

@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible problem in QGIS AI Agent
+description: Report a reproducible problem in AI Agent
 title: "[Bug]: "
 labels: [bug]
 body:

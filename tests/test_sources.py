@@ -5,7 +5,7 @@ import pathlib
 import unittest
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SOURCE_ROOT = os.path.join(REPO_ROOT, "qgis_ai_agent")
+SOURCE_ROOT = os.path.join(REPO_ROOT, "ai_agent")
 NOISE_FREE_ROOTS = (SOURCE_ROOT, os.path.join(REPO_ROOT, "tools"), os.path.join(REPO_ROOT, "tests"))
 KNOWN = set(dir(builtins)) | {"__file__", "__name__", "__doc__", "__package__"}
 MAX_LINES = 400
