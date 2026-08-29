@@ -16,7 +16,7 @@ from qgis_ai_agent.ui import style
 COLLAPSED = "›"
 EXPANDED = "⌄"
 MARKER_WIDTH = 14
-BODY_INDENT = 26
+BODY_INDENT = 22
 TEXT_FONT_SCALE = 0.9
 THINKING_TITLE = tr("Thinking…")
 THOUGHT_TITLE = tr("Thought")
@@ -36,8 +36,8 @@ class ThinkingBlock(QFrame):
             self.setStyleSheet("QFrame { background: transparent; border: none; }")
         self._header_margins = (8, 6, 11, 6) if framed else (0, 1, 2, 1)
         column = QVBoxLayout(self)
-        column.setContentsMargins(0, 0, 0, 0)
-        column.setSpacing(0)
+        column.setContentsMargins(0, 3, 0, 3)
+        column.setSpacing(3)
         column.addWidget(self._build_header(palette))
         column.addWidget(self._build_body(palette))
         self._text = ""
@@ -80,11 +80,18 @@ class ThinkingBlock(QFrame):
         self._body_holder = QWidget()
         self._body_holder.setStyleSheet("border: none;")
         layout = QVBoxLayout(self._body_holder)
-        layout.setContentsMargins(BODY_INDENT, 0, 11, 9)
+        layout.setContentsMargins(BODY_INDENT, 4, 11, 7)
         self._body = QLabel()
         self._body.setWordWrap(True)
         self._body.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        self._body.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
+        self._body.setStyleSheet(
+            f"color: {style.css_color(style.muted(palette))};"
+            f"border-left: 2px solid {style.css_color(style.hairline(palette))};"
+            "border-radius: 0; padding: 1px 0 1px 9px;"
+        )
+        font = self._body.font()
+        font.setItalic(True)
+        self._body.setFont(font)
         _shrink(self._body)
         layout.addWidget(self._body)
         return self._body_holder
