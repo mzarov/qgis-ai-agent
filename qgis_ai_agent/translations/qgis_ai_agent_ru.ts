@@ -584,6 +584,11 @@
         <translation>Выполняю Python: {0}</translation>
     </message>
     <message>
+        <location filename="qgis_ai_agent/qgis_tools/osm/run_overpass.py" line="82"/>
+        <source>Running an Overpass query for '{0}': {1}</source>
+        <translation>Выполняю запрос Overpass для «{0}»: {1}</translation>
+    </message>
+    <message>
         <location filename="qgis_ai_agent/ui/settings_dialog.py" line="152"/>
         <source>Save</source>
         <translation>Сохранить</translation>
