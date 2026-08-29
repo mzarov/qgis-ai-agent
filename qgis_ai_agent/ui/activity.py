@@ -27,11 +27,7 @@ class ActivityGroup(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         palette = self.palette()
-        self.setStyleSheet(
-            f"QFrame {{ background: {style.css_color(style.card(palette))};"
-            f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
-            f"border-radius: {style.CARD_RADIUS}px; }}"
-        )
+        self.setStyleSheet("QFrame { background: transparent; border: none; }")
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(0)
@@ -46,7 +42,7 @@ class ActivityGroup(QFrame):
         header = QWidget()
         header.setStyleSheet("border: none;")
         row = QHBoxLayout(header)
-        row.setContentsMargins(8, 6, 11, 6)
+        row.setContentsMargins(0, 1, 2, 1)
         row.setSpacing(8)
 
         self._toggle = QToolButton()
@@ -80,7 +76,7 @@ class ActivityGroup(QFrame):
         self._steps_holder = QWidget()
         self._steps_holder.setStyleSheet("border: none;")
         self._steps = QVBoxLayout(self._steps_holder)
-        self._steps.setContentsMargins(STEPS_INDENT, 0, 11, 9)
+        self._steps.setContentsMargins(STEPS_INDENT, 2, 2, 4)
         self._steps.setSpacing(5)
         return self._steps_holder
 
