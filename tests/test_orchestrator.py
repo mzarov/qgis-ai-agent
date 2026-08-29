@@ -82,8 +82,10 @@ class PlanDock(Dock):
     def __init__(self):
         super().__init__()
         self.cancelled_plans = []
+        self.plan_lines = None
 
     def add_plan_message(self, lines):
+        self.plan_lines = list(lines)
         return 7
 
     def mark_plan_cancelled(self, message_id):
@@ -363,3 +365,20 @@ class PendingPlanTest(unittest.TestCase):
         self.orchestrator.agent.interject = lambda text: True
         self.orchestrator.on_prompt("подожди")
         self.assertFalse(getattr(self.orchestrator.agent, "cancelled", False))
+
+
+class PlanCardLinesTest(unittest.TestCase):
+    def setUp(self):
+        self.dock = PlanDock()
+        self.orchestrator = CoreOrchestrator(Iface(), self.dock)
+        self.orchestrator.agent = Agent()
+
+    def test_the_step_text_carries_no_number_of_its_own(self):
+        self.orchestrator.on_confirm_needed([Call(), Call("set_labels")], "")
+        for line in self.dock.plan_lines:
+            self.assertFalse(line.lstrip().startswith("1."))
+            self.assertFalse(line.lstrip().startswith("2."))
+
+    def test_every_call_still_gets_a_line(self):
+        self.orchestrator.on_confirm_needed([Call(), Call("set_labels"), Call("add_basemap")], "")
+        self.assertEqual(len(self.dock.plan_lines), 3)
