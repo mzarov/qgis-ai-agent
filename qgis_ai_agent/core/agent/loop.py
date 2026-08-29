@@ -43,6 +43,7 @@ class AgentLoop(QObject):
     plan_changed = pyqtSignal(object, int)
     confirm_needed = pyqtSignal(object, str)
     question_asked = pyqtSignal(str)
+    preamble = pyqtSignal(str)
     usage_changed = pyqtSignal(int)
     answer_chunk = pyqtSignal(str)
     thinking_chunk = pyqtSignal(str)
@@ -253,13 +254,15 @@ class AgentLoop(QObject):
             self._complete(turn.text)
             return
 
+        if turn.text.strip():
+            self.preamble.emit(turn.text)
         results = [self._dispatch(call) for call in turn.tool_calls]
         self._transcript.add_results(results, turn.protocol)
         if self._question:
             self._pause_for_question()
             return
         if self._staged:
-            self._pause_for_stage(turn.text)
+            self._pause_for_stage("")
             return
         self._request_step()
 

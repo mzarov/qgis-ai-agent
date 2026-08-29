@@ -96,11 +96,13 @@ into one box. The group opens itself while reasoning streams and `_close_activit
 rests it when a message arrives — the feed stays compact without hiding anything:
 one click reopens the turn.
 
-Drop and fold are different on purpose. A draft is text the model wrote before
-calling a tool: it is a preamble, not an answer, and it is **dropped**, because
-the saved conversation never contains it and the chat must not show what the
-conversation lacks. A thinking block is **folded** — it stays in the feed as
-one line the user can open again. The block shows how long it took only when
+Drop and fold are different on purpose. A draft is normally **finalised**, not
+dropped: before the first tool of a turn reaches the feed, the loop's `preamble`
+signal has already turned the draft into a kept assistant message and saved it
+into the conversation — so the text stays and replay still matches the screen.
+The view-level drop in `_append` is only a safety net for a draft that was never
+finalised (an aborted stream). A thinking block is **folded** — it stays in the
+feed as one line the user can open again. The block shows how long it took only when
 it was watched arriving: reasoning that came whole at the end of a
 non-streaming request has no measurable duration, and printing `0.0 s` for a
 minute of thought would be a lie.

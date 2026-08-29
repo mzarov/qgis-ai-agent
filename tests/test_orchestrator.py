@@ -420,3 +420,15 @@ class AskUserFlowTest(unittest.TestCase):
         self.orchestrator.on_prompt("сколько слоёв?")
         self.assertEqual(self.orchestrator.agent.started[0], "сколько слоёв?")
         self.assertIsNone(self.orchestrator.agent.answered)
+
+
+class PreambleFlowTest(unittest.TestCase):
+    def setUp(self):
+        self.dock = PlanDock()
+        self.orchestrator = CoreOrchestrator(Iface(), self.dock)
+        self.orchestrator.agent = Agent()
+
+    def test_the_preamble_is_saved_like_any_answer(self):
+        self.orchestrator.on_preamble("Сейчас скачаю кафе.")
+        self.assertEqual(self.orchestrator.conversation.messages[-1]["content"], "Сейчас скачаю кафе.")
+        self.assertEqual(self.orchestrator.conversation.messages[-1]["role"], "assistant")

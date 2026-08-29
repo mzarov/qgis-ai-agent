@@ -56,8 +56,11 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    silent; those are raised as themselves. A stream that yields no events at
    all is a refusal too — that is a server ignoring `stream`, not an empty
    answer.
-   Deltas stop reaching the UI at the first tool call: a preamble is not an
-   answer, and the chat must never show what the saved conversation lacks.
+   Live deltas stop reaching the UI at the first tool-call delta, but the
+   preamble is not lost: once the turn arrives, the loop emits it whole and the
+   orchestrator saves it like any answer — so the chat keeps the text and still
+   matches the saved conversation. The view-level draft drop remains only as a
+   safety net for text that was never finalised.
    Both dialects stream, each with its own fold: openai has one delta shape,
    anthropic a typed event per step ending in `message_stop`, not `[DONE]`.
    `refusals.py` keeps the three refusals apart — mixing them up disables the

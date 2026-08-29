@@ -185,12 +185,12 @@ refusal; everything else is raised as the error it is. A server that ignores
 stream yields no events at all, which is treated as a refusal rather than as
 an empty answer.
 
-Text is forwarded to the UI only until the first tool-call delta. What the
-model says before calling a tool is a preamble, not an answer: it is kept in
-the transcript for the model, while the chat drops the draft when the tool
-starts. Otherwise the chat would show text that the saved conversation does
-not contain, and the next run would see something other than what the user
-read.
+Live text is forwarded to the UI only until the first tool-call delta, but
+what the model says before calling a tool is not thrown away. When the turn
+arrives, the loop announces the whole preamble and the orchestrator saves it
+exactly like a final answer — so the feed reads as the model actually worked:
+a line of text, a box of actions, another line of text. The chat and the saved
+conversation stay equal, which is the invariant that matters.
 
 ### Streaming on both dialects
 
