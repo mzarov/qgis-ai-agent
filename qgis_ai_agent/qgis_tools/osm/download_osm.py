@@ -16,8 +16,11 @@ from qgis_ai_agent.qgis_tools.osm.load import SUBLAYERS, load_sublayers, write_p
 from qgis_ai_agent.qgis_tools.osm.overpass import build_query
 
 NOTHING_FOUND = (
-    "Overpass ran fine, but nothing matches this query. Check the key and the "
-    "value — amenity=cafe, for instance, is written in English — or widen the territory."
+    "Overpass ran fine, but nothing matches this query. Either the tag is wrong — "
+    "OSM keys and values are English, amenity=cafe — or nothing of that kind is "
+    "mapped there. Retrying the same territory under a different spelling will not "
+    "help: the name is already matched against name, name:en and int_name. Change "
+    "the tag, widen the territory, or pass a bbox."
 )
 
 
