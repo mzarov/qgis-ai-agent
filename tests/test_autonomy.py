@@ -1,6 +1,7 @@
 import unittest
 
 from qgis_ai_agent.core.agent import loop as loop_module
+from qgis_ai_agent.core.agent import prompts
 from qgis_ai_agent.core.agent.loop import MAX_ITERATIONS, AgentLoop
 from qgis_ai_agent.core.agent.notices import APPLY_DECLINED_MESSAGE, BUDGET_REACHED_MESSAGE
 from qgis_ai_agent.core.agent.prompts import (
@@ -264,3 +265,29 @@ class BudgetTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class QueuedStepsInPromptTest(unittest.TestCase):
+    def test_nothing_queued_renders_to_nothing(self):
+        self.assertEqual(prompts.render_queued_steps([]), "")
+
+    def test_queued_steps_are_listed_under_a_warning(self):
+        rendered = prompts.render_queued_steps(["Скачиваю кафе", "Крашу слой"])
+        self.assertIn(prompts.QUEUED_HEADER, rendered)
+        self.assertIn("- Скачиваю кафе", rendered)
+        self.assertIn("- Крашу слой", rendered)
+
+    def test_they_are_pinned_into_the_system_prompt(self):
+        prompt = prompts.build_system_prompt("", [], queued_steps=prompts.render_queued_steps(["Скачиваю кафе"]))
+        self.assertIn("Скачиваю кафе", prompt)
+
+    def test_the_prompt_warns_that_context_lags_behind_the_queue(self):
+        self.assertIn("not run yet", prompts.CORE_PROMPT)
+
+    def test_the_loop_reports_what_it_has_queued(self):
+        loop = AgentLoop()
+        loop._batch._calls.append(ToolCall(id="c1", name="add_basemap", arguments={"provider": "osm"}))
+        self.assertIn(prompts.QUEUED_HEADER, loop._queued_summaries())
+
+    def test_an_empty_batch_reports_nothing(self):
+        self.assertEqual(AgentLoop()._queued_summaries(), "")

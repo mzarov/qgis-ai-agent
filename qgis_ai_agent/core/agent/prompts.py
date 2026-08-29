@@ -7,6 +7,7 @@ LOAD_SKILL_TOOL = "load_skill"
 UPDATE_PLAN_TOOL = "update_plan"
 APPLY_NOW_TOOL = "apply_now"
 TASK_PLAN_HEADER = "Your current task plan (kept by update_plan):"
+QUEUED_HEADER = "Already queued this run, waiting for the user to apply — do not queue these again:"
 PROJECT_NOTES_HEADER = "What you were told to remember about this project:"
 PLAN_STEP_DONE = "[x]"
 PLAN_STEP_PENDING = "[ ]"
@@ -53,6 +54,18 @@ re-reading, not re-asserting: check the actual outcome with read tools —
 describe_style for styling, query_layer for data, render_map for anything
 visual — compare it against what the user asked for, and reply with a short
 verdict. If something is off, queue the corrective calls in that same turn.
+
+Look before you build. The project context below lists what the layers are
+called right now, and the queued steps list what you have already asked for this
+run. Read both before creating anything: if the layer is already in the project,
+work with it instead of downloading or adding it again, and if you have already
+queued the step, it is queued — queueing it a second time gives the user two
+identical layers, not a better result. When you are unsure whether something
+exists, call a read tool; that is cheaper than a duplicate.
+
+The project context shows only what is already applied. Your queued steps have
+not run yet, so nothing they create appears there — that absence is not evidence
+that the step is missing.
 
 Skills: each skill is a domain package with its own tools and rules. Call
 load_skill before working in a domain whose tools you do not have yet. Loading a
@@ -190,6 +203,12 @@ def render_task_plan(steps: list[str], done: int) -> str:
     return "\n".join(lines)
 
 
+def render_queued_steps(summaries: list[str]) -> str:
+    if not summaries:
+        return ""
+    return "\n".join([QUEUED_HEADER] + [f"- {summary}" for summary in summaries])
+
+
 def build_load_skill_schema(available_names: list[str]) -> dict[str, Any]:
     return {
         "type": "function",
@@ -225,6 +244,7 @@ def build_system_prompt(
     locale: str = "en",
     task_plan: str = "",
     project_notes: str = "",
+    queued_steps: str = "",
 ) -> str:
     parts = [CORE_PROMPT, language_policy(locale)]
     if json_protocol:
@@ -237,6 +257,8 @@ def build_system_prompt(
         parts.append(project_notes)
     if task_plan:
         parts.append(task_plan)
+    if queued_steps:
+        parts.append(queued_steps)
     if project_context:
         parts.append(PROJECT_CONTEXT_HEADER + "\n" + project_context)
     return "\n\n".join(part for part in parts if part)
