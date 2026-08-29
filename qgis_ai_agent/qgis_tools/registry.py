@@ -12,6 +12,7 @@ from qgis_ai_agent.qgis_tools.processing import PROCESSING_TOOLS
 from qgis_ai_agent.qgis_tools.project import PROJECT_TOOLS
 from qgis_ai_agent.qgis_tools.python import PYTHON_TOOLS
 from qgis_ai_agent.qgis_tools.style import STYLE_TOOLS
+from qgis_ai_agent.qgis_tools.three_d import THREE_D_TOOLS
 from qgis_ai_agent.qgis_tools.web import WEB_TOOLS
 
 ALL_TOOLS: list[BaseTool] = [
@@ -20,6 +21,7 @@ ALL_TOOLS: list[BaseTool] = [
     *OSM_TOOLS,
     *WEB_TOOLS,
     *ANNOTATIONS_TOOLS,
+    *THREE_D_TOOLS,
     *STYLE_TOOLS,
     *PROCESSING_TOOLS,
     *EDIT_TOOLS,

@@ -413,6 +413,11 @@
         <translation>Открыть настройки</translation>
     </message>
     <message>
+        <location filename="qgis_ai_agent/qgis_tools/three_d/open_3d_view.py" line="30"/>
+        <source>Opening a 3D view '{0}'.</source>
+        <translation>Открываю 3D-вид «{0}».</translation>
+    </message>
+    <message>
         <location filename="qgis_ai_agent/core/orchestrator/orchestrator.py" line="24"/>
         <source>Passed to the agent — it will take this into account on its next step.</source>
         <translation>Передано агенту — он учтёт это на следующем шаге.</translation>
