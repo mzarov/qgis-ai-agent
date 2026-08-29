@@ -201,6 +201,13 @@ class VerificationPromptTest(unittest.TestCase):
         self.assertIn("- run_processing: FAILED — boom", prompt)
         self.assertIn("render_map", prompt)
 
+    def test_verification_asks_for_a_tidy_project(self):
+        prompt = build_verification_prompt([{"tool": "download_osm", "ok": True}])
+        self.assertIn("remove_layer", prompt)
+        self.assertIn("Never remove anything you did not create", prompt)
+        self.assertIn("configure_layer", prompt)
+        self.assertIn("basemaps at the bottom", prompt)
+
     def test_an_empty_apply_still_produces_a_prompt(self):
         self.assertIn("Verify", build_verification_prompt([]))
 
