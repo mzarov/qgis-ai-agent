@@ -12,7 +12,7 @@ from qgis_ai_agent.i18n import tr, tr_n
 from qgis_ai_agent.ui import style
 
 STEP_FONT_SCALE = 0.92
-BUTTON_HEIGHT = 30
+BUTTON_HEIGHT = 26
 PENDING_MARK = "◆"
 APPLIED_MARK = "✓"
 CANCELLED_MARK = "—"
@@ -28,13 +28,13 @@ class PlanCard(QFrame):
         super().__init__(parent)
         palette = self.palette()
         self.setStyleSheet(
-            f"QFrame {{ background: {style.css_color(style.elevated(palette))};"
+            f"QFrame {{ background: transparent;"
             f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
             f"border-radius: {style.CARD_RADIUS}px; }}"
         )
         column = QVBoxLayout(self)
-        column.setContentsMargins(12, 10, 12, 11)
-        column.setSpacing(8)
+        column.setContentsMargins(11, 8, 11, 9)
+        column.setSpacing(6)
         column.addWidget(self._build_heading(len(steps), palette))
         column.addWidget(self._build_steps(steps, palette))
         self._buttons = self._build_buttons(palette)

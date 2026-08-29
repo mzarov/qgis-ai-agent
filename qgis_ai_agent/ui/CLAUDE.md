@@ -121,6 +121,17 @@ messages upwards. While the welcome is shown that stretch drops to zero and the
 card carries it instead; `_drop_welcome` hands it back. Both halves live in one
 pair of methods so the two states cannot drift apart.
 
+## The feed is flat lines, frames mean a decision
+
+The design language follows Claude Code's own feed: transient rows — the
+activity group and the thinking block inside it — are **plain muted text with a
+chevron**, no background and no border. Boxing every turn made the feed read as
+a wall of cards; the frames carried no meaning. A frame is reserved for the one
+thing that asks the user to act: the plan card keeps its hairline border (and
+nothing else — its fill is transparent too). If a new element wants a frame,
+the question to ask is "does it hold buttons?" — if not, it is a line, not a
+box.
+
 ## Action grouping
 
 `ConversationView` itself folds consecutive tool calls into one

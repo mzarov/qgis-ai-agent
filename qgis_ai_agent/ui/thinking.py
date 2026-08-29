@@ -34,6 +34,7 @@ class ThinkingBlock(QFrame):
             )
         else:
             self.setStyleSheet("QFrame { background: transparent; border: none; }")
+        self._header_margins = (8, 6, 11, 6) if framed else (0, 1, 2, 1)
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(0)
@@ -50,7 +51,7 @@ class ThinkingBlock(QFrame):
         header = QWidget()
         header.setStyleSheet("border: none;")
         row = QHBoxLayout(header)
-        row.setContentsMargins(8, 6, 11, 6)
+        row.setContentsMargins(*self._header_margins)
         row.setSpacing(8)
 
         self._toggle = QToolButton()
