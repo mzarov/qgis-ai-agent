@@ -8,7 +8,7 @@ SETTINGS_PREFIX = "ai_agent"
 CONFIG_INDEX = "auth_config"
 CONFIG_METHOD = "Basic"
 CONFIG_NAME = "AI Agent"
-PASSWORD_KEY = "password"
+CONFIG_FIELD = "password"
 NO_MANAGER = tr("QGIS did not provide its authentication database.")
 DISABLED = tr("The QGIS authentication database is disabled for this session.")
 LOCKED = tr("The QGIS master password was not entered, so the key stays locked.")
@@ -37,7 +37,7 @@ def read(scope: str) -> str:
         _error = _reason(error)
         return ""
     _error = ""
-    return config.config(PASSWORD_KEY, "") if ok else ""
+    return config.config(CONFIG_FIELD, "") if ok else ""
 
 
 def write(scope: str, secret: str) -> None:
@@ -94,7 +94,7 @@ def _config_for(manager: Any, scope: str, secret: str) -> QgsAuthMethodConfig:
             config = existing
     config.setName(CONFIG_NAME)
     config.setMethod(CONFIG_METHOD)
-    config.setConfig(PASSWORD_KEY, secret)
+    config.setConfig(CONFIG_FIELD, secret)
     return config
 
 
