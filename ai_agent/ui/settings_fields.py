@@ -1,7 +1,9 @@
 from typing import Any
 
-from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtCore import QRectF, QSize, Qt
+from qgis.PyQt.QtGui import QPainter
 from qgis.PyQt.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QFrame,
     QHBoxLayout,
@@ -15,9 +17,8 @@ from qgis.PyQt.QtWidgets import (
 from ai_agent.ui import style
 
 HINT_SCALE = 0.86
-GROUP_SCALE = 1.12
+GROUP_SCALE = 1.25
 CARD_NAME = "settingsCard"
-PANE_NAME = "settingsPane"
 SEPARATOR_NAME = "settingsSeparator"
 INPUT_RADIUS = 6
 INPUT_PADDING = "6px 10px"
@@ -25,17 +26,54 @@ INPUT_MIN_HEIGHT = 18
 CARD_MARGINS = (14, 12, 14, 13)
 CARD_SPACING = 11
 FIELD_SPACING = 3
-PAGE_MARGINS = (24, 20, 24, 22)
-PAGE_SPACING = 6
-GROUP_GAP = 18
-NAV_WIDTH = 172
-NAV_MARGINS = (0, 6, 10, 6)
+PAGE_MARGINS = (28, 22, 28, 24)
+PAGE_SPACING = 8
+GROUP_GAP = 22
+NAV_WIDTH = 190
+NAV_MARGINS = (12, 14, 8, 14)
 NAV_SPACING = 2
 NAV_RADIUS = 7
 NAV_PADDING = "8px 12px"
-ROW_VPAD = 6
+ROW_VPAD = 10
 ROW_GAP = 24
 CONTROL_WIDTH = 320
+SWITCH_WIDTH = 40
+SWITCH_HEIGHT = 22
+SWITCH_KNOB_MARGIN = 3
+
+
+class Switch(QCheckBox):
+    def __init__(self, palette: Any):
+        super().__init__()
+        self._palette = palette
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def sizeHint(self) -> QSize:
+        return QSize(SWITCH_WIDTH, SWITCH_HEIGHT)
+
+    def hitButton(self, _pos: Any) -> bool:
+        return True
+
+    def paintEvent(self, _event: Any) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(self._track_colour())
+        painter.drawRoundedRect(QRectF(0, 0, SWITCH_WIDTH, SWITCH_HEIGHT), SWITCH_HEIGHT / 2, SWITCH_HEIGHT / 2)
+        knob = SWITCH_HEIGHT - 2 * SWITCH_KNOB_MARGIN
+        x = SWITCH_WIDTH - knob - SWITCH_KNOB_MARGIN if self.isChecked() else SWITCH_KNOB_MARGIN
+        painter.setBrush(self._palette.highlightedText().color())
+        painter.drawEllipse(QRectF(x, SWITCH_KNOB_MARGIN, knob, knob))
+        painter.end()
+
+    def _track_colour(self) -> Any:
+        if not self.isEnabled():
+            return style.card(self._palette)
+        return style.accent(self._palette) if self.isChecked() else style.hairline(self._palette)
+
+
+def switch(palette: Any) -> Switch:
+    return Switch(palette)
 
 
 def card(palette: Any) -> tuple[QFrame, QVBoxLayout]:
@@ -49,20 +87,6 @@ def card(palette: Any) -> tuple[QFrame, QVBoxLayout]:
     column = QVBoxLayout(frame)
     column.setContentsMargins(*CARD_MARGINS)
     column.setSpacing(CARD_SPACING)
-    return frame, column
-
-
-def pane(palette: Any) -> tuple[QFrame, QVBoxLayout]:
-    frame = QFrame()
-    frame.setObjectName(PANE_NAME)
-    frame.setStyleSheet(
-        f"QFrame#{PANE_NAME} {{ background: {style.css_color(style.panel(palette))};"
-        f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
-        f"border-radius: {style.CARD_RADIUS}px; }}"
-    )
-    column = QVBoxLayout(frame)
-    column.setContentsMargins(0, 0, 0, 0)
-    column.setSpacing(0)
     return frame, column
 
 
@@ -84,12 +108,22 @@ def sidebar_button(title: str, palette: Any) -> QPushButton:
         f"background: transparent; color: {style.css_color(style.muted(palette))};"
         f"border: {style.HAIRLINE}px solid transparent; border-radius: {NAV_RADIUS}px;"
         f"padding: {NAV_PADDING}; text-align: left; }}"
-        f"QPushButton:hover {{ background: {style.css_color(style.card(palette))}; }}"
+        "QPushButton:hover:!checked {"
+        f"background: {style.css_color(style.panel(palette))};"
+        f"color: {style.css_color(style.text(palette))}; }}"
         "QPushButton:checked {"
         f"background: {style.css_color(style.panel(palette))};"
         f"color: {style.css_color(style.text(palette))}; font-weight: 600; }}"
     )
     return button
+
+
+def vertical_separator(palette: Any) -> QFrame:
+    line = QFrame()
+    line.setObjectName(SEPARATOR_NAME)
+    line.setFixedWidth(style.HAIRLINE)
+    line.setStyleSheet(f"QFrame#{SEPARATOR_NAME} {{ background: {style.css_color(style.hairline(palette))}; }}")
+    return line
 
 
 def pages() -> QStackedWidget:

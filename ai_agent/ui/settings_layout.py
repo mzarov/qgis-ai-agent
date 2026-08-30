@@ -7,13 +7,11 @@ from ai_agent.i18n import tr
 from ai_agent.ui import settings_advanced
 from ai_agent.ui import settings_fields as fields
 
-SPACING = 14
-
 
 def build_body(owner: Any, palette: Any) -> QHBoxLayout:
     body = QHBoxLayout()
     body.setContentsMargins(0, 0, 0, 0)
-    body.setSpacing(SPACING)
+    body.setSpacing(0)
     owner.pages = fields.pages()
     nav, nav_column = fields.sidebar()
     owner._nav_buttons = []
@@ -30,10 +28,9 @@ def build_body(owner: Any, palette: Any) -> QHBoxLayout:
         nav_column.addWidget(button)
         owner._nav_buttons.append(button)
     nav_column.addStretch(1)
-    pane, pane_column = fields.pane(palette)
-    pane_column.addWidget(owner.pages)
     body.addWidget(nav)
-    body.addWidget(pane, 1)
+    body.addWidget(fields.vertical_separator(palette))
+    body.addWidget(owner.pages, 1)
     show_page(owner, 0)
     return body
 

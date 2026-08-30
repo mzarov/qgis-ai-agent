@@ -154,7 +154,14 @@ class SidebarSettingsTest(unittest.TestCase):
 
     def test_every_privacy_switch_spells_itself_out(self):
         privacy = ADVANCED_SOURCE.split("def build_privacy(")[1].split("\ndef ")[0]
-        self.assertEqual(privacy.count("fields.switch_row("), privacy.count("QCheckBox("))
+        self.assertEqual(privacy.count("fields.switch_row("), privacy.count("fields.switch(palette)"))
+
+    def test_switches_are_drawn_toggles_not_native_checkboxes(self):
+        self.assertIn("class Switch(QCheckBox):", SOURCE)
+        body = SOURCE.split("class Switch(")[1].split("\ndef ")[0]
+        self.assertIn("drawRoundedRect", body)
+        self.assertIn("style.accent(self._palette) if self.isChecked()", body)
+        self.assertNotIn("QCheckBox(", ADVANCED_SOURCE)
 
     def test_the_run_journal_is_off_until_asked_for(self):
         body = SETTINGS_SOURCE.split("def get_write_run_journal(")[1].split("\ndef ")[0]
@@ -194,11 +201,9 @@ class SidebarSettingsTest(unittest.TestCase):
         self.assertIn("if index:", body)
         self.assertIn("separator(palette)", body)
 
-    def test_the_content_pane_is_lifted_and_scoped(self):
-        self.assertIn("setObjectName(PANE_NAME)", SOURCE)
-        self.assertIn("QFrame#{PANE_NAME}", SOURCE)
-        pane_body = SOURCE.split("def pane(")[1].split("\ndef ")[0]
-        self.assertIn("style.panel(palette)", pane_body)
+    def test_sidebar_and_pages_share_one_surface_split_by_a_line(self):
+        self.assertIn("fields.vertical_separator(palette)", LAYOUT_SOURCE)
+        self.assertNotIn("fields.pane(", LAYOUT_SOURCE)
 
     def test_the_sidebar_carries_no_heading_of_its_own(self):
         self.assertNotIn("nav_heading", LAYOUT_SOURCE)

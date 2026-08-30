@@ -51,10 +51,10 @@ from ai_agent.ui.geocoder_settings import GeocoderSettings
 from ai_agent.ui.settings_status import SettingsStatusMixin
 
 TITLE = tr("Settings — AI Agent")
-MIN_WIDTH = 720
-MIN_HEIGHT = 460
-MARGINS = (16, 16, 16, 14)
-SPACING = 12
+MIN_WIDTH = 760
+MIN_HEIGHT = 520
+FOOTER_MARGINS = (16, 10, 16, 12)
+FOOTER_SPACING = 8
 SAVED = tr("Settings saved.")
 TESTING = tr("Testing the connection…")
 CANCELLING = tr("Cancelling the connection test…")
@@ -100,13 +100,18 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         self.setMinimumHeight(MIN_HEIGHT)
         palette = self.palette()
         column = QVBoxLayout(self)
-        column.setContentsMargins(*MARGINS)
-        column.setSpacing(SPACING)
+        column.setContentsMargins(0, 0, 0, 0)
+        column.setSpacing(0)
         self.geocoder = GeocoderSettings(palette)
         column.addLayout(settings_layout.build_body(self, palette), 1)
+        column.addWidget(fields.separator(palette))
+        footer = QVBoxLayout()
+        footer.setContentsMargins(*FOOTER_MARGINS)
+        footer.setSpacing(FOOTER_SPACING)
         self._status = fields.status(palette)
-        column.addWidget(self._status)
-        column.addLayout(self._build_buttons(palette))
+        footer.addWidget(self._status)
+        footer.addLayout(self._build_buttons(palette))
+        column.addLayout(footer)
         self._sync_preset()
         self._load_endpoint_state(remember_current=False)
 

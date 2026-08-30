@@ -168,23 +168,30 @@ orchestrator through `set_session_source` — the provider returns
 
 **A sidebar over a page stack, styled after Claude's own settings.** Four
 entries — Connection, Privacy, Geocoding, Advanced — ordered by how often each
-is touched. The content sits on a lifted `pane()` (the `settingsPane` frame)
-while the sidebar keeps the window background, so the two halves read as
-different surfaces; the selected entry uses the pane colour plus bold, which
-keeps the selection visible even in the light theme where the lift is zero.
-The sidebar carries **no heading**: the window is already titled Settings, and
-repeating the word inside it was noise. Tabs were tried first and rejected —
-the flat tab bar gave no colour separation and the pages still read as one
-undifferentiated column.
+is touched. Sidebar and pages sit **full-bleed on the same window surface**,
+split by one vertical hairline; the footer is cut off by a horizontal one.
+A floating lifted pane was tried between the tab and this version and looked
+worse than both — a box inside a box reads as a widget, not a page. The
+selected entry is a `panel()` pill plus bold, so the selection survives the
+light theme where the lift is zero. The sidebar carries **no heading**: the
+window is already titled Settings, and repeating the word inside it was
+noise.
 
 **One row grammar for every control.** A row is caption left (title plus a
 muted hint under it, both wrapping), control right at a fixed
 `CONTROL_WIDTH`, vertically centred. Uniform control width is what makes the
-pages read as straight columns instead of ragged boxes. Checkbox rows use the
-same shape with a textless `QCheckBox` on the right — the caption is the
-label. `add_rows` interleaves hairline separators **between** rows, never
-after the last one. Each page starts with one bold `group()` header; a page
-never repeats its sidebar entry as a heading.
+pages read as straight columns instead of ragged boxes. `add_rows`
+interleaves hairline separators **between** rows, never after the last one.
+Each page starts with one bold `group()` header; a page never repeats its
+sidebar entry as a heading.
+
+**Booleans are drawn switches, not native checkboxes.** A stray blue
+checkbox at the end of a wide row reads as debris; a track-and-knob toggle
+reads as a setting. `Switch` subclasses `QCheckBox` — the whole checkbox API
+(`setChecked`, `toggled`, `setEnabled`) keeps working — and only replaces
+`paintEvent`: accent track when on, hairline track when off, `card()` when
+disabled, knob from `highlightedText`. Same approach as the header icons:
+palette-driven `QPainter`, no image assets.
 
 Every switch carries its explanation as a visible hint in the caption, not
 only as a tooltip: with the sensitive switch off the agent cannot read
@@ -192,8 +199,8 @@ attributes, see the map or run Processing, and a tooltip is the wrong place
 to learn that.
 
 Pages scroll individually (`scrollable()`), with the viewport forced
-transparent so the pane colour shows through — a `QScrollArea` left to its
-own devices paints grey over the lifted frame. Test connection, the status
+transparent so the window surface shows through — a `QScrollArea` left to
+its own devices paints its own grey. Test connection, the status
 line and the buttons stay outside the stack: the check is pressed from any
 page and its answer must not vanish when the page changes.
 

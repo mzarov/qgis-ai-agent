@@ -1,6 +1,6 @@
 from typing import Any
 
-from qgis.PyQt.QtWidgets import QCheckBox, QComboBox, QLineEdit, QWidget
+from qgis.PyQt.QtWidgets import QComboBox, QLineEdit, QWidget
 
 from ai_agent.core.llm.dialects import DIALECTS
 from ai_agent.core.settings import (
@@ -40,14 +40,14 @@ JOURNAL_HINT = tr(
 def build_privacy(owner: Any, palette: Any) -> QWidget:
     holder, column = fields.page()
     column.addWidget(fields.group(tr("What leaves this computer"), palette))
-    owner.data_sharing_cb = QCheckBox()
+    owner.data_sharing_cb = fields.switch(palette)
     owner.data_sharing_cb.setToolTip(owner.sharing_hint)
-    owner.sensitive_data_cb = QCheckBox()
+    owner.sensitive_data_cb = fields.switch(palette)
     owner.sensitive_data_cb.setToolTip(owner.sensitive_hint)
     owner.data_sharing_cb.toggled.connect(owner.sensitive_data_cb.setEnabled)
-    owner.verify_ssl_cb = QCheckBox()
+    owner.verify_ssl_cb = fields.switch(palette)
     owner.verify_ssl_cb.setChecked(get_verify_ssl())
-    owner.journal_cb = QCheckBox()
+    owner.journal_cb = fields.switch(palette)
     owner.journal_cb.setToolTip(JOURNAL_HINT)
     owner.journal_cb.setChecked(get_write_run_journal())
     fields.add_rows(
@@ -67,7 +67,7 @@ def build_privacy(owner: Any, palette: Any) -> QWidget:
 def build_advanced(owner: Any, palette: Any) -> QWidget:
     holder, column = fields.page()
     column.addWidget(fields.group(tr("How the agent works"), palette))
-    owner.verify_apply_cb = QCheckBox()
+    owner.verify_apply_cb = fields.switch(palette)
     owner.verify_apply_cb.setToolTip(VERIFY_HINT)
     owner.verify_apply_cb.setChecked(get_verify_after_apply())
     owner.budget_edit = QLineEdit(str(get_token_budget()))
