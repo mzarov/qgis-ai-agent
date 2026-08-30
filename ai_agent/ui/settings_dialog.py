@@ -41,15 +41,17 @@ from ai_agent.core.settings import (
     set_token_budget,
     set_verify_after_apply,
     set_verify_ssl,
+    set_write_run_journal,
 )
 from ai_agent.i18n import tr
-from ai_agent.ui import settings_advanced, style
 from ai_agent.ui import settings_fields as fields
+from ai_agent.ui import settings_layout, style
 from ai_agent.ui.geocoder_settings import GeocoderSettings
 from ai_agent.ui.settings_status import SettingsStatusMixin
 
 TITLE = tr("Settings — AI Agent")
-MIN_WIDTH = 520
+MIN_WIDTH = 720
+MIN_HEIGHT = 460
 MARGINS = (16, 16, 16, 14)
 SPACING = 12
 SAVED = tr("Settings saved.")
@@ -94,16 +96,13 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         self._reject_after_probe = False
         self.setWindowTitle(TITLE)
         self.setMinimumWidth(MIN_WIDTH)
+        self.setMinimumHeight(MIN_HEIGHT)
         palette = self.palette()
         column = QVBoxLayout(self)
         column.setContentsMargins(*MARGINS)
         column.setSpacing(SPACING)
         self.geocoder = GeocoderSettings(palette)
-        self.tabs = fields.tabs(palette)
-        self.tabs.addTab(self._build_connection(palette), tr("Connection"))
-        self.tabs.addTab(settings_advanced.build_privacy(self, palette), tr("Privacy"))
-        self.tabs.addTab(settings_advanced.build_advanced(self, palette, self.geocoder.widget), tr("Advanced"))
-        column.addWidget(self.tabs)
+        column.addLayout(settings_layout.build_body(self, palette), 1)
         self._status = fields.status(palette)
         column.addWidget(self._status)
         column.addLayout(self._build_buttons(palette))
@@ -278,6 +277,7 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         sensitive_allowed = self.data_sharing_cb.isChecked() and self.sensitive_data_cb.isChecked()
         set_allow_sensitive_data(sensitive_allowed, url)
         set_verify_after_apply(self.verify_apply_cb.isChecked())
+        set_write_run_journal(self.journal_cb.isChecked())
         set_token_budget(fields.parsed_budget(self.budget_edit.text(), DEFAULT_TOKEN_BUDGET))
         set_thinking_budget(fields.parsed_budget(self.thinking_edit.text(), DEFAULT_TOKEN_BUDGET))
         set_geocoder_provider(geocoder_provider)
@@ -291,6 +291,7 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
                 self._show(str(error), style.danger(self.palette()))
                 return
         self._show(SAVED, style.success(self.palette()))
+        self.accept()
 
     def _test_connection(self) -> None:
         if self._probe_thread is not None and self._probe_thread.isRunning():

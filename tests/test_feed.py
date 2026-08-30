@@ -171,11 +171,27 @@ class CompactFeedTest(unittest.TestCase):
         self.assertFalse(group._toggle.isChecked())
         self.assertIsNone(self.view._activity)
 
-    def test_a_streamed_answer_folds_it_too(self):
+    def test_a_finished_answer_folds_it_too(self):
         self.view.append_thinking("hmm")
         group = self.view._activity
         self.view.append_draft("the answer")
+        self.view.finish_draft("the answer")
         self.assertFalse(group._toggle.isChecked())
+
+    def test_a_dropped_draft_leaves_the_group_open_for_the_next_step(self):
+        self.view.add_activity_step("first")
+        group = self.view._activity
+        self.view.append_draft("preamble that never lands")
+        self.view.add_activity_step("second")
+        self.assertIs(self.view._activity, group)
+
+    def test_a_kept_answer_starts_a_new_group_after_it(self):
+        self.view.add_activity_step("first")
+        group = self.view._activity
+        self.view.append_draft("an answer")
+        self.view.finish_draft("an answer")
+        self.view.add_activity_step("second")
+        self.assertIsNot(self.view._activity, group)
 
 
 class ThinkingBlockTest(unittest.TestCase):
@@ -302,54 +318,3 @@ class FailedPlanCardTest(unittest.TestCase):
                 QWidget().palette(),
             )
         self.assertEqual(labels[-1].textFormat(), Qt.TextFormat.PlainText)
-
-
-class CapabilitiesTest(unittest.TestCase):
-    def test_every_skill_arrives_with_its_tools(self):
-        from ai_agent.core.orchestrator.capabilities import describe_capabilities
-        from ai_agent.skills.registry import SKILL_REGISTRY
-
-        described = describe_capabilities()
-        self.assertEqual([skill["name"] for skill in described], SKILL_REGISTRY.names())
-        web = next(skill for skill in described if skill["name"] == "web")
-        names = [tool["name"] for tool in web["tools"]]
-        self.assertEqual(names, sorted(names))
-        self.assertIn("geocode", names)
-        self.assertTrue(all(tool["network_access"] for tool in web["tools"]))
-        self.assertTrue(all(tool["safety"] for skill in described for tool in skill["tools"]))
-
-    def test_the_browser_dialog_builds_from_the_description(self):
-        from ai_agent.core.orchestrator.capabilities import describe_capabilities
-        from ai_agent.ui.tool_browser import ToolBrowserDialog
-
-        ToolBrowserDialog(describe_capabilities())
-
-    def test_network_reads_are_not_labelled_as_immediate(self):
-        from qgis.PyQt.QtCore import Qt
-
-        from ai_agent.ui.tool_browser import NETWORK_LABEL, _tool_row
-
-        row = _tool_row(
-            {
-                "name": "fetch_url",
-                "safety": "read",
-                "network_access": True,
-                "description": "Read a page.",
-            },
-            ConversationView().palette(),
-        )
-        self.assertIn(NETWORK_LABEL, row.text())
-        self.assertNotIn("runs immediately", row.text())
-        self.assertEqual(row.textFormat(), Qt.TextFormat.PlainText)
-
-    def test_capability_headers_are_plain_text(self):
-        from qgis.PyQt.QtCore import Qt
-
-        from ai_agent.ui.tool_browser import _skill_header
-
-        header = _skill_header(
-            {"name": "<b>web</b>", "description": "<!-- hidden -->"},
-            ConversationView().palette(),
-        )
-        self.assertIn("<b>web</b>", header.text())
-        self.assertEqual(header.textFormat(), Qt.TextFormat.PlainText)

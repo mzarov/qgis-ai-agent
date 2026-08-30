@@ -147,6 +147,15 @@ def set_token_budget(value: int) -> None:
     _write("token_budget", str(max(0, int(value))))
 
 
+def get_write_run_journal() -> bool:
+    stored = QgsSettings().value(f"{SETTINGS_PREFIX}/write_run_journal")
+    return False if stored is None else _as_bool(stored)
+
+
+def set_write_run_journal(value: bool) -> None:
+    _write("write_run_journal", "true" if value else "false")
+
+
 def get_verify_after_apply() -> bool:
     stored = QgsSettings().value(f"{SETTINGS_PREFIX}/verify_after_apply")
     return True if stored is None else _as_bool(stored)

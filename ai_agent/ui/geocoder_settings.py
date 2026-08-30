@@ -19,6 +19,11 @@ PHOTON_HINT = tr(
 )
 CUSTOM_HINT = tr("Use a public HTTPS Nominatim-compatible service whose operator permits your intended use.")
 DISABLED_HINT = tr("Geocoding stays unavailable until you select a service.")
+PURPOSE_HINT = tr(
+    'With a geocoder the agent can turn "cafes in Divnomorskoye" into a bounding box and hand it to the '
+    "OpenStreetMap download. Without one it can still work by place name, but only where OpenStreetMap "
+    "already knows that name."
+)
 
 
 class GeocoderSettings:
@@ -26,21 +31,25 @@ class GeocoderSettings:
         self._palette = palette
         self._custom_url = get_custom_nominatim_url()
         self._last_provider = get_geocoder_provider()
-        frame, column = fields.card(palette)
-        column.addWidget(fields.section(tr("Geocoding"), palette))
+        holder, column = fields.page()
+        column.addWidget(fields.group(tr("Turning a place name into coordinates"), palette))
+        column.addWidget(fields.hint(PURPOSE_HINT, palette))
         self.provider_combo = QComboBox()
         self.provider_combo.addItem(tr("Disabled"), GEOCODER_DISABLED)
         self.provider_combo.addItem(tr("Photon demo (fair use)"), GEOCODER_PHOTON)
         self.provider_combo.addItem(tr("Custom Nominatim"), GEOCODER_NOMINATIM)
         index = self.provider_combo.findData(self._last_provider)
         self.provider_combo.setCurrentIndex(max(0, index))
-        column.addWidget(fields.field(tr("Service"), self.provider_combo, "", palette))
+        column.addWidget(fields.row(tr("Service"), self.provider_combo, "", palette))
         self.url_edit = QLineEdit()
-        self.url_field = fields.field(tr("Base URL"), self.url_edit, "", palette)
+        self.url_field = fields.row(tr("Base URL"), self.url_edit, "", palette)
         column.addWidget(self.url_field)
+        self._note = fields.hint("", palette)
+        column.addWidget(self._note)
+        column.addStretch(1)
         self.provider_combo.currentIndexChanged.connect(self._sync_provider)
         self._sync_provider()
-        self.widget: QWidget = frame
+        self.widget: QWidget = holder
 
     def values(self) -> tuple[str, str]:
         provider = self._provider()
@@ -74,3 +83,4 @@ class GeocoderSettings:
         self.url_edit.setPlaceholderText("https://geocoder.example")
         self.url_edit.setToolTip(hint)
         self.url_field.setToolTip(hint)
+        self._note.setText(hint)

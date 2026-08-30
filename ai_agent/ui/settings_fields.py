@@ -1,6 +1,16 @@
 from typing import Any
 
-from qgis.PyQt.QtWidgets import QComboBox, QFrame, QLabel, QTabWidget, QVBoxLayout, QWidget
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtWidgets import (
+    QComboBox,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 from ai_agent.ui import style
 
@@ -13,9 +23,19 @@ CARD_MARGINS = (14, 12, 14, 13)
 CARD_SPACING = 11
 FIELD_SPACING = 3
 LABEL_SPACING = 2
-PAGE_MARGINS = (16, 16, 16, 14)
-PAGE_SPACING = 12
-TAB_PADDING = "6px 14px"
+PAGE_MARGINS = (20, 18, 20, 16)
+PAGE_SPACING = 10
+GROUP_SCALE = 1.15
+NAV_WIDTH = 168
+NAV_MARGINS = (10, 18, 6, 16)
+NAV_SPACING = 2
+NAV_RADIUS = 7
+NAV_PADDING = "7px 12px"
+NAV_HEADING_INSET = 12
+ROW_GAP = 16
+ROW_BOTTOM = 2
+CONTROL_WIDTH = 240
+SEPARATOR_NAME = "settingsSeparator"
 
 
 def card(palette: Any) -> tuple[QFrame, QVBoxLayout]:
@@ -32,22 +52,96 @@ def card(palette: Any) -> tuple[QFrame, QVBoxLayout]:
     return frame, column
 
 
-def tabs(palette: Any) -> QTabWidget:
-    widget = QTabWidget()
-    widget.setDocumentMode(True)
-    widget.setStyleSheet(
-        "QTabWidget::pane {"
-        f"background: {style.css_color(style.panel(palette))};"
-        f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
-        f"border-radius: {style.CARD_RADIUS}px; top: -{style.HAIRLINE}px; }}"
-        "QTabBar::tab {"
+def sidebar_button(title: str, palette: Any) -> QPushButton:
+    button = QPushButton(title)
+    button.setCheckable(True)
+    button.setCursor(Qt.CursorShape.PointingHandCursor)
+    button.setStyleSheet(
+        "QPushButton {"
         f"background: transparent; color: {style.css_color(style.muted(palette))};"
-        f"border-bottom: 2px solid transparent; padding: {TAB_PADDING}; margin-right: 2px; }}"
-        "QTabBar::tab:selected {"
-        f"color: {style.css_color(style.text(palette))};"
-        f"border-bottom: 2px solid {style.css_color(style.accent(palette))}; }}"
+        f"border: {style.HAIRLINE}px solid transparent; border-radius: {NAV_RADIUS}px;"
+        f"padding: {NAV_PADDING}; text-align: left; }}"
+        f"QPushButton:hover {{ background: {style.css_color(style.card(palette))}; }}"
+        "QPushButton:checked {"
+        f"background: {style.css_color(style.panel(palette))};"
+        f"color: {style.css_color(style.text(palette))}; font-weight: 600; }}"
     )
-    return widget
+    return button
+
+
+def sidebar() -> tuple[QWidget, QVBoxLayout]:
+    holder = QWidget()
+    holder.setFixedWidth(NAV_WIDTH)
+    column = QVBoxLayout(holder)
+    column.setContentsMargins(*NAV_MARGINS)
+    column.setSpacing(NAV_SPACING)
+    return holder, column
+
+
+def nav_heading(title: str, palette: Any) -> QLabel:
+    label = QLabel(title)
+    font = label.font()
+    font.setPointSizeF(max(1.0, font.pointSizeF() * HINT_SCALE))
+    label.setFont(font)
+    label.setStyleSheet(f"color: {style.css_color(style.muted(palette))}; padding: 0 {NAV_HEADING_INSET}px;")
+    return label
+
+
+def pages() -> QStackedWidget:
+    stack = QStackedWidget()
+    return stack
+
+
+def group(title: str, palette: Any) -> QLabel:
+    label = QLabel(title)
+    font = label.font()
+    font.setBold(True)
+    font.setPointSizeF(max(1.0, font.pointSizeF() * GROUP_SCALE))
+    label.setFont(font)
+    label.setStyleSheet(f"color: {style.css_color(style.text(palette))};")
+    return label
+
+
+def row(title: str, widget: QWidget, note: str, palette: Any) -> QWidget:
+    holder = QWidget()
+    column = QVBoxLayout(holder)
+    column.setContentsMargins(0, 0, 0, ROW_BOTTOM)
+    column.setSpacing(FIELD_SPACING)
+
+    line = QHBoxLayout()
+    line.setContentsMargins(0, 0, 0, 0)
+    line.setSpacing(ROW_GAP)
+    caption = QLabel(title)
+    caption.setWordWrap(True)
+    line.addWidget(caption, 1)
+    widget.setStyleSheet(input_style(palette))
+    widget.setMinimumWidth(CONTROL_WIDTH)
+    line.addWidget(widget, 0, Qt.AlignmentFlag.AlignRight)
+    column.addLayout(line)
+    if note:
+        column.addWidget(hint(note, palette))
+    column.addWidget(separator(palette))
+    return holder
+
+
+def switch_row(checkbox: QWidget, note: str, palette: Any) -> QWidget:
+    holder = QWidget()
+    column = QVBoxLayout(holder)
+    column.setContentsMargins(0, 0, 0, ROW_BOTTOM)
+    column.setSpacing(FIELD_SPACING)
+    column.addWidget(checkbox)
+    if note:
+        column.addWidget(hint(note, palette))
+    column.addWidget(separator(palette))
+    return holder
+
+
+def separator(palette: Any) -> QFrame:
+    line = QFrame()
+    line.setObjectName(SEPARATOR_NAME)
+    line.setFixedHeight(style.HAIRLINE)
+    line.setStyleSheet(f"QFrame#{SEPARATOR_NAME} {{ background: {style.css_color(style.hairline(palette))}; }}")
+    return line
 
 
 def page() -> tuple[QWidget, QVBoxLayout]:

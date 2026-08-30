@@ -115,29 +115,50 @@ class StyleSheetTest(unittest.TestCase):
         self.assertEqual(offenders, [])
 
 
+SETTINGS_SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "core" / "settings.py").read_text(
+    encoding="utf-8"
+)
 ADVANCED_SOURCE = (
     pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "settings_advanced.py"
 ).read_text(encoding="utf-8")
 
 
-class TabbedSettingsTest(unittest.TestCase):
-    def test_the_window_is_split_into_named_tabs(self):
-        for title in ('tr("Connection")', 'tr("Privacy")', 'tr("Advanced")'):
-            self.assertIn("self.tabs.addTab", DIALOG_SOURCE)
-            self.assertIn(title, DIALOG_SOURCE)
+LAYOUT_SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "settings_layout.py").read_text(
+    encoding="utf-8"
+)
 
-    def test_no_page_repeats_its_tab_name_as_a_heading(self):
-        self.assertNotIn('fields.section(tr("Connection")', DIALOG_SOURCE)
-        self.assertNotIn('fields.section(tr("Advanced")', ADVANCED_SOURCE)
+
+class SidebarSettingsTest(unittest.TestCase):
+    def test_the_window_is_a_sidebar_over_a_page_stack(self):
+        self.assertIn("fields.sidebar()", LAYOUT_SOURCE)
+        self.assertIn("fields.pages()", LAYOUT_SOURCE)
+        for title in ('tr("Connection")', 'tr("Privacy")', 'tr("Geocoding")', 'tr("Advanced")'):
+            self.assertIn(title, LAYOUT_SOURCE)
+
+    def test_only_the_chosen_entry_stays_checked(self):
+        body = LAYOUT_SOURCE.split("def show_page(")[1].split("\ndef ")[0]
+        self.assertIn("setChecked(at == index)", body)
+
+    def test_a_long_page_scrolls_instead_of_growing_the_window(self):
+        self.assertIn("setWidgetResizable(True)", LAYOUT_SOURCE)
+        self.assertIn("scrollable(page)", LAYOUT_SOURCE)
+
+    def test_no_page_repeats_its_entry_name_as_a_heading(self):
+        self.assertNotIn('fields.group(tr("Connection")', DIALOG_SOURCE)
+        self.assertNotIn('fields.group(tr("Advanced")', ADVANCED_SOURCE)
 
     def test_consent_controls_live_on_the_privacy_page(self):
         privacy = ADVANCED_SOURCE.split("def build_privacy(")[1].split("\ndef ")[0]
-        for control in ("data_sharing_cb", "sensitive_data_cb", "verify_ssl_cb"):
+        for control in ("data_sharing_cb", "sensitive_data_cb", "verify_ssl_cb", "journal_cb"):
             self.assertIn(control, privacy, control)
 
-    def test_the_privacy_page_spells_out_both_consents(self):
+    def test_every_privacy_switch_spells_itself_out(self):
         privacy = ADVANCED_SOURCE.split("def build_privacy(")[1].split("\ndef ")[0]
-        self.assertEqual(privacy.count("fields.hint("), 2)
+        self.assertEqual(privacy.count("fields.switch_row("), privacy.count("QCheckBox("))
+
+    def test_the_run_journal_is_off_until_asked_for(self):
+        body = SETTINGS_SOURCE.split("def get_write_run_journal(")[1].split("\ndef ")[0]
+        self.assertIn("False if stored is None", body)
 
     def test_budgets_stay_out_of_the_privacy_page(self):
         privacy = ADVANCED_SOURCE.split("def build_privacy(")[1].split("\ndef ")[0]
@@ -145,7 +166,7 @@ class TabbedSettingsTest(unittest.TestCase):
         self.assertNotIn("thinking_edit", privacy)
 
     def test_every_saved_control_is_still_built_somewhere(self):
-        built = DIALOG_SOURCE + ADVANCED_SOURCE + GEOCODER_SOURCE
+        built = (DIALOG_SOURCE + ADVANCED_SOURCE + GEOCODER_SOURCE).replace("owner.", "self.")
         saved = (
             "dialect_combo",
             "auth_type_combo",
@@ -153,6 +174,7 @@ class TabbedSettingsTest(unittest.TestCase):
             "data_sharing_cb",
             "sensitive_data_cb",
             "verify_apply_cb",
+            "journal_cb",
             "budget_edit",
             "thinking_edit",
             "model_edit",
@@ -160,12 +182,12 @@ class TabbedSettingsTest(unittest.TestCase):
             "key_edit",
         )
         for name in saved:
-            self.assertIn(f"self.{name} = ", built.replace("owner.", "self."), name)
+            self.assertIn(f"self.{name} = ", built, name)
 
-    def test_tabs_underline_instead_of_shifting_the_label(self):
-        body = SOURCE.split("def tabs(")[1].split("\ndef ")[0]
-        self.assertIn("border-bottom: 2px solid transparent", body)
-        self.assertIn("QTabBar::tab:selected", body)
+    def test_a_row_puts_the_control_opposite_its_label(self):
+        body = SOURCE.split("def row(")[1].split("\ndef ")[0]
+        self.assertIn("Qt.AlignmentFlag.AlignRight", body)
+        self.assertIn("separator(palette)", body)
 
 
 class CredentialUiContractTest(unittest.TestCase):

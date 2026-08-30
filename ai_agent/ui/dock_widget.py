@@ -21,7 +21,6 @@ from ai_agent.i18n import tr
 from ai_agent.ui import icons, style
 from ai_agent.ui.composer import Composer
 from ai_agent.ui.conversation import ConversationView
-from ai_agent.ui.tool_browser import ToolBrowserDialog
 
 TITLE = "AI Agent"
 NEW_SESSION_LABEL = tr("New conversation")
@@ -45,7 +44,6 @@ class AgentDockWidget(QDockWidget):
         super().__init__(parent)
         self.setWindowTitle(TITLE)
         self._sessions_provider: Callable[[], list[tuple[str, str]]] = list
-        self._capabilities_provider: Callable[[], list] = list
         body = QWidget()
         column = QVBoxLayout(body)
         column.setContentsMargins(0, 0, 0, 0)
@@ -72,7 +70,6 @@ class AgentDockWidget(QDockWidget):
         self._usage_label = QLabel("")
         self._usage_label.setStyleSheet(f"border: none; color: {style.css_color(style.muted(palette))};")
         row.addWidget(self._usage_label)
-        row.addWidget(self._build_action(icons.sessions, "?", tr("What the agent can do"), self._show_capabilities))
         self._sessions_button = self._build_action(icons.sessions, "⟲", tr("Conversations"), self._show_sessions)
         row.addWidget(self._sessions_button)
         row.addWidget(self._build_action(icons.clear, "+", tr("New conversation"), self.new_session_clicked.emit))
@@ -128,12 +125,6 @@ class AgentDockWidget(QDockWidget):
 
     def set_session_source(self, provider: Callable[[], list[tuple[str, str]]]) -> None:
         self._sessions_provider = provider
-
-    def set_capabilities_source(self, provider: Callable[[], list]) -> None:
-        self._capabilities_provider = provider
-
-    def _show_capabilities(self) -> None:
-        ToolBrowserDialog(self._capabilities_provider(), self).exec()
 
     def _show_sessions(self) -> None:
         menu = QMenu(self)
@@ -203,21 +194,19 @@ class AgentDockWidget(QDockWidget):
 
     def confirm_data_sharing(self, endpoint: str) -> bool:
         box = QMessageBox(self)
-        box.setIcon(QMessageBox.Icon.Warning)
+        box.setIcon(QMessageBox.Icon.Question)
         box.setWindowTitle(tr("Share project data?"))
         box.setTextFormat(Qt.TextFormat.PlainText)
         box.setText(
             tr(
-                "The request will be sent to {0}.\n\n"
-                "The provider may receive your prompt, layer and field names, CRS, project notes, "
-                "tool results and generated plans. Feature values, exact extents, layer sources and filters, "
-                "Processing or Python results, and rendered images remain blocked unless you separately "
-                "enable sensitive data in Settings.\n\n"
-                "Continue and remember this choice for this endpoint?"
+                "Send the request to {0}?\n\n"
+                "The provider receives your prompt and basic project metadata: layer and field names, "
+                "CRS and project notes. Feature values, extents, layer sources and rendered images stay "
+                "blocked until you allow them in Settings."
             ).format(endpoint)
         )
         box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        box.setDefaultButton(QMessageBox.StandardButton.No)
+        box.setDefaultButton(QMessageBox.StandardButton.Yes)
         return box.exec() == QMessageBox.StandardButton.Yes
 
     def mark_plan_completed(self, message_id: int) -> None:
