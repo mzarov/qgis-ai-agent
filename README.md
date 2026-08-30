@@ -49,16 +49,16 @@ To build the same deterministic archive from a checkout:
 python3 tools/build_plugin.py
 ```
 
-The archive appears in `dist/`. The external Python dependency `keyring` is not
-bundled and may need to be installed into QGIS's Python. Details, dependencies
-and the development install are in [docs/SETUP.md](docs/SETUP.md).
+The archive appears in `dist/`. The plugin has no external Python dependencies —
+install it and it runs. The development install is in
+[docs/SETUP.md](docs/SETUP.md).
 
 ## Configuration
 
 The gear icon on the plugin panel. Picking a provider fills in the address and
 the API format — OpenAI, OpenRouter, Anthropic, Google Gemini, DeepSeek, Groq,
 Mistral and the local Ollama / LM Studio are supported (no key needed for
-localhost). The key is stored in the system keychain, not in the config.
+localhost). The key is stored encrypted in the QGIS authentication database, not in the config.
 
 The model must support function calling; for endpoints without it there is a
 text JSON protocol that switches on by itself.

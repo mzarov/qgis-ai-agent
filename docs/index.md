@@ -71,9 +71,9 @@ plan instead of producing garbage.
   rejected. Returned web content is untrusted data, can be forwarded to the
   chosen model and is not cached on disk. This flow is controlled by the
   per-call web confirmation, not by the sensitive-GIS-data option.
-- API keys are stored in the system keychain, never in the project or QGIS
-  settings. The external `keyring` Python library is not bundled and may need
-  to be installed separately.
+- API keys are stored encrypted in the QGIS authentication database, never in
+  the project or in the QGIS settings file. The plugin has no external Python
+  dependencies at all: install the archive and it runs.
 
 Ready to try? Start with [Setup](SETUP.md), then see [Usage](usage.md) for what
 to ask.

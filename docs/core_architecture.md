@@ -151,7 +151,7 @@ The plugin is not tied to a vendor: it talks to whatever address the user set in
 the settings. The URL setting itself plays the “AI hub” role — no separate layer
 is needed. It is enough that the endpoint understands the OpenAI Chat
 Completions format, which nearly every corporate gateway does. The user provides
-the URL, the key (kept in the keyring, not in config) and the model name.
+the URL, the key (kept in the QGIS authentication database, not in config) and the model name.
 
 `core/llm/transport.py` tries native function calling (`tools` +
 `tool_choice`). If the endpoint answers with an error about the unsupported

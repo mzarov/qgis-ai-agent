@@ -315,6 +315,7 @@ core = _mod(
         "QgsProcessingParameterDefinition",
         "QgsProcessingFeedback",
         "QgsFeedback",
+        "QgsAuthMethodConfig",
         "QgsLayerTreeGroup",
         "QgsLayerTreeLayer",
         "QgsUnitTypes",

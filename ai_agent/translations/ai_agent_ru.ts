@@ -286,9 +286,9 @@
         <translation>Не удалось достучаться до {endpoint}: {reason}. Проверьте адрес, сеть и настройки прокси в QGIS.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/settings.py" line="31"/>
-        <source>Could not save the key to the system keyring: {reason}.&#10;&#10;On Linux this needs a running secret service — gnome-keyring or KWallet. If the keyring library is missing, install it into the QGIS Python: see the Dependencies section of the plugin documentation.</source>
-        <translation>Не удалось сохранить ключ в системном хранилище: {reason}.&#10;&#10;В Linux для этого нужна запущенная служба секретов — gnome-keyring или KWallet. Если не хватает библиотеки keyring, поставьте её в Python QGIS: см. раздел «Зависимости» в документации плагина.</translation>
+        <location filename="ai_agent/core/credentials.py" line="15"/>
+        <source>Could not save the key to the QGIS authentication database: {reason}.&#10;&#10;The key is stored encrypted inside your QGIS profile and is unlocked by the QGIS master password.</source>
+        <translation>Не удалось сохранить ключ в базу учётных данных QGIS: {reason}.&#10;&#10;Ключ хранится зашифрованным внутри профиля QGIS и открывается мастер-паролем QGIS.</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/layout/create_layout.py" line="65"/>
@@ -571,6 +571,11 @@
         <location filename="ai_agent/ui/settings_dialog.py" line="202"/>
         <source>Provider key</source>
         <translation>Ключ провайдера</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/credentials.py" line="12"/>
+        <source>QGIS did not provide its authentication database.</source>
+        <translation>QGIS не предоставил свою базу учётных данных.</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/inspect/describe_layer.py" line="51"/>
@@ -913,8 +918,8 @@
     </message>
     <message>
         <location filename="ai_agent/ui/settings_dialog.py" line="61"/>
-        <source>Stored in the system keyring, not in the settings file.</source>
-        <translation>Хранится в системном хранилище, а не в файле настроек.</translation>
+        <source>Stored encrypted in the QGIS authentication database, not in the settings file.</source>
+        <translation>Хранится зашифрованным в базе учётных данных QGIS, а не в файле настроек.</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/style/set_symbol.py" line="71"/>
@@ -975,6 +980,21 @@
         <translation>API вернул {0}: {1}</translation>
     </message>
     <message>
+        <location filename="ai_agent/core/credentials.py" line="13"/>
+        <source>The QGIS authentication database is disabled for this session.</source>
+        <translation>База учётных данных QGIS отключена в этом сеансе.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/credentials.py" line="19"/>
+        <source>The QGIS authentication database is unavailable: {reason}. API keys cannot be loaded or saved.</source>
+        <translation>База учётных данных QGIS недоступна: {reason}. Ключи API нельзя загрузить или сохранить.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/credentials.py" line="14"/>
+        <source>The QGIS master password was not entered, so the key stays locked.</source>
+        <translation>Мастер-пароль QGIS не введён, поэтому ключ остаётся закрытым.</translation>
+    </message>
+    <message>
         <location filename="ai_agent/core/orchestrator/project_lifecycle.py" line="4"/>
         <source>The QGIS project changed. A new project-scoped conversation was started.</source>
         <translation>Проект QGIS изменился. Начат новый диалог, привязанный к этому проекту.</translation>
@@ -1018,11 +1038,6 @@
         <location filename="ai_agent/ui/settings_dialog.py" line="60"/>
         <source>The stored key for this endpoint was removed.</source>
         <translation>Сохранённый ключ для этого адреса удалён.</translation>
-    </message>
-    <message>
-        <location filename="ai_agent/core/settings.py" line="37"/>
-        <source>The system keyring is unavailable: {reason}. API keys cannot be loaded or saved. Install the keyring dependency in QGIS and make sure the operating-system secret service is running.</source>
-        <translation>Системное хранилище ключей недоступно: {reason}. API-ключи нельзя загрузить или сохранить. Установите зависимость keyring в QGIS и убедитесь, что системная служба секретов запущена.</translation>
     </message>
     <message>
         <location filename="ai_agent/core/orchestrator/orchestrator.py" line="244"/>
@@ -1202,7 +1217,7 @@
         <translation>имя модели у вашего провайдера</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/settings.py" line="280"/>
+        <location filename="ai_agent/core/credentials.py" line="85"/>
         <source>unknown error</source>
         <translation>неизвестная ошибка</translation>
     </message>

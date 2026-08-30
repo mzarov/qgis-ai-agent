@@ -6,7 +6,6 @@ authors = ["mzarov@duck.com"]
 
 [tool.poetry.dependencies]
 python = "^3.12"
-keyring = "^25.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.13"

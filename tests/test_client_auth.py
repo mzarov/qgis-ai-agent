@@ -1,7 +1,7 @@
 import pathlib
 import unittest
 
-from ai_agent.core import settings
+from ai_agent.core import credentials
 from ai_agent.core.llm import client
 from ai_agent.core.llm.client import build_request, is_local, resolve_endpoint
 from ai_agent.core.llm.dialects import safe_endpoint_label
@@ -43,11 +43,11 @@ class LocalHostTest(unittest.TestCase):
 
 class BuildRequestTest(unittest.TestCase):
     def setUp(self):
-        self.saved_credential_store_error = settings._credential_store_error
-        settings._credential_store_error = ""
+        self.saved_credential_store_error = credentials._error
+        credentials._error = ""
 
     def tearDown(self):
-        settings._credential_store_error = self.saved_credential_store_error
+        credentials._error = self.saved_credential_store_error
 
     def test_local_endpoint_needs_no_key(self):
         endpoint, headers, model = request("http://localhost:11434/v1", "")

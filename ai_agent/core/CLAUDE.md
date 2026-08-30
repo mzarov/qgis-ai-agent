@@ -120,7 +120,17 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    out in the background; the result is discarded by the `_aborted` flag. The
    hard `stop` with `terminate` remains only for plugin unload, when QGIS is
    closing anyway.
-15. **Imports** — all at the top, absolute. Code without comments or docstrings
+15. **Keys live in the QGIS authentication database.** `credentials.py` talks to
+    `QgsAuthManager`: the encrypted `qgis-auth.db` inside the profile, the same
+    store QGIS uses for layer passwords. The earlier `keyring` route was the
+    plugin's only external dependency and it does not ship with QGIS — every
+    user had to pip-install it into the QGIS Python before the plugin worked at
+    all, which is not an install story. `QgsAuthManager` needs nothing, behaves
+    the same on all three platforms, and the master password is a dialog the
+    user already knows. Only the identifier of the stored entry goes into
+    `QgsSettings`; the secret never does. A refused master password reads as an
+    empty key with a stated reason, never as a crash.
+16. **Imports** — all at the top, absolute. Code without comments or docstrings
     — see the root CLAUDE.md.
 
 ## What lives where
@@ -146,6 +156,7 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `llm/client.py`          | the HTTP layer, URL/key/header resolution           |
 | `llm/probe.py`           | the connection check for the settings dialog        |
 | `llm/providers.py`       | provider presets for the settings dialog            |
+| `credentials.py`         | API keys in the QGIS authentication database        |
 | `orchestrator/`          | UI-to-loop wiring, the DockWidget contract          |
 | `state/conversation.py`  | the model window and the current dialogue, one entry point |
 | `state/session.py`       | the conversation model: title, messages, serialising |

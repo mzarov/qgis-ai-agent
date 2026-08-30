@@ -71,10 +71,11 @@ class MetadataRulesTest(unittest.TestCase):
         self.assertIn("test connection", about)
         self.assertIn("independently of agent-run consent", about)
 
-    def test_external_keyring_dependency_is_disclosed(self):
+    def test_credential_storage_is_disclosed_without_promising_dependencies(self):
         about = self.values.get("about", "").lower()
-        self.assertIn("external python dependency", about)
-        self.assertIn("keyring is not bundled", about)
+        self.assertIn("qgis authentication database", about)
+        self.assertNotIn("keyring", about)
+        self.assertNotIn("external python dependency", about)
 
     def test_name_does_not_repeat_the_word_plugin(self):
         self.assertNotIn("plugin", self.values.get("name", "").lower())

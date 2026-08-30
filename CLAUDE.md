@@ -31,12 +31,14 @@ agent. Do not ask permission for routine decisions — write the code.
   `.ui` files — the interface is built in code.
 - LLM: any OpenAI-compatible REST API. Vendor neutrality is a principle, not a
   detail: no SDK tied to a single provider.
-- Secrets: `keyring` only (the system keychain). Keys are never written to config.
+- Secrets: the QGIS authentication database (`QgsAuthManager`) only. Keys are never
+  written to config.
   An address on `localhost` needs no key — otherwise vendor neutrality would be
   words only: local servers (Ollama, LM Studio) require no keys.
 - Dependencies: Poetry, Python `^3.12`. The plugin runs inside QGIS, so every new
   dependency is an installation problem for the user. Add one only when strictly
-  necessary; today there is exactly one — `keyring`. **All HTTP stays on the
+  necessary; today there are none at all — the plugin installs and runs with
+  nothing but QGIS. **All HTTP stays on the
   QGIS network stack**, never `requests`: ordinary calls use
   `QgsBlockingNetworkRequest`; streaming and web redirects use
   `QgsNetworkAccessManager` with a nested event loop. Web requests validate all
