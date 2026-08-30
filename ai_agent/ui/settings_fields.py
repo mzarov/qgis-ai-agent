@@ -1,6 +1,6 @@
 from typing import Any
 
-from qgis.PyQt.QtWidgets import QComboBox, QFrame, QLabel, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import QComboBox, QFrame, QLabel, QTabWidget, QVBoxLayout, QWidget
 
 from ai_agent.ui import style
 
@@ -13,6 +13,9 @@ CARD_MARGINS = (14, 12, 14, 13)
 CARD_SPACING = 11
 FIELD_SPACING = 3
 LABEL_SPACING = 2
+PAGE_MARGINS = (16, 16, 16, 14)
+PAGE_SPACING = 12
+TAB_PADDING = "6px 14px"
 
 
 def card(palette: Any) -> tuple[QFrame, QVBoxLayout]:
@@ -29,6 +32,32 @@ def card(palette: Any) -> tuple[QFrame, QVBoxLayout]:
     return frame, column
 
 
+def tabs(palette: Any) -> QTabWidget:
+    widget = QTabWidget()
+    widget.setDocumentMode(True)
+    widget.setStyleSheet(
+        "QTabWidget::pane {"
+        f"background: {style.css_color(style.panel(palette))};"
+        f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
+        f"border-radius: {style.CARD_RADIUS}px; top: -{style.HAIRLINE}px; }}"
+        "QTabBar::tab {"
+        f"background: transparent; color: {style.css_color(style.muted(palette))};"
+        f"border-bottom: 2px solid transparent; padding: {TAB_PADDING}; margin-right: 2px; }}"
+        "QTabBar::tab:selected {"
+        f"color: {style.css_color(style.text(palette))};"
+        f"border-bottom: 2px solid {style.css_color(style.accent(palette))}; }}"
+    )
+    return widget
+
+
+def page() -> tuple[QWidget, QVBoxLayout]:
+    holder = QWidget()
+    column = QVBoxLayout(holder)
+    column.setContentsMargins(*PAGE_MARGINS)
+    column.setSpacing(PAGE_SPACING)
+    return holder, column
+
+
 def section(title: str, palette: Any) -> QLabel:
     label = QLabel(title.upper())
     font = label.font()
@@ -39,7 +68,7 @@ def section(title: str, palette: Any) -> QLabel:
     return label
 
 
-def field(title: str, widget: QWidget, hint: str, palette: Any) -> QWidget:
+def field(title: str, widget: QWidget, note: str, palette: Any) -> QWidget:
     holder = QWidget()
     column = QVBoxLayout(holder)
     column.setContentsMargins(0, 0, 0, 0)
@@ -48,9 +77,9 @@ def field(title: str, widget: QWidget, hint: str, palette: Any) -> QWidget:
     column.addWidget(QLabel(title))
     widget.setStyleSheet(input_style(palette))
     column.addWidget(widget)
-    if hint:
+    if note:
         column.addSpacing(LABEL_SPACING)
-        column.addWidget(_hint(hint, palette))
+        column.addWidget(hint(note, palette))
     return holder
 
 
@@ -119,7 +148,7 @@ def plain_button(palette: Any) -> str:
     )
 
 
-def _hint(text: str, palette: Any) -> QLabel:
+def hint(text: str, palette: Any) -> QLabel:
     label = QLabel(text)
     label.setWordWrap(True)
     font = label.font()

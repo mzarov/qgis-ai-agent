@@ -456,6 +456,7 @@ _mod(
         "QTextBrowser",
         "QFrame",
         "QSizePolicy",
+        "QTabWidget",
     ],
 )
 _qtcore.pyqtSignal = pyqtSignal

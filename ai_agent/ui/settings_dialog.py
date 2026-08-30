@@ -98,20 +98,20 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         column = QVBoxLayout(self)
         column.setContentsMargins(*MARGINS)
         column.setSpacing(SPACING)
-        column.addWidget(self._build_connection(palette))
         self.geocoder = GeocoderSettings(palette)
-        column.addWidget(self.geocoder.widget)
-        column.addWidget(settings_advanced.build(self, palette))
+        self.tabs = fields.tabs(palette)
+        self.tabs.addTab(self._build_connection(palette), tr("Connection"))
+        self.tabs.addTab(settings_advanced.build_privacy(self, palette), tr("Privacy"))
+        self.tabs.addTab(settings_advanced.build_advanced(self, palette, self.geocoder.widget), tr("Advanced"))
+        column.addWidget(self.tabs)
         self._status = fields.status(palette)
         column.addWidget(self._status)
-        column.addStretch(1)
         column.addLayout(self._build_buttons(palette))
         self._sync_preset()
         self._load_endpoint_state(remember_current=False)
 
     def _build_connection(self, palette: Any) -> QWidget:
-        frame, column = fields.card(palette)
-        column.addWidget(fields.section(tr("Connection"), palette))
+        holder, column = fields.page()
 
         self.preset_combo = QComboBox()
         self.preset_combo.addItems(TITLES)
@@ -143,7 +143,8 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         key_layout.addWidget(self.remove_key_btn)
         self._key_field = fields.field(tr("API key"), key_row, KEY_HINT, palette)
         column.addWidget(self._key_field)
-        return frame
+        column.addStretch(1)
+        return holder
 
     def _build_buttons(self, palette: Any) -> QHBoxLayout:
         row = QHBoxLayout()

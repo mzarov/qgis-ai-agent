@@ -163,6 +163,23 @@ orchestrator through `set_session_source` — the provider returns
 
 ## The settings window
 
+**Three tabs, not one column.** Stacked cards grew past the screen once
+geocoding and the two consent switches arrived, and the last field was cut off
+on a laptop. The split follows how often a thing is touched: **Connection**
+(provider, address, model, key) is edited constantly, **Privacy** (the two
+consent switches and SSL) once per endpoint but it decides what the agent may
+do at all, **Advanced** (API format, authorisation, verification, budgets,
+geocoding) almost never. A tab title is the page heading, so no page repeats it
+as a `section()` — that was pure duplicated height.
+
+The two consent switches carry their hint as a visible label, not only as a
+tooltip: with the sensitive switch off the agent cannot read attributes, see
+the map or run Processing, and a tooltip is the wrong place to learn that.
+
+Test connection, the status line and the buttons stay outside the tabs — the
+check is pressed from any page and its answer must not vanish when a tab
+changes.
+
 Fields are grouped into cards, each with a small hint underneath. The provider
 is picked from a list and fills in the address and the API format; the preset
 list lives in `core/llm/providers.py`, because that is knowledge about

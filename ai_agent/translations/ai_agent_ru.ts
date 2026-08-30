@@ -45,7 +45,7 @@
         <translation>Нелокальная конечная точка модели должна использовать HTTPS. Для доверенного сервера в локальной сети используйте SSH-туннель на localhost.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="39"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="58"/>
         <source>API format</source>
         <translation>Формат API</translation>
     </message>
@@ -90,7 +90,7 @@
         <translation>Добавляю слой {0} «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="34"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="105"/>
         <source>Advanced</source>
         <translation>Дополнительно</translation>
     </message>
@@ -160,7 +160,7 @@
         <translation>Спрашивайте обычными словами</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="43"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="62"/>
         <source>Authorisation type</source>
         <translation>Тип авторизации</translation>
     </message>
@@ -181,7 +181,7 @@
         <translation>Отменить</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="303"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="304"/>
         <source>Cancel test</source>
         <translation>Отменить проверку</translation>
     </message>
@@ -236,7 +236,7 @@
         <translation>Проверяю применённые изменения…</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="157"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="158"/>
         <source>Close</source>
         <translation>Закрыть</translation>
     </message>
@@ -256,7 +256,7 @@
         <translation>Подключение есть, но модель вернула пустой ответ.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="114"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="103"/>
         <source>Connection</source>
         <translation>Подключение</translation>
     </message>
@@ -487,7 +487,7 @@
         <translation>Применились не все изменения.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="201"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="202"/>
         <source>Not required</source>
         <translation>Не обязателен</translation>
     </message>
@@ -552,6 +552,11 @@
         <translation>План {0}/{1}: {2}</translation>
     </message>
     <message>
+        <location filename="ai_agent/ui/settings_dialog.py" line="104"/>
+        <source>Privacy</source>
+        <translation>Приватность</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/settings_dialog.py" line="64"/>
         <source>Prompts and basic QGIS project context—including layer and field names, CRS, tool results and generated plans—may be sent to this endpoint. Consent is stored separately for every endpoint.</source>
         <translation>В эту конечную точку могут передаваться запросы и базовый контекст проекта QGIS, включая имена слоёв и полей, CRS, результаты инструментов и созданные планы. Согласие сохраняется отдельно для каждой конечной точки.</translation>
@@ -563,7 +568,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/settings_dialog.py" line="134"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="201"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="202"/>
         <source>Provider key</source>
         <translation>Ключ провайдера</translation>
     </message>
@@ -787,7 +792,7 @@
         <translation>Выполняю запрос Overpass для «{0}»: {1}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="162"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="163"/>
         <source>Save</source>
         <translation>Сохранить</translation>
     </message>
@@ -927,8 +932,8 @@
         <translation>Оформляю растр «{0}»: {1}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="151"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="326"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="152"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="327"/>
         <source>Test connection</source>
         <translation>Проверить подключение</translation>
     </message>
@@ -1070,7 +1075,7 @@
         <translation>Используйте публичный HTTPS-сервис, совместимый с Nominatim, оператор которого разрешает ваш сценарий.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="44"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="30"/>
         <source>Verify the SSL certificate</source>
         <translation>Проверять сертификат SSL</translation>
     </message>

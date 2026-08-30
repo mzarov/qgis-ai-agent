@@ -115,6 +115,59 @@ class StyleSheetTest(unittest.TestCase):
         self.assertEqual(offenders, [])
 
 
+ADVANCED_SOURCE = (
+    pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "settings_advanced.py"
+).read_text(encoding="utf-8")
+
+
+class TabbedSettingsTest(unittest.TestCase):
+    def test_the_window_is_split_into_named_tabs(self):
+        for title in ('tr("Connection")', 'tr("Privacy")', 'tr("Advanced")'):
+            self.assertIn("self.tabs.addTab", DIALOG_SOURCE)
+            self.assertIn(title, DIALOG_SOURCE)
+
+    def test_no_page_repeats_its_tab_name_as_a_heading(self):
+        self.assertNotIn('fields.section(tr("Connection")', DIALOG_SOURCE)
+        self.assertNotIn('fields.section(tr("Advanced")', ADVANCED_SOURCE)
+
+    def test_consent_controls_live_on_the_privacy_page(self):
+        privacy = ADVANCED_SOURCE.split("def build_privacy(")[1].split("\ndef ")[0]
+        for control in ("data_sharing_cb", "sensitive_data_cb", "verify_ssl_cb"):
+            self.assertIn(control, privacy, control)
+
+    def test_the_privacy_page_spells_out_both_consents(self):
+        privacy = ADVANCED_SOURCE.split("def build_privacy(")[1].split("\ndef ")[0]
+        self.assertEqual(privacy.count("fields.hint("), 2)
+
+    def test_budgets_stay_out_of_the_privacy_page(self):
+        privacy = ADVANCED_SOURCE.split("def build_privacy(")[1].split("\ndef ")[0]
+        self.assertNotIn("budget_edit", privacy)
+        self.assertNotIn("thinking_edit", privacy)
+
+    def test_every_saved_control_is_still_built_somewhere(self):
+        built = DIALOG_SOURCE + ADVANCED_SOURCE + GEOCODER_SOURCE
+        saved = (
+            "dialect_combo",
+            "auth_type_combo",
+            "verify_ssl_cb",
+            "data_sharing_cb",
+            "sensitive_data_cb",
+            "verify_apply_cb",
+            "budget_edit",
+            "thinking_edit",
+            "model_edit",
+            "url_edit",
+            "key_edit",
+        )
+        for name in saved:
+            self.assertIn(f"self.{name} = ", built.replace("owner.", "self."), name)
+
+    def test_tabs_underline_instead_of_shifting_the_label(self):
+        body = SOURCE.split("def tabs(")[1].split("\ndef ")[0]
+        self.assertIn("border-bottom: 2px solid transparent", body)
+        self.assertIn("QTabBar::tab:selected", body)
+
+
 class CredentialUiContractTest(unittest.TestCase):
     def test_switching_provider_resets_the_model(self):
         self.assertIn("self.model_edit.setText(preset.default_model)", DIALOG_SOURCE)

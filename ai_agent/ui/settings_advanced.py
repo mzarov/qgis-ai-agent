@@ -27,11 +27,30 @@ THINKING_HINT = tr(
     "Anthropic only: 0 disables extended thinking. For Sonnet 5, any positive value enables adaptive thinking; "
     "older models require at least 1024 tokens and use the value as their reasoning budget."
 )
+SSL_LABEL = tr("Verify the SSL certificate")
 
 
-def build(owner: Any, palette: Any) -> QWidget:
-    frame, column = fields.card(palette)
-    column.addWidget(fields.section(tr("Advanced"), palette))
+def build_privacy(owner: Any, palette: Any) -> QWidget:
+    holder, column = fields.page()
+    owner.data_sharing_cb = QCheckBox(owner.sharing_label)
+    owner.data_sharing_cb.setToolTip(owner.sharing_hint)
+    column.addWidget(owner.data_sharing_cb)
+    column.addWidget(fields.hint(owner.sharing_hint, palette))
+    owner.sensitive_data_cb = QCheckBox(owner.sensitive_label)
+    owner.sensitive_data_cb.setToolTip(owner.sensitive_hint)
+    column.addWidget(owner.sensitive_data_cb)
+    column.addWidget(fields.hint(owner.sensitive_hint, palette))
+    owner.data_sharing_cb.toggled.connect(owner.sensitive_data_cb.setEnabled)
+    owner.verify_ssl_cb = QCheckBox(SSL_LABEL)
+    owner.verify_ssl_cb.setChecked(get_verify_ssl())
+    column.addWidget(owner.verify_ssl_cb)
+    column.addStretch(1)
+    return holder
+
+
+def build_advanced(owner: Any, palette: Any, geocoder: QWidget) -> QWidget:
+    holder, column = fields.page()
+    column.addWidget(geocoder)
     owner.dialect_combo = QComboBox()
     owner.dialect_combo.addItems(list(DIALECTS))
     fields.select(owner.dialect_combo, get_dialect())
@@ -41,16 +60,6 @@ def build(owner: Any, palette: Any) -> QWidget:
     owner.auth_type_combo.addItems([AUTH_TYPE_BEARER, AUTH_TYPE_OAUTH])
     fields.select(owner.auth_type_combo, get_auth_type())
     column.addWidget(fields.field(tr("Authorisation type"), owner.auth_type_combo, AUTH_HINT, palette))
-    owner.verify_ssl_cb = QCheckBox(tr("Verify the SSL certificate"))
-    owner.verify_ssl_cb.setChecked(get_verify_ssl())
-    column.addWidget(owner.verify_ssl_cb)
-    owner.data_sharing_cb = QCheckBox(owner.sharing_label)
-    owner.data_sharing_cb.setToolTip(owner.sharing_hint)
-    column.addWidget(owner.data_sharing_cb)
-    owner.sensitive_data_cb = QCheckBox(owner.sensitive_label)
-    owner.sensitive_data_cb.setToolTip(owner.sensitive_hint)
-    column.addWidget(owner.sensitive_data_cb)
-    owner.data_sharing_cb.toggled.connect(owner.sensitive_data_cb.setEnabled)
     owner.verify_apply_cb = QCheckBox(VERIFY_LABEL)
     owner.verify_apply_cb.setToolTip(VERIFY_HINT)
     owner.verify_apply_cb.setChecked(get_verify_after_apply())
@@ -59,4 +68,5 @@ def build(owner: Any, palette: Any) -> QWidget:
     column.addWidget(fields.field(BUDGET_LABEL, owner.budget_edit, BUDGET_HINT, palette))
     owner.thinking_edit = QLineEdit(str(get_thinking_budget()))
     column.addWidget(fields.field(THINKING_LABEL, owner.thinking_edit, THINKING_HINT, palette))
-    return frame
+    column.addStretch(1)
+    return holder
