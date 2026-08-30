@@ -69,11 +69,7 @@ def request_uses_proxy(manager: Any, url: str) -> bool:
         integer(QNetworkProxy.ProxyType.DefaultProxy),
         integer(QNetworkProxy.ProxyType.NoProxy),
     }
-    routed_proxies = [route for route in routes if route[0] not in direct]
-    direct_routes = [route for route in routes if route[0] in direct]
-    if routed_proxies and direct_routes:
-        raise ValueError("QGIS returned a mixed proxy/direct fallback route; the web request was blocked.")
-    return bool(routed_proxies)
+    return routes[0][0] not in direct
 
 
 def require_consistent_proxy_route(manager: Any, original_url: str, destination: str) -> None:

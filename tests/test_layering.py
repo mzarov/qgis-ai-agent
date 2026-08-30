@@ -5,6 +5,7 @@ import unittest
 SOURCE_ROOT = pathlib.Path(__file__).resolve().parent.parent / "ai_agent"
 PACKAGE = "ai_agent"
 FORBIDDEN = {
+    "config": ("core", "ui", "qgis_tools", "skills"),
     "core": ("ui",),
     "qgis_tools": ("core", "ui"),
     "ui": ("qgis_tools", "skills"),
@@ -25,20 +26,15 @@ def internal_imports(path: pathlib.Path) -> list[str]:
     return found
 
 
-def layer_of(path: pathlib.Path) -> str:
-    relative = path.relative_to(SOURCE_ROOT)
-    return relative.parts[0] if len(relative.parts) > 1 else ""
-
-
 class LayeringTest(unittest.TestCase):
     def test_layers_never_import_upward(self):
         problems = []
-        for path in SOURCE_ROOT.rglob("*.py"):
-            source_layer = layer_of(path)
-            for module in internal_imports(path):
-                target_layer = module.split(".")[1] if "." in module else ""
-                if target_layer in FORBIDDEN.get(source_layer, ()):
-                    problems.append(f"{path.relative_to(SOURCE_ROOT)} -> {module}")
+        for source_layer, forbidden in FORBIDDEN.items():
+            for path in (SOURCE_ROOT / source_layer).rglob("*.py"):
+                for module in internal_imports(path):
+                    target_layer = module.split(".")[1] if "." in module else ""
+                    if target_layer in forbidden:
+                        problems.append(f"{path.relative_to(SOURCE_ROOT)} -> {module}")
         self.assertEqual(problems, [])
 
     def test_only_the_composition_root_and_leaves_sit_at_the_top(self):
@@ -79,9 +75,9 @@ class LayeringTest(unittest.TestCase):
         self.assertEqual(problems, [])
 
     def test_every_forbidden_rule_names_real_layers(self):
-        layers = {item.name for item in SOURCE_ROOT.iterdir() if item.is_dir()}
-        for source, targets in FORBIDDEN.items():
-            self.assertIn(source, layers)
+        layers = {item.name for item in SOURCE_ROOT.iterdir() if item.is_dir() and any(item.glob("*.py"))}
+        self.assertEqual(set(FORBIDDEN), layers)
+        for targets in FORBIDDEN.values():
             for target in targets:
                 self.assertIn(target, layers)
 

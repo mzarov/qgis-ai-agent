@@ -504,7 +504,7 @@ class NetworkRequestPolicyTest(unittest.TestCase):
             destination = request_module.request_destination(manager, "https://public.example/path", "93.184.216.34")
         self.assertEqual(destination, "https://public.example/path")
 
-    def test_proxy_route_cannot_fall_back_to_an_unpinned_direct_hostname(self):
+    def test_proxy_route_uses_the_first_pac_entry_by_preference(self):
         class ProxyKind:
             class ProxyType:
                 DefaultProxy = 0
@@ -518,9 +518,25 @@ class NetworkRequestPolicyTest(unittest.TestCase):
                 "proxy_routes",
                 return_value=((3, "proxy.example", 8443, ""), (2, "", 0, "")),
             ),
-            self.assertRaisesRegex(ValueError, "mixed proxy/direct"),
         ):
-            request_module.request_uses_proxy(manager, "https://public.example/")
+            self.assertTrue(request_module.request_uses_proxy(manager, "https://public.example/"))
+
+    def test_direct_route_uses_the_first_pac_entry_by_preference(self):
+        class ProxyKind:
+            class ProxyType:
+                DefaultProxy = 0
+                NoProxy = 2
+
+        manager = mock.Mock()
+        with (
+            mock.patch.object(request_module, "QNetworkProxy", ProxyKind),
+            mock.patch.object(
+                request_module,
+                "proxy_routes",
+                return_value=((2, "", 0, ""), (3, "proxy.example", 8443, "")),
+            ),
+        ):
+            self.assertFalse(request_module.request_uses_proxy(manager, "https://public.example/"))
 
 
 class DnsAndCancellationTest(unittest.TestCase):
