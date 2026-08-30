@@ -34,8 +34,11 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `composer.py`     | the input box: Enter sends, Shift+Enter breaks the line; the send button turns into “stop” |
 | `style.py`        | palette colours; `panel()` — the raised level for dialogs |
 | `icons.py`        | header icons: drawn with a palette pen, one stroke weight |
-| `settings_dialog.py` | the settings window: provider, key, API format |
-| `settings_fields.py` | cards, labels, hints and buttons for the settings |
+| `settings_dialog.py` | the settings window: state, saving, the connection probe |
+| `settings_layout.py` | the sidebar, the page stack and per-page scrolling |
+| `settings_fields.py` | the row grammar: rows, switches, separators, inputs, buttons |
+| `settings_advanced.py` | the Privacy and Advanced pages |
+| `geocoder_settings.py` | the Geocoding page |
 
 ## Header icons
 
@@ -163,24 +166,38 @@ orchestrator through `set_session_source` — the provider returns
 
 ## The settings window
 
-**Three tabs, not one column.** Stacked cards grew past the screen once
-geocoding and the two consent switches arrived, and the last field was cut off
-on a laptop. The split follows how often a thing is touched: **Connection**
-(provider, address, model, key) is edited constantly, **Privacy** (the two
-consent switches and SSL) once per endpoint but it decides what the agent may
-do at all, **Advanced** (API format, authorisation, verification, budgets,
-geocoding) almost never. A tab title is the page heading, so no page repeats it
-as a `section()` — that was pure duplicated height.
+**A sidebar over a page stack, styled after Claude's own settings.** Four
+entries — Connection, Privacy, Geocoding, Advanced — ordered by how often each
+is touched. The content sits on a lifted `pane()` (the `settingsPane` frame)
+while the sidebar keeps the window background, so the two halves read as
+different surfaces; the selected entry uses the pane colour plus bold, which
+keeps the selection visible even in the light theme where the lift is zero.
+The sidebar carries **no heading**: the window is already titled Settings, and
+repeating the word inside it was noise. Tabs were tried first and rejected —
+the flat tab bar gave no colour separation and the pages still read as one
+undifferentiated column.
 
-The two consent switches carry their hint as a visible label, not only as a
-tooltip: with the sensitive switch off the agent cannot read attributes, see
-the map or run Processing, and a tooltip is the wrong place to learn that.
+**One row grammar for every control.** A row is caption left (title plus a
+muted hint under it, both wrapping), control right at a fixed
+`CONTROL_WIDTH`, vertically centred. Uniform control width is what makes the
+pages read as straight columns instead of ragged boxes. Checkbox rows use the
+same shape with a textless `QCheckBox` on the right — the caption is the
+label. `add_rows` interleaves hairline separators **between** rows, never
+after the last one. Each page starts with one bold `group()` header; a page
+never repeats its sidebar entry as a heading.
 
-Test connection, the status line and the buttons stay outside the tabs — the
-check is pressed from any page and its answer must not vanish when a tab
-changes.
+Every switch carries its explanation as a visible hint in the caption, not
+only as a tooltip: with the sensitive switch off the agent cannot read
+attributes, see the map or run Processing, and a tooltip is the wrong place
+to learn that.
 
-Fields are grouped into cards, each with a small hint underneath. The provider
+Pages scroll individually (`scrollable()`), with the viewport forced
+transparent so the pane colour shows through — a `QScrollArea` left to its
+own devices paints grey over the lifted frame. Test connection, the status
+line and the buttons stay outside the stack: the check is pressed from any
+page and its answer must not vanish when the page changes.
+
+The provider
 is picked from a list and fills in the address and the API format; the preset
 list lives in `core/llm/providers.py`, because that is knowledge about
 services, not about the interface. The preset does **not** fill in the model —

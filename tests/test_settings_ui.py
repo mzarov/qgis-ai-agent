@@ -187,7 +187,27 @@ class SidebarSettingsTest(unittest.TestCase):
     def test_a_row_puts_the_control_opposite_its_label(self):
         body = SOURCE.split("def row(")[1].split("\ndef ")[0]
         self.assertIn("Qt.AlignmentFlag.AlignRight", body)
+        self.assertIn("setFixedWidth(CONTROL_WIDTH)", body)
+
+    def test_separators_go_between_rows_never_after_the_last(self):
+        body = SOURCE.split("def add_rows(")[1].split("\ndef ")[0]
+        self.assertIn("if index:", body)
         self.assertIn("separator(palette)", body)
+
+    def test_the_content_pane_is_lifted_and_scoped(self):
+        self.assertIn("setObjectName(PANE_NAME)", SOURCE)
+        self.assertIn("QFrame#{PANE_NAME}", SOURCE)
+        pane_body = SOURCE.split("def pane(")[1].split("\ndef ")[0]
+        self.assertIn("style.panel(palette)", pane_body)
+
+    def test_the_sidebar_carries_no_heading_of_its_own(self):
+        self.assertNotIn("nav_heading", LAYOUT_SOURCE)
+        self.assertNotIn('tr("Settings")', LAYOUT_SOURCE)
+
+    def test_pages_show_through_the_pane_not_their_own_grey(self):
+        body = LAYOUT_SOURCE.split("def scrollable(")[1].split("\ndef ")[0]
+        self.assertIn("setAutoFillBackground(False)", body)
+        self.assertIn("background: transparent", body)
 
 
 class CredentialUiContractTest(unittest.TestCase):

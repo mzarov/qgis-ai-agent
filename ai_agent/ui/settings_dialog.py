@@ -1,5 +1,6 @@
 from typing import Any
 
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import (
     QComboBox,
     QDialog,
@@ -111,37 +112,43 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
 
     def _build_connection(self, palette: Any) -> QWidget:
         holder, column = fields.page()
+        column.addWidget(fields.group(tr("Model endpoint"), palette))
 
         self.preset_combo = QComboBox()
         self.preset_combo.addItems(TITLES)
         self.preset_combo.currentTextChanged.connect(self._apply_preset)
-        column.addWidget(fields.field(tr("Provider"), self.preset_combo, "", palette))
 
         self.url_edit = QLineEdit(get_api_url())
         self.url_edit.setPlaceholderText("https://api.openai.com/v1")
         self.url_edit.textChanged.connect(self._sync_preset)
         self.url_edit.editingFinished.connect(self._endpoint_finished)
-        column.addWidget(
-            fields.field(tr("Base URL"), self.url_edit, tr("Without /chat/completions at the end."), palette)
-        )
 
         self.model_edit = QLineEdit(get_model())
-        column.addWidget(fields.field(tr("Model"), self.model_edit, "", palette))
 
+        key_box = QWidget()
+        key_column = QVBoxLayout(key_box)
+        key_column.setContentsMargins(0, 0, 0, 0)
+        key_column.setSpacing(8)
         self.key_edit = QLineEdit()
         self.key_edit.setEchoMode(QLineEdit.EchoMode.Password)
         self.key_edit.setPlaceholderText(tr("Provider key"))
-        key_row = QWidget()
-        key_layout = QHBoxLayout(key_row)
-        key_layout.setContentsMargins(0, 0, 0, 0)
-        key_layout.setSpacing(8)
-        key_layout.addWidget(self.key_edit, 1)
+        key_column.addWidget(self.key_edit)
         self.remove_key_btn = QPushButton(tr("Remove stored key"))
         self.remove_key_btn.setStyleSheet(fields.plain_button(palette))
         self.remove_key_btn.clicked.connect(self._remove_key)
-        key_layout.addWidget(self.remove_key_btn)
-        self._key_field = fields.field(tr("API key"), key_row, KEY_HINT, palette)
-        column.addWidget(self._key_field)
+        key_column.addWidget(self.remove_key_btn, 0, Qt.AlignmentFlag.AlignRight)
+        self._key_field = fields.row(tr("API key"), key_box, KEY_HINT, palette)
+
+        fields.add_rows(
+            column,
+            palette,
+            [
+                fields.row(tr("Provider"), self.preset_combo, "", palette),
+                fields.row(tr("Base URL"), self.url_edit, tr("Without /chat/completions at the end."), palette),
+                fields.row(tr("Model"), self.model_edit, "", palette),
+                self._key_field,
+            ],
+        )
         column.addStretch(1)
         return holder
 

@@ -7,7 +7,7 @@ from ai_agent.i18n import tr
 from ai_agent.ui import settings_advanced
 from ai_agent.ui import settings_fields as fields
 
-SPACING = 12
+SPACING = 14
 
 
 def build_body(owner: Any, palette: Any) -> QHBoxLayout:
@@ -16,7 +16,6 @@ def build_body(owner: Any, palette: Any) -> QHBoxLayout:
     body.setSpacing(SPACING)
     owner.pages = fields.pages()
     nav, nav_column = fields.sidebar()
-    nav_column.addWidget(fields.nav_heading(tr("Settings"), palette))
     owner._nav_buttons = []
     entries = (
         (tr("Connection"), owner._build_connection(palette)),
@@ -31,8 +30,10 @@ def build_body(owner: Any, palette: Any) -> QHBoxLayout:
         nav_column.addWidget(button)
         owner._nav_buttons.append(button)
     nav_column.addStretch(1)
+    pane, pane_column = fields.pane(palette)
+    pane_column.addWidget(owner.pages)
     body.addWidget(nav)
-    body.addWidget(owner.pages, 1)
+    body.addWidget(pane, 1)
     show_page(owner, 0)
     return body
 
@@ -48,5 +49,8 @@ def scrollable(page: QWidget) -> QScrollArea:
     area.setWidgetResizable(True)
     area.setFrameShape(QScrollArea.Shape.NoFrame)
     area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    area.setStyleSheet("QScrollArea { background: transparent; }")
     area.setWidget(page)
+    area.viewport().setAutoFillBackground(False)
+    page.setAutoFillBackground(False)
     return area

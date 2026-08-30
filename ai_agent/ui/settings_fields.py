@@ -15,27 +15,27 @@ from qgis.PyQt.QtWidgets import (
 from ai_agent.ui import style
 
 HINT_SCALE = 0.86
-SECTION_SCALE = 0.9
+GROUP_SCALE = 1.12
 CARD_NAME = "settingsCard"
+PANE_NAME = "settingsPane"
+SEPARATOR_NAME = "settingsSeparator"
 INPUT_RADIUS = 6
-INPUT_PADDING = "5px 8px"
+INPUT_PADDING = "6px 10px"
+INPUT_MIN_HEIGHT = 18
 CARD_MARGINS = (14, 12, 14, 13)
 CARD_SPACING = 11
 FIELD_SPACING = 3
-LABEL_SPACING = 2
-PAGE_MARGINS = (20, 18, 20, 16)
-PAGE_SPACING = 10
-GROUP_SCALE = 1.15
-NAV_WIDTH = 168
-NAV_MARGINS = (10, 18, 6, 16)
+PAGE_MARGINS = (24, 20, 24, 22)
+PAGE_SPACING = 6
+GROUP_GAP = 18
+NAV_WIDTH = 172
+NAV_MARGINS = (0, 6, 10, 6)
 NAV_SPACING = 2
 NAV_RADIUS = 7
-NAV_PADDING = "7px 12px"
-NAV_HEADING_INSET = 12
-ROW_GAP = 16
-ROW_BOTTOM = 2
-CONTROL_WIDTH = 240
-SEPARATOR_NAME = "settingsSeparator"
+NAV_PADDING = "8px 12px"
+ROW_VPAD = 6
+ROW_GAP = 24
+CONTROL_WIDTH = 320
 
 
 def card(palette: Any) -> tuple[QFrame, QVBoxLayout]:
@@ -50,6 +50,29 @@ def card(palette: Any) -> tuple[QFrame, QVBoxLayout]:
     column.setContentsMargins(*CARD_MARGINS)
     column.setSpacing(CARD_SPACING)
     return frame, column
+
+
+def pane(palette: Any) -> tuple[QFrame, QVBoxLayout]:
+    frame = QFrame()
+    frame.setObjectName(PANE_NAME)
+    frame.setStyleSheet(
+        f"QFrame#{PANE_NAME} {{ background: {style.css_color(style.panel(palette))};"
+        f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
+        f"border-radius: {style.CARD_RADIUS}px; }}"
+    )
+    column = QVBoxLayout(frame)
+    column.setContentsMargins(0, 0, 0, 0)
+    column.setSpacing(0)
+    return frame, column
+
+
+def sidebar() -> tuple[QWidget, QVBoxLayout]:
+    holder = QWidget()
+    holder.setFixedWidth(NAV_WIDTH)
+    column = QVBoxLayout(holder)
+    column.setContentsMargins(*NAV_MARGINS)
+    column.setSpacing(NAV_SPACING)
+    return holder, column
 
 
 def sidebar_button(title: str, palette: Any) -> QPushButton:
@@ -69,27 +92,16 @@ def sidebar_button(title: str, palette: Any) -> QPushButton:
     return button
 
 
-def sidebar() -> tuple[QWidget, QVBoxLayout]:
-    holder = QWidget()
-    holder.setFixedWidth(NAV_WIDTH)
-    column = QVBoxLayout(holder)
-    column.setContentsMargins(*NAV_MARGINS)
-    column.setSpacing(NAV_SPACING)
-    return holder, column
-
-
-def nav_heading(title: str, palette: Any) -> QLabel:
-    label = QLabel(title)
-    font = label.font()
-    font.setPointSizeF(max(1.0, font.pointSizeF() * HINT_SCALE))
-    label.setFont(font)
-    label.setStyleSheet(f"color: {style.css_color(style.muted(palette))}; padding: 0 {NAV_HEADING_INSET}px;")
-    return label
-
-
 def pages() -> QStackedWidget:
-    stack = QStackedWidget()
-    return stack
+    return QStackedWidget()
+
+
+def page() -> tuple[QWidget, QVBoxLayout]:
+    holder = QWidget()
+    column = QVBoxLayout(holder)
+    column.setContentsMargins(*PAGE_MARGINS)
+    column.setSpacing(PAGE_SPACING)
+    return holder, column
 
 
 def group(title: str, palette: Any) -> QLabel:
@@ -104,36 +116,31 @@ def group(title: str, palette: Any) -> QLabel:
 
 def row(title: str, widget: QWidget, note: str, palette: Any) -> QWidget:
     holder = QWidget()
-    column = QVBoxLayout(holder)
-    column.setContentsMargins(0, 0, 0, ROW_BOTTOM)
-    column.setSpacing(FIELD_SPACING)
-
-    line = QHBoxLayout()
-    line.setContentsMargins(0, 0, 0, 0)
+    line = QHBoxLayout(holder)
+    line.setContentsMargins(0, ROW_VPAD, 0, ROW_VPAD)
     line.setSpacing(ROW_GAP)
-    caption = QLabel(title)
-    caption.setWordWrap(True)
-    line.addWidget(caption, 1)
+    line.addWidget(_caption(title, note, palette), 1)
     widget.setStyleSheet(input_style(palette))
-    widget.setMinimumWidth(CONTROL_WIDTH)
-    line.addWidget(widget, 0, Qt.AlignmentFlag.AlignRight)
-    column.addLayout(line)
-    if note:
-        column.addWidget(hint(note, palette))
-    column.addWidget(separator(palette))
+    widget.setFixedWidth(CONTROL_WIDTH)
+    line.addWidget(widget, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
     return holder
 
 
-def switch_row(checkbox: QWidget, note: str, palette: Any) -> QWidget:
+def switch_row(title: str, checkbox: QWidget, note: str, palette: Any) -> QWidget:
     holder = QWidget()
-    column = QVBoxLayout(holder)
-    column.setContentsMargins(0, 0, 0, ROW_BOTTOM)
-    column.setSpacing(FIELD_SPACING)
-    column.addWidget(checkbox)
-    if note:
-        column.addWidget(hint(note, palette))
-    column.addWidget(separator(palette))
+    line = QHBoxLayout(holder)
+    line.setContentsMargins(0, ROW_VPAD, 0, ROW_VPAD)
+    line.setSpacing(ROW_GAP)
+    line.addWidget(_caption(title, note, palette), 1)
+    line.addWidget(checkbox, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
     return holder
+
+
+def add_rows(column: QVBoxLayout, palette: Any, rows: list[QWidget]) -> None:
+    for index, item in enumerate(rows):
+        if index:
+            column.addWidget(separator(palette))
+        column.addWidget(item)
 
 
 def separator(palette: Any) -> QFrame:
@@ -144,37 +151,17 @@ def separator(palette: Any) -> QFrame:
     return line
 
 
-def page() -> tuple[QWidget, QVBoxLayout]:
-    holder = QWidget()
-    column = QVBoxLayout(holder)
-    column.setContentsMargins(*PAGE_MARGINS)
-    column.setSpacing(PAGE_SPACING)
-    return holder, column
-
-
-def section(title: str, palette: Any) -> QLabel:
-    label = QLabel(title.upper())
-    font = label.font()
-    font.setBold(True)
-    font.setPointSizeF(max(1.0, font.pointSizeF() * SECTION_SCALE))
-    label.setFont(font)
-    label.setStyleSheet(f"color: {style.css_color(style.muted(palette))}; letter-spacing: 1px;")
-    return label
-
-
-def field(title: str, widget: QWidget, note: str, palette: Any) -> QWidget:
-    holder = QWidget()
-    column = QVBoxLayout(holder)
+def _caption(title: str, note: str, palette: Any) -> QWidget:
+    box = QWidget()
+    column = QVBoxLayout(box)
     column.setContentsMargins(0, 0, 0, 0)
     column.setSpacing(FIELD_SPACING)
-
-    column.addWidget(QLabel(title))
-    widget.setStyleSheet(input_style(palette))
-    column.addWidget(widget)
+    label = QLabel(title)
+    label.setWordWrap(True)
+    column.addWidget(label)
     if note:
-        column.addSpacing(LABEL_SPACING)
         column.addWidget(hint(note, palette))
-    return holder
+    return box
 
 
 def status(palette: Any) -> QLabel:
@@ -214,10 +201,16 @@ def input_style(palette: Any) -> str:
         f"background: {style.css_color(style.surface(palette))};"
         f"color: {style.css_color(style.text(palette))};"
         f"border: {style.HAIRLINE}px solid {border};"
-        f"border-radius: {INPUT_RADIUS}px; padding: {INPUT_PADDING}; }}"
+        f"border-radius: {INPUT_RADIUS}px; padding: {INPUT_PADDING};"
+        f"min-height: {INPUT_MIN_HEIGHT}px; }}"
         "QLineEdit:focus, QComboBox:focus {"
         f"border: {style.HAIRLINE}px solid {style.css_color(style.accent(palette))}; }}"
-        "QComboBox::drop-down { border: none; width: 22px; }"
+        "QComboBox::drop-down { border: none; width: 24px; }"
+        "QComboBox QAbstractItemView {"
+        f"background: {style.css_color(style.panel(palette))};"
+        f"color: {style.css_color(style.text(palette))};"
+        f"border: {style.HAIRLINE}px solid {border};"
+        f"selection-background-color: {style.css_color(style.accent(palette))}; }}"
     )
 
 

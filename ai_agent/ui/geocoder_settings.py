@@ -34,17 +34,24 @@ class GeocoderSettings:
         holder, column = fields.page()
         column.addWidget(fields.group(tr("Turning a place name into coordinates"), palette))
         column.addWidget(fields.hint(PURPOSE_HINT, palette))
+        column.addSpacing(fields.GROUP_GAP)
         self.provider_combo = QComboBox()
         self.provider_combo.addItem(tr("Disabled"), GEOCODER_DISABLED)
         self.provider_combo.addItem(tr("Photon demo (fair use)"), GEOCODER_PHOTON)
         self.provider_combo.addItem(tr("Custom Nominatim"), GEOCODER_NOMINATIM)
         index = self.provider_combo.findData(self._last_provider)
         self.provider_combo.setCurrentIndex(max(0, index))
-        column.addWidget(fields.row(tr("Service"), self.provider_combo, "", palette))
         self.url_edit = QLineEdit()
         self.url_field = fields.row(tr("Base URL"), self.url_edit, "", palette)
-        column.addWidget(self.url_field)
         self._note = fields.hint("", palette)
+        fields.add_rows(
+            column,
+            palette,
+            [
+                fields.row(tr("Service"), self.provider_combo, "", palette),
+                self.url_field,
+            ],
+        )
         column.addWidget(self._note)
         column.addStretch(1)
         self.provider_combo.currentIndexChanged.connect(self._sync_provider)
