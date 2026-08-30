@@ -42,21 +42,26 @@ The recipients and data are:
 
 - `search_web` sends the search phrase to DuckDuckGo; if that service fails, it
   sends the same phrase to the English or Russian Wikipedia search API;
-- `geocode` sends the place name to the Nominatim-compatible public HTTPS host
-  supplied explicitly in that call as `service_url`;
+- `geocode` sends the place name to the Photon demo or custom
+  Nominatim-compatible public HTTPS service selected in Settings;
 - `fetch_url` sends a request to the public HTTPS host in the URL you approved.
 
 The public OSMF Nominatim instance at `nominatim.openstreetmap.org` is
-intentionally rejected rather than offered as generic agent geocoding. Bring a
-service whose operator permits this use and review the official
+intentionally rejected rather than offered as generic agent geocoding.
+Geocoding starts disabled. The Photon demo preset permits reasonable use, may
+throttle heavy traffic and has no availability guarantee; for other use, bring
+a service whose operator permits it. Review the official
 [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/).
 
 Web tools accept only public HTTPS destinations. Local, private, link-local and
 reserved addresses, credential-bearing or signed URLs, and cross-origin
 redirects are rejected. Every DNS answer must be globally routable; one checked
 IP is pinned through all same-origin hops while TLS verifies the approved host
-name. If QGIS selects different proxy routes for those two forms, the request
-fails closed. Cookie persistence and cached HTTP-authentication reuse are
+name. If a direct connection to one validated address fails, the next validated
+answer is tried. When QGIS selects an explicit proxy for the approved host, the
+original hostname is sent through that proxy so its rules and DNS path remain
+effective; direct routes still use IP pinning and fail closed on a route mismatch.
+Cookie persistence and cached HTTP-authentication reuse are
 disabled for these requests. Responses are treated as untrusted data, never as
 instructions: a page cannot authorise more requests or ask the agent to reveal
 prompts, project data, credentials or other tool results.

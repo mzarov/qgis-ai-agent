@@ -2,6 +2,7 @@ import sys
 import types
 import unittest
 
+from ai_agent.config import geocoder as geocoder_config
 from ai_agent.core import settings
 from ai_agent.core.llm import client
 
@@ -148,11 +149,14 @@ class ScopedCredentialTest(unittest.TestCase):
 class ScopedCapabilityTest(unittest.TestCase):
     def setUp(self):
         self.saved_settings = settings.QgsSettings
+        self.saved_geocoder_settings = geocoder_config.QgsSettings
         MemorySettings.values = {}
         settings.QgsSettings = MemorySettings
+        geocoder_config.QgsSettings = MemorySettings
 
     def tearDown(self):
         settings.QgsSettings = self.saved_settings
+        geocoder_config.QgsSettings = self.saved_geocoder_settings
 
     def test_capability_cache_is_scoped_by_url_model_and_dialect(self):
         settings.set_supports_tools(REMOTE, False, "model-a", "openai")
@@ -184,6 +188,15 @@ class ScopedCapabilityTest(unittest.TestCase):
         settings.set_verify_ssl(False, REMOTE)
         self.assertFalse(settings.get_verify_ssl(REMOTE))
         self.assertTrue(settings.get_verify_ssl(OTHER_REMOTE))
+
+    def test_geocoding_is_opt_in_and_provider_urls_are_not_model_settings(self):
+        self.assertEqual(settings.get_geocoder_provider(), settings.GEOCODER_DISABLED)
+        self.assertEqual(settings.get_geocoder_url(), "")
+        settings.set_geocoder_provider(settings.GEOCODER_PHOTON)
+        self.assertEqual(settings.get_geocoder_url(), settings.GEOCODER_PHOTON_URL)
+        settings.set_custom_nominatim_url("https://geo.example/nominatim")
+        settings.set_geocoder_provider(settings.GEOCODER_NOMINATIM)
+        self.assertEqual(settings.get_geocoder_url(), "https://geo.example/nominatim")
 
 
 if __name__ == "__main__":

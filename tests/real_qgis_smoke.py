@@ -56,7 +56,7 @@ def _run_checks(package_root: pathlib.Path) -> int:
     from ai_agent.skills.registry import SKILL_REGISTRY
 
     plugin = ai_agent.classFactory(object())
-    icon = QIcon(os.fspath(package_root / "icon.svg"))
+    icon = QIcon(os.fspath(package_root / "icon.png"))
     loaded_package = pathlib.Path(ai_agent.__file__).resolve().parent
     project = QgsProject.instance()
     project.clear()

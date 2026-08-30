@@ -12,7 +12,7 @@ from ai_agent.core.agent.skills import load_skill
 from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.core.llm.transport import ToolCall
 from ai_agent.core.privacy import tool_output_allowed
-from ai_agent.qgis_tools.base import SAFETY_READ, effective_safety, has_network_access
+from ai_agent.qgis_tools.base import SAFETY_READ
 from ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call
 
 LOG_TAG = "AI Agent"
@@ -34,7 +34,7 @@ class DispatchMixin:
             return ToolResult.failure(call, notices.SENSITIVE_DATA_BLOCKED)
         if tool is None:
             return self._run_now(call)
-        if effective_safety(tool, call.arguments) == SAFETY_READ and not has_network_access(tool, call.arguments):
+        if tool.safety_for(call.arguments) == SAFETY_READ and not tool.has_network_access(call.arguments):
             return self._run_now(call)
         return self._queue_write(call)
 
@@ -56,8 +56,8 @@ class DispatchMixin:
             )
             return ToolResult.failure(call, str(err))
         tool = get_tool_by_name(queued.name)
-        if tool is not None and effective_safety(tool, queued.arguments) == SAFETY_READ:
-            self._staged = self._staged or has_network_access(tool, queued.arguments)
+        if tool is not None and tool.safety_for(queued.arguments) == SAFETY_READ:
+            self._staged = self._staged or tool.has_network_access(queued.arguments)
         self.tool_queued.emit(summarize_tool_call(queued.name, queued.arguments))
         return ToolExecutor.queued(queued)
 
@@ -67,16 +67,6 @@ class DispatchMixin:
             return ToolResult.failure(call, "The question is empty — say what you need to know.")
         self._question = question
         return ToolResult(call=call, ok=True, payload={"status": "waiting_for_user"})
-
-    def answer(self, text: str) -> bool:
-        reply = (text or "").strip()
-        if not reply or not self._question:
-            return False
-        self._question = ""
-        self._transcript.add_user(reply)
-        self.busy_changed.emit(True)
-        self._request_step()
-        return True
 
     def _request_stage(self, call: ToolCall) -> ToolResult:
         if not self._batch:

@@ -1,7 +1,9 @@
 import ast
 import builtins
+import io
 import os
 import pathlib
+import tokenize
 import unittest
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -9,6 +11,7 @@ SOURCE_ROOT = os.path.join(REPO_ROOT, "ai_agent")
 NOISE_FREE_ROOTS = (SOURCE_ROOT, os.path.join(REPO_ROOT, "tools"), os.path.join(REPO_ROOT, "tests"))
 KNOWN = set(dir(builtins)) | {"__file__", "__name__", "__doc__", "__package__"}
 MAX_LINES = 400
+SANCTIONED_COMMENTS = ("# nosec", "# noqa", "# pragma: allowlist secret")
 
 
 def python_files(roots=(SOURCE_ROOT,)):
@@ -23,6 +26,10 @@ def python_files(roots=(SOURCE_ROOT,)):
 
 def read_source(path):
     return pathlib.Path(path).read_text(encoding="utf-8")
+
+
+def _sanctioned_comment(value):
+    return value.startswith(SANCTIONED_COMMENTS)
 
 
 def module_scope(tree):
@@ -137,9 +144,10 @@ class StyleTest(unittest.TestCase):
         problems = []
         for path in python_files(NOISE_FREE_ROOTS):
             source = read_source(path)
-            for number, line in enumerate(source.split("\n"), 1):
-                if line.strip().startswith("#"):
-                    problems.append(f"{path}:{number} комментарий")
+            tokens = tokenize.generate_tokens(io.StringIO(source).readline)
+            for token in tokens:
+                if token.type == tokenize.COMMENT and not _sanctioned_comment(token.string):
+                    problems.append(f"{path}:{token.start[0]} комментарий")
             for node in ast.walk(ast.parse(source)):
                 if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef)):
                     body = getattr(node, "body", [])

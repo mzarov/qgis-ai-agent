@@ -53,6 +53,12 @@ extents, layer filters and sources, style categories, Processing and Python
 results, and rendered map or layout images. The connection test is an
 intentional diagnostic request and does not wait for agent-run consent.
 
+Geocoding is disabled by default. In the **Geocoding** card, choose **Photon
+demo (fair use)** for occasional interactive lookups or **Custom Nominatim**
+and enter a permitted public HTTPS base URL. The model receives only the place
+argument; it cannot choose or replace this destination. Every lookup still
+waits for its own Apply confirmation.
+
 ### Verified providers
 
 The plugin speaks two formats. `auto` picks one from the address, so usually
@@ -106,9 +112,10 @@ system.
 Network requests stay on the QGIS network stack: ordinary calls use
 `QgsBlockingNetworkRequest`, while streaming and the pinned web transport use
 `QgsNetworkAccessManager` with a nested event loop. The latter accepts only
-public DNS answers, pins a checked IP while TLS verifies the original host, and
+public DNS answers, pins checked IPs on direct routes while TLS verifies the
+original host, preserves the hostname through an explicit QGIS proxy, and
 follows only same-origin redirects. There is no third-party HTTP client; a
-QGIS proxy-route mismatch is blocked rather than bypassed.
+direct-route mismatch is blocked rather than bypassed.
 
 If your build lacks `keyring`, or on Linux no secret service is running
 (gnome-keyring, KWallet), saving the key shows a message with the reason.

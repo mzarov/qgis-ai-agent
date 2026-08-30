@@ -9,8 +9,9 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PACKAGE_DIR = os.path.join(REPO_ROOT, PLUGIN_NAME)
 DIST_DIR = os.path.join(REPO_ROOT, "dist")
 EXTRA_FILES = ("LICENSE",)
-PACKAGE_ROOT_FILES = {".bandit", "__init__.py", "i18n.py", "icon.svg", "metadata.txt", "plugin.py"}
+PACKAGE_ROOT_FILES = {".bandit", "__init__.py", "i18n.py", "icon.png", "metadata.txt", "plugin.py"}
 TREE_SUFFIXES = {
+    "config": {".py"},
     "core": {".py"},
     "qgis_tools": {".py"},
     "skills": {".md", ".py"},

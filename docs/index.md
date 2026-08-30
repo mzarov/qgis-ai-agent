@@ -63,10 +63,11 @@ plan instead of producing garbage.
   Local servers can still store or forward data. Read
   [Data and privacy](privacy.md) before opening a sensitive project.
 - Each optional web call is confirmed separately. Search terms go to
-  DuckDuckGo or, on fallback, Wikipedia; geocoding goes to the
-  Nominatim-compatible HTTPS service you explicitly provide; and page reads
+  DuckDuckGo or, on fallback, Wikipedia; geocoding goes to the Photon demo or
+  custom Nominatim service selected in Settings; and page reads
   contact the approved public HTTPS host. The public OSMF Nominatim instance is
-  intentionally not built in. Private hosts and credential-bearing URLs are
+  intentionally not offered. Geocoding starts disabled; Photon permits
+  reasonable demo use but may throttle and has no uptime guarantee. Private hosts and credential-bearing URLs are
   rejected. Returned web content is untrusted data, can be forwarded to the
   chosen model and is not cached on disk. This flow is controlled by the
   per-call web confirmation, not by the sensitive-GIS-data option.

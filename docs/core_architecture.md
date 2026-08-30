@@ -167,17 +167,21 @@ adapter next to `transport.py`, not edits to the loop.
 Ordinary one-shot model calls use `QgsBlockingNetworkRequest`. Streaming and
 the web tools are the two deliberate exceptions: both use
 `QgsNetworkAccessManager` with a nested `QEventLoop`. Streaming needs access to
-the body while it arrives. The web runner resolves DNS asynchronously with Qt,
-rejects the host if any answer is not a globally routable address, and pins one
-validated address for the entire request. TLS still verifies the original host
-name (`setPeerVerifyName`), while HTTP/1.1 carries that host in `Host`; there is
-no retry through an unresolved name.
+the body while it arrives. Web reads need the same incremental reply access to
+enforce the response-size limit before buffering the whole body, abort promptly,
+and inspect every redirect before following it. The web runner resolves DNS
+asynchronously with Qt, rejects the host if any answer is not globally routable,
+and pins one validated address for each direct connection attempt. TLS still
+verifies the original host name (`setPeerVerifyName`), while HTTP/1.1 carries
+that host in `Host`; there is no retry through an unresolved name.
 
 Redirect handling is manual: at most three same-origin redirects are accepted,
 and a raw `Location` value is validated before the next hop. The validated IP
-remains pinned across those hops. Before sending, the runner compares QGIS's
-proxy route for the approved host with the route for its pinned address; a
-difference is blocked rather than used to bypass proxy policy. Cancellation
+remains pinned across those hops. A connection failure tries the next address
+from the already validated DNS set. When QGIS chooses an explicit proxy for the
+approved hostname, the request keeps that hostname so the proxy's routing and
+DNS policy are honoured. Direct requests remain pinned; if QGIS would choose a
+different route for the pinned form, the request fails closed. Cancellation
 aborts both DNS lookup and reply, and a generation guard prevents fallback
 searches from starting afterward. Cookie loading/saving and cached HTTP
 authentication reuse are disabled so hosts sharing a CDN address cannot share

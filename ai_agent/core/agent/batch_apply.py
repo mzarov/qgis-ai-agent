@@ -3,7 +3,7 @@ from qgis.core import Qgis, QgsMessageLog, QgsProject
 from ai_agent.core.agent import notices
 from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.core.llm.transport import ToolCall
-from ai_agent.qgis_tools.base import SAFETY_READ, effective_safety
+from ai_agent.qgis_tools.base import SAFETY_READ
 from ai_agent.qgis_tools.common.project_identity import project_identity
 from ai_agent.qgis_tools.project.snapshots import snapshot_error, take_snapshot
 from ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call
@@ -144,7 +144,7 @@ def _call_egress(call: ToolCall) -> str:
 
 def _call_requires_snapshot(call: ToolCall) -> bool:
     tool = get_tool_by_name(call.name)
-    return tool is None or effective_safety(tool, call.arguments) != SAFETY_READ
+    return tool is None or tool.safety_for(call.arguments) != SAFETY_READ
 
 
 def _apply_journal_outcome(results: list[ToolResult]) -> str:

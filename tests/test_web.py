@@ -7,8 +7,10 @@ from unittest import mock
 
 from ai_agent.core.agent.transcript import ToolResult, Transcript
 from ai_agent.core.llm.transport import ToolCall
+from ai_agent.core.settings import GEOCODER_NOMINATIM, GEOCODER_PHOTON
 from ai_agent.qgis_tools.web import geocode as geocode_module
 from ai_agent.qgis_tools.web import http as http_module
+from ai_agent.qgis_tools.web import request as request_module
 from ai_agent.qgis_tools.web import search_web as search_module
 from ai_agent.qgis_tools.web.fetch_url import FetchUrlTool, _limit
 from ai_agent.qgis_tools.web.geocode import GeocodeTool, parse_matches
@@ -33,6 +35,40 @@ NOMINATIM = """[
  {"display_name": "Дивноморское шоссе", "category": "highway", "type": "residential",
   "lat": "44.51", "lon": "38.14"}
 ]"""
+
+PHOTON = """{"features": [{
+  "geometry": {"coordinates": [38.1305, 44.5052]},
+  "properties": {
+    "name": "Дивноморское", "state": "Краснодарский край", "country": "Россия",
+    "osm_key": "place", "osm_value": "village", "extent": [38.11, 44.49, 38.15, 44.52]
+  }
+}]}"""
+
+
+class _DirectProxyKind:
+    class ProxyType:
+        DefaultProxy = 0
+        NoProxy = 2
+
+
+class _DirectProxy:
+    def type(self):
+        return 2
+
+    def hostName(self):
+        return ""
+
+    def port(self):
+        return 0
+
+    def user(self):
+        return ""
+
+
+def _direct_manager():
+    manager = mock.Mock()
+    manager.proxy.return_value = _DirectProxy()
+    return manager
 
 
 class HtmlTextTest(unittest.TestCase):
@@ -111,17 +147,17 @@ class UrlTest(unittest.TestCase):
 
     def test_every_non_public_address_category_is_refused(self):
         addresses = (
-            "0.0.0.0",  # unspecified
-            "100.64.0.1",  # shared address space
-            "192.0.2.1",  # documentation/reserved
-            "224.0.0.1",  # IPv4 multicast
-            "240.0.0.1",  # reserved
-            "::",  # unspecified
-            "fc00::1",  # unique local
-            "fe80::1",  # link-local
-            "fec0::1",  # deprecated IPv6 site-local
-            "ff02::1",  # IPv6 multicast
-            "2001:db8::1",  # documentation/reserved
+            "0.0.0.0",
+            "100.64.0.1",
+            "192.0.2.1",
+            "224.0.0.1",
+            "240.0.0.1",
+            "::",
+            "fc00::1",
+            "fe80::1",
+            "fec0::1",
+            "ff02::1",
+            "2001:db8::1",
         )
         for address in addresses:
             parsed = ipaddress.ip_address(address)
@@ -196,6 +232,11 @@ class UrlTest(unittest.TestCase):
 
 
 class RedirectTest(unittest.TestCase):
+    def setUp(self):
+        route = mock.patch.object(http_module, "request_uses_proxy", return_value=False)
+        route.start()
+        self.addCleanup(route.stop)
+
     def test_cross_origin_redirect_is_blocked_before_second_request(self):
         downloaded = []
 
@@ -273,6 +314,26 @@ class RedirectTest(unittest.TestCase):
             self.assertEqual(http_module.get_text("https://public.example/start"), "finished")
         download.assert_called_once()
 
+    def test_connection_failure_falls_back_to_the_next_validated_address(self):
+        attempts = []
+
+        def download(url, headers, **options):
+            attempts.append(options["address"])
+            if len(attempts) == 1:
+                return http_module._Hop(b"", 0, error="network error 7")
+            return http_module._Hop(b"ready", 200)
+
+        with (
+            mock.patch.object(http_module, "_download_once", side_effect=download),
+            mock.patch.object(
+                http_module,
+                "_resolved_addresses",
+                return_value={"93.184.216.35", "93.184.216.34"},
+            ),
+        ):
+            self.assertEqual(http_module.get_text("https://public.example/start"), "ready")
+        self.assertEqual(attempts, ["93.184.216.34", "93.184.216.35"])
+
 
 class NetworkRequestPolicyTest(unittest.TestCase):
     class Request:
@@ -314,14 +375,17 @@ class NetworkRequestPolicyTest(unittest.TestCase):
             self.timeout = timeout
 
     def test_redirects_are_manual_cache_is_disabled_and_timeout_is_set(self):
+        manager = _direct_manager()
         with (
-            mock.patch.object(http_module, "QNetworkRequest", self.Request),
-            mock.patch.object(http_module, "QUrl", side_effect=lambda value: value),
+            mock.patch.object(request_module, "QNetworkRequest", self.Request),
+            mock.patch.object(request_module, "QUrl", side_effect=lambda value: value),
+            mock.patch.object(request_module, "QNetworkProxy", _DirectProxyKind),
         ):
             request = http_module._network_request(
                 "https://public.example/path?q=visible",
                 {"X-Test": "yes"},
                 address="93.184.216.34",
+                manager=manager,
             )
 
         self.assertEqual(request.url, "https://93.184.216.34/path?q=visible")
@@ -339,14 +403,17 @@ class NetworkRequestPolicyTest(unittest.TestCase):
         self.assertEqual(request.headers[b"X-Test"], b"yes")
 
     def test_pinned_request_uses_one_idna_authority_for_tls_and_host(self):
+        manager = _direct_manager()
         with (
-            mock.patch.object(http_module, "QNetworkRequest", self.Request),
-            mock.patch.object(http_module, "QUrl", side_effect=lambda value: value),
+            mock.patch.object(request_module, "QNetworkRequest", self.Request),
+            mock.patch.object(request_module, "QUrl", side_effect=lambda value: value),
+            mock.patch.object(request_module, "QNetworkProxy", _DirectProxyKind),
         ):
             request = http_module._network_request(
                 "https://пример.рф/path",
                 {},
                 address="93.184.216.34",
+                manager=manager,
             )
         self.assertEqual(request.peer_name, "xn--e1afmkfd.xn--p1ai")
         self.assertEqual(request.headers[b"Host"], b"xn--e1afmkfd.xn--p1ai")
@@ -401,16 +468,59 @@ class NetworkRequestPolicyTest(unittest.TestCase):
         manager.proxy.return_value = Proxy(0)
         manager.proxyFactory.return_value = Factory()
         with (
-            mock.patch.object(http_module, "QNetworkProxy", ProxyKind),
-            mock.patch.object(http_module, "QNetworkProxyQuery", side_effect=lambda url: url),
-            mock.patch.object(http_module, "QUrl", side_effect=lambda url: url),
+            mock.patch.object(request_module, "QNetworkProxy", ProxyKind),
+            mock.patch.object(request_module, "QNetworkProxyQuery", side_effect=lambda url: url),
+            mock.patch.object(request_module, "QUrl", side_effect=lambda url: url),
             self.assertRaisesRegex(ValueError, "proxy rules"),
         ):
-            http_module._require_consistent_proxy_route(
+            request_module.require_consistent_proxy_route(
                 manager,
                 "https://public.example/",
                 "https://93.184.216.34/",
             )
+
+    def test_active_proxy_keeps_the_validated_hostname(self):
+        class ProxyKind:
+            class ProxyType:
+                DefaultProxy = 0
+                NoProxy = 2
+
+        class Proxy:
+            def type(self):
+                return 3
+
+            def hostName(self):
+                return "proxy.example"
+
+            def port(self):
+                return 8443
+
+            def user(self):
+                return ""
+
+        manager = mock.Mock()
+        manager.proxy.return_value = Proxy()
+        with mock.patch.object(request_module, "QNetworkProxy", ProxyKind):
+            destination = request_module.request_destination(manager, "https://public.example/path", "93.184.216.34")
+        self.assertEqual(destination, "https://public.example/path")
+
+    def test_proxy_route_cannot_fall_back_to_an_unpinned_direct_hostname(self):
+        class ProxyKind:
+            class ProxyType:
+                DefaultProxy = 0
+                NoProxy = 2
+
+        manager = mock.Mock()
+        with (
+            mock.patch.object(request_module, "QNetworkProxy", ProxyKind),
+            mock.patch.object(
+                request_module,
+                "proxy_routes",
+                return_value=((3, "proxy.example", 8443, ""), (2, "", 0, "")),
+            ),
+            self.assertRaisesRegex(ValueError, "mixed proxy/direct"),
+        ):
+            request_module.request_uses_proxy(manager, "https://public.example/")
 
 
 class DnsAndCancellationTest(unittest.TestCase):
@@ -681,44 +791,91 @@ class GeocodeParseTest(unittest.TestCase):
         body = json.dumps([None, *([item] * 20_000)])
         self.assertEqual(len(parse_matches(body)), 4)
 
-    def test_prepare_requires_a_place_and_user_supplied_service(self):
+    def test_photon_geojson_matches_carry_coordinates_and_bbox(self):
+        match = parse_matches(PHOTON, GEOCODER_PHOTON)[0]
+        self.assertEqual(match["name"], "Дивноморское, Краснодарский край, Россия")
+        self.assertEqual(match["lat"], 44.5052)
+        self.assertEqual(match["bbox"], "38.11,44.49,38.15,44.52")
+        self.assertEqual(match["type"], "place/village")
+
+    def test_schema_exposes_only_the_place_to_the_model(self):
+        parameters = GeocodeTool().get_openai_schema()["function"]["parameters"]
+        self.assertEqual(set(parameters["properties"]), {"place"})
+        self.assertEqual(parameters["required"], ["place"])
+
+    def test_prepare_requires_a_place_and_configured_service(self):
         tool = GeocodeTool()
-        with self.assertRaisesRegex(ValueError, "place name"):
-            tool.prepare({"place": " ", "service_url": "https://geo.example"})
-        with self.assertRaisesRegex(ValueError, "URL is empty"):
+        with (
+            mock.patch.object(geocode_module, "get_provider", return_value=GEOCODER_NOMINATIM),
+            mock.patch.object(geocode_module, "get_url", return_value="https://geo.example"),
+            self.assertRaisesRegex(ValueError, "place name"),
+        ):
+            tool.prepare({"place": " "})
+        with (
+            mock.patch.object(geocode_module, "get_provider", return_value="disabled"),
+            mock.patch.object(geocode_module, "get_url", return_value=""),
+            self.assertRaisesRegex(ValueError, "Settings"),
+        ):
             tool.prepare({"place": "Kazan"})
 
     def test_place_is_bounded_before_confirmation_or_execution(self):
         tool = GeocodeTool()
         with self.assertRaisesRegex(ValueError, "500"):
-            tool.prepare({"place": "x" * 501, "service_url": "https://geo.example"})
+            tool.prepare({"place": "x" * 501})
         with self.assertRaisesRegex(ValueError, "500"):
-            tool.execute({"place": "x" * 501, "service_url": "https://geo.example"})
+            tool.execute({"place": "x" * 501})
         self.assertLess(len(tool.summarize_call({"place": "x" * 10_000})), 560)
 
     def test_confirmation_shows_the_entire_allowed_place(self):
         tool = GeocodeTool()
         place = "A" * 160 + "VISIBLE_SUFFIX"
-        prepared = tool.prepare({"place": place, "service_url": "https://geo.example"})
+        with (
+            mock.patch.object(geocode_module, "get_provider", return_value=GEOCODER_NOMINATIM),
+            mock.patch.object(geocode_module, "get_url", return_value="https://geo.example"),
+        ):
+            prepared = tool.prepare({"place": place})
         self.assertIn("VISIBLE_SUFFIX", tool.summarize_call(prepared))
 
     def test_encoded_place_must_fit_the_transport_before_confirmation(self):
-        with self.assertRaisesRegex(ValueError, "4096"):
-            GeocodeTool().prepare({"place": "漢" * 500, "service_url": "https://geo.example"})
+        with (
+            mock.patch.object(geocode_module, "get_provider", return_value=GEOCODER_NOMINATIM),
+            mock.patch.object(geocode_module, "get_url", return_value="https://geo.example"),
+            self.assertRaisesRegex(ValueError, "4096"),
+        ):
+            GeocodeTool().prepare({"place": "漢" * 500})
 
     def test_place_cannot_hide_text_in_the_confirmation(self):
         with self.assertRaisesRegex(ValueError, "formatting"):
-            GeocodeTool().prepare({"place": "Kazan\u200bsecret", "service_url": "https://geo.example"})
+            GeocodeTool().prepare({"place": "Kazan\u200bsecret"})
 
-    def test_prepare_accepts_a_public_https_service_without_resolving_it(self):
-        with mock.patch.object(http_module, "_resolved_addresses") as resolver:
-            prepared = GeocodeTool().prepare({"place": "  Kazan  ", "service_url": "https://geo.example/nominatim/"})
-        self.assertEqual(prepared, {"place": "Kazan", "service_url": "https://geo.example/nominatim"})
+    def test_prepare_pins_the_configured_service_without_resolving_it(self):
+        with (
+            mock.patch.object(geocode_module, "get_provider", return_value=GEOCODER_NOMINATIM),
+            mock.patch.object(geocode_module, "get_url", return_value="https://geo.example/nominatim/"),
+            mock.patch.object(http_module, "_resolved_addresses") as resolver,
+        ):
+            prepared = GeocodeTool().prepare({"place": "  Kazan  ", "service_url": "https://ignored.example"})
+        self.assertEqual(
+            prepared,
+            {
+                "place": "Kazan",
+                "_geocoder_provider": GEOCODER_NOMINATIM,
+                "_geocoder_url": "https://geo.example/nominatim",
+            },
+        )
         resolver.assert_not_called()
 
     def test_official_osmf_service_is_refused(self):
-        with self.assertRaisesRegex(ValueError, "public OSMF Nominatim"):
-            GeocodeTool().prepare({"place": "Kazan", "service_url": "https://nominatim.openstreetmap.org./"})
+        with (
+            mock.patch.object(geocode_module, "get_provider", return_value=GEOCODER_NOMINATIM),
+            mock.patch.object(
+                geocode_module,
+                "get_url",
+                return_value="https://nominatim.openstreetmap.org./",
+            ),
+            self.assertRaisesRegex(ValueError, "public OSMF Nominatim"),
+        ):
+            GeocodeTool().prepare({"place": "Kazan"})
 
     def test_non_https_private_and_query_bearing_services_are_refused(self):
         cases = (
@@ -730,8 +887,13 @@ class GeocodeParseTest(unittest.TestCase):
         )
         with mock.patch.object(http_module, "_resolved_addresses") as resolver:
             for service_url in cases:
-                with self.subTest(service_url=service_url), self.assertRaises(ValueError):
-                    GeocodeTool().prepare({"place": "Kazan", "service_url": service_url})
+                with (
+                    self.subTest(service_url=service_url),
+                    mock.patch.object(geocode_module, "get_provider", return_value=GEOCODER_NOMINATIM),
+                    mock.patch.object(geocode_module, "get_url", return_value=service_url),
+                    self.assertRaises(ValueError),
+                ):
+                    GeocodeTool().prepare({"place": "Kazan"})
             resolver.assert_not_called()
 
     def test_the_tool_credits_openstreetmap(self):
@@ -745,7 +907,13 @@ class GeocodeParseTest(unittest.TestCase):
             mock.patch.object(geocode_module, "get_text", side_effect=fetch),
             mock.patch.object(http_module, "_resolved_addresses", return_value={"93.184.216.34"}),
         ):
-            result = GeocodeTool().execute({"place": "Дивноморское", "service_url": "https://geo.example/nominatim"})
+            result = GeocodeTool().execute(
+                {
+                    "place": "Дивноморское",
+                    "_geocoder_provider": GEOCODER_NOMINATIM,
+                    "_geocoder_url": "https://geo.example/nominatim",
+                }
+            )
 
         self.assertIn("OpenStreetMap", result["attribution"])
         self.assertEqual(result["service"], "https://geo.example/nominatim")
@@ -754,6 +922,16 @@ class GeocodeParseTest(unittest.TestCase):
 
 
 class FetchToolTest(unittest.TestCase):
+    def test_execute_leaves_the_single_dns_resolution_to_the_downloader(self):
+        import ai_agent.qgis_tools.web.fetch_url as module
+
+        with (
+            mock.patch.object(module, "checked_url", return_value="https://a.b/") as validate,
+            mock.patch.object(module, "get_document", return_value=("ready", "text/plain")),
+        ):
+            FetchUrlTool().execute({"url": "https://a.b"})
+        validate.assert_called_once_with("https://a.b", resolve=False)
+
     def test_html_is_stripped_and_truncated(self):
         import ai_agent.qgis_tools.web.fetch_url as module
 

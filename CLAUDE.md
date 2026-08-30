@@ -40,9 +40,9 @@ agent. Do not ask permission for routine decisions — write the code.
   QGIS network stack**, never `requests`: ordinary calls use
   `QgsBlockingNetworkRequest`; streaming and web redirects use
   `QgsNetworkAccessManager` with a nested event loop. Web requests validate all
-  DNS answers, pin one public IP while verifying the original TLS host, and
-  follow only manually checked same-origin redirects. A QGIS proxy-route
-  mismatch fails closed.
+  DNS answers, try pinned public IPs while verifying the original TLS host, and
+  follow only manually checked same-origin redirects. An explicit QGIS proxy
+  receives the original hostname; direct-route mismatches fail closed.
 
 ## Architecture
 

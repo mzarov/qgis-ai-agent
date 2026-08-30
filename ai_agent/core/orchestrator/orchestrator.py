@@ -7,6 +7,7 @@ from ai_agent.core.agent.prompts import build_verification_prompt
 from ai_agent.core.llm.client import is_local
 from ai_agent.core.orchestrator.capabilities import describe_capabilities
 from ai_agent.core.orchestrator.contracts import DockWidgetContract
+from ai_agent.core.orchestrator.planning import destructive_lines, plan_line
 from ai_agent.core.orchestrator.presentation import compact_number, interrupted_outcome, is_configured, where_to_look
 from ai_agent.core.orchestrator.project_lifecycle import (
     PREVIOUS_APPLY_INTERRUPTED,
@@ -23,13 +24,6 @@ from ai_agent.core.settings import (
 )
 from ai_agent.core.state.conversation import ConversationState
 from ai_agent.i18n import tr, tr_n
-from ai_agent.qgis_tools.base import (
-    SAFETY_DESTRUCTIVE,
-    effective_safety,
-    has_external_effect,
-    has_network_access,
-)
-from ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call
 
 LOG_TAG = "AI Agent"
 MESSAGE_DURATION_SEC = 8
@@ -47,10 +41,6 @@ PLAN_DROPPED = tr("The planned changes were dropped — they were not applied. S
 AWAITING_ANSWER = tr("Waiting for your answer — the run continues from it.")
 DATA_SHARING_DECLINED = tr("Request not sent. Project data sharing remains disabled for this endpoint.")
 TOKENS_LABEL = tr("{0} tokens")
-EFFECT_SNAPSHOT = tr("project snapshot available")
-EFFECT_EXTERNAL = tr("writes outside the project; Undo does not restore it")
-EFFECT_NETWORK = tr("contacts an external service after confirmation")
-EFFECT_IRREVERSIBLE = tr("may be irreversible; extra confirmation required")
 __all__ = ("CoreOrchestrator", "PREVIOUS_APPLY_INTERRUPTED", "PROJECT_CHANGED")
 
 
@@ -247,20 +237,7 @@ class CoreOrchestrator(ProjectLifecycleMixin):
 
     @staticmethod
     def _plan_line(call) -> str:
-        summary = summarize_tool_call(call.name, call.arguments)
-        tool = get_tool_by_name(call.name)
-        if tool is None:
-            return summary
-        risk = effective_safety(tool, call.arguments)
-        if has_network_access(tool, call.arguments):
-            effect = EFFECT_NETWORK
-        elif has_external_effect(tool, call.arguments):
-            effect = EFFECT_EXTERNAL
-        elif risk == SAFETY_DESTRUCTIVE:
-            effect = EFFECT_IRREVERSIBLE
-        else:
-            effect = EFFECT_SNAPSHOT
-        return f"{summary} · {effect}"
+        return plan_line(call)
 
     def on_confirm_plan(self) -> None:
         if not self.agent.has_pending_writes:
@@ -274,20 +251,7 @@ class CoreOrchestrator(ProjectLifecycleMixin):
         self.agent.confirm_pending()
 
     def _destructive_lines(self) -> tuple[list[str], str]:
-        lines = []
-        details = []
-        for call in self.agent.pending_writes():
-            tool = get_tool_by_name(call.name)
-            if tool is not None and effective_safety(tool, call.arguments) == SAFETY_DESTRUCTIVE:
-                lines.append(summarize_tool_call(call.name, call.arguments))
-                detail = ""
-                try:
-                    detail = tool.detail_call(call.arguments)
-                except Exception:
-                    detail = ""
-                if detail:
-                    details.append(detail)
-        return lines, "\n\n".join(details)
+        return destructive_lines(self.agent.pending_writes())
 
     def on_cancel_plan(self) -> None:
         self.agent.cancel_pending()

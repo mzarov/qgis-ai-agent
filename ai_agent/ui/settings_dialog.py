@@ -1,7 +1,6 @@
 from typing import Any
 
 from qgis.PyQt.QtWidgets import (
-    QCheckBox,
     QComboBox,
     QDialog,
     QHBoxLayout,
@@ -12,34 +11,31 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from ai_agent.core.llm.client import is_local
-from ai_agent.core.llm.dialects import DIALECTS, resolve
+from ai_agent.core.llm.dialects import resolve
 from ai_agent.core.llm.probe_worker import ProbeThread
 from ai_agent.core.llm.providers import TITLES, by_title, matching
 from ai_agent.core.settings import (
     AUTH_TYPE_BEARER,
-    AUTH_TYPE_OAUTH,
     DEFAULT_API_URL,
     DEFAULT_TOKEN_BUDGET,
+    GEOCODER_NOMINATIM,
     credential_store_failure_message,
     delete_api_key,
     get_allow_sensitive_data,
     get_api_key,
     get_api_url,
-    get_auth_type,
     get_credential_store_error,
     get_data_sharing_consent,
-    get_dialect,
     get_model,
-    get_thinking_budget,
-    get_token_budget,
-    get_verify_after_apply,
     get_verify_ssl,
     set_allow_sensitive_data,
     set_api_key,
     set_api_url,
     set_auth_type,
+    set_custom_nominatim_url,
     set_data_sharing_consent,
     set_dialect,
+    set_geocoder_provider,
     set_model,
     set_thinking_budget,
     set_token_budget,
@@ -47,8 +43,9 @@ from ai_agent.core.settings import (
     set_verify_ssl,
 )
 from ai_agent.i18n import tr
+from ai_agent.ui import settings_advanced, style
 from ai_agent.ui import settings_fields as fields
-from ai_agent.ui import style
+from ai_agent.ui.geocoder_settings import GeocoderSettings
 from ai_agent.ui.settings_status import SettingsStatusMixin
 
 TITLE = tr("Settings — AI Agent")
@@ -63,17 +60,6 @@ MODEL_REQUIRED = tr("Enter a model name from the provider.")
 KEY_REMOVED = tr("The stored key for this endpoint was removed.")
 KEY_HINT = tr("Stored in the system keyring, not in the settings file.")
 KEYLESS_HINT = tr("A local server needs no key — leave this empty.")
-DIALECT_HINT = tr("auto picks the format from the address: api.anthropic.com is Anthropic, everything else is OpenAI.")
-AUTH_HINT = tr("Bearer suits almost everyone; OAuth is for corporate gateways.")
-VERIFY_LABEL = tr("Check the result after applying changes")
-VERIFY_HINT = tr("After you press Apply, the agent re-reads the project and confirms the changes really landed.")
-BUDGET_LABEL = tr("Token budget per run")
-BUDGET_HINT = tr("The run stops politely once it has spent this many tokens. 0 removes the limit.")
-THINKING_LABEL = tr("Extended thinking budget")
-THINKING_HINT = tr(
-    "Anthropic only: 0 disables extended thinking. For Sonnet 5, any positive value enables adaptive thinking; "
-    "older models require at least 1024 tokens and use the value as their reasoning budget."
-)
 SHARING_LABEL = tr("Share project context with the model provider")
 SHARING_HINT = tr(
     "Prompts and basic QGIS project context—including layer and field names, CRS, tool results and "
@@ -92,6 +78,11 @@ LOCAL_SHARING_HINT = tr(
 
 
 class SettingsDialog(SettingsStatusMixin, QDialog):
+    sharing_label = SHARING_LABEL
+    sharing_hint = SHARING_HINT
+    sensitive_label = SENSITIVE_LABEL
+    sensitive_hint = SENSITIVE_HINT
+
     def __init__(self, parent: Any = None):
         super().__init__(parent)
         self._syncing_preset = False
@@ -108,7 +99,9 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         column.setContentsMargins(*MARGINS)
         column.setSpacing(SPACING)
         column.addWidget(self._build_connection(palette))
-        column.addWidget(self._build_advanced(palette))
+        self.geocoder = GeocoderSettings(palette)
+        column.addWidget(self.geocoder.widget)
+        column.addWidget(settings_advanced.build(self, palette))
         self._status = fields.status(palette)
         column.addWidget(self._status)
         column.addStretch(1)
@@ -150,46 +143,6 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         key_layout.addWidget(self.remove_key_btn)
         self._key_field = fields.field(tr("API key"), key_row, KEY_HINT, palette)
         column.addWidget(self._key_field)
-        return frame
-
-    def _build_advanced(self, palette: Any) -> QWidget:
-        frame, column = fields.card(palette)
-        column.addWidget(fields.section(tr("Advanced"), palette))
-
-        self.dialect_combo = QComboBox()
-        self.dialect_combo.addItems(list(DIALECTS))
-        fields.select(self.dialect_combo, get_dialect())
-        self.dialect_combo.currentTextChanged.connect(self._endpoint_finished)
-        column.addWidget(fields.field(tr("API format"), self.dialect_combo, DIALECT_HINT, palette))
-
-        self.auth_type_combo = QComboBox()
-        self.auth_type_combo.addItems([AUTH_TYPE_BEARER, AUTH_TYPE_OAUTH])
-        fields.select(self.auth_type_combo, get_auth_type())
-        column.addWidget(fields.field(tr("Authorisation type"), self.auth_type_combo, AUTH_HINT, palette))
-
-        self.verify_ssl_cb = QCheckBox(tr("Verify the SSL certificate"))
-        self.verify_ssl_cb.setChecked(get_verify_ssl())
-        column.addWidget(self.verify_ssl_cb)
-
-        self.data_sharing_cb = QCheckBox(SHARING_LABEL)
-        self.data_sharing_cb.setToolTip(SHARING_HINT)
-        column.addWidget(self.data_sharing_cb)
-
-        self.sensitive_data_cb = QCheckBox(SENSITIVE_LABEL)
-        self.sensitive_data_cb.setToolTip(SENSITIVE_HINT)
-        column.addWidget(self.sensitive_data_cb)
-        self.data_sharing_cb.toggled.connect(self.sensitive_data_cb.setEnabled)
-
-        self.verify_apply_cb = QCheckBox(VERIFY_LABEL)
-        self.verify_apply_cb.setToolTip(VERIFY_HINT)
-        self.verify_apply_cb.setChecked(get_verify_after_apply())
-        column.addWidget(self.verify_apply_cb)
-
-        self.budget_edit = QLineEdit(str(get_token_budget()))
-        column.addWidget(fields.field(BUDGET_LABEL, self.budget_edit, BUDGET_HINT, palette))
-
-        self.thinking_edit = QLineEdit(str(get_thinking_budget()))
-        column.addWidget(fields.field(THINKING_LABEL, self.thinking_edit, THINKING_HINT, palette))
         return frame
 
     def _build_buttons(self, palette: Any) -> QHBoxLayout:
@@ -305,6 +258,11 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         url = self._edited_url()
         if not self._valid_url(url):
             return
+        try:
+            geocoder_provider, geocoder_url = self.geocoder.values()
+        except ValueError as error:
+            self._show(str(error), style.danger(self.palette()))
+            return
         dialect = self.dialect_combo.currentText()
         model = self.model_edit.text().strip()
         if not model:
@@ -321,6 +279,9 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         set_verify_after_apply(self.verify_apply_cb.isChecked())
         set_token_budget(fields.parsed_budget(self.budget_edit.text(), DEFAULT_TOKEN_BUDGET))
         set_thinking_budget(fields.parsed_budget(self.thinking_edit.text(), DEFAULT_TOKEN_BUDGET))
+        set_geocoder_provider(geocoder_provider)
+        if geocoder_provider == GEOCODER_NOMINATIM:
+            set_custom_nominatim_url(geocoder_url)
         key = self.key_edit.text()
         if key:
             try:

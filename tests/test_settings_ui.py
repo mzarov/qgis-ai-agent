@@ -82,6 +82,9 @@ SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "
 DIALOG_SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "settings_dialog.py").read_text(
     encoding="utf-8"
 )
+GEOCODER_SOURCE = (
+    pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "geocoder_settings.py"
+).read_text(encoding="utf-8")
 
 
 class StyleSheetTest(unittest.TestCase):
@@ -155,6 +158,12 @@ class CredentialUiContractTest(unittest.TestCase):
         self.assertIn("sharing_allowed = local or get_data_sharing_consent(url)", DIALOG_SOURCE)
         self.assertIn("sensitive_allowed = local or", DIALOG_SOURCE)
         self.assertIn("self.data_sharing_cb.setEnabled(not local)", DIALOG_SOURCE)
+
+    def test_geocoder_is_selected_in_settings_not_by_the_model(self):
+        self.assertIn('tr("Photon demo (fair use)")', GEOCODER_SOURCE)
+        self.assertIn('tr("Custom Nominatim")', GEOCODER_SOURCE)
+        self.assertIn("validated_service_url", GEOCODER_SOURCE)
+        self.assertIn("self.geocoder.values()", DIALOG_SOURCE)
 
 
 class PanelLevelTest(unittest.TestCase):

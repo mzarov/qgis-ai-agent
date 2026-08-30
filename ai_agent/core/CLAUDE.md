@@ -48,9 +48,10 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    Streaming and web redirects are the two exceptions to
    `QgsBlockingNetworkRequest`; both use `QgsNetworkAccessManager` with a nested
    `QEventLoop`. Streaming needs a body as it arrives. The web runner resolves
-   with Qt, requires every DNS answer to be public, pins one address while TLS
-   verifies the approved host, and follows only manually checked same-origin
-   redirects. A QGIS proxy-route mismatch is blocked. Streaming remains
+   with Qt, requires every DNS answer to be public, tries pinned addresses while
+   TLS verifies the approved host, and follows only manually checked same-origin
+   redirects. Explicit QGIS proxies receive the hostname; direct-route mismatches
+   are blocked. Streaming remains
    blocking for the caller and on the background thread. Parsing lives apart in
    `llm/stream.py`, pure Python and therefore testable. A refusing endpoint is
    remembered as `supports_streaming = false` and falls back to one request —

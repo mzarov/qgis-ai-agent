@@ -53,7 +53,7 @@ class FetchUrlTool(BaseTool):
         return prepared
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        url = checked_url(params.get("url"))
+        url = checked_url(params.get("url"), resolve=False)
         limit = _limit(params.get("max_chars"))
         offset = _offset(params.get("offset"))
         body, content_type = get_document(url)

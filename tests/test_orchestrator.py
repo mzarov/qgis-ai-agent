@@ -386,12 +386,16 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.assertIn("нет такого слоя", str(self.orchestrator.agent.started[1]))
 
     def test_destructive_steps_ask_an_extra_confirmation(self):
-        from ai_agent.core.orchestrator import orchestrator as module
+        from ai_agent.core.orchestrator import planning as module
 
         saved = module.get_tool_by_name
 
         class Destructive:
-            safety = "destructive"
+            def safety_for(self, params):
+                return "destructive"
+
+            def detail_call(self, params):
+                return ""
 
         module.get_tool_by_name = lambda name: Destructive()
         self.orchestrator.agent.has_pending_writes = True
@@ -405,12 +409,16 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.assertTrue(any("destructive" in text or "не применены" in text for text in self.dock.system))
 
     def test_accepted_destructive_steps_apply(self):
-        from ai_agent.core.orchestrator import orchestrator as module
+        from ai_agent.core.orchestrator import planning as module
 
         saved = module.get_tool_by_name
 
         class Destructive:
-            safety = "destructive"
+            def safety_for(self, params):
+                return "destructive"
+
+            def detail_call(self, params):
+                return ""
 
         module.get_tool_by_name = lambda name: Destructive()
         self.orchestrator.agent.has_pending_writes = True

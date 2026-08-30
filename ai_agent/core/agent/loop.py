@@ -13,6 +13,7 @@ from ai_agent.core.agent.transcript import Transcript
 from ai_agent.core.agent.turn_thread import TurnThreadOwner
 from ai_agent.core.llm.transport import PROTOCOL_JSON, PROTOCOL_NATIVE, ModelTurn, ToolCall
 from ai_agent.core.settings import get_token_budget
+from ai_agent.qgis_tools.web.http import cancel_active_requests
 from ai_agent.skills.registry import SKILL_REGISTRY
 
 LOG_TAG = "AI Agent"
@@ -137,8 +138,6 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._question = ""
         self._stage_call = None
         self._aborted = True
-        from ai_agent.qgis_tools.web.http import cancel_active_requests
-
         cancel_active_requests()
         if self._turn_callbacks is not None:
             self._turn.detach(*self._turn_callbacks)

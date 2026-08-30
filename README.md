@@ -85,9 +85,10 @@ remain until you delete them. Treat both stores as sensitive.
 The three optional web tools have a separate boundary: every search, geocode or
 page fetch waits for per-call confirmation, including when the model endpoint is
 local. Search terms go to DuckDuckGo, with Wikipedia as a fallback; geocoding
-goes to the Nominatim-compatible HTTPS service you explicitly provide; and
+goes to the Photon demo or custom Nominatim service selected in Settings; and
 `fetch_url` contacts the public HTTPS host you approve. The public OSMF
-Nominatim instance is intentionally not offered as a built-in service. Private
+Nominatim instance is intentionally not offered. Geocoding starts disabled;
+Photon permits reasonable demo use but may throttle and has no uptime guarantee. Private
 hosts and URLs containing credentials are rejected. Web results are untrusted
 data, may be forwarded to the configured model as tool results and are not
 cached on disk.

@@ -13,7 +13,7 @@ from ai_agent.ui.settings_dialog import SettingsDialog
 
 MENU_TITLE = "AI Agent"
 DOCK_AREA = getattr(getattr(Qt, "DockWidgetArea", Qt), "RightDockWidgetArea", getattr(Qt, "RightDockWidgetArea", 2))
-ICON_FILENAME = "icon.svg"
+ICON_FILENAME = "icon.png"
 
 
 class QgisAiAgentPlugin:

@@ -57,9 +57,9 @@ class MetadataTest(unittest.TestCase):
     def test_icon_exists(self):
         self.assertTrue((REPO_ROOT / "ai_agent" / self.values["icon"]).is_file())
 
-    def test_source_tree_uses_only_the_svg_brand_icon(self):
-        self.assertEqual(self.values["icon"], "icon.svg")
-        self.assertFalse((REPO_ROOT / "ai_agent" / "icon.png").exists())
+    def test_metadata_uses_the_rendered_png_brand_icon(self):
+        self.assertEqual(self.values["icon"], "icon.png")
+        self.assertTrue((REPO_ROOT / "ai_agent" / "icon.svg").exists())
 
 
 class BuildTest(unittest.TestCase):
@@ -83,7 +83,7 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(packed, on_disk)
 
     def test_metadata_and_entry_point_are_packed(self):
-        for tail in ("metadata.txt", "__init__.py", "plugin.py", "icon.svg"):
+        for tail in ("metadata.txt", "__init__.py", "plugin.py", "icon.png"):
             self.assertTrue(any(name.endswith(tail) for name in self.names), tail)
 
     def test_development_files_stay_out(self):
@@ -101,7 +101,8 @@ class BuildTest(unittest.TestCase):
     def test_package_uses_an_explicit_runtime_allowlist(self):
         self.assertFalse(build_plugin.is_package_file_allowed(".env"))
         self.assertFalse(build_plugin.is_package_file_allowed("keys.json"))
-        self.assertFalse(build_plugin.is_package_file_allowed("icon.png"))
+        self.assertTrue(build_plugin.is_package_file_allowed("icon.png"))
+        self.assertFalse(build_plugin.is_package_file_allowed("icon.svg"))
         self.assertFalse(build_plugin.is_package_file_allowed("skills/CLAUDE.md"))
         self.assertTrue(build_plugin.is_package_file_allowed("core/agent/loop.py"))
         self.assertTrue(build_plugin.is_package_file_allowed("skills/inspect/SKILL.md"))

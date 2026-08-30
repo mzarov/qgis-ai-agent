@@ -14,6 +14,7 @@ from ai_agent.core.agent.prompts import APPLY_NOW_TOOL
 from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.core.llm.transport import ModelTurn, ToolCall
 from ai_agent.qgis_tools.registry import ALL_TOOLS, get_tool_by_name
+from ai_agent.qgis_tools.web import geocode as geocode_module
 from ai_agent.qgis_tools.web import http as http_module
 from ai_agent.skills.registry import SKILL_REGISTRY
 
@@ -89,10 +90,14 @@ class DispatchTest(unittest.TestCase):
             ToolCall(
                 id="geocode",
                 name="geocode",
-                arguments={"place": "Kazan", "service_url": "https://geo.example/nominatim"},
+                arguments={"place": "Kazan"},
             ),
         )
-        with mock.patch.object(http_module, "_resolved_addresses", return_value={"93.184.216.34"}):
+        with (
+            mock.patch.object(http_module, "_resolved_addresses", return_value={"93.184.216.34"}),
+            mock.patch.object(geocode_module, "get_provider", return_value="nominatim"),
+            mock.patch.object(geocode_module, "get_url", return_value="https://geo.example/nominatim"),
+        ):
             results = [self.loop._dispatch(item) for item in network_calls]
 
         self.assertTrue(all(result.ok for result in results))
@@ -395,7 +400,7 @@ class AbortReentrancyTest(unittest.TestCase):
 
     def test_stop_cancels_active_web_requests_even_when_the_loop_looks_idle(self):
         loop = AgentLoop()
-        with mock.patch.object(http_module, "cancel_active_requests") as cancel:
+        with mock.patch.object(loop_module, "cancel_active_requests") as cancel:
             loop.stop()
         cancel.assert_called_once_with()
 

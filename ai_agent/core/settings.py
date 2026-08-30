@@ -4,6 +4,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 from qgis.core import QgsSettings
 
+from ai_agent.config import geocoder
 from ai_agent.i18n import tr
 
 SETTINGS_PREFIX = "ai_agent"
@@ -17,6 +18,11 @@ DEFAULT_MODEL = "gpt-4o-mini"
 DIALECT_AUTO = "auto"
 AUTH_TYPE_BEARER = "Bearer"
 AUTH_TYPE_OAUTH = "OAuth"
+GEOCODER_DISABLED = geocoder.GEOCODER_DISABLED
+GEOCODER_PHOTON = geocoder.GEOCODER_PHOTON
+GEOCODER_NOMINATIM = geocoder.GEOCODER_NOMINATIM
+GEOCODER_PHOTON_URL = geocoder.GEOCODER_PHOTON_URL
+DEFAULT_GEOCODER_PROVIDER = geocoder.DEFAULT_GEOCODER_PROVIDER
 
 FALSE_WORDS = ("false", "0", "no", "off")
 TRUE_WORDS = ("true", "1", "yes", "on")
@@ -85,6 +91,26 @@ def get_auth_type() -> str:
 
 def set_auth_type(value: str | None) -> None:
     _write("auth_type", value or AUTH_TYPE_BEARER)
+
+
+def get_geocoder_provider() -> str:
+    return geocoder.get_provider()
+
+
+def set_geocoder_provider(value: str | None) -> None:
+    geocoder.set_provider(value)
+
+
+def get_custom_nominatim_url() -> str:
+    return geocoder.get_custom_url()
+
+
+def set_custom_nominatim_url(value: str | None) -> None:
+    geocoder.set_custom_url(value)
+
+
+def get_geocoder_url() -> str:
+    return geocoder.get_url()
 
 
 def get_verify_ssl(url: str | None = None) -> bool:

@@ -4,9 +4,11 @@ from typing import Any
 from urllib.parse import parse_qsl, urljoin, urlsplit, urlunsplit
 
 from qgis.core import QgsNetworkAccessManager
-from qgis.PyQt.QtCore import QCoreApplication, QEventLoop, QThread, QTimer, QUrl
-from qgis.PyQt.QtNetwork import QHostInfo, QNetworkProxy, QNetworkProxyFactory, QNetworkProxyQuery, QNetworkRequest
+from qgis.PyQt.QtCore import QCoreApplication, QEventLoop, QThread, QTimer
+from qgis.PyQt.QtNetwork import QHostInfo, QNetworkRequest
 
+from ai_agent.qgis_tools.web.request import TIMEOUT_MS, request_uses_proxy
+from ai_agent.qgis_tools.web.request import network_request as _network_request
 from ai_agent.qgis_tools.web.response import (
     content_type_of as _content_type_of,
 )
@@ -24,19 +26,15 @@ from ai_agent.qgis_tools.web.url_policy import (
     address_sort_key,
     canonical_host,
     has_secret_query,
-    host_header,
     is_public_address,
     netloc,
     origin,
-    pinned_url,
     require_allowed_host_syntax,
     safe_url_label,
     unsafe_text_control,
 )
 
-USER_AGENT = "AI Agent (QGIS plugin; https://github.com/mzarov/qgis-ai-agent)"
 MAX_BODY_BYTES = 2_000_000
-TIMEOUT_MS = 30_000
 DNS_TIMEOUT_MS = 10_000
 MAX_REDIRECTS = 3
 MAX_LOCATION_BYTES = 8_192
@@ -52,6 +50,10 @@ _CANCEL_EPOCH = 0
 
 
 class RequestCancelled(RuntimeError):
+    pass
+
+
+class _AddressFailure(RuntimeError):
     pass
 
 
@@ -127,11 +129,36 @@ def get_document(
     approved_origin = origin(current)
     parsed = urlsplit(current)
     addresses = _require_public_host(parsed.hostname or "", parsed.port or 443, epoch=request_epoch)
-    address = addresses[0]
+    manager = QgsNetworkAccessManager.instance()
+    attempts = addresses[:1] if request_uses_proxy(manager, current) else addresses
+    failure: _AddressFailure | None = None
+    for address in attempts:
+        try:
+            return _download_document(
+                current,
+                extra_headers or {},
+                approved_origin=approved_origin,
+                address=address,
+                epoch=request_epoch,
+            )
+        except _AddressFailure as error:
+            failure = error
+            guard_not_cancelled(request_epoch)
+    raise ValueError(str(failure or FETCH_FAILED.format(url=safe_url_label(current), reason="service unavailable")))
+
+
+def _download_document(
+    current: str,
+    headers: dict[str, str],
+    *,
+    approved_origin: tuple[str, str, int],
+    address: str,
+    epoch: int,
+) -> tuple[str, str]:
     for redirect_count in range(MAX_REDIRECTS + 1):
-        guard_not_cancelled(request_epoch)
-        hop = _download_once(current, extra_headers or {}, address=address, epoch=request_epoch)
-        guard_not_cancelled(request_epoch)
+        guard_not_cancelled(epoch)
+        hop = _download_once(current, headers, address=address, epoch=epoch)
+        guard_not_cancelled(epoch)
         if hop.redirect and 300 <= hop.status < 400:
             if redirect_count >= MAX_REDIRECTS:
                 raise ValueError(f"Too many redirects while fetching {safe_url_label(current)}.")
@@ -145,8 +172,13 @@ def get_document(
         if 300 <= hop.status < 400:
             raise ValueError(FETCH_FAILED.format(url=safe_url_label(current), reason="redirect without a target"))
         if hop.error:
-            raise ValueError(FETCH_FAILED.format(url=safe_url_label(current), reason=hop.error))
-        guard_not_cancelled(request_epoch)
+            failure = FETCH_FAILED.format(url=safe_url_label(current), reason=hop.error)
+            if hop.status == 0:
+                raise _AddressFailure(failure)
+            raise ValueError(failure)
+        if hop.status == 0:
+            raise _AddressFailure(FETCH_FAILED.format(url=safe_url_label(current), reason="service unavailable"))
+        guard_not_cancelled(epoch)
         return hop.body.decode("utf-8", errors="replace"), hop.content_type
     raise ValueError(f"Too many redirects while fetching {safe_url_label(current)}.")
 
@@ -179,10 +211,8 @@ def confirmation_url_label(url: str) -> str:
 
 def _download_once(url: str, headers: dict[str, str], *, address: str, epoch: int) -> _Hop:
     guard_not_cancelled(epoch)
-    request = _network_request(url, headers, address=address)
-    guard_not_cancelled(epoch)
     manager = QgsNetworkAccessManager.instance()
-    _require_consistent_proxy_route(manager, url, pinned_url(url, address))
+    request = _network_request(url, headers, address=address, manager=manager)
     guard_not_cancelled(epoch)
     reply = manager.get(request)
     _ACTIVE_REPLIES.append(reply)
@@ -225,7 +255,7 @@ def _download_once(url: str, headers: dict[str, str], *, address: str, epoch: in
         if state["too_large"]:
             raise ValueError(f"The response from {safe_url_label(url)} exceeded 2 MB and was discarded.")
         if state["timed_out"]:
-            raise ValueError(FETCH_FAILED.format(url=safe_url_label(url), reason="timed out"))
+            raise _AddressFailure(FETCH_FAILED.format(url=safe_url_label(url), reason="timed out"))
         status = _status_of(reply)
         redirect = _redirect_of(reply) if 300 <= status < 400 else ""
         return _Hop(
@@ -242,44 +272,11 @@ def _download_once(url: str, headers: dict[str, str], *, address: str, epoch: in
         reply.deleteLater()
 
 
-def _network_request(url: str, headers: dict[str, str], *, address: str) -> QNetworkRequest:
-    parsed = urlsplit(url)
-    host = canonical_host(parsed.hostname or "")
-    port = parsed.port
-    destination = pinned_url(url, address)
-    request = QNetworkRequest(QUrl(destination))
-    if not hasattr(request, "setPeerVerifyName"):
-        raise ValueError("This QGIS/Qt build cannot safely verify a pinned HTTPS web request.")
-    request.setPeerVerifyName(host)
-    for name, value in headers.items():
-        if name.strip().lower() not in {"host", "accept-encoding"}:
-            request.setRawHeader(name.encode("utf-8"), value.encode("utf-8"))
-    request.setRawHeader(b"Host", host_header(host, port).encode("ascii"))
-    request.setRawHeader(b"User-Agent", USER_AGENT.encode("utf-8"))
-    request.setRawHeader(b"Accept-Language", b"ru,en;q=0.8")
-    request.setRawHeader(b"Accept-Encoding", b"identity")
-    request.setAttribute(
-        QNetworkRequest.Attribute.RedirectPolicyAttribute,
-        QNetworkRequest.RedirectPolicy.ManualRedirectPolicy,
-    )
-    request.setAttribute(
-        QNetworkRequest.Attribute.CacheLoadControlAttribute,
-        QNetworkRequest.CacheLoadControl.AlwaysNetwork,
-    )
-    request.setAttribute(QNetworkRequest.Attribute.Http2AllowedAttribute, False)
-    request.setAttribute(QNetworkRequest.Attribute.CacheSaveControlAttribute, False)
-    request.setAttribute(QNetworkRequest.Attribute.CookieLoadControlAttribute, QNetworkRequest.LoadControl.Manual)
-    request.setAttribute(QNetworkRequest.Attribute.CookieSaveControlAttribute, QNetworkRequest.LoadControl.Manual)
-    request.setAttribute(QNetworkRequest.Attribute.AuthenticationReuseAttribute, QNetworkRequest.LoadControl.Manual)
-    request.setTransferTimeout(TIMEOUT_MS)
-    return request
-
-
 def _require_public_host(host: str, port: int, *, epoch: int | None = None) -> tuple[str, ...]:
     request_epoch = cancellation_epoch() if epoch is None else epoch
     guard_not_cancelled(request_epoch)
     normalized = (host or "").strip().lower().rstrip(".")
-    addresses = _resolved_addresses(normalized, port, epoch=request_epoch)
+    addresses = _resolved_addresses(normalized, epoch=request_epoch)
     guard_not_cancelled(request_epoch)
     if not addresses:
         raise ValueError(f"The host '{normalized}' could not be resolved.")
@@ -295,8 +292,7 @@ def _require_public_host(host: str, port: int, *, epoch: int | None = None) -> t
     return tuple(str(address) for address in sorted(set(parsed_addresses), key=address_sort_key))
 
 
-def _resolved_addresses(host: str, port: int, *, epoch: int | None = None) -> tuple[str, ...]:
-    del port  # QHostInfo resolves host addresses without opening a socket.
+def _resolved_addresses(host: str, *, epoch: int | None = None) -> tuple[str, ...]:
     request_epoch = cancellation_epoch() if epoch is None else epoch
     guard_not_cancelled(request_epoch)
     try:
@@ -357,27 +353,6 @@ def _qt_lookup_addresses(host: str, *, epoch: int) -> tuple[str, ...]:
                 QHostInfo.abortHostLookup(lookup_id)
             except (AttributeError, RuntimeError):
                 pass
-
-
-def _require_consistent_proxy_route(manager: Any, original_url: str, pinned_url: str) -> None:
-    if _proxy_routes(manager, original_url) != _proxy_routes(manager, pinned_url):
-        raise ValueError(
-            "QGIS proxy rules choose different routes for the host and its validated IP; "
-            "the web request was blocked instead of bypassing those rules."
-        )
-
-
-def _proxy_routes(manager: Any, url: str) -> tuple[tuple[int, str, int, str], ...]:
-    configured = manager.proxy()
-    if configured.type() != QNetworkProxy.ProxyType.DefaultProxy:
-        proxies = [configured]
-    else:
-        query = QNetworkProxyQuery(QUrl(url))
-        factory = manager.proxyFactory()
-        proxies = factory.queryProxy(query) if factory is not None else QNetworkProxyFactory.proxyForQuery(query)
-    return tuple(
-        (_integer(proxy.type()), proxy.hostName().lower(), int(proxy.port()), proxy.user()) for proxy in proxies
-    )
 
 
 def _redirect_of(reply: Any) -> str:

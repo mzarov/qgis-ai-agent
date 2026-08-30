@@ -106,26 +106,5 @@ class BaseTool(ABC):
     def execute(self, params: dict[str, Any]) -> dict[str, Any]: ...
 
 
-def effective_safety(tool: BaseTool, params: dict[str, Any]) -> str:
-    resolver = getattr(tool, "safety_for", None)
-    if callable(resolver):
-        return str(resolver(params))
-    return str(tool.safety)
-
-
-def has_external_effect(tool: BaseTool, params: dict[str, Any]) -> bool:
-    resolver = getattr(tool, "has_external_effect", None)
-    if callable(resolver):
-        return bool(resolver(params))
-    return bool(getattr(tool, "external_effect", False))
-
-
-def has_network_access(tool: BaseTool, params: dict[str, Any]) -> bool:
-    resolver = getattr(tool, "has_network_access", None)
-    if callable(resolver):
-        return bool(resolver(params))
-    return bool(getattr(tool, "network_access", False))
-
-
 def is_sensitive_egress(egress: str) -> bool:
     return egress in SENSITIVE_EGRESS
