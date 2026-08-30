@@ -34,6 +34,9 @@ class UserMessage(QWidget):
         row.addWidget(label, 0)
         self._label = label
 
+    def plain_text(self) -> str:
+        return self._label.text()
+
     def resizeEvent(self, event: Any) -> None:
         self._fit()
         super().resizeEvent(event)
@@ -68,6 +71,9 @@ class AssistantMessage(QWidget):
         self._repaint.setSingleShot(True)
         self._repaint.setInterval(REPAINT_INTERVAL_MS)
         self._repaint.timeout.connect(self._render)
+
+    def plain_text(self) -> str:
+        return self._markdown
 
     def append(self, delta: str) -> None:
         self._markdown += delta
@@ -121,6 +127,10 @@ class SystemMessage(QWidget):
             "padding: 2px 0 2px 9px;"
         )
         row.addWidget(label, 1)
+        self._label = label
+
+    def plain_text(self) -> str:
+        return self._label.text()
 
 
 def _line_width(metrics: Any, line: str) -> int:

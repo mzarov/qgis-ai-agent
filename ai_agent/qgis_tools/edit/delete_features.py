@@ -1,11 +1,11 @@
 from typing import Any
 
-from qgis.core import QgsVectorLayer
+from qgis.core import QgsFeatureRequest, QgsVectorLayer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE, BaseTool
 from ai_agent.qgis_tools.common.expressions import build_request
-from ai_agent.qgis_tools.common.layers import find_layer_by_name
+from ai_agent.qgis_tools.common.layers import bind_layer_reference, find_layer_by_id, find_layer_by_name
 
 MAX_DELETE = 10000
 ALL_MARKER = "all"
@@ -21,6 +21,7 @@ class DeleteFeaturesTool(BaseTool):
     )
     skill = "edit"
     safety = SAFETY_DESTRUCTIVE
+    external_effect = True
     constraints = [
         "The layer must be an editable vector layer",
         "The filter is mandatory — 'all' is the explicit way to delete everything",
@@ -35,6 +36,12 @@ class DeleteFeaturesTool(BaseTool):
             "required": True,
         },
         {
+            "name": "layer_id",
+            "type": "string",
+            "description": "Stable layer id from list_layers; required when names are duplicated",
+            "required": False,
+        },
+        {
             "name": "filter",
             "type": "string",
             "description": "QGIS expression choosing what to delete, or the literal 'all'",
@@ -43,11 +50,11 @@ class DeleteFeaturesTool(BaseTool):
     ]
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = _require_vector(params.get("layer_name") or "")
+        layer = _require_vector(params.get("layer_name") or "", params.get("layer_id") or "")
         ids = _matched_ids(layer, params.get("filter") or "")
-        prepared = dict(params)
-        prepared["layer_name"] = layer.name()
+        prepared = bind_layer_reference(params, layer)
         prepared["matched_estimate"] = len(ids)
+        prepared["_feature_ids"] = ids
         return prepared
 
     def summarize_call(self, params: dict[str, Any]) -> str:
@@ -58,8 +65,8 @@ class DeleteFeaturesTool(BaseTool):
         return tr("Deleting features from '{0}'.").format(layer_name)
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = _require_vector(params.get("layer_name") or "")
-        ids = _matched_ids(layer, params.get("filter") or "")
+        layer = _require_vector(params.get("layer_name") or "", params.get("layer_id") or "")
+        ids = _prepared_ids(layer, params)
         if not layer.startEditing():
             raise ValueError(
                 f"Layer '{layer.name()}' cannot be switched into editing mode — "
@@ -75,8 +82,8 @@ class DeleteFeaturesTool(BaseTool):
         return {"layer": layer.name(), "deleted": len(ids)}
 
 
-def _require_vector(layer_name: str) -> QgsVectorLayer:
-    layer = find_layer_by_name(layer_name)
+def _require_vector(layer_name: str, layer_id: str = "") -> QgsVectorLayer:
+    layer = find_layer_by_id(layer_id) if layer_id else find_layer_by_name(layer_name)
     if not isinstance(layer, QgsVectorLayer):
         raise ValueError(f"Layer '{layer.name()}' is not a vector layer, there is nothing to delete.")
     return layer
@@ -100,3 +107,20 @@ def _matched_ids(layer: QgsVectorLayer, raw_filter: str) -> list[int]:
     if not ids:
         raise ValueError("No features match this filter, so there is nothing to delete.")
     return ids
+
+
+def _prepared_ids(layer: QgsVectorLayer, params: dict[str, Any]) -> list[int]:
+    pinned = params.get("_feature_ids")
+    if not isinstance(pinned, list):
+        return _matched_ids(layer, params.get("filter") or "")
+    wanted = {int(identifier) for identifier in pinned}
+    request = QgsFeatureRequest()
+    request.setFilterFids(list(wanted))
+    found = {feature.id() for feature in layer.getFeatures(request) if feature.id() in wanted}
+    missing = wanted - found
+    if missing:
+        raise ValueError(
+            f"{len(missing)} feature(s) selected during planning no longer exist. "
+            "Nothing was deleted; review the layer and plan again."
+        )
+    return [int(identifier) for identifier in pinned]

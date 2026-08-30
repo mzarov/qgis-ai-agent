@@ -9,6 +9,7 @@ THREAD_STOP_TIMEOUT_MS = 3000
 class TurnThreadOwner:
     def __init__(self) -> None:
         self._thread: ModelTurnThread | None = None
+        self._retired: list[ModelTurnThread] = []
 
     @property
     def is_running(self) -> bool:
@@ -36,7 +37,10 @@ class TurnThreadOwner:
         thread.start()
 
     def release(self) -> None:
+        thread = self._thread
         self._thread = None
+        if thread is not None and thread.isRunning():
+            self._retire(thread)
 
     def detach(
         self,
@@ -59,14 +63,28 @@ class TurnThreadOwner:
                 signal.disconnect(slot)
             except (TypeError, RuntimeError):
                 continue
+        thread.cancel()
+        if thread.isRunning():
+            self._retire(thread)
 
     def stop(self) -> None:
         thread = self._thread
         self._thread = None
         if not thread or not thread.isRunning():
             return
-        thread.requestInterruption()
+        thread.cancel()
         if thread.wait(THREAD_STOP_TIMEOUT_MS):
             return
-        thread.terminate()
-        thread.wait(THREAD_STOP_TIMEOUT_MS)
+        self._retire(thread)
+
+    def _retire(self, thread: ModelTurnThread) -> None:
+        if thread in self._retired:
+            return
+        self._retired.append(thread)
+        thread.finished.connect(lambda: self._forget(thread))
+        if not thread.isRunning():
+            self._forget(thread)
+
+    def _forget(self, thread: ModelTurnThread) -> None:
+        if thread in self._retired:
+            self._retired.remove(thread)

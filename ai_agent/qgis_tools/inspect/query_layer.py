@@ -3,7 +3,7 @@ from typing import Any
 from qgis.core import QgsVectorLayer
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common.expressions import build_context, build_request
 from ai_agent.qgis_tools.common.layers import find_layer_by_name
 from ai_agent.qgis_tools.inspect.aggregates import AGGREGATE_FUNCTIONS
@@ -21,6 +21,7 @@ class QueryLayerTool(BaseTool):
     )
     skill = "inspect"
     safety = SAFETY_READ
+    egress = EGRESS_FEATURE_VALUES
     constraints = [
         "The layer must exist and be a vector layer",
         "Field names in expressions are case sensitive",

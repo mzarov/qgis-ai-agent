@@ -3,7 +3,7 @@ from typing import Any
 from qgis.core import QgsRasterLayer, QgsVectorLayer
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common.layer_meta import describe_source
 from ai_agent.qgis_tools.common.layers import (
     crs_authid,
@@ -32,6 +32,7 @@ class DescribeLayerTool(BaseTool):
     )
     skill = "inspect"
     safety = SAFETY_READ
+    egress = EGRESS_FEATURE_VALUES
     constraints = ["A layer with this name must exist in the project"]
     examples = ["Which fields does the 'Cities' layer have?", "What CRS is the roads layer in?"]
     params_schema = [

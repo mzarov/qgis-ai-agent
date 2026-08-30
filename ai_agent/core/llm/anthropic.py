@@ -20,6 +20,7 @@ THINKING_BLOCKS = (THINKING_BLOCK, REDACTED_THINKING_BLOCK)
 THINKING_KEY = "thinking_blocks"
 MIN_THINKING_BUDGET = 1024
 ANSWER_HEADROOM = 4096
+SONNET_5_PREFIX = "claude-sonnet-5"
 
 
 def build_body(
@@ -30,20 +31,29 @@ def build_body(
     thinking_budget: int = 0,
 ) -> dict[str, Any]:
     budget = int(thinking_budget or 0)
-    thinking_on = budget >= MIN_THINKING_BUDGET
+    mode = _thinking_mode(model, budget)
+    thinking_on = mode in ("enabled", "adaptive")
     system, turns = split_system(messages if thinking_on else _without_thinking(messages))
     body: dict[str, Any] = {
         "model": model,
-        "max_tokens": max(max_tokens, budget + ANSWER_HEADROOM) if thinking_on else max_tokens,
+        "max_tokens": max(max_tokens, budget + ANSWER_HEADROOM) if mode == "enabled" else max_tokens,
         "messages": turns,
     }
-    if thinking_on:
+    if mode == "enabled":
         body["thinking"] = {"type": "enabled", "budget_tokens": budget}
+    elif mode:
+        body["thinking"] = {"type": mode}
     if system:
         body["system"] = system
     if tool_schemas:
         body["tools"] = [translate_tool(schema) for schema in tool_schemas]
     return body
+
+
+def _thinking_mode(model: str, budget: int) -> str:
+    if (model or "").strip().lower().startswith(SONNET_5_PREFIX):
+        return "adaptive" if budget > 0 else "disabled"
+    return "enabled" if budget >= MIN_THINKING_BUDGET else ""
 
 
 def _without_thinking(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:

@@ -1,6 +1,6 @@
 from typing import Any
 
-from qgis.PyQt.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import QComboBox, QFrame, QLabel, QVBoxLayout, QWidget
 
 from ai_agent.ui import style
 
@@ -69,6 +69,19 @@ def paint_status(label: QLabel, text: str, colour: Any) -> None:
     label.setText(text)
     label.setStyleSheet(f"color: {style.css_color(colour)};")
     label.setVisible(bool(text))
+
+
+def parsed_budget(raw: str, default: int) -> int:
+    try:
+        return max(0, int(raw.strip()))
+    except (TypeError, ValueError):
+        return default
+
+
+def select(combo: QComboBox, value: str) -> None:
+    index = combo.findText(value or "")
+    if index >= 0:
+        combo.setCurrentIndex(index)
 
 
 def input_style(palette: Any) -> str:

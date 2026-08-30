@@ -14,8 +14,8 @@ UI signal → CoreOrchestrator → AgentLoop.start()
               ↓  signal
         AgentLoop._on_turn (MAIN thread)
               ├─ no calls            → final answer, run over
-              ├─ safety=read         → execute now, result into the transcript
-              ├─ safety=write        → prepare, then into the batch, return "queued"
+              ├─ local safety=read   → execute now, result into the transcript
+              ├─ write/network read  → prepare, then into the confirmation batch
               └─ load_skill          → load the domain, return its tool list
               ↓
         _request_step() — the next iteration
@@ -45,10 +45,14 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    remembers the choice in `QgsSettings` under a hash of the URL. All paths
    normalise into `ModelTurn` — the loop does not know which one worked.
    Never add provider SDKs: a dialect is a shape of HTTP, not a library.
-   Streaming is the one exception to `QgsBlockingNetworkRequest`: it cannot
-   read a body as it arrives, so `llm/stream_runner.py` uses
-   `QgsNetworkAccessManager` with a nested `QEventLoop` — still blocking for
-   the caller, still on the background thread. Parsing lives apart from it in
+   Streaming and web redirects are the two exceptions to
+   `QgsBlockingNetworkRequest`; both use `QgsNetworkAccessManager` with a nested
+   `QEventLoop`. Streaming needs a body as it arrives. The web runner resolves
+   with Qt, requires every DNS answer to be public, tries pinned addresses while
+   TLS verifies the approved host, and follows only manually checked same-origin
+   redirects. Explicit QGIS proxies receive the hostname; direct-route mismatches
+   are blocked. Streaming remains
+   blocking for the caller and on the background thread. Parsing lives apart in
    `llm/stream.py`, pure Python and therefore testable. A refusing endpoint is
    remembered as `supports_streaming = false` and falls back to one request —
    but only a genuine refusal counts. A 401 or a 429 says nothing about
@@ -86,6 +90,9 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    writes still only run after the user's button. What changed is that the run
    no longer dies at the first batch, which is what lets one request finish a
    multi-stage task.
+   A read with `network_access = True` auto-stages the run for exact per-call
+   confirmation. A batch containing only network reads skips the project
+   snapshot because it cannot mutate QGIS.
 9. **The run can also pause on a question.** `ask_user` is the second use of
    the same pause mechanic as `apply_now`: the loop emits `question_asked`,
    releases the thread, and the user's next message resumes the SAME run via

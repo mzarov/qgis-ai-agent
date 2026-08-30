@@ -1,5 +1,6 @@
 from typing import Any
 
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import (
     QDialog,
     QFrame,
@@ -20,6 +21,7 @@ SAFETY_LABELS = {
     "write": tr("waits for Apply"),
     "destructive": tr("asks separately"),
 }
+NETWORK_LABEL = tr("waits for Apply")
 NAME_FONT_SCALE = 0.95
 
 
@@ -49,6 +51,7 @@ class ToolBrowserDialog(QDialog):
 
 def _skill_header(skill: dict[str, Any], palette) -> QWidget:
     label = QLabel(f"{skill.get('name', '')} — {skill.get('description', '')}")
+    label.setTextFormat(Qt.TextFormat.PlainText)
     label.setWordWrap(True)
     font = label.font()
     font.setBold(True)
@@ -59,7 +62,9 @@ def _skill_header(skill: dict[str, Any], palette) -> QWidget:
 
 def _tool_row(tool: dict[str, Any], palette) -> QWidget:
     safety = SAFETY_LABELS.get(str(tool.get("safety", "")), str(tool.get("safety", "")))
-    label = QLabel(f"{tool.get('name', '')} · {safety}\n{tool.get('description', '')}")
+    behaviour = NETWORK_LABEL if tool.get("network_access") else safety
+    label = QLabel(f"{tool.get('name', '')} · {behaviour}\n{tool.get('description', '')}")
+    label.setTextFormat(Qt.TextFormat.PlainText)
     label.setWordWrap(True)
     font = label.font()
     font.setPointSizeF(max(1.0, font.pointSizeF() * NAME_FONT_SCALE))

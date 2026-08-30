@@ -1,4 +1,4 @@
-from qgis.PyQt.QtCore import pyqtSignal
+from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -86,6 +86,7 @@ class PlanCard(QFrame):
         layout.addWidget(number)
 
         label = QLabel(step)
+        label.setTextFormat(Qt.TextFormat.PlainText)
         label.setWordWrap(True)
         label.setStyleSheet("border: none;")
         font = label.font()
@@ -154,4 +155,4 @@ def _plain_button(palette) -> str:
 
 
 def _heading(count: int) -> str:
-    return tr_n("Will change the project — %n step(s)", count)
+    return tr_n("Ready to run — %n action(s)", count)

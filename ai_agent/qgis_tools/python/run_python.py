@@ -1,10 +1,12 @@
+import unicodedata
 from typing import Any
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_DESTRUCTIVE, BaseTool
 from ai_agent.qgis_tools.python.sandbox import MAX_LINES, run_snippet
 
 MAX_CODE_CHARS = 6000
+MAX_INTENT_CHARS = 240
 SUMMARY_CHARS = 90
 
 
@@ -13,15 +15,21 @@ class RunPythonTool(BaseTool):
     description = (
         "Run a PyQGIS snippet inside the running QGIS. The last resort for what "
         "no other tool covers — the whole QGIS API is reachable from here. "
-        "The user reads the exact code and confirms it before it runs, so keep "
-        "it short and readable. Use print() to report results back."
+        "Imports, files and the network are reachable too: this is not a security "
+        "sandbox. The user sees the exact code in the confirmation and approves "
+        "it before it runs, so keep it short and readable. Use print() to report "
+        "results back."
     )
     skill = "python"
     safety = SAFETY_DESTRUCTIVE
+    egress = EGRESS_FEATURE_VALUES
     constraints = [
         "Try the dedicated tools first — this one asks the user to read code",
         "print() what you want to see; the return value is not captured",
-        f"The snippet is stopped after {MAX_LINES} executed lines",
+        (
+            f"A best-effort current-thread trace interrupts after {MAX_LINES} "
+            "Python lines; it is a runaway-work guard, not isolation"
+        ),
     ]
     examples = [
         "Set a custom blend mode on the roads layer",
@@ -40,21 +48,23 @@ class RunPythonTool(BaseTool):
         {
             "name": "intent",
             "type": "string",
-            "description": "One line for the user: what this snippet does and why",
+            "description": (
+                f"One plain-text line for the user: what this snippet does and why, up to {MAX_INTENT_CHARS} characters"
+            ),
             "required": True,
         },
     ]
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
         code = _checked_code(params.get("code"))
-        if not str(params.get("intent") or "").strip():
-            raise ValueError("intent is required: the user has to read what this snippet is for.")
+        intent = _checked_intent(params.get("intent"))
         prepared = dict(params)
         prepared["code"] = code
+        prepared["intent"] = intent
         return prepared
 
     def summarize_call(self, params: dict[str, Any]) -> str:
-        intent = str(params.get("intent") or "").strip()
+        intent = _safe_intent_summary(params.get("intent"))
         if not intent:
             intent = str(params.get("code") or "").strip().replace("\n", " ")[:SUMMARY_CHARS]
         return tr("Running Python: {0}").format(intent)
@@ -64,9 +74,30 @@ class RunPythonTool(BaseTool):
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         code = _checked_code(params.get("code"))
+        intent = _checked_intent(params.get("intent"))
         result = run_snippet(code)
-        result["intent"] = str(params.get("intent") or "").strip()
+        result["intent"] = intent
         return result
+
+
+def _checked_intent(raw: Any) -> str:
+    intent = str(raw or "").strip()
+    if not intent:
+        raise ValueError("intent is required: the user has to read what this snippet is for.")
+    if len(intent) > MAX_INTENT_CHARS:
+        raise ValueError(f"intent must not exceed {MAX_INTENT_CHARS} characters.")
+    if any(unicodedata.category(character).startswith("C") for character in intent):
+        raise ValueError("intent must be one plain-text line without control or formatting characters.")
+    return intent
+
+
+def _safe_intent_summary(raw: Any) -> str:
+    intent = str(raw or "").strip()
+    visible = "".join(" " if unicodedata.category(character).startswith("C") else character for character in intent)
+    compact = " ".join(visible.split())
+    if len(compact) > MAX_INTENT_CHARS:
+        return compact[: MAX_INTENT_CHARS - 1].rstrip() + "…"
+    return compact
 
 
 def _checked_code(raw: Any) -> str:

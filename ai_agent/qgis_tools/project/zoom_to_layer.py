@@ -1,7 +1,7 @@
 from typing import Any
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common.layers import extent_dict, safe_extent
 from ai_agent.qgis_tools.project.tree import find_layer
 
@@ -14,6 +14,7 @@ class ZoomToLayerTool(BaseTool):
     )
     skill = "project"
     safety = SAFETY_READ
+    egress = EGRESS_FEATURE_VALUES
     constraints = ["A layer with this name must exist in the project"]
     examples = ["Show me the cities layer", "Zoom to the roads"]
     params_schema = [

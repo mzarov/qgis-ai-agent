@@ -1,11 +1,13 @@
 from typing import Any
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_DESTRUCTIVE, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.common.paths import check_overwrite
 from ai_agent.qgis_tools.processing.units import check_distance_units
 from ai_agent.qgis_tools.processing.utils import (
     apply_output_name,
     coerce_parameters,
+    destination_parameter_names,
     find_algorithm,
     normalize_output,
 )
@@ -23,10 +25,12 @@ class RunProcessingTool(BaseTool):
     )
     skill = "processing"
     safety = SAFETY_WRITE
+    egress = EGRESS_FEATURE_VALUES
     constraints = [
         "The algorithm identifier must exist in the registry",
         "Parameter names must match describe_processing exactly",
         "Distances in metres require a layer in a metric CRS",
+        "Existing filesystem outputs are never replaced unless overwrite_outputs=true",
     ]
     examples = ["Build a 500 metre buffer around the roads", "Reproject the layer to UTM"]
     params_schema = [
@@ -57,11 +61,35 @@ class RunProcessingTool(BaseTool):
             "description": "Add the result to the project (true by default)",
             "required": False,
         },
+        {
+            "name": "overwrite_outputs",
+            "type": "boolean",
+            "description": (
+                "Allow Processing destination parameters to replace existing files. "
+                "Requires an additional destructive confirmation."
+            ),
+            "required": False,
+        },
     ]
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
-        _, prepared = self._prepare(params)
-        return {**params, "parameters": prepared}
+        algorithm, prepared = self._prepare(params)
+        destination_names = destination_parameter_names(algorithm)
+        _check_destinations(prepared, bool(params.get("overwrite_outputs")), destination_names)
+        return {**params, "parameters": prepared, "_destination_names": destination_names}
+
+    def safety_for(self, params: dict[str, Any]) -> str:
+        if _known_external_algorithm(params):
+            return SAFETY_DESTRUCTIVE
+        if bool(params.get("overwrite_outputs")):
+            return SAFETY_DESTRUCTIVE
+        return SAFETY_WRITE
+
+    def has_external_effect(self, params: dict[str, Any]) -> bool:
+        arguments = params.get("parameters")
+        return _known_external_algorithm(params) or (
+            isinstance(arguments, dict) and bool(_destination_values(arguments, params.get("_destination_names")))
+        )
 
     def summarize_call(self, params: dict[str, Any]) -> str:
         algorithm_id = (params.get("algorithm_id") or "").strip()
@@ -74,6 +102,8 @@ class RunProcessingTool(BaseTool):
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         algorithm, prepared = self._prepare(params)
+        destination_names = destination_parameter_names(algorithm)
+        _check_destinations(prepared, bool(params.get("overwrite_outputs")), destination_names)
         load_output = self._resolve_load_output(params)
         runner = self._get_runner(load_output)
 
@@ -109,3 +139,44 @@ class RunProcessingTool(BaseTool):
         except ImportError:
             raise RuntimeError(PROCESSING_MISSING_MSG) from None
         return processing.runAndLoadResults if load_output else processing.run
+
+
+def _check_destinations(
+    parameters: dict[str, Any], overwrite: bool, destination_names: list[str] | None = None
+) -> None:
+    for path in _destination_paths(parameters, destination_names):
+        check_overwrite(path, overwrite)
+
+
+def _destination_values(parameters: dict[str, Any], destination_names: list[str] | None = None) -> list[str]:
+    selected = {str(name) for name in destination_names or []}
+    values = []
+    for name, value in parameters.items():
+        key = str(name)
+        upper = key.upper()
+        if key not in selected and "OUTPUT" not in upper and "DESTINATION" not in upper:
+            continue
+        if not isinstance(value, str):
+            continue
+        destination = value.strip()
+        if not destination or destination.upper() == "TEMPORARY_OUTPUT" or destination.startswith("memory:"):
+            continue
+        values.append(destination)
+    return values
+
+
+def _destination_paths(parameters: dict[str, Any], destination_names: list[str] | None = None) -> list[str]:
+    paths = []
+    for path in _destination_values(parameters, destination_names):
+        if path.lower().startswith(("postgres:", "ogr:", "spatialite:", "oracle:", "mssql:")):
+            continue
+        paths.append(path)
+    return paths
+
+
+def _known_external_algorithm(params: dict[str, Any]) -> bool:
+    identifier = str(params.get("algorithm_id") or "").strip().lower().replace("_", "")
+    database_import = "importinto" in identifier and any(
+        provider in identifier for provider in ("postgis", "spatialite")
+    )
+    return "executesql" in identifier or database_import or ("postgis" in identifier and ".out." in identifier)

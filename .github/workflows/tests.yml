@@ -27,9 +27,9 @@ jobs:
       - name: QGIS repository scanners
         if: matrix.python == '3.12'
         run: |
-          python3 -m pip install --quiet bandit detect-secrets
-          cd ai_agent && bandit -r . -q
-          cd .. && detect-secrets scan ai_agent/ > /dev/null
+          python3 -m pip install --quiet bandit detect-secrets==1.5.0
+          bandit -r ai_agent -q
+          git ls-files -z | xargs -0 detect-secrets-hook --baseline .secrets.baseline
       - name: Plugin build
         run: python3 tools/build_plugin.py
       - name: Archive as artifact
@@ -38,3 +38,18 @@ jobs:
         with:
           name: ai_agent
           path: dist/*.zip
+
+  real-qgis-smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        qgis_image: ["4.0-trixie", "stable-trixie"]
+    container:
+      image: qgis/qgis:${{ matrix.qgis_image }}
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installed-package smoke test in QGIS 4
+        run: python3 tests/real_qgis_smoke.py

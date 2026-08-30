@@ -1,7 +1,8 @@
-import json
 import os
 
 from ai_agent.core.state.session import Session
+from ai_agent.qgis_tools.common.persistence import atomic_write_json, backup_path, read_json
+from ai_agent.qgis_tools.common.project_identity import project_identity
 
 FOLDER_NAME = "ai_agent_sessions"
 SUFFIX = ".json"
@@ -18,25 +19,23 @@ class SessionStore:
         path = self._path(session.identifier)
         is_new = not os.path.exists(path)
         try:
-            with open(path, "w", encoding="utf-8") as handle:
-                json.dump(session.to_dict(), handle, ensure_ascii=False)
+            atomic_write_json(path, session.to_dict())
         except OSError:
             return
         if is_new:
             self._trim()
 
     def load(self, identifier: str) -> Session | None:
-        try:
-            with open(self._path(identifier), encoding="utf-8") as handle:
-                return Session.from_dict(json.load(handle))
-        except (OSError, ValueError):
-            return None
+        loaded = read_json(self._path(identifier))
+        return Session.from_dict(loaded) if isinstance(loaded, dict) else None
 
     def delete(self, identifier: str) -> None:
-        try:
-            os.remove(self._path(identifier))
-        except OSError:
-            return
+        path = self._path(identifier)
+        for candidate in (path, backup_path(path)):
+            try:
+                os.remove(candidate)
+            except OSError:
+                continue
 
     def recent(self, project: str, limit: int = 20) -> list[Session]:
         sessions = [item for item in self._all() if item.project == project]
@@ -91,12 +90,4 @@ def default_root() -> str:
 def current_project_key() -> str:
     from qgis.core import QgsProject
 
-    from ai_agent.core.state.session import NO_PROJECT
-
-    try:
-        path = QgsProject.instance().fileName()
-    except Exception:
-        path = ""
-    if not isinstance(path, str):
-        return NO_PROJECT
-    return path.strip() or NO_PROJECT
+    return project_identity(QgsProject.instance())

@@ -14,10 +14,12 @@ from ai_agent.core.agent.transcript import Transcript
 from ai_agent.core.context.project import get_project_context
 from ai_agent.core.llm.client import resolve_endpoint
 from ai_agent.core.llm.transport import PROTOCOL_JSON, PROTOCOL_NATIVE
+from ai_agent.core.privacy import data_sharing_allowed, sensitive_data_allowed, tool_output_allowed
 from ai_agent.core.settings import (
     get_api_key,
     get_api_url,
     get_auth_type,
+    get_dialect,
     get_model,
     get_supports_images,
     get_supports_tools,
@@ -27,6 +29,15 @@ from ai_agent.i18n import locale_code
 from ai_agent.qgis_tools.project.notes import NoteStore
 from ai_agent.qgis_tools.registry import build_tool_schemas, get_tools_for_skills
 from ai_agent.skills.registry import SKILL_REGISTRY
+
+PRIVACY_MODE_PROMPT = (
+    "Privacy mode is active. Do not request sampled feature values, selected feature details, "
+    "query result rows, or rendered map/layout images. Ask the user to enable sensitive data "
+    "sharing in Settings if the task genuinely requires them."
+)
+DATA_SHARING_DISABLED = (
+    "Project data sharing is disabled for this endpoint. Enable it in Settings before sending another request."
+)
 
 
 @dataclass
@@ -45,8 +56,12 @@ def build_step_request(
     task_plan: str = "",
     queued_steps: str = "",
 ) -> StepRequest:
-    schemas = build_tool_schemas_for(loaded_skills)
-    json_protocol = detect_json_protocol()
+    effective_overrides = dict(overrides) if overrides is not None else build_overrides()
+    endpoint = str(effective_overrides.get("url_override") or get_api_url() or "")
+    if not data_sharing_allowed(endpoint):
+        raise PermissionError(DATA_SHARING_DISABLED)
+    schemas = build_tool_schemas_for(loaded_skills, endpoint)
+    json_protocol = detect_json_protocol(effective_overrides)
     system_prompt = build_system_prompt(
         project_context=get_project_context(),
         loaded_skills=loaded_skills,
@@ -60,10 +75,18 @@ def build_step_request(
         tools_block = build_json_tools_block(schemas)
         if tools_block:
             system_prompt = f"{system_prompt}\n\n{tools_block}"
+    if not sensitive_data_allowed(endpoint):
+        system_prompt = f"{system_prompt}\n\n{PRIVACY_MODE_PROMPT}"
+    allow_sensitive = sensitive_data_allowed(endpoint)
     return StepRequest(
-        messages=transcript.build_messages(system_prompt, history, include_images=not detect_images_unsupported()),
+        messages=transcript.build_messages(
+            system_prompt,
+            history,
+            include_images=not detect_images_unsupported(effective_overrides),
+            allow_sensitive=allow_sensitive,
+        ),
         tool_schemas=schemas,
-        overrides=overrides if overrides is not None else build_overrides(),
+        overrides=effective_overrides,
         protocol=PROTOCOL_JSON if json_protocol else PROTOCOL_NATIVE,
     )
 
@@ -75,8 +98,9 @@ def _project_notes() -> str:
         return ""
 
 
-def build_tool_schemas_for(loaded_skills: list[str]) -> list[dict[str, Any]]:
-    schemas = build_tool_schemas(get_tools_for_skills(loaded_skills))
+def build_tool_schemas_for(loaded_skills: list[str], endpoint: str | None = None) -> list[dict[str, Any]]:
+    tools = [tool for tool in get_tools_for_skills(loaded_skills) if tool_output_allowed(tool, endpoint)]
+    schemas = build_tool_schemas(tools)
     schemas.insert(0, build_apply_now_schema())
     schemas.insert(0, build_ask_user_schema())
     schemas.insert(0, build_update_plan_schema())
@@ -86,16 +110,32 @@ def build_tool_schemas_for(loaded_skills: list[str]) -> list[dict[str, Any]]:
     return schemas
 
 
-def detect_images_unsupported() -> bool:
+def detect_images_unsupported(overrides: dict[str, Any] | None = None) -> bool:
+    scope = overrides or {}
     try:
-        return get_supports_images(resolve_endpoint()) is False
+        return (
+            get_supports_images(
+                resolve_endpoint(scope.get("url_override")),
+                scope.get("model_override"),
+                scope.get("dialect_override"),
+            )
+            is False
+        )
     except Exception:
         return False
 
 
-def detect_json_protocol() -> bool:
+def detect_json_protocol(overrides: dict[str, Any] | None = None) -> bool:
+    scope = overrides or {}
     try:
-        return get_supports_tools(resolve_endpoint()) is False
+        return (
+            get_supports_tools(
+                resolve_endpoint(scope.get("url_override")),
+                scope.get("model_override"),
+                scope.get("dialect_override"),
+            )
+            is False
+        )
     except Exception:
         return False
 
@@ -106,5 +146,6 @@ def build_overrides() -> dict[str, Any]:
         "model_override": get_model(),
         "key_override": get_api_key(),
         "auth_type_override": get_auth_type(),
+        "dialect_override": get_dialect(),
         "verify_override": get_verify_ssl(),
     }

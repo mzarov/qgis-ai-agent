@@ -1,7 +1,8 @@
 import os
 from typing import Any
 
-from qgis.PyQt.QtCore import Qt
+from qgis.core import QgsProject
+from qgis.PyQt.QtCore import Qt, QTimer
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
@@ -21,14 +22,18 @@ class QgisAiAgentPlugin:
         self.dock_widget = None
         self.menu_action = None
         self._orchestrator = None
+        self._project_sync_pending = False
+        self._project_reset_pending = False
 
     def initGui(self) -> None:
         self.menu_action = QAction(self._icon(), MENU_TITLE, self.iface.mainWindow())
         self.menu_action.triggered.connect(self.run)
         self.iface.addPluginToMenu(MENU_TITLE, self.menu_action)
         self.iface.addToolBarIcon(self.menu_action)
+        self._connect_project_lifecycle()
 
     def unload(self) -> None:
+        self._disconnect_project_lifecycle()
         if self.menu_action:
             self.iface.removePluginMenu(MENU_TITLE, self.menu_action)
             self.iface.removeToolBarIcon(self.menu_action)
@@ -59,11 +64,50 @@ class QgisAiAgentPlugin:
         self.dock_widget.open_settings_clicked.connect(self._on_open_settings)
 
     def _icon(self) -> QIcon:
-        plugin_root = os.path.join(os.path.dirname(__file__), "..", "..", "..")
-        icon_path = os.path.join(plugin_root, ICON_FILENAME)
+        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ICON_FILENAME)
         return QIcon(icon_path) if os.path.isfile(icon_path) else QIcon()
 
     def _on_open_settings(self) -> None:
         SettingsDialog(self.dock_widget).exec()
         if self._orchestrator:
             self._orchestrator.refresh_configured()
+
+    def _connect_project_lifecycle(self) -> None:
+        project = QgsProject.instance()
+        for signal_name, handler in (
+            ("fileNameChanged", self._schedule_project_sync),
+            ("cleared", self._schedule_project_reset),
+        ):
+            try:
+                getattr(project, signal_name).connect(handler)
+            except (AttributeError, TypeError):
+                continue
+
+    def _disconnect_project_lifecycle(self) -> None:
+        project = QgsProject.instance()
+        for signal_name, handler in (
+            ("fileNameChanged", self._schedule_project_sync),
+            ("cleared", self._schedule_project_reset),
+        ):
+            try:
+                getattr(project, signal_name).disconnect(handler)
+            except (AttributeError, TypeError):
+                continue
+
+    def _schedule_project_sync(self, *args: Any) -> None:
+        if self._project_sync_pending:
+            return
+        self._project_sync_pending = True
+        QTimer.singleShot(0, self._sync_project)
+
+    def _schedule_project_reset(self, *args: Any) -> None:
+        force_new = self._orchestrator is None or self._orchestrator.on_project_cleared()
+        self._project_reset_pending = self._project_reset_pending or force_new
+        self._schedule_project_sync()
+
+    def _sync_project(self) -> None:
+        force_new = self._project_reset_pending
+        self._project_sync_pending = False
+        self._project_reset_pending = False
+        if self._orchestrator is not None:
+            self._orchestrator.on_project_changed(force_new=force_new)

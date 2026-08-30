@@ -7,29 +7,44 @@ from ai_agent.core.agent.prompts import build_verification_prompt
 from ai_agent.core.llm.client import is_local
 from ai_agent.core.orchestrator.capabilities import describe_capabilities
 from ai_agent.core.orchestrator.contracts import DockWidgetContract
-from ai_agent.core.settings import get_api_key, get_api_url, get_verify_after_apply
+from ai_agent.core.orchestrator.planning import destructive_lines, plan_line
+from ai_agent.core.orchestrator.presentation import compact_number, interrupted_outcome, is_configured, where_to_look
+from ai_agent.core.orchestrator.project_lifecycle import (
+    PREVIOUS_APPLY_INTERRUPTED,
+    PROJECT_CHANGED,
+    ProjectLifecycleMixin,
+)
+from ai_agent.core.orchestrator.scope import conversation_scope
+from ai_agent.core.privacy import endpoint_label
+from ai_agent.core.settings import (
+    get_api_url,
+    get_data_sharing_consent,
+    get_verify_after_apply,
+    set_data_sharing_consent,
+)
 from ai_agent.core.state.conversation import ConversationState
-from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
-from ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call
+from ai_agent.i18n import tr, tr_n
 
 LOG_TAG = "AI Agent"
 MESSAGE_DURATION_SEC = 8
 SESSION_MISSING = tr("Conversation not found.")
-RUN_STOPPED = tr("Run stopped. Any changes the agent had planned were dropped.")
+RUN_STOPPED = tr("Run stopped. Pending work was cancelled.")
+APPLY_STOPPED = tr("Run stopped during apply. Pending steps were cancelled; any completed changes remain.")
 SWITCH_WHILE_RUNNING = tr("Wait for the current task to finish.")
 SWITCH_WHILE_PENDING = tr("Apply or cancel the planned changes first.")
+SWITCH_WHILE_AWAITING = tr("Answer or stop the current question before switching conversations.")
 VERIFYING = tr("Checking the applied changes…")
 MAX_VERIFICATION_ROUNDS = 3
 DESTRUCTIVE_DECLINED = tr("Kept everything as it was — the destructive steps were not applied.")
 INTERJECTED = tr("Passed to the agent — it will take this into account on its next step.")
 PLAN_DROPPED = tr("The planned changes were dropped — they were not applied. Starting over from your message.")
 AWAITING_ANSWER = tr("Waiting for your answer — the run continues from it.")
-THOUSAND = 1000
+DATA_SHARING_DECLINED = tr("Request not sent. Project data sharing remains disabled for this endpoint.")
 TOKENS_LABEL = tr("{0} tokens")
+__all__ = ("CoreOrchestrator", "PREVIOUS_APPLY_INTERRUPTED", "PROJECT_CHANGED")
 
 
-class CoreOrchestrator:
+class CoreOrchestrator(ProjectLifecycleMixin):
     def __init__(self, iface: Any, dock_widget: DockWidgetContract):
         self.iface = iface
         self.dock_widget = dock_widget
@@ -37,6 +52,9 @@ class CoreOrchestrator:
         self.agent = AgentLoop()
         self._active_tool_message_id: int | None = None
         self._plan_message_id: int | None = None
+        self._apply_scope: tuple[str, str] | None = None
+        self._invalidated_scope: tuple[str, str] | None = None
+        self._deferred_interrupted_outcome = ""
         self._connect_agent()
         self.dock_widget.set_session_source(self.conversation.recent)
         self.dock_widget.set_capabilities_source(describe_capabilities)
@@ -57,6 +75,7 @@ class CoreOrchestrator:
         self.agent.preamble.connect(self.on_preamble)
         self.agent.applied.connect(self.on_applied)
         self.agent.stage_applied.connect(self.on_stage_applied)
+        self.agent.apply_interrupted.connect(self.on_apply_interrupted)
         self.agent.journal_written.connect(self.on_journal_written)
         self.agent.finished.connect(self.on_finished)
         self.agent.failed.connect(self.on_failed)
@@ -70,9 +89,17 @@ class CoreOrchestrator:
         self.agent.abort()
 
     def on_aborted(self) -> None:
-        self._active_tool_message_id = None
+        applying = bool(getattr(self.agent, "is_applying", False))
+        if self._active_tool_message_id is not None and not applying:
+            self.dock_widget.mark_tool_done(self._active_tool_message_id, False)
+            self._active_tool_message_id = None
+        if self._plan_message_id is not None:
+            if applying:
+                self.dock_widget.mark_plan_failed(self._plan_message_id)
+            else:
+                self.dock_widget.mark_plan_cancelled(self._plan_message_id)
         self._plan_message_id = None
-        self.dock_widget.add_system_message(RUN_STOPPED)
+        self.dock_widget.add_system_message(APPLY_STOPPED if applying else RUN_STOPPED)
 
     def on_new_session(self) -> None:
         if self._busy_with_current():
@@ -89,8 +116,11 @@ class CoreOrchestrator:
         self._replay()
 
     def _busy_with_current(self) -> bool:
-        if self.agent.is_running:
+        if bool(getattr(self.agent, "is_applying", False)) or self.agent.is_running:
             self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
+            return True
+        if self.agent.is_awaiting_answer:
+            self.dock_widget.add_system_message(SWITCH_WHILE_AWAITING)
             return True
         if self.agent.has_pending_writes:
             self.dock_widget.add_system_message(SWITCH_WHILE_PENDING)
@@ -107,11 +137,16 @@ class CoreOrchestrator:
         if not text:
             self._push_message(tr("Type a request."), Qgis.Warning)
             return
+        if bool(getattr(self.agent, "is_applying", False)):
+            self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
+            return
         if self.agent.is_running:
             self._interject(text)
             return
         if self.agent.is_awaiting_answer:
             self._answer(text)
+            return
+        if not self._ensure_data_sharing_consent():
             return
 
         self.dock_widget.add_user_message(text)
@@ -121,6 +156,18 @@ class CoreOrchestrator:
         history = self.conversation.window()
         self.conversation.add("user", text)
         self.agent.start(text, history)
+
+    def _ensure_data_sharing_consent(self, endpoint: str | None = None) -> bool:
+        if not _is_configured():
+            return True
+        url = (endpoint if endpoint is not None else get_api_url() or "").strip()
+        if not url or is_local(url) or get_data_sharing_consent(url):
+            return True
+        if not self.dock_widget.confirm_data_sharing(endpoint_label(url)):
+            self.dock_widget.add_system_message(DATA_SHARING_DECLINED)
+            return False
+        set_data_sharing_consent(True, url)
+        return True
 
     def _drop_pending_plan(self) -> None:
         pending = self.agent.has_pending_writes
@@ -132,7 +179,7 @@ class CoreOrchestrator:
         self._plan_message_id = None
 
     def on_usage_changed(self, spent: int) -> None:
-        self.dock_widget.set_usage(TOKENS_LABEL.format(_compact_number(spent)))
+        self.dock_widget.set_usage(TOKENS_LABEL.format(compact_number(spent)))
 
     def on_preamble(self, text: str) -> None:
         self._render_answer(text)
@@ -143,6 +190,8 @@ class CoreOrchestrator:
         self.dock_widget.add_system_message(AWAITING_ANSWER)
 
     def _answer(self, text: str) -> None:
+        if not self._ensure_data_sharing_consent(getattr(self.agent, "endpoint", None)):
+            return
         self.dock_widget.add_user_message(text)
         self.dock_widget.clear_prompt()
         self.conversation.add("user", text)
@@ -167,8 +216,8 @@ class CoreOrchestrator:
         if not ok:
             QgsMessageLog.logMessage(f"Tool {tool_name} failed.", LOG_TAG, Qgis.Warning)
 
-    def on_tool_queued(self, summary: str) -> None:
-        QgsMessageLog.logMessage(f"Added to plan: {summary}", LOG_TAG, Qgis.Info)
+    def on_tool_queued(self, _summary: str) -> None:
+        QgsMessageLog.logMessage("A validated step was added to the plan.", LOG_TAG, Qgis.Info)
 
     def on_tool_rejected(self, summary: str) -> None:
         self.dock_widget.add_rejected_message(tr("Rejected: {0}").format(summary))
@@ -183,8 +232,12 @@ class CoreOrchestrator:
     def on_confirm_needed(self, calls: list, final_text: str) -> None:
         if final_text:
             self._render_answer(final_text)
-        lines = [summarize_tool_call(call.name, call.arguments) for call in calls]
+        lines = [self._plan_line(call) for call in calls]
         self._plan_message_id = self.dock_widget.add_plan_message(lines)
+
+    @staticmethod
+    def _plan_line(call) -> str:
+        return plan_line(call)
 
     def on_confirm_plan(self) -> None:
         if not self.agent.has_pending_writes:
@@ -194,23 +247,11 @@ class CoreOrchestrator:
         if destructive and not self.dock_widget.confirm_destructive(destructive, details):
             self.dock_widget.add_system_message(DESTRUCTIVE_DECLINED)
             return
+        self._apply_scope = conversation_scope(self.conversation)
         self.agent.confirm_pending()
 
     def _destructive_lines(self) -> tuple[list[str], str]:
-        lines = []
-        details = []
-        for call in self.agent.pending_writes():
-            tool = get_tool_by_name(call.name)
-            if tool is not None and tool.safety == SAFETY_DESTRUCTIVE:
-                lines.append(summarize_tool_call(call.name, call.arguments))
-                detail = ""
-                try:
-                    detail = tool.detail_call(call.arguments)
-                except Exception:
-                    detail = ""
-                if detail:
-                    details.append(detail)
-        return lines, "\n\n".join(details)
+        return destructive_lines(self.agent.pending_writes())
 
     def on_cancel_plan(self) -> None:
         self.agent.cancel_pending()
@@ -222,11 +263,16 @@ class CoreOrchestrator:
         self.dock_widget.add_system_message(tr("Run journal: {0}").format(path))
 
     def on_stage_applied(self, results: list) -> None:
+        self._apply_scope = None
         if self._plan_message_id is not None:
-            self.dock_widget.mark_plan_completed(self._plan_message_id)
+            if any(not result.ok for result in results):
+                self.dock_widget.mark_plan_failed(self._plan_message_id)
+            else:
+                self.dock_widget.mark_plan_completed(self._plan_message_id)
         self._plan_message_id = None
 
     def on_applied(self, results: list) -> None:
+        self._apply_scope = None
         failed = [result for result in results if not result.ok]
         if self._plan_message_id is not None:
             if failed:
@@ -241,11 +287,30 @@ class CoreOrchestrator:
             self.conversation.add("assistant", outcome)
             self._push_message(tr("Not all changes were applied."), Qgis.Warning)
         else:
-            outcome = tr("Done: {0} step(s) applied.{1}").format(len(results), self._where_to_look(results))
+            outcome = tr_n("Done: %n step(s) applied.{0}", len(results)).format(where_to_look(results))
             self.dock_widget.add_result_message(outcome)
             self.conversation.add("assistant", outcome)
             self._push_message(tr("Changes applied."), Qgis.Success)
         self._maybe_verify(results)
+
+    def on_apply_interrupted(self, results: list) -> None:
+        scope = self._apply_scope
+        self._apply_scope = None
+        outcome = interrupted_outcome(results)
+        if not outcome:
+            return
+        current_scope = conversation_scope(self.conversation)
+        invalidated = scope is not None and scope == self._invalidated_scope
+        if scope != current_scope or invalidated:
+            if scope is not None:
+                self.conversation.add_scoped(scope, "assistant", outcome)
+            if invalidated and scope == current_scope:
+                self._deferred_interrupted_outcome = outcome
+            else:
+                self._show_previous_apply(outcome)
+            return
+        self.dock_widget.add_result_message(outcome)
+        self.conversation.add("assistant", outcome)
 
     def _maybe_verify(self, results: list) -> None:
         if not results or self.agent.is_running or not get_verify_after_apply():
@@ -290,30 +355,9 @@ class CoreOrchestrator:
         self.conversation.save()
         self.agent.stop()
 
-    @staticmethod
-    def _where_to_look(results: list) -> str:
-        names = [
-            result.payload.get("result_layer_name") for result in results if result.payload.get("result_layer_name")
-        ]
-        if names:
-            return " " + tr("New layers: {0}.").format(", ".join(f"«{name}»" for name in names))
-        if any("outputs" in result.payload for result in results):
-            return " " + tr("The result is in the layer panel.")
-        return ""
-
     def _push_message(self, text: str, level) -> None:
         self.iface.messageBar().pushMessage("AI Agent", text, level=level, duration=MESSAGE_DURATION_SEC)
 
 
 def _is_configured() -> bool:
-    try:
-        url = (get_api_url() or "").strip()
-        return bool(url) and (bool((get_api_key() or "").strip()) or is_local(url))
-    except Exception:
-        return False
-
-
-def _compact_number(value: int) -> str:
-    if value < THOUSAND:
-        return str(value)
-    return f"{value / THOUSAND:.1f}k"
+    return is_configured()

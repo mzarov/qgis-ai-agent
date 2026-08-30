@@ -91,7 +91,7 @@ class StripRetryTest(unittest.TestCase):
         self.saved_dispatch = transport._dispatch
         self.saved_set = transport.set_supports_images
         self.flags = []
-        transport.set_supports_images = lambda url, value: self.flags.append(value)
+        transport.set_supports_images = lambda url, value, model=None, dialect=None: self.flags.append(value)
 
     def tearDown(self):
         transport._dispatch = self.saved_dispatch

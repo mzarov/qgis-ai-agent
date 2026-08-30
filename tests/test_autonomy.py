@@ -1,5 +1,6 @@
 import unittest
 
+from ai_agent.core.agent import batch_apply as batch_apply_module
 from ai_agent.core.agent import loop as loop_module
 from ai_agent.core.agent import prompts
 from ai_agent.core.agent.loop import MAX_ITERATIONS, AgentLoop
@@ -154,11 +155,11 @@ class StagedRunTest(unittest.TestCase):
         self.loop = AgentLoop()
         self.loop._executor = FakeExecutor()
         self.loop._batch._executor = FakeExecutor()
-        self.saved_snapshot = loop_module.take_snapshot
-        loop_module.take_snapshot = lambda: ""
+        self.saved_snapshot = batch_apply_module.take_snapshot
+        batch_apply_module.take_snapshot = lambda: "/tmp/snapshot.qgz"
 
     def tearDown(self):
-        loop_module.take_snapshot = self.saved_snapshot
+        batch_apply_module.take_snapshot = self.saved_snapshot
 
     def test_apply_now_without_queued_writes_is_an_error(self):
         result = self.loop._dispatch(_call(APPLY_NOW_TOOL, reason="need it"))
@@ -195,6 +196,19 @@ class StagedRunTest(unittest.TestCase):
         self.loop._batch._calls = [_call("set_opacity")]
         self.loop.confirm_pending()
         self.assertEqual(len(finished), 1)
+
+    def test_snapshot_failure_is_fail_closed(self):
+        finished = []
+        applied = []
+        self.loop.applied.connect(finished.append)
+        self.loop._batch._calls = [_call("set_opacity")]
+        self.loop._batch.apply = lambda *args: applied.append(True) or []
+        batch_apply_module.take_snapshot = lambda: ""
+        self.loop.confirm_pending()
+        self.assertEqual(applied, [])
+        self.assertEqual(len(finished), 1)
+        self.assertFalse(finished[0][0].ok)
+        self.assertIn("No planned changes", finished[0][0].payload["error"])
 
     def test_stage_results_reach_the_transcript(self):
         self.loop._request_step = lambda: None
@@ -383,11 +397,13 @@ class StageAppliedSignalTest(unittest.TestCase):
     def test_a_staged_apply_announces_itself(self):
         loop = AgentLoop()
         loop._staged = True
-        loop._batch._calls.append(ToolCall(id="w", name="add_basemap", arguments={}))
-        loop._batch.apply = lambda on_start, on_finish: ["done"]
+        call = ToolCall(id="w", name="add_basemap", arguments={})
+        result = ToolResult(call=call, payload={"status": "done"})
+        loop._batch._calls.append(call)
+        loop._batch.apply = lambda on_start, on_finish, expected_project_identity=None: [result]
         loop._request_step = lambda: None
-        saved = loop_module.take_snapshot
-        loop_module.take_snapshot = lambda: None
+        saved = batch_apply_module.take_snapshot
+        batch_apply_module.take_snapshot = lambda: "/tmp/snapshot.qgz"
         seen = []
         applied = []
         loop.stage_applied.connect(seen.append)
@@ -395,6 +411,37 @@ class StageAppliedSignalTest(unittest.TestCase):
         try:
             loop.confirm_pending()
         finally:
-            loop_module.take_snapshot = saved
-        self.assertEqual(seen, [["done"]])
+            batch_apply_module.take_snapshot = saved
+        self.assertEqual(seen, [[result]])
         self.assertEqual(applied, [])
+
+    def test_stage_resume_marks_apply_control_result_as_applied(self):
+        loop = AgentLoop()
+        write = ToolCall(id="write", name="add_basemap", arguments={})
+        apply = ToolCall(id="apply", name=prompts.APPLY_NOW_TOOL, arguments={})
+        loop._transcript.add_results(
+            [
+                ToolResult(call=write, payload={"status": "queued"}),
+                ToolResult(call=apply, payload={"status": "awaiting_user"}),
+            ],
+            "native",
+        )
+        loop._stage_call = apply
+        loop._request_step = lambda: None
+
+        loop._resume_after_stage([ToolResult(call=write, payload={"status": "done"})])
+
+        rendered = loop._transcript.build_messages("S")
+        self.assertEqual([message["tool_call_id"] for message in rendered[1:]], ["write", "apply"])
+        self.assertIn("done", rendered[1]["content"])
+        self.assertIn("applied", rendered[2]["content"])
+        self.assertNotIn("awaiting_user", rendered[2]["content"])
+
+    def test_a_second_apply_control_call_is_rejected(self):
+        loop = AgentLoop()
+        loop._batch._calls.append(ToolCall(id="write", name="add_basemap", arguments={}))
+        first = loop._request_stage(ToolCall(id="apply-1", name=prompts.APPLY_NOW_TOOL, arguments={}))
+        second = loop._request_stage(ToolCall(id="apply-2", name=prompts.APPLY_NOW_TOOL, arguments={}))
+        self.assertTrue(first.ok)
+        self.assertFalse(second.ok)
+        self.assertEqual(loop._stage_call.id, "apply-1")

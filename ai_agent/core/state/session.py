@@ -63,9 +63,12 @@ class Session:
         identifier = str(raw.get("identifier") or "").strip()
         if not identifier:
             return None
+        raw_messages = raw.get("messages")
+        if not isinstance(raw_messages, list):
+            raw_messages = []
         messages = [
             {"role": str(item.get("role", "")), "content": str(item.get("content", ""))}
-            for item in raw.get("messages") or []
+            for item in raw_messages
             if isinstance(item, dict) and item.get("content")
         ]
         return cls(

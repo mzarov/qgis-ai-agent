@@ -2,7 +2,11 @@ import pathlib
 import re
 import unittest
 
+from ai_agent.qgis_tools.registry import ALL_TOOLS
+from ai_agent.skills.registry import SKILL_REGISTRY
+
 DOCS = pathlib.Path(__file__).resolve().parent.parent / "docs"
+REPO_ROOT = DOCS.parent
 RU_SUFFIX = ".ru.md"
 HEADING = re.compile(r"^#{1,3} ", re.MULTILINE)
 
@@ -51,6 +55,50 @@ class NavTest(unittest.TestCase):
         config = (DOCS.parent / "mkdocs.yml").read_text(encoding="utf-8")
         missing = [page.name for page in english_pages() if page.name not in config]
         self.assertEqual(missing, [])
+
+
+class PublishedClaimsTest(unittest.TestCase):
+    def test_tool_and_skill_counts_match_the_registries(self):
+        claims = {
+            REPO_ROOT / "README.md": f"twelve domains, {len(ALL_TOOLS)} tools",
+            DOCS / "index.md": f"Twelve domains, {len(ALL_TOOLS)} tools",
+            DOCS / "index.ru.md": f"Двенадцать доменов, {len(ALL_TOOLS)} инструментов",
+        }
+        self.assertEqual(len(SKILL_REGISTRY.names()), 12)
+        for path, phrase in claims.items():
+            self.assertIn(phrase, path.read_text(encoding="utf-8"), path.name)
+
+    def test_privacy_pages_name_real_values_and_images(self):
+        for name, attribute_word in (("privacy.md", "attribute"), ("privacy.ru.md", "атрибут")):
+            text = (DOCS / name).read_text(encoding="utf-8").lower()
+            self.assertIn(attribute_word, text)
+            self.assertIn("png", text)
+
+    def test_privacy_pages_distinguish_agent_consent_from_connection_test(self):
+        english = " ".join((DOCS / "privacy.md").read_text(encoding="utf-8").lower().split())
+        russian = " ".join((DOCS / "privacy.ru.md").read_text(encoding="utf-8").lower().split())
+        self.assertIn("first agent run", english)
+        self.assertIn("test connection", english)
+        self.assertIn("explicit exception", english)
+        self.assertIn("первым запуском агента", russian)
+        self.assertIn("проверить подключение", russian)
+        self.assertIn("явное исключение", russian)
+
+    def test_privacy_pages_disclose_the_plaintext_run_journal(self):
+        english = " ".join((DOCS / "privacy.md").read_text(encoding="utf-8").lower().split())
+        russian = " ".join((DOCS / "privacy.ru.md").read_text(encoding="utf-8").lower().split())
+        self.assertIn("plaintext markdown", english)
+        self.assertIn("ai_agent_runs", english)
+        self.assertIn("not encrypted", english)
+        self.assertIn("active qgis profile", english)
+        self.assertIn("0700", english)
+        self.assertIn("0600", english)
+        self.assertIn("markdown", russian)
+        self.assertIn("ai_agent_runs", russian)
+        self.assertIn("не является шифрованием", russian)
+        self.assertIn("активного профиля qgis", russian)
+        self.assertIn("0700", russian)
+        self.assertIn("0600", russian)
 
 
 if __name__ == "__main__":

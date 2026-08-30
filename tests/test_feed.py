@@ -1,8 +1,14 @@
+import pathlib
 import unittest
+from unittest import mock
 
 from ai_agent.ui.conversation import ConversationView
 from ai_agent.ui.messages import AssistantMessage
 from ai_agent.ui.thinking import ThinkingBlock
+
+DOCK_SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "dock_widget.py").read_text(
+    encoding="utf-8"
+)
 
 
 class DraftTest(unittest.TestCase):
@@ -52,6 +58,19 @@ class DraftTest(unittest.TestCase):
         self.view.append_draft("half a")
         self.view.clear()
         self.assertIsNone(self.view._draft)
+
+    def test_delayed_autoscroll_respects_a_user_who_scrolled_up(self):
+        scrolled = []
+        self.view._pinned = False
+        self.view._scroll_to_bottom = lambda: scrolled.append(True)
+        self.view._scroll_if_still_pinned()
+        self.assertEqual(scrolled, [])
+
+
+class DockHeaderContractTest(unittest.TestCase):
+    def test_header_starts_a_real_new_conversation(self):
+        self.assertIn('tr("New conversation"), self.new_session_clicked.emit', DOCK_SOURCE)
+        self.assertNotIn("def _on_clear", DOCK_SOURCE)
 
 
 class WelcomeFeedTest(unittest.TestCase):
@@ -207,6 +226,10 @@ class AssistantMessageTest(unittest.TestCase):
         self.assertEqual(message._markdown, "final")
         self.assertEqual(message._repaint.stopped, 1)
 
+    def test_copy_text_keeps_the_whole_answer(self):
+        message = AssistantMessage("**answer**")
+        self.assertEqual(message.plain_text(), "**answer**")
+
 
 if __name__ == "__main__":
     unittest.main()
@@ -229,6 +252,27 @@ class ActivityTitleTest(unittest.TestCase):
         view.add_activity_step("Reading the project.")
         self.assertIn("1", view._activity._title.text())
 
+    def test_a_new_action_is_running_not_already_done(self):
+        view = ConversationView()
+        entry_id = view.add_activity_step("Reading the project.")
+        self.assertEqual(view._activity._status.text(), "●")
+        view.mark_activity_step(entry_id, True)
+        self.assertEqual(view._activity._status.text(), "✓")
+
+    def test_a_rejected_attempt_is_shown_as_recovered_not_failed(self):
+        view = ConversationView()
+        view.add_rejected_step("Bad arguments")
+        self.assertEqual(view._activity._status.text(), "↺")
+
+    def test_activity_steps_are_rendered_as_plain_text(self):
+        from qgis.PyQt.QtCore import Qt
+        from qgis.PyQt.QtWidgets import QWidget
+
+        from ai_agent.ui.activity import StepRow
+
+        row = StepRow("<b>visible literally</b><!-- hidden -->", QWidget().palette())
+        self.assertEqual(row._label.textFormat(), Qt.TextFormat.PlainText)
+
 
 class FailedPlanCardTest(unittest.TestCase):
     def test_a_failed_apply_still_settles_the_card(self):
@@ -237,6 +281,27 @@ class FailedPlanCardTest(unittest.TestCase):
         card = PlanCard(["step"])
         card.mark_failed()
         self.assertFalse(card._buttons.isVisible())
+
+    def test_plan_steps_are_rendered_as_plain_text(self):
+        from qgis.PyQt.QtCore import Qt
+        from qgis.PyQt.QtWidgets import QLabel, QWidget
+
+        from ai_agent.ui import plan as plan_module
+
+        labels = []
+
+        class RecordingLabel(QLabel):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                labels.append(self)
+
+        with mock.patch.object(plan_module, "QLabel", RecordingLabel):
+            plan_module.PlanCard._build_step(
+                1,
+                "<b>weather</b><!-- hidden -->",
+                QWidget().palette(),
+            )
+        self.assertEqual(labels[-1].textFormat(), Qt.TextFormat.PlainText)
 
 
 class CapabilitiesTest(unittest.TestCase):
@@ -250,6 +315,7 @@ class CapabilitiesTest(unittest.TestCase):
         names = [tool["name"] for tool in web["tools"]]
         self.assertEqual(names, sorted(names))
         self.assertIn("geocode", names)
+        self.assertTrue(all(tool["network_access"] for tool in web["tools"]))
         self.assertTrue(all(tool["safety"] for skill in described for tool in skill["tools"]))
 
     def test_the_browser_dialog_builds_from_the_description(self):
@@ -257,3 +323,33 @@ class CapabilitiesTest(unittest.TestCase):
         from ai_agent.ui.tool_browser import ToolBrowserDialog
 
         ToolBrowserDialog(describe_capabilities())
+
+    def test_network_reads_are_not_labelled_as_immediate(self):
+        from qgis.PyQt.QtCore import Qt
+
+        from ai_agent.ui.tool_browser import NETWORK_LABEL, _tool_row
+
+        row = _tool_row(
+            {
+                "name": "fetch_url",
+                "safety": "read",
+                "network_access": True,
+                "description": "Read a page.",
+            },
+            ConversationView().palette(),
+        )
+        self.assertIn(NETWORK_LABEL, row.text())
+        self.assertNotIn("runs immediately", row.text())
+        self.assertEqual(row.textFormat(), Qt.TextFormat.PlainText)
+
+    def test_capability_headers_are_plain_text(self):
+        from qgis.PyQt.QtCore import Qt
+
+        from ai_agent.ui.tool_browser import _skill_header
+
+        header = _skill_header(
+            {"name": "<b>web</b>", "description": "<!-- hidden -->"},
+            ConversationView().palette(),
+        )
+        self.assertIn("<b>web</b>", header.text())
+        self.assertEqual(header.textFormat(), Qt.TextFormat.PlainText)

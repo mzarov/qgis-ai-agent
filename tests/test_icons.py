@@ -1,6 +1,7 @@
 import pathlib
 import re
 import unittest
+import xml.etree.ElementTree as ElementTree
 
 from ai_agent.ui import icons
 
@@ -9,6 +10,9 @@ DOCK = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "do
     encoding="utf-8"
 )
 COORDINATE = re.compile(r"QPointF\(([0-9.]+), ([0-9.]+)\)")
+PLUGIN = pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "plugin.py"
+BRAND_ICON = pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "icon.svg"
+RENDERED_ICON = pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "icon.png"
 
 
 class ApiTest(unittest.TestCase):
@@ -26,6 +30,23 @@ class ApiTest(unittest.TestCase):
     def test_glyph_fallback_survives(self):
         self.assertIn("button.setText(glyph)", DOCK)
         self.assertIn("except Exception:", DOCK)
+
+    def test_toolbar_icon_is_loaded_from_the_package_root(self):
+        source = PLUGIN.read_text(encoding="utf-8")
+        self.assertIn('ICON_FILENAME = "icon.png"', source)
+        self.assertIn("os.path.dirname(os.path.abspath(__file__))", source)
+        self.assertNotIn('"..", "..", ".."', source)
+
+    def test_brand_icon_is_valid_svg(self):
+        root = ElementTree.parse(BRAND_ICON).getroot()
+        self.assertEqual(root.tag, "{http://www.w3.org/2000/svg}svg")
+        self.assertEqual(root.attrib["viewBox"], "0 0 128 128")
+
+    def test_published_icon_is_a_128_pixel_png(self):
+        data = RENDERED_ICON.read_bytes()
+        self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
+        self.assertEqual(int.from_bytes(data[16:20], "big"), 128)
+        self.assertEqual(int.from_bytes(data[20:24], "big"), 128)
 
 
 class GeometryTest(unittest.TestCase):

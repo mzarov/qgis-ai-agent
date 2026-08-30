@@ -1,25 +1,21 @@
-import json
 import os
 from typing import Any
 
 from qgis.core import Qgis, QgsMessageLog
 
+from ai_agent.qgis_tools.common.persistence import atomic_write_json, read_json
+from ai_agent.qgis_tools.common.project_identity import project_identity
 from ai_agent.qgis_tools.project.tree import project
 
 LOG_TAG = "AI Agent"
 FOLDER_NAME = "ai_agent_sessions"
-NO_PROJECT_KEY = "no-project"
 FILE_NAME = "project_notes.json"
 MAX_NOTES = 40
 MAX_NOTE_CHARS = 300
 
 
 def current_project_key() -> str:
-    try:
-        path = (project().fileName() or "").strip()
-    except Exception:
-        path = ""
-    return os.path.basename(path) or NO_PROJECT_KEY
+    return project_identity(project())
 
 
 def default_root() -> str:
@@ -39,17 +35,12 @@ class NoteStore:
         return os.path.join(self._root, FILE_NAME)
 
     def all_notes(self) -> dict[str, list[str]]:
-        try:
-            with open(self.path(), encoding="utf-8") as handle:
-                loaded = json.load(handle)
-        except (OSError, ValueError):
-            return {}
+        loaded = read_json(self.path())
         return loaded if isinstance(loaded, dict) else {}
 
     def notes(self, project_key: str | None = None) -> list[str]:
         key = project_key or current_project_key()
-        found = self.all_notes().get(key)
-        return [str(item) for item in found] if isinstance(found, list) else []
+        return _notes_for(self.all_notes(), key)
 
     def remember(self, text: str, project_key: str | None = None) -> list[str]:
         note = (text or "").strip()
@@ -59,7 +50,7 @@ class NoteStore:
             raise ValueError(f"A note must stay under {MAX_NOTE_CHARS} characters; this one is {len(note)}.")
         key = project_key or current_project_key()
         stored = self.all_notes()
-        kept = [item for item in stored.get(key, []) if item != note]
+        kept = [item for item in _notes_for(stored, key) if item != note]
         kept.append(note)
         stored[key] = kept[-MAX_NOTES:]
         self._write(stored)
@@ -69,8 +60,9 @@ class NoteStore:
         note = (text or "").strip()
         key = project_key or current_project_key()
         stored = self.all_notes()
-        kept = [item for item in stored.get(key, []) if item != note]
-        if len(kept) == len(stored.get(key, [])):
+        current = _notes_for(stored, key)
+        kept = [item for item in current if item != note]
+        if len(kept) == len(current):
             return False
         stored[key] = kept
         self._write(stored)
@@ -78,8 +70,11 @@ class NoteStore:
 
     def _write(self, payload: dict[str, Any]) -> None:
         try:
-            os.makedirs(self._root, exist_ok=True)
-            with open(self.path(), "w", encoding="utf-8") as handle:
-                json.dump(payload, handle, ensure_ascii=False, indent=1)
+            atomic_write_json(self.path(), payload)
         except OSError as failure:
             QgsMessageLog.logMessage(f"Could not write project notes: {failure}", LOG_TAG, Qgis.Warning)
+
+
+def _notes_for(stored: dict[str, Any], key: str) -> list[str]:
+    found = stored.get(key)
+    return [str(item) for item in found] if isinstance(found, list) else []

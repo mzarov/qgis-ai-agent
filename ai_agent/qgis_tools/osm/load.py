@@ -25,18 +25,19 @@ READABLE = {
     "multilinestrings": "lines",
     "multipolygons": "polygons",
 }
-FOLDER = "ai_agent_osm"
+FOLDER_PREFIX = "ai-agent-osm-"
 LOG_TAG = "AI Agent"
 SUFFIX = ".osm"
 OGR = "ogr"
 
 
 def write_payload(text: str, stem: str) -> str:
-    folder = os.path.join(tempfile.gettempdir(), FOLDER)
-    os.makedirs(folder, exist_ok=True)
+    folder = tempfile.mkdtemp(prefix=FOLDER_PREFIX)
+    os.chmod(folder, 0o700)
     path = os.path.join(folder, f"{_slug(stem)}{SUFFIX}")
     with open(path, "w", encoding="utf-8") as handle:
         handle.write(text)
+    os.chmod(path, 0o600)
     return path
 
 

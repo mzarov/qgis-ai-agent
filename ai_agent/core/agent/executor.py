@@ -14,7 +14,8 @@ QUEUED_NOTE = "The action was added to the plan and runs after the user confirms
 
 class ToolExecutor:
     def run(self, call: ToolCall) -> ToolResult:
-        if get_tool_by_name(call.name) is None:
+        tool = get_tool_by_name(call.name)
+        if tool is None:
             return ToolResult(
                 call=call,
                 ok=False,
@@ -27,17 +28,21 @@ class ToolExecutor:
             payload = execute_tool(call.name, dict(call.arguments))
         except Exception as err:
             QgsMessageLog.logMessage(
-                f"Tool {call.name} failed: {err} | arguments: {call.arguments}",
+                f"Tool {call.name} [{call.id}] failed ({type(err).__name__}).",
                 LOG_TAG,
                 Qgis.Warning,
             )
-            return ToolResult.failure(call, str(err))
-        QgsMessageLog.logMessage(f"Tool {call.name} finished.", LOG_TAG, Qgis.Info)
+            return ToolResult.failure(call, str(err), tool.egress)
         prepared = self._as_dict(payload)
         image = str(prepared.pop(RESULT_IMAGE_KEY, "") or "")
         if image:
             prepared["image_attached"] = True
-        return ToolResult(call=call, ok=True, payload=prepared, image=image)
+        ok = not bool(prepared.get("error"))
+        if ok:
+            QgsMessageLog.logMessage(f"Tool {call.name} finished.", LOG_TAG, Qgis.Info)
+        else:
+            QgsMessageLog.logMessage(f"Tool {call.name} reported a failure.", LOG_TAG, Qgis.Warning)
+        return ToolResult(call=call, ok=ok, payload=prepared, image=image, egress=tool.egress)
 
     @staticmethod
     def queued(call: ToolCall) -> ToolResult:

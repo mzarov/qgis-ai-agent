@@ -1,33 +1,19 @@
 from qgis.core import Qgis, QgsMessageLog
 from qgis.PyQt.QtCore import QObject, pyqtSignal
 
+from ai_agent.core.agent import notices
 from ai_agent.core.agent.batch import WriteBatch
+from ai_agent.core.agent.batch_apply import BatchApplyMixin
+from ai_agent.core.agent.dispatch import DispatchMixin
 from ai_agent.core.agent.executor import ToolExecutor
 from ai_agent.core.agent.journal import record_run
-from ai_agent.core.agent.notices import (
-    APPLY_DECLINED_MESSAGE,
-    APPLY_NOW_WITHOUT_WRITES,
-    BUDGET_REACHED_MESSAGE,
-    INTERJECTION_HEADER,
-    LIMIT_REACHED_MESSAGE,
-)
-from ai_agent.core.agent.prompts import (
-    APPLY_NOW_TOOL,
-    ASK_USER_TOOL,
-    LOAD_SKILL_TOOL,
-    UPDATE_PLAN_TOOL,
-    render_queued_steps,
-    render_task_plan,
-)
+from ai_agent.core.agent.prompts import render_queued_steps, render_task_plan
 from ai_agent.core.agent.request import build_overrides, build_step_request
-from ai_agent.core.agent.skills import load_skill
-from ai_agent.core.agent.transcript import ToolResult, Transcript
+from ai_agent.core.agent.transcript import Transcript
 from ai_agent.core.agent.turn_thread import TurnThreadOwner
 from ai_agent.core.llm.transport import PROTOCOL_JSON, PROTOCOL_NATIVE, ModelTurn, ToolCall
 from ai_agent.core.settings import get_token_budget
-from ai_agent.qgis_tools.base import SAFETY_READ
-from ai_agent.qgis_tools.project.snapshots import take_snapshot
-from ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call
+from ai_agent.qgis_tools.web.http import cancel_active_requests
 from ai_agent.skills.registry import SKILL_REGISTRY
 
 LOG_TAG = "AI Agent"
@@ -35,7 +21,7 @@ MAX_ITERATIONS = 40
 PRELOADED_SKILLS = ("inspect",)
 
 
-class AgentLoop(QObject):
+class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
     tool_started = pyqtSignal(str)
     tool_finished = pyqtSignal(str, bool)
     tool_queued = pyqtSignal(str)
@@ -50,6 +36,7 @@ class AgentLoop(QObject):
     thinking_chunk = pyqtSignal(str)
     applied = pyqtSignal(object)
     stage_applied = pyqtSignal(object)
+    apply_interrupted = pyqtSignal(object)
     journal_written = pyqtSignal(str)
     finished = pyqtSignal(str)
     failed = pyqtSignal(str)
@@ -79,19 +66,22 @@ class AgentLoop(QObject):
         self._verification_round = 0
         self._streamed_thinking = False
         self._question = ""
+        self._stage_call: ToolCall | None = None
+        self._generation = 0
+        self._turn_callbacks: tuple | None = None
+        self._active_apply_call: ToolCall | None = None
         self._prompt = ""
         self._applied_steps = 0
+        self._journal_outcome = ""
+        self._journal_saved = False
 
     @property
     def is_running(self) -> bool:
         return self._turn.is_running
 
     @property
-    def has_pending_writes(self) -> bool:
-        return bool(self._batch)
-
-    def pending_writes(self) -> list[ToolCall]:
-        return self._batch.pending()
+    def endpoint(self) -> str:
+        return str(self._overrides.get("url_override") or "")
 
     @property
     def is_awaiting_answer(self) -> bool:
@@ -111,11 +101,16 @@ class AgentLoop(QObject):
         history: list[dict[str, str]] | None = None,
         verification: bool = False,
         verification_round: int = 0,
-    ) -> None:
+    ) -> bool:
+        if self.is_running or self._batch.is_applying:
+            return False
+        self._generation += 1
         self._transcript = Transcript()
         self._transcript.add_user(prompt)
         self._prompt = prompt
         self._applied_steps = 0
+        self._journal_outcome = ""
+        self._journal_saved = False
         self._history = list(history or [])
         self._is_verification = verification
         self._verification_round = verification_round
@@ -125,6 +120,7 @@ class AgentLoop(QObject):
         self._plan_done = 0
         self._staged = False
         self._question = ""
+        self._stage_call = None
         self._loaded_skills = [name for name in PRELOADED_SKILLS if SKILL_REGISTRY.get(name)]
         self._batch.clear()
         self._iteration = 0
@@ -133,78 +129,66 @@ class AgentLoop(QObject):
         self._overrides = build_overrides()
         self.busy_changed.emit(True)
         self._request_step()
+        return True
 
     def abort(self) -> None:
-        if not self.is_running and not self._batch and not self._question:
-            return
+        was_active = self.is_running or bool(self._batch) or bool(self._question)
+        applying = self._batch.is_applying
+        self._generation += 1
         self._question = ""
+        self._stage_call = None
         self._aborted = True
-        self._turn.detach(self._on_turn, self._fail, self._on_chunk, self._on_thinking)
+        cancel_active_requests()
+        if self._turn_callbacks is not None:
+            self._turn.detach(*self._turn_callbacks)
+            self._turn_callbacks = None
+        else:
+            self._turn.stop()
         self._batch.clear()
+        if not applying:
+            self._write_journal("Run stopped; completed changes remain.")
         self.busy_changed.emit(False)
-        self.aborted.emit()
+        if was_active:
+            self.aborted.emit()
 
     def stop(self) -> None:
+        self._turn_callbacks = None
+        self.abort()
         self._turn.stop()
 
     def interject(self, text: str) -> bool:
         message = (text or "").strip()
         if not message or not self.is_running:
             return False
-        self._transcript.add_user(INTERJECTION_HEADER + message)
+        self._transcript.add_user(notices.INTERJECTION_HEADER + message)
         QgsMessageLog.logMessage("The user interjected mid-run.", LOG_TAG, Qgis.Info)
         return True
 
-    def confirm_pending(self) -> None:
-        if not self._batch:
-            return
-        take_snapshot()
+    def answer(self, text: str) -> bool:
+        reply = (text or "").strip()
+        if not reply or not self._question:
+            return False
+        generation = self._generation
+        self._question = ""
+        self._transcript.add_user(reply)
         self.busy_changed.emit(True)
-        staged = self._staged
-        self._staged = False
-        try:
-            results = self._batch.apply(self._on_apply_start, self._on_apply_finish)
-        finally:
-            if not staged:
-                self.busy_changed.emit(False)
-        self._applied_steps += len(results)
-        QgsMessageLog.logMessage(f"Applied changes: {len(results)}.", LOG_TAG, Qgis.Info)
-        if staged:
-            self.stage_applied.emit(results)
-            self._resume_after_stage(results)
-            return
-        self.applied.emit(results)
-
-    def cancel_pending(self) -> None:
-        staged = self._staged
-        self._staged = False
-        self._batch.clear()
-        if staged:
-            self._complete(APPLY_DECLINED_MESSAGE)
-
-    def _resume_after_stage(self, results: list[ToolResult]) -> None:
-        self._transcript.add_results(results, self._pending_protocol)
-        QgsMessageLog.logMessage("Stage applied, the run continues.", LOG_TAG, Qgis.Info)
-        self._request_step()
-
-    def _on_apply_start(self, call: ToolCall) -> None:
-        self.tool_started.emit(summarize_tool_call(call.name, call.arguments))
-
-    def _on_apply_finish(self, call: ToolCall, result: ToolResult) -> None:
-        self.tool_finished.emit(call.name, result.ok)
+        if self._is_current(generation):
+            self._request_step()
+        return True
 
     @property
     def tokens_spent(self) -> int:
         return self._tokens_spent
 
     def _request_step(self) -> None:
+        generation = self._generation
+        if not self._is_current(generation) or self._batch.is_applying:
+            return
         if self._iteration >= MAX_ITERATIONS:
-            QgsMessageLog.logMessage(f"Reached the limit of {MAX_ITERATIONS} turns.", LOG_TAG, Qgis.Warning)
-            self._complete(LIMIT_REACHED_MESSAGE)
+            self._finish_on_limit(generation)
             return
         if self._token_budget and self._tokens_spent >= self._token_budget:
-            QgsMessageLog.logMessage(f"Token budget hit: {self._tokens_spent}.", LOG_TAG, Qgis.Warning)
-            self._complete(BUDGET_REACHED_MESSAGE)
+            self._finish_on_budget(generation)
             return
         self._iteration += 1
         self._streamed_thinking = False
@@ -218,29 +202,35 @@ class AgentLoop(QObject):
                 self._queued_summaries(),
             )
         except Exception as err:
-            self._fail(str(err))
+            self._fail(str(err), generation)
+            return
+        if not self._is_current(generation):
             return
         self._prompt_protocol = request.protocol
         self._pending_protocol = request.protocol
+        callbacks = (
+            lambda turn, current=generation: self._on_turn(turn, current),
+            lambda message, current=generation: self._fail(message, current),
+            lambda text, current=generation: self._on_chunk(text, current),
+            lambda text, current=generation: self._on_thinking(text, current),
+        )
+        self._turn_callbacks = callbacks
         self._turn.start(
             request.messages,
             request.tool_schemas,
             request.overrides,
-            self._on_turn,
-            self._fail,
-            self._on_chunk,
-            self._on_thinking,
+            *callbacks,
         )
 
     def _queued_summaries(self) -> str:
         return render_queued_steps(self._batch.pending_summaries())
 
-    def _on_chunk(self, text: str) -> None:
-        if not self._aborted and text:
+    def _on_chunk(self, text: str, generation: int | None = None) -> None:
+        if self._is_current(generation) and text:
             self.answer_chunk.emit(text)
 
-    def _on_thinking(self, text: str) -> None:
-        if self._aborted or not text:
+    def _on_thinking(self, text: str, generation: int | None = None) -> None:
+        if not self._is_current(generation) or not text:
             return
         self._streamed_thinking = True
         self.thinking_chunk.emit(text)
@@ -249,122 +239,78 @@ class AgentLoop(QObject):
         if turn.thinking and not self._streamed_thinking:
             self.thinking_chunk.emit(turn.thinking)
 
-    def _on_turn(self, turn: ModelTurn) -> None:
-        if self._aborted:
+    def _on_turn(self, turn: ModelTurn, generation: int | None = None) -> None:
+        generation = self._generation if generation is None else generation
+        if not self._is_current(generation):
             return
         if turn.protocol == PROTOCOL_JSON and self._prompt_protocol == PROTOCOL_NATIVE and not self._protocol_retried:
             self._protocol_retried = True
             self._iteration -= 1
-            self._request_step()
+            if self._is_current(generation):
+                self._request_step()
             return
 
         self._replay_thinking(turn)
+        if not self._is_current(generation):
+            return
         self._track_usage(turn)
+        if not self._is_current(generation):
+            return
         self._transcript.add_turn(turn)
         if not turn.tool_calls:
-            self._complete(turn.text)
+            self._complete(turn.text, generation)
             return
 
         if turn.text.strip():
             self.preamble.emit(turn.text)
-        results = [self._dispatch(call) for call in turn.tool_calls]
+            if not self._is_current(generation):
+                return
+        results = []
+        for call in turn.tool_calls:
+            if not self._is_current(generation):
+                return
+            results.append(self._dispatch(call))
+            if not self._is_current(generation):
+                return
         self._transcript.add_results(results, turn.protocol)
         if self._question:
-            self._pause_for_question()
+            self._pause_for_question(generation)
             return
         if self._staged:
-            self._pause_for_stage("")
+            self._pause_for_stage("", generation)
             return
-        self._request_step()
+        if self._is_current(generation):
+            self._request_step()
 
-    def _pause_for_question(self) -> None:
+    def _pause_for_question(self, generation: int | None = None) -> None:
+        if not self._is_current(generation):
+            return
         self._turn.release()
+        self._turn_callbacks = None
         self.busy_changed.emit(False)
+        if not self._is_current(generation):
+            return
         self.question_asked.emit(self._question)
 
-    def _pause_for_stage(self, text: str) -> None:
+    def _pause_for_stage(self, text: str, generation: int | None = None) -> None:
+        if not self._is_current(generation):
+            return
         self._turn.release()
+        self._turn_callbacks = None
         self.busy_changed.emit(False)
+        if not self._is_current(generation):
+            return
         self.confirm_needed.emit(self._batch.pending(), text)
 
-    def _dispatch(self, call: ToolCall) -> ToolResult:
-        if call.name == LOAD_SKILL_TOOL:
-            return self._load_skill(call)
-        if call.name == UPDATE_PLAN_TOOL:
-            return self._update_plan(call)
-        if call.name == APPLY_NOW_TOOL:
-            return self._request_stage(call)
-        if call.name == ASK_USER_TOOL:
-            return self._take_question(call)
-
-        tool = get_tool_by_name(call.name)
-        if tool is None or tool.safety == SAFETY_READ:
-            return self._run_now(call)
-        return self._queue_write(call)
-
-    def _run_now(self, call: ToolCall) -> ToolResult:
-        self.tool_started.emit(summarize_tool_call(call.name, call.arguments))
-        result = self._executor.run(call)
-        self.tool_finished.emit(call.name, result.ok)
-        return result
-
-    def _queue_write(self, call: ToolCall) -> ToolResult:
-        try:
-            queued = self._batch.add(call)
-        except Exception as err:
-            self.tool_rejected.emit(summarize_tool_call(call.name, call.arguments))
-            QgsMessageLog.logMessage(f"Step {call.name} rejected: {err}", LOG_TAG, Qgis.Warning)
-            return ToolResult.failure(call, str(err))
-        self.tool_queued.emit(summarize_tool_call(queued.name, queued.arguments))
-        return ToolExecutor.queued(queued)
-
-    def _take_question(self, call: ToolCall) -> ToolResult:
-        question = str(call.arguments.get("question") or "").strip()
-        if not question:
-            return ToolResult.failure(call, "The question is empty — say what you need to know.")
-        self._question = question
-        return ToolResult(call=call, ok=True, payload={"status": "waiting_for_user"})
-
-    def answer(self, text: str) -> bool:
-        reply = (text or "").strip()
-        if not reply or not self._question:
-            return False
-        self._question = ""
-        self._transcript.add_user(reply)
-        self.busy_changed.emit(True)
-        self._request_step()
-        return True
-
-    def _request_stage(self, call: ToolCall) -> ToolResult:
-        if not self._batch:
-            return ToolResult.failure(call, APPLY_NOW_WITHOUT_WRITES)
-        self._staged = True
-        return ToolResult(call=call, ok=True, payload={"status": "awaiting_user"})
-
-    def _update_plan(self, call: ToolCall) -> ToolResult:
-        raw_steps = call.arguments.get("steps")
-        if not isinstance(raw_steps, list) or not raw_steps:
-            return ToolResult.failure(call, "steps must be a non-empty list of short strings.")
-        steps = [str(step).strip() for step in raw_steps if str(step).strip()]
-        try:
-            done = max(0, min(len(steps), int(call.arguments.get("done") or 0)))
-        except (TypeError, ValueError):
-            done = 0
-        self._plan_steps = steps
-        self._plan_done = done
-        self.plan_changed.emit(list(steps), done)
-        return ToolResult(call=call, ok=True, payload={"steps": len(steps), "done": done})
-
-    def _load_skill(self, call: ToolCall) -> ToolResult:
-        result, loaded = load_skill(call, self._loaded_skills)
-        if loaded:
-            self.skill_loaded.emit(loaded)
-            QgsMessageLog.logMessage(f"Skill loaded: {loaded}.", LOG_TAG, Qgis.Info)
-        return result
-
-    def _complete(self, text: str) -> None:
+    def _complete(self, text: str, generation: int | None = None) -> None:
+        if not self._is_current(generation):
+            return
+        self._journal_outcome = text
         self._turn.release()
+        self._turn_callbacks = None
         self.busy_changed.emit(False)
+        if not self._is_current(generation):
+            return
         if self._batch:
             self.confirm_needed.emit(self._batch.pending(), text)
         else:
@@ -372,13 +318,14 @@ class AgentLoop(QObject):
             self.finished.emit(text)
 
     def _write_journal(self, outcome: str) -> None:
-        if not self._applied_steps:
+        if not self._applied_steps or self._journal_saved:
             return
         try:
             path = record_run(self._prompt, self._transcript.entries, outcome, self._applied_steps)
         except Exception as err:
             QgsMessageLog.logMessage(f"Journal not written: {err}", LOG_TAG, Qgis.Warning)
             return
+        self._journal_saved = True
         QgsMessageLog.logMessage(f"Run journal: {path}", LOG_TAG, Qgis.Info)
         self.journal_written.emit(path)
 
@@ -389,10 +336,28 @@ class AgentLoop(QObject):
         self._tokens_spent += spent
         self.usage_changed.emit(self._tokens_spent)
 
-    def _fail(self, message: str) -> None:
-        if self._aborted:
+    def _finish_on_limit(self, generation: int | None = None) -> None:
+        QgsMessageLog.logMessage(f"Reached the limit of {MAX_ITERATIONS} turns.", LOG_TAG, Qgis.Warning)
+        self._complete(notices.LIMIT_REACHED_MESSAGE, generation)
+
+    def _finish_on_budget(self, generation: int | None = None) -> None:
+        QgsMessageLog.logMessage(
+            f"Token budget hit: {self._tokens_spent} of {self._token_budget}.", LOG_TAG, Qgis.Warning
+        )
+        self._complete(notices.BUDGET_REACHED_MESSAGE, generation)
+
+    def _fail(self, message: str, generation: int | None = None) -> None:
+        if not self._is_current(generation):
             return
         self._turn.release()
+        self._turn_callbacks = None
+        self._stage_call = None
         self._batch.clear()
         self.busy_changed.emit(False)
+        if not self._is_current(generation):
+            return
+        self._write_journal(f"Run failed: {message}")
         self.failed.emit(message)
+
+    def _is_current(self, generation: int | None) -> bool:
+        return not self._aborted and (generation is None or generation == self._generation)

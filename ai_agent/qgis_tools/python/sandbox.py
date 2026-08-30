@@ -9,8 +9,8 @@ MAX_LINES = 200000
 MAX_OUTPUT_CHARS = 4000
 TRUNCATION_NOTE = "… (output truncated)"
 BUDGET_MESSAGE = (
-    "The snippet ran past {limit} executed lines and was stopped. It is most "
-    "likely an endless loop — rewrite it without one."
+    "The snippet exceeded the best-effort budget of {limit} traced Python lines in the current "
+    "thread and was interrupted. This limits runaway Python work; it is not a security sandbox."
 )
 
 
@@ -73,7 +73,8 @@ def run_snippet(code: str, limit: int = MAX_LINES) -> dict[str, Any]:
     except BudgetExceeded as stopped:
         return _result(stream, budget, error=str(stopped), traceback_text="")
     except BaseException as failure:
-        return _result(stream, budget, error=str(failure), traceback_text=_short_traceback())
+        error = str(failure).strip() or type(failure).__name__
+        return _result(stream, budget, error=error, traceback_text=_short_traceback())
     return _result(stream, budget)
 
 

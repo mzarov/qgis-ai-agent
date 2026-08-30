@@ -16,7 +16,8 @@ poetry run pre-commit install
 The pre-commit hook runs `ruff check --fix` and `ruff format` on every commit —
 style and import order are not review topics here, the machine owns them.
 
-Run the suite (no QGIS needed — `tests/stub.py` fakes the `qgis` modules):
+Run the fast unit suite (`tests/stub.py` supplies QGIS stand-ins when PyQGIS is
+not installed):
 
 ```bash
 python3 -m unittest discover -s tests -t .
@@ -27,9 +28,10 @@ For a development install into live QGIS see [docs/SETUP.md](docs/SETUP.md).
 ## The mental model
 
 The plugin is an agent loop on the Qt main thread. The model calls tools, sees
-the results, decides the next step. Reading tools execute immediately; writing
-tools queue into a batch the user confirms with one button. Domains are
-packaged as skills and load progressively. The full picture is in
+the results, decides the next step. Local reading tools execute immediately;
+network reads and writes queue into a batch the user confirms. A web-only batch
+does not take a project snapshot. Domains are packaged as skills and load
+progressively. The full picture is in
 [docs/core_architecture.md](docs/core_architecture.md).
 
 ```
@@ -62,8 +64,12 @@ The domain-specific ones:
 
 - GUI imports only through `qgis.PyQt`; never `PyQt5`/`PyQt6` directly, no
   `.ui` files.
-- All HTTP through `QgsBlockingNetworkRequest` — the QGIS plugin repository
-  requires it, and it keeps the UI responsive.
+- All HTTP stays on the QGIS network stack — never `requests`. Ordinary calls
+  use `QgsBlockingNetworkRequest`; streaming and web redirects use
+  `QgsNetworkAccessManager` with a nested event loop. Web DNS answers must all
+  be public; one validated IP is pinned while TLS verifies the approved host.
+  Only manually validated, same-origin redirects are followed, and a proxy-route
+  mismatch fails closed.
 - PyQGIS and Qt objects are touched from the main thread only. Never move tool
   execution into a background thread.
 - New dependencies are a last resort: the plugin runs inside the QGIS Python,
@@ -77,7 +83,8 @@ The domain-specific ones:
 ## Adding a tool or a domain
 
 1. `ai_agent/qgis_tools/<domain>/` — one `BaseTool` subclass per file,
-   with `skill`, `safety`, `params_schema`.
+   with `skill`, `safety`, `params_schema`, and `network_access = True` when it
+   contacts an external service.
 2. `ai_agent/skills/<domain>/SKILL.md` — the domain rules; the `tools`
    list must match the registry.
 3. One line in `qgis_tools/registry.py`.
@@ -112,4 +119,21 @@ Preview locally with `pip install mkdocs-material mkdocs-static-i18n` and
       [docs/smoke_checklist.md](docs/smoke_checklist.md)
 
 CI repeats the suite on Python 3.12–3.14, runs ruff, and runs the same
-scanners the QGIS plugin repository applies (bandit, detect-secrets).
+scanners the QGIS plugin repository applies (bandit, detect-secrets). A separate
+job runs the import, icon, project-identity and registry smoke checks in the
+official QGIS 4 container.
+
+## Making a release
+
+1. Confirm that the display name and Python package identifier are not already
+   owned in the official QGIS plugin repository.
+2. Update the version in both `metadata.txt` and `pyproject.toml`, and write a
+   user-facing changelog entry.
+3. Run the full unit, lint, scanner, package and live-QGIS checks. Inspect the
+   ZIP and confirm it has one `ai_agent/` top-level folder.
+4. Build twice from the same source and compare SHA-256 hashes. The build uses a
+   fixed manifest, timestamps and permissions, so the archives must match.
+5. Tag that exact commit, create a GitHub Release and attach the generated plugin
+   ZIP rather than a GitHub “Source code” archive. Publish its SHA-256 checksum.
+6. Upload the same ZIP to the QGIS repository only after the GitHub release and
+   install it once into a clean QGIS profile.

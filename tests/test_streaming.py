@@ -2,9 +2,10 @@ import json
 import pathlib
 import unittest
 
-from ai_agent.core.llm import transport
+from ai_agent.core.llm import transport, worker
 from ai_agent.core.llm.client import ApiResponseError
 from ai_agent.core.llm.stream import SseAccumulator, consume
+from ai_agent.core.llm.transport import ModelTurn, _openai_options
 
 SCHEMAS = [{"type": "function", "function": {"name": "list_layers", "parameters": {}}}]
 URL = "https://api.example/v1"
@@ -134,10 +135,10 @@ class StreamingDispatchTest(unittest.TestCase):
             "build": transport.build_request,
         }
         self.supported = None
-        transport.get_supports_streaming = lambda url: self.supported
-        transport.set_supports_streaming = lambda url, value: self.flags.append(value)
-        transport.set_supports_tools = lambda url, value: None
-        transport.get_supports_tools = lambda url: None
+        transport.get_supports_streaming = lambda url, model=None, dialect=None: self.supported
+        transport.set_supports_streaming = lambda url, value, model=None, dialect=None: self.flags.append(value)
+        transport.set_supports_tools = lambda url, value, model=None, dialect=None: None
+        transport.get_supports_tools = lambda url, model=None, dialect=None: None
         transport.build_request = lambda *args: ("https://api.example/v1/chat/completions", {}, "model-x")
         transport.post_chat_completion = lambda *args, **kwargs: {"choices": [{"message": {"content": "not streamed"}}]}
 
@@ -238,6 +239,18 @@ class StreamingDispatchTest(unittest.TestCase):
         transport._dispatch([], SCHEMAS, {"verify_override": False}, 10, URL, lambda text: None)
         self.assertEqual(seen, [False])
 
+    def test_capability_lookup_includes_endpoint_model_and_resolved_dialect(self):
+        seen = []
+        transport.get_supports_tools = lambda *scope: seen.append(scope) or False
+        transport._dispatch(
+            [],
+            SCHEMAS,
+            {"model_override": "model-b", "dialect_override": "openai"},
+            10,
+            URL,
+        )
+        self.assertEqual(seen, [(URL, "model-b", "openai")])
+
 
 class StreamRunnerSourceTest(unittest.TestCase):
     SOURCE = (pathlib.Path(__file__).parent.parent / "ai_agent/core/llm/stream_runner.py").read_text()
@@ -254,6 +267,67 @@ class StreamRunnerSourceTest(unittest.TestCase):
 
     def test_the_watchdog_restarts_on_every_incoming_chunk(self):
         self.assertIn("reply.readyRead.connect(watchdog.start)", self.SOURCE)
+
+    def test_external_feedback_can_abort_the_reply(self):
+        self.assertIn(
+            "feedback.canceled.connect(cancellation.cancel, _queued_connection())",
+            self.SOURCE,
+        )
+        self.assertIn("reply.abort()", self.SOURCE)
+
+    def test_stream_request_gets_the_configured_timeout(self):
+        call = "build_network_request(endpoint, {**headers, **ACCEPT_HEADER}, verify_override, timeout)"
+        self.assertIn(call, self.SOURCE)
+
+
+class ProviderRequestOptionsTest(unittest.TestCase):
+    def test_deepseek_tools_disable_thinking_and_omit_tool_choice(self):
+        options = _openai_options("https://api.deepseek.com/v1", SCHEMAS)
+        self.assertEqual(options["thinking"], {"type": "disabled"})
+        self.assertEqual(options["tools"], SCHEMAS)
+        self.assertNotIn("tool_choice", options)
+
+    def test_deepseek_json_protocol_also_disables_thinking(self):
+        self.assertEqual(
+            _openai_options("https://api.deepseek.com/v1"),
+            {"thinking": {"type": "disabled"}},
+        )
+
+    def test_other_openai_compatible_hosts_keep_auto_tool_choice(self):
+        options = _openai_options("https://api.openai.com/v1", SCHEMAS)
+        self.assertEqual(options["tool_choice"], "auto")
+        self.assertNotIn("thinking", options)
+
+
+class ModelWorkerCancellationTest(unittest.TestCase):
+    def setUp(self):
+        self.saved = worker.call_model
+        self.addCleanup(lambda: setattr(worker, "call_model", self.saved))
+
+    def test_every_agent_request_gets_cancellable_feedback(self):
+        seen = {}
+
+        def fake(messages, schemas, overrides=None, **options):
+            seen.update(overrides or {})
+            return ModelTurn(text="done")
+
+        worker.call_model = fake
+        thread = worker.ModelTurnThread([], [], {"model_override": "model"})
+        thread.run()
+        self.assertIn("feedback_override", seen)
+        self.assertEqual(seen["model_override"], "model")
+
+    def test_cancel_marks_network_feedback_as_cancelled(self):
+        thread = worker.ModelTurnThread([], [], {})
+        thread.cancel()
+        self.assertTrue(thread._feedback.isCanceled())
+
+    def test_owner_never_uses_unsafe_qthread_termination(self):
+        source = (pathlib.Path(__file__).parent.parent / "ai_agent/core/agent/turn_thread.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn(".terminate()", source)
+        self.assertIn("self._retired", source)
 
 
 if __name__ == "__main__":

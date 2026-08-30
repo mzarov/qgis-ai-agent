@@ -10,6 +10,7 @@ class DescribeLayerTool(BaseTool):
     description = "..."                # English, goes into the schema for the model
     skill = "inspect"                  # domain: which skill loads this tool
     safety = SAFETY_READ               # read | write | destructive
+    network_access = False             # true when execute contacts a service
     constraints = ["The layer must exist"]
     examples = ["Which fields does the roads layer have?"]
     params_schema = [
@@ -35,8 +36,11 @@ the schema by hand. Supported `type`s: `string`, `number`, `integer`, `boolean`,
 1. **`skill` and `safety` are mandatory.** Without `skill` the tool lands in no
    set. The `safety` default is `write` — a reading tool sets `SAFETY_READ`
    explicitly.
-2. **`read` has no right to change anything.** It runs without the user's
-   confirmation. Any mutation of the project is `write`, however harmless.
+2. **`read` has no right to change anything.** A local read runs without the
+   user's confirmation. A read that contacts a service must declare
+   `network_access = True`; it queues for exact per-call confirmation but does
+   not need a project snapshot. Any mutation of the project is `write`, however
+   harmless.
 3. **`summarize_call` has no right to crash.** The loop calls it on the error
    path too: if it throws on malformed arguments, error handling itself breaks,
    not just one line in the feed. Wrap anything that may fail to parse in `try`

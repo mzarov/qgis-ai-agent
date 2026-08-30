@@ -119,6 +119,10 @@ class AddFieldTest(FieldsTestBase):
         self.assertNotEqual(plain, virtual)
         self.assertTrue(self.tool.summarize_call({}).strip())
 
+    def test_plain_fields_are_external_but_virtual_fields_are_project_only(self):
+        self.assertTrue(self.tool.has_external_effect({"name": "status"}))
+        self.assertFalse(self.tool.has_external_effect({"name": "area", "expression": "$area"}))
+
 
 class RenameDeleteFieldTest(FieldsTestBase):
     def test_rename_requires_an_existing_field(self):
@@ -132,6 +136,7 @@ class RenameDeleteFieldTest(FieldsTestBase):
 
     def test_delete_is_destructive(self):
         self.assertEqual(DeleteFieldTool().safety, SAFETY_DESTRUCTIVE)
+        self.assertTrue(DeleteFieldTool().external_effect)
 
     def test_the_last_field_cannot_be_deleted(self):
         self.layer._fields = Fields(["only"])

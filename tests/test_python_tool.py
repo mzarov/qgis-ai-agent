@@ -1,8 +1,22 @@
+import pathlib
 import unittest
 
+from ai_agent.core.agent.executor import ToolExecutor
+from ai_agent.core.llm.transport import ToolCall
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
-from ai_agent.qgis_tools.python.run_python import MAX_CODE_CHARS, RunPythonTool, _checked_code
+from ai_agent.qgis_tools.python.run_python import (
+    MAX_CODE_CHARS,
+    MAX_INTENT_CHARS,
+    RunPythonTool,
+    _checked_code,
+    _checked_intent,
+)
 from ai_agent.qgis_tools.python.sandbox import BudgetExceeded, LineBudget, run_snippet
+from ai_agent.ui.dock_widget import _destructive_confirmation_text
+
+DOCK_SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "dock_widget.py").read_text(
+    encoding="utf-8"
+)
 
 
 class CheckedCodeTest(unittest.TestCase):
@@ -25,10 +39,26 @@ class CheckedCodeTest(unittest.TestCase):
         self.assertEqual(_checked_code(" print(1) "), "print(1)")
 
 
+class CheckedIntentTest(unittest.TestCase):
+    def test_rich_text_markers_remain_literal_plain_text(self):
+        intent = "<style>* { color: transparent; }</style> inspect the project"
+        self.assertEqual(_checked_intent(intent), intent)
+
+    def test_control_and_formatting_characters_are_refused(self):
+        for intent in ("first\nsecond", "first\tsecond", "safe\u202eevil"):
+            with self.subTest(intent=repr(intent)), self.assertRaisesRegex(ValueError, "plain-text line"):
+                _checked_intent(intent)
+
+    def test_oversized_intent_is_refused(self):
+        with self.assertRaisesRegex(ValueError, str(MAX_INTENT_CHARS)):
+            _checked_intent("x" * (MAX_INTENT_CHARS + 1))
+
+
 class BudgetTest(unittest.TestCase):
     def test_a_loop_is_stopped_by_the_budget(self):
         result = run_snippet("while True:\n    pass\n", limit=500)
-        self.assertIn("endless loop", result["error"])
+        self.assertIn("best-effort budget", result["error"])
+        self.assertIn("not a security sandbox", result["error"])
         self.assertGreaterEqual(result["lines_executed"], 500)
 
     def test_the_budget_restores_the_previous_tracer(self):
@@ -62,6 +92,10 @@ class RunSnippetTest(unittest.TestCase):
         self.assertIn("boom", result["error"])
         self.assertIn("ValueError", result["traceback"])
 
+    def test_exception_with_an_empty_message_is_still_a_failure(self):
+        result = run_snippet("raise RuntimeError()")
+        self.assertEqual(result["error"], "RuntimeError")
+
     def test_long_output_is_truncated(self):
         result = run_snippet("print('x' * 20000)")
         self.assertLess(len(result["output"]), 20000)
@@ -92,6 +126,11 @@ class ToolTest(unittest.TestCase):
     def test_prepare_accepts_a_documented_snippet(self):
         prepared = self.tool.prepare({"code": "print(1)", "intent": "check something"})
         self.assertEqual(prepared["code"], "print(1)")
+        self.assertEqual(prepared["intent"], "check something")
+
+    def test_execute_revalidates_intent_fail_closed(self):
+        with self.assertRaisesRegex(ValueError, "plain-text line"):
+            self.tool.execute({"code": "print('unsafe')", "intent": "hidden\u202etext"})
 
     def test_summary_shows_the_intent_and_never_raises(self):
         self.assertIn("check the CRS", self.tool.summarize_call({"intent": "check the CRS"}))
@@ -104,6 +143,37 @@ class ToolTest(unittest.TestCase):
         result = self.tool.execute({"code": "print('ok')", "intent": "smoke"})
         self.assertEqual(result["intent"], "smoke")
         self.assertIn("ok", result["output"])
+
+    def test_description_does_not_promise_a_security_sandbox(self):
+        self.assertIn("not a security sandbox", self.tool.build_description())
+
+    def test_runtime_error_is_a_failed_tool_result_with_context(self):
+        result = ToolExecutor().run(
+            ToolCall(
+                id="python_1",
+                name="run_python",
+                arguments={"code": "print('before')\nraise RuntimeError('boom')", "intent": "test failure"},
+            )
+        )
+        self.assertFalse(result.ok)
+        self.assertIn("before", result.payload["output"])
+        self.assertIn("boom", result.payload["error"])
+
+    def test_exact_code_is_in_the_always_visible_confirmation_text(self):
+        code = "print('<exact>')\nproject.clear()"
+        text = _destructive_confirmation_text(["Running Python: smoke"], code)
+        self.assertIn("Exact code to be executed", text)
+        self.assertIn(code, text)
+
+    def test_code_confirmation_uses_a_permanently_visible_fixed_font_editor(self):
+        body = DOCK_SOURCE.split("def _confirm_code(")[1].split("\ndef ")[0]
+        self.assertIn("QPlainTextEdit", body)
+        self.assertIn("setReadOnly(True)", body)
+        self.assertIn("SystemFont.FixedFont", body)
+        self.assertIn("setMinimumHeight", body)
+        self.assertIn("summary.setTextFormat(Qt.TextFormat.PlainText)", body)
+        self.assertIn("code_title.setTextFormat(Qt.TextFormat.PlainText)", body)
+        self.assertIn("question.setTextFormat(Qt.TextFormat.PlainText)", body)
 
 
 if __name__ == "__main__":

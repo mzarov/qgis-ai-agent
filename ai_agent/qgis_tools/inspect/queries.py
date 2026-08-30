@@ -1,5 +1,7 @@
 from typing import Any
 
+from qgis.core import QgsFeatureRequest
+
 from ai_agent.qgis_tools.common.expressions import (
     evaluate,
     parse_order_by,
@@ -69,24 +71,50 @@ def run_rows(layer, request, context, params) -> dict[str, Any]:
     order_expression = prepared(order_text, "order_by", context, layer) if order_text else None
     limit = clamp_limit(params.get("limit"), DEFAULT_ROW_LIMIT, MAX_ROW_LIMIT)
     slots = _field_slots(layer, wanted_fields(layer, params.get("fields")))
+    provider_ordered = _bound_request(request, order_text, ascending, limit, slots, layer)
+    bounded = not order_text or provider_ordered
 
     collected = []
     for feature in layer.getFeatures(request):
         if len(collected) >= MAX_SCAN:
             raise ValueError(SCAN_LIMIT_MESSAGE.format(limit=MAX_SCAN))
-        key = evaluate(order_expression, context, feature) if order_expression else None
+        key = evaluate(order_expression, context, feature) if order_expression and not provider_ordered else None
         collected.append((key, _attributes(feature, slots)))
 
-    if order_expression is not None:
+    if order_expression is not None and not provider_ordered:
         collected.sort(key=lambda item: sort_key(item[0]), reverse=not ascending)
+    has_more = bounded and len(collected) > limit
     info: dict[str, Any] = {
         "matched": len(collected),
         "shown": min(limit, len(collected)),
         "features": [attributes for _, attributes in collected[:limit]],
     }
+    if has_more:
+        info["matched_is_lower_bound"] = True
+        info["has_more"] = True
+        info["note"] = f"More than {limit} features match; use aggregate=count for an exact total."
     if order_text:
         info["order_by"] = f"{order_text} {'ASC' if ascending else 'DESC'}"
     return info
+
+
+def _bound_request(request, order_text: str, ascending: bool, limit: int, slots, layer) -> bool:
+    provider_ordered = False
+    if order_text:
+        try:
+            clause = QgsFeatureRequest.OrderByClause(order_text, ascending)
+            request.setOrderBy(QgsFeatureRequest.OrderBy([clause]))
+            provider_ordered = True
+        except (AttributeError, TypeError, ValueError):
+            provider_ordered = False
+    if not order_text or provider_ordered:
+        request.setLimit(limit + 1)
+        if slots and not order_text:
+            try:
+                request.setSubsetOfAttributes([index for _, index in slots], layer.fields())
+            except (AttributeError, TypeError, ValueError):
+                pass
+    return provider_ordered
 
 
 def _build_groups(aggregate: str, groups: dict[Any, list[Any]]) -> list[dict[str, Any]]:

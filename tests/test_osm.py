@@ -1,5 +1,9 @@
+import os
 import pathlib
+import stat
+import tempfile
 import unittest
+from unittest import mock
 
 from ai_agent.qgis_tools.osm import download_osm, extent, load, overpass, run_overpass, selectors, tags
 from ai_agent.qgis_tools.osm.run_overpass import RunOverpassTool
@@ -267,6 +271,24 @@ class CountTest(unittest.TestCase):
 
     def test_broken_layer_counts_as_empty(self):
         self.assertEqual(load._count(_Broken()), 0)
+
+
+class PayloadIsolationTest(unittest.TestCase):
+    def test_repeated_names_get_distinct_private_folders(self):
+        with tempfile.TemporaryDirectory() as root:
+            folders = [os.path.join(root, name) for name in ("first", "second")]
+            for folder in folders:
+                os.mkdir(folder)
+            with mock.patch.object(load.tempfile, "mkdtemp", side_effect=folders):
+                first = load.write_payload("<osm/>", "cafes")
+                second = load.write_payload("<osm/>", "cafes")
+
+            self.assertNotEqual(first, second)
+            self.assertNotEqual(os.path.dirname(first), os.path.dirname(second))
+            self.assertEqual(pathlib.Path(first).read_text(encoding="utf-8"), "<osm/>")
+            if os.name != "nt":
+                self.assertEqual(stat.S_IMODE(os.stat(first).st_mode), 0o600)
+                self.assertEqual(stat.S_IMODE(os.stat(os.path.dirname(first)).st_mode), 0o700)
 
 
 class SublayerTest(unittest.TestCase):

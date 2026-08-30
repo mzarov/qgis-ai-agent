@@ -1,3 +1,4 @@
+from qgis.core import QgsFeedback
 from qgis.PyQt.QtCore import QThread, pyqtSignal
 
 from ai_agent.core.llm.client import DEFAULT_TIMEOUT
@@ -14,8 +15,14 @@ class ModelTurnThread(QThread):
         super().__init__(parent)
         self._messages = messages
         self._tool_schemas = tool_schemas
-        self._overrides = overrides or {}
+        self._overrides = dict(overrides or {})
+        self._feedback = QgsFeedback()
+        self._overrides["feedback_override"] = self._feedback
         self._timeout = timeout
+
+    def cancel(self) -> None:
+        self.requestInterruption()
+        self._feedback.cancel()
 
     def _emit_chunk(self, text: str) -> None:
         if not self.isInterruptionRequested():

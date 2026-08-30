@@ -16,7 +16,12 @@ def describe_capabilities() -> list[dict[str, Any]]:
                 "name": skill.name,
                 "description": skill.description,
                 "tools": [
-                    {"name": tool.name, "safety": tool.safety, "description": tool.description}
+                    {
+                        "name": tool.name,
+                        "safety": tool.safety,
+                        "network_access": bool(getattr(tool, "network_access", False)),
+                        "description": tool.description,
+                    }
                     for tool in sorted(tools, key=lambda item: item.name)
                 ],
             }
