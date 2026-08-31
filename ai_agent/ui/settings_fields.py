@@ -214,11 +214,10 @@ def _caption(title: str, note: str, palette: Any) -> QWidget:
     line.setSpacing(HELP_GAP)
     label = QLabel(title)
     label.setWordWrap(True)
-    line.addWidget(label)
+    line.addWidget(label, 1)
     box.help = help_mark(note, palette) if note else None
     if box.help is not None:
         line.addWidget(box.help, 0, Qt.AlignmentFlag.AlignVCenter)
-    line.addStretch(1)
     return box
 
 

@@ -164,6 +164,11 @@ class SidebarSettingsTest(unittest.TestCase):
         self.assertIn("help_mark(note, palette)", caption)
         self.assertNotIn("hint(note", caption)
 
+    def test_titles_take_the_free_width_instead_of_wrapping_early(self):
+        caption = SOURCE.split("def _caption(")[1].split("\ndef ")[0]
+        self.assertIn("line.addWidget(label, 1)", caption)
+        self.assertNotIn("addStretch", caption)
+
     def test_dynamic_geocoder_hint_reaches_the_help_mark(self):
         self.assertIn("self.url_field.help.setToolTip(hint)", GEOCODER_SOURCE)
 

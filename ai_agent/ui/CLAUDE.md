@@ -199,7 +199,11 @@ call, and they were right). The safety-critical explanation of the sensitive
 switch is not lost to the tooltip: the per-endpoint consent dialog spells out
 the same boundary before the first request is ever sent. The geocoder's hint
 changes with the chosen provider, so its row keeps a reference to the mark
-and rewrites the tooltip.
+and rewrites the tooltip. Inside the caption the title label owns the
+stretch — a word-wrapping `QLabel` next to an `addStretch` gets squeezed to
+its minimum and wraps with half the row empty; giving the label the stretch
+makes wrapping happen only when the window is genuinely narrow, and lines
+the "?" marks up in one column before the controls.
 
 Pages scroll individually (`scrollable()`), with the viewport forced
 transparent so the window surface shows through — a `QScrollArea` left to
