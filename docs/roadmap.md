@@ -13,8 +13,8 @@ the claims still mark out territory users expect an agent to cover.
 ## First-release blocker resolved
 
 1. **Done — renamed to `ai_agent`.** The distinct package and catalogue id avoid
-   the existing `qgis_ai_agent` listing. The version remains 0.0.1 for the
-   initial release.
+   the existing `qgis_ai_agent` listing. The first public submission is 0.1.0,
+   non-experimental.
 
 ## Shipped 2026-08-29
 
