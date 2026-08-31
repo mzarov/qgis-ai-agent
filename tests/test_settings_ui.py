@@ -164,12 +164,11 @@ class SidebarSettingsTest(unittest.TestCase):
         self.assertIn("help_mark(note, palette)", caption)
         self.assertNotIn("hint(note", caption)
 
-    def test_the_mark_answers_a_click_not_only_a_patient_hover(self):
+    def test_the_mark_is_a_hover_hint_not_a_button(self):
         mark = SOURCE.split("def help_mark(")[1].split("\ndef ")[0]
-        self.assertIn("mark.clicked.connect", mark)
-        shower = SOURCE.split("def _show_help(")[1].split("\ndef ")[0]
-        self.assertIn("QToolTip.showText", shower)
-        self.assertIn("mark.toolTip()", shower)
+        self.assertIn('QLabel("?")', mark)
+        self.assertNotIn("clicked", mark)
+        self.assertNotIn("QToolButton", mark)
 
     def test_long_explanations_wrap_instead_of_crossing_the_screen(self):
         body = SOURCE.split("def rich_tooltip(")[1].split("\ndef ")[0]

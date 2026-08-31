@@ -10,8 +10,6 @@ from qgis.PyQt.QtWidgets import (
     QLabel,
     QPushButton,
     QStackedWidget,
-    QToolButton,
-    QToolTip,
     QVBoxLayout,
     QWidget,
 )
@@ -197,28 +195,22 @@ def rich_tooltip(note: str) -> str:
     return f"<qt>{note}</qt>"
 
 
-def _show_help(mark: QToolButton) -> None:
-    QToolTip.showText(mark.mapToGlobal(mark.rect().center()), mark.toolTip(), mark)
-
-
-def help_mark(note: str, palette: Any) -> QToolButton:
-    mark = QToolButton()
-    mark.setText("?")
+def help_mark(note: str, palette: Any) -> QLabel:
+    mark = QLabel("?")
     mark.setToolTip(rich_tooltip(note))
-    mark.setCursor(Qt.CursorShape.WhatsThisCursor)
+    mark.setAlignment(Qt.AlignmentFlag.AlignCenter)
     mark.setFixedSize(HELP_SIZE, HELP_SIZE)
     font = mark.font()
     font.setPointSizeF(max(1.0, font.pointSizeF() * HINT_SCALE))
     mark.setFont(font)
     mark.setStyleSheet(
-        "QToolButton { background: transparent;"
+        "QLabel {"
         f"color: {style.css_color(style.muted(palette))};"
         f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
         f"border-radius: {HELP_SIZE // 2}px; }}"
-        f"QToolButton:hover {{ color: {style.css_color(style.text(palette))};"
+        f"QLabel:hover {{ color: {style.css_color(style.text(palette))};"
         f"border-color: {style.css_color(style.muted(palette))}; }}"
     )
-    mark.clicked.connect(lambda _checked=False, target=mark: _show_help(target))
     return mark
 
 

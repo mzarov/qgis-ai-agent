@@ -453,7 +453,6 @@ _mod(
         "QMessageBox",
         "QDialogButtonBox",
         "QToolButton",
-        "QToolTip",
         "QScrollArea",
         "QTextBrowser",
         "QFrame",

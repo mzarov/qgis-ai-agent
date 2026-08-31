@@ -195,9 +195,9 @@ palette-driven `QPainter`, no image assets.
 
 Descriptions live behind a small "?" mark right after the title — a page of
 stacked explanatory paragraphs read as a wall of text (the user's call, and
-they were right). The mark is a `QToolButton`, not a label: hover shows the
-tooltip, and a **click shows it immediately** via `QToolTip.showText` — a
-hover-only affordance on something that looks like a button reads as broken.
+they were right). The mark is a plain `QLabel` that shows its tooltip on
+hover — it was briefly a click-to-show button, and the user rejected that:
+hover is the whole interaction, a mark that reacts to clicks overpromises.
 Tooltip text goes through `rich_tooltip()` (a `<qt>` wrapper), otherwise Qt
 renders plain-text tooltips as one endless unwrapped line. The
 safety-critical explanation of the sensitive switch is not lost to the
