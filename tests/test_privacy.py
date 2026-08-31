@@ -23,6 +23,42 @@ from ai_agent.qgis_tools.web.search_web import SearchWebTool
 from ai_agent.ui import dock_widget
 
 
+class MessageBoxProbe:
+    latest = None
+
+    class Icon:
+        Question = 1
+
+    class StandardButton:
+        Yes = 1
+        No = 2
+
+    def __init__(self, *_args):
+        self.default_button = None
+        MessageBoxProbe.latest = self
+
+    def setIcon(self, _icon):
+        pass
+
+    def setWindowTitle(self, _title):
+        pass
+
+    def setTextFormat(self, _text_format):
+        pass
+
+    def setText(self, _text):
+        pass
+
+    def setStandardButtons(self, _buttons):
+        pass
+
+    def setDefaultButton(self, button):
+        self.default_button = button
+
+    def exec(self):
+        return self.StandardButton.No
+
+
 class PrivacyClassificationTest(unittest.TestCase):
     def test_metadata_tools_remain_available_in_privacy_mode(self):
         self.assertEqual(ListLayersTool().egress, EGRESS_METADATA)
@@ -67,10 +103,17 @@ class PrivacyClassificationTest(unittest.TestCase):
     def test_malformed_port_does_not_break_the_consent_prompt(self):
         self.assertEqual(privacy.endpoint_label("https://example.com:not-a-port/v1"), "https://example.com")
 
-    def test_prompts_reach_the_model_without_a_consent_gate(self):
-        dock_source = pathlib.Path(dock_widget.__file__).read_text(encoding="utf-8")
-        self.assertNotIn("confirm_data_sharing", dock_source)
+    def test_the_request_builder_itself_has_no_consent_gate(self):
         self.assertNotIn("data_sharing", pathlib.Path(request_module.__file__).read_text(encoding="utf-8"))
+
+    def test_first_send_dialog_defaults_to_yes_so_enter_sends(self):
+        saved = dock_widget.QMessageBox
+        dock_widget.QMessageBox = MessageBoxProbe
+        try:
+            dock_widget.AgentDockWidget.confirm_data_sharing(None, "https://provider.example")
+        finally:
+            dock_widget.QMessageBox = saved
+        self.assertEqual(MessageBoxProbe.latest.default_button, MessageBoxProbe.StandardButton.Yes)
 
 
 class PrivacyEnforcementTest(unittest.TestCase):

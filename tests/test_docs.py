@@ -88,14 +88,13 @@ class PublishedClaimsTest(unittest.TestCase):
             self.assertIn(attribute_word, text)
             self.assertIn("png", text)
 
-    def test_privacy_pages_say_sending_is_the_decision(self):
+    def test_privacy_pages_describe_the_one_time_confirmation(self):
         english = " ".join((DOCS / "privacy.md").read_text(encoding="utf-8").lower().split())
         russian = " ".join((DOCS / "privacy.ru.md").read_text(encoding="utf-8").lower().split())
-        self.assertIn("no separate consent dialog", english)
-        self.assertIn("pressing send is the decision", english)
-        self.assertNotIn("first agent run", english)
-        self.assertIn("отдельного диалога согласия нет", russian)
-        self.assertIn("и есть решение", russian)
+        self.assertIn("remembered for that endpoint", english)
+        self.assertIn("declining cancels just that send", english)
+        self.assertIn("запоминается для этого эндпоинта", russian)
+        self.assertIn("отменяет только эту отправку", russian)
 
     def test_privacy_pages_disclose_the_plaintext_run_journal(self):
         english = " ".join((DOCS / "privacy.md").read_text(encoding="utf-8").lower().split())

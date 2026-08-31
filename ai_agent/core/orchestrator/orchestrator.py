@@ -4,6 +4,7 @@ from qgis.core import Qgis, QgsMessageLog
 
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.prompts import build_verification_prompt
+from ai_agent.core.llm.client import is_local
 from ai_agent.core.orchestrator.contracts import DockWidgetContract
 from ai_agent.core.orchestrator.planning import destructive_lines, plan_line
 from ai_agent.core.orchestrator.presentation import compact_number, interrupted_outcome, is_configured, where_to_look
@@ -13,8 +14,12 @@ from ai_agent.core.orchestrator.project_lifecycle import (
     ProjectLifecycleMixin,
 )
 from ai_agent.core.orchestrator.scope import conversation_scope
+from ai_agent.core.privacy import endpoint_label
 from ai_agent.core.settings import (
+    get_api_url,
+    get_data_sharing_consent,
     get_verify_after_apply,
+    set_data_sharing_consent,
 )
 from ai_agent.core.state.conversation import ConversationState
 from ai_agent.i18n import tr, tr_n
@@ -32,6 +37,7 @@ DESTRUCTIVE_DECLINED = tr("Kept everything as it was — the destructive steps w
 INTERJECTED = tr("Passed to the agent — it will take this into account on its next step.")
 PLAN_DROPPED = tr("The planned changes were dropped — they were not applied. Starting over from your message.")
 AWAITING_ANSWER = tr("Waiting for your answer — the run continues from it.")
+DATA_SHARING_DECLINED = tr("Request not sent.")
 TOKENS_LABEL = tr("{0} tokens")
 __all__ = ("CoreOrchestrator", "PREVIOUS_APPLY_INTERRUPTED", "PROJECT_CHANGED")
 
@@ -134,6 +140,8 @@ class CoreOrchestrator(ProjectLifecycleMixin):
         if self.agent.is_awaiting_answer:
             self._answer(text)
             return
+        if not self._confirm_first_send():
+            return
         self.dock_widget.add_user_message(text)
         self.dock_widget.clear_prompt()
         self._drop_pending_plan()
@@ -141,6 +149,18 @@ class CoreOrchestrator(ProjectLifecycleMixin):
         history = self.conversation.window()
         self.conversation.add("user", text)
         self.agent.start(text, history)
+
+    def _confirm_first_send(self, endpoint: str | None = None) -> bool:
+        if not _is_configured():
+            return True
+        url = (endpoint if endpoint is not None else get_api_url() or "").strip()
+        if not url or is_local(url) or get_data_sharing_consent(url):
+            return True
+        if not self.dock_widget.confirm_data_sharing(endpoint_label(url)):
+            self.dock_widget.add_system_message(DATA_SHARING_DECLINED)
+            return False
+        set_data_sharing_consent(True, url)
+        return True
 
     def _drop_pending_plan(self) -> None:
         pending = self.agent.has_pending_writes
@@ -163,6 +183,8 @@ class CoreOrchestrator(ProjectLifecycleMixin):
         self.dock_widget.add_system_message(AWAITING_ANSWER)
 
     def _answer(self, text: str) -> None:
+        if not self._confirm_first_send(getattr(self.agent, "endpoint", None)):
+            return
         self.dock_widget.add_user_message(text)
         self.dock_widget.clear_prompt()
         self.conversation.add("user", text)

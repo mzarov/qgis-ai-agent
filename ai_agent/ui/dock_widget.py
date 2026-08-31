@@ -192,6 +192,23 @@ class AgentDockWidget(QDockWidget):
         box.setDefaultButton(QMessageBox.StandardButton.No)
         return box.exec() == QMessageBox.StandardButton.Yes
 
+    def confirm_data_sharing(self, endpoint: str) -> bool:
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Question)
+        box.setWindowTitle(tr("Share project data?"))
+        box.setTextFormat(Qt.TextFormat.PlainText)
+        box.setText(
+            tr(
+                "Send the request to {0}?\n\n"
+                "The provider receives your prompt and basic project metadata: layer and field names, "
+                "CRS and project notes. Feature values, extents, layer sources and rendered images stay "
+                "blocked until you allow them in Settings."
+            ).format(endpoint)
+        )
+        box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        box.setDefaultButton(QMessageBox.StandardButton.Yes)
+        return box.exec() == QMessageBox.StandardButton.Yes
+
     def mark_plan_completed(self, message_id: int) -> None:
         self.conversation.mark_plan_applied(message_id)
 

@@ -8,9 +8,10 @@ device.
 ## Privacy mode
 
 Sending a request shares your prompt and basic project metadata — layer and
-field names, CRS, project notes — with the configured endpoint. There is no
-separate consent dialog: configuring an endpoint and pressing send is the
-decision.
+field names, CRS, project notes — with the configured endpoint. The first send
+to a remote endpoint shows one confirmation naming its address; agreeing is
+remembered for that endpoint, declining cancels just that send and asks again
+next time. Local addresses skip the dialog.
 
 The **Allow sensitive GIS data and tool results** option is off by default for
 remote endpoints. It covers feature attribute values, exact map and layer
