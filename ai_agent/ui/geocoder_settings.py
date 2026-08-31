@@ -42,8 +42,7 @@ class GeocoderSettings:
         index = self.provider_combo.findData(self._last_provider)
         self.provider_combo.setCurrentIndex(max(0, index))
         self.url_edit = QLineEdit()
-        self.url_field = fields.row(tr("Base URL"), self.url_edit, "", palette)
-        self._note = fields.hint("", palette)
+        self.url_field = fields.row(tr("Base URL"), self.url_edit, DISABLED_HINT, palette)
         fields.add_rows(
             column,
             palette,
@@ -52,7 +51,6 @@ class GeocoderSettings:
                 self.url_field,
             ],
         )
-        column.addWidget(self._note)
         column.addStretch(1)
         self.provider_combo.currentIndexChanged.connect(self._sync_provider)
         self._sync_provider()
@@ -90,4 +88,5 @@ class GeocoderSettings:
         self.url_edit.setPlaceholderText("https://geocoder.example")
         self.url_edit.setToolTip(hint)
         self.url_field.setToolTip(hint)
-        self._note.setText(hint)
+        if self.url_field.help is not None:
+            self.url_field.help.setToolTip(hint)

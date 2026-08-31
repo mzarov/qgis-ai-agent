@@ -40,6 +40,8 @@ CONTROL_WIDTH = 320
 SWITCH_WIDTH = 40
 SWITCH_HEIGHT = 22
 SWITCH_KNOB_MARGIN = 3
+HELP_SIZE = 16
+HELP_GAP = 6
 
 
 class Switch(QCheckBox):
@@ -153,7 +155,9 @@ def row(title: str, widget: QWidget, note: str, palette: Any) -> QWidget:
     line = QHBoxLayout(holder)
     line.setContentsMargins(0, ROW_VPAD, 0, ROW_VPAD)
     line.setSpacing(ROW_GAP)
-    line.addWidget(_caption(title, note, palette), 1)
+    caption = _caption(title, note, palette)
+    holder.help = caption.help
+    line.addWidget(caption, 1)
     widget.setStyleSheet(input_style(palette))
     widget.setFixedWidth(CONTROL_WIDTH)
     line.addWidget(widget, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
@@ -165,7 +169,9 @@ def switch_row(title: str, checkbox: QWidget, note: str, palette: Any) -> QWidge
     line = QHBoxLayout(holder)
     line.setContentsMargins(0, ROW_VPAD, 0, ROW_VPAD)
     line.setSpacing(ROW_GAP)
-    line.addWidget(_caption(title, note, palette), 1)
+    caption = _caption(title, note, palette)
+    holder.help = caption.help
+    line.addWidget(caption, 1)
     line.addWidget(checkbox, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
     return holder
 
@@ -185,16 +191,34 @@ def separator(palette: Any) -> QFrame:
     return line
 
 
+def help_mark(note: str, palette: Any) -> QLabel:
+    mark = QLabel("?")
+    mark.setToolTip(note)
+    mark.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    mark.setFixedSize(HELP_SIZE, HELP_SIZE)
+    font = mark.font()
+    font.setPointSizeF(max(1.0, font.pointSizeF() * HINT_SCALE))
+    mark.setFont(font)
+    mark.setStyleSheet(
+        f"color: {style.css_color(style.muted(palette))};"
+        f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
+        f"border-radius: {HELP_SIZE // 2}px;"
+    )
+    return mark
+
+
 def _caption(title: str, note: str, palette: Any) -> QWidget:
     box = QWidget()
-    column = QVBoxLayout(box)
-    column.setContentsMargins(0, 0, 0, 0)
-    column.setSpacing(FIELD_SPACING)
+    line = QHBoxLayout(box)
+    line.setContentsMargins(0, 0, 0, 0)
+    line.setSpacing(HELP_GAP)
     label = QLabel(title)
     label.setWordWrap(True)
-    column.addWidget(label)
-    if note:
-        column.addWidget(hint(note, palette))
+    line.addWidget(label)
+    box.help = help_mark(note, palette) if note else None
+    if box.help is not None:
+        line.addWidget(box.help, 0, Qt.AlignmentFlag.AlignVCenter)
+    line.addStretch(1)
     return box
 
 

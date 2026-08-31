@@ -156,6 +156,23 @@ class SidebarSettingsTest(unittest.TestCase):
         privacy = ADVANCED_SOURCE.split("def build_privacy(")[1].split("\ndef ")[0]
         self.assertEqual(privacy.count("fields.switch_row("), privacy.count("fields.switch(palette)"))
 
+    def test_descriptions_hide_behind_a_help_mark(self):
+        self.assertIn("def help_mark(", SOURCE)
+        mark = SOURCE.split("def help_mark(")[1].split("\ndef ")[0]
+        self.assertIn("setToolTip(note)", mark)
+        caption = SOURCE.split("def _caption(")[1].split("\ndef ")[0]
+        self.assertIn("help_mark(note, palette)", caption)
+        self.assertNotIn("hint(note", caption)
+
+    def test_dynamic_geocoder_hint_reaches_the_help_mark(self):
+        self.assertIn("self.url_field.help.setToolTip(hint)", GEOCODER_SOURCE)
+
+    def test_the_probe_button_lives_on_the_connection_page(self):
+        connection = DIALOG_SOURCE.split("def _build_connection(")[1].split("\n    def ")[0]
+        self.assertIn("self.test_btn", connection)
+        buttons = DIALOG_SOURCE.split("def _build_buttons(")[1].split("\n    def ")[0]
+        self.assertNotIn("test_btn", buttons)
+
     def test_switches_are_drawn_toggles_not_native_checkboxes(self):
         self.assertIn("class Switch(QCheckBox):", SOURCE)
         body = SOURCE.split("class Switch(")[1].split("\ndef ")[0]

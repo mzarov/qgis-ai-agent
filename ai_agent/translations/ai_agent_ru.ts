@@ -50,7 +50,7 @@
         <translation>Формат API</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="140"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="145"/>
         <source>API key</source>
         <translation>Ключ API</translation>
     </message>
@@ -90,7 +90,7 @@
         <translation>Добавляю слой {0} «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_layout.py" line="24"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="22"/>
         <source>Advanced</source>
         <translation>Дополнительно</translation>
     </message>
@@ -156,7 +156,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/geocoder_settings.py" line="45"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="147"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="152"/>
         <source>Base URL</source>
         <translation>Базовый адрес</translation>
     </message>
@@ -171,7 +171,7 @@
         <translation>Отменить</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="312"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="318"/>
         <source>Cancel test</source>
         <translation>Отменить проверку</translation>
     </message>
@@ -231,7 +231,7 @@
         <translation>Проверяю применённые изменения…</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="164"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="170"/>
         <source>Close</source>
         <translation>Закрыть</translation>
     </message>
@@ -251,7 +251,7 @@
         <translation>Подключение есть, но модель вернула пустой ответ.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_layout.py" line="21"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="19"/>
         <source>Connection</source>
         <translation>Подключение</translation>
     </message>
@@ -401,7 +401,7 @@
         <translation>Забываю: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_layout.py" line="23"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="21"/>
         <source>Geocoding</source>
         <translation>Геокодирование</translation>
     </message>
@@ -451,12 +451,12 @@
         <translation>Ищу «{0}» через {1}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="148"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="153"/>
         <source>Model</source>
         <translation>Модель</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="115"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="120"/>
         <source>Model endpoint</source>
         <translation>Адрес модели</translation>
     </message>
@@ -497,7 +497,7 @@
         <translation>Применились не все изменения.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="208"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="214"/>
         <source>Not required</source>
         <translation>Не обязателен</translation>
     </message>
@@ -562,7 +562,7 @@
         <translation>План {0}/{1}: {2}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_layout.py" line="22"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="20"/>
         <source>Privacy</source>
         <translation>Приватность</translation>
     </message>
@@ -572,13 +572,13 @@
         <translation>В эту конечную точку могут передаваться запросы и базовый контекст проекта QGIS, включая имена слоёв и полей, CRS, результаты инструментов и созданные планы. Согласие сохраняется отдельно для каждой конечной точки.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="146"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="151"/>
         <source>Provider</source>
         <translation>Провайдер</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="134"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="208"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="139"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="214"/>
         <source>Provider key</source>
         <translation>Ключ провайдера</translation>
     </message>
@@ -722,7 +722,7 @@
         <translation>Запоминаю: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="136"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="141"/>
         <source>Remove stored key</source>
         <translation>Удалить сохранённый ключ</translation>
     </message>
@@ -807,7 +807,7 @@
         <translation>Выполняю запрос Overpass для «{0}»: {1}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="169"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="175"/>
         <source>Save</source>
         <translation>Сохранить</translation>
     </message>
@@ -863,7 +863,7 @@
         <translation>Отправить запрос в {0}?&#10;&#10;Провайдер получит ваш запрос и базовые метаданные проекта: имена слоёв и полей, CRS и заметки проекта. Значения объектов, границы, источники слоёв и изображения останутся закрытыми, пока вы не разрешите их в настройках.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/geocoder_settings.py" line="51"/>
+        <location filename="ai_agent/ui/geocoder_settings.py" line="50"/>
         <source>Service</source>
         <translation>Сервис</translation>
     </message>
@@ -958,7 +958,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/settings_dialog.py" line="158"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="335"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="341"/>
         <source>Test connection</source>
         <translation>Проверить подключение</translation>
     </message>
@@ -1145,7 +1145,7 @@
         <translation>С геокодером агент превращает «кафе в Дивноморском» в прямоугольник координат и передаёт его в загрузку OpenStreetMap. Без него он тоже умеет искать по названию, но только там, где OpenStreetMap это название уже знает.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="147"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="152"/>
         <source>Without /chat/completions at the end.</source>
         <translation>Без /chat/completions на конце.</translation>
     </message>

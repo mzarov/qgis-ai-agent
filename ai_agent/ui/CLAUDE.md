@@ -193,16 +193,21 @@ reads as a setting. `Switch` subclasses `QCheckBox` — the whole checkbox API
 disabled, knob from `highlightedText`. Same approach as the header icons:
 palette-driven `QPainter`, no image assets.
 
-Every switch carries its explanation as a visible hint in the caption, not
-only as a tooltip: with the sensitive switch off the agent cannot read
-attributes, see the map or run Processing, and a tooltip is the wrong place
-to learn that.
+Descriptions live behind a small "?" mark after the title, shown on hover —
+a page of stacked explanatory paragraphs read as a wall of text (the user's
+call, and they were right). The safety-critical explanation of the sensitive
+switch is not lost to the tooltip: the per-endpoint consent dialog spells out
+the same boundary before the first request is ever sent. The geocoder's hint
+changes with the chosen provider, so its row keeps a reference to the mark
+and rewrites the tooltip.
 
 Pages scroll individually (`scrollable()`), with the viewport forced
 transparent so the window surface shows through — a `QScrollArea` left to
-its own devices paints its own grey. Test connection, the status
-line and the buttons stay outside the stack: the check is pressed from any
-page and its answer must not vanish when the page changes.
+its own devices paints its own grey. Test connection lives on the
+Connection page — it tests exactly what that page edits and means nothing on
+the others. The status line and Save/Close stay in the footer under a full
+hairline, so the probe's answer is visible from any page and survives page
+switches.
 
 The provider
 is picked from a list and fills in the address and the API format; the preset

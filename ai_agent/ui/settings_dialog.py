@@ -154,16 +154,17 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
                 self._key_field,
             ],
         )
+        column.addSpacing(fields.GROUP_GAP)
+        self.test_btn = QPushButton(tr("Test connection"))
+        self.test_btn.setStyleSheet(fields.plain_button(palette))
+        self.test_btn.clicked.connect(self._test_connection)
+        column.addWidget(self.test_btn, 0, Qt.AlignmentFlag.AlignLeft)
         column.addStretch(1)
         return holder
 
     def _build_buttons(self, palette: Any) -> QHBoxLayout:
         row = QHBoxLayout()
         row.setSpacing(8)
-        self.test_btn = QPushButton(tr("Test connection"))
-        self.test_btn.setStyleSheet(fields.plain_button(palette))
-        self.test_btn.clicked.connect(self._test_connection)
-        row.addWidget(self.test_btn)
         row.addStretch(1)
 
         close_btn = QPushButton(tr("Close"))
