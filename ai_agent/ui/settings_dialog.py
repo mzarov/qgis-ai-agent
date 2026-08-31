@@ -63,12 +63,12 @@ MODEL_REQUIRED = tr("Enter a model name from the provider.")
 KEY_REMOVED = tr("The stored key for this endpoint was removed.")
 KEY_HINT = tr("Stored encrypted in the QGIS authentication database, not in the settings file.")
 KEYLESS_HINT = tr("A local server needs no key — leave this empty.")
-SHARING_LABEL = tr("Share project context with the model provider")
+SHARING_LABEL = tr("Share project context")
 SHARING_HINT = tr(
     "Prompts and basic QGIS project context—including layer and field names, CRS, tool results and "
     "generated plans—may be sent to this endpoint. Consent is stored separately for every endpoint."
 )
-SENSITIVE_LABEL = tr("Allow sensitive GIS data and tool results")
+SENSITIVE_LABEL = tr("Allow sensitive GIS data")
 SENSITIVE_HINT = tr(
     "Feature attribute values, exact map and layer extents, layer filters and sources, style categories, "
     "Processing and Python results, and rendered map or layout images may be sent to this endpoint. "

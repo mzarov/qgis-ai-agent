@@ -101,8 +101,8 @@
     </message>
     <message>
         <location filename="ai_agent/ui/settings_dialog.py" line="71"/>
-        <source>Allow sensitive GIS data and tool results</source>
-        <translation>Разрешить передачу конфиденциальных ГИС-данных и результатов инструментов</translation>
+        <source>Allow sensitive GIS data</source>
+        <translation>Разрешить конфиденциальные ГИС-данные</translation>
     </message>
     <message>
         <location filename="ai_agent/core/orchestrator/project_lifecycle.py" line="5"/>
@@ -899,8 +899,8 @@
     </message>
     <message>
         <location filename="ai_agent/ui/settings_dialog.py" line="66"/>
-        <source>Share project context with the model provider</source>
-        <translation>Передавать контекст проекта провайдеру модели</translation>
+        <source>Share project context</source>
+        <translation>Передавать контекст проекта</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/dock_widget.py" line="198"/>

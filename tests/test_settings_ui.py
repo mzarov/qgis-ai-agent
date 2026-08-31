@@ -159,18 +159,29 @@ class SidebarSettingsTest(unittest.TestCase):
     def test_descriptions_hide_behind_a_help_mark(self):
         self.assertIn("def help_mark(", SOURCE)
         mark = SOURCE.split("def help_mark(")[1].split("\ndef ")[0]
-        self.assertIn("setToolTip(note)", mark)
+        self.assertIn("setToolTip(rich_tooltip(note))", mark)
         caption = SOURCE.split("def _caption(")[1].split("\ndef ")[0]
         self.assertIn("help_mark(note, palette)", caption)
         self.assertNotIn("hint(note", caption)
 
-    def test_titles_take_the_free_width_instead_of_wrapping_early(self):
+    def test_the_mark_answers_a_click_not_only_a_patient_hover(self):
+        mark = SOURCE.split("def help_mark(")[1].split("\ndef ")[0]
+        self.assertIn("mark.clicked.connect", mark)
+        shower = SOURCE.split("def _show_help(")[1].split("\ndef ")[0]
+        self.assertIn("QToolTip.showText", shower)
+        self.assertIn("mark.toolTip()", shower)
+
+    def test_long_explanations_wrap_instead_of_crossing_the_screen(self):
+        body = SOURCE.split("def rich_tooltip(")[1].split("\ndef ")[0]
+        self.assertIn("<qt>", body)
+
+    def test_the_mark_hugs_the_text_and_titles_stay_single_line(self):
         caption = SOURCE.split("def _caption(")[1].split("\ndef ")[0]
-        self.assertIn("line.addWidget(label, 1)", caption)
-        self.assertNotIn("addStretch", caption)
+        self.assertIn("line.addStretch(1)", caption)
+        self.assertNotIn("setWordWrap", caption)
 
     def test_dynamic_geocoder_hint_reaches_the_help_mark(self):
-        self.assertIn("self.url_field.help.setToolTip(hint)", GEOCODER_SOURCE)
+        self.assertIn("self.url_field.help.setToolTip(fields.rich_tooltip(hint))", GEOCODER_SOURCE)
 
     def test_the_probe_button_lives_on_the_connection_page(self):
         connection = DIALOG_SOURCE.split("def _build_connection(")[1].split("\n    def ")[0]

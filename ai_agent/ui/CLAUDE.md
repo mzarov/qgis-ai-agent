@@ -193,17 +193,20 @@ reads as a setting. `Switch` subclasses `QCheckBox` — the whole checkbox API
 disabled, knob from `highlightedText`. Same approach as the header icons:
 palette-driven `QPainter`, no image assets.
 
-Descriptions live behind a small "?" mark after the title, shown on hover —
-a page of stacked explanatory paragraphs read as a wall of text (the user's
-call, and they were right). The safety-critical explanation of the sensitive
-switch is not lost to the tooltip: the per-endpoint consent dialog spells out
-the same boundary before the first request is ever sent. The geocoder's hint
-changes with the chosen provider, so its row keeps a reference to the mark
-and rewrites the tooltip. Inside the caption the title label owns the
-stretch — a word-wrapping `QLabel` next to an `addStretch` gets squeezed to
-its minimum and wraps with half the row empty; giving the label the stretch
-makes wrapping happen only when the window is genuinely narrow, and lines
-the "?" marks up in one column before the controls.
+Descriptions live behind a small "?" mark right after the title — a page of
+stacked explanatory paragraphs read as a wall of text (the user's call, and
+they were right). The mark is a `QToolButton`, not a label: hover shows the
+tooltip, and a **click shows it immediately** via `QToolTip.showText` — a
+hover-only affordance on something that looks like a button reads as broken.
+Tooltip text goes through `rich_tooltip()` (a `<qt>` wrapper), otherwise Qt
+renders plain-text tooltips as one endless unwrapped line. The
+safety-critical explanation of the sensitive switch is not lost to the
+tooltip: the per-endpoint consent dialog spells out the same boundary before
+the first request is ever sent. The geocoder's hint changes with the chosen
+provider, so its row keeps a reference to the mark and rewrites the tooltip.
+Titles are single-line labels without word wrap; wrapping came from the
+title competing with a trailing stretch for width, and the cure is short
+titles, not wrapped ones — detail belongs to the mark anyway.
 
 Pages scroll individually (`scrollable()`), with the viewport forced
 transparent so the window surface shows through — a `QScrollArea` left to

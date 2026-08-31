@@ -89,4 +89,4 @@ class GeocoderSettings:
         self.url_edit.setToolTip(hint)
         self.url_field.setToolTip(hint)
         if self.url_field.help is not None:
-            self.url_field.help.setToolTip(hint)
+            self.url_field.help.setToolTip(fields.rich_tooltip(hint))
