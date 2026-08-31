@@ -315,6 +315,7 @@ core = _mod(
         "QgsProcessingParameterDefinition",
         "QgsProcessingFeedback",
         "QgsFeedback",
+        "QgsAuthMethodConfig",
         "QgsLayerTreeGroup",
         "QgsLayerTreeLayer",
         "QgsUnitTypes",
@@ -456,6 +457,7 @@ _mod(
         "QTextBrowser",
         "QFrame",
         "QSizePolicy",
+        "QStackedWidget",
     ],
 )
 _qtcore.pyqtSignal = pyqtSignal

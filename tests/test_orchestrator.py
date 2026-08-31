@@ -175,25 +175,30 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.assertIn("Conversation not found.", self.dock.system)
         self.assertEqual(len(self.orchestrator.conversation.messages), 2)
 
-    def test_switching_while_running_is_refused(self):
+    def test_switching_while_running_stops_the_run_instead_of_refusing(self):
         self._ask("вопрос")
         self.orchestrator.agent.is_running = True
         self.orchestrator.on_new_session()
-        self.assertIn("Wait for the current task to finish.", self.dock.system)
-        self.assertIsNone(self.dock.replayed)
+        self.assertEqual(self.orchestrator.agent.aborts, 1)
+        self.assertNotIn("Wait for the current task to finish.", self.dock.system)
 
-    def test_switching_with_pending_writes_is_refused(self):
+    def test_switching_with_pending_writes_drops_them_instead_of_refusing(self):
         self._ask("вопрос")
         self.orchestrator.agent.has_pending_writes = True
         self.orchestrator.on_new_session()
-        self.assertEqual(len(self.orchestrator.conversation.messages), 2)
-        self.assertIsNone(self.dock.replayed)
+        self.assertEqual(self.orchestrator.agent.aborts, 1)
 
-    def test_switching_while_waiting_for_an_answer_is_refused(self):
+    def test_switching_while_waiting_for_an_answer_stops_the_question(self):
         self._ask("вопрос")
         self.orchestrator.agent.is_awaiting_answer = True
         self.orchestrator.on_new_session()
-        self.assertIn(orchestrator_module.SWITCH_WHILE_AWAITING, self.dock.system)
+        self.assertEqual(self.orchestrator.agent.aborts, 1)
+
+    def test_switching_while_applying_is_still_refused(self):
+        self._ask("вопрос")
+        self.orchestrator.agent.is_applying = True
+        self.orchestrator.on_new_session()
+        self.assertIn(orchestrator_module.SWITCH_WHILE_APPLYING, self.dock.system)
         self.assertIsNone(self.dock.replayed)
 
     def test_project_change_aborts_old_run_and_starts_project_scoped_session(self):

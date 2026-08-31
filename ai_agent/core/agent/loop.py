@@ -12,7 +12,7 @@ from ai_agent.core.agent.request import build_overrides, build_step_request
 from ai_agent.core.agent.transcript import Transcript
 from ai_agent.core.agent.turn_thread import TurnThreadOwner
 from ai_agent.core.llm.transport import PROTOCOL_JSON, PROTOCOL_NATIVE, ModelTurn, ToolCall
-from ai_agent.core.settings import get_token_budget
+from ai_agent.core.settings import get_token_budget, get_write_run_journal
 from ai_agent.qgis_tools.web.http import cancel_active_requests
 from ai_agent.skills.registry import SKILL_REGISTRY
 
@@ -318,7 +318,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
             self.finished.emit(text)
 
     def _write_journal(self, outcome: str) -> None:
-        if not self._applied_steps or self._journal_saved:
+        if not self._applied_steps or self._journal_saved or not get_write_run_journal():
             return
         try:
             path = record_run(self._prompt, self._transcript.entries, outcome, self._applied_steps)

@@ -115,6 +115,138 @@ class StyleSheetTest(unittest.TestCase):
         self.assertEqual(offenders, [])
 
 
+SETTINGS_SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "core" / "settings.py").read_text(
+    encoding="utf-8"
+)
+ADVANCED_SOURCE = (
+    pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "settings_advanced.py"
+).read_text(encoding="utf-8")
+
+
+LAYOUT_SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "settings_layout.py").read_text(
+    encoding="utf-8"
+)
+
+
+class SidebarSettingsTest(unittest.TestCase):
+    def test_the_window_is_a_sidebar_over_a_page_stack(self):
+        self.assertIn("fields.sidebar()", LAYOUT_SOURCE)
+        self.assertIn("fields.pages()", LAYOUT_SOURCE)
+        for title in ('tr("Connection")', 'tr("Privacy")', 'tr("Geocoding")', 'tr("Advanced")'):
+            self.assertIn(title, LAYOUT_SOURCE)
+
+    def test_only_the_chosen_entry_stays_checked(self):
+        body = LAYOUT_SOURCE.split("def show_page(")[1].split("\ndef ")[0]
+        self.assertIn("setChecked(at == index)", body)
+
+    def test_a_long_page_scrolls_instead_of_growing_the_window(self):
+        self.assertIn("setWidgetResizable(True)", LAYOUT_SOURCE)
+        self.assertIn("scrollable(page)", LAYOUT_SOURCE)
+
+    def test_no_page_repeats_its_entry_name_as_a_heading(self):
+        self.assertNotIn('fields.group(tr("Connection")', DIALOG_SOURCE)
+        self.assertNotIn('fields.group(tr("Advanced")', ADVANCED_SOURCE)
+
+    def test_consent_controls_live_on_the_privacy_page(self):
+        privacy = ADVANCED_SOURCE.split("def build_privacy(")[1].split("\ndef ")[0]
+        for control in ("data_sharing_cb", "sensitive_data_cb", "verify_ssl_cb", "journal_cb"):
+            self.assertIn(control, privacy, control)
+
+    def test_every_privacy_switch_spells_itself_out(self):
+        privacy = ADVANCED_SOURCE.split("def build_privacy(")[1].split("\ndef ")[0]
+        self.assertEqual(privacy.count("fields.switch_row("), privacy.count("fields.switch(palette)"))
+
+    def test_descriptions_hide_behind_a_help_mark(self):
+        self.assertIn("def help_mark(", SOURCE)
+        mark = SOURCE.split("def help_mark(")[1].split("\ndef ")[0]
+        self.assertIn("setToolTip(rich_tooltip(note))", mark)
+        caption = SOURCE.split("def _caption(")[1].split("\ndef ")[0]
+        self.assertIn("help_mark(note, palette)", caption)
+        self.assertNotIn("hint(note", caption)
+
+    def test_the_mark_is_a_hover_hint_not_a_button(self):
+        mark = SOURCE.split("def help_mark(")[1].split("\ndef ")[0]
+        self.assertIn('QLabel("?")', mark)
+        self.assertNotIn("clicked", mark)
+        self.assertNotIn("QToolButton", mark)
+
+    def test_long_explanations_wrap_instead_of_crossing_the_screen(self):
+        body = SOURCE.split("def rich_tooltip(")[1].split("\ndef ")[0]
+        self.assertIn("<qt>", body)
+
+    def test_the_mark_hugs_the_text_and_titles_stay_single_line(self):
+        caption = SOURCE.split("def _caption(")[1].split("\ndef ")[0]
+        self.assertIn("line.addStretch(1)", caption)
+        self.assertNotIn("setWordWrap", caption)
+
+    def test_dynamic_geocoder_hint_reaches_the_help_mark(self):
+        self.assertIn("self.url_field.help.setToolTip(fields.rich_tooltip(hint))", GEOCODER_SOURCE)
+
+    def test_the_probe_button_lives_on_the_connection_page(self):
+        connection = DIALOG_SOURCE.split("def _build_connection(")[1].split("\n    def ")[0]
+        self.assertIn("self.test_btn", connection)
+        buttons = DIALOG_SOURCE.split("def _build_buttons(")[1].split("\n    def ")[0]
+        self.assertNotIn("test_btn", buttons)
+
+    def test_switches_are_drawn_toggles_not_native_checkboxes(self):
+        self.assertIn("class Switch(QCheckBox):", SOURCE)
+        body = SOURCE.split("class Switch(")[1].split("\ndef ")[0]
+        self.assertIn("drawRoundedRect", body)
+        self.assertIn("style.accent(self._palette) if self.isChecked()", body)
+        self.assertNotIn("QCheckBox(", ADVANCED_SOURCE)
+
+    def test_the_run_journal_is_off_until_asked_for(self):
+        body = SETTINGS_SOURCE.split("def get_write_run_journal(")[1].split("\ndef ")[0]
+        self.assertIn("False if stored is None", body)
+
+    def test_budgets_stay_out_of_the_privacy_page(self):
+        privacy = ADVANCED_SOURCE.split("def build_privacy(")[1].split("\ndef ")[0]
+        self.assertNotIn("budget_edit", privacy)
+        self.assertNotIn("thinking_edit", privacy)
+
+    def test_every_saved_control_is_still_built_somewhere(self):
+        built = (DIALOG_SOURCE + ADVANCED_SOURCE + GEOCODER_SOURCE).replace("owner.", "self.")
+        saved = (
+            "dialect_combo",
+            "auth_type_combo",
+            "verify_ssl_cb",
+            "data_sharing_cb",
+            "sensitive_data_cb",
+            "verify_apply_cb",
+            "journal_cb",
+            "budget_edit",
+            "thinking_edit",
+            "model_edit",
+            "url_edit",
+            "key_edit",
+        )
+        for name in saved:
+            self.assertIn(f"self.{name} = ", built, name)
+
+    def test_a_row_puts_the_control_opposite_its_label(self):
+        body = SOURCE.split("def row(")[1].split("\ndef ")[0]
+        self.assertIn("Qt.AlignmentFlag.AlignRight", body)
+        self.assertIn("setFixedWidth(CONTROL_WIDTH)", body)
+
+    def test_separators_go_between_rows_never_after_the_last(self):
+        body = SOURCE.split("def add_rows(")[1].split("\ndef ")[0]
+        self.assertIn("if index:", body)
+        self.assertIn("separator(palette)", body)
+
+    def test_sidebar_and_pages_share_one_surface_split_by_a_line(self):
+        self.assertIn("fields.vertical_separator(palette)", LAYOUT_SOURCE)
+        self.assertNotIn("fields.pane(", LAYOUT_SOURCE)
+
+    def test_the_sidebar_carries_no_heading_of_its_own(self):
+        self.assertNotIn("nav_heading", LAYOUT_SOURCE)
+        self.assertNotIn('tr("Settings")', LAYOUT_SOURCE)
+
+    def test_pages_show_through_the_pane_not_their_own_grey(self):
+        body = LAYOUT_SOURCE.split("def scrollable(")[1].split("\ndef ")[0]
+        self.assertIn("setAutoFillBackground(False)", body)
+        self.assertIn("background: transparent", body)
+
+
 class CredentialUiContractTest(unittest.TestCase):
     def test_switching_provider_resets_the_model(self):
         self.assertIn("self.model_edit.setText(preset.default_model)", DIALOG_SOURCE)

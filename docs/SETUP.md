@@ -105,33 +105,21 @@ remembers the choice for that URL.
 
 ## 3. Dependencies
 
-One external library is needed — `keyring`, for storing the key in the system
-keychain. It is declared for development but deliberately not bundled in the
-plugin ZIP, so its availability depends on the QGIS distribution and operating
-system.
+**There are none.** The plugin needs nothing but QGIS itself: install the
+archive and it runs. Keys live in the QGIS authentication database, so no
+external Python library is involved in storing them.
+
 Network requests stay on the QGIS network stack: ordinary calls use
 `QgsBlockingNetworkRequest`, while streaming and the pinned web transport use
 `QgsNetworkAccessManager` with a nested event loop. The latter accepts only
 public DNS answers, pins checked IPs on direct routes while TLS verifies the
 original host, preserves the hostname through an explicit QGIS proxy, and
-follows only same-origin redirects. There is no third-party HTTP client; a
-direct-route mismatch is blocked rather than bypassed.
+follows only manually validated same-origin redirects; a direct-route mismatch
+is blocked rather than bypassed.
 
-If your build lacks `keyring`, or on Linux no secret service is running
-(gnome-keyring, KWallet), saving the key shows a message with the reason.
-
-Install it into the Python that runs QGIS. To find its path: **Plugins →
-Python Console**, then
-
-```python
-import sys; print(sys.executable)
-```
-
-Close QGIS and run in a terminal (the quotes matter if the path has spaces):
-
-```bash
-"/path/from/the/console" -m pip install keyring
-```
+The first time a key is saved, QGIS asks for its **master password** — the same
+one it uses for layer and PostGIS passwords. If you cancel that dialog the key
+stays locked and the settings window says so.
 
 Before connecting a project to a remote provider, read
 [Data and privacy](privacy.md). Tool results sent to the model can contain

@@ -1,9 +1,7 @@
-import sys
-import types
 import unittest
 
 from ai_agent.config import geocoder as geocoder_config
-from ai_agent.core import settings
+from ai_agent.core import credentials, settings
 from ai_agent.core.llm import client
 
 REMOTE = "https://api.openai.com/v1"
@@ -20,52 +18,114 @@ class MemorySettings:
     def setValue(self, key, value):
         self.values[key] = value
 
+    def remove(self, key):
+        self.values.pop(key, None)
+
     def sync(self):
         pass
 
 
-class FakeKeyring(types.ModuleType):
+class FakeConfig:
+    def __init__(self, *_a, **_k):
+        self._id = ""
+        self._name = ""
+        self._method = ""
+        self._map: dict[str, str] = {}
+
+    def setId(self, value):
+        self._id = value
+
+    def id(self):
+        return self._id
+
+    def setName(self, value):
+        self._name = value
+
+    def name(self):
+        return self._name
+
+    def setMethod(self, value):
+        self._method = value
+
+    def setConfig(self, key, value):
+        self._map[key] = value
+
+    def config(self, key, default=""):
+        return self._map.get(key, default)
+
+
+class FakeAuthManager:
     def __init__(self):
-        super().__init__("keyring")
-        self.passwords: dict[tuple[str, str], str] = {}
+        self.stored: dict[str, FakeConfig] = {}
+        self.unlocked = True
+        self.disabled = False
         self.failure: Exception | None = None
-        self.deleted: list[tuple[str, str]] = []
+        self.removed: list[str] = []
+        self._next = 0
 
-    def get_password(self, service, account):
+    def isDisabled(self):
+        return self.disabled
+
+    def masterPasswordIsSet(self):
+        return self.unlocked
+
+    def setMasterPassword(self, _verify=True):
+        return self.unlocked
+
+    def storeAuthenticationConfig(self, config, _overwrite=False):
         if self.failure is not None:
             raise self.failure
-        return self.passwords.get((service, account))
+        if not config.id():
+            self._next += 1
+            config.setId(f"cfg{self._next:03d}")
+        self.stored[config.id()] = config
+        return True, config
 
-    def set_password(self, service, account, value):
+    def loadAuthenticationConfig(self, config_id, _empty, _full=True):
         if self.failure is not None:
             raise self.failure
-        self.passwords[(service, account)] = value
+        found = self.stored.get(config_id)
+        return (True, found) if found is not None else (False, FakeConfig())
 
-    def delete_password(self, service, account):
+    def removeAuthenticationConfig(self, config_id):
         if self.failure is not None:
             raise self.failure
-        self.deleted.append((service, account))
-        del self.passwords[(service, account)]
+        self.removed.append(config_id)
+        self.stored.pop(config_id, None)
+        return True
+
+
+class FakeApplication:
+    manager = None
+
+    @classmethod
+    def authManager(cls):
+        return cls.manager
 
 
 class ScopedCredentialTest(unittest.TestCase):
     def setUp(self):
         self.saved_settings = settings.QgsSettings
-        self.saved_keyring = sys.modules.get("keyring")
+        self.saved_store_settings = credentials.QgsSettings
+        self.saved_application = credentials.QgsApplication
+        self.saved_config = credentials.QgsAuthMethodConfig
         MemorySettings.values = {}
         settings.QgsSettings = MemorySettings
-        settings._credential_store_error = ""
-        self.keyring = FakeKeyring()
-        sys.modules["keyring"] = self.keyring
+        credentials.QgsSettings = MemorySettings
+        credentials.QgsAuthMethodConfig = FakeConfig
+        credentials.QgsApplication = FakeApplication
+        credentials._error = ""
+        self.manager = FakeAuthManager()
+        FakeApplication.manager = self.manager
         settings.set_api_url(REMOTE)
 
     def tearDown(self):
         settings.QgsSettings = self.saved_settings
-        settings._credential_store_error = ""
-        if self.saved_keyring is None:
-            sys.modules.pop("keyring", None)
-        else:
-            sys.modules["keyring"] = self.saved_keyring
+        credentials.QgsSettings = self.saved_store_settings
+        credentials.QgsApplication = self.saved_application
+        credentials.QgsAuthMethodConfig = self.saved_config
+        credentials._error = ""
+        FakeApplication.manager = None
 
     def test_different_endpoints_keep_different_keys(self):
         settings.set_api_key("openai-secret", REMOTE, "openai")
@@ -80,6 +140,12 @@ class ScopedCredentialTest(unittest.TestCase):
     def test_equivalent_endpoint_spelling_uses_the_same_key(self):
         settings.set_api_key("secret", "https://API.OPENAI.COM/v1/", "openai")
         self.assertEqual(settings.get_api_key(REMOTE, "openai"), "secret")
+
+    def test_rewriting_a_key_reuses_one_config_instead_of_piling_them_up(self):
+        settings.set_api_key("first", REMOTE, "openai")
+        settings.set_api_key("second", REMOTE, "openai")
+        self.assertEqual(len(self.manager.stored), 1)
+        self.assertEqual(settings.get_api_key(REMOTE, "openai"), "second")
 
     def test_remote_key_is_not_returned_for_localhost(self):
         settings.set_api_key("remote-secret", REMOTE, "openai")
@@ -101,38 +167,34 @@ class ScopedCredentialTest(unittest.TestCase):
         settings.set_api_key("", REMOTE, "openai")
         self.assertEqual(settings.get_api_key(REMOTE, "openai"), "")
         self.assertEqual(settings.get_api_key(OTHER_REMOTE, "anthropic"), "two")
-        self.assertEqual(len(self.keyring.deleted), 1)
+        self.assertEqual(len(self.manager.removed), 1)
 
-    def test_legacy_key_migrates_only_to_the_configured_remote_endpoint(self):
-        legacy = (settings.KEYRING_SERVICE, settings.KEYRING_KEY)
-        self.keyring.passwords[legacy] = "legacy-secret"
-        self.assertEqual(settings.get_api_key(REMOTE, "openai"), "legacy-secret")
-        self.assertNotIn(legacy, self.keyring.passwords)
-        self.assertEqual(settings.get_api_key(OTHER_REMOTE, "anthropic"), "")
+    def test_the_secret_itself_never_reaches_the_settings_file(self):
+        settings.set_api_key("plaintext-secret", REMOTE, "openai")
+        written = " ".join(str(value) for value in MemorySettings.values.values())
+        self.assertNotIn("plaintext-secret", written)
+        self.assertIn("cfg001", written)
 
-    def test_arbitrary_remote_override_cannot_claim_the_legacy_key(self):
-        legacy = (settings.KEYRING_SERVICE, settings.KEYRING_KEY)
-        self.keyring.passwords[legacy] = "legacy-secret"
-        self.assertEqual(settings.get_api_key(OTHER_REMOTE, "anthropic"), "")
-        self.assertEqual(self.keyring.passwords[legacy], "legacy-secret")
-        self.assertEqual(settings.get_api_key(REMOTE, "openai"), "legacy-secret")
+    def test_a_refused_master_password_reads_empty_and_says_why(self):
+        settings.set_api_key("secret", REMOTE, "openai")
+        self.manager.unlocked = False
+        self.assertEqual(settings.get_api_key(REMOTE, "openai"), "")
+        self.assertIn("master password", settings.get_credential_store_error())
 
-    def test_legacy_key_is_never_migrated_to_localhost(self):
-        settings.set_api_url(LOCAL)
-        legacy = (settings.KEYRING_SERVICE, settings.KEYRING_KEY)
-        self.keyring.passwords[legacy] = "legacy-remote-secret"
-        self.assertEqual(settings.get_api_key(LOCAL, "openai"), "")
-        self.assertEqual(self.keyring.passwords[legacy], "legacy-remote-secret")
+    def test_a_disabled_database_is_reported_not_swallowed(self):
+        self.manager.disabled = True
+        with self.assertRaises(RuntimeError):
+            settings.set_api_key("secret", REMOTE, "openai")
+        self.assertTrue(settings.credential_store_failure_message().strip())
 
-    def test_https_mdns_endpoint_is_remote_for_legacy_key_migration(self):
-        endpoint = "https://workstation.local/v1"
-        settings.set_api_url(endpoint)
-        legacy = (settings.KEYRING_SERVICE, settings.KEYRING_KEY)
-        self.keyring.passwords[legacy] = "legacy-secret"
-        self.assertEqual(settings.get_api_key(endpoint, "openai"), "legacy-secret")
+    def test_a_missing_manager_does_not_crash_the_read(self):
+        settings.set_api_key("secret", REMOTE, "openai")
+        FakeApplication.manager = None
+        self.assertEqual(settings.get_api_key(REMOTE, "openai"), "")
 
-    def test_keyring_failure_is_visible_to_remote_requests(self):
-        self.keyring.failure = RuntimeError("secret service is locked")
+    def test_store_failure_is_visible_to_remote_requests(self):
+        settings.set_api_key("secret", REMOTE, "openai")
+        self.manager.failure = RuntimeError("auth database is locked")
         settings.get_api_key(REMOTE, "openai")
         for key_override in (None, ""):
             with self.subTest(key_override=key_override), self.assertRaises(RuntimeError) as caught:
@@ -143,7 +205,7 @@ class ScopedCredentialTest(unittest.TestCase):
                     model_override="model",
                     dialect_override="openai",
                 )
-            self.assertIn("secret service is locked", str(caught.exception))
+            self.assertIn("auth database is locked", str(caught.exception))
 
 
 class ScopedCapabilityTest(unittest.TestCase):

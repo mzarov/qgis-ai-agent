@@ -1,5 +1,6 @@
 from typing import Any
 
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import (
     QComboBox,
     QDialog,
@@ -41,31 +42,33 @@ from ai_agent.core.settings import (
     set_token_budget,
     set_verify_after_apply,
     set_verify_ssl,
+    set_write_run_journal,
 )
 from ai_agent.i18n import tr
-from ai_agent.ui import settings_advanced, style
 from ai_agent.ui import settings_fields as fields
+from ai_agent.ui import settings_layout, style
 from ai_agent.ui.geocoder_settings import GeocoderSettings
 from ai_agent.ui.settings_status import SettingsStatusMixin
 
 TITLE = tr("Settings — AI Agent")
-MIN_WIDTH = 520
-MARGINS = (16, 16, 16, 14)
-SPACING = 12
+MIN_WIDTH = 760
+MIN_HEIGHT = 520
+FOOTER_MARGINS = (16, 10, 16, 12)
+FOOTER_SPACING = 8
 SAVED = tr("Settings saved.")
 TESTING = tr("Testing the connection…")
 CANCELLING = tr("Cancelling the connection test…")
 CANCELLED = tr("Connection test cancelled.")
 MODEL_REQUIRED = tr("Enter a model name from the provider.")
 KEY_REMOVED = tr("The stored key for this endpoint was removed.")
-KEY_HINT = tr("Stored in the system keyring, not in the settings file.")
+KEY_HINT = tr("Stored encrypted in the QGIS authentication database, not in the settings file.")
 KEYLESS_HINT = tr("A local server needs no key — leave this empty.")
-SHARING_LABEL = tr("Share project context with the model provider")
+SHARING_LABEL = tr("Share project context")
 SHARING_HINT = tr(
     "Prompts and basic QGIS project context—including layer and field names, CRS, tool results and "
     "generated plans—may be sent to this endpoint. Consent is stored separately for every endpoint."
 )
-SENSITIVE_LABEL = tr("Allow sensitive GIS data and tool results")
+SENSITIVE_LABEL = tr("Allow sensitive GIS data")
 SENSITIVE_HINT = tr(
     "Feature attribute values, exact map and layer extents, layer filters and sources, style categories, "
     "Processing and Python results, and rendered map or layout images may be sent to this endpoint. "
@@ -94,64 +97,74 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         self._reject_after_probe = False
         self.setWindowTitle(TITLE)
         self.setMinimumWidth(MIN_WIDTH)
+        self.setMinimumHeight(MIN_HEIGHT)
         palette = self.palette()
         column = QVBoxLayout(self)
-        column.setContentsMargins(*MARGINS)
-        column.setSpacing(SPACING)
-        column.addWidget(self._build_connection(palette))
+        column.setContentsMargins(0, 0, 0, 0)
+        column.setSpacing(0)
         self.geocoder = GeocoderSettings(palette)
-        column.addWidget(self.geocoder.widget)
-        column.addWidget(settings_advanced.build(self, palette))
+        column.addLayout(settings_layout.build_body(self, palette), 1)
+        column.addWidget(fields.separator(palette))
+        footer = QVBoxLayout()
+        footer.setContentsMargins(*FOOTER_MARGINS)
+        footer.setSpacing(FOOTER_SPACING)
         self._status = fields.status(palette)
-        column.addWidget(self._status)
-        column.addStretch(1)
-        column.addLayout(self._build_buttons(palette))
+        footer.addWidget(self._status)
+        footer.addLayout(self._build_buttons(palette))
+        column.addLayout(footer)
         self._sync_preset()
         self._load_endpoint_state(remember_current=False)
 
     def _build_connection(self, palette: Any) -> QWidget:
-        frame, column = fields.card(palette)
-        column.addWidget(fields.section(tr("Connection"), palette))
+        holder, column = fields.page()
+        column.addWidget(fields.group(tr("Model endpoint"), palette))
 
         self.preset_combo = QComboBox()
         self.preset_combo.addItems(TITLES)
         self.preset_combo.currentTextChanged.connect(self._apply_preset)
-        column.addWidget(fields.field(tr("Provider"), self.preset_combo, "", palette))
 
         self.url_edit = QLineEdit(get_api_url())
         self.url_edit.setPlaceholderText("https://api.openai.com/v1")
         self.url_edit.textChanged.connect(self._sync_preset)
         self.url_edit.editingFinished.connect(self._endpoint_finished)
-        column.addWidget(
-            fields.field(tr("Base URL"), self.url_edit, tr("Without /chat/completions at the end."), palette)
-        )
 
         self.model_edit = QLineEdit(get_model())
-        column.addWidget(fields.field(tr("Model"), self.model_edit, "", palette))
 
+        key_box = QWidget()
+        key_column = QVBoxLayout(key_box)
+        key_column.setContentsMargins(0, 0, 0, 0)
+        key_column.setSpacing(8)
         self.key_edit = QLineEdit()
         self.key_edit.setEchoMode(QLineEdit.EchoMode.Password)
         self.key_edit.setPlaceholderText(tr("Provider key"))
-        key_row = QWidget()
-        key_layout = QHBoxLayout(key_row)
-        key_layout.setContentsMargins(0, 0, 0, 0)
-        key_layout.setSpacing(8)
-        key_layout.addWidget(self.key_edit, 1)
+        key_column.addWidget(self.key_edit)
         self.remove_key_btn = QPushButton(tr("Remove stored key"))
         self.remove_key_btn.setStyleSheet(fields.plain_button(palette))
         self.remove_key_btn.clicked.connect(self._remove_key)
-        key_layout.addWidget(self.remove_key_btn)
-        self._key_field = fields.field(tr("API key"), key_row, KEY_HINT, palette)
-        column.addWidget(self._key_field)
-        return frame
+        key_column.addWidget(self.remove_key_btn, 0, Qt.AlignmentFlag.AlignRight)
+        self._key_field = fields.row(tr("API key"), key_box, KEY_HINT, palette)
+
+        fields.add_rows(
+            column,
+            palette,
+            [
+                fields.row(tr("Provider"), self.preset_combo, "", palette),
+                fields.row(tr("Base URL"), self.url_edit, tr("Without /chat/completions at the end."), palette),
+                fields.row(tr("Model"), self.model_edit, "", palette),
+                self._key_field,
+            ],
+        )
+        column.addSpacing(fields.GROUP_GAP)
+        self.test_btn = QPushButton(tr("Test connection"))
+        self.test_btn.setStyleSheet(fields.plain_button(palette))
+        self.test_btn.clicked.connect(self._test_connection)
+        column.addWidget(self.test_btn, 0, Qt.AlignmentFlag.AlignLeft)
+        column.addStretch(1)
+        return holder
 
     def _build_buttons(self, palette: Any) -> QHBoxLayout:
         row = QHBoxLayout()
         row.setSpacing(8)
-        self.test_btn = QPushButton(tr("Test connection"))
-        self.test_btn.setStyleSheet(fields.plain_button(palette))
-        self.test_btn.clicked.connect(self._test_connection)
-        row.addWidget(self.test_btn)
         row.addStretch(1)
 
         close_btn = QPushButton(tr("Close"))
@@ -277,6 +290,7 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         sensitive_allowed = self.data_sharing_cb.isChecked() and self.sensitive_data_cb.isChecked()
         set_allow_sensitive_data(sensitive_allowed, url)
         set_verify_after_apply(self.verify_apply_cb.isChecked())
+        set_write_run_journal(self.journal_cb.isChecked())
         set_token_budget(fields.parsed_budget(self.budget_edit.text(), DEFAULT_TOKEN_BUDGET))
         set_thinking_budget(fields.parsed_budget(self.thinking_edit.text(), DEFAULT_TOKEN_BUDGET))
         set_geocoder_provider(geocoder_provider)
@@ -290,6 +304,7 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
                 self._show(str(error), style.danger(self.palette()))
                 return
         self._show(SAVED, style.success(self.palette()))
+        self.accept()
 
     def _test_connection(self) -> None:
         if self._probe_thread is not None and self._probe_thread.isRunning():

@@ -5,7 +5,6 @@ from qgis.core import Qgis, QgsMessageLog
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.prompts import build_verification_prompt
 from ai_agent.core.llm.client import is_local
-from ai_agent.core.orchestrator.capabilities import describe_capabilities
 from ai_agent.core.orchestrator.contracts import DockWidgetContract
 from ai_agent.core.orchestrator.planning import destructive_lines, plan_line
 from ai_agent.core.orchestrator.presentation import compact_number, interrupted_outcome, is_configured, where_to_look
@@ -31,8 +30,7 @@ SESSION_MISSING = tr("Conversation not found.")
 RUN_STOPPED = tr("Run stopped. Pending work was cancelled.")
 APPLY_STOPPED = tr("Run stopped during apply. Pending steps were cancelled; any completed changes remain.")
 SWITCH_WHILE_RUNNING = tr("Wait for the current task to finish.")
-SWITCH_WHILE_PENDING = tr("Apply or cancel the planned changes first.")
-SWITCH_WHILE_AWAITING = tr("Answer or stop the current question before switching conversations.")
+SWITCH_WHILE_APPLYING = tr("Changes are being applied — wait for that to finish.")
 VERIFYING = tr("Checking the applied changes…")
 MAX_VERIFICATION_ROUNDS = 3
 DESTRUCTIVE_DECLINED = tr("Kept everything as it was — the destructive steps were not applied.")
@@ -57,7 +55,6 @@ class CoreOrchestrator(ProjectLifecycleMixin):
         self._deferred_interrupted_outcome = ""
         self._connect_agent()
         self.dock_widget.set_session_source(self.conversation.recent)
-        self.dock_widget.set_capabilities_source(describe_capabilities)
         self.refresh_configured()
 
     def refresh_configured(self) -> None:
@@ -116,15 +113,12 @@ class CoreOrchestrator(ProjectLifecycleMixin):
         self._replay()
 
     def _busy_with_current(self) -> bool:
-        if bool(getattr(self.agent, "is_applying", False)) or self.agent.is_running:
-            self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
+        if bool(getattr(self.agent, "is_applying", False)):
+            self.dock_widget.add_system_message(SWITCH_WHILE_APPLYING)
             return True
-        if self.agent.is_awaiting_answer:
-            self.dock_widget.add_system_message(SWITCH_WHILE_AWAITING)
-            return True
-        if self.agent.has_pending_writes:
-            self.dock_widget.add_system_message(SWITCH_WHILE_PENDING)
-            return True
+        if self.agent.is_running or self.agent.is_awaiting_answer or self.agent.has_pending_writes:
+            self.agent.abort()
+            self._plan_message_id = None
         return False
 
     def _replay(self) -> None:

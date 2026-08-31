@@ -34,8 +34,11 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `composer.py`     | the input box: Enter sends, Shift+Enter breaks the line; the send button turns into “stop” |
 | `style.py`        | palette colours; `panel()` — the raised level for dialogs |
 | `icons.py`        | header icons: drawn with a palette pen, one stroke weight |
-| `settings_dialog.py` | the settings window: provider, key, API format |
-| `settings_fields.py` | cards, labels, hints and buttons for the settings |
+| `settings_dialog.py` | the settings window: state, saving, the connection probe |
+| `settings_layout.py` | the sidebar, the page stack and per-page scrolling |
+| `settings_fields.py` | the row grammar: rows, switches, separators, inputs, buttons |
+| `settings_advanced.py` | the Privacy and Advanced pages |
+| `geocoder_settings.py` | the Geocoding page |
 
 ## Header icons
 
@@ -163,7 +166,57 @@ orchestrator through `set_session_source` — the provider returns
 
 ## The settings window
 
-Fields are grouped into cards, each with a small hint underneath. The provider
+**A sidebar over a page stack, styled after Claude's own settings.** Four
+entries — Connection, Privacy, Geocoding, Advanced — ordered by how often each
+is touched. Sidebar and pages sit **full-bleed on the same window surface**,
+split by one vertical hairline; the footer is cut off by a horizontal one.
+A floating lifted pane was tried between the tab and this version and looked
+worse than both — a box inside a box reads as a widget, not a page. The
+selected entry is a `panel()` pill plus bold, so the selection survives the
+light theme where the lift is zero. The sidebar carries **no heading**: the
+window is already titled Settings, and repeating the word inside it was
+noise.
+
+**One row grammar for every control.** A row is caption left (title plus a
+muted hint under it, both wrapping), control right at a fixed
+`CONTROL_WIDTH`, vertically centred. Uniform control width is what makes the
+pages read as straight columns instead of ragged boxes. `add_rows`
+interleaves hairline separators **between** rows, never after the last one.
+Each page starts with one bold `group()` header; a page never repeats its
+sidebar entry as a heading.
+
+**Booleans are drawn switches, not native checkboxes.** A stray blue
+checkbox at the end of a wide row reads as debris; a track-and-knob toggle
+reads as a setting. `Switch` subclasses `QCheckBox` — the whole checkbox API
+(`setChecked`, `toggled`, `setEnabled`) keeps working — and only replaces
+`paintEvent`: accent track when on, hairline track when off, `card()` when
+disabled, knob from `highlightedText`. Same approach as the header icons:
+palette-driven `QPainter`, no image assets.
+
+Descriptions live behind a small "?" mark right after the title — a page of
+stacked explanatory paragraphs read as a wall of text (the user's call, and
+they were right). The mark is a plain `QLabel` that shows its tooltip on
+hover — it was briefly a click-to-show button, and the user rejected that:
+hover is the whole interaction, a mark that reacts to clicks overpromises.
+Tooltip text goes through `rich_tooltip()` (a `<qt>` wrapper), otherwise Qt
+renders plain-text tooltips as one endless unwrapped line. The
+safety-critical explanation of the sensitive switch is not lost to the
+tooltip: the per-endpoint consent dialog spells out the same boundary before
+the first request is ever sent. The geocoder's hint changes with the chosen
+provider, so its row keeps a reference to the mark and rewrites the tooltip.
+Titles are single-line labels without word wrap; wrapping came from the
+title competing with a trailing stretch for width, and the cure is short
+titles, not wrapped ones — detail belongs to the mark anyway.
+
+Pages scroll individually (`scrollable()`), with the viewport forced
+transparent so the window surface shows through — a `QScrollArea` left to
+its own devices paints its own grey. Test connection lives on the
+Connection page — it tests exactly what that page edits and means nothing on
+the others. The status line and Save/Close stay in the footer under a full
+hairline, so the probe's answer is visible from any page and survives page
+switches.
+
+The provider
 is picked from a list and fills in the address and the API format; the preset
 list lives in `core/llm/providers.py`, because that is knowledge about
 services, not about the interface. The preset does **not** fill in the model —

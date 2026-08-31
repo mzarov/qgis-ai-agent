@@ -74,7 +74,7 @@ The domain-specific ones:
   execution into a background thread.
 - New dependencies are a last resort: the plugin runs inside the QGIS Python,
   where every extra package is an installation problem for users. Today there
-  is exactly one — `keyring`.
+  are none at all.
 - User-facing strings are wrapped in `tr()` with an English literal
   (`tr("Layer '{0}'").format(name)`, never an f-string); model-facing strings
   (tool descriptions, errors) stay plain English without `tr()`. After changing

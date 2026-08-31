@@ -117,7 +117,6 @@ class ConversationView(QScrollArea):
 
     def append_draft(self, delta: str) -> None:
         if self._draft is None:
-            self._close_activity()
             draft = AssistantMessage("")
             self._append(draft)
             self._draft = draft
@@ -130,6 +129,7 @@ class ConversationView(QScrollArea):
         if draft is None:
             return False
         draft.set_markdown(markdown)
+        self._close_activity()
         self._scroll_when_pinned()
         return True
 

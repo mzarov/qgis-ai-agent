@@ -97,9 +97,12 @@ retain or use it according to its own terms.
 
 ## What stays on the computer
 
-API credentials are stored through the operating system keychain. The plugin
-uses the external `keyring` Python library for that integration and does not
-write keys to a QGIS project or settings file.
+API credentials are stored in the QGIS authentication database — the encrypted
+`qgis-auth.db` inside the active QGIS profile, the same store QGIS uses for
+layer and PostGIS passwords. It is unlocked by the QGIS master password, which
+QGIS asks for once per session. The plugin writes no key to a QGIS project or
+settings file; only the identifier of the stored entry goes into the settings,
+never the secret. Removing the key from the settings window deletes that entry.
 
 Conversation messages and remembered project notes are stored as plain JSON
 under the active QGIS profile in `ai_agent_sessions`. Atomic writes keep a
