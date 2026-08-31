@@ -206,7 +206,7 @@ class AgentDockWidget(QDockWidget):
             ).format(endpoint)
         )
         box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        box.setDefaultButton(QMessageBox.StandardButton.Yes)
+        box.setDefaultButton(QMessageBox.StandardButton.No)
         return box.exec() == QMessageBox.StandardButton.Yes
 
     def mark_plan_completed(self, message_id: int) -> None:

@@ -281,6 +281,11 @@
         <translation>Не удалось достучаться до {endpoint}: {reason}. Проверьте адрес, сеть и настройки прокси в QGIS.</translation>
     </message>
     <message>
+        <location filename="ai_agent/core/credentials.py" line="19"/>
+        <source>Could not remove the key from the QGIS authentication database: {reason}.</source>
+        <translation>Не удалось удалить ключ из базы учётных данных QGIS: {reason}.</translation>
+    </message>
+    <message>
         <location filename="ai_agent/core/credentials.py" line="15"/>
         <source>Could not save the key to the QGIS authentication database: {reason}.&#10;&#10;The key is stored encrypted inside your QGIS profile and is unlocked by the QGIS master password.</source>
         <translation>Не удалось сохранить ключ в базу учётных данных QGIS: {reason}.&#10;&#10;Ключ хранится зашифрованным внутри профиля QGIS и открывается мастер-паролем QGIS.</translation>
@@ -586,6 +591,11 @@
         <location filename="ai_agent/core/credentials.py" line="12"/>
         <source>QGIS did not provide its authentication database.</source>
         <translation>QGIS не предоставил свою базу учётных данных.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/credentials.py" line="20"/>
+        <source>QGIS refused to remove the key.</source>
+        <translation>QGIS отказался удалить ключ.</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/inspect/describe_layer.py" line="51"/>
@@ -1005,7 +1015,7 @@
         <translation>База учётных данных QGIS отключена в этом сеансе.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/credentials.py" line="19"/>
+        <location filename="ai_agent/core/credentials.py" line="21"/>
         <source>The QGIS authentication database is unavailable: {reason}. API keys cannot be loaded or saved.</source>
         <translation>База учётных данных QGIS недоступна: {reason}. Ключи API нельзя загрузить или сохранить.</translation>
     </message>
@@ -1241,7 +1251,7 @@
         <translation>имя модели у вашего провайдера</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/credentials.py" line="85"/>
+        <location filename="ai_agent/core/credentials.py" line="90"/>
         <source>unknown error</source>
         <translation>неизвестная ошибка</translation>
     </message>

@@ -20,6 +20,43 @@ from ai_agent.qgis_tools.style.describe_style import DescribeStyleTool
 from ai_agent.qgis_tools.web.fetch_url import FetchUrlTool
 from ai_agent.qgis_tools.web.geocode import GeocodeTool
 from ai_agent.qgis_tools.web.search_web import SearchWebTool
+from ai_agent.ui import dock_widget
+
+
+class MessageBoxProbe:
+    latest = None
+
+    class Icon:
+        Question = 1
+
+    class StandardButton:
+        Yes = 1
+        No = 2
+
+    def __init__(self, *_args):
+        self.default_button = None
+        MessageBoxProbe.latest = self
+
+    def setIcon(self, _icon):
+        pass
+
+    def setWindowTitle(self, _title):
+        pass
+
+    def setTextFormat(self, _text_format):
+        pass
+
+    def setText(self, _text):
+        pass
+
+    def setStandardButtons(self, _buttons):
+        pass
+
+    def setDefaultButton(self, button):
+        self.default_button = button
+
+    def exec(self):
+        return self.StandardButton.No
 
 
 class PrivacyClassificationTest(unittest.TestCase):
@@ -65,6 +102,16 @@ class PrivacyClassificationTest(unittest.TestCase):
 
     def test_malformed_port_does_not_break_the_consent_prompt(self):
         self.assertEqual(privacy.endpoint_label("https://example.com:not-a-port/v1"), "https://example.com")
+
+    def test_data_sharing_prompt_fails_closed_on_enter(self):
+        saved = dock_widget.QMessageBox
+        dock_widget.QMessageBox = MessageBoxProbe
+        try:
+            accepted = dock_widget.AgentDockWidget.confirm_data_sharing(None, "https://provider.example")
+        finally:
+            dock_widget.QMessageBox = saved
+        self.assertFalse(accepted)
+        self.assertEqual(MessageBoxProbe.latest.default_button, MessageBoxProbe.StandardButton.No)
 
 
 class PrivacyEnforcementTest(unittest.TestCase):

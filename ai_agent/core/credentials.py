@@ -16,6 +16,8 @@ STORE_FAILED = tr(
     "Could not save the key to the QGIS authentication database: {reason}.\n\n"
     "The key is stored encrypted inside your QGIS profile and is unlocked by the QGIS master password."
 )
+REMOVE_FAILED = tr("Could not remove the key from the QGIS authentication database: {reason}.")
+REMOVE_REFUSED = tr("QGIS refused to remove the key.")
 STORE_UNAVAILABLE = tr("The QGIS authentication database is unavailable: {reason}. API keys cannot be loaded or saved.")
 
 _error = ""
@@ -62,18 +64,21 @@ def write(scope: str, secret: str) -> None:
 def remove(scope: str) -> None:
     global _error
     config_id = _stored_id(scope)
-    _forget_id(scope)
     if not config_id:
         _error = ""
         return
     try:
-        _unlocked_manager().removeAuthenticationConfig(config_id)
+        removed = _unlocked_manager().removeAuthenticationConfig(config_id)
     except RuntimeError as error:
         _error = str(error)
-        raise RuntimeError(STORE_FAILED.format(reason=error)) from error
+        raise RuntimeError(REMOVE_FAILED.format(reason=error)) from error
     except Exception as error:
         _error = _reason(error)
-        raise RuntimeError(STORE_FAILED.format(reason=_reason(error))) from error
+        raise RuntimeError(REMOVE_FAILED.format(reason=_reason(error))) from error
+    if not removed:
+        _error = REMOVE_REFUSED
+        raise RuntimeError(REMOVE_FAILED.format(reason=_error))
+    _forget_id(scope)
     _error = ""
 
 

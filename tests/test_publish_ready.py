@@ -89,6 +89,9 @@ class LicenceTest(unittest.TestCase):
     def test_licence_is_gpl(self):
         self.assertIn("GNU GENERAL PUBLIC LICENSE", (REPO_ROOT / "LICENSE").read_text())
 
+    def test_readme_badge_matches_the_gpl_v3_licence(self):
+        self.assertIn("License: GPL-3.0", (REPO_ROOT / "README.md").read_text())
+
 
 class ScannerConfigTest(unittest.TestCase):
     def test_bandit_config_travels_inside_the_package(self):

@@ -21,7 +21,7 @@ tracker=https://github.com/mzarov/qgis-ai-agent/issues
 
 changelog=0.0.1
     - Initial public release: 65 tools across twelve skill domains
-    - Annotations, a 3D view, an auditable run journal and a capability browser
+    - Annotations, a 3D view and an auditable run journal
     - Google Gemini provider preset through its OpenAI-compatible endpoint
     - Keys in the QGIS authentication database: no external Python dependencies
     - Reads the project, styles layers, runs Processing, downloads OSM data

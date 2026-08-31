@@ -37,7 +37,7 @@ press the gear icon:
 | --- | --- |
 | Base URL | the address **without** `/chat/completions` — the plugin appends it |
 | Model | the model identifier at your provider |
-| API key | stored in the system keychain, not in the QGIS config |
+| API key | stored in the QGIS authentication database, not in the QGIS config |
 | API format | `auto` — picked from the address; `openai` or `anthropic` manually |
 | Authorisation type | `Bearer` for most services, `OAuth` for corporate gateways |
 | Verify the SSL certificate | untick only for an internal gateway with a self-signed certificate |

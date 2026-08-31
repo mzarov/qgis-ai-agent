@@ -68,6 +68,20 @@ class PublishedClaimsTest(unittest.TestCase):
         for path, phrase in claims.items():
             self.assertIn(phrase, path.read_text(encoding="utf-8"), path.name)
 
+    def test_removed_tool_browser_is_not_advertised(self):
+        published = [REPO_ROOT / "ai_agent" / "metadata.txt", *english_pages(), *russian_pages()]
+        obsolete_claims = ("tool browser", "capability browser", "браузер инструментов", "браузер тулов")
+        for path in published:
+            text = path.read_text(encoding="utf-8").lower()
+            for claim in obsolete_claims:
+                self.assertNotIn(claim, text, path.name)
+
+    def test_setup_names_the_qgis_authentication_database(self):
+        english = (DOCS / "SETUP.md").read_text(encoding="utf-8").lower()
+        russian = (DOCS / "SETUP.ru.md").read_text(encoding="utf-8").lower()
+        self.assertIn("qgis authentication database", english)
+        self.assertIn("базе учётных данных qgis", russian)
+
     def test_privacy_pages_name_real_values_and_images(self):
         for name, attribute_word in (("privacy.md", "attribute"), ("privacy.ru.md", "атрибут")):
             text = (DOCS / name).read_text(encoding="utf-8").lower()

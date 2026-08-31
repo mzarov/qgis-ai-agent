@@ -60,6 +60,7 @@ class FakeAuthManager:
         self.unlocked = True
         self.disabled = False
         self.failure: Exception | None = None
+        self.remove_result = True
         self.removed: list[str] = []
         self._next = 0
 
@@ -91,8 +92,9 @@ class FakeAuthManager:
         if self.failure is not None:
             raise self.failure
         self.removed.append(config_id)
-        self.stored.pop(config_id, None)
-        return True
+        if self.remove_result:
+            self.stored.pop(config_id, None)
+        return self.remove_result
 
 
 class FakeApplication:
@@ -168,6 +170,26 @@ class ScopedCredentialTest(unittest.TestCase):
         self.assertEqual(settings.get_api_key(REMOTE, "openai"), "")
         self.assertEqual(settings.get_api_key(OTHER_REMOTE, "anthropic"), "two")
         self.assertEqual(len(self.manager.removed), 1)
+
+    def test_failed_delete_keeps_the_auth_config_reachable(self):
+        settings.set_api_key("secret", REMOTE, "openai")
+        self.manager.failure = RuntimeError("auth database is locked")
+
+        with self.assertRaisesRegex(RuntimeError, "Could not remove"):
+            settings.delete_api_key(REMOTE, "openai")
+
+        self.assertIn("cfg001", MemorySettings.values.values())
+        self.assertIn("cfg001", self.manager.stored)
+
+    def test_refused_delete_keeps_the_auth_config_reachable(self):
+        settings.set_api_key("secret", REMOTE, "openai")
+        self.manager.remove_result = False
+
+        with self.assertRaisesRegex(RuntimeError, "refused to remove"):
+            settings.delete_api_key(REMOTE, "openai")
+
+        self.assertIn("cfg001", MemorySettings.values.values())
+        self.assertIn("cfg001", self.manager.stored)
 
     def test_the_secret_itself_never_reaches_the_settings_file(self):
         settings.set_api_key("plaintext-secret", REMOTE, "openai")
