@@ -60,6 +60,7 @@ class FakeAuthManager:
         self.unlocked = True
         self.disabled = False
         self.failure: Exception | None = None
+        self.remove_result = True
         self.removed: list[str] = []
         self._next = 0
 
@@ -91,8 +92,9 @@ class FakeAuthManager:
         if self.failure is not None:
             raise self.failure
         self.removed.append(config_id)
-        self.stored.pop(config_id, None)
-        return True
+        if self.remove_result:
+            self.stored.pop(config_id, None)
+        return self.remove_result
 
 
 class FakeApplication:
@@ -169,6 +171,26 @@ class ScopedCredentialTest(unittest.TestCase):
         self.assertEqual(settings.get_api_key(OTHER_REMOTE, "anthropic"), "two")
         self.assertEqual(len(self.manager.removed), 1)
 
+    def test_failed_delete_keeps_the_auth_config_reachable(self):
+        settings.set_api_key("secret", REMOTE, "openai")
+        self.manager.failure = RuntimeError("auth database is locked")
+
+        with self.assertRaisesRegex(RuntimeError, "Could not remove"):
+            settings.delete_api_key(REMOTE, "openai")
+
+        self.assertIn("cfg001", MemorySettings.values.values())
+        self.assertIn("cfg001", self.manager.stored)
+
+    def test_refused_delete_keeps_the_auth_config_reachable(self):
+        settings.set_api_key("secret", REMOTE, "openai")
+        self.manager.remove_result = False
+
+        with self.assertRaisesRegex(RuntimeError, "refused to remove"):
+            settings.delete_api_key(REMOTE, "openai")
+
+        self.assertIn("cfg001", MemorySettings.values.values())
+        self.assertIn("cfg001", self.manager.stored)
+
     def test_the_secret_itself_never_reaches_the_settings_file(self):
         settings.set_api_key("plaintext-secret", REMOTE, "openai")
         written = " ".join(str(value) for value in MemorySettings.values.values())
@@ -227,22 +249,16 @@ class ScopedCapabilityTest(unittest.TestCase):
         self.assertIsNone(settings.get_supports_tools(REMOTE, "model-a", "anthropic"))
         self.assertIsNone(settings.get_supports_tools(OTHER_REMOTE, "model-a", "openai"))
 
-    def test_data_sharing_choices_are_scoped_by_endpoint_and_default_off(self):
-        self.assertFalse(settings.get_data_sharing_consent(REMOTE))
+    def test_sensitive_data_opt_in_is_scoped_by_endpoint_and_default_off(self):
         self.assertFalse(settings.get_allow_sensitive_data(REMOTE))
-        settings.set_data_sharing_consent(True, REMOTE)
         settings.set_allow_sensitive_data(True, REMOTE)
-        self.assertTrue(settings.get_data_sharing_consent(REMOTE))
         self.assertTrue(settings.get_allow_sensitive_data(REMOTE))
-        self.assertFalse(settings.get_data_sharing_consent(OTHER_REMOTE))
         self.assertFalse(settings.get_allow_sensitive_data(OTHER_REMOTE))
 
     def test_corrupt_opt_in_values_fail_closed(self):
         suffix = settings._url_settings_key(REMOTE)
         for raw in ("", "garbage", "enabled-ish"):
-            MemorySettings.values[f"ai_agent/data_sharing_consent/{suffix}"] = raw
             MemorySettings.values[f"ai_agent/allow_sensitive_data/{suffix}"] = raw
-            self.assertFalse(settings.get_data_sharing_consent(REMOTE), raw)
             self.assertFalse(settings.get_allow_sensitive_data(REMOTE), raw)
 
     def test_ssl_opt_out_is_scoped_by_endpoint_and_defaults_on(self):

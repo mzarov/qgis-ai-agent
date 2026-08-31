@@ -39,12 +39,7 @@ Conversations persist across QGIS restarts and are bound to the project: the
 project. The title is your first message. Restoring a conversation restores the
 model's context too — a follow-up like *and how many are there?* keeps working.
 
-## Capabilities and run journals
-
-Press the **?** button in the panel header to browse all twelve domains and
-their tools. Each row says whether the tool runs immediately, waits for
-**Apply**, or asks separately; network reads are shown as waiting for
-**Apply**, even though their safety class is read-only.
+## Run journals
 
 After an applied run, the conversation shows the path to its plaintext Markdown
 journal. It lives in the active QGIS profile's `ai_agent_runs` directory, uses

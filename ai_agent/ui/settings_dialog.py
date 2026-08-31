@@ -26,7 +26,6 @@ from ai_agent.core.settings import (
     get_api_key,
     get_api_url,
     get_credential_store_error,
-    get_data_sharing_consent,
     get_model,
     get_verify_ssl,
     set_allow_sensitive_data,
@@ -34,7 +33,6 @@ from ai_agent.core.settings import (
     set_api_url,
     set_auth_type,
     set_custom_nominatim_url,
-    set_data_sharing_consent,
     set_dialect,
     set_geocoder_provider,
     set_model,
@@ -63,26 +61,18 @@ MODEL_REQUIRED = tr("Enter a model name from the provider.")
 KEY_REMOVED = tr("The stored key for this endpoint was removed.")
 KEY_HINT = tr("Stored encrypted in the QGIS authentication database, not in the settings file.")
 KEYLESS_HINT = tr("A local server needs no key — leave this empty.")
-SHARING_LABEL = tr("Share project context")
-SHARING_HINT = tr(
-    "Prompts and basic QGIS project context—including layer and field names, CRS, tool results and "
-    "generated plans—may be sent to this endpoint. Consent is stored separately for every endpoint."
-)
 SENSITIVE_LABEL = tr("Allow sensitive GIS data")
 SENSITIVE_HINT = tr(
     "Feature attribute values, exact map and layer extents, layer filters and sources, style categories, "
     "Processing and Python results, and rendered map or layout images may be sent to this endpoint. "
     "Leave this off for sensitive projects."
 )
-LOCAL_SHARING_HINT = tr(
-    "Local endpoint: consent is implicit and sensitive tools are enabled. "
-    "The server may still store or forward data; review its configuration."
+LOCAL_SENSITIVE_HINT = tr(
+    "Local endpoint: sensitive tools are enabled. The server may still store or forward data; review its configuration."
 )
 
 
 class SettingsDialog(SettingsStatusMixin, QDialog):
-    sharing_label = SHARING_LABEL
-    sharing_hint = SHARING_HINT
     sensitive_label = SENSITIVE_LABEL
     sensitive_hint = SENSITIVE_HINT
 
@@ -229,15 +219,9 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         self.key_edit.setText(key)
         self._active_credential_target = target
         local = is_local(url)
-        sharing_allowed = local or get_data_sharing_consent(url)
-        sensitive_allowed = local or (sharing_allowed and get_allow_sensitive_data(url))
-        self.data_sharing_cb.setChecked(sharing_allowed)
-        self.sensitive_data_cb.setChecked(sensitive_allowed)
-        self.data_sharing_cb.setEnabled(not local)
-        self.sensitive_data_cb.setEnabled(not local and sharing_allowed)
-        hint = LOCAL_SHARING_HINT if local else SHARING_HINT
-        self.data_sharing_cb.setToolTip(hint)
-        self.sensitive_data_cb.setToolTip(hint if local else SENSITIVE_HINT)
+        self.sensitive_data_cb.setChecked(local or get_allow_sensitive_data(url))
+        self.sensitive_data_cb.setEnabled(not local)
+        self.sensitive_data_cb.setToolTip(LOCAL_SENSITIVE_HINT if local else SENSITIVE_HINT)
         self.verify_ssl_cb.setChecked(get_verify_ssl(url))
         if get_credential_store_error() and not is_local(url):
             self._show(credential_store_failure_message(), style.danger(self.palette()))
@@ -286,9 +270,7 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         set_auth_type(self.auth_type_combo.currentText())
         set_dialect(dialect)
         set_verify_ssl(self.verify_ssl_cb.isChecked(), url)
-        set_data_sharing_consent(self.data_sharing_cb.isChecked(), url)
-        sensitive_allowed = self.data_sharing_cb.isChecked() and self.sensitive_data_cb.isChecked()
-        set_allow_sensitive_data(sensitive_allowed, url)
+        set_allow_sensitive_data(self.sensitive_data_cb.isChecked(), url)
         set_verify_after_apply(self.verify_apply_cb.isChecked())
         set_write_run_journal(self.journal_cb.isChecked())
         set_token_budget(fields.parsed_budget(self.budget_edit.text(), DEFAULT_TOKEN_BUDGET))

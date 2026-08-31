@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/mzarov/qgis-ai-agent/actions/workflows/tests.yml/badge.svg)](https://github.com/mzarov/qgis-ai-agent/actions/workflows/tests.yml)
 [![Documentation](https://github.com/mzarov/qgis-ai-agent/actions/workflows/docs.yml/badge.svg)](https://github.com/mzarov/qgis-ai-agent/actions/workflows/docs.yml)
-[![License: GPL-2.0](https://img.shields.io/badge/license-GPL--2.0-blue.svg)](LICENSE)
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![QGIS 4.0+](https://img.shields.io/badge/QGIS-4.0%2B-589632.svg)](https://qgis.org/)
 
 An AI agent inside QGIS 4: it inspects your project and processes data from a

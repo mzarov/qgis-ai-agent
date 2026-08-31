@@ -66,10 +66,8 @@ class MetadataRulesTest(unittest.TestCase):
             "plain json",
         ):
             self.assertIn(phrase, about)
-        self.assertIn("per-endpoint consent", about)
         self.assertIn("off by default", about)
-        self.assertIn("test connection", about)
-        self.assertIn("independently of agent-run consent", about)
+        self.assertNotIn("per-endpoint consent", about)
 
     def test_credential_storage_is_disclosed_without_promising_dependencies(self):
         about = self.values.get("about", "").lower()
@@ -88,6 +86,9 @@ class LicenceTest(unittest.TestCase):
 
     def test_licence_is_gpl(self):
         self.assertIn("GNU GENERAL PUBLIC LICENSE", (REPO_ROOT / "LICENSE").read_text())
+
+    def test_readme_badge_matches_the_gpl_v3_licence(self):
+        self.assertIn("License: GPL-3.0", (REPO_ROOT / "README.md").read_text())
 
 
 class ScannerConfigTest(unittest.TestCase):

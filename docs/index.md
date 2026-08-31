@@ -53,13 +53,11 @@ plan instead of producing garbage.
 - **An account and an API key** with a language-model provider — any
   OpenAI-compatible endpoint or Anthropic. Local servers (Ollama, LM Studio)
   need no key at all.
-- The first agent run against a remote endpoint waits for your consent for that
-  endpoint. The explicit Test connection action is separate and sends one short
-  diagnostic request when clicked. After consent the endpoint can receive
-  prompts, recent chat, project notes and tool results. Sharing sensitive GIS
-  data and tool results—feature attribute values, exact map and layer extents,
-  layer filters and sources, style categories, Processing and Python results,
-  and rendered map or layout images—is a separate option that is off by default.
+- Sending a request shares your prompt, recent chat, project notes and basic
+  project metadata with the configured endpoint. Sharing sensitive GIS data and
+  tool results—feature attribute values, exact map and layer extents, layer
+  filters and sources, style categories, Processing and Python results, and
+  rendered map or layout images—is a separate option that is off by default.
   Local servers can still store or forward data. Read
   [Data and privacy](privacy.md) before opening a sensitive project.
 - Each optional web call is confirmed separately. Search terms go to

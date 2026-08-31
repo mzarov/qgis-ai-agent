@@ -36,10 +36,7 @@ the claims still mark out territory users expect an agent to cover.
    `ai_agent_runs` in the active QGIS profile and report its path. Owner-only
    permissions protect the directory and files where supported; the privacy
    page documents the contents, persistence and cleanup limits.
-7. **Done — a tool browser.** A read-only dialog listing every skill and its tools
-   with descriptions, so the user can see what the agent can do without
-   asking it.
-8. **Done — a Gemini preset through its OpenAI-compatible endpoint.** It is
+7. **Done — a Gemini preset through its OpenAI-compatible endpoint.** It is
    available alongside the other provider presets and remains on the common
    OpenAI dialect.
 

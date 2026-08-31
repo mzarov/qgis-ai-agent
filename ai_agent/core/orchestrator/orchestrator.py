@@ -37,7 +37,7 @@ DESTRUCTIVE_DECLINED = tr("Kept everything as it was — the destructive steps w
 INTERJECTED = tr("Passed to the agent — it will take this into account on its next step.")
 PLAN_DROPPED = tr("The planned changes were dropped — they were not applied. Starting over from your message.")
 AWAITING_ANSWER = tr("Waiting for your answer — the run continues from it.")
-DATA_SHARING_DECLINED = tr("Request not sent. Project data sharing remains disabled for this endpoint.")
+DATA_SHARING_DECLINED = tr("Request not sent.")
 TOKENS_LABEL = tr("{0} tokens")
 __all__ = ("CoreOrchestrator", "PREVIOUS_APPLY_INTERRUPTED", "PROJECT_CHANGED")
 
@@ -140,9 +140,8 @@ class CoreOrchestrator(ProjectLifecycleMixin):
         if self.agent.is_awaiting_answer:
             self._answer(text)
             return
-        if not self._ensure_data_sharing_consent():
+        if not self._confirm_first_send():
             return
-
         self.dock_widget.add_user_message(text)
         self.dock_widget.clear_prompt()
         self._drop_pending_plan()
@@ -151,7 +150,7 @@ class CoreOrchestrator(ProjectLifecycleMixin):
         self.conversation.add("user", text)
         self.agent.start(text, history)
 
-    def _ensure_data_sharing_consent(self, endpoint: str | None = None) -> bool:
+    def _confirm_first_send(self, endpoint: str | None = None) -> bool:
         if not _is_configured():
             return True
         url = (endpoint if endpoint is not None else get_api_url() or "").strip()
@@ -184,7 +183,7 @@ class CoreOrchestrator(ProjectLifecycleMixin):
         self.dock_widget.add_system_message(AWAITING_ANSWER)
 
     def _answer(self, text: str) -> None:
-        if not self._ensure_data_sharing_consent(getattr(self.agent, "endpoint", None)):
+        if not self._confirm_first_send(getattr(self.agent, "endpoint", None)):
             return
         self.dock_widget.add_user_message(text)
         self.dock_widget.clear_prompt()

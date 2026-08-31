@@ -694,21 +694,18 @@ These verify the agent solves everyday tasks without wandering through search.
 
 ## New capabilities and audit trail
 
-171. **The tool browser tells the safety truth.** Press **?** → all twelve
-     domains appear; `fetch_url`, `geocode` and `search_web` say that they wait
-     for **Apply**, not that they run immediately.
-172. **Annotations round-trip.** Ask for a text note and a marker → both wait in
+171. **Annotations round-trip.** Ask for a text note and a marker → both wait in
      the plan, appear after **Apply**, show up in `list_annotations`, and can be
      removed by id.
-173. **A 3D view opens narrowly.** Ask to open a named 3D view → the plan says it
+172. **A 3D view opens narrowly.** Ask to open a named 3D view → the plan says it
      only opens the window; after **Apply** the view appears, or an unsupported
      QGIS build returns the explicit fallback guidance.
-174. **The run journal is visible and honest.** After applying a plan, the chat
+173. **The run journal is visible and honest.** After applying a plan, the chat
      reports a Markdown path under `ai_agent_runs` in the active QGIS profile.
      Confirm the directory/file modes are `0700`/`0600` where supported, then
      open it and check for shortened request/agent text, tool names, failed-call
      errors, applied count and outcome, but no separately dumped successful
      result payloads.
-175. **Gemini uses the common dialect.** Pick the Google Gemini preset, supply a
+174. **Gemini uses the common dialect.** Pick the Google Gemini preset, supply a
      valid key and model, and run **Test connection** → it uses the documented
      OpenAI-compatible base URL and returns the diagnostic reply.
