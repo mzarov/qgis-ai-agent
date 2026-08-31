@@ -88,15 +88,14 @@ class PublishedClaimsTest(unittest.TestCase):
             self.assertIn(attribute_word, text)
             self.assertIn("png", text)
 
-    def test_privacy_pages_distinguish_agent_consent_from_connection_test(self):
+    def test_privacy_pages_say_sending_is_the_decision(self):
         english = " ".join((DOCS / "privacy.md").read_text(encoding="utf-8").lower().split())
         russian = " ".join((DOCS / "privacy.ru.md").read_text(encoding="utf-8").lower().split())
-        self.assertIn("first agent run", english)
-        self.assertIn("test connection", english)
-        self.assertIn("explicit exception", english)
-        self.assertIn("первым запуском агента", russian)
-        self.assertIn("проверить подключение", russian)
-        self.assertIn("явное исключение", russian)
+        self.assertIn("no separate consent dialog", english)
+        self.assertIn("pressing send is the decision", english)
+        self.assertNotIn("first agent run", english)
+        self.assertIn("отдельного диалога согласия нет", russian)
+        self.assertIn("и есть решение", russian)
 
     def test_privacy_pages_disclose_the_plaintext_run_journal(self):
         english = " ".join((DOCS / "privacy.md").read_text(encoding="utf-8").lower().split())

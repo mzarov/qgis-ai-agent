@@ -108,17 +108,6 @@ def set_verify_ssl(value: bool, url: str | None = None) -> None:
     _write(f"verify_ssl/{_url_settings_key(endpoint)}", "true" if value else "false")
 
 
-def get_data_sharing_consent(url: str | None = None) -> bool:
-    endpoint = (url if url is not None else get_api_url()) or ""
-    stored = QgsSettings().value(f"{SETTINGS_PREFIX}/data_sharing_consent/{_url_settings_key(endpoint)}")
-    return False if stored is None else _as_opt_in_bool(stored)
-
-
-def set_data_sharing_consent(value: bool, url: str | None = None) -> None:
-    endpoint = (url if url is not None else get_api_url()) or ""
-    _write(f"data_sharing_consent/{_url_settings_key(endpoint)}", "true" if value else "false")
-
-
 def get_allow_sensitive_data(url: str | None = None) -> bool:
     endpoint = (url if url is not None else get_api_url()) or ""
     stored = QgsSettings().value(f"{SETTINGS_PREFIX}/allow_sensitive_data/{_url_settings_key(endpoint)}")

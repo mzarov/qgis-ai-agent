@@ -45,13 +45,11 @@ press the gear icon:
 The **Test connection** button sends one short request and shows the model's
 reply — proof that the URL, the key and the model name agree with each other.
 
-The first agent run against a remote endpoint asks for explicit consent. In
-Settings, **Share project context with the model provider** controls that choice
-per endpoint. **Allow sensitive GIS data and tool results** is a separate,
+Sending a request shares your prompt and basic project metadata with the
+configured endpoint. **Allow sensitive GIS data** is a separate,
 off-by-default permission for feature attribute values, exact map and layer
 extents, layer filters and sources, style categories, Processing and Python
-results, and rendered map or layout images. The connection test is an
-intentional diagnostic request and does not wait for agent-run consent.
+results, and rendered map or layout images.
 
 Geocoding is disabled by default. In the **Geocoding** card, choose **Photon
 demo (fair use)** for occasional interactive lookups or **Custom Nominatim**

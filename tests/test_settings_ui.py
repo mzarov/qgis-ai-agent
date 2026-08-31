@@ -149,8 +149,9 @@ class SidebarSettingsTest(unittest.TestCase):
 
     def test_consent_controls_live_on_the_privacy_page(self):
         privacy = ADVANCED_SOURCE.split("def build_privacy(")[1].split("\ndef ")[0]
-        for control in ("data_sharing_cb", "sensitive_data_cb", "verify_ssl_cb", "journal_cb"):
+        for control in ("sensitive_data_cb", "verify_ssl_cb", "journal_cb"):
             self.assertIn(control, privacy, control)
+        self.assertNotIn("data_sharing_cb", privacy)
 
     def test_every_privacy_switch_spells_itself_out(self):
         privacy = ADVANCED_SOURCE.split("def build_privacy(")[1].split("\ndef ")[0]
@@ -210,7 +211,6 @@ class SidebarSettingsTest(unittest.TestCase):
             "dialect_combo",
             "auth_type_combo",
             "verify_ssl_cb",
-            "data_sharing_cb",
             "sensitive_data_cb",
             "verify_apply_cb",
             "journal_cb",
@@ -269,9 +269,9 @@ class CredentialUiContractTest(unittest.TestCase):
         self.assertIn("Processing and Python results", DIALOG_SOURCE)
         self.assertIn("rendered map or layout images", DIALOG_SOURCE)
 
-    def test_consent_is_loaded_and_saved_for_the_edited_endpoint(self):
-        self.assertIn("get_data_sharing_consent(url)", DIALOG_SOURCE)
-        self.assertIn("set_data_sharing_consent(self.data_sharing_cb.isChecked(), url)", DIALOG_SOURCE)
+    def test_sensitive_opt_in_is_loaded_and_saved_for_the_edited_endpoint(self):
+        self.assertIn("get_allow_sensitive_data(url)", DIALOG_SOURCE)
+        self.assertIn("set_allow_sensitive_data(self.sensitive_data_cb.isChecked(), url)", DIALOG_SOURCE)
 
     def test_connection_probe_runs_outside_the_ui_thread_and_can_be_cancelled(self):
         self.assertIn("ProbeThread(self._overrides(), self)", DIALOG_SOURCE)
@@ -287,9 +287,8 @@ class CredentialUiContractTest(unittest.TestCase):
         self.assertIn("thread.cancel()", DIALOG_SOURCE)
 
     def test_local_endpoint_controls_match_the_auto_allowed_runtime_policy(self):
-        self.assertIn("sharing_allowed = local or get_data_sharing_consent(url)", DIALOG_SOURCE)
-        self.assertIn("sensitive_allowed = local or", DIALOG_SOURCE)
-        self.assertIn("self.data_sharing_cb.setEnabled(not local)", DIALOG_SOURCE)
+        self.assertIn("self.sensitive_data_cb.setChecked(local or get_allow_sensitive_data(url))", DIALOG_SOURCE)
+        self.assertIn("self.sensitive_data_cb.setEnabled(not local)", DIALOG_SOURCE)
 
     def test_geocoder_is_selected_in_settings_not_by_the_model(self):
         self.assertIn('tr("Photon demo (fair use)")', GEOCODER_SOURCE)

@@ -5,29 +5,24 @@ project without receiving context. “Read-only” in the plan means that a tool
 does not mutate QGIS. It is not a promise that the tool result remains on the
 device.
 
-## Consent and privacy mode
+## Privacy mode
 
-Before the first agent run sends project context to a remote endpoint, the
-plugin shows its scheme and host and asks for consent. The decision is stored
-separately for each endpoint and can be changed in Settings with **Share project
-context with the model provider**. Declining stops that agent run before it
-makes a network request. The separate **Test connection** action is an explicit
-exception: clicking it sends one short diagnostic request without agent-run
-consent.
+Sending a request shares your prompt and basic project metadata — layer and
+field names, CRS, project notes — with the configured endpoint. There is no
+separate consent dialog: configuring an endpoint and pressing send is the
+decision.
 
-The separate **Allow sensitive GIS data and tool results** option is off by
-default for remote endpoints. It covers feature attribute values, exact map and
-layer extents, layer filters and sources, style categories, Processing and
-Python results, and rendered map or layout images. While
-it is off, tools that can expose those details are omitted from the model's tool
-schemas and are also blocked if the model invents a call anyway. Prompts, recent
-chat, remembered
-notes and basic project metadata are still covered by the main consent; they are
-not automatically private or safe.
+The **Allow sensitive GIS data and tool results** option is off by default for
+remote endpoints. It covers feature attribute values, exact map and layer
+extents, layer filters and sources, style categories, Processing and Python
+results, and rendered map or layout images. While it is off, tools that can
+expose those details are omitted from the model's tool schemas and are also
+blocked if the model invents a call anyway. Prompts, recent chat, remembered
+notes and basic project metadata are not covered by that switch; they travel
+with every request and are not automatically private or safe.
 
-Addresses recognised as local do not show the remote-consent prompt and permit
-sensitive tools. A local server can still log or forward data, so review its
-configuration.
+Addresses recognised as local permit sensitive tools without the switch. A
+local server can still log or forward data, so review its configuration.
 
 ## Web tools
 
@@ -68,14 +63,14 @@ prompts, project data, credentials or other tool results.
 
 Search, geocode and fetched-page results become tool results and may therefore
 be forwarded to the model endpoint chosen in Settings. The per-call web
-confirmation does not replace consent for the model endpoint.
+confirmation is independent of the model endpoint.
 
 ## What reaches the model endpoint
 
-After the applicable consent, every model turn includes the current prompt, a
+Every model turn includes the current prompt, a
 recent window of the conversation, a short project context, the loaded skill
 instructions and tool schemas. Project notes created with `remember` are
-included as well. The main consent can therefore expose basic metadata such as
+included as well. A request can therefore expose basic metadata such as
 layer names and types even while the sensitive-data option is off.
 
 After a tool runs, its result is returned to the model so it can decide the next

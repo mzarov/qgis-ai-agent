@@ -329,52 +329,14 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.assertIsNone(self.orchestrator.agent.started)
         self.assertEqual(self.orchestrator.conversation.messages, [])
 
-    def test_remote_endpoint_requires_explicit_data_sharing_consent(self):
-        saved = (
-            orchestrator_module._is_configured,
-            orchestrator_module.get_api_url,
-            orchestrator_module.get_data_sharing_consent,
-            orchestrator_module.set_data_sharing_consent,
-        )
-        remembered = []
+    def test_remote_prompt_goes_straight_to_the_agent(self):
+        saved = orchestrator_module._is_configured
         orchestrator_module._is_configured = lambda: True
-        orchestrator_module.get_api_url = lambda: "https://provider.example/v1"
-        orchestrator_module.get_data_sharing_consent = lambda url: False
-        orchestrator_module.set_data_sharing_consent = lambda value, url: remembered.append((value, url))
-        self.dock.confirm_data_sharing = lambda endpoint: endpoint == "https://provider.example"
         try:
             self.orchestrator.on_prompt("inspect the project")
         finally:
-            (
-                orchestrator_module._is_configured,
-                orchestrator_module.get_api_url,
-                orchestrator_module.get_data_sharing_consent,
-                orchestrator_module.set_data_sharing_consent,
-            ) = saved
-        self.assertEqual(remembered, [(True, "https://provider.example/v1")])
+            orchestrator_module._is_configured = saved
         self.assertIsNotNone(self.orchestrator.agent.started)
-
-    def test_declined_data_sharing_sends_nothing(self):
-        saved = (
-            orchestrator_module._is_configured,
-            orchestrator_module.get_api_url,
-            orchestrator_module.get_data_sharing_consent,
-        )
-        orchestrator_module._is_configured = lambda: True
-        orchestrator_module.get_api_url = lambda: "https://provider.example/v1"
-        orchestrator_module.get_data_sharing_consent = lambda url: False
-        self.dock.confirm_data_sharing = lambda endpoint: False
-        try:
-            self.orchestrator.on_prompt("inspect the project")
-        finally:
-            (
-                orchestrator_module._is_configured,
-                orchestrator_module.get_api_url,
-                orchestrator_module.get_data_sharing_consent,
-            ) = saved
-        self.assertIsNone(self.orchestrator.agent.started)
-        self.assertEqual(self.orchestrator.conversation.messages, [])
-        self.assertIn(orchestrator_module.DATA_SHARING_DECLINED, self.dock.system)
 
     def test_applied_writes_reach_the_next_turn(self):
         self.orchestrator.on_prompt("построй буфер")

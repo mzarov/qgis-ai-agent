@@ -1,10 +1,10 @@
+import pathlib
 import unittest
 
 from ai_agent.core import privacy
 from ai_agent.core.agent import dispatch as dispatch_module
 from ai_agent.core.agent import request as request_module
 from ai_agent.core.agent.loop import AgentLoop
-from ai_agent.core.agent.transcript import Transcript
 from ai_agent.core.llm.transport import ToolCall
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, EGRESS_IMAGE, EGRESS_METADATA, EGRESS_WEB_CONTENT
 from ai_agent.qgis_tools.inspect.canvas_extent import GetCanvasExtentTool
@@ -21,42 +21,6 @@ from ai_agent.qgis_tools.web.fetch_url import FetchUrlTool
 from ai_agent.qgis_tools.web.geocode import GeocodeTool
 from ai_agent.qgis_tools.web.search_web import SearchWebTool
 from ai_agent.ui import dock_widget
-
-
-class MessageBoxProbe:
-    latest = None
-
-    class Icon:
-        Question = 1
-
-    class StandardButton:
-        Yes = 1
-        No = 2
-
-    def __init__(self, *_args):
-        self.default_button = None
-        MessageBoxProbe.latest = self
-
-    def setIcon(self, _icon):
-        pass
-
-    def setWindowTitle(self, _title):
-        pass
-
-    def setTextFormat(self, _text_format):
-        pass
-
-    def setText(self, _text):
-        pass
-
-    def setStandardButtons(self, _buttons):
-        pass
-
-    def setDefaultButton(self, button):
-        self.default_button = button
-
-    def exec(self):
-        return self.StandardButton.No
 
 
 class PrivacyClassificationTest(unittest.TestCase):
@@ -103,15 +67,10 @@ class PrivacyClassificationTest(unittest.TestCase):
     def test_malformed_port_does_not_break_the_consent_prompt(self):
         self.assertEqual(privacy.endpoint_label("https://example.com:not-a-port/v1"), "https://example.com")
 
-    def test_data_sharing_prompt_fails_closed_on_enter(self):
-        saved = dock_widget.QMessageBox
-        dock_widget.QMessageBox = MessageBoxProbe
-        try:
-            accepted = dock_widget.AgentDockWidget.confirm_data_sharing(None, "https://provider.example")
-        finally:
-            dock_widget.QMessageBox = saved
-        self.assertFalse(accepted)
-        self.assertEqual(MessageBoxProbe.latest.default_button, MessageBoxProbe.StandardButton.No)
+    def test_prompts_reach_the_model_without_a_consent_gate(self):
+        dock_source = pathlib.Path(dock_widget.__file__).read_text(encoding="utf-8")
+        self.assertNotIn("confirm_data_sharing", dock_source)
+        self.assertNotIn("data_sharing", pathlib.Path(request_module.__file__).read_text(encoding="utf-8"))
 
 
 class PrivacyEnforcementTest(unittest.TestCase):
@@ -140,20 +99,6 @@ class PrivacyEnforcementTest(unittest.TestCase):
         self.assertIn("Privacy mode", result.payload["error"])
         self.assertFalse(loop.has_pending_writes)
         self.assertEqual(seen, ["https://frozen.example/v1"])
-
-    def test_request_builder_refuses_remote_egress_after_consent_is_revoked(self):
-        saved = request_module.data_sharing_allowed
-        request_module.data_sharing_allowed = lambda endpoint: False
-        try:
-            with self.assertRaisesRegex(PermissionError, "disabled"):
-                request_module.build_step_request(
-                    Transcript(),
-                    [],
-                    [],
-                    {"url_override": "https://provider.example/v1"},
-                )
-        finally:
-            request_module.data_sharing_allowed = saved
 
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ from ai_agent.core.agent.transcript import Transcript
 from ai_agent.core.context.project import get_project_context
 from ai_agent.core.llm.client import resolve_endpoint
 from ai_agent.core.llm.transport import PROTOCOL_JSON, PROTOCOL_NATIVE
-from ai_agent.core.privacy import data_sharing_allowed, sensitive_data_allowed, tool_output_allowed
+from ai_agent.core.privacy import sensitive_data_allowed, tool_output_allowed
 from ai_agent.core.settings import (
     get_api_key,
     get_api_url,
@@ -34,9 +34,6 @@ PRIVACY_MODE_PROMPT = (
     "Privacy mode is active. Do not request sampled feature values, selected feature details, "
     "query result rows, or rendered map/layout images. Ask the user to enable sensitive data "
     "sharing in Settings if the task genuinely requires them."
-)
-DATA_SHARING_DISABLED = (
-    "Project data sharing is disabled for this endpoint. Enable it in Settings before sending another request."
 )
 
 
@@ -58,8 +55,6 @@ def build_step_request(
 ) -> StepRequest:
     effective_overrides = dict(overrides) if overrides is not None else build_overrides()
     endpoint = str(effective_overrides.get("url_override") or get_api_url() or "")
-    if not data_sharing_allowed(endpoint):
-        raise PermissionError(DATA_SHARING_DISABLED)
     schemas = build_tool_schemas_for(loaded_skills, endpoint)
     json_protocol = detect_json_protocol(effective_overrides)
     system_prompt = build_system_prompt(
