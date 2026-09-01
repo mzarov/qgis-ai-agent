@@ -103,6 +103,7 @@ class BuildTest(unittest.TestCase):
         self.assertFalse(build_plugin.is_package_file_allowed("keys.json"))
         self.assertTrue(build_plugin.is_package_file_allowed("icon.png"))
         self.assertFalse(build_plugin.is_package_file_allowed("icon.svg"))
+        self.assertFalse(build_plugin.is_package_file_allowed(".bandit"))
         self.assertFalse(build_plugin.is_package_file_allowed("skills/CLAUDE.md"))
         self.assertTrue(build_plugin.is_package_file_allowed("core/agent/loop.py"))
         self.assertTrue(build_plugin.is_package_file_allowed("skills/inspect/SKILL.md"))
