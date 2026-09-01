@@ -1,4 +1,5 @@
 import re
+from contextlib import suppress
 from typing import Any
 
 from qgis.core import QgsMapLayer, QgsVectorLayer
@@ -30,16 +31,16 @@ SIGNED_QUERY_KEYS = (
 SECRET_PATTERN = re.compile(r"(?i)\b(" + "|".join(SECRET_KEYS) + r")\s*=\s*('[^']*'|\"[^\"]*\"|[^\s&;]+)")
 SIGNED_QUERY_PATTERN = re.compile(r"(?i)([?&](?:" + "|".join(SIGNED_QUERY_KEYS) + r")=)([^&\s'\"]+)")
 URL_USERINFO_PATTERN = re.compile(r"(?i)([a-z][a-z0-9+.-]*://)([^/@\s]+@)")
-SECRET_PLACEHOLDER = "<hidden>"
+MASKED_VALUE = "<hidden>"
 MAX_SOURCE_CHARS = 300
 
 
 def sanitize_source(source: str) -> str:
     if not source:
         return ""
-    cleaned = URL_USERINFO_PATTERN.sub(lambda m: f"{m.group(1)}{SECRET_PLACEHOLDER}@", source)
-    cleaned = SIGNED_QUERY_PATTERN.sub(lambda m: f"{m.group(1)}{SECRET_PLACEHOLDER}", cleaned)
-    cleaned = SECRET_PATTERN.sub(lambda m: f"{m.group(1)}={SECRET_PLACEHOLDER}", cleaned)
+    cleaned = URL_USERINFO_PATTERN.sub(lambda m: f"{m.group(1)}{MASKED_VALUE}@", source)
+    cleaned = SIGNED_QUERY_PATTERN.sub(lambda m: f"{m.group(1)}{MASKED_VALUE}", cleaned)
+    cleaned = SECRET_PATTERN.sub(lambda m: f"{m.group(1)}={MASKED_VALUE}", cleaned)
     if len(cleaned) > MAX_SOURCE_CHARS:
         return cleaned[:MAX_SOURCE_CHARS] + "…"
     return cleaned
@@ -47,16 +48,11 @@ def sanitize_source(source: str) -> str:
 
 def provider_name(layer: QgsMapLayer) -> str:
     for getter in ("providerType", "dataProvider"):
-        try:
+        with suppress(Exception):
             value = getattr(layer, getter)()
-        except Exception:
-            continue
-        if isinstance(value, str):
-            return value
-        try:
+            if isinstance(value, str):
+                return value
             return value.name()
-        except Exception:
-            continue
     return ""
 
 

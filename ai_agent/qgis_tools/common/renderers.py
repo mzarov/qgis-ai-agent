@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import Any
 
 from qgis.core import QgsMapLayer
@@ -68,8 +69,6 @@ def style_block(layer: QgsMapLayer) -> dict[str, str]:
 def _class_count(layer: QgsMapLayer) -> int | None:
     renderer = get_renderer(layer)
     for getter in ("categories", "ranges"):
-        try:
+        with suppress(Exception):
             return len(getattr(renderer, getter)())
-        except Exception:
-            continue
     return None

@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import Any
 
 from qgis.core import QgsProject
@@ -76,8 +77,6 @@ def _collect_groups(node: Any, names: list[str]) -> None:
         return
     for child in children:
         if hasattr(child, "addGroup"):
-            try:
+            with suppress(Exception):
                 names.append(child.name())
-            except Exception:
-                continue
-            _collect_groups(child, names)
+                _collect_groups(child, names)

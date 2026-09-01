@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import Any
 
 from qgis.core import QgsVectorLayer
@@ -112,10 +113,8 @@ class GetFieldValuesTool(BaseTool):
     def _numeric_range(layer: QgsVectorLayer, index: int) -> dict[str, Any]:
         info: dict[str, Any] = {}
         for key, getter in (("min", "minimumValue"), ("max", "maximumValue")):
-            try:
+            with suppress(Exception):
                 info[key] = plain_value(getattr(layer, getter)(index))
-            except Exception:
-                continue
         return info
 
 

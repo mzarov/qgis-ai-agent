@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import Any
 
 from qgis.core import (
@@ -146,11 +147,9 @@ def destination_parameter_names(algorithm: Any) -> list[str]:
 
 
 def _is_destination(parameter: Any) -> bool:
-    try:
+    with suppress(Exception):
         if parameter.isDestination():
             return True
-    except Exception:
-        pass
     return str(parameter.type()).lower() in DESTINATION_TYPES
 
 

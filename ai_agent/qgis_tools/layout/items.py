@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import Any
 
 from qgis.core import (
@@ -114,7 +115,7 @@ def place(item: Any, x: float, y: float, width: float, height: float) -> None:
 
 def describe_item(item: Any) -> dict[str, Any]:
     described: dict[str, Any] = {"id": str(item.id() or ""), "type": item_kind(item)}
-    try:
+    with suppress(Exception):
         rect = item.sceneBoundingRect()
         described.update(
             {
@@ -124,13 +125,9 @@ def describe_item(item: Any) -> dict[str, Any]:
                 "height": round(float(rect.height()), 1),
             }
         )
-    except Exception:
-        pass
     if item_kind(item) == ITEM_LABEL:
-        try:
+        with suppress(Exception):
             described["text"] = str(item.text() or "")
-        except Exception:
-            pass
     return described
 
 
@@ -148,12 +145,10 @@ def apply_label_text(item: Any, text: str, font_size: Any) -> None:
     size = _as_float(font_size)
     if size is None:
         return
-    try:
+    with suppress(Exception):
         text_format = QgsTextFormat()
         text_format.setSize(size)
         item.setTextFormat(text_format)
-    except Exception:
-        pass
 
 
 def first_map(layout: Any) -> Any:

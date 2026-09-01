@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import Any
 
 from ai_agent.i18n import tr
@@ -42,10 +43,8 @@ class ListDbTablesTool(BaseTool):
 def _described(table: Any) -> dict[str, Any]:
     described: dict[str, Any] = {}
     for key, getter in (("schema", "schema"), ("table", "tableName"), ("geometry_column", "geometryColumn")):
-        try:
+        with suppress(Exception):
             value = getattr(table, getter)()
-        except Exception:
-            continue
-        if value:
-            described[key] = str(value)
+            if value:
+                described[key] = str(value)
     return described

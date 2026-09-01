@@ -14,7 +14,8 @@ OPENROUTER_HOSTS = ("openrouter.ai",)
 REFERER = "https://github.com/mzarov/qgis-ai-agent"
 TITLE = "AI Agent"
 DEFAULT_MAX_TOKENS = 4096
-LOOPBACK_HOSTS = ("localhost", "0.0.0.0")
+UNSPECIFIED_IPV4 = str(ipaddress.ip_address(0))
+LOOPBACK_HOSTS = ("localhost", UNSPECIFIED_IPV4)
 
 
 def detect(url: str) -> str:

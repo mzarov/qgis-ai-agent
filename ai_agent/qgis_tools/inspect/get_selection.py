@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import Any
 
 from qgis.core import QgsProject
@@ -60,10 +61,8 @@ def _sample(layer: Any) -> list[dict[str, Any]]:
     for feature in features[:SAMPLE_LIMIT]:
         attributes = {}
         for name in names:
-            try:
+            with suppress(Exception):
                 attributes[name] = _short(plain_value(feature[name]))
-            except Exception:
-                continue
         sampled.append(attributes)
     return sampled
 

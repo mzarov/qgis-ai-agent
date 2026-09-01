@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import Any
 
 
@@ -45,16 +46,10 @@ def _text_format(settings) -> dict[str, Any]:
         text_format = settings.format()
     except Exception:
         return info
-    try:
+    with suppress(Exception):
         info["font_size"] = round(float(text_format.size()), 2)
-    except Exception:
-        pass
-    try:
+    with suppress(Exception):
         info["font"] = text_format.font().family()
-    except Exception:
-        pass
-    try:
+    with suppress(Exception):
         info["color"] = text_format.color().name()
-    except Exception:
-        pass
     return info

@@ -2,7 +2,7 @@ import builtins
 import io
 import sys
 import traceback
-from contextlib import redirect_stdout
+from contextlib import redirect_stdout, suppress
 from typing import Any
 
 MAX_LINES = 200000
@@ -54,12 +54,10 @@ def build_globals() -> dict[str, Any]:
     prepared["QgsProject"] = core.QgsProject
     prepared["project"] = core.QgsProject.instance()
     prepared["iface"] = _iface()
-    try:
+    with suppress(Exception):
         import processing
 
         prepared["processing"] = processing
-    except Exception:
-        pass
     return prepared
 
 

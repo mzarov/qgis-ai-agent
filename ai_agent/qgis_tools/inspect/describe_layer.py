@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import Any
 
 from qgis.core import QgsRasterLayer, QgsVectorLayer
@@ -86,19 +87,15 @@ class DescribeLayerTool(BaseTool):
     @staticmethod
     def _describe_fields(layer: QgsVectorLayer) -> list[dict[str, Any]]:
         fields: list[dict[str, Any]] = []
-        try:
+        with suppress(Exception):
             for field in layer.fields():
                 fields.append({"name": field.name(), "type": field.typeName() or str(field.type())})
-        except Exception:
-            pass
         return fields
 
     @staticmethod
     def _describe_raster(layer: QgsRasterLayer) -> dict[str, Any]:
         info: dict[str, Any] = {}
         for key, getter in RASTER_PROPERTIES:
-            try:
+            with suppress(Exception):
                 info[key] = int(getattr(layer, getter)())
-            except Exception:
-                continue
         return info
