@@ -92,15 +92,19 @@ class LicenceTest(unittest.TestCase):
 
 
 class ScannerConfigTest(unittest.TestCase):
-    def test_bandit_config_travels_inside_the_package(self):
-        config = PACKAGE / ".bandit"
-        self.assertTrue(config.is_file())
-        self.assertIn("[bandit]", config.read_text())
+    def test_scanners_run_with_stock_rules_no_config_anywhere(self):
+        self.assertFalse((PACKAGE / ".bandit").exists())
+        self.assertEqual([str(path) for path in PACKAGE.rglob(".bandit")], [])
 
-    def test_only_deliberate_patterns_are_skipped(self):
-        skips = (PACKAGE / ".bandit").read_text().split("skips")[1]
-        self.assertNotIn("B324", skips)
-        self.assertNotIn("B303", skips)
+    def test_empty_exception_handlers_are_written_as_suppress(self):
+        offenders = []
+        for path in PACKAGE.rglob("*.py"):
+            source = path.read_text(encoding="utf-8")
+            for bad in ("except Exception:\n    pass", "except Exception:\n        pass"):
+                if bad in source:
+                    offenders.append(str(path.relative_to(PACKAGE)))
+                    break
+        self.assertEqual(offenders, [])
 
     def test_weak_hash_was_fixed_not_silenced(self):
         settings = (PACKAGE / "core" / "settings.py").read_text()
@@ -123,7 +127,7 @@ class EscapeHatchTest(unittest.TestCase):
             for number, line in enumerate(path.read_text(encoding="utf-8").split("\n"), 1)
             if "nosec" in line
         ]
-        self.assertEqual(suppressions, ["qgis_tools/python/sandbox.py:72"])
+        self.assertEqual(suppressions, ["qgis_tools/python/sandbox.py:70"])
 
     def test_the_tool_running_code_asks_the_user_first(self):
         from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE

@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import Any
 
 from qgis.core import (
@@ -57,14 +58,12 @@ def crs_units(layer: QgsMapLayer) -> str:
 
 
 def suggest_metric_crs(layer: QgsMapLayer) -> str:
-    try:
+    with suppress(Exception):
         project_crs = QgsProject.instance().crs()
         if project_crs.isValid() and not project_crs.isGeographic():
             authid = project_crs.authid()
             if authid:
                 return authid
-    except Exception:
-        pass
     return utm_authid(layer)
 
 
@@ -105,15 +104,13 @@ def safe_extent(layer: QgsMapLayer) -> Any:
 
 
 def canvas_extent() -> QgsRectangle:
-    try:
+    with suppress(Exception):
         from qgis.utils import iface
 
         if iface and iface.mapCanvas():
             extent = iface.mapCanvas().extent()
             if extent and not extent.isEmpty():
                 return extent
-    except Exception:
-        pass
     for layer in QgsProject.instance().mapLayers().values():
         extent = safe_extent(layer)
         if extent and not extent.isEmpty():

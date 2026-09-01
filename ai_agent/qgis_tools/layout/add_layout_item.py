@@ -1,4 +1,5 @@
 import os
+from contextlib import suppress
 from typing import Any
 
 from qgis.core import QgsRectangle
@@ -212,14 +213,10 @@ def _configure_north_arrow(layout: Any, item: Any, properties: dict[str, Any]) -
     path = north_arrow_path(str(properties.get("style") or DEFAULT_NORTH_ARROW))
     if path:
         item.setPicturePath(path)
-    try:
+    with suppress(Exception):
         item.setLinkedMap(linked_map(layout, properties))
-    except Exception:
-        pass
 
 
 def _apply_default_scale(item: Any) -> None:
-    try:
+    with suppress(Exception):
         item.applyDefaultSize()
-    except Exception:
-        pass

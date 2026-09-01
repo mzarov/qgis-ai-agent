@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import Any
 
 from qgis.core import Qgis, QgsApplication
@@ -32,11 +33,9 @@ class GetQgisInfoTool(BaseTool):
     @staticmethod
     def _version() -> str:
         for attribute in ("QGIS_VERSION", "version"):
-            try:
+            with suppress(Exception):
                 value = getattr(Qgis, attribute)
                 return value() if callable(value) else str(value)
-            except Exception:
-                continue
         return ""
 
     @staticmethod
@@ -54,8 +53,6 @@ class GetQgisInfoTool(BaseTool):
             return []
         names = []
         for provider in list(providers)[:MAX_PROVIDERS]:
-            try:
+            with suppress(Exception):
                 names.append(provider.id())
-            except Exception:
-                continue
         return names

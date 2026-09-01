@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import Any
 
 from qgis.core import QgsStyle, QgsSymbol, QgsVectorLayer
@@ -69,13 +70,9 @@ def coloured_symbol(layer: QgsVectorLayer, color: QColor) -> QgsSymbol:
 
 
 def refresh(layer: QgsVectorLayer) -> None:
-    try:
+    with suppress(Exception):
         layer.triggerRepaint()
-    except Exception:
-        pass
-    try:
+    with suppress(Exception):
         from qgis.utils import iface
 
         iface.layerTreeView().refreshLayerSymbology(layer.id())
-    except Exception:
-        pass

@@ -1,4 +1,5 @@
 import os
+from contextlib import suppress
 from typing import Any
 
 from qgis.PyQt.QtCore import QCoreApplication, QTranslator
@@ -68,7 +69,5 @@ def _install(plugin_dir: str) -> bool:
 
 def remove() -> None:
     while _TRANSLATOR:
-        try:
+        with suppress(Exception):
             QCoreApplication.removeTranslator(_TRANSLATOR.pop())
-        except Exception:
-            continue

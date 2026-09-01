@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import Any
 
 from ai_agent.i18n import tr
@@ -105,10 +106,8 @@ def _apply_properties(item: Any, properties: dict[str, Any]) -> None:
     kind = item_kind(item)
     if kind == ITEM_LABEL and "text" in properties or "font_size" in properties:
         current = ""
-        try:
+        with suppress(Exception):
             current = str(item.text() or "")
-        except Exception:
-            pass
         apply_label_text(item, str(properties.get("text", current) or current), properties.get("font_size"))
     if kind == ITEM_LEGEND and str(properties.get("title") or "").strip():
         item.setTitle(str(properties["title"]).strip())

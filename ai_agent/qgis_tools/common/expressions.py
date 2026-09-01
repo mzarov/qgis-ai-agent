@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import Any
 
 from qgis.core import (
@@ -16,10 +17,8 @@ SPECIAL_COLUMNS = {"*", "$geometry", "$id", "$area", "$length", "$perimeter", "$
 
 def build_context(layer) -> QgsExpressionContext:
     context = QgsExpressionContext()
-    try:
+    with suppress(Exception):
         context.appendScopes(QgsExpressionContextUtils.globalProjectLayerScopes(layer))
-    except Exception:
-        pass
     return context
 
 
@@ -54,10 +53,8 @@ def check_columns(expression: QgsExpression, layer, label: str, text: str) -> No
 
 def prepared(text: str, label: str, context: QgsExpressionContext, layer=None) -> QgsExpression:
     expression = compile_expression(text, label, layer)
-    try:
+    with suppress(Exception):
         expression.prepare(context)
-    except Exception:
-        pass
     return expression
 
 

@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import Any
 
 from qgis.core import (
@@ -98,13 +99,11 @@ def _checked_xy(params: dict[str, Any]) -> tuple[float, float]:
 
 def _to_layer_point(layer: Any, x: float, y: float, crs_text: str) -> Any:
     point = QgsPoint(x, y)
-    try:
+    with suppress(Exception):
         source = _crs(crs_text)
         target = QgsProject.instance().crs()
         if source is not None and target is not None and source.authid() != target.authid():
             point.transform(QgsCoordinateTransform(source, target, QgsProject.instance()))
-    except Exception:
-        pass
     return point
 
 
@@ -116,15 +115,13 @@ def _crs(text: str) -> Any:
 
 
 def _apply_text_look(item: Any, params: dict[str, Any]) -> None:
-    try:
+    with suppress(Exception):
         text_format = QgsTextFormat()
         text_format.setSize(_size(params.get("size")))
         colour = str(params.get("color") or "").strip()
         if colour:
             text_format.setColor(QColor(colour))
         item.setFormat(text_format)
-    except Exception:
-        pass
 
 
 def _size(raw: Any) -> float:

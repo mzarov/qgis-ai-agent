@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import Any
 
 from qgis.core import QgsRasterLayer, QgsVectorLayer
@@ -34,10 +35,8 @@ def describe_vector_renderer(layer: QgsVectorLayer) -> dict[str, Any]:
             info[key] = described
             return info
 
-    try:
+    with suppress(Exception):
         info["symbol"] = symbol_info(renderer.symbol())
-    except Exception:
-        pass
     return info
 
 
@@ -58,14 +57,10 @@ def _describe_classes(source, fields: tuple) -> list[dict[str, Any]] | None:
     for item in items[:MAX_CLASSES]:
         entry: dict[str, Any] = {}
         for key, getter in fields:
-            try:
+            with suppress(Exception):
                 entry[key] = plain_value(getattr(item, getter)())
-            except Exception:
-                continue
-        try:
+        with suppress(Exception):
             entry["symbol"] = symbol_info(item.symbol())
-        except Exception:
-            pass
         result.append(entry)
     return result
 
@@ -73,8 +68,6 @@ def _describe_classes(source, fields: tuple) -> list[dict[str, Any]] | None:
 def describe_raster_renderer(layer: QgsRasterLayer) -> dict[str, Any]:
     renderer = get_renderer(layer)
     info: dict[str, Any] = {"type": renderer_type(layer)}
-    try:
+    with suppress(Exception):
         info["bands"] = [int(band) for band in renderer.usesBands()]
-    except Exception:
-        pass
     return info
