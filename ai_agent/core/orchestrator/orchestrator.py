@@ -129,7 +129,7 @@ class CoreOrchestrator(ProjectLifecycleMixin):
     def on_prompt(self, prompt: str) -> None:
         text = (prompt or "").strip()
         if not text:
-            self._push_message(tr("Type a request."), Qgis.Warning)
+            self._push_message(tr("Type a request."), Qgis.MessageLevel.Warning)
             return
         if bool(getattr(self.agent, "is_applying", False)):
             self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
@@ -207,10 +207,10 @@ class CoreOrchestrator(ProjectLifecycleMixin):
             self.dock_widget.mark_tool_done(self._active_tool_message_id, ok)
             self._active_tool_message_id = None
         if not ok:
-            QgsMessageLog.logMessage(f"Tool {tool_name} failed.", LOG_TAG, Qgis.Warning)
+            QgsMessageLog.logMessage(f"Tool {tool_name} failed.", LOG_TAG, Qgis.MessageLevel.Warning)
 
     def on_tool_queued(self, _summary: str) -> None:
-        QgsMessageLog.logMessage("A validated step was added to the plan.", LOG_TAG, Qgis.Info)
+        QgsMessageLog.logMessage("A validated step was added to the plan.", LOG_TAG, Qgis.MessageLevel.Info)
 
     def on_tool_rejected(self, summary: str) -> None:
         self.dock_widget.add_rejected_message(tr("Rejected: {0}").format(summary))
@@ -278,12 +278,12 @@ class CoreOrchestrator(ProjectLifecycleMixin):
             outcome = tr("Some steps did not run: {0}").format(details)
             self.dock_widget.add_system_message(outcome)
             self.conversation.add("assistant", outcome)
-            self._push_message(tr("Not all changes were applied."), Qgis.Warning)
+            self._push_message(tr("Not all changes were applied."), Qgis.MessageLevel.Warning)
         else:
             outcome = tr_n("Done: %n step(s) applied.{0}", len(results)).format(where_to_look(results))
             self.dock_widget.add_result_message(outcome)
             self.conversation.add("assistant", outcome)
-            self._push_message(tr("Changes applied."), Qgis.Success)
+            self._push_message(tr("Changes applied."), Qgis.MessageLevel.Success)
         self._maybe_verify(results)
 
     def on_apply_interrupted(self, results: list) -> None:
@@ -311,7 +311,7 @@ class CoreOrchestrator(ProjectLifecycleMixin):
         next_round = self.agent.verification_round + 1
         if next_round > MAX_VERIFICATION_ROUNDS:
             QgsMessageLog.logMessage(
-                f"Stopping after {MAX_VERIFICATION_ROUNDS} verification rounds.", LOG_TAG, Qgis.Warning
+                f"Stopping after {MAX_VERIFICATION_ROUNDS} verification rounds.", LOG_TAG, Qgis.MessageLevel.Warning
             )
             return
         outcomes = [
@@ -342,7 +342,7 @@ class CoreOrchestrator(ProjectLifecycleMixin):
         self._active_tool_message_id = None
         self._plan_message_id = None
         self.dock_widget.add_system_message(tr("Error: {0}").format(message))
-        self._push_message(message, Qgis.Critical)
+        self._push_message(message, Qgis.MessageLevel.Critical)
 
     def shutdown(self) -> None:
         self.conversation.save()

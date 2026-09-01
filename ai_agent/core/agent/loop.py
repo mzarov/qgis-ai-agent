@@ -161,7 +161,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         if not message or not self.is_running:
             return False
         self._transcript.add_user(notices.INTERJECTION_HEADER + message)
-        QgsMessageLog.logMessage("The user interjected mid-run.", LOG_TAG, Qgis.Info)
+        QgsMessageLog.logMessage("The user interjected mid-run.", LOG_TAG, Qgis.MessageLevel.Info)
         return True
 
     def answer(self, text: str) -> bool:
@@ -323,10 +323,10 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         try:
             path = record_run(self._prompt, self._transcript.entries, outcome, self._applied_steps)
         except Exception as err:
-            QgsMessageLog.logMessage(f"Journal not written: {err}", LOG_TAG, Qgis.Warning)
+            QgsMessageLog.logMessage(f"Journal not written: {err}", LOG_TAG, Qgis.MessageLevel.Warning)
             return
         self._journal_saved = True
-        QgsMessageLog.logMessage(f"Run journal: {path}", LOG_TAG, Qgis.Info)
+        QgsMessageLog.logMessage(f"Run journal: {path}", LOG_TAG, Qgis.MessageLevel.Info)
         self.journal_written.emit(path)
 
     def _track_usage(self, turn: ModelTurn) -> None:
@@ -337,12 +337,12 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self.usage_changed.emit(self._tokens_spent)
 
     def _finish_on_limit(self, generation: int | None = None) -> None:
-        QgsMessageLog.logMessage(f"Reached the limit of {MAX_ITERATIONS} turns.", LOG_TAG, Qgis.Warning)
+        QgsMessageLog.logMessage(f"Reached the limit of {MAX_ITERATIONS} turns.", LOG_TAG, Qgis.MessageLevel.Warning)
         self._complete(notices.LIMIT_REACHED_MESSAGE, generation)
 
     def _finish_on_budget(self, generation: int | None = None) -> None:
         QgsMessageLog.logMessage(
-            f"Token budget hit: {self._tokens_spent} of {self._token_budget}.", LOG_TAG, Qgis.Warning
+            f"Token budget hit: {self._tokens_spent} of {self._token_budget}.", LOG_TAG, Qgis.MessageLevel.Warning
         )
         self._complete(notices.BUDGET_REACHED_MESSAGE, generation)
 

@@ -30,7 +30,7 @@ class ToolExecutor:
             QgsMessageLog.logMessage(
                 f"Tool {call.name} [{call.id}] failed ({type(err).__name__}).",
                 LOG_TAG,
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
             return ToolResult.failure(call, str(err), tool.egress)
         prepared = self._as_dict(payload)
@@ -39,9 +39,9 @@ class ToolExecutor:
             prepared["image_attached"] = True
         ok = not bool(prepared.get("error"))
         if ok:
-            QgsMessageLog.logMessage(f"Tool {call.name} finished.", LOG_TAG, Qgis.Info)
+            QgsMessageLog.logMessage(f"Tool {call.name} finished.", LOG_TAG, Qgis.MessageLevel.Info)
         else:
-            QgsMessageLog.logMessage(f"Tool {call.name} reported a failure.", LOG_TAG, Qgis.Warning)
+            QgsMessageLog.logMessage(f"Tool {call.name} reported a failure.", LOG_TAG, Qgis.MessageLevel.Warning)
         return ToolResult(call=call, ok=ok, payload=prepared, image=image, egress=tool.egress)
 
     @staticmethod

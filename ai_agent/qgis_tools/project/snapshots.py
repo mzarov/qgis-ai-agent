@@ -49,7 +49,7 @@ def take_snapshot() -> str:
         return _write_snapshot()
     except Exception as failure:
         _LAST_ERROR = str(failure).strip() or type(failure).__name__
-        QgsMessageLog.logMessage(f"Could not snapshot the project: {failure}", LOG_TAG, Qgis.Warning)
+        QgsMessageLog.logMessage(f"Could not snapshot the project: {failure}", LOG_TAG, Qgis.MessageLevel.Warning)
         return ""
 
 
@@ -79,7 +79,7 @@ def _write_snapshot() -> str:
     _LAST.append(path)
     _STATES[path] = state
     _trim()
-    QgsMessageLog.logMessage(f"Project snapshot written: {path}", LOG_TAG, Qgis.Info)
+    QgsMessageLog.logMessage(f"Project snapshot written: {path}", LOG_TAG, Qgis.MessageLevel.Info)
     return path
 
 

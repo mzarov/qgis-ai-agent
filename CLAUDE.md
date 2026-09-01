@@ -131,7 +131,7 @@ background `while` or as `asyncio` — that crashes QGIS.
   `ruff check --fix`), wired as a pre-commit hook. Do not hand-format against it.
 - `try/except` around anything that can crash QGIS.
 - Log the important steps:
-  `QgsMessageLog.logMessage("Message", "AI Agent", Qgis.Info)`.
+  `QgsMessageLog.logMessage("Message", "AI Agent", Qgis.MessageLevel.Info)`.
 - Do **not** add `# -*- coding: utf-8 -*-` (Python 3 is UTF-8 already).
 - Aim for files around 200 lines; the hard cap enforced by tests is 400. Growing
   past the target is a signal to consider extracting a neighbouring module, not

@@ -89,7 +89,7 @@ def algorithm_brief(algorithm) -> dict[str, Any]:
 
 def is_optional(parameter: QgsProcessingParameterDefinition) -> bool:
     try:
-        return bool(parameter.flags() & QgsProcessingParameterDefinition.FlagOptional)
+        return bool(parameter.flags() & QgsProcessingParameterDefinition.Flag.FlagOptional)
     except Exception:
         return False
 

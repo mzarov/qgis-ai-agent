@@ -52,7 +52,7 @@ class DispatchMixin:
             QgsMessageLog.logMessage(
                 f"Step {call.name} [{call.id}] rejected ({type(err).__name__}).",
                 LOG_TAG,
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
             return ToolResult.failure(call, str(err))
         tool = get_tool_by_name(queued.name)
@@ -98,5 +98,5 @@ class DispatchMixin:
         result, loaded = load_skill(call, self._loaded_skills)
         if loaded:
             self.skill_loaded.emit(loaded)
-            QgsMessageLog.logMessage(f"Skill loaded: {loaded}.", LOG_TAG, Qgis.Info)
+            QgsMessageLog.logMessage(f"Skill loaded: {loaded}.", LOG_TAG, Qgis.MessageLevel.Info)
         return result

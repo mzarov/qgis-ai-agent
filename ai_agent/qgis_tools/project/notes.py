@@ -72,7 +72,7 @@ class NoteStore:
         try:
             atomic_write_json(self.path(), payload)
         except OSError as failure:
-            QgsMessageLog.logMessage(f"Could not write project notes: {failure}", LOG_TAG, Qgis.Warning)
+            QgsMessageLog.logMessage(f"Could not write project notes: {failure}", LOG_TAG, Qgis.MessageLevel.Warning)
 
 
 def _notes_for(stored: dict[str, Any], key: str) -> list[str]:

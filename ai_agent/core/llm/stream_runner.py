@@ -19,10 +19,7 @@ ACCEPT_HEADER = {"Accept": "text/event-stream"}
 
 
 def _queued_connection() -> Any:
-    try:
-        return Qt.ConnectionType.QueuedConnection
-    except AttributeError:
-        return Qt.QueuedConnection
+    return Qt.ConnectionType.QueuedConnection
 
 
 class _StreamCancellation(QObject):
