@@ -4,7 +4,7 @@ qgisMinimumVersion=4.0
 qgisMaximumVersion=4.99
 description=AI agent inside QGIS: explores your project and processes data from a plain-language request.
 about=The agent inspects the open project, styles layers, runs Processing, edits data and creates layouts from plain-language requests. Changes wait in a visible plan until you press Apply. Sending a request shares your prompt, recent chat, project notes, basic layer and field metadata and tool results with the configured endpoint. The first send to each remote endpoint asks for confirmation; agreeing is remembered for that endpoint. Sensitive GIS data and tool results—feature attribute values; exact map and layer extents; layer filters and sources; style categories; Processing and Python results; and rendered map or layout images—require a separate option that is off by default. Optional web tools require per-call confirmation: searches contact DuckDuckGo or Wikipedia, geocoding contacts the Photon demo or custom Nominatim service selected in Settings, and page reads contact the approved public HTTPS host. Geocoding is disabled until a service is selected, and the public OSMF Nominatim instance is not offered. Private hosts and credential-bearing URLs are rejected. Web results are untrusted, may be sent to the configured model and are not cached on disk. Conversation messages and project notes are stored as plain JSON in the QGIS profile. When enabled, applied runs write an unencrypted Markdown journal containing shortened request and agent text, tool names, errors and outcome in the profile's ai_agent_runs directory; owner-only permissions are applied where supported, the path is reported and the file remains until the user deletes it. API keys are stored encrypted in the QGIS authentication database and unlocked by the QGIS master password; only the identifier of the stored entry reaches the settings file. The plugin has no external Python dependencies. OpenAI-compatible providers including Google Gemini, Anthropic and local endpoints are supported. A local server can still store or forward data. The interface is available in English and Russian.
-version=0.1.1
+version=0.1.0
 author=mzarov
 email=mzarov@duck.com
 
@@ -19,11 +19,7 @@ homepage=https://mzarov.github.io/qgis-ai-agent/
 repository=https://github.com/mzarov/qgis-ai-agent
 tracker=https://github.com/mzarov/qgis-ai-agent/issues
 
-changelog=0.1.1
-    - Fully scoped Qt6/QGIS4 enums throughout; the catalogue Qt6 compliance check passes clean
-    - supportsQt6 flag replaced with qgisMaximumVersion=4.99 as the migration guide asks
-
-0.1.0
+changelog=0.1.0
     - Initial public release: 65 tools across twelve skill domains
     - Annotations, a 3D view and an auditable run journal
     - Google Gemini provider preset through its OpenAI-compatible endpoint
