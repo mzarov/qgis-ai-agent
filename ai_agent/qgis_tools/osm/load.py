@@ -81,7 +81,7 @@ def _materialized(raw: Any, path: str, sublayer: str) -> Any:
             raise ValueError("the GeoPackage copy came back empty")
     except Exception as err:
         QgsMessageLog.logMessage(
-            f"OSM layer stays read-only, GeoPackage conversion failed: {err}", LOG_TAG, Qgis.Warning
+            f"OSM layer stays read-only, GeoPackage conversion failed: {err}", LOG_TAG, Qgis.MessageLevel.Warning
         )
         return None
     return layer

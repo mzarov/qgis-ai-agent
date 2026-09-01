@@ -62,7 +62,7 @@ class BatchApplyMixin:
             self._write_journal(INTERRUPTED_JOURNAL_OUTCOME)
             self.apply_interrupted.emit(results)
             return
-        QgsMessageLog.logMessage(f"Applied changes: {len(results)}.", LOG_TAG, Qgis.Info)
+        QgsMessageLog.logMessage(f"Applied changes: {len(results)}.", LOG_TAG, Qgis.MessageLevel.Info)
         if staged:
             self.stage_applied.emit(results)
             if self._is_current(generation):
@@ -80,7 +80,7 @@ class BatchApplyMixin:
             return
         message = snapshot_error() or notices.SNAPSHOT_FAILED_MESSAGE
         results = [ToolResult.failure(call, message, _call_egress(call)) for call in calls]
-        QgsMessageLog.logMessage(message, LOG_TAG, Qgis.Critical)
+        QgsMessageLog.logMessage(message, LOG_TAG, Qgis.MessageLevel.Critical)
         if staged:
             self.stage_applied.emit(results)
             if self._is_current(generation):
@@ -114,7 +114,7 @@ class BatchApplyMixin:
             replacements.append(ToolResult(call=self._stage_call, payload={"status": status}))
         self._stage_call = None
         self._transcript.replace_results(replacements, self._pending_protocol)
-        QgsMessageLog.logMessage("Stage applied, the run continues.", LOG_TAG, Qgis.Info)
+        QgsMessageLog.logMessage("Stage applied, the run continues.", LOG_TAG, Qgis.MessageLevel.Info)
         if self._is_current(generation):
             self._request_step()
 

@@ -210,10 +210,7 @@ def build_network_request(
 
 
 def _verify_none_mode() -> Any:
-    try:
-        return QSslSocket.PeerVerifyMode.VerifyNone
-    except AttributeError:
-        return QSslSocket.VerifyNone
+    return QSslSocket.PeerVerifyMode.VerifyNone
 
 
 def _status_of(reply: Any) -> int:

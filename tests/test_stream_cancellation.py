@@ -35,7 +35,7 @@ class StreamCancellationTest(unittest.TestCase):
             source,
         )
         self.assertIn("Qt.ConnectionType.QueuedConnection", source)
-        self.assertIn("Qt.QueuedConnection", source)
+        self.assertNotIn("except AttributeError", source.split("def _queued_connection")[1].split("def ")[0])
 
 
 if __name__ == "__main__":
