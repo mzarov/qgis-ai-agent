@@ -132,7 +132,7 @@ class SidebarSettingsTest(unittest.TestCase):
     def test_the_window_is_a_sidebar_over_a_page_stack(self):
         self.assertIn("fields.sidebar()", LAYOUT_SOURCE)
         self.assertIn("fields.pages()", LAYOUT_SOURCE)
-        for title in ('tr("Connection")', 'tr("Privacy")', 'tr("Geocoding")', 'tr("Advanced")'):
+        for title in ('tr("Connection")', 'tr("Privacy")', 'tr("Skills")', 'tr("Geocoding")', 'tr("Advanced")'):
             self.assertIn(title, LAYOUT_SOURCE)
 
     def test_only_the_chosen_entry_stays_checked(self):

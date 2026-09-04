@@ -31,7 +31,9 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `messages.py`     | the user message, the agent reply, the service message |
 | `activity.py`     | the collapsible group of tool calls |
 | `plan.py`         | the plan card with its buttons inside |
-| `composer.py`     | the input box: Enter sends, Shift+Enter breaks the line; the send button turns into “stop” |
+| `composer.py`     | the input box: Enter sends, Shift+Enter breaks the line; the send button turns into “stop”; `/` opens the skill popup |
+| `skill_popup.py`  | the list above the composer: prefix-then-substring ranking, keyboard steering, `local` badge |
+| `skills_settings.py` | the Skills settings page: folder, example, discovered local skills and their problems |
 | `style.py`        | palette colours; `panel()` — the raised level for dialogs |
 | `icons.py`        | header icons: drawn with a palette pen, one stroke weight |
 | `settings_dialog.py` | the settings window: state, saving, the connection probe |
@@ -253,3 +255,20 @@ The right way is `QFrame#settingsCard { ... }` plus explicit styles for
 `core/orchestrator/contracts.py::DockWidgetContract` describes the minimal API.
 Added a method to `AgentDockWidget`? Add it to the contract too, otherwise the
 wiring silently diverges.
+
+## The slash popup
+
+Typing `/` as the first character opens a list of skills **above** the
+composer; it filters while the first token is typed and hides at the first
+space. The popup is a plain child of the dock body positioned over the feed,
+deliberately not a Qt `Popup` window: a popup window takes keyboard focus, and
+the whole point is that the user keeps typing into the editor while ↑↓ steer
+the list. `PromptEdit` therefore emits `navigated`/`accepted`/`dismissed`
+while `popup_open` is set and lets every other key through; Enter with no
+match falls back to sending, so a lone `/` never traps the user. Choosing
+inserts `/name ` with a trailing space and the caret at the end — the request
+is typed straight after. Ranking is prefix matches first, then substring
+matches, capped at `MAX_ROWS`; local skills carry a `local` badge in the
+accent colour. The list itself comes from the orchestrator through
+`set_skill_source`, like the conversations menu, so `ui/` knows nothing about
+registries.

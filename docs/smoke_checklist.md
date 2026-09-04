@@ -709,3 +709,21 @@ These verify the agent solves everyday tasks without wandering through search.
 174. **Gemini uses the common dialect.** Pick the Google Gemini preset, supply a
      valid key and model, and run **Test connection** → it uses the documented
      OpenAI-compatible base URL and returns the diagnostic reply.
+
+## Skills and slash commands
+
+176. **The slash popup lists skills and inserts one.** Type `/` in the composer
+     → a list above the input with every built-in skill and its one-liner;
+     `/o` narrows it to prefix matches first; ↓ and Tab insert `/osm ` with the
+     caret after the space; Esc closes without touching the text.
+177. **A slash-invoked skill is loaded before the first turn.** Send
+     `/osm cafes in Kazan` → the feed shows no "Loading knowledge: osm" step,
+     the first action already uses `download_osm`, and the user bubble keeps the
+     original `/osm …` text.
+178. **A local skill goes through the whole path.** Settings → Skills → *Create
+     an example* → the folder opens on demand and the example is listed; edit
+     its description → it appears in `/` with the *local* badge and the agent
+     can `load_skill` it; add an unknown tool name → the page lists the problem
+     and the skill still loads with the known tools only.
+179. **An unknown command is refused, not sent.** `/nope do it` → one system
+     message naming the available commands; nothing reaches the model.

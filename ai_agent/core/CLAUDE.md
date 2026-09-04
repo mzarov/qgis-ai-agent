@@ -130,7 +130,18 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     user already knows. Only the identifier of the stored entry goes into
     `QgsSettings`; the secret never does. A refused master password reads as an
     empty key with a stated reason, never as a crash.
-16. **Imports** — all at the top, absolute. Code without comments or docstrings
+16. **Slash commands preload skills; the loop stays skill-agnostic.**
+    `orchestrator/slash.py` parses `/name rest`: an unknown name is refused with
+    the list before anything is sent; a known one becomes
+    `AgentLoop.start(prompt, history, skills=[name])`. The loop extends its
+    preloaded skills through `agent/skills.extend_loaded` (a local skill drags
+    in the domains of its tools) and names them under `INVOKED_SKILLS_HEADER`
+    so the model treats their rules as the user's explicit choice. The chat and
+    the saved conversation keep the original `/name …` text; the model gets the
+    request without the command. `core/local_skills.py` owns the profile
+    directory, the rescan and the example file — the `skills/` layer never
+    touches `qgis`.
+17. **Imports** — all at the top, absolute. Code without comments or docstrings
     — see the root CLAUDE.md.
 
 ## What lives where
@@ -157,6 +168,8 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `llm/probe.py`           | the connection check for the settings dialog        |
 | `llm/providers.py`       | provider presets for the settings dialog            |
 | `credentials.py`         | API keys in the QGIS authentication database        |
+| `local_skills.py`        | the profile's skills folder: rescan, validation, example |
+| `orchestrator/slash.py`  | `/skill` parsing and the skill list for the composer |
 | `orchestrator/`          | UI-to-loop wiring, the DockWidget contract          |
 | `state/conversation.py`  | the model window and the current dialogue, one entry point |
 | `state/session.py`       | the conversation model: title, messages, serialising |
