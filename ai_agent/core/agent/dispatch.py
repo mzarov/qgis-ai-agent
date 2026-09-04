@@ -13,13 +13,27 @@ from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.core.llm.transport import ToolCall
 from ai_agent.core.privacy import tool_output_allowed
 from ai_agent.qgis_tools.base import SAFETY_READ
-from ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call
+from ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call, validate_tool_arguments
 
 LOG_TAG = "AI Agent"
 
 
 class DispatchMixin:
     def _dispatch(self, call: ToolCall) -> ToolResult:
+        try:
+            validate_tool_arguments(call.name, call.arguments)
+            return self._dispatch_call(call)
+        except Exception as err:
+            tool = get_tool_by_name(call.name)
+            self.tool_rejected.emit(summarize_tool_call(call.name, call.arguments))
+            QgsMessageLog.logMessage(
+                f"Step {call.name} [{call.id}] rejected ({type(err).__name__}).",
+                LOG_TAG,
+                Qgis.MessageLevel.Warning,
+            )
+            return ToolResult.failure(call, str(err), tool.egress if tool is not None else "metadata")
+
+    def _dispatch_call(self, call: ToolCall) -> ToolResult:
         if call.name == LOAD_SKILL_TOOL:
             return self._load_skill(call)
         if call.name == UPDATE_PLAN_TOOL:

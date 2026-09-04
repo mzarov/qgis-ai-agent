@@ -20,7 +20,7 @@ LOCAL_SUFFIXES = (".internal", ".intranet", ".lan", ".local", ".localhost", ".ho
 
 def get_provider() -> str:
     value = QgsSettings().value(f"{SETTINGS_PREFIX}/geocoder_provider", DEFAULT_GEOCODER_PROVIDER, type=str)
-    return value if value in ALLOWED_PROVIDERS else DEFAULT_GEOCODER_PROVIDER
+    return value if isinstance(value, str) and value in ALLOWED_PROVIDERS else DEFAULT_GEOCODER_PROVIDER
 
 
 def set_provider(value: str | None) -> None:

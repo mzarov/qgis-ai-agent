@@ -120,9 +120,10 @@ background `while` or as `asyncio` — that crashes QGIS.
 
 ## Code style
 
-- **No comments and no docstrings.** None at all: no `#`, no `"""..."""`.
-  Clarity comes from names and function size. If something is unreadable without
-  an explanation, that is a signal to rename or split, not to write a comment.
+- Prefer clear names and small functions. Concise docstrings describe public
+  contracts, errors and side effects. Comments explain non-obvious reasons,
+  especially Qt lifetime, threading and data-integrity constraints; they should
+  not repeat the code.
 - Magic values become named module constants — they replace explanations
   (`SUSPICIOUS_DEGREES`, `MAX_ITERATIONS`, `PENDING_MARKER`).
 - PEP 8, type hints everywhere
@@ -133,9 +134,9 @@ background `while` or as `asyncio` — that crashes QGIS.
 - Log the important steps:
   `QgsMessageLog.logMessage("Message", "AI Agent", Qgis.MessageLevel.Info)`.
 - Do **not** add `# -*- coding: utf-8 -*-` (Python 3 is UTF-8 already).
-- Aim for files around 200 lines; the hard cap enforced by tests is 400. Growing
-  past the target is a signal to consider extracting a neighbouring module, not
-  an automatic failure.
+- Aim for cohesive modules, often around 200 lines. Review larger modules for
+  distinct responsibilities; do not split a cohesive unit just to satisfy a
+  line count.
 - Keep package `__init__.py` files empty, except the ones that assemble a tool
   list. Convenience re-exports drag extra dependencies at import time.
 
@@ -182,9 +183,15 @@ Lint and formatting (the same check runs in CI and in the pre-commit hook):
 ```bash
 poetry run ruff check .
 poetry run ruff format --check .
+poetry run mypy
 ```
 
-One-time setup of the hook after cloning:
+Strict mypy checking covers `config/`, `skills/`, `qgis_tools/base.py`, argument
+validation and the Processing effect policy. Only unavailable QGIS imports are exempted; expand the
+checked scope as stable contracts are typed. Ruff owns undefined-name checking.
+
+Poetry is dependency-only: `poetry install` installs locked development tools;
+`tools/build_plugin.py` builds the plugin. One-time setup after cloning:
 
 ```bash
 poetry install
@@ -225,14 +232,18 @@ grepping the source. Fake behaviour, never; fake a value, gladly.
 What is covered: pure logic (aggregates, expressions, value coercion, UTM zones,
 secret scrubbing), both transport protocols, the run transcript, every renderer
 type, the tool contract and schemas, skill/registry consistency, the safety
-invariant in the loop. Plus `tests/test_sources.py` statically enforces the
-style rules: no comments or docstrings, the file-size cap, absolute imports, no
-undefined names.
+invariant in the loop. `tests/test_sources.py` guards return annotations and
+absolute imports. Ruff owns formatting, imports and undefined names; mypy checks
+the declared strict boundary in `pyproject.toml`. CI records branch coverage for
+the fast suite (`poetry run coverage run -m unittest discover -s tests -t .`)
+and uploads HTML/XML reports. This coverage excludes real-QGIS processes; use
+missing branches as evidence for targeted regression work, not a percentage quota.
 
 **A new tool or skill means a new test.** Both `describe_style` failures once
 survived all the way to live QGIS precisely because nobody called the tool code:
 `compileall` and import checks do not catch that.
 
-What tests cannot reach — real PyQGIS calls against layers and Qt painting —
-is still checked by hand, following
+`tests/real_qgis_smoke.py` checks the installed ZIP, and
+`tests/real_qgis_workflows.py` exercises live layer and Qt lifecycle workflows
+in QGIS CI. Interactive checks beyond those scenarios follow
 [docs/smoke_checklist.md](docs/smoke_checklist.md).

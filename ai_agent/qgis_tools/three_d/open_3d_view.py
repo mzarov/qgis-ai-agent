@@ -1,7 +1,7 @@
 from typing import Any
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 
 DEFAULT_NAME = "3D Map"
 NOT_SUPPORTED = (
@@ -20,6 +20,9 @@ class Open3dViewTool(BaseTool):
     )
     skill = "three_d"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = ["Needs a QGIS build with 3D support"]
     examples = ["Show this in 3D", "Open a 3D view"]
     params_schema = [

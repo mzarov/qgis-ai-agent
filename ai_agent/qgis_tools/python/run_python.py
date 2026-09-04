@@ -22,6 +22,8 @@ class RunPythonTool(BaseTool):
     )
     skill = "python"
     safety = SAFETY_DESTRUCTIVE
+    external_effect = False
+    network_access = False
     egress = EGRESS_FEATURE_VALUES
     constraints = [
         "Try the dedicated tools first — this one asks the user to read code",

@@ -1,7 +1,7 @@
 from typing import Any
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.project.tree import find_layer, layer_tree, parent_of, tree_node
 
 SHOWN_NAMES = 4
@@ -18,6 +18,9 @@ class ReorderLayersTool(BaseTool):
     )
     skill = "project"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = [
         "Every listed layer must exist",
         "Top to bottom: the usual order is points, lines, polygons, basemap last",

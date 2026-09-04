@@ -38,6 +38,7 @@ class SearchWebTool(BaseTool):
     )
     skill = "web"
     safety = SAFETY_READ
+    external_effect = False
     egress = EGRESS_WEB_CONTENT
     network_access = True
     constraints = ["Returns up to 8 results", "A public service — one search per question, not a barrage"]

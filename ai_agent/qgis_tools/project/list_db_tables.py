@@ -2,7 +2,7 @@ from contextlib import suppress
 from typing import Any
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.project.list_db_connections import require_connection
 
 MAX_TABLES = 200
@@ -16,6 +16,9 @@ class ListDbTablesTool(BaseTool):
     )
     skill = "project"
     safety = SAFETY_READ
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = ["The connection must exist in the QGIS profile (see list_db_connections)"]
     examples = ["What tables does the production database have?"]
     params_schema = [

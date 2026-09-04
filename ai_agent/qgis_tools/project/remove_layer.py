@@ -1,7 +1,7 @@
 from typing import Any
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.project.tree import find_layer, project
 
 
@@ -12,6 +12,9 @@ class RemoveLayerTool(BaseTool):
     )
     skill = "project"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = ["A layer with this name must exist in the project"]
     examples = ["Drop the temporary buffer layer", "Remove the spare layer from the project"]
     params_schema = [

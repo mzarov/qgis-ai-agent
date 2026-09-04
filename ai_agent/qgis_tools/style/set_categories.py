@@ -3,7 +3,7 @@ from typing import Any
 from qgis.core import QgsCategorizedSymbolRenderer, QgsRendererCategory
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.colors import parse_color
 from ai_agent.qgis_tools.common.values import plain_value
 from ai_agent.qgis_tools.style.apply import (
@@ -26,6 +26,9 @@ class SetCategoriesTool(BaseTool):
     )
     skill = "style"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = [
         "The field must exist in the layer",
         "Either a ramp or a list of colours — one of the two",

@@ -3,18 +3,17 @@ from typing import Any
 from qgis.core import QgsVectorLayer
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_DESTRUCTIVE, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.common.editing import edit_session
 from ai_agent.qgis_tools.common.expressions import compile_expression
 from ai_agent.qgis_tools.common.layers import bind_layer_reference, find_layer_by_id
 from ai_agent.qgis_tools.fields.schema import (
     FIELD_TYPES,
     build_field,
     checked_new_name,
-    commit,
     field_names,
     require_field_index,
     require_vector,
-    start_editing,
 )
 
 VIRTUAL_NOTE = (
@@ -32,6 +31,8 @@ class AddFieldTool(BaseTool):
     )
     skill = "fields"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    network_access = False
     constraints = [
         "The field name must be new in this layer",
         "A virtual field requires a valid QGIS expression",
@@ -94,11 +95,14 @@ class AddFieldTool(BaseTool):
         expression = str(params.get("expression") or "").strip()
         if expression:
             compile_expression(expression, name, layer)
-            layer.addExpressionField(expression, build_field(name, params.get("type") or "double"))
+            index = layer.addExpressionField(expression, build_field(name, params.get("type") or "double"))
+            if index < 0:
+                raise ValueError(f"QGIS refused to add virtual field '{name}'.")
             return {"layer": layer.name(), "field": name, "virtual": True, "note": VIRTUAL_NOTE}
-        start_editing(layer)
-        layer.addAttribute(build_field(name, params.get("type") or "text"))
-        commit(layer)
+        field = build_field(name, params.get("type") or "text")
+        with edit_session(layer, "the schema change"):
+            if not layer.addAttribute(field):
+                raise ValueError(f"QGIS refused to add field '{name}'.")
         return {"layer": layer.name(), "field": name, "virtual": False}
 
 
@@ -107,6 +111,8 @@ class RenameFieldTool(BaseTool):
     description = "Rename an attribute field of a vector layer, keeping its values."
     skill = "fields"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    network_access = False
     external_effect = True
     constraints = ["The old field must exist and the new name must be free"]
     examples = ["Rename nm to name"]
@@ -142,9 +148,9 @@ class RenameFieldTool(BaseTool):
         layer = _field_target(params)
         index = require_field_index(layer, params.get("name") or "")
         new_name = checked_new_name(layer, params.get("new_name"))
-        start_editing(layer)
-        layer.renameAttribute(index, new_name)
-        commit(layer)
+        with edit_session(layer, "the schema change"):
+            if not layer.renameAttribute(index, new_name):
+                raise ValueError(f"QGIS refused to rename field '{params.get('name')}'.")
         return {"layer": layer.name(), "renamed": params.get("name"), "to": new_name}
 
 
@@ -156,6 +162,8 @@ class DeleteFieldTool(BaseTool):
     )
     skill = "fields"
     safety = SAFETY_DESTRUCTIVE
+    egress = EGRESS_METADATA
+    network_access = False
     external_effect = True
     constraints = ["The field must exist", "The layer must keep at least one field"]
     examples = ["Delete the empty notes column"]
@@ -190,9 +198,11 @@ class DeleteFieldTool(BaseTool):
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = _field_target(params)
         index = require_field_index(layer, params.get("name") or "")
-        start_editing(layer)
-        layer.deleteAttribute(index)
-        commit(layer)
+        if len(field_names(layer)) <= 1:
+            raise ValueError("This is the layer's only field — removing it would leave no attributes at all.")
+        with edit_session(layer, "the schema change"):
+            if not layer.deleteAttribute(index):
+                raise ValueError(f"QGIS refused to delete field '{params.get('name')}'.")
         return {"layer": layer.name(), "deleted": params.get("name")}
 
 

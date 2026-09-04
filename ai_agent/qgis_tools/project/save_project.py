@@ -1,7 +1,7 @@
 from typing import Any
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_DESTRUCTIVE, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.paths import check_overwrite, output_safety
 from ai_agent.qgis_tools.project.tree import project
 
@@ -16,6 +16,8 @@ class SaveProjectTool(BaseTool):
     )
     skill = "project"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    network_access = False
     external_effect = True
     constraints = [
         "A never-saved project requires a path",

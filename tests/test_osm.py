@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from unittest import mock
 
+from ai_agent.qgis_tools.common.editing import edit_session
 from ai_agent.qgis_tools.osm import download_osm, extent, load, overpass, run_overpass, selectors, tags
 from ai_agent.qgis_tools.osm.run_overpass import RunOverpassTool
 
@@ -473,10 +474,11 @@ class EditableDownloadTest(unittest.TestCase):
         self.assertIn("_materialized(raw, path, sublayer) or raw", self.SOURCE)
 
     def test_the_read_only_refusal_names_the_way_out(self):
-        for path in (
-            "ai_agent/qgis_tools/edit/delete_features.py",
-            "ai_agent/qgis_tools/edit/update_attributes.py",
-            "ai_agent/qgis_tools/fields/schema.py",
-        ):
-            source = pathlib.Path(path).read_text(encoding="utf-8")
-            self.assertIn("extractbyexpression", source, path)
+        layer = mock.Mock()
+        layer.name.return_value = "OSM download"
+        layer.isEditable.return_value = False
+        layer.startEditing.return_value = False
+        with self.assertRaisesRegex(ValueError, "editable copy"), edit_session(layer, "the requested edits"):
+            self.fail("read-only data must never enter the mutation block")
+        layer.commitChanges.assert_not_called()
+        layer.rollBack.assert_not_called()

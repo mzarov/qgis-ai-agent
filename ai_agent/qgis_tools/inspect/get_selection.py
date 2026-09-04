@@ -24,6 +24,8 @@ class GetSelectionTool(BaseTool):
     )
     skill = "inspect"
     safety = SAFETY_READ
+    external_effect = False
+    network_access = False
     egress = EGRESS_FEATURE_VALUES
     examples = ["What did I select?", "Compute the area of the selected polygons"]
     params_schema = []

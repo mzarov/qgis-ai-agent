@@ -22,6 +22,13 @@ JSON_SCHEMA_TYPES = {
 
 
 class BaseTool(ABC):
+    """One main-thread operation with explicit effect and output classifications.
+
+    Every registered subclass declares safety, egress, external_effect and
+    network_access. Parameter-dependent effects override the capability methods;
+    schemas describe model arguments, while prepare validates concrete values.
+    """
+
     name: str = ""
     description: str = ""
     params_schema: list[dict[str, Any]] = []
@@ -41,6 +48,7 @@ class BaseTool(ABC):
         return self.safety
 
     def has_external_effect(self, params: dict[str, Any]) -> bool:
+        """Whether this call can change data that a project snapshot cannot restore."""
         return self.external_effect
 
     def has_network_access(self, params: dict[str, Any]) -> bool:
@@ -91,19 +99,31 @@ class BaseTool(ABC):
         return " ".join(part for part in parts if part)
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Normalize and validate without mutations or service calls.
+
+        Bind selected layers by ID for deferred execution. Raise ValueError with
+        a recovery hint for invalid input; the model can correct it before Apply.
+        """
         return params
 
     def detail_call(self, params: dict[str, Any]) -> str:
         return ""
 
     def summarize_call(self, params: dict[str, Any]) -> str:
+        """Return a user-facing label, including when arguments are malformed."""
         if not params:
             return self.description or self.name
         shown = ", ".join(f"{key}={value}" for key, value in params.items())
         return f"{self.description or self.name}: {shown}"
 
     @abstractmethod
-    def execute(self, params: dict[str, Any]) -> dict[str, Any]: ...
+    def execute(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Execute on the Qt main thread and return JSON-compatible results.
+
+        Recheck mutable preconditions and report errors or partial effects
+        accurately. The output classification must cover every returned value.
+        """
+        ...
 
 
 def is_sensitive_egress(egress: str) -> bool:

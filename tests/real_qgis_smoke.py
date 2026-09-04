@@ -4,8 +4,12 @@ import pathlib
 import sys
 import tempfile
 import zipfile
+from collections.abc import Iterator
+from contextlib import contextmanager
+from unittest.mock import patch
 
 from qgis.core import Qgis, QgsApplication, QgsFeature, QgsGeometry, QgsProject, QgsVectorLayer
+from qgis.PyQt.QtCore import QSettings
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtNetwork import QNetworkRequest
 
@@ -19,11 +23,24 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as temporary:
         package_root = _build_and_extract(pathlib.Path(temporary))
         sys.path.insert(0, os.fspath(package_root.parent))
+        with qgis_application(pathlib.Path(temporary)):
+            return _run_checks(package_root)
+
+
+@contextmanager
+def qgis_application(root: pathlib.Path) -> Iterator[QgsApplication]:
+    """Keep settings, authentication and Processing state inside the test profile."""
+    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
+    QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, os.fspath(root / "settings"))
+    with patch.dict(os.environ, {"QGIS_CUSTOM_CONFIG_PATH": os.fspath(root / "config")}):
         application = QgsApplication([], False)
         application.initQgis()
         try:
-            return _run_checks(package_root)
+            if not pathlib.Path(QgsApplication.qgisSettingsDirPath()).is_relative_to(root):
+                raise RuntimeError("Tests must use the temporary QGIS profile")
+            yield application
         finally:
+            QgsProject.instance().clear()
             application.exitQgis()
 
 

@@ -1,7 +1,7 @@
 from typing import Any
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.layers import find_layer_by_name
 from ai_agent.qgis_tools.style.apply import refresh
 
@@ -19,6 +19,9 @@ class SetOpacityTool(BaseTool):
     )
     skill = "style"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = ["A layer with this name must exist in the project"]
     examples = ["Make the basemap half transparent", "Give the layer back its full opacity"]
     params_schema = [
