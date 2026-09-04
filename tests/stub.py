@@ -385,6 +385,7 @@ _qtcore = _mod(
         "QModelIndex",
         "QAbstractListModel",
         "QRect",
+        "QPoint",
         "QSize",
         "QTimer",
         "QByteArray",
@@ -426,6 +427,8 @@ _mod(
         "QIcon",
         "QPixmap",
         "QPainterPath",
+        "QDesktopServices",
+        "QTextCursor",
     ],
 )
 _mod(

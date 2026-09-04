@@ -58,7 +58,8 @@ class Agent:
         self.is_applying = False
         self.active_apply_tool = ""
 
-    def start(self, prompt, history, verification=False, verification_round=0):
+    def start(self, prompt, history, verification=False, verification_round=0, skills=None):
+        self.skills = skills
         if verification:
             self.verification_round = verification_round
             self.verification_started = (prompt, list(history))
@@ -147,6 +148,25 @@ class OrchestratorSessionTest(unittest.TestCase):
     def test_prompt_is_stored(self):
         self._ask("сколько слоёв?")
         self.assertEqual(self.orchestrator.conversation.messages[0]["content"], "сколько слоёв?")
+
+    def test_slash_prefix_preloads_the_skill_and_strips_the_command(self):
+        self._ask("/osm скачай кафе")
+        self.assertEqual(self.orchestrator.agent.started[0], "скачай кафе")
+        self.assertEqual(self.orchestrator.agent.skills, ["osm"])
+        self.assertEqual(self.orchestrator.conversation.messages[0]["content"], "/osm скачай кафе")
+
+    def test_bare_slash_skill_gets_a_default_prompt(self):
+        self._ask("/osm")
+        self.assertIn("'osm'", self.orchestrator.agent.started[0])
+
+    def test_unknown_slash_command_is_refused_with_the_list(self):
+        self._ask("/nope do something")
+        self.assertIsNone(self.orchestrator.agent.started)
+        self.assertTrue(any("/osm" in line for line in self.dock.system))
+
+    def test_plain_text_never_passes_skills(self):
+        self._ask("скачай кафе")
+        self.assertIsNone(self.orchestrator.agent.skills)
 
     def test_prompt_window_excludes_current_message(self):
         self.orchestrator.on_prompt("первый вопрос")

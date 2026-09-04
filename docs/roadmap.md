@@ -46,6 +46,40 @@ the claims still mark out territory users expect an agent to cover.
   networks), `fetch_url` and `geocode`; the geocoded bbox feeds `download_osm`
   directly.
 
+## Agent quality — audit 2026-09-03
+
+Found by reading the core end to end, ordered by expected effect on how well
+the agent works:
+
+1. **No retries in the transport.** A single 429, 502/503 or a dropped
+   connection ends the run with an error; `core/llm/client.py` and
+   `stream_runner.py` make exactly one attempt. Bounded retry with backoff on
+   429/5xx and connection resets, with a "retrying…" line in the feed.
+2. **No prompt caching on Anthropic.** The system prompt and the tool schemas
+   are identical between the turns of one run and are billed again every turn.
+   Mark the static prefix with `cache_control` in `llm/anthropic.py`; keep the
+   dynamic tail (plan, queued steps, project context) last so prefix caching on
+   OpenAI-style endpoints hits too.
+3. **The starting project context is thin** — layer names and geometry only,
+   so nearly every run spends its first turn on `list_layers`. Add CRS, the
+   selected-feature count and, where cheap, feature counts; stay within
+   metadata-class data.
+4. **Skill loading cost a turn per domain.** Shipped now: the prompt asks for
+   one-turn loading and `/skill` preloads before the first turn. Next: let
+   `load_skill` take a list of names.
+5. **No evaluation harness.** Prompt and skill edits are judged by feel.
+   Record real transcripts (tool calls with their results) and replay them
+   against the loop with a scripted model — a regression suite for the agent's
+   behaviour, and the biggest single lever for "it must work well".
+6. **Verification always runs the full round.** A trivial single-step
+   non-visual change still costs a 3–4-turn verification; skip or shorten it
+   when the batch had one step that a single read can confirm.
+7. **Compaction drops, never summarises.** After `KEEP_FULL_RESULTS` older
+   results shrink to one-line notes; a summary of the dropped span would keep
+   forty-turn runs coherent.
+8. **The journal has no numbers.** It records steps, not tokens or wall time
+   per turn — the two figures that show where a slow run went.
+
 ## Considered and set aside
 
 - **QField / mobile integration** — a different product with its own runtime;

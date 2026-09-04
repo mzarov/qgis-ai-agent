@@ -18,6 +18,7 @@ def build_body(owner: Any, palette: Any) -> QHBoxLayout:
     entries = (
         (tr("Connection"), owner._build_connection(palette)),
         (tr("Privacy"), settings_advanced.build_privacy(owner, palette)),
+        (tr("Skills"), owner.skills.widget),
         (tr("Geocoding"), owner.geocoder.widget),
         (tr("Advanced"), settings_advanced.build_advanced(owner, palette)),
     )

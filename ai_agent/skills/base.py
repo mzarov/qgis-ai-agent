@@ -9,6 +9,7 @@ class Skill:
     description: str
     body: str = ""
     tool_names: list[str] = field(default_factory=list)
+    origin: str = "builtin"
 
     def summary_line(self) -> str:
         return f"- {self.name}: {self.description}"

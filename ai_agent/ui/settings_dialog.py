@@ -47,6 +47,7 @@ from ai_agent.ui import settings_fields as fields
 from ai_agent.ui import settings_layout, style
 from ai_agent.ui.geocoder_settings import GeocoderSettings
 from ai_agent.ui.settings_status import SettingsStatusMixin
+from ai_agent.ui.skills_settings import SkillsSettings
 
 TITLE = tr("Settings — AI Agent")
 MIN_WIDTH = 760
@@ -93,6 +94,7 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(0)
         self.geocoder = GeocoderSettings(palette)
+        self.skills = SkillsSettings(palette)
         column.addLayout(settings_layout.build_body(self, palette), 1)
         column.addWidget(fields.separator(palette))
         footer = QVBoxLayout()

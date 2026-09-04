@@ -14,6 +14,7 @@ from ai_agent.core.orchestrator.project_lifecycle import (
     ProjectLifecycleMixin,
 )
 from ai_agent.core.orchestrator.scope import conversation_scope
+from ai_agent.core.orchestrator.slash import available_names, choices, is_known_skill, parse_slash, prompt_for
 from ai_agent.core.privacy import endpoint_label
 from ai_agent.core.settings import (
     get_api_url,
@@ -39,6 +40,7 @@ PLAN_DROPPED = tr("The planned changes were dropped — they were not applied. S
 AWAITING_ANSWER = tr("Waiting for your answer — the run continues from it.")
 DATA_SHARING_DECLINED = tr("Request not sent.")
 TOKENS_LABEL = tr("{0} tokens")
+UNKNOWN_SKILL = tr("No skill named /{0}. Available: {1}.")
 __all__ = ("CoreOrchestrator", "PREVIOUS_APPLY_INTERRUPTED", "PROJECT_CHANGED")
 
 
@@ -59,6 +61,7 @@ class CoreOrchestrator(ProjectLifecycleMixin):
 
     def refresh_configured(self) -> None:
         self.dock_widget.set_configured(_is_configured())
+        self.dock_widget.set_skill_source(choices)
 
     def _connect_agent(self) -> None:
         self.agent.tool_started.connect(self.on_tool_started)
@@ -140,6 +143,10 @@ class CoreOrchestrator(ProjectLifecycleMixin):
         if self.agent.is_awaiting_answer:
             self._answer(text)
             return
+        skill, rest = parse_slash(text)
+        if skill and not is_known_skill(skill):
+            self.dock_widget.add_system_message(UNKNOWN_SKILL.format(skill, available_names()))
+            return
         if not self._confirm_first_send():
             return
         self.dock_widget.add_user_message(text)
@@ -148,7 +155,8 @@ class CoreOrchestrator(ProjectLifecycleMixin):
         self.dock_widget.set_usage("")
         history = self.conversation.window()
         self.conversation.add("user", text)
-        self.agent.start(text, history)
+        prompt = prompt_for(skill, rest) if skill else text
+        self.agent.start(prompt, history, skills=[skill] if skill else None)
 
     def _confirm_first_send(self, endpoint: str | None = None) -> bool:
         if not _is_configured():

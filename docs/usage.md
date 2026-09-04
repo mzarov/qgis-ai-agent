@@ -56,3 +56,25 @@ plugin. It is not encrypted. See
   plugin bug — retry later or narrow the query.
 - A small local model (7–8B) will fumble the tool calls. The sensible minimum
   is a ~30B-class model with function calling.
+
+## Skills and slash commands
+
+A skill is a knowledge package the agent loads when a task enters its domain:
+one `SKILL.md` with a name, a one-line description and the rules in Markdown.
+The twelve built-in skills cover the QGIS domains; you can add your own.
+
+Type `/` in the chat to see the list. Pick a skill with the arrows and Tab, then
+write the request: `/osm cafes in Kazan` loads the OSM rules before the first
+model turn, so the agent starts in the right domain instead of discovering it a
+turn later. A bare `/skill` applies the skill to the current project.
+
+Your own skills live in the QGIS profile, in `ai_agent_skills/<name>/SKILL.md`
+— **Settings → Skills** shows the folder, opens it and writes an example to
+start from. The frontmatter needs `name` (lowercase letters, digits, `-` or
+`_`) and `description` (the sentence the model picks the skill by); an optional
+`tools` list names existing tools to bring along — the domain rules of those
+tools load with them. A local skill cannot add Python code: it teaches the
+agent your conventions, step order and pitfalls, and it appears in `/` and in
+the agent's own `load_skill` list like any built-in one. Problems — a missing
+name, a name taken by a built-in skill, an unknown tool — are listed on the
+same settings page instead of failing silently.

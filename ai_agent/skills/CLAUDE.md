@@ -60,3 +60,23 @@ dependency and will not become one. `key: value` pairs and inline lists
 
 The loop, the orchestrator and the prompt core stay untouched. If you had to
 edit them — the abstraction leaked; find out why.
+
+## Local skills
+
+Users can add skills without touching the plugin: `<QGIS profile>/ai_agent_skills/<name>/SKILL.md`,
+the same format as the built-in ones. The registry stays pure — it never
+imports `qgis` — so the local root is set from outside by
+`core/local_skills.py` (`SKILL_REGISTRY.set_local_root`) and rescanned before
+every prompt and every popup, which is a directory listing, nothing more.
+
+Rules the loader enforces instead of trusting: `name` is mandatory and
+lowercase (`[a-z0-9][a-z0-9_-]*`), `description` is mandatory, a name taken by
+a built-in skill is refused (the built-in wins — a local file must not be able
+to rewrite `inspect`), a name used twice locally is refused. Refused entries
+are reported as problems on the Skills settings page, never loaded silently.
+
+A local skill cannot add Python: its `tools` list may only name tools that
+already exist, unknown names are dropped and reported. Loading a local skill
+also loads the domains of the tools it names (`skills_to_load`), so a skill
+that says `tools: [download_osm]` brings the OSM rules with it — otherwise the
+model would have the tool without the knowledge of how it is used here.

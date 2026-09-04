@@ -10,6 +10,7 @@ from ai_agent.core.agent.prompts import (
     build_update_plan_schema,
     render_project_notes,
 )
+from ai_agent.core.agent.skills import tools_for_skills
 from ai_agent.core.agent.transcript import Transcript
 from ai_agent.core.context.project import get_project_context
 from ai_agent.core.llm.client import resolve_endpoint
@@ -27,7 +28,7 @@ from ai_agent.core.settings import (
 )
 from ai_agent.i18n import locale_code
 from ai_agent.qgis_tools.project.notes import NoteStore
-from ai_agent.qgis_tools.registry import build_tool_schemas, get_tools_for_skills
+from ai_agent.qgis_tools.registry import build_tool_schemas
 from ai_agent.skills.registry import SKILL_REGISTRY
 
 PRIVACY_MODE_PROMPT = (
@@ -52,6 +53,7 @@ def build_step_request(
     overrides: dict[str, Any] | None = None,
     task_plan: str = "",
     queued_steps: str = "",
+    invoked_skills: list[str] | tuple[str, ...] = (),
 ) -> StepRequest:
     effective_overrides = dict(overrides) if overrides is not None else build_overrides()
     endpoint = str(effective_overrides.get("url_override") or get_api_url() or "")
@@ -65,6 +67,7 @@ def build_step_request(
         task_plan=task_plan,
         queued_steps=queued_steps,
         project_notes=_project_notes(),
+        invoked_skills=invoked_skills,
     )
     if json_protocol:
         tools_block = build_json_tools_block(schemas)
@@ -94,7 +97,7 @@ def _project_notes() -> str:
 
 
 def build_tool_schemas_for(loaded_skills: list[str], endpoint: str | None = None) -> list[dict[str, Any]]:
-    tools = [tool for tool in get_tools_for_skills(loaded_skills) if tool_output_allowed(tool, endpoint)]
+    tools = [tool for tool in tools_for_skills(loaded_skills) if tool_output_allowed(tool, endpoint)]
     schemas = build_tool_schemas(tools)
     schemas.insert(0, build_apply_now_schema())
     schemas.insert(0, build_ask_user_schema())

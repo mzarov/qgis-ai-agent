@@ -52,6 +52,7 @@ class AgentDockWidget(QDockWidget):
         column.addWidget(self._build_conversation(), 1)
         column.addWidget(self._build_composer())
         self.setWidget(body)
+        self.composer.set_popup_host(body)
 
     def _build_header(self) -> QWidget:
         header = QWidget()
@@ -125,6 +126,9 @@ class AgentDockWidget(QDockWidget):
 
     def set_session_source(self, provider: Callable[[], list[tuple[str, str]]]) -> None:
         self._sessions_provider = provider
+
+    def set_skill_source(self, provider: Callable[[], list[tuple[str, str, str]]]) -> None:
+        self.composer.set_skill_source(provider)
 
     def _show_sessions(self) -> None:
         menu = QMenu(self)

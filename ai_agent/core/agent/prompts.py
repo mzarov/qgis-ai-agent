@@ -73,7 +73,10 @@ that the step is missing.
 
 Skills: each skill is a domain package with its own tools and rules. Call
 load_skill before working in a domain whose tools you do not have yet. Loading a
-skill adds its tools to your toolset for the rest of the task.
+skill adds its tools to your toolset for the rest of the task. When a task spans
+several domains, load every skill it needs in one turn — each load_skill sent in
+a separate turn is a round trip the user waits for. A skill the user invoked
+with a slash command is already loaded; follow its rules first.
 
 For a task with more than two stages, call update_plan first with the list of
 steps, and call it again as steps complete. The plan is pinned into your context
@@ -122,6 +125,7 @@ DEFAULT_LANGUAGE = "English"
 LANGUAGE_NAMES = {"en": "English", "ru": "Russian"}
 PROJECT_CONTEXT_HEADER = "Project context (a starting hint — verify with tools):"
 LOADED_SKILLS_HEADER = "Currently loaded skills: "
+INVOKED_SKILLS_HEADER = "The user invoked these skills for this request — their rules come first: "
 TOOLS_BLOCK_HEADER = "Available tools (name and JSON Schema of arguments):"
 
 
@@ -297,6 +301,7 @@ def build_system_prompt(
     task_plan: str = "",
     project_notes: str = "",
     queued_steps: str = "",
+    invoked_skills: list[str] | tuple[str, ...] = (),
 ) -> str:
     parts = [CORE_PROMPT, language_policy(locale)]
     if json_protocol:
@@ -304,6 +309,8 @@ def build_system_prompt(
     parts.append(SKILL_REGISTRY.summaries_block())
     if loaded_skills:
         parts.append(LOADED_SKILLS_HEADER + ", ".join(loaded_skills) + ".")
+        if invoked_skills:
+            parts.append(INVOKED_SKILLS_HEADER + ", ".join(invoked_skills) + ".")
         parts.append(SKILL_REGISTRY.bodies_block(loaded_skills))
     if project_notes:
         parts.append(project_notes)

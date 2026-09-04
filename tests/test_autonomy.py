@@ -263,7 +263,7 @@ class BudgetTest(unittest.TestCase):
     def test_a_zero_budget_means_no_limit(self):
         started = []
         saved = loop_module.build_step_request
-        loop_module.build_step_request = lambda *args: _FakeRequest()
+        loop_module.build_step_request = lambda *args, **kwargs: _FakeRequest()
         self.loop._turn.start = lambda *args: started.append(True)
         self.loop._token_budget = 0
         self.loop._tokens_spent = 10**9

@@ -9,6 +9,7 @@ from ai_agent.core.agent.executor import ToolExecutor
 from ai_agent.core.agent.journal import record_run
 from ai_agent.core.agent.prompts import render_queued_steps, render_task_plan
 from ai_agent.core.agent.request import build_overrides, build_step_request
+from ai_agent.core.agent.skills import extend_loaded
 from ai_agent.core.agent.transcript import Transcript
 from ai_agent.core.agent.turn_thread import TurnThreadOwner
 from ai_agent.core.llm.transport import PROTOCOL_JSON, PROTOCOL_NATIVE, ModelTurn, ToolCall
@@ -49,6 +50,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._transcript = Transcript()
         self._history: list[dict[str, str]] = []
         self._loaded_skills: list[str] = []
+        self._invoked_skills: list[str] = []
         self._batch = WriteBatch(self._executor)
         self._iteration = 0
         self._turn = TurnThreadOwner()
@@ -101,6 +103,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         history: list[dict[str, str]] | None = None,
         verification: bool = False,
         verification_round: int = 0,
+        skills: list[str] | None = None,
     ) -> bool:
         if self.is_running or self._batch.is_applying:
             return False
@@ -122,6 +125,9 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._question = ""
         self._stage_call = None
         self._loaded_skills = [name for name in PRELOADED_SKILLS if SKILL_REGISTRY.get(name)]
+        self._invoked_skills = [name for name in (skills or []) if SKILL_REGISTRY.get(name)]
+        for name in self._invoked_skills:
+            extend_loaded(self._loaded_skills, name)
         self._batch.clear()
         self._iteration = 0
         self._protocol_retried = False
@@ -200,6 +206,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
                 self._overrides,
                 render_task_plan(self._plan_steps, self._plan_done),
                 self._queued_summaries(),
+                invoked_skills=self._invoked_skills,
             )
         except Exception as err:
             self._fail(str(err), generation)
