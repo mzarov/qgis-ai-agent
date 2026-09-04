@@ -293,6 +293,31 @@ def language_policy(code: str) -> str:
     return LANGUAGE_POLICY.format(language=LANGUAGE_NAMES.get(code, DEFAULT_LANGUAGE))
 
 
+def build_system_parts(
+    project_context: str,
+    loaded_skills: list[str],
+    json_protocol: bool = False,
+    locale: str = "en",
+    task_plan: str = "",
+    project_notes: str = "",
+    queued_steps: str = "",
+    invoked_skills: list[str] | tuple[str, ...] = (),
+) -> tuple[str, str]:
+    static = [CORE_PROMPT, language_policy(locale)]
+    if json_protocol:
+        static.append(JSON_PROTOCOL_PROMPT)
+    static.append(SKILL_REGISTRY.summaries_block())
+    if loaded_skills:
+        static.append(LOADED_SKILLS_HEADER + ", ".join(loaded_skills) + ".")
+        if invoked_skills:
+            static.append(INVOKED_SKILLS_HEADER + ", ".join(invoked_skills) + ".")
+        static.append(SKILL_REGISTRY.bodies_block(loaded_skills))
+    live = [project_notes, task_plan, queued_steps]
+    if project_context:
+        live.append(PROJECT_CONTEXT_HEADER + "\n" + project_context)
+    return _joined(static), _joined(live)
+
+
 def build_system_prompt(
     project_context: str,
     loaded_skills: list[str],
@@ -303,23 +328,13 @@ def build_system_prompt(
     queued_steps: str = "",
     invoked_skills: list[str] | tuple[str, ...] = (),
 ) -> str:
-    parts = [CORE_PROMPT, language_policy(locale)]
-    if json_protocol:
-        parts.append(JSON_PROTOCOL_PROMPT)
-    parts.append(SKILL_REGISTRY.summaries_block())
-    if loaded_skills:
-        parts.append(LOADED_SKILLS_HEADER + ", ".join(loaded_skills) + ".")
-        if invoked_skills:
-            parts.append(INVOKED_SKILLS_HEADER + ", ".join(invoked_skills) + ".")
-        parts.append(SKILL_REGISTRY.bodies_block(loaded_skills))
-    if project_notes:
-        parts.append(project_notes)
-    if task_plan:
-        parts.append(task_plan)
-    if queued_steps:
-        parts.append(queued_steps)
-    if project_context:
-        parts.append(PROJECT_CONTEXT_HEADER + "\n" + project_context)
+    static, live = build_system_parts(
+        project_context, loaded_skills, json_protocol, locale, task_plan, project_notes, queued_steps, invoked_skills
+    )
+    return _joined([static, live])
+
+
+def _joined(parts: list[str]) -> str:
     return "\n\n".join(part for part in parts if part)
 
 

@@ -141,7 +141,30 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     request without the command. `core/local_skills.py` owns the profile
     directory, the rescan and the example file — the `skills/` layer never
     touches `qgis`.
-17. **Imports** — all at the top, absolute. Code without comments or docstrings
+17. **The transport retries, but only what is worth retrying.** `llm/retry.py`
+    wraps every `_dispatch` in `call_model`: three attempts, backoff 1.5 s then
+    4 s, on 408/425/429/5xx and on connection failures that came back **fast**
+    (under `FAST_FAILURE_SECONDS`) — a fast failure is a reset or a refusal, a
+    slow one is a timeout that would only time out again. Never after a stream
+    has delivered chunks (the draft would be duplicated), never after the user
+    cancelled (the pause polls the feedback every quarter second). Retries are
+    logged to the QGIS message log, not shown in the feed.
+18. **The system prompt is two halves, and Anthropic caches the first.**
+    `build_system_parts` returns a static half (core rules, language, skill
+    summaries and bodies) and a live half (notes, plan, queued steps, project
+    context). `request.py` joins them for every dialect and passes the static
+    length as `cache_prefix_chars`; `anthropic.build_body` cuts the system at
+    that length into a `cache_control` block plus a live block and marks the
+    last message block too, so each turn extends the previous prefix. The
+    order static → live is what makes prefix caching hit on OpenAI-style
+    endpoints as well — keep new dynamic parts in the live half.
+19. **The project context is a real briefing, kept to metadata.** Project CRS,
+    the active layer, and per layer geometry, CRS, selection count and — only
+    for local providers in `COUNTABLE_PROVIDERS` — the feature count. Remote
+    providers are never asked to count: `COUNT(*)` on a big table would stall
+    the main thread before the first turn. Extents and values stay behind the
+    sensitive-data switch.
+20. **Imports** — all at the top, absolute. Code without comments or docstrings
     — see the root CLAUDE.md.
 
 ## What lives where
@@ -160,6 +183,7 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `llm/anthropic_stream.py`| anthropic event folding and its streaming exchange   |
 | `llm/stream_runner.py`   | the streaming request itself: NAM, nested event loop |
 | `llm/refusals.py`        | telling an unsupported feature from a broken request |
+| `llm/retry.py`           | bounded retries around a model call, cancellation-aware |
 | `llm/images.py`          | finding and stripping image blocks in messages       |
 | `llm/thinking.py`        | cutting `<think>` out of content, across chunks      |
 | `llm/dialects.py`        | dialect detection from the address, paths, headers  |

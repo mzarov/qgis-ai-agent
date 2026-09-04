@@ -14,6 +14,7 @@ from ai_agent.core.llm.dialects import ANTHROPIC, host_of, resolve
 from ai_agent.core.llm.images import IMAGE_REJECTED_STATUS_CODES, has_images, without_images
 from ai_agent.core.llm.parser import parse_model_json, parse_tool_arguments
 from ai_agent.core.llm.refusals import streaming_unsupported, thinking_unsupported, tools_unsupported
+from ai_agent.core.llm.retry import ChunkGuard, with_retries
 from ai_agent.core.llm.stream import StreamedCompletion, first_reasoning
 from ai_agent.core.llm.stream_runner import post_stream
 from ai_agent.core.llm.thinking import split_thinking
@@ -78,12 +79,23 @@ def call_model(
     url = resolve_endpoint(overrides.get("url_override"))
     if overrides.get("verify_override") is None:
         overrides["verify_override"] = get_verify_ssl(url)
+    guard = ChunkGuard(on_chunk)
+    chunks = guard if on_chunk is not None else None
+    feedback = overrides.get("feedback_override")
+
+    def attempt(payload: list[dict[str, Any]]) -> ModelTurn:
+        return with_retries(
+            lambda: _dispatch(payload, tool_schemas, overrides, timeout, url, chunks, on_thinking),
+            feedback,
+            lambda: guard.delivered,
+        )
+
     try:
-        return _dispatch(messages, tool_schemas, overrides, timeout, url, on_chunk, on_thinking)
+        return attempt(messages)
     except ApiResponseError as err:
         if not (has_images(messages) and err.status_code in IMAGE_REJECTED_STATUS_CODES):
             raise
-        turn = _dispatch(without_images(messages), tool_schemas, overrides, timeout, url, on_chunk, on_thinking)
+        turn = attempt(without_images(messages))
         cache_url, cache_model, cache_dialect = _capability_scope(url, overrides)
         set_supports_images(cache_url, False, cache_model, cache_dialect)
         return turn
@@ -147,13 +159,16 @@ def _call_anthropic(
     )
     budget = get_thinking_budget() if get_supports_thinking(cache_url, cache_model, cache_dialect) is not False else 0
     exchange = AnthropicExchange(endpoint, headers, timeout, url, overrides, on_chunk, on_thinking)
+    prefix = int(overrides.get(anthropic.CACHE_PREFIX_KEY) or 0)
     try:
-        data = exchange.send(anthropic.build_body(messages, tool_schemas, model, thinking_budget=budget))
+        data = exchange.send(
+            anthropic.build_body(messages, tool_schemas, model, thinking_budget=budget, cache_prefix_chars=prefix)
+        )
     except ApiResponseError as err:
         if not budget or not thinking_unsupported(err):
             raise
         set_supports_thinking(cache_url, False, cache_model, cache_dialect)
-        data = exchange.send(anthropic.build_body(messages, tool_schemas, model))
+        data = exchange.send(anthropic.build_body(messages, tool_schemas, model, cache_prefix_chars=prefix))
     text, calls, stop_reason = anthropic.parse_response(data)
     thinking, thinking_blocks = anthropic.parse_thinking(data)
     incoming, outgoing = parse_usage(data)

@@ -51,16 +51,16 @@ the claims still mark out territory users expect an agent to cover.
 Found by reading the core end to end, ordered by expected effect on how well
 the agent works:
 
-1. **No retries in the transport.** A single 429, 502/503 or a dropped
+1. **Done 2026-09-03 — retries in the transport.** A single 429, 502/503 or a dropped
    connection ends the run with an error; `core/llm/client.py` and
    `stream_runner.py` make exactly one attempt. Bounded retry with backoff on
    429/5xx and connection resets, with a "retrying…" line in the feed.
-2. **No prompt caching on Anthropic.** The system prompt and the tool schemas
+2. **Done 2026-09-03 — prompt caching on Anthropic.** The system prompt and the tool schemas
    are identical between the turns of one run and are billed again every turn.
    Mark the static prefix with `cache_control` in `llm/anthropic.py`; keep the
    dynamic tail (plan, queued steps, project context) last so prefix caching on
    OpenAI-style endpoints hits too.
-3. **The starting project context is thin** — layer names and geometry only,
+3. **Done 2026-09-03 — the starting project context was thin** — layer names and geometry only,
    so nearly every run spends its first turn on `list_layers`. Add CRS, the
    selected-feature count and, where cheap, feature counts; stay within
    metadata-class data.

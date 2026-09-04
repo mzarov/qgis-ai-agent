@@ -118,6 +118,16 @@ def canvas_extent() -> QgsRectangle:
     return QgsRectangle(*FALLBACK_EXTENT)
 
 
+def active_layer_name() -> str:
+    with suppress(Exception):
+        from qgis.utils import iface
+
+        layer = iface.activeLayer() if iface else None
+        name = layer.name() if layer is not None else ""
+        return name.strip() if isinstance(name, str) else ""
+    return ""
+
+
 def describe_layer_brief(layer: QgsMapLayer) -> dict[str, Any]:
     kind = layer_kind(layer)
     brief: dict[str, Any] = {

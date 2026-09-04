@@ -21,6 +21,8 @@ THINKING_KEY = "thinking_blocks"
 MIN_THINKING_BUDGET = 1024
 ANSWER_HEADROOM = 4096
 SONNET_5_PREFIX = "claude-sonnet-5"
+CACHE_PREFIX_KEY = "cache_prefix_chars"
+EPHEMERAL = {"type": "ephemeral"}
 
 
 def build_body(
@@ -29,6 +31,7 @@ def build_body(
     model: str,
     max_tokens: int = DEFAULT_MAX_TOKENS,
     thinking_budget: int = 0,
+    cache_prefix_chars: int = 0,
 ) -> dict[str, Any]:
     budget = int(thinking_budget or 0)
     mode = _thinking_mode(model, budget)
@@ -44,10 +47,32 @@ def build_body(
     elif mode:
         body["thinking"] = {"type": mode}
     if system:
-        body["system"] = system
+        body["system"] = _system_blocks(system, cache_prefix_chars) if cache_prefix_chars > 0 else system
+    if cache_prefix_chars > 0:
+        body["messages"] = _with_message_breakpoint(turns)
     if tool_schemas:
         body["tools"] = [translate_tool(schema) for schema in tool_schemas]
     return body
+
+
+def _system_blocks(system: str, prefix_chars: int) -> list[dict[str, Any]]:
+    cut = min(prefix_chars, len(system))
+    blocks = [{"type": TEXT_BLOCK, "text": system[:cut], "cache_control": dict(EPHEMERAL)}]
+    live = system[cut:].lstrip("\n")
+    if live:
+        blocks.append({"type": TEXT_BLOCK, "text": live})
+    return blocks
+
+
+def _with_message_breakpoint(turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if not turns:
+        return turns
+    last = dict(turns[-1])
+    blocks = [dict(block) for block in _as_blocks(last.get("content"))]
+    if blocks and blocks[-1].get("type") not in THINKING_BLOCKS:
+        blocks[-1]["cache_control"] = dict(EPHEMERAL)
+    last["content"] = blocks
+    return [*turns[:-1], last]
 
 
 def _thinking_mode(model: str, budget: int) -> str:
