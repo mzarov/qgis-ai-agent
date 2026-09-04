@@ -3,7 +3,7 @@ from typing import Any
 from qgis.core import QgsLayoutSize, QgsPrintLayout, QgsProject
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.layout.items import MM
 from ai_agent.qgis_tools.layout.pages import (
     DEFAULT_ORIENTATION,
@@ -23,6 +23,9 @@ class CreateLayoutTool(BaseTool):
     )
     skill = "layout"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = ["The layout name must be unique in the project"]
     examples = ["Create an A4 landscape layout", "Make an A3 map sheet"]
     params_schema = [

@@ -25,6 +25,8 @@ class RenderMapTool(BaseTool):
     )
     skill = "inspect"
     safety = SAFETY_READ
+    external_effect = False
+    network_access = False
     egress = EGRESS_IMAGE
     constraints = ["Needs the QGIS window; unavailable in headless runs"]
     examples = ["Show me what the map looks like now", "Check that the rivers really turned blue"]

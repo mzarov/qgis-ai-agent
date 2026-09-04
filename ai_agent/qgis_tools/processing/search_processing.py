@@ -1,7 +1,7 @@
 from typing import Any
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common.values import clamp_limit
 from ai_agent.qgis_tools.processing.ranking import score
 from ai_agent.qgis_tools.processing.utils import algorithm_brief, build_search_index
@@ -19,6 +19,9 @@ class SearchProcessingTool(BaseTool):
     )
     skill = "processing"
     safety = SAFETY_READ
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     examples = ["Find an algorithm that builds a buffer", "What clips a layer by a boundary?"]
     params_schema = [
         {

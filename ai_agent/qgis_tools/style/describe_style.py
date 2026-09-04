@@ -21,6 +21,8 @@ class DescribeStyleTool(BaseTool):
     )
     skill = "style"
     safety = SAFETY_READ
+    external_effect = False
+    network_access = False
     egress = EGRESS_FEATURE_VALUES
     constraints = ["A layer with this name must exist in the project"]
     examples = ["Why are the cities red?", "How is the roads layer coloured right now?"]

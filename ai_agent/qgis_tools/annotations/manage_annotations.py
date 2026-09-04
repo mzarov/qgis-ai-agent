@@ -2,7 +2,7 @@ from typing import Any
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.annotations.store import list_items, remove_item
-from ai_agent.qgis_tools.base import SAFETY_READ, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, SAFETY_WRITE, BaseTool
 
 
 class ListAnnotationsTool(BaseTool):
@@ -10,6 +10,9 @@ class ListAnnotationsTool(BaseTool):
     description = "List the annotations on the map with their ids, kinds and texts."
     skill = "annotations"
     safety = SAFETY_READ
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     examples = ["What notes are on the map?"]
     params_schema = []
 
@@ -26,6 +29,9 @@ class RemoveAnnotationTool(BaseTool):
     description = "Remove one annotation from the map by its id (see list_annotations)."
     skill = "annotations"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = ["The id must exist — read list_annotations first"]
     examples = ["Remove that note"]
     params_schema = [

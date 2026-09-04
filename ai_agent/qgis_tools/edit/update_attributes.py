@@ -3,13 +3,13 @@ from typing import Any
 from qgis.core import QgsFeatureRequest, QgsVectorLayer
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE, BaseTool
-from ai_agent.qgis_tools.common.expressions import build_context, build_request
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_DESTRUCTIVE, BaseTool
+from ai_agent.qgis_tools.common.editing import edit_session
+from ai_agent.qgis_tools.common.expressions import build_request
 from ai_agent.qgis_tools.common.layers import bind_layer_reference, find_layer_by_id, find_layer_by_name
 from ai_agent.qgis_tools.common.values import suggest_fields
 
 MAX_SCAN = 50000
-COMMIT_FAILED = "QGIS could not commit the attribute edits: {reason}. The layer was rolled back and nothing changed."
 
 
 class UpdateAttributesTool(BaseTool):
@@ -22,6 +22,8 @@ class UpdateAttributesTool(BaseTool):
     )
     skill = "edit"
     safety = SAFETY_DESTRUCTIVE
+    egress = EGRESS_METADATA
+    network_access = False
     external_effect = True
     constraints = [
         "The layer must be an editable vector layer",
@@ -80,24 +82,12 @@ class UpdateAttributesTool(BaseTool):
         values = _checked_values(layer, params.get("values"))
         indexes = {name: layer.fields().indexFromName(name) for name in values}
         features = _prepared_features(layer, params)
-        build_context(layer)
-        if not layer.startEditing():
-            raise ValueError(
-                f"Layer '{layer.name()}' cannot be switched into editing mode — "
-                "its data source is read-only. Extract what you need into a new editable "
-                "layer instead: native:extractbyexpression with the features to KEEP, "
-                "then remove the old layer."
-            )
-        updated = 0
-        for feature in features:
-            for name, value in values.items():
-                layer.changeAttributeValue(feature.id(), indexes[name], value)
-            updated += 1
-        if not layer.commitChanges():
-            reason = "; ".join(layer.commitErrors() or []) or "provider refused"
-            layer.rollBack()
-            raise ValueError(COMMIT_FAILED.format(reason=reason))
-        return {"layer": layer.name(), "updated": updated, "fields": sorted(values)}
+        with edit_session(layer, "the attribute edits"):
+            for feature in features:
+                for name, value in values.items():
+                    if not layer.changeAttributeValue(feature.id(), indexes[name], value):
+                        raise ValueError(f"QGIS refused to update field '{name}' on feature {feature.id()}.")
+        return {"layer": layer.name(), "updated": len(features), "fields": sorted(values)}
 
 
 def _require_editable(layer_name: str, layer_id: str = "") -> QgsVectorLayer:

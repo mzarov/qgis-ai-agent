@@ -1,7 +1,13 @@
+import copy
 import unittest
+from unittest.mock import patch
 
 from qgis.core import QgsVectorLayer
 
+from ai_agent.core.agent.batch import WriteBatch
+from ai_agent.core.agent.executor import ToolExecutor
+from ai_agent.core.llm.transport import ToolCall
+from ai_agent.qgis_tools.common import layers as layers_module
 from ai_agent.qgis_tools.edit import delete_features as delete_module
 from ai_agent.qgis_tools.edit import update_attributes as update_module
 from ai_agent.qgis_tools.edit.delete_features import DeleteFeaturesTool
@@ -36,6 +42,8 @@ class EditableLayer(QgsVectorLayer):
         self.editing = False
         self.rolled_back = False
         self.changes = []
+        self.commit_calls = 0
+        self._before = None
 
     def name(self):
         return "Дороги"
@@ -50,20 +58,29 @@ class EditableLayer(QgsVectorLayer):
         return iter(list(self._features))
 
     def startEditing(self):
+        self._before = copy.deepcopy(self._features)
         self.editing = True
         return True
+
+    def isEditable(self):
+        return self.editing
 
     def changeAttributeValue(self, fid, index, value):
         self.changes.append((fid, index, value))
         for feature in self._features:
             if feature.id() == fid:
                 feature.attributes[self._fields.names()[index]] = value
+        return True
 
     def deleteFeatures(self, ids):
         wanted = set(ids)
         self._features = [feature for feature in self._features if feature.id() not in wanted]
+        return True
 
     def commitChanges(self):
+        self.commit_calls += 1
+        if self._commit_ok:
+            self.editing = False
         return self._commit_ok
 
     def commitErrors(self):
@@ -71,6 +88,9 @@ class EditableLayer(QgsVectorLayer):
 
     def rollBack(self):
         self.rolled_back = True
+        self.editing = False
+        self._features = self._before
+        return True
 
 
 class EditTestBase(unittest.TestCase):
@@ -84,7 +104,6 @@ class EditTestBase(unittest.TestCase):
             module.find_layer_by_name = lambda name: self.layer
             module.find_layer_by_id = lambda identifier: self.layer
             module.build_request = lambda text, layer=None: None
-        update_module.build_context = lambda layer: None
 
     def tearDown(self):
         for module, finder, id_finder, builder in self._saved:
@@ -144,7 +163,65 @@ class UpdateAttributesTest(EditTestBase):
             self.tool.execute({"layer_name": "Дороги", "values": {"type": "new"}})
         self.assertTrue(self.layer.rolled_back)
         self.assertIn("disk full", str(caught.exception))
-        self.assertIn("nothing changed", str(caught.exception))
+        self.assertIn("may already contain partial changes", str(caught.exception))
+        self.assertNotIn("nothing changed", str(caught.exception))
+
+    def test_refused_attribute_update_rolls_back_earlier_changes(self):
+        change = self.layer.changeAttributeValue
+
+        def update_or_refuse(fid, index, value):
+            return change(fid, index, value) if fid == 1 else False
+
+        with (
+            patch.object(self.layer, "changeAttributeValue", side_effect=update_or_refuse),
+            self.assertRaisesRegex(ValueError, "refused to update"),
+        ):
+            self.tool.execute({"layer_name": "Дороги", "values": {"type": "new"}})
+        self.assertTrue(self.layer.rolled_back)
+        self.assertEqual(self.layer.commit_calls, 0)
+        self.assertTrue(all(feature.attributes["type"] == "old" for feature in self.layer._features))
+
+    def test_attribute_exception_closes_the_owned_edit_session(self):
+        with (
+            patch.object(self.layer, "changeAttributeValue", side_effect=RuntimeError("provider failure")),
+            self.assertRaisesRegex(ValueError, "provider failure"),
+        ):
+            self.tool.execute({"layer_name": "Дороги", "values": {"type": "new"}})
+        self.assertTrue(self.layer.rolled_back)
+        self.assertFalse(self.layer.editing)
+        self.assertEqual(self.layer.commit_calls, 0)
+
+    def test_manual_edit_session_is_preserved(self):
+        self.layer.startEditing()
+        self.layer.changeAttributeValue(1, 1, "manual")
+        with self.assertRaisesRegex(ValueError, "already has an active edit session"):
+            self.tool.execute({"layer_name": "Дороги", "values": {"type": "new"}})
+        self.assertTrue(self.layer.editing)
+        self.assertFalse(self.layer.rolled_back)
+        self.assertEqual(self.layer.commit_calls, 0)
+        self.assertEqual(self.layer._features[0].attributes["type"], "manual")
+
+    def test_batch_accepts_an_id_that_disambiguates_duplicate_names(self):
+        other = EditableLayer(["type"], [(1, {"type": "other"})])
+        other.id = lambda: "other_id"
+        project = type(
+            "Project",
+            (),
+            {
+                "mapLayers": lambda _: {other.id(): other, self.layer.id(): self.layer},
+                "mapLayersByName": lambda _, name: [other, self.layer],
+            },
+        )()
+        holder = type("ProjectHolder", (), {"instance": staticmethod(lambda: project)})
+        with patch.object(layers_module, "QgsProject", holder):
+            for include_name in (False, True):
+                with self.subTest(include_name=include_name):
+                    arguments = {"layer_id": self.layer.id(), "values": {"type": "new"}}
+                    if include_name:
+                        arguments["layer_name"] = self.layer.name()
+                    queued = WriteBatch(ToolExecutor()).add(ToolCall("update", "update_attributes", arguments))
+                    self.assertEqual(queued.arguments["layer_id"], self.layer.id())
+                    self.assertEqual(layers_module.layer_pin_error(queued.arguments), "")
 
     def test_summary_shows_the_count_and_never_raises(self):
         summary = self.tool.summarize_call({"layer_name": "Дороги", "values": {"type": 1}, "matched_estimate": 5})
@@ -204,6 +281,25 @@ class DeleteFeaturesTest(EditTestBase):
         with self.assertRaises(ValueError):
             self.tool.execute({"layer_name": "Дороги", "filter": "all"})
         self.assertTrue(self.layer.rolled_back)
+
+    def test_refused_deletion_never_commits_or_reports_success(self):
+        with (
+            patch.object(self.layer, "deleteFeatures", return_value=False),
+            self.assertRaisesRegex(ValueError, "refused to delete"),
+        ):
+            self.tool.execute({"layer_name": "Дороги", "filter": "all"})
+        self.assertTrue(self.layer.rolled_back)
+        self.assertEqual(self.layer.commit_calls, 0)
+        self.assertEqual(len(self.layer._features), 2)
+
+    def test_deletion_exception_closes_the_owned_edit_session(self):
+        with (
+            patch.object(self.layer, "deleteFeatures", side_effect=RuntimeError("provider failure")),
+            self.assertRaisesRegex(ValueError, "provider failure"),
+        ):
+            self.tool.execute({"layer_name": "Дороги", "filter": "all"})
+        self.assertTrue(self.layer.rolled_back)
+        self.assertFalse(self.layer.editing)
 
     def test_summary_shows_the_count_and_never_raises(self):
         self.assertIn("3", self.tool.summarize_call({"layer_name": "Дороги", "matched_estimate": 3}))

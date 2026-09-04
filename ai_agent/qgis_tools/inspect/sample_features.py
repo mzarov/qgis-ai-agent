@@ -20,6 +20,8 @@ class SampleFeaturesTool(BaseTool):
     )
     skill = "inspect"
     safety = SAFETY_READ
+    external_effect = False
+    network_access = False
     egress = EGRESS_FEATURE_VALUES
     constraints = ["The layer must exist and be a vector layer"]
     examples = ["Show me a couple of records from the cities layer", "What does the data look like?"]

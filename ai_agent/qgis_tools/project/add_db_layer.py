@@ -3,7 +3,7 @@ from typing import Any
 from qgis.core import QgsVectorLayer
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.layers import crs_authid, geometry_type_name, safe_feature_count
 from ai_agent.qgis_tools.project.list_db_connections import require_connection
 from ai_agent.qgis_tools.project.tree import layer_names, project
@@ -20,6 +20,9 @@ class AddDbLayerTool(BaseTool):
     )
     skill = "project"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = [
         "The connection must exist in the QGIS profile",
         "Schema and table names are case sensitive",

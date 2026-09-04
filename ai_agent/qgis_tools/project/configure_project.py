@@ -3,7 +3,7 @@ from typing import Any
 from qgis.core import QgsCoordinateReferenceSystem
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.properties import properties_of, shown
 from ai_agent.qgis_tools.project.catalogues import PROJECT_PROPERTIES
 from ai_agent.qgis_tools.project.tree import project
@@ -16,6 +16,9 @@ class ConfigureProjectTool(BaseTool):
     )
     skill = "project"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = ["The CRS is given as an identifier such as EPSG:3857"]
     examples = ["Switch the project to web mercator", "Name the project 'City transport'"]
     params_schema = [

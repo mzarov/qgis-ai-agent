@@ -3,13 +3,13 @@ from typing import Any
 from qgis.core import QgsFeatureRequest, QgsVectorLayer
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_DESTRUCTIVE, BaseTool
+from ai_agent.qgis_tools.common.editing import edit_session
 from ai_agent.qgis_tools.common.expressions import build_request
 from ai_agent.qgis_tools.common.layers import bind_layer_reference, find_layer_by_id, find_layer_by_name
 
 MAX_DELETE = 10000
 ALL_MARKER = "all"
-COMMIT_FAILED = "QGIS could not commit the deletion: {reason}. The layer was rolled back and nothing was deleted."
 
 
 class DeleteFeaturesTool(BaseTool):
@@ -21,6 +21,8 @@ class DeleteFeaturesTool(BaseTool):
     )
     skill = "edit"
     safety = SAFETY_DESTRUCTIVE
+    egress = EGRESS_METADATA
+    network_access = False
     external_effect = True
     constraints = [
         "The layer must be an editable vector layer",
@@ -67,18 +69,9 @@ class DeleteFeaturesTool(BaseTool):
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = _require_vector(params.get("layer_name") or "", params.get("layer_id") or "")
         ids = _prepared_ids(layer, params)
-        if not layer.startEditing():
-            raise ValueError(
-                f"Layer '{layer.name()}' cannot be switched into editing mode — "
-                "its data source is read-only. Extract what you need into a new editable "
-                "layer instead: native:extractbyexpression with the features to KEEP, "
-                "then remove the old layer."
-            )
-        layer.deleteFeatures(ids)
-        if not layer.commitChanges():
-            reason = "; ".join(layer.commitErrors() or []) or "provider refused"
-            layer.rollBack()
-            raise ValueError(COMMIT_FAILED.format(reason=reason))
+        with edit_session(layer, "the deletion"):
+            if not layer.deleteFeatures(ids):
+                raise ValueError("QGIS refused to delete the requested features.")
         return {"layer": layer.name(), "deleted": len(ids)}
 
 

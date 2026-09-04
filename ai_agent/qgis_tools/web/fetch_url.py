@@ -18,6 +18,7 @@ class FetchUrlTool(BaseTool):
     )
     skill = "web"
     safety = SAFETY_READ
+    external_effect = False
     egress = EGRESS_WEB_CONTENT
     network_access = True
     constraints = [

@@ -1,11 +1,12 @@
 import os
 from contextlib import suppress
+from math import isfinite
 from typing import Any
 
-from qgis.core import QgsRectangle
+from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject, QgsRectangle, QgsVectorLayer
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.layers import canvas_extent, find_layer_by_name, safe_extent
 from ai_agent.qgis_tools.layout.items import (
     DEFAULT_NORTH_ARROW,
@@ -30,6 +31,9 @@ from ai_agent.qgis_tools.layout.items import (
 from ai_agent.qgis_tools.layout.pages import find_layout
 
 CANVAS = "canvas"
+DEGENERATE_PADDING_RATIO = 0.05
+POINT_PADDING_DEGREES = 0.01
+POINT_PADDING_MAP_UNITS = 1.0
 
 
 class AddLayoutItemTool(BaseTool):
@@ -41,6 +45,9 @@ class AddLayoutItemTool(BaseTool):
     )
     skill = "layout"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = [
         "The layout must exist; the item must fit inside the page",
         "A label requires properties.text; a legend and a scale bar need a map in the layout",
@@ -96,6 +103,8 @@ class AddLayoutItemTool(BaseTool):
         properties = _checked_properties(kind, params.get("properties"))
         x, y, width, height = _frame(params, kind)
         check_bounds(layout, x, y, width, height)
+        if kind == ITEM_MAP:
+            _map_view(properties)
         prepared = dict(params)
         prepared["layout_name"] = layout.name()
         prepared["item_type"] = kind
@@ -115,13 +124,22 @@ class AddLayoutItemTool(BaseTool):
         kind = _checked_kind(params.get("item_type"))
         properties = _checked_properties(kind, params.get("properties"))
         x, y, width, height = _frame(params, kind)
+        check_bounds(layout, x, y, width, height)
+        map_view = _map_view(properties) if kind == ITEM_MAP else None
+        identifier = unique_item_id(layout, kind, str(params.get("id") or ""))
         item = TYPE_CLASSES[kind](layout)
-        item.setId(unique_item_id(layout, kind, str(params.get("id") or "")))
+        item.setId(identifier)
         _configure(layout, item, kind, properties)
-        layout.addLayoutItem(item)
-        place(item, x, y, width, height)
-        if kind == ITEM_MAP:
-            _zoom_map(item, properties)
+        if map_view is not None and map_view[1] is not None:
+            item.setCrs(map_view[1])
+        try:
+            layout.addLayoutItem(item)
+            place(item, x, y, width, height)
+            if map_view is not None:
+                _zoom_map(item, map_view[0])
+        except Exception:
+            layout.removeLayoutItem(item)
+            raise
         return {"layout": layout.name(), "id": str(item.id()), "type": kind}
 
 
@@ -191,22 +209,61 @@ def _configure(layout: Any, item: Any, kind: str, properties: dict[str, Any]) ->
         item.setPicturePath(str(properties.get("path") or "").strip())
 
 
-def _zoom_map(item: Any, properties: dict[str, Any]) -> None:
-    extent = _map_extent(properties)
+def _zoom_map(item: Any, extent: QgsRectangle) -> None:
     try:
         item.zoomToExtent(extent)
     except Exception:
         item.setExtent(extent)
 
 
-def _map_extent(properties: dict[str, Any]) -> QgsRectangle:
+def _map_view(properties: dict[str, Any]) -> tuple[QgsRectangle, QgsCoordinateReferenceSystem | None]:
     wanted = str(properties.get("extent") or CANVAS).strip()
     if wanted.lower() == CANVAS:
-        return canvas_extent()
-    extent = safe_extent(find_layer_by_name(wanted))
-    if extent is None or extent.isEmpty():
+        return canvas_extent(), None
+    layer = find_layer_by_name(wanted)
+    extent = safe_extent(layer)
+    if isinstance(layer, QgsVectorLayer) and (not layer.isSpatial() or layer.featureCount() == 0):
+        raise ValueError(f"Layer '{wanted}' has no spatial features to show in a map.")
+    if extent is None or not _finite_extent(extent):
         raise ValueError(f"Layer '{wanted}' has no extent — it may be empty.")
-    return extent
+    source_crs = layer.crs()
+    if not source_crs.isValid():
+        raise ValueError(f"Layer '{wanted}' has no valid CRS. Assign its coordinate system before creating a map.")
+    if extent.isEmpty():
+        if not isinstance(layer, QgsVectorLayer) or not _has_spatial_features(layer):
+            raise ValueError(f"Layer '{wanted}' has no spatial features to show in a map.")
+        extent = _padded_extent(extent, source_crs.isGeographic())
+    project = QgsProject.instance()
+    target_crs = project.crs() if project.crs().isValid() else source_crs
+    if source_crs != target_crs:
+        extent = QgsCoordinateTransform(source_crs, target_crs, project).transformBoundingBox(extent)
+    if not _finite_extent(extent) or extent.isEmpty():
+        raise ValueError(f"Layer '{wanted}' cannot be displayed in the map coordinate system.")
+    return extent, target_crs
+
+
+def _has_spatial_features(layer: QgsVectorLayer) -> bool:
+    return any(feature.hasGeometry() and not feature.geometry().isEmpty() for feature in layer.getFeatures())
+
+
+def _finite_extent(extent: QgsRectangle) -> bool:
+    return all(
+        isfinite(value) for value in (extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum())
+    )
+
+
+def _padded_extent(extent: QgsRectangle, geographic: bool) -> QgsRectangle:
+    minimum = POINT_PADDING_DEGREES if geographic else POINT_PADDING_MAP_UNITS
+    padding = max(extent.width(), extent.height()) * DEGENERATE_PADDING_RATIO
+    padding = max(padding, minimum)
+    x_padding = padding if extent.width() <= 0 else 0.0
+    y_padding = padding if extent.height() <= 0 else 0.0
+    return QgsRectangle(
+        extent.xMinimum() - x_padding,
+        extent.yMinimum() - y_padding,
+        extent.xMaximum() + x_padding,
+        extent.yMaximum() + y_padding,
+    )
 
 
 def _configure_north_arrow(layout: Any, item: Any, properties: dict[str, Any]) -> None:

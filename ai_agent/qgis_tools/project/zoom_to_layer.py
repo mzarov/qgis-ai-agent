@@ -14,6 +14,8 @@ class ZoomToLayerTool(BaseTool):
     )
     skill = "project"
     safety = SAFETY_READ
+    external_effect = False
+    network_access = False
     egress = EGRESS_FEATURE_VALUES
     constraints = ["A layer with this name must exist in the project"]
     examples = ["Show me the cities layer", "Zoom to the roads"]

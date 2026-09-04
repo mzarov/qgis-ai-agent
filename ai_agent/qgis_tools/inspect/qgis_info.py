@@ -4,7 +4,7 @@ from typing import Any
 from qgis.core import Qgis, QgsApplication
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, BaseTool
 
 MAX_PROVIDERS = 20
 
@@ -17,6 +17,9 @@ class GetQgisInfoTool(BaseTool):
     )
     skill = "inspect"
     safety = SAFETY_READ
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     examples = ["Which QGIS version do I have?", "Is GRASS available?"]
     params_schema = []
 

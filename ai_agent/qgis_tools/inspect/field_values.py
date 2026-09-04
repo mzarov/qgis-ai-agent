@@ -22,6 +22,8 @@ class GetFieldValuesTool(BaseTool):
     )
     skill = "inspect"
     safety = SAFETY_READ
+    external_effect = False
+    network_access = False
     egress = EGRESS_FEATURE_VALUES
     constraints = ["The layer and the field must exist", "The layer must be a vector layer"]
     examples = ["Which values does the type field hold?", "What is the range of city population?"]

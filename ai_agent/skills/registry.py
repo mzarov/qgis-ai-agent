@@ -1,5 +1,6 @@
 import os
 import re
+from collections.abc import Iterable
 
 from ai_agent.skills.base import Skill, parse_skill_markdown
 
@@ -16,7 +17,7 @@ PROBLEM_DUPLICATE = "{entry}: name '{name}' is already used by another local ski
 
 
 class SkillRegistry:
-    def __init__(self, root: str | None = None):
+    def __init__(self, root: str | None = None) -> None:
         self._root = root or os.path.dirname(os.path.abspath(__file__))
         self._skills: dict[str, Skill] | None = None
         self._local_root: str | None = None
@@ -60,7 +61,7 @@ class SkillRegistry:
             return ""
         return "\n".join([SUMMARIES_HEADER, *(skill.summary_line() for skill in skills)])
 
-    def bodies_block(self, names) -> str:
+    def bodies_block(self, names: Iterable[str]) -> str:
         blocks = []
         for name in names:
             skill = self.get(name)

@@ -1,7 +1,7 @@
 from typing import Any
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.osm.args import (
     CANVAS,
     as_text,
@@ -34,6 +34,9 @@ class DownloadOsmTool(BaseTool):
     )
     skill = "osm"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = [
         "Either area or bbox is required — without a territory the query does not run",
         "OSM keys and values are written in English: amenity=cafe, highway=primary",

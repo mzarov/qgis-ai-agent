@@ -1,8 +1,11 @@
 from typing import Any
 
+from qgis.core import Qgis
+
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_DESTRUCTIVE, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.paths import check_overwrite
+from ai_agent.qgis_tools.processing.effects import writes_external_data
 from ai_agent.qgis_tools.processing.units import check_distance_units
 from ai_agent.qgis_tools.processing.utils import (
     apply_output_name,
@@ -25,6 +28,7 @@ class RunProcessingTool(BaseTool):
     )
     skill = "processing"
     safety = SAFETY_WRITE
+    network_access = False
     egress = EGRESS_FEATURE_VALUES
     constraints = [
         "The algorithm identifier must exist in the registry",
@@ -76,7 +80,13 @@ class RunProcessingTool(BaseTool):
         algorithm, prepared = self._prepare(params)
         destination_names = destination_parameter_names(algorithm)
         _check_destinations(prepared, bool(params.get("overwrite_outputs")), destination_names)
-        return {**params, "parameters": prepared, "_destination_names": destination_names}
+        return {
+            **params,
+            "algorithm_id": algorithm.id(),
+            "parameters": prepared,
+            "_destination_names": destination_names,
+            "_algorithm_security_risk": _security_risk(algorithm),
+        }
 
     def safety_for(self, params: dict[str, Any]) -> str:
         if _known_external_algorithm(params):
@@ -118,7 +128,7 @@ class RunProcessingTool(BaseTool):
         }
 
     @staticmethod
-    def _prepare(params: dict[str, Any]) -> dict[str, Any]:
+    def _prepare(params: dict[str, Any]) -> tuple[Any, dict[str, Any]]:
         algorithm = find_algorithm(params.get("algorithm_id") or "")
         arguments = params.get("parameters")
         if not isinstance(arguments, dict):
@@ -175,8 +185,11 @@ def _destination_paths(parameters: dict[str, Any], destination_names: list[str] 
 
 
 def _known_external_algorithm(params: dict[str, Any]) -> bool:
-    identifier = str(params.get("algorithm_id") or "").strip().lower().replace("_", "")
-    database_import = "importinto" in identifier and any(
-        provider in identifier for provider in ("postgis", "spatialite")
-    )
-    return "executesql" in identifier or database_import or ("postgis" in identifier and ".out." in identifier)
+    return writes_external_data(str(params.get("algorithm_id") or ""), bool(params.get("_algorithm_security_risk")))
+
+
+def _security_risk(algorithm: Any) -> bool:
+    try:
+        return bool(algorithm.flags() & Qgis.ProcessingAlgorithmFlag.SecurityRisk)
+    except AttributeError:
+        return False

@@ -34,15 +34,18 @@ class QgisAiAgentPlugin:
 
     def unload(self) -> None:
         self._disconnect_project_lifecycle()
-        if self.menu_action:
-            self.iface.removePluginMenu(MENU_TITLE, self.menu_action)
-            self.iface.removeToolBarIcon(self.menu_action)
-        if self.dock_widget:
-            self.iface.removeDockWidget(self.dock_widget)
-            self.dock_widget = None
         if self._orchestrator:
             self._orchestrator.shutdown()
         self._orchestrator = None
+        if self.menu_action:
+            self.iface.removePluginMenu(MENU_TITLE, self.menu_action)
+            self.iface.removeToolBarIcon(self.menu_action)
+            self.menu_action.deleteLater()
+            self.menu_action = None
+        if self.dock_widget:
+            self.iface.removeDockWidget(self.dock_widget)
+            self.dock_widget.deleteLater()
+            self.dock_widget = None
         i18n.remove()
 
     def run(self) -> None:

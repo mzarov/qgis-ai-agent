@@ -284,13 +284,29 @@ while it grows, folded into one line once the answer starts.
 
 ## Adding a new domain
 
-1. `qgis_tools/<domain>/` — tool classes with `skill = "<domain>"` and `safety`
+1. `qgis_tools/<domain>/` — tool classes with `skill = "<domain>"` and explicit
+   `safety`, `egress`, `external_effect` and `network_access` declarations
 2. `skills/<domain>/SKILL.md` — frontmatter and the domain rules
-3. hook the tool list into `qgis_tools/registry.py`
+3. assemble the domain list in its `__init__.py` and register it in
+   `qgis_tools/registry.py`; update public capability counts in both languages
 
-Orchestration, the loop and the prompt stay untouched. Domains do not depend on
-each other: shared code comes from `qgis_tools/common/`, so a domain can be
-removed without breaking its neighbours.
+`prepare` validates without mutations or service calls and binds target layers
+by ID. `execute` runs on the main thread and returns JSON-compatible values;
+errors and partial effects must be explicit. Each new tool needs behavioral
+coverage, including failures, and new PyQGIS calls need live integration checks.
+Processing algorithms that modify existing sources are listed in
+`qgis_tools/processing/effects.py::SOURCE_WRITERS`; scripts, models and unknown
+providers receive the conservative policy.
+
+Orchestration, the loop and the prompt should remain unchanged. Domains do not
+depend on each other: shared code comes from `qgis_tools/common/`. The layering
+guard discovers domain packages so new domains receive the same checks.
+
+Use concise docstrings for contracts and comments for non-obvious reasons.
+Module size is a review prompt, not a hard cap; split by responsibility. Strict
+mypy checking currently covers configuration, skills, the base tool contract,
+argument validation and Processing effect policy. Expand that scope as typed boundaries stabilize;
+Qt runtime behavior still needs execution tests.
 
 ## Conversations
 

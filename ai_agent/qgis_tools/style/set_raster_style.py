@@ -3,7 +3,7 @@ from typing import Any
 from qgis.core import QgsRasterLayer
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.layers import find_layer_by_name
 from ai_agent.qgis_tools.style.apply import refresh
 from ai_agent.qgis_tools.style.raster import (
@@ -34,6 +34,9 @@ class SetRasterStyleTool(BaseTool):
     )
     skill = "style"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = [
         "The layer must exist and be a raster layer",
         "The band must exist in the raster",

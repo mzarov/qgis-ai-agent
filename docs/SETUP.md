@@ -160,6 +160,23 @@ python3 -m unittest discover -s tests -t .
 ```
 
 The command above is the fast unit suite and uses QGIS stand-ins when PyQGIS is
-absent. CI also runs a focused import, icon and registry smoke test in the
-official QGIS 4 container. Full workflows against live layers and the QGIS UI
-are checked by hand following [smoke_checklist.md](smoke_checklist.md).
+absent. With Python 3.12+ and Poetry 2.1.3, run `poetry install` to install locked
+development tools without installing the plugin as a Python package. Then run
+`poetry run ruff check .`, `poetry run ruff format --check .` and `poetry run mypy`.
+Mypy strictly checks configuration, skill loading, the tool base contract,
+argument validation and Processing effect policy; the rest of the application is not yet in that scope.
+
+For branch coverage, run
+`poetry run coverage run -m unittest discover -s tests -t .` and
+`poetry run coverage html`; open `build/coverage/index.html`. CI publishes the
+same HTML report and XML in the `fast-suite-branch-coverage` artifact. These
+reports measure the fast suite with QGIS substitutes, without the separate
+real-QGIS processes. Missing branches guide regression work; no percentage gate
+is imposed.
+
+CI also runs `tests/real_qgis_smoke.py` on the installed ZIP and
+`tests/real_qgis_workflows.py` against live layers, Processing, layouts and Qt
+lifecycle events in the official QGIS 4 containers. Run these scripts with the
+QGIS Python interpreter and `QT_QPA_PLATFORM=offscreen` for headless checks.
+Interactive checks beyond those scenarios follow
+[smoke_checklist.md](smoke_checklist.md).

@@ -3,7 +3,7 @@ from typing import Any
 from qgis.core import QgsVectorLayer
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common.expressions import compile_expression
 from ai_agent.qgis_tools.common.layers import find_layer_by_name
 
@@ -24,6 +24,9 @@ class SelectFeaturesTool(BaseTool):
     )
     skill = "inspect"
     safety = SAFETY_READ
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = ["The layer must exist and be a vector layer"]
     examples = ["Show me the motorways", "Highlight the districts with no population data"]
     params_schema = [
