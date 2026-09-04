@@ -6,13 +6,14 @@ from ai_agent.core.agent.prompts import (
     build_ask_user_schema,
     build_json_tools_block,
     build_load_skill_schema,
-    build_system_prompt,
+    build_system_parts,
     build_update_plan_schema,
     render_project_notes,
 )
 from ai_agent.core.agent.skills import tools_for_skills
 from ai_agent.core.agent.transcript import Transcript
 from ai_agent.core.context.project import get_project_context
+from ai_agent.core.llm.anthropic import CACHE_PREFIX_KEY
 from ai_agent.core.llm.client import resolve_endpoint
 from ai_agent.core.llm.transport import PROTOCOL_JSON, PROTOCOL_NATIVE
 from ai_agent.core.privacy import sensitive_data_allowed, tool_output_allowed
@@ -59,7 +60,7 @@ def build_step_request(
     endpoint = str(effective_overrides.get("url_override") or get_api_url() or "")
     schemas = build_tool_schemas_for(loaded_skills, endpoint)
     json_protocol = detect_json_protocol(effective_overrides)
-    system_prompt = build_system_prompt(
+    static_prompt, live_prompt = build_system_parts(
         project_context=get_project_context(),
         loaded_skills=loaded_skills,
         json_protocol=json_protocol,
@@ -69,6 +70,8 @@ def build_step_request(
         project_notes=_project_notes(),
         invoked_skills=invoked_skills,
     )
+    system_prompt = "\n\n".join(part for part in (static_prompt, live_prompt) if part)
+    effective_overrides[CACHE_PREFIX_KEY] = len(static_prompt)
     if json_protocol:
         tools_block = build_json_tools_block(schemas)
         if tools_block:
