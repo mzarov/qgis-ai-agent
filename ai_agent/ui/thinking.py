@@ -1,6 +1,6 @@
 import time
 
-from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtCore import Qt, QTimer
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -18,6 +18,7 @@ EXPANDED = "⌄"
 MARKER_WIDTH = 14
 BODY_INDENT = 22
 TEXT_FONT_SCALE = 0.9
+REPAINT_INTERVAL_MS = 80
 THINKING_TITLE = tr("Thinking…")
 THOUGHT_TITLE = tr("Thought")
 
@@ -44,6 +45,10 @@ class ThinkingBlock(QFrame):
         self._started = time.monotonic()
         self._deliveries = 0
         self._finished = False
+        self._repaint = QTimer(self)
+        self._repaint.setSingleShot(True)
+        self._repaint.setInterval(REPAINT_INTERVAL_MS)
+        self._repaint.timeout.connect(self._render_text)
         self._toggle.setChecked(True)
         self._refresh()
 
@@ -82,6 +87,7 @@ class ThinkingBlock(QFrame):
         layout = QVBoxLayout(self._body_holder)
         layout.setContentsMargins(BODY_INDENT, 4, 11, 7)
         self._body = QLabel()
+        self._body.setTextFormat(Qt.TextFormat.PlainText)
         self._body.setWordWrap(True)
         self._body.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self._body.setStyleSheet(
@@ -99,8 +105,14 @@ class ThinkingBlock(QFrame):
     def append(self, delta: str) -> None:
         self._text += delta
         self._deliveries += 1
+        if self._deliveries == 1:
+            self._render_text()
+            self._refresh()
+        elif not self._repaint.isActive():
+            self._repaint.start()
+
+    def _render_text(self) -> None:
         self._body.setText(self._text)
-        self._refresh()
 
     @property
     def _watched_live(self) -> bool:
@@ -110,6 +122,8 @@ class ThinkingBlock(QFrame):
         if self._finished:
             return
         self._finished = True
+        self._repaint.stop()
+        self._render_text()
         self._toggle.setChecked(False)
         self._refresh()
 

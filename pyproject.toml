@@ -1,6 +1,6 @@
 [project]
 name = "qgis-ai-agent"
-version = "0.1.0"
+version = "0.1.1"
 description = "QGIS 4 plugin: an AI agent with tools for reading the project and processing data"
 authors = [{ name = "mzarov", email = "mzarov@duck.com" }]
 requires-python = ">=3.12,<4.0"

@@ -257,6 +257,24 @@ class ActivityTitleTest(unittest.TestCase):
         view.append_thinking("hmm")
         self.assertFalse(view._activity._header.isVisible())
 
+    def test_a_thinking_only_turn_stays_in_the_feed_after_the_answer(self):
+        view = ConversationView()
+        view.append_thinking("hmm")
+        group = view._activity
+        view.add_assistant_message("Answer.")
+        self.assertFalse(group._steps_holder.isHidden())
+
+    def test_reasoning_deltas_are_painted_in_batches(self):
+        block = ThinkingBlock(framed=False)
+        for delta in ("a", "b", "c"):
+            block.append(delta)
+        self.assertEqual(block._body.text(), "a")
+        block._repaint.fire()
+        self.assertEqual(block._body.text(), "abc")
+        block.append("d")
+        block.finish()
+        self.assertEqual(block._body.text(), "abcd")
+
     def test_the_first_action_brings_the_header_back(self):
         view = ConversationView()
         view.append_thinking("hmm")

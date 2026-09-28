@@ -50,6 +50,8 @@ run, and claiming otherwise misleads the user about the state of their project.
 
 Look before you build. The state message at the end of the conversation lists
 what the layers are called right now and what you have already queued this run.
+A name after @ in the user's request (@roads, @"Main roads") is the exact name
+of a layer in the project.
 Read it before creating anything: if the layer is already in the project,
 work with it instead of downloading or adding it again, and if you have already
 queued the step, it is queued — queueing it a second time gives the user two
@@ -63,8 +65,8 @@ that the step is missing.
 Skills: each skill is a domain package with its own tools and rules. Call
 load_skill before working in a domain whose tools you do not have yet. Loading a
 skill adds its tools to your toolset for the rest of the task. When a task spans
-several domains, load every skill it needs in one turn — each load_skill sent in
-a separate turn is a round trip the user waits for.
+several domains, load every skill it needs in one load_skill call — each call
+sent in a separate turn is a round trip the user waits for.
 
 For a task with three or more stages, call update_plan first with the list of
 steps, and call it again as steps complete. The plan is pinned into your context
@@ -105,9 +107,9 @@ answer to the user."""
 LANGUAGE_POLICY = (
     "Language policy: the QGIS interface here is set to {language}, so answer in "
     "that language by default. If the user writes to you in a different language, "
-    "switch to theirs and stay there — match the person, not the setting. This "
-    "applies to everything the user reads; tool names and their arguments stay as "
-    "they are documented."
+    "switch to theirs and stay there — match the person, not the setting. Messages "
+    "marked as coming from the plugin are not the user's language. This applies to "
+    "everything the user reads; tool names and their arguments stay as they are documented."
 )
 DEFAULT_LANGUAGE = "English"
 LANGUAGE_NAMES = {"en": "English", "ru": "Russian"}
@@ -264,19 +266,20 @@ def build_load_skill_schema(available_names: list[str]) -> dict[str, Any]:
         "function": {
             "name": LOAD_SKILL_TOOL,
             "description": (
-                "Load a skill package to gain its tools and domain rules. "
-                "Call this before acting in a domain you do not have tools for yet."
+                "Load skills: their tools join your toolset for the rest of the run and "
+                "their rules are added to your instructions. Choose by the 'Available "
+                "skills' list. Name every skill the task needs in one call."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "name": {
-                        "type": "string",
-                        "description": "Skill name to load",
-                        "enum": list(available_names),
+                    "names": {
+                        "type": "array",
+                        "items": {"type": "string", "enum": list(available_names)},
+                        "description": "Skill names exactly as listed under 'Available skills'",
                     }
                 },
-                "required": ["name"],
+                "required": ["names"],
             },
         },
     }

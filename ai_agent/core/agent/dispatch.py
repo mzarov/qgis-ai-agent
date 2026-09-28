@@ -110,7 +110,7 @@ class DispatchMixin:
 
     def _load_skill(self, call: ToolCall) -> ToolResult:
         result, loaded = load_skill(call, self._loaded_skills)
-        if loaded:
-            self.skill_loaded.emit(loaded)
-            QgsMessageLog.logMessage(f"Skill loaded: {loaded}.", LOG_TAG, Qgis.MessageLevel.Info)
+        for name in loaded:
+            self.skill_loaded.emit(name)
+            QgsMessageLog.logMessage(f"Skill loaded: {name}.", LOG_TAG, Qgis.MessageLevel.Info)
         return result

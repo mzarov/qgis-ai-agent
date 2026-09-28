@@ -74,3 +74,18 @@ def _join_capped(items: list[str]) -> str:
     if len(items) <= MAX_LISTED:
         return ", ".join(items)
     return ", ".join(items[:MAX_LISTED]) + f" and {len(items) - MAX_LISTED} more"
+
+
+LAYER_ORIGIN = "layer"
+
+
+def layer_choices() -> list[tuple[str, str, str]]:
+    """Layers for the composer's @ list: name, a short description, origin."""
+    choices = []
+    with suppress(Exception):
+        for layer in QgsProject.instance().mapLayers().values():
+            name = (layer.name() or "").strip()
+            if name:
+                line = describe_layer_line(layer)
+                choices.append((name, line[len(name) :].strip(" ()"), LAYER_ORIGIN))
+    return sorted(choices, key=lambda item: item[0].casefold())

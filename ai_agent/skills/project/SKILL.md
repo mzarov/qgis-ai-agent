@@ -105,6 +105,12 @@ A styling or processing task is not done when the layer looks right — it is do
 when the user's project holds the result. If the run changed the project and the
 user did not ask you to keep it unsaved, **queue `save_project` as the last step**.
 
+Saving the project does not save scratch layers: a processing result written to
+`TEMPORARY_OUTPUT` lives in memory and is gone when QGIS closes, leaving the saved
+project with a broken layer. When the user gave a folder, queue `export_layer` into it
+for every scratch layer they will want back before `save_project`; otherwise
+name those layers in your reply as temporary instead of inventing a path.
+
 The exception is a project that has never been saved: there `save_project` needs
 an explicit `path`, and inventing a path for someone's disk is worse than asking.
 In that case finish without saving and say plainly that the project is unsaved.

@@ -474,6 +474,23 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.orchestrator.on_applied([Result(name="set_symbol")])
         self.assertEqual(self.orchestrator.agent.preload, ["inspect", "style"])
 
+    def test_a_failed_run_keeps_the_partial_answer_and_offers_the_request_again(self):
+        restored = []
+        self.dock.keep_stream = lambda: "Half an answer"
+        self.dock.restore_prompt = restored.append
+        self.orchestrator.on_prompt("сделай реки синими")
+        self.orchestrator.on_failed("HTTP 500")
+        contents = [message["content"] for message in self.orchestrator.conversation.messages]
+        self.assertIn("Half an answer", contents)
+        self.assertEqual(restored, ["сделай реки синими"])
+
+    def test_a_stopped_run_offers_the_request_again(self):
+        restored = []
+        self.dock.restore_prompt = restored.append
+        self.orchestrator.on_prompt("сделай реки синими")
+        self.orchestrator.on_aborted()
+        self.assertEqual(restored, ["сделай реки синими"])
+
     def test_failed_steps_reach_the_verification_prompt(self):
         self.orchestrator.on_prompt("сделай реки синими")
         self.orchestrator.on_applied([Result(ok=False, payload={"error": "no such layer"}, name="set_symbol")])

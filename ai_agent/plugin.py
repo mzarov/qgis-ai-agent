@@ -54,6 +54,7 @@ class QgisAiAgentPlugin:
         self.iface.addDockWidget(DOCK_AREA, self.dock_widget)
         self.dock_widget.show()
         self.dock_widget.raise_()
+        self.dock_widget.focus_prompt()
 
     def _build(self) -> None:
         self.dock_widget = AgentDockWidget(self.iface.mainWindow())
@@ -71,7 +72,9 @@ class QgisAiAgentPlugin:
         return QIcon(icon_path) if os.path.isfile(icon_path) else QIcon()
 
     def _on_open_settings(self) -> None:
-        SettingsDialog(self.dock_widget).exec()
+        dialog = SettingsDialog(self.dock_widget)
+        dialog.exec()
+        dialog.deleteLater()
         if self._orchestrator:
             self._orchestrator.refresh_configured()
 
