@@ -178,5 +178,14 @@ Python-пакет. Затем выполните `poetry run ruff check .`,
 `tests/real_qgis_workflows.py` для живых слоёв, Processing, макетов и жизненного
 цикла Qt в официальных контейнерах QGIS 4. Эти скрипты запускаются интерпретатором
 Python из QGIS; для проверки без экрана задайте `QT_QPA_PLATFORM=offscreen`.
+На macOS интерпретатору из пакета QGIS нужно явно указать домашний каталог:
+
+```bash
+R=/Applications/QGIS-final-4_2_1.app/Contents
+cd tests && QT_QPA_PLATFORM=offscreen PYTHONHOME=$R/Resources \
+  PYTHONPATH=$R/Resources/python3.12:$R/Resources/python3.12/lib-dynload:$R/Resources/python3.12/site-packages \
+  $R/MacOS/python3.12 real_qgis_workflows.py
+```
+
 Интерактивные проверки за пределами этих сценариев описаны в
 [smoke_checklist.md](smoke_checklist.md).

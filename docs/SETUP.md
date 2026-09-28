@@ -178,5 +178,14 @@ CI also runs `tests/real_qgis_smoke.py` on the installed ZIP and
 `tests/real_qgis_workflows.py` against live layers, Processing, layouts and Qt
 lifecycle events in the official QGIS 4 containers. Run these scripts with the
 QGIS Python interpreter and `QT_QPA_PLATFORM=offscreen` for headless checks.
+On macOS the QGIS bundle's interpreter needs its home set explicitly:
+
+```bash
+R=/Applications/QGIS-final-4_2_1.app/Contents
+cd tests && QT_QPA_PLATFORM=offscreen PYTHONHOME=$R/Resources \
+  PYTHONPATH=$R/Resources/python3.12:$R/Resources/python3.12/lib-dynload:$R/Resources/python3.12/site-packages \
+  $R/MacOS/python3.12 real_qgis_workflows.py
+```
+
 Interactive checks beyond those scenarios follow
 [smoke_checklist.md](smoke_checklist.md).

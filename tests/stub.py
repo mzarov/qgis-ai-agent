@@ -1,10 +1,15 @@
 import sys
 import types
+import zlib
+
+
+def _enum_value(name: str) -> "_Num":
+    return _Num(zlib.crc32(name.encode()) & 0xFFFF or 1)
 
 
 class _NumMeta(type):
     def __getattr__(cls, n):
-        return _Num(0)
+        return _enum_value(n)
 
 
 class _Num(int, metaclass=_NumMeta):
@@ -12,7 +17,7 @@ class _Num(int, metaclass=_NumMeta):
         return super().__new__(cls, v)
 
     def __getattr__(self, n):
-        return _Num(0)
+        return _enum_value(n)
 
     def __call__(self, *a, **k):
         return _Num(0)
@@ -20,7 +25,7 @@ class _Num(int, metaclass=_NumMeta):
 
 class _Meta(type):
     def __getattr__(cls, n):
-        return _Num(0)
+        return _enum_value(n)
 
 
 class _Stub(metaclass=_Meta):
@@ -41,6 +46,9 @@ class _Stub(metaclass=_Meta):
 
     def isVisible(self):
         return self.__dict__.get("_stub_visible", True)
+
+    def keyPressEvent(self, event):
+        return None
 
     def isHidden(self):
         return not self.__dict__.get("_stub_visible", True)
