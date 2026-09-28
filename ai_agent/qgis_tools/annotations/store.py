@@ -18,13 +18,16 @@ def list_items() -> list[dict[str, Any]]:
     return described
 
 
-def remove_item(item_id: str) -> None:
-    layer = annotation_layer()
-    items = layer.items() or {}
+def require_item(item_id: str) -> None:
+    items = annotation_layer().items() or {}
     if item_id not in items:
         known = ", ".join(str(key) for key in items) or "the layer holds no annotations"
         raise ValueError(f"No annotation with id '{item_id}'. Available: {known}.")
-    layer.removeItem(item_id)
+
+
+def remove_item(item_id: str) -> None:
+    require_item(item_id)
+    annotation_layer().removeItem(item_id)
 
 
 def _text_of(item: Any) -> str:

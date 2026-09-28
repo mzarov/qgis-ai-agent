@@ -4,6 +4,7 @@ from qgis.core import QgsVectorLayerSimpleLabeling
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.common.layers import layer_reference
 from ai_agent.qgis_tools.common.properties import as_bool, properties_of, shown
 from ai_agent.qgis_tools.common.values import suggest_fields
 from ai_agent.qgis_tools.style.apply import (
@@ -12,8 +13,10 @@ from ai_agent.qgis_tools.style.apply import (
     require_field,
     require_vector_layer,
 )
-from ai_agent.qgis_tools.style.label_build import build_settings, wants
-from ai_agent.qgis_tools.style.label_catalogue import LABELS
+from ai_agent.qgis_tools.style.label_build import addresses, build_settings, current_simple_settings, wants
+from ai_agent.qgis_tools.style.label_catalogue import LABELS, TARGET_BUFFER
+
+FIELD_NEEDED = "The labels are off, so switching them on needs the field property. {hint}"
 
 
 class SetLabelsTool(BaseTool):
@@ -21,8 +24,9 @@ class SetLabelsTool(BaseTool):
     description = (
         "Configure the labels of a layer in one call: field, font, weight, size, "
         "colour, text buffer, offset, rotation, placement, shadow, background. "
-        "describe_style_options returns the full list of properties. Leaves the "
-        "rest of the layer styling alone."
+        "describe_style_options returns the full list of properties. When labels "
+        "are already on, only the given properties change; the rest of the "
+        "labeling and of the layer styling is left alone."
     )
     skill = "style"
     safety = SAFETY_WRITE
@@ -31,6 +35,7 @@ class SetLabelsTool(BaseTool):
     network_access = False
     constraints = [
         "The label field must exist in the layer",
+        "field is required only when the labels are currently off",
         "All properties go in one call, not several",
     ]
     examples = [
@@ -67,11 +72,10 @@ class SetLabelsTool(BaseTool):
         if not _is_enabled(properties):
             return prepared
         field = str(properties.get("field") or "").strip()
-        if not field:
-            raise ValueError(
-                f"To switch the labels on, give the field property. {suggest_fields([], field_names(layer))}"
-            )
-        properties["field"] = require_field(layer, field)
+        if field:
+            properties["field"] = require_field(layer, field)
+        elif current_simple_settings(layer) is None:
+            raise ValueError(FIELD_NEEDED.format(hint=suggest_fields([], field_names(layer))))
         return prepared
 
     def summarize_call(self, params: dict[str, Any]) -> str:
@@ -90,19 +94,25 @@ class SetLabelsTool(BaseTool):
         if not _is_enabled(properties):
             layer.setLabelsEnabled(False)
             refresh(layer)
-            return {"layer": layer.name(), "labels": False}
+            return {**layer_reference(layer), "labels": False}
 
-        settings = build_settings(properties)
+        base = current_simple_settings(layer)
+        if base is None and not str(properties.get("field") or "").strip():
+            raise ValueError(FIELD_NEEDED.format(hint=suggest_fields([], field_names(layer))))
+        settings = build_settings(properties, base)
         layer.setLabeling(QgsVectorLayerSimpleLabeling(settings))
         layer.setLabelsEnabled(True)
         refresh(layer)
-        return {
-            "layer": layer.name(),
+        result = {
+            **layer_reference(layer),
             "labels": True,
+            "kept_existing": base is not None,
             "field": settings.fieldName,
             "applied": sorted(key for key in properties if key != "enabled"),
-            "buffer": wants(properties, "buffer"),
         }
+        if base is None or addresses(properties, TARGET_BUFFER):
+            result["buffer"] = wants(properties, TARGET_BUFFER)
+        return result
 
 
 def _is_enabled(properties: dict[str, Any]) -> bool:

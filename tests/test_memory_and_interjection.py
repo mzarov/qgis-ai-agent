@@ -2,6 +2,7 @@ import os
 import shutil
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.notices import INTERJECTION_HEADER
@@ -61,6 +62,14 @@ class NoteStoreTest(unittest.TestCase):
 
     def test_forgetting_something_absent_says_so(self):
         self.assertFalse(self.store.forget("never stored", PROJECT))
+
+    def test_a_failed_write_is_reported_not_swallowed(self):
+        with (
+            patch.object(notes_module, "atomic_write_json", side_effect=PermissionError("read-only profile")),
+            self.assertRaisesRegex(ValueError, "read-only profile"),
+        ):
+            self.store.remember("POP2020 is the 2020 census", PROJECT)
+        self.assertEqual(self.store.notes(PROJECT), [])
 
     def test_a_missing_file_reads_as_empty(self):
         self.assertEqual(NoteStore(os.path.join(self.root, "nowhere")).notes(PROJECT), [])

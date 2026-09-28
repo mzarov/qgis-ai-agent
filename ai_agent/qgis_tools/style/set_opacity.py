@@ -2,7 +2,7 @@ from typing import Any
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
-from ai_agent.qgis_tools.common.layers import find_layer_by_name
+from ai_agent.qgis_tools.common.layers import find_layer_by_name, layer_reference
 from ai_agent.qgis_tools.style.apply import refresh
 
 PERCENT_THRESHOLD = 1.0
@@ -59,7 +59,7 @@ class SetOpacityTool(BaseTool):
         opacity = _as_fraction(params.get("opacity"))
         layer.setOpacity(opacity)
         refresh(layer)
-        return {"layer": layer.name(), "opacity": opacity}
+        return {**layer_reference(layer), "opacity": opacity}
 
 
 def _as_fraction(value: Any) -> float:

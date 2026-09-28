@@ -16,6 +16,7 @@ from ai_agent.qgis_tools.layout.items import (
 from ai_agent.qgis_tools.layout.pages import find_layout
 
 MOVABLE_KEYS = ("x", "y", "width", "height")
+PROPERTY_KEYS = {ITEM_LABEL: ("text", "font_size"), ITEM_LEGEND: ("title",)}
 
 
 class ConfigureLayoutItemTool(BaseTool):
@@ -66,7 +67,10 @@ class ConfigureLayoutItemTool(BaseTool):
         frame = _merged_frame(item, params)
         if frame is not None:
             check_bounds(layout, *frame)
-        if frame is None and not isinstance(params.get("properties"), dict):
+        properties = params.get("properties")
+        if isinstance(properties, dict) and properties:
+            _check_properties(item_kind(item), properties)
+        elif frame is None:
             raise ValueError("Nothing to change: give a new position, size or properties.")
         prepared = dict(params)
         prepared["layout_name"] = layout.name()
@@ -81,11 +85,14 @@ class ConfigureLayoutItemTool(BaseTool):
         layout = find_layout(params.get("layout_name") or "")
         item = find_item(layout, params.get("item_id") or "")
         frame = _merged_frame(item, params)
+        properties = params.get("properties")
+        # Properties go first: they are the step that can still fail, and a
+        # refused change must not leave the item moved but not retitled.
+        if isinstance(properties, dict) and properties:
+            _check_properties(item_kind(item), properties)
+            _apply_properties(item, properties)
         if frame is not None:
             place(item, *frame)
-        properties = params.get("properties")
-        if isinstance(properties, dict):
-            _apply_properties(item, properties)
         return {"layout": layout.name(), "item": describe_item(item)}
 
 
@@ -105,9 +112,28 @@ def _merged_frame(item: Any, params: dict[str, Any]) -> tuple[float, float, floa
     return values[0], values[1], values[2], values[3]
 
 
+def _check_properties(kind: str, properties: dict[str, Any]) -> None:
+    allowed = PROPERTY_KEYS.get(kind, ())
+    unknown = sorted(str(key) for key in properties if key not in allowed)
+    if unknown:
+        accepted = ", ".join(allowed) if allowed else "no properties (only position and size)"
+        target = f"a {kind} item" if kind else "this item"
+        raise ValueError(
+            f"Properties {', '.join(unknown)} do not apply to {target}; it accepts {accepted}. "
+            "A label takes text and font_size, a legend takes title."
+        )
+    if "font_size" in properties:
+        try:
+            size = float(properties["font_size"])
+        except (TypeError, ValueError):
+            size = 0.0
+        if size <= 0:
+            raise ValueError("font_size must be a positive number of points.")
+
+
 def _apply_properties(item: Any, properties: dict[str, Any]) -> None:
     kind = item_kind(item)
-    if kind == ITEM_LABEL and "text" in properties or "font_size" in properties:
+    if kind == ITEM_LABEL and ("text" in properties or "font_size" in properties):
         current = ""
         with suppress(Exception):
             current = str(item.text() or "")

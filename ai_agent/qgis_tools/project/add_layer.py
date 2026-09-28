@@ -5,7 +5,7 @@ from qgis.core import QgsRasterLayer, QgsVectorLayer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
-from ai_agent.qgis_tools.common.layers import crs_authid, geometry_type_name, safe_feature_count
+from ai_agent.qgis_tools.common.layers import crs_authid, feature_count_block, geometry_type_name
 from ai_agent.qgis_tools.project.tree import (
     describe_groups,
     ensure_group,
@@ -122,7 +122,7 @@ def _described(layer: Any, kind: str, group: str) -> dict[str, Any]:
         described["group"] = group
     if kind == VECTOR:
         described["geometry"] = geometry_type_name(layer)
-        described["feature_count"] = safe_feature_count(layer)
+        described.update(feature_count_block(layer))
     return described
 
 

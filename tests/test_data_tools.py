@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 from ai_agent.qgis_tools.inspect import get_selection as selection_module
 from ai_agent.qgis_tools.inspect.get_selection import GetSelectionTool
@@ -148,8 +149,15 @@ class SelectionLayer:
 
         return F()
 
+    def id(self):
+        return f"{self._name}_id"
+
     def selectedFeatures(self):
-        return list(self._selected)
+        raise AssertionError("get_selection must not load every selected feature")
+
+    def getSelectedFeatures(self, request=None):
+        self.requests = getattr(self, "requests", []) + [request]
+        return iter(list(self._selected))
 
 
 class GetSelectionTest(unittest.TestCase):
@@ -178,8 +186,24 @@ class GetSelectionTest(unittest.TestCase):
             selection_module.QgsProject = saved_project
             selection_module.selected_count = saved_count
         self.assertEqual(result["selected_total"], 2)
-        self.assertEqual(result["selections"][0]["layer"], "Дороги")
+        self.assertEqual(result["selections"][0]["layer_name"], "Дороги")
+        self.assertEqual(result["selections"][0]["layer_id"], "Дороги_id")
         self.assertIn("selected_only", result["note"])
+        self.assertEqual(len(layer.requests), 1)
+
+    def test_only_the_sample_is_read_from_a_large_selection(self):
+        class Feature(dict):
+            pass
+
+        layer = SelectionLayer("Дороги", [Feature(name=str(index)) for index in range(500)])
+        holder = type("P", (), {"instance": staticmethod(lambda: Project([layer]))})
+        with (
+            patch.object(selection_module, "QgsProject", holder),
+            patch.object(selection_module, "selected_count", lambda item: item.selectedFeatureCount()),
+        ):
+            result = GetSelectionTool().execute({})
+        self.assertEqual(result["selected_total"], 500)
+        self.assertEqual(len(result["selections"][0]["features"]), selection_module.SAMPLE_LIMIT)
 
 
 if __name__ == "__main__":

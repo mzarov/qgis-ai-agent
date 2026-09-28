@@ -1,9 +1,11 @@
 import pathlib
+import struct
 import tempfile
 import unittest
 from unittest.mock import patch
 
-from qgis.core import QgsFeature, QgsGeometry, QgsProject, QgsVectorLayer
+from osgeo import gdal
+from qgis.core import QgsFeature, QgsGeometry, QgsProject, QgsRasterLayer, QgsVectorLayer
 from qgis.PyQt.QtCore import QCoreApplication, QEvent
 from qgis.PyQt.QtWidgets import QMainWindow
 
@@ -128,6 +130,80 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertIsNotNone(restored)
         self.assertAlmostEqual(restored.opacity(), 1.0)
         self.assertEqual(restored.featureCount(), 2)
+
+    def test_undo_brings_scratch_layers_back_with_their_features(self):
+        identifier = self.layer.id()
+        self.assertTrue(take_snapshot())
+        self._run("remove_layer", layer_name=self.layer.name())
+        self.assertIsNone(self.project.mapLayer(identifier))
+        _, result = self._run("undo_last_apply")
+        restored = self.project.mapLayer(identifier)
+        self.assertIsNotNone(restored)
+        self.assertNotIn("empty_scratch_layers", result)
+        self.assertEqual(sorted(feature["name"] for feature in restored.getFeatures()), ["point-0", "point-1"])
+        self.assertEqual(
+            sorted(feature.geometry().asWkt() for feature in restored.getFeatures()),
+            [
+                "Point (0 0)",
+                "Point (100 0)",
+            ],
+        )
+
+    def test_a_text_virtual_field_shows_values_not_null(self):
+        queued, result = self._run("add_field", layer_name=self.layer.name(), name="label", expression="upper(name)")
+        self.assertEqual(queued.arguments["type"], "text")
+        self.assertEqual(result["type"], "text")
+        self.assertEqual(sorted(feature["label"] for feature in self.layer.getFeatures()), ["POINT-0", "POINT-1"])
+
+    def test_native_aggregates_answer_filtered_questions(self):
+        tool = ToolExecutor()
+        count = tool.run(
+            ToolCall(
+                "count", "query_layer", {"layer_name": self.layer.name(), "aggregate": "count", "filter": "count > 0"}
+            )
+        )
+        total = tool.run(
+            ToolCall(
+                "sum", "query_layer", {"layer_name": self.layer.name(), "aggregate": "sum", "expression": "count + 1"}
+            )
+        )
+        self.assertEqual((count.payload["matched"], count.payload["value"]), (1, 1))
+        self.assertEqual((total.payload["matched"], total.payload["value"]), (2, 3.0))
+
+    def test_changing_live_labels_keeps_the_field_and_the_rest(self):
+        self._run("set_labels", layer_name=self.layer.name(), properties={"field": "name", "size": 14})
+        self._run("set_labels", layer_name=self.layer.name(), properties={"bold": True})
+        settings = self.layer.labeling().settings()
+        self.assertEqual(settings.fieldName, "name")
+        self.assertAlmostEqual(settings.format().size(), 14)
+        self.assertTrue(settings.format().font().bold())
+
+    def test_a_csv_export_keeps_the_geometry(self):
+        path = self.root / "points.csv"
+        self._run("export_layer", layer_name=self.layer.name(), path=str(path))
+        header = path.read_text(encoding="utf-8").splitlines()[0]
+        self.assertIn("WKT", header)
+
+    def test_bookmarks_are_saved_into_the_project(self):
+        before = len(self.project.bookmarkManager().bookmarks())
+        self._run("save_bookmark", name="centre")
+        names = [bookmark.name() for bookmark in self.project.bookmarkManager().bookmarks()]
+        self.assertEqual(len(names), before + 1)
+        self.assertIn("centre", names)
+
+    def test_a_raster_style_with_no_data_uses_the_hidden_range(self):
+        path = self.root / "dem.tif"
+        driver = gdal.GetDriverByName("GTiff")
+        dataset = driver.Create(str(path), 20, 20, 1, gdal.GDT_Float32)
+        dataset.SetGeoTransform((0, 1, 0, 20, 0, -1))
+        values = [-9999.0] + [float(value) for value in range(1, 400)]
+        dataset.GetRasterBand(1).WriteRaster(0, 0, 20, 20, struct.pack("400f", *values))
+        dataset = None
+        raster = QgsRasterLayer(str(path), "dem")
+        self.assertTrue(raster.isValid())
+        self.project.addMapLayer(raster)
+        _, result = self._run("set_raster_style", layer_name="dem", mode="gray", no_data_values=[-9999])
+        self.assertEqual((result["min"], result["max"]), (1.0, 399.0))
 
     def test_layout_export_produces_a_pdf_with_real_layout_items(self):
         self._run("create_layout", name="Sheet", page="a4", orientation="landscape")

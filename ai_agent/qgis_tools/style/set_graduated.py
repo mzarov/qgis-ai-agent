@@ -4,6 +4,7 @@ from qgis.core import QgsGraduatedSymbolRenderer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.common.layers import layer_reference
 from ai_agent.qgis_tools.style.apply import (
     base_symbol,
     refresh,
@@ -120,7 +121,7 @@ class SetGraduatedTool(BaseTool):
         layer.setRenderer(renderer)
         refresh(layer)
         return {
-            "layer": layer.name(),
+            **layer_reference(layer),
             "renderer": "graduatedSymbol",
             "class_attribute": field,
             "class_count": len(renderer.ranges()),

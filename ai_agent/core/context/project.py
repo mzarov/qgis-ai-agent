@@ -6,13 +6,12 @@ from qgis.core import QgsProject
 from ai_agent.qgis_tools.common.layers import (
     active_layer_name,
     crs_authid,
+    feature_count_if_cheap,
     geometry_type_name,
     layer_kind,
-    safe_feature_count,
 )
 
 MAX_LISTED = 12
-COUNTABLE_PROVIDERS = frozenset({"ogr", "memory", "delimitedtext", "spatialite", "virtual"})
 NO_LAYERS = "Layers: none."
 
 
@@ -52,16 +51,6 @@ def describe_layer_line(layer: Any) -> str:
         if selected:
             facts.append(f"{selected} selected")
     return f"{name} ({', '.join(facts)})"
-
-
-def feature_count_if_cheap(layer: Any) -> int | None:
-    provider = ""
-    with suppress(Exception):
-        provider = str(layer.providerType() or "").lower()
-    if provider not in COUNTABLE_PROVIDERS:
-        return None
-    count = safe_feature_count(layer)
-    return count if count is not None and count >= 0 else None
 
 
 def selected_count(layer: Any) -> int:

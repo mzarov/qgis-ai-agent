@@ -1,11 +1,11 @@
 from typing import Any
 from urllib.parse import quote, urlencode
 
-from qgis.core import QgsRasterLayer, QgsVectorLayer
+from qgis.core import QgsCoordinateReferenceSystem, QgsRasterLayer, QgsVectorLayer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
-from ai_agent.qgis_tools.common.layers import crs_authid, safe_feature_count
+from ai_agent.qgis_tools.common.layers import crs_authid, feature_count_block
 from ai_agent.qgis_tools.project.tree import layer_names, project
 
 WMS = "wms"
@@ -26,7 +26,7 @@ class AddServiceLayerTool(BaseTool):
     safety = SAFETY_WRITE
     egress = EGRESS_METADATA
     external_effect = False
-    network_access = False
+    network_access = True
     constraints = [
         "The service URL and the published layer name are both required",
         "The service must be reachable and public — the plugin sends no credentials",
@@ -82,6 +82,7 @@ class AddServiceLayerTool(BaseTool):
         prepared["service"] = service
         prepared["url"] = url
         prepared["name"] = title
+        prepared["crs"] = _checked_crs(params.get("crs"))
         return prepared
 
     def summarize_call(self, params: dict[str, Any]) -> str:
@@ -94,7 +95,7 @@ class AddServiceLayerTool(BaseTool):
         url = _checked_url(params.get("url"))
         published = str(params.get("layer") or "").strip()
         title = str(params.get("name") or "").strip() or published
-        crs = str(params.get("crs") or DEFAULT_CRS).strip()
+        crs = _checked_crs(params.get("crs"))
         layer = _built(service, url, published, title, crs)
         if not layer.isValid():
             raise ValueError(
@@ -104,7 +105,7 @@ class AddServiceLayerTool(BaseTool):
         project().addMapLayer(layer)
         described: dict[str, Any] = {"name": layer.name(), "service": service, "crs": crs_authid(layer) or crs}
         if service == WFS:
-            described["feature_count"] = safe_feature_count(layer)
+            described.update(feature_count_block(layer))
         return described
 
 
@@ -121,6 +122,15 @@ def _checked_service(raw: Any) -> str:
     if service not in SERVICES:
         raise ValueError(f"Unknown service '{raw}'. Available: {', '.join(SERVICES)}.")
     return service
+
+
+def _checked_crs(raw: Any) -> str:
+    text = str(raw or "").strip() or DEFAULT_CRS
+    crs = QgsCoordinateReferenceSystem(text)
+    if not crs.isValid():
+        raise ValueError(f"Unknown CRS '{text}'. Give an authority id such as EPSG:4326 or EPSG:3857.")
+    authid = crs.authid()
+    return authid if isinstance(authid, str) and authid else text
 
 
 def _checked_url(raw: Any) -> str:

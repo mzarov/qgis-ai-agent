@@ -11,11 +11,12 @@ from ai_agent.qgis_tools.common.layers import (
     crs_is_geographic,
     crs_units,
     extent_dict,
+    feature_count_block,
     find_layer_by_name,
     geometry_type_name,
+    layer_identifier,
     layer_kind,
     safe_extent,
-    safe_feature_count,
     suggest_metric_crs,
 )
 from ai_agent.qgis_tools.common.renderers import style_block
@@ -57,6 +58,7 @@ class DescribeLayerTool(BaseTool):
         layer = find_layer_by_name(params.get("layer_name") or "")
         result: dict[str, Any] = {
             "name": (layer.name() or "").strip(),
+            "layer_id": layer_identifier(layer),
             "kind": layer_kind(layer),
             "crs": crs_authid(layer),
             "crs_is_geographic": crs_is_geographic(layer),
@@ -69,7 +71,7 @@ class DescribeLayerTool(BaseTool):
             result["suggested_metric_crs"] = suggest_metric_crs(layer)
         if isinstance(layer, QgsVectorLayer):
             result["geometry"] = geometry_type_name(layer)
-            result["feature_count"] = safe_feature_count(layer)
+            result.update(feature_count_block(layer))
             result.update(self._fields_block(layer))
         elif isinstance(layer, QgsRasterLayer):
             result.update(self._describe_raster(layer))

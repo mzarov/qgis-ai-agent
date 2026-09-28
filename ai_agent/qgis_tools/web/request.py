@@ -1,7 +1,7 @@
 from typing import Any
 from urllib.parse import urlsplit
 
-from qgis.core import QgsNetworkAccessManager
+from qgis.core import QgsApplication, QgsNetworkAccessManager
 from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtNetwork import QNetworkProxy, QNetworkProxyFactory, QNetworkProxyQuery, QNetworkRequest
 
@@ -10,6 +10,7 @@ from ai_agent.qgis_tools.web.url_policy import canonical_host, host_header, pinn
 
 USER_AGENT = "AI Agent (QGIS plugin; https://github.com/mzarov/qgis-ai-agent)"
 TIMEOUT_MS = 30_000
+DEFAULT_LANGUAGE = "en"
 
 
 def network_request(
@@ -34,7 +35,7 @@ def network_request(
             request.setRawHeader(name.encode("utf-8"), value.encode("utf-8"))
     request.setRawHeader(b"Host", host_header(host, port).encode("ascii"))
     request.setRawHeader(b"User-Agent", USER_AGENT.encode("utf-8"))
-    request.setRawHeader(b"Accept-Language", b"ru,en;q=0.8")
+    request.setRawHeader(b"Accept-Language", accept_language().encode("ascii"))
     request.setRawHeader(b"Accept-Encoding", b"identity")
     request.setAttribute(
         QNetworkRequest.Attribute.RedirectPolicyAttribute,
@@ -51,6 +52,21 @@ def network_request(
     request.setAttribute(QNetworkRequest.Attribute.AuthenticationReuseAttribute, QNetworkRequest.LoadControl.Manual)
     request.setTransferTimeout(TIMEOUT_MS)
     return request
+
+
+def ui_language() -> str:
+    """The QGIS interface language as an ISO 639 code; English when unknown."""
+    try:
+        locale = str(QgsApplication.locale() or "")
+    except Exception:
+        return DEFAULT_LANGUAGE
+    code = locale.replace("-", "_").split("_")[0].strip().lower()
+    return code if code.isascii() and code.isalpha() and 2 <= len(code) <= 3 else DEFAULT_LANGUAGE
+
+
+def accept_language() -> str:
+    language = ui_language()
+    return language if language == DEFAULT_LANGUAGE else f"{language},{DEFAULT_LANGUAGE};q=0.8"
 
 
 def request_destination(manager: Any, url: str, address: str) -> str:

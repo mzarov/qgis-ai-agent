@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import Any
 
 from qgis.core import QgsFeatureRequest, QgsVectorLayer
@@ -68,6 +69,20 @@ class UpdateAttributesTool(BaseTool):
         prepared["_feature_ids"] = feature_ids
         return prepared
 
+    def detail_call(self, params: dict[str, Any]) -> str:
+        values = params.get("values")
+        lines = [
+            tr("Layer: {0}").format(str(params.get("layer_name") or "").strip()),
+            _filter_line(params.get("filter")),
+        ]
+        matched = params.get("matched_estimate")
+        if isinstance(matched, int):
+            lines.append(tr("Features to change: {0}").format(matched))
+        lines.append(tr("New values:"))
+        if isinstance(values, dict):
+            lines.extend(f"  {name} = {value!r}" for name, value in values.items())
+        return "\n".join(lines)
+
     def summarize_call(self, params: dict[str, Any]) -> str:
         layer_name = (params.get("layer_name") or "").strip()
         values = params.get("values") or {}
@@ -106,7 +121,35 @@ def _checked_values(layer: QgsVectorLayer, raw: Any) -> dict[str, Any]:
         raise ValueError(
             f"Layer '{layer.name()}' has no field(s) {', '.join(unknown)}. {suggest_fields(unknown, names)}"
         )
+    for name, value in raw.items():
+        _check_convertible(layer, name, value)
     return dict(raw)
+
+
+def _check_convertible(layer: QgsVectorLayer, name: str, value: Any) -> None:
+    """Refuse a value the field cannot hold before apply, where the model can still fix it."""
+    try:
+        field = layer.fields().field(name)
+        convert = field.convertCompatible
+    except Exception:
+        return
+    try:
+        convert(value)
+    except ValueError as err:
+        kind = ""
+        with suppress(Exception):
+            kind = f" ({field.typeName()})" if field.typeName() else ""
+        raise ValueError(
+            f"Value {value!r} does not fit field '{name}'{kind}: {err}. "
+            "Give a value of the field's type, or null to clear it."
+        ) from None
+
+
+def _filter_line(raw: Any) -> str:
+    text = str(raw or "").strip()
+    if not text:
+        return tr("Filter: none, every feature is changed")
+    return tr("Filter: {0}").format(text)
 
 
 def _matched_ids(layer: QgsVectorLayer, filter_text: str) -> list[int]:

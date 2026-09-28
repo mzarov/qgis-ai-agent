@@ -73,6 +73,10 @@ class NoteStore:
             atomic_write_json(self.path(), payload)
         except OSError as failure:
             QgsMessageLog.logMessage(f"Could not write project notes: {failure}", LOG_TAG, Qgis.MessageLevel.Warning)
+            raise ValueError(
+                f"The note could not be saved to {self.path()}: {failure}. Nothing was changed; "
+                "tell the user the profile folder is not writable."
+            ) from None
 
 
 def _notes_for(stored: dict[str, Any], key: str) -> list[str]:

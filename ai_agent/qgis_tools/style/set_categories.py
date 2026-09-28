@@ -5,6 +5,7 @@ from qgis.core import QgsCategorizedSymbolRenderer, QgsRendererCategory
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.colors import parse_color
+from ai_agent.qgis_tools.common.layers import layer_reference
 from ai_agent.qgis_tools.common.values import plain_value
 from ai_agent.qgis_tools.style.apply import (
     coloured_symbol,
@@ -118,7 +119,7 @@ class SetCategoriesTool(BaseTool):
         layer.setRenderer(QgsCategorizedSymbolRenderer(field, categories))
         refresh(layer)
         return {
-            "layer": layer.name(),
+            **layer_reference(layer),
             "renderer": "categorizedSymbol",
             "class_attribute": field,
             "class_count": len(categories),

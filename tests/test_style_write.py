@@ -325,21 +325,21 @@ class SetLabelsTest(StyleWriteCase):
         self.assertIn("72", str(caught.exception))
 
     def test_buffer_turns_on_from_its_colour_alone(self):
-        buffer = self._apply(buffer_color="white").text_format.buffer
+        buffer = self._apply(buffer_color="white").text_format.buffer()
         self.assertTrue(buffer.enabled)
         self.assertEqual(buffer.colour, "white")
 
     def test_buffer_stays_off_when_not_mentioned(self):
-        self.assertFalse(self._apply().text_format.buffer.enabled)
+        self.assertFalse(self._apply().text_format.buffer().enabled)
 
     def test_buffer_can_be_switched_off_explicitly(self):
-        buffer = self._apply(buffer_color="white", buffer=False).text_format.buffer
+        buffer = self._apply(buffer_color="white", buffer=False).text_format.buffer()
         self.assertFalse(buffer.enabled)
 
     def test_shadow_and_background_are_independent(self):
         settings = self._apply(shadow_color="grey")
-        self.assertTrue(settings.text_format.shadow.enabled)
-        self.assertFalse(settings.text_format.background.enabled)
+        self.assertTrue(settings.text_format.shadow().enabled)
+        self.assertFalse(settings.text_format.background().enabled)
 
     def test_labels_can_be_turned_off(self):
         prepared = self.tool.prepare({"layer_name": "Дороги", "properties": {"enabled": False}})
@@ -375,6 +375,46 @@ class SetLabelsTest(StyleWriteCase):
     def test_result_reports_what_was_applied(self):
         result = self.tool.execute({"layer_name": "Дороги", "properties": {"field": "name", "bold": True}})
         self.assertEqual(result["applied"], ["bold", "field"])
+
+    def _label_existing(self):
+        existing = _FakeSettings()
+        existing.fieldName = "population"
+        existing.isExpression = True
+        existing.xOffset = 4.0
+        existing.offsetUnits = "points"
+        text_format = _FakeFormat()
+        text_format.size = 14
+        text_format.buffer_settings = _FakeSub()
+        text_format.buffer_settings.enabled = True
+        text_format.buffer_settings.colour = "#ffffff"
+        existing.text_format = text_format
+        existing.format = lambda: existing.text_format
+        labeling = type("Simple", (), {"type": lambda self: "simple", "settings": lambda self: existing})()
+        self.layer.labelsEnabled = lambda: True
+        self.layer.labeling = lambda: labeling
+        return existing
+
+    def test_a_change_to_live_labels_keeps_everything_else(self):
+        self._label_existing()
+        prepared = self.tool.prepare({"layer_name": "Дороги", "properties": {"bold": True}})
+        result = self.tool.execute(prepared)
+        settings = self.layer.labeling[1]
+        self.assertTrue(result["kept_existing"])
+        self.assertEqual((settings.fieldName, settings.isExpression), ("population", True))
+        self.assertEqual((settings.xOffset, settings.offsetUnits), (4.0, "points"))
+        self.assertEqual(settings.text_format.size, 14)
+        self.assertTrue(settings.text_format.font_object.bold)
+        buffer = settings.text_format.buffer()
+        self.assertEqual((buffer.enabled, buffer.colour), (True, "#ffffff"))
+
+    def test_a_new_field_on_live_labels_drops_the_expression_flag(self):
+        settings_before = self._label_existing()
+        self.tool.execute({"layer_name": "Дороги", "properties": {"field": "name", "offset_x": 1, "buffer": False}})
+        settings = self.layer.labeling[1]
+        self.assertIs(settings, settings_before)
+        self.assertEqual((settings.fieldName, settings.isExpression), ("name", False))
+        self.assertEqual(settings.offsetUnits, label_build.MILLIMETRES)
+        self.assertFalse(settings.text_format.buffer().enabled)
 
 
 class CatalogueTest(unittest.TestCase):
@@ -558,10 +598,19 @@ class _FakeFormat:
         self.size = None
         self.colour = None
         self.opacity = None
-        self.buffer = None
-        self.shadow = None
-        self.background = None
+        self.buffer_settings = None
+        self.shadow_settings = None
+        self.background_settings = None
         self.font_object = _FakeFont()
+
+    def buffer(self):
+        return self.buffer_settings
+
+    def shadow(self):
+        return self.shadow_settings
+
+    def background(self):
+        return self.background_settings
 
     def font(self):
         return self.font_object
@@ -579,13 +628,13 @@ class _FakeFormat:
         self.opacity = value
 
     def setBuffer(self, value):
-        self.buffer = value
+        self.buffer_settings = value
 
     def setShadow(self, value):
-        self.shadow = value
+        self.shadow_settings = value
 
     def setBackground(self, value):
-        self.background = value
+        self.background_settings = value
 
 
 class _FakeSettings:

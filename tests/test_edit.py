@@ -112,10 +112,44 @@ class EditTestBase(unittest.TestCase):
             module.build_request = builder
 
 
+class IntegerField:
+    def typeName(self):
+        return "integer"
+
+    def convertCompatible(self, value):
+        if value is None:
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            raise ValueError(f'Value "{value}" is not a number') from None
+
+
+class TypedFields(Fields):
+    def field(self, name):
+        return IntegerField()
+
+
 class UpdateAttributesTest(EditTestBase):
     def setUp(self):
         super().setUp()
         self.tool = UpdateAttributesTool()
+
+    def test_a_value_the_field_cannot_hold_is_refused_before_apply(self):
+        self.layer._fields = TypedFields(["name", "lanes"])
+        with self.assertRaisesRegex(ValueError, "'lanes' \\(integer\\).*not a number"):
+            self.tool.prepare({"layer_name": "Дороги", "values": {"lanes": "many"}})
+        prepared = self.tool.prepare({"layer_name": "Дороги", "values": {"lanes": "4", "name": None}})
+        self.assertEqual(prepared["values"], {"lanes": "4", "name": None})
+
+    def test_detail_shows_the_filter_and_every_value(self):
+        detail = self.tool.detail_call(
+            {"layer_name": "Дороги", "filter": "name = 'a'", "values": {"type": "park"}, "matched_estimate": 1}
+        )
+        for fragment in ("Дороги", "name = 'a'", "1", "type = 'park'"):
+            self.assertIn(fragment, detail)
+        self.assertIn("every feature", self.tool.detail_call({"layer_name": "Дороги", "values": {"type": 1}}))
+        self.assertTrue(self.tool.detail_call({"values": "broken"}))
 
     def test_unknown_field_is_rejected_with_a_hint(self):
         with self.assertRaises(ValueError) as caught:
@@ -307,6 +341,14 @@ class DeleteFeaturesTest(EditTestBase):
 
 
 class ContractTest(unittest.TestCase):
+    def test_delete_detail_shows_the_filter_and_count(self):
+        tool = DeleteFeaturesTool()
+        detail = tool.detail_call({"layer_name": "Дороги", "filter": "name IS NULL", "matched_estimate": 7})
+        for fragment in ("Дороги", "name IS NULL", "7"):
+            self.assertIn(fragment, detail)
+        self.assertIn("every feature", tool.detail_call({"layer_name": "Дороги", "filter": "ALL"}))
+        self.assertTrue(tool.detail_call({}))
+
     def test_both_tools_are_destructive(self):
         from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
 

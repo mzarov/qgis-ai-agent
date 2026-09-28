@@ -59,6 +59,18 @@ class DeleteFeaturesTool(BaseTool):
         prepared["_feature_ids"] = ids
         return prepared
 
+    def detail_call(self, params: dict[str, Any]) -> str:
+        text = str(params.get("filter") or "").strip()
+        lines = [tr("Layer: {0}").format(str(params.get("layer_name") or "").strip())]
+        if text.lower() == ALL_MARKER:
+            lines.append(tr("Filter: all, every feature is deleted"))
+        else:
+            lines.append(tr("Filter: {0}").format(text))
+        matched = params.get("matched_estimate")
+        if isinstance(matched, int):
+            lines.append(tr("Features to delete: {0}").format(matched))
+        return "\n".join(lines)
+
     def summarize_call(self, params: dict[str, Any]) -> str:
         layer_name = (params.get("layer_name") or "").strip()
         matched = params.get("matched_estimate")

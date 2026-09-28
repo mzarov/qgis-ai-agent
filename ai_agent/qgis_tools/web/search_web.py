@@ -13,6 +13,7 @@ from ai_agent.qgis_tools.web.http import (
     get_text,
     guard_not_cancelled,
 )
+from ai_agent.qgis_tools.web.request import DEFAULT_LANGUAGE, ui_language
 from ai_agent.qgis_tools.web.url_policy import bounded_text, encoded, short_text
 
 SEARCH_ENDPOINT = "https://html.duckduckgo.com/html/?q={query}"
@@ -184,7 +185,9 @@ def wikipedia_results(query: str, *, epoch: int | None = None) -> list[dict[str,
 
 
 def _wikipedia_request(query: str) -> tuple[str, str]:
-    lang = "en" if query.isascii() else "ru"
+    # A plain-ASCII query is most likely English; anything else is searched in
+    # the Wikipedia of the user's interface language.
+    lang = DEFAULT_LANGUAGE if query.isascii() else ui_language()
     return lang, WIKIPEDIA_ENDPOINT.format(lang=lang, query=encoded(query), limit=MAX_RESULTS)
 
 

@@ -1,10 +1,13 @@
+import warnings
 from typing import Any
 
 from qgis.core import (
+    Qgis,
     QgsColorRampShader,
     QgsHillshadeRenderer,
-    QgsRasterBandStats,
+    QgsRasterRange,
     QgsRasterShader,
+    QgsRectangle,
     QgsSingleBandGrayRenderer,
     QgsSingleBandPseudoColorRenderer,
 )
@@ -27,11 +30,22 @@ MAX_CLASSES = 30
 DEFAULT_RAMPS = ("Viridis", "Spectral", "Blues")
 DEFAULT_AZIMUTH = 315.0
 DEFAULT_ALTITUDE = 45.0
+# Roughly 500 x 500 cells: enough for a stable min/max, and a large raster is
+# not read whole on the main thread. An empty extent means the whole raster.
+STATISTICS_SAMPLE_CELLS = 250_000
+# Web rasters are already rendered pictures: no band values to stretch, and
+# statistics would download tiles on the main thread.
+WEB_RASTER_PROVIDERS = frozenset({"wms", "wcs", "xyz", "arcgismapserver", "arcgisfeatureserver"})
 
 
 def band_range(layer: Any, band: int) -> tuple[float, float]:
     provider = layer.dataProvider()
-    stats = provider.bandStatistics(band, QgsRasterBandStats.Stats.All)
+    wanted = Qgis.RasterBandStatistic.Min | Qgis.RasterBandStatistic.Max
+    # sip resolves any combined flag to the deprecated int overload (QGIS 4.2);
+    # the call is still the supported one, so its warning is only noise.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        stats = provider.bandStatistics(band, wanted, QgsRectangle(), STATISTICS_SAMPLE_CELLS)
     minimum = float(stats.minimumValue)
     maximum = float(stats.maximumValue)
     if maximum <= minimum:
@@ -39,6 +53,18 @@ def band_range(layer: Any, band: int) -> tuple[float, float]:
             f"Band {band} has no value range (min equals max) — a colour ramp over it would be meaningless."
         )
     return minimum, maximum
+
+
+def require_local_raster(layer: Any) -> None:
+    try:
+        provider = str(layer.providerType() or "").lower()
+    except Exception:
+        return
+    if provider in WEB_RASTER_PROVIDERS:
+        raise ValueError(
+            f"Layer '{layer.name()}' is a web raster ({provider}): it arrives as finished images, so it has "
+            "no band values to restyle. Change its opacity instead, or style a local raster."
+        )
 
 
 def checked_band(layer: Any, raw: Any) -> int:
@@ -99,7 +125,7 @@ def build_hillshade(layer: Any, band: int, azimuth: Any, altitude: Any) -> Any:
     return renderer, {"azimuth": angle, "altitude": height}
 
 
-def apply_no_data(layer: Any, values: Any) -> list[float]:
+def checked_no_data(values: Any) -> list[float]:
     if values is None:
         return []
     if not isinstance(values, list):
@@ -110,17 +136,25 @@ def apply_no_data(layer: Any, values: Any) -> list[float]:
             numbers.append(float(value))
         except (TypeError, ValueError):
             raise ValueError(f"'{value}' is not a number — no_data_values takes numbers only.") from None
-    if numbers:
-        provider = layer.dataProvider()
-        for band in range(1, int(layer.bandCount()) + 1):
-            provider.setUserNoDataValue(band, [_range(value) for value in numbers])
     return numbers
 
 
-def _range(value: float) -> Any:
-    from qgis.core import QgsRasterRange
+def apply_no_data(layer: Any, numbers: list[float]) -> dict[int, list[Any]]:
+    """Hide the values in every band; return the previous per-band ranges for restore_no_data."""
+    previous: dict[int, list[Any]] = {}
+    if not numbers:
+        return previous
+    provider = layer.dataProvider()
+    for band in range(1, int(layer.bandCount()) + 1):
+        previous[band] = list(provider.userNoDataValues(band))
+        provider.setUserNoDataValue(band, [QgsRasterRange(value, value) for value in numbers])
+    return previous
 
-    return QgsRasterRange(value, value)
+
+def restore_no_data(layer: Any, previous: dict[int, list[Any]]) -> None:
+    provider = layer.dataProvider()
+    for band, ranges in previous.items():
+        provider.setUserNoDataValue(band, ranges)
 
 
 def _angle(raw: Any, default: float, name: str, low: float, high: float) -> float:

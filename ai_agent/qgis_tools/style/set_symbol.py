@@ -4,7 +4,7 @@ from qgis.core import QgsSingleSymbolRenderer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
-from ai_agent.qgis_tools.common.layers import geometry_type_name
+from ai_agent.qgis_tools.common.layers import geometry_type_name, layer_reference
 from ai_agent.qgis_tools.common.properties import properties_of, shown
 from ai_agent.qgis_tools.style.apply import refresh, require_vector_layer
 from ai_agent.qgis_tools.style.symbol_build import build_symbol, note_for
@@ -80,7 +80,7 @@ class SetSymbolTool(BaseTool):
         layer.setRenderer(QgsSingleSymbolRenderer(symbol))
         refresh(layer)
         result: dict[str, Any] = {
-            "layer": layer.name(),
+            **layer_reference(layer),
             "renderer": "singleSymbol",
             "applied": outcome["applied"],
         }

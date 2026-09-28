@@ -17,6 +17,7 @@ from ai_agent.qgis_tools.web.geocode import GeocodeTool, parse_matches
 from ai_agent.qgis_tools.web.html_text import html_to_text
 from ai_agent.qgis_tools.web.http import RequestCancelled, checked_url, safe_url_label
 from ai_agent.qgis_tools.web.search_web import SearchWebTool, parse_results
+from ai_agent.qgis_tools.web.url_policy import embedded_ipv4, is_public_address
 
 PAGE = """<html><head><title>t</title><style>.a{color:red}</style></head>
 <body><script>alert(1)</script><h1>Заголовок</h1><p>Первый  абзац &amp; хвост.</p>
@@ -136,6 +137,17 @@ class UrlTest(unittest.TestCase):
                 self.assertRaisesRegex(ValueError, "private|local|reserved"),
             ):
                 checked_url(url)
+
+    def test_ipv4_tunnelled_in_ipv6_is_judged_by_the_embedded_address(self):
+        for literal in (
+            "64:ff9b::c0a8:101",
+            "64:ff9b::a00:1",
+            "2002:c0a8:101::1",
+            "2001:0:4136:e378:8000:63bf:f5ff:fffe",
+        ):
+            with self.subTest(address=literal):
+                self.assertFalse(is_public_address(ipaddress.ip_address(literal)))
+        self.assertEqual(embedded_ipv4(ipaddress.ip_address("64:ff9b::808:808")), [ipaddress.IPv4Address("8.8.8.8")])
 
     def test_mixed_public_and_private_dns_answer_is_refused(self):
         answers = {"93.184.216.34", "10.0.0.7"}
@@ -754,12 +766,21 @@ class WikipediaFallbackTest(unittest.TestCase):
 
         search_module.get_text = fake
         try:
-            SearchWebTool().execute({"query": "казань"})
-            SearchWebTool().execute({"query": "kazan"})
+            with mock.patch.object(search_module, "ui_language", return_value="ru"):
+                SearchWebTool().execute({"query": "казань"})
+                SearchWebTool().execute({"query": "kazan"})
         finally:
             search_module.get_text = saved
         self.assertIn("ru.wikipedia", seen[1])
         self.assertIn("en.wikipedia", seen[3])
+
+    def test_the_interface_language_drives_accept_language(self):
+        for locale, expected in (("de_DE", "de,en;q=0.8"), ("en_US", "en"), ("", "en"), ("??", "en")):
+            with (
+                self.subTest(locale=locale),
+                mock.patch.object(request_module.QgsApplication, "locale", return_value=locale, create=True),
+            ):
+                self.assertEqual(request_module.accept_language(), expected)
 
     def test_cancellation_never_falls_back_to_wikipedia(self):
         with (

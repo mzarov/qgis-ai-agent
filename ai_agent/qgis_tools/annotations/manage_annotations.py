@@ -1,7 +1,7 @@
 from typing import Any
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.annotations.store import list_items, remove_item
+from ai_agent.qgis_tools.annotations.store import list_items, remove_item, require_item
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, SAFETY_WRITE, BaseTool
 
 
@@ -38,12 +38,22 @@ class RemoveAnnotationTool(BaseTool):
         {"name": "id", "type": "string", "description": "Annotation id from list_annotations", "required": True},
     ]
 
+    def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
+        item_id = _checked_id(params)
+        require_item(item_id)
+        return {**params, "id": item_id}
+
     def summarize_call(self, params: dict[str, Any]) -> str:
         return tr("Removing annotation {0}.").format(str(params.get("id") or "").strip())
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        item_id = str(params.get("id") or "").strip()
-        if not item_id:
-            raise ValueError("The annotation id is empty — read list_annotations first.")
+        item_id = _checked_id(params)
         remove_item(item_id)
         return {"removed": item_id}
+
+
+def _checked_id(params: dict[str, Any]) -> str:
+    item_id = str(params.get("id") or "").strip()
+    if not item_id:
+        raise ValueError("The annotation id is empty — read list_annotations first.")
+    return item_id

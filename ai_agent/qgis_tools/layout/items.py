@@ -1,3 +1,4 @@
+import os
 from contextlib import suppress
 from typing import Any
 
@@ -74,7 +75,18 @@ def north_arrow_path(style: str) -> str:
     wanted = (style or DEFAULT_NORTH_ARROW).strip().lower()
     if wanted not in NORTH_ARROWS:
         raise ValueError(f"Unknown north arrow style '{style}'. Available: {', '.join(sorted(NORTH_ARROWS))}.")
-    return QgsApplication.svgPaths()[0] + "/" + NORTH_ARROWS[wanted] if QgsApplication.svgPaths() else ""
+    relative = NORTH_ARROWS[wanted]
+    try:
+        folders = [str(folder) for folder in QgsApplication.svgPaths()]
+    except Exception:
+        folders = []
+    # The first SVG path is usually the user's profile folder, which rarely
+    # holds the bundled arrows; take the first folder that really has the file.
+    for folder in folders:
+        candidate = os.path.join(folder, relative)
+        if os.path.isfile(candidate):
+            return candidate
+    return os.path.join(folders[0], relative) if folders else ""
 
 
 def layout_items(layout: Any) -> list[Any]:
@@ -146,9 +158,16 @@ def apply_label_text(item: Any, text: str, font_size: Any) -> None:
     if size is None:
         return
     with suppress(Exception):
-        text_format = QgsTextFormat()
+        text_format = _current_text_format(item)
         text_format.setSize(size)
         item.setTextFormat(text_format)
+
+
+def _current_text_format(item: Any) -> Any:
+    try:
+        return item.textFormat()
+    except Exception:
+        return QgsTextFormat()
 
 
 def first_map(layout: Any) -> Any:

@@ -1,10 +1,11 @@
+import os
 from typing import Any
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.osm.args import geometry, wanted_name
 from ai_agent.qgis_tools.osm.fetch import fetch
-from ai_agent.qgis_tools.osm.load import SUBLAYERS, load_sublayers, write_payload
+from ai_agent.qgis_tools.osm.load import SUBLAYERS, load_sublayers, storage_note, write_payload
 from ai_agent.qgis_tools.osm.overpass import RECURSE_DOWN
 
 MAX_QUERY_CHARS = 4000
@@ -37,7 +38,7 @@ class RunOverpassTool(BaseTool):
     safety = SAFETY_WRITE
     egress = EGRESS_METADATA
     external_effect = False
-    network_access = False
+    network_access = True
     constraints = [
         "The whole query is yours: the header, the territory and the output statement",
         f"End it with '{RECURSE_DOWN}' and then 'out body;' or the geometry cannot be built",
@@ -99,14 +100,15 @@ class RunOverpassTool(BaseTool):
         query = _checked_query(params.get("query"))
         wanted = geometry(params)
         name = wanted_name(params)
-        path = write_payload(fetch(query), name)
+        path, temporary = write_payload(fetch(query), name)
         loaded = load_sublayers(path, wanted, name)
         if not loaded:
             raise ValueError(NOTHING_FOUND)
         return {
             "layers": loaded,
             "total_features": sum(item["feature_count"] for item in loaded),
-            "source": path,
+            "folder": os.path.dirname(path),
+            **storage_note(temporary),
         }
 
 

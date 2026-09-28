@@ -1,12 +1,18 @@
 import os
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
 from ai_agent.qgis_tools.fields import manage_fields as fields_module
 from ai_agent.qgis_tools.fields.manage_fields import AddFieldTool, DeleteFieldTool, RenameFieldTool
-from ai_agent.qgis_tools.fields.schema import build_field, checked_new_name
+from ai_agent.qgis_tools.fields.schema import (
+    build_field,
+    build_virtual_field,
+    checked_new_name,
+    infer_virtual_type,
+    value_type_name,
+)
 from ai_agent.qgis_tools.project import snapshots
 from ai_agent.qgis_tools.project import views as views_module
 from ai_agent.qgis_tools.project.add_service_layer import AddServiceLayerTool, _checked_service, _checked_url
@@ -87,12 +93,15 @@ class FieldsTestBase(unittest.TestCase):
         self.layer = VectorLayer()
         self.saved_require = fields_module.require_vector
         self.saved_compile = fields_module.compile_expression
+        self.saved_infer = fields_module.infer_virtual_type
         fields_module.require_vector = lambda name: self.layer
         fields_module.compile_expression = lambda text, label, layer=None: None
+        fields_module.infer_virtual_type = lambda layer, text: "text"
 
     def tearDown(self):
         fields_module.require_vector = self.saved_require
         fields_module.compile_expression = self.saved_compile
+        fields_module.infer_virtual_type = self.saved_infer
 
 
 class AddFieldTest(FieldsTestBase):
@@ -120,6 +129,23 @@ class AddFieldTest(FieldsTestBase):
         self.assertTrue(result["virtual"])
         self.assertEqual(self.layer.expression_fields, ["$area / 10000"])
         self.assertIn("project", result["note"])
+
+    def test_virtual_field_type_is_inferred_in_prepare_and_used_at_execution(self):
+        fields_module.infer_virtual_type = lambda layer, text: "text"
+        prepared = self.tool.prepare({"layer_name": "Дороги", "name": "label", "expression": "upper(name)"})
+        self.assertEqual(prepared["type"], "text")
+        fields_module.infer_virtual_type = lambda layer, text: self.fail("execute must reuse the prepared type")
+        with patch.object(fields_module, "build_virtual_field", wraps=fields_module.build_virtual_field) as built:
+            result = self.tool.execute(prepared)
+        built.assert_called_once_with("label", "text")
+        self.assertEqual(result["type"], "text")
+
+    def test_an_explicit_virtual_type_wins_over_inference(self):
+        fields_module.infer_virtual_type = lambda layer, text: self.fail("an explicit type needs no inference")
+        prepared = self.tool.prepare(
+            {"layer_name": "Дороги", "name": "area_ha", "expression": "$area / 10000", "type": "double"}
+        )
+        self.assertEqual(prepared["type"], "double")
 
     def test_failed_commit_rolls_back(self):
         self.layer._commit_ok = False
@@ -220,10 +246,47 @@ class SchemaHelpersTest(unittest.TestCase):
         self.assertIn("truncate", str(caught.exception))
 
     def test_every_type_builds(self):
-        from ai_agent.qgis_tools.fields.schema import FIELD_TYPES
+        from ai_agent.qgis_tools.fields.schema import FIELD_TYPES, VIRTUAL_TYPES
 
         for kind in FIELD_TYPES:
             self.assertIsNotNone(build_field("f", kind))
+        for kind in VIRTUAL_TYPES:
+            self.assertIsNotNone(build_virtual_field("f", kind))
+        self.assertLessEqual(set(VIRTUAL_TYPES), set(FIELD_TYPES), "the add_field enum must cover inferred types")
+
+    def test_value_types_map_to_virtual_field_kinds(self):
+        QDate = type("QDate", (), {"isNull": lambda self: False})
+        QDateTime = type("QDateTime", (), {"isNull": lambda self: False})
+        NullDate = type("QDate", (), {"isNull": lambda self: True})
+        cases = [
+            ("abc", "text"),
+            (7, "integer"),
+            (7.5, "double"),
+            (True, "boolean"),
+            (QDate(), "date"),
+            (QDateTime(), "datetime"),
+            (None, ""),
+            (NullDate(), ""),
+        ]
+        for value, expected in cases:
+            with self.subTest(value=value):
+                self.assertEqual(value_type_name(value), expected)
+
+    def test_inference_skips_null_values_and_defaults_to_text(self):
+        values = iter([None, None, 12.5])
+
+        class Expression:
+            def prepare(self, context):
+                return True
+
+            def evaluate(self, context):
+                return next(values)
+
+        layer = type("Layer", (), {"getFeatures": lambda self, request: iter([1, 2, 3])})()
+        with patch("ai_agent.qgis_tools.fields.schema.compile_expression", return_value=Expression()):
+            self.assertEqual(infer_virtual_type(layer, "$area"), "double")
+            empty = type("Layer", (), {"getFeatures": lambda self, request: iter([])})()
+            self.assertEqual(infer_virtual_type(empty, "$area"), "text")
 
 
 class RasterHelpersTest(unittest.TestCase):
@@ -249,16 +312,33 @@ class RasterHelpersTest(unittest.TestCase):
         self.assertIn("2 band", str(caught.exception))
 
     def test_no_data_values_must_be_numbers(self):
-        class Layer:
-            def bandCount(self):
-                return 1
-
         with self.assertRaises(ValueError) as caught:
-            raster.apply_no_data(Layer(), ["junk"])
+            raster.checked_no_data(["junk"])
         self.assertIn("not a number", str(caught.exception))
 
     def test_no_data_accepts_an_empty_list(self):
-        self.assertEqual(raster.apply_no_data(None, None), [])
+        self.assertEqual(raster.checked_no_data(None), [])
+        self.assertEqual(raster.apply_no_data(None, []), {})
+
+    def test_statistics_are_sampled_min_max_over_the_whole_raster(self):
+        provider = Mock()
+        provider.bandStatistics.return_value = Mock(minimumValue=1.0, maximumValue=9.0)
+        layer = Mock()
+        layer.dataProvider.return_value = provider
+        self.assertEqual(raster.band_range(layer, 2), (1.0, 9.0))
+        band, _flags, _extent, sample = provider.bandStatistics.call_args.args
+        self.assertEqual((band, sample), (2, raster.STATISTICS_SAMPLE_CELLS))
+
+    def test_web_rasters_are_refused(self):
+        for provider in ("wms", "WCS"):
+            layer = Mock()
+            layer.providerType.return_value = provider
+            layer.name.return_value = "Imagery"
+            with self.subTest(provider=provider), self.assertRaisesRegex(ValueError, "web raster"):
+                raster.require_local_raster(layer)
+        local = Mock()
+        local.providerType.return_value = "gdal"
+        raster.require_local_raster(local)
 
 
 class RasterToolTest(unittest.TestCase):
@@ -275,6 +355,23 @@ class RasterToolTest(unittest.TestCase):
     def test_summary_never_raises(self):
         self.assertTrue(self.tool.summarize_call({}).strip())
         self.assertIn("hillshade", self.tool.summarize_call({"mode": "hillshade", "layer_name": "DEM"}))
+
+    def test_a_failed_build_restores_the_old_no_data(self):
+        old_range = object()
+        provider = Mock()
+        provider.userNoDataValues.return_value = [old_range]
+        layer = Mock()
+        layer.dataProvider.return_value = provider
+        layer.providerType.return_value = "gdal"
+        layer.bandCount.return_value = 1
+        with (
+            patch("ai_agent.qgis_tools.style.set_raster_style._require_raster", return_value=layer),
+            patch("ai_agent.qgis_tools.style.set_raster_style._built", side_effect=ValueError("no value range")),
+            self.assertRaisesRegex(ValueError, "no value range"),
+        ):
+            self.tool.execute({"layer_name": "DEM", "mode": "gray", "no_data_values": [-9999]})
+        self.assertEqual(provider.setUserNoDataValue.call_args_list[-1].args, (1, [old_range]))
+        layer.setRenderer.assert_not_called()
 
 
 class ServiceLayerTest(unittest.TestCase):
@@ -299,6 +396,31 @@ class ServiceLayerTest(unittest.TestCase):
 
     def test_summary_never_raises(self):
         self.assertTrue(AddServiceLayerTool().summarize_call({}).strip())
+
+    def test_an_unknown_crs_is_refused_before_apply(self):
+        invalid = Mock()
+        invalid.isValid.return_value = False
+        with (
+            patch("ai_agent.qgis_tools.project.add_service_layer.QgsCoordinateReferenceSystem", return_value=invalid),
+            patch("ai_agent.qgis_tools.project.add_service_layer.layer_names", return_value=[]),
+            self.assertRaisesRegex(ValueError, "Unknown CRS 'EPSG:99999'"),
+        ):
+            AddServiceLayerTool().prepare(
+                {"service": "wms", "url": "https://host/wms", "layer": "topo", "crs": "EPSG:99999"}
+            )
+
+    def test_the_crs_is_normalised_in_prepare(self):
+        valid = Mock()
+        valid.isValid.return_value = True
+        valid.authid.return_value = "EPSG:4326"
+        with (
+            patch("ai_agent.qgis_tools.project.add_service_layer.QgsCoordinateReferenceSystem", return_value=valid),
+            patch("ai_agent.qgis_tools.project.add_service_layer.layer_names", return_value=[]),
+        ):
+            prepared = AddServiceLayerTool().prepare(
+                {"service": "wfs", "url": "https://host/wfs", "layer": "districts", "crs": "epsg:4326"}
+            )
+        self.assertEqual(prepared["crs"], "EPSG:4326")
 
 
 class SnapshotTest(unittest.TestCase):
@@ -367,6 +489,19 @@ class ViewsTest(unittest.TestCase):
             views_module.SaveBookmarkTool().prepare({"name": "  "})
         with self.assertRaises(ValueError):
             views_module.SaveMapThemeTool().prepare({"name": ""})
+
+    def test_bookmarks_are_saved_into_the_project(self):
+        project_manager = Mock()
+        project_manager.bookmarks.return_value = []
+        project = Mock()
+        project.bookmarkManager.return_value = project_manager
+        with (
+            patch.object(views_module, "project", return_value=project),
+            patch.object(views_module, "canvas_extent", return_value=Mock()),
+            patch.object(views_module, "extent_dict", return_value={}),
+        ):
+            views_module.SaveBookmarkTool().execute({"name": "centre"})
+        project_manager.addBookmark.assert_called_once()
 
     def test_summaries_never_raise(self):
         for tool in (views_module.ListViewsTool(), views_module.SaveBookmarkTool(), views_module.SaveMapThemeTool()):
