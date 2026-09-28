@@ -27,9 +27,9 @@ value has to survive export to a file or be edited by hand.
 add_field(layer_name="Districts", name="area_ha", expression="$area / 10000")
 ```
 
-Length and area in a virtual field follow the layer CRS — on a geographic
-layer the number is meaningless, so reproject first, exactly as in the
-processing skill.
+Length and area in a virtual field follow the project ellipsoid and units
+(`get_project_info`), not the layer CRS: on a layer in degrees `$area` is still
+square metres when an ellipsoid is set. Only without one is it raw degrees.
 
 ## Types
 

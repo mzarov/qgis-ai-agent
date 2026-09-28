@@ -107,9 +107,11 @@ Area, length, perimeter and coordinates are **expressions**, not algorithms:
 | coordinates of a point | `$x`, `$y` |
 | area in hectares | `$area / 10000` |
 
-The units of `$area` and `$length` are the units of the layer CRS. On a geographic
-system that gives square degrees, which is meaningless: run
-`native:reprojectlayer` into a metric CRS first, then measure.
+`$area`, `$length` and `$perimeter` follow the project, not the layer: with an
+ellipsoid set (`get_project_info`) they come back in the project's area and
+distance units — usually metres, even on a layer in degrees — so no reprojection
+is needed to measure. Algorithm distance *parameters* (`DISTANCE`, `RADIUS`) are
+different: they always use layer-CRS units, see below.
 
 NDVI and other band arithmetic is not a separate algorithm either, but
 `native:rastercalc` with an expression like `("scene@4" - "scene@3") / ("scene@4" + "scene@3")`,
@@ -177,12 +179,8 @@ this feels fragile, `gdal:gridlinear` is the simpler cousin.
 
 ## Parameters
 
-- Input layers are given by their project layer name. Confirm the name with
-  `list_layers` first — names are case-sensitive.
-- **Enum parameters take a number, not a label.** `describe_processing` returns
-  them as `{"value": 0, "label": "Round"}` pairs — pass the `value`.
-- For an output that should become a new layer, pass `'TEMPORARY_OUTPUT'` unless
-  the user asked for a file on disk.
+Input layers are given by their project layer name, exactly as in the project
+context.
 
 ## Metres on a geographic CRS
 

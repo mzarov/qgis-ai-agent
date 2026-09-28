@@ -9,6 +9,7 @@ from ai_agent.qgis_tools.base import is_sensitive_egress
 MAX_RESULT_CHARS = 4000
 COMPACT_RESULT_CHARS = 500
 KEEP_FULL_RESULTS = 6
+COMPACT_STEP = 4
 TRUNCATION_NOTE = "… (result truncated)"
 COMPACTION_NOTE = "… (older result compacted; re-run the tool if the details matter again)"
 RESULTS_HEADER = "Tool results:"
@@ -104,8 +105,17 @@ class Transcript:
         return messages
 
     def _fresh_result_ids(self) -> set[int]:
+        """Keep at least the newest KEEP_FULL_RESULTS result entries in full.
+
+        The compaction boundary moves in steps of COMPACT_STEP entries rather
+        than one entry per turn: every move rewrites an old message, which ends
+        the prefix a caching provider can reuse. Stepping keeps that prefix
+        stable for several turns in a row.
+        """
         result_ids = [index for index, entry in enumerate(self.entries) if entry["kind"] == "results"]
-        return set(result_ids[-KEEP_FULL_RESULTS:])
+        overflow = max(0, len(result_ids) - KEEP_FULL_RESULTS)
+        compacted = overflow // COMPACT_STEP * COMPACT_STEP
+        return set(result_ids[compacted:])
 
     def _last_image_id(self) -> int | None:
         for index in range(len(self.entries) - 1, -1, -1):

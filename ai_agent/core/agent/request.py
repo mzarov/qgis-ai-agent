@@ -15,6 +15,7 @@ from ai_agent.core.agent.transcript import Transcript
 from ai_agent.core.context.project import get_project_context
 from ai_agent.core.llm.anthropic import CACHE_PREFIX_KEY
 from ai_agent.core.llm.client import resolve_endpoint
+from ai_agent.core.llm.live import live_message
 from ai_agent.core.llm.transport import PROTOCOL_JSON, PROTOCOL_NATIVE
 from ai_agent.core.privacy import sensitive_data_allowed, tool_output_allowed
 from ai_agent.core.settings import (
@@ -70,22 +71,25 @@ def build_step_request(
         project_notes=_project_notes(),
         invoked_skills=invoked_skills,
     )
-    system_prompt = "\n\n".join(part for part in (static_prompt, live_prompt) if part)
-    effective_overrides[CACHE_PREFIX_KEY] = len(static_prompt)
+    allow_sensitive = sensitive_data_allowed(endpoint)
+    system_prompt = static_prompt
     if json_protocol:
         tools_block = build_json_tools_block(schemas)
         if tools_block:
             system_prompt = f"{system_prompt}\n\n{tools_block}"
-    if not sensitive_data_allowed(endpoint):
+    if not allow_sensitive:
         system_prompt = f"{system_prompt}\n\n{PRIVACY_MODE_PROMPT}"
-    allow_sensitive = sensitive_data_allowed(endpoint)
+    effective_overrides[CACHE_PREFIX_KEY] = len(system_prompt)
+    messages = transcript.build_messages(
+        system_prompt,
+        history,
+        include_images=not detect_images_unsupported(effective_overrides),
+        allow_sensitive=allow_sensitive,
+    )
+    if live_prompt:
+        messages.append(live_message(live_prompt))
     return StepRequest(
-        messages=transcript.build_messages(
-            system_prompt,
-            history,
-            include_images=not detect_images_unsupported(effective_overrides),
-            allow_sensitive=allow_sensitive,
-        ),
+        messages=messages,
         tool_schemas=schemas,
         overrides=effective_overrides,
         protocol=PROTOCOL_JSON if json_protocol else PROTOCOL_NATIVE,

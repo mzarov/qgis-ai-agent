@@ -6,133 +6,61 @@ tools: [get_project_info, list_layers, describe_layer, get_field_values, sample_
 
 # Reading the project
 
-These tools only read. They never modify anything, so use them freely and without
-asking the user for permission.
-
-## Choosing a tool
-
-| Question | Tool |
-|---|---|
-| What is this project? Groups, visibility, units, themes | `get_project_info` |
-| Which layers exist? | `list_layers` |
-| What is in this layer? Fields, extent, CRS, source | `describe_layer` |
-| What values does this field hold? | `get_field_values` |
-| What does the actual data look like? | `sample_features` |
-| How many, which are the largest, what is the total? | `query_layer` |
-| What is currently on screen? | `get_canvas_extent` |
-| Which QGIS version and providers are available? | `get_qgis_info` |
-
-Start with `get_project_info` when the user asks anything broad about their
-project — it returns the layer tree with groups and visibility, which `list_layers`
-does not.
+Start with `get_project_info` for anything broad about the project: it returns the
+layer tree with groups and visibility, which `list_layers` does not.
 
 ## Before any analysis or styling
 
-`describe_layer` gives you three things that silently break work if ignored:
+`describe_layer` gives three facts that silently break work if ignored:
 
-- **`is_valid`** — false means the source is missing or the path is broken.
-  Nothing will work on that layer; tell the user instead of proceeding.
-- **`subset_filter`** — a non-empty filter means `feature_count` and any analysis
-  cover only the filtered subset, not the whole layer. Say so when it matters.
-- **`crs_is_geographic`** — true means distances are in degrees, not metres.
+- **`is_valid`** false — the source is missing. Tell the user instead of proceeding.
+- **`subset_filter`** non-empty — counts and analysis cover only the filtered
+  subset. Say so when it matters.
+- **`crs_is_geographic`** true — layer coordinates are degrees, not metres.
 
-Never classify or filter by a field before calling `get_field_values`. Guessing
-which values a field holds produces plans that fail on real data.
-
-## Reading data
-
-- `get_field_values` returns unique values, and for numeric fields also min and max.
-  This is what you need to choose class boundaries or write a filter expression.
-- `sample_features` shows real records. Reach for it when field names alone are
-  ambiguous — codes, abbreviations, mixed-language values.
-- Both are capped. `unique_values_note` tells you when the list was truncated;
-  do not present a truncated list as complete.
+Never classify or filter by a field before calling `get_field_values`: guessed
+values produce plans that fail on real data. Its list is capped —
+`unique_values_note` says when it was truncated; do not present it as complete.
+`sample_features` shows real records when codes or abbreviations are ambiguous.
 
 ## Answering questions with numbers
 
-`query_layer` runs QGIS expressions over a layer. Any question that starts with
-"how many", "which is the largest", "average", "total" or "top" is a `query_layer`
-call, not a guess from `sample_features`.
+"How many", "the largest", "average", "total", "top" are `query_layer` calls,
+never guesses from a sample.
 
 | Question | Call |
 |---|---|
-| How many roads of type motorway | `aggregate="count"`, `filter="highway = 'motorway'"` |
+| How many motorways | `aggregate="count"`, `filter="highway = 'motorway'"` |
 | Top 5 cities by population | `order_by="population DESC"`, `limit=5` |
-| The longest river | `order_by="$length DESC"`, `limit=1` |
-| Total area of the lakes | `aggregate="sum"`, `expression="$area"` |
-| Average road length per type | `aggregate="mean"`, `expression="$length"`, `group_by="highway"` |
+| The longest river | `order_by="$length DESC"`, `limit=1`, `fields=["name"]` |
+| Total lake area | `aggregate="sum"`, `expression="$area"` |
+| Mean road length per type | `aggregate="mean"`, `expression="$length"`, `group_by="highway"` |
 
-### Length and area are not fields
+Length and area live in the geometry (`$length`, `$area`), not in a field — never
+go looking for a length column.
 
-Geometry is available through expressions — `$length`, `$area`, `$geometry`,
-`intersects()`, `distance()`, `buffer()`.
+- Field names are case-sensitive; string literals take single quotes:
+  `highway = 'motorway'`.
+- `$length` and `$area` follow the project: with an `ellipsoid` in
+  `get_project_info` they come back in its `distance_units` / `area_units` —
+  usually metres, even for a layer in degrees. With no ellipsoid they are raw CRS
+  units, which on a geographic layer means degrees. Check once and state the unit.
+- `aggregate="count"` counts features regardless of nulls; add
+  `filter="field is not null"` to count values.
 
-**Never go looking for a field that holds length or area.** Layers almost never
-have one, and failing to find it is not an answer. "Which river is the longest" is
-a single call:
+## The user's selection and the map
 
-```
-query_layer(layer_name="Rivers", order_by="$length DESC", limit=1, fields=["name"])
-```
+"Selected", "these", "highlighted" — call `get_selection` first, then pass
+`selected_only=true` to `query_layer`. If nothing is selected, say so.
 
-The same mistake wears other disguises: scanning `describe_layer` for a `length`
-column, sampling features hoping to spot one, or telling the user the data is
-missing. The data is in the geometry — measure it.
+When the answer is *which* features rather than *how many*, `select_features`
+shows them on the user's map — it changes no data.
 
-Rules that matter:
-
-- Field names are case-sensitive and must match `describe_layer` exactly. String
-  literals use **single quotes**: `highway = 'motorway'`. Without them QGIS reads
-  the word as a column name — the tool now rejects that instead of returning zero
-  matches, but write the quotes and save yourself the round trip.
-- `$length` and `$area` follow the project. When `get_project_info` reports an
-  `ellipsoid`, they are computed on it and returned in `distance_units` /
-  `area_units` — usually metres, even for a layer stored in degrees. With no
-  ellipsoid set they are raw CRS units, and on a geographic layer that means
-  degrees, which is meaningless. Check `get_project_info` before quoting a
-  measured number, and state the unit you are quoting.
-- `aggregate="count"` counts matched features regardless of nulls. To count
-  non-empty values add `filter="field is not null"`.
-- `order_by` works only without `aggregate`.
-- If the tool reports that too many features match, add a `filter` — it refuses to
-  return a partial aggregate rather than answer wrongly.
-
-## The user's selection
-
-When the request says "selected", "these features", "highlighted" or otherwise
-points at the screen, call `get_selection` first — it lists which layers hold
-selected features and samples their attributes. To compute over exactly those
-features, pass `selected_only=true` to `query_layer`. If nothing is selected,
-say so and ask what to select instead of guessing a filter.
-
-## Answering with the map
-
-`select_features` selects by an expression, zooms there and flashes the
-result. Prefer it whenever the answer is *which* features rather than *how
-many*: "show me the motorways", "which districts have no population" — the
-user sees the answer on their own map instead of reading a list of names.
-
-It is a read tool: selection is view state, it changes no data. Pair it with
-`query_layer` when the user wants both the number and the picture.
-
-## Seeing the map
-
-`render_map` renders the current view (or one layer's extent with `layer_name`)
-to an image attached to the result. Use it when the question is about how the
-map *looks* — colours in context, label readability, whether a layer is visible
-— and to verify styling changes after they were applied. Data questions (counts,
-values, fields) are answered by the data tools above, not by pixel-reading.
-
-It needs a vision-capable model; if the endpoint rejects images the plugin
-retries without the picture and you get a text note instead — say so rather
-than pretending you saw the map.
+`render_map` (with `layer_name` to frame one layer) is for how the map *looks*,
+not for data questions. If the endpoint rejects images you get a text note
+instead — say so rather than pretending you saw the map.
 
 ## Layer sources
 
-`source` has credentials stripped: `password=<hidden>`. Never ask the user for a
-password, and never suggest putting one into a tool call.
-
-## Cost
-
-Reading is cheap but not free. Call each tool once per task and remember the
-result — do not re-read the same layer between steps of the same plan.
+`source` has credentials stripped (`password=<hidden>`). Never ask the user for a
+password or put one into a tool call.

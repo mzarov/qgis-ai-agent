@@ -332,6 +332,7 @@ class CoreOrchestrator(ProjectLifecycleMixin):
             self.conversation.window(),
             verification=True,
             verification_round=next_round,
+            preload=list(getattr(self.agent, "loaded_skills", None) or []),
         )
 
     def on_finished(self, text: str) -> None:

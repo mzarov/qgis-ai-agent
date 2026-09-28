@@ -79,6 +79,13 @@ the agent works:
    forty-turn runs coherent.
 8. **The journal has no numbers.** It records steps, not tokens or wall time
    per turn — the two figures that show where a slow run went.
+9. **Done 2026-09-28 — token cost of a run** (issue #74: a statistics map cost
+   ~0.7M tokens). The per-turn state moved out of the system prompt into a
+   trailing message, so the cached prefix no longer breaks on every queued step;
+   compaction moves in steps; verification starts with the applying run's
+   skills and queues tidy-up only when something is wrong; the always-loaded
+   `inspect` body was halved. `tools/measure_tokens.py` replays a fixed task:
+   uncached input fell from ~44k to ~21k tokens.
 
 ## Considered and set aside
 

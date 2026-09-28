@@ -94,6 +94,16 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         return self._is_verification
 
     @property
+    def loaded_skills(self) -> list[str]:
+        """Skills of the last run; they stay readable after it ends.
+
+        The verification run starts with the same set: it re-reads what this
+        run changed without a load_skill turn, and an identical tool list and
+        system prompt let a caching provider reuse the prefix it just stored.
+        """
+        return list(self._loaded_skills)
+
+    @property
     def verification_round(self) -> int:
         return self._verification_round
 
@@ -104,6 +114,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         verification: bool = False,
         verification_round: int = 0,
         skills: list[str] | None = None,
+        preload: list[str] | None = None,
     ) -> bool:
         if self.is_running or self._batch.is_applying:
             return False
@@ -126,8 +137,9 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._stage_call = None
         self._loaded_skills = [name for name in PRELOADED_SKILLS if SKILL_REGISTRY.get(name)]
         self._invoked_skills = [name for name in (skills or []) if SKILL_REGISTRY.get(name)]
-        for name in self._invoked_skills:
-            extend_loaded(self._loaded_skills, name)
+        for name in [*(preload or []), *self._invoked_skills]:
+            if SKILL_REGISTRY.get(name):
+                extend_loaded(self._loaded_skills, name)
         self._batch.clear()
         self._iteration = 0
         self._protocol_retried = False

@@ -149,15 +149,19 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     has delivered chunks (the draft would be duplicated), never after the user
     cancelled (the pause polls the feedback every quarter second). Retries are
     logged to the QGIS message log, not shown in the feed.
-18. **The system prompt is two halves, and Anthropic caches the first.**
-    `build_system_parts` returns a static half (core rules, language, skill
-    summaries and bodies) and a live half (notes, plan, queued steps, project
-    context). `request.py` joins them for every dialect and passes the static
-    length as `cache_prefix_chars`; `anthropic.build_body` cuts the system at
-    that length into a `cache_control` block plus a live block and marks the
-    last message block too, so each turn extends the previous prefix. The
-    order static → live is what makes prefix caching hit on OpenAI-style
-    endpoints as well — keep new dynamic parts in the live half.
+18. **The prefix never moves; the state rides at the end.** Everything that
+    changes during a run — notes, plan, queued steps, project context — is one
+    state message appended after the transcript (`llm/live.py`), never part of
+    the system prompt. The system prompt, the tool list and every earlier message
+    stay byte-identical from turn to turn, so a prefix-caching provider
+    (Anthropic breakpoints, OpenAI, DeepSeek) bills only the new turn. Anthropic
+    gets the state as a trailing text block after the message breakpoint;
+    other dialects get it folded into the last message by `fold_live`, because
+    several chat templates reject two user turns in a row or a user turn right
+    after a tool result. Transcript compaction moves in steps of `COMPACT_STEP`
+    for the same reason, and the verification run starts with the applying
+    run's skills so its tools and system prompt match the prefix just cached.
+    New per-turn text goes into the state message, never into the system prompt.
 19. **The project context is a real briefing, kept to metadata.** Project CRS,
     the active layer, and per layer geometry, CRS, selection count and — only
     for local providers in `COUNTABLE_PROVIDERS` — the feature count. Remote
@@ -184,6 +188,7 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `llm/stream_runner.py`   | the streaming request itself: NAM, nested event loop |
 | `llm/refusals.py`        | telling an unsupported feature from a broken request |
 | `llm/retry.py`           | bounded retries around a model call, cancellation-aware |
+| `llm/live.py`            | the per-turn state message and how each dialect receives it |
 | `llm/images.py`          | finding and stripping image blocks in messages       |
 | `llm/thinking.py`        | cutting `<think>` out of content, across chunks      |
 | `llm/dialects.py`        | dialect detection from the address, paths, headers  |
