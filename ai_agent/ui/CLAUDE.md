@@ -272,3 +272,19 @@ matches, capped at `MAX_ROWS`; local skills carry a `local` badge in the
 accent colour. The list itself comes from the orchestrator through
 `set_skill_source`, like the conversations menu, so `ui/` knows nothing about
 registries.
+
+The same popup serves `@` layer mentions. A mention opens at an `@` that starts
+the text or follows whitespace (so an e-mail address never does) and closes at
+whitespace; choosing replaces only the mention, keeping the rest of the text,
+and quotes names with spaces (`@"Main roads"`). Layers come from the
+orchestrator through `set_layer_source`. Rows take the mouse too: hover moves
+the keyboard selection, a click chooses. Tab only completes — with no match it
+does nothing; Enter with no match still sends. The selected row is an
+accent-tinted fill, because the card colour on the panel colour is barely
+distinguishable in either theme.
+
+## When a run stops
+
+Stop and errors keep the half-streamed answer (`keep_draft`) instead of
+dropping it, and the orchestrator puts the request back into an empty composer
+(`restore`) — the user retries with one key instead of retyping.

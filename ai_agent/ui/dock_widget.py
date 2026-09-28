@@ -87,6 +87,7 @@ class AgentDockWidget(QDockWidget):
         button = QToolButton()
         button.setAutoRaise(True)
         button.setToolTip(tooltip)
+        button.setAccessibleName(tooltip)
         button.setFixedSize(HEADER_BUTTON, HEADER_BUTTON)
         button.setStyleSheet(
             f"QToolButton {{ border: none; background: transparent;"
@@ -110,7 +111,7 @@ class AgentDockWidget(QDockWidget):
         self.conversation = ConversationView()
         self.conversation.confirm_requested.connect(self.confirm_plan_clicked.emit)
         self.conversation.cancel_requested.connect(self.cancel_plan_clicked.emit)
-        self.conversation.suggestion_chosen.connect(self.prompt_submitted.emit)
+        self.conversation.suggestion_chosen.connect(self._on_suggestion)
         self.conversation.settings_requested.connect(self.open_settings_clicked.emit)
         return self.conversation
 
@@ -130,6 +131,22 @@ class AgentDockWidget(QDockWidget):
     def set_skill_source(self, provider: Callable[[], list[tuple[str, str, str]]]) -> None:
         self.composer.set_skill_source(provider)
 
+    def set_layer_source(self, provider: Callable[[], list[tuple[str, str, str]]]) -> None:
+        self.composer.set_layer_source(provider)
+
+    def focus_prompt(self) -> None:
+        self.composer.focus()
+
+    def restore_prompt(self, text: str) -> None:
+        self.composer.restore(text)
+
+    def keep_stream(self) -> str:
+        return self.conversation.keep_draft()
+
+    def _on_suggestion(self, text: str) -> None:
+        self.prompt_submitted.emit(text)
+        self.composer.focus()
+
     def _show_sessions(self) -> None:
         menu = QMenu(self)
         fresh = menu.addAction(NEW_SESSION_LABEL)
@@ -141,6 +158,7 @@ class AgentDockWidget(QDockWidget):
             menu.addAction(NO_SESSIONS_LABEL).setEnabled(False)
         button = self._sessions_button
         chosen = menu.exec(button.mapToGlobal(button.rect().bottomLeft()))
+        menu.deleteLater()
         if chosen is fresh:
             self.new_session_clicked.emit()
         elif chosen in actions:

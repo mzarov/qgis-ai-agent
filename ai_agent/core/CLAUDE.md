@@ -82,7 +82,10 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    re-emits them first.
 7. **`MAX_ITERATIONS`** guards against endless loops, and a token budget from
    the settings guards the user's wallet. Both end the run through `_complete`
-   with a plain explanation — never by silently stopping.
+   with a plain explanation — never by silently stopping. A failed run
+   (`_fail`) keeps its prepared batch and offers it after the error: a transport
+   error at turn thirty must not throw away validated work. Only Stop clears it.
+   A run that ends — completed or failed — is never left staged.
 8. **A run can pause and resume.** `apply_now` marks the run staged: the loop
    emits `confirm_needed` but does **not** end. On confirm, the batch executes,
    its real results go into the same transcript and `_request_step` continues;

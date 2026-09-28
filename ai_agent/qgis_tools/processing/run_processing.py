@@ -11,6 +11,7 @@ from ai_agent.qgis_tools.processing.utils import (
     apply_output_name,
     coerce_parameters,
     destination_parameter_names,
+    empty_output_warnings,
     find_algorithm,
     normalize_output,
 )
@@ -119,13 +120,17 @@ class RunProcessingTool(BaseTool):
 
         result = runner(algorithm.id(), prepared)
         layer_name = apply_output_name(result, params.get("output_name") or "") if load_output else ""
-        return {
+        payload = {
             "algorithm_id": algorithm.id(),
             "loaded_to_project": load_output,
             "result_layer_name": layer_name,
             "parameters_used": prepared,
             "outputs": normalize_output(result),
         }
+        warnings = empty_output_warnings(result)
+        if warnings:
+            payload["warnings"] = warnings
+        return payload
 
     @staticmethod
     def _prepare(params: dict[str, Any]) -> tuple[Any, dict[str, Any]]:

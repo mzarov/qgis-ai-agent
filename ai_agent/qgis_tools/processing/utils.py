@@ -8,7 +8,7 @@ from qgis.core import (
     QgsProject,
 )
 
-from ai_agent.qgis_tools.common.layers import find_layer_by_name
+from ai_agent.qgis_tools.common.layers import find_layer_by_name, safe_feature_count
 
 DESTINATION_TYPES = {
     "filedestination",
@@ -33,6 +33,10 @@ LAYER_PARAMETER_TYPES = {
 }
 TEMPORARY_OUTPUT = "TEMPORARY_OUTPUT"
 PRIMARY_OUTPUT_KEY = "OUTPUT"
+EMPTY_OUTPUT_WARNING = (
+    "The output layer '{name}' has no features. The step ran, but check the input filter, "
+    "the extent, the CRS or the distance units before building on it."
+)
 
 
 def get_registry() -> Any:
@@ -232,3 +236,23 @@ def normalize_output(value: Any) -> Any:
     if isinstance(value, dict):
         return {str(key): normalize_output(item) for key, item in value.items()}
     return str(value)
+
+
+def empty_output_warnings(result: Any) -> list[str]:
+    """Name every output vector layer that came back with zero features.
+
+    An algorithm that matched nothing still reports success; without this the
+    model styles, joins and exports an empty layer for several more turns.
+    """
+    if not isinstance(result, dict):
+        return []
+    warnings: list[str] = []
+    for value in result.values():
+        layer = resolve_layer(value)
+        if layer is None:
+            continue
+        if safe_feature_count(layer) == 0:
+            warning = EMPTY_OUTPUT_WARNING.format(name=layer.name())
+            if warning not in warnings:
+                warnings.append(warning)
+    return warnings

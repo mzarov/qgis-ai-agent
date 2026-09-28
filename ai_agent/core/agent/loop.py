@@ -325,6 +325,8 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         if not self._is_current(generation):
             return
         self._journal_outcome = text
+        self._staged = False
+        self._stage_call = None
         self._turn.release()
         self._turn_callbacks = None
         self.busy_changed.emit(False)
@@ -370,13 +372,15 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
             return
         self._turn.release()
         self._turn_callbacks = None
+        self._staged = False
         self._stage_call = None
-        self._batch.clear()
         self.busy_changed.emit(False)
         if not self._is_current(generation):
             return
         self._write_journal(f"Run failed: {message}")
         self.failed.emit(message)
+        if self._batch and self._is_current(generation):
+            self.confirm_needed.emit(self._batch.pending(), "")
 
     def _is_current(self, generation: int | None) -> bool:
         return not self._aborted and (generation is None or generation == self._generation)

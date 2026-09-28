@@ -5,25 +5,44 @@ from ai_agent.qgis_tools.registry import ALL_TOOLS
 from ai_agent.skills.registry import LOCAL, SKILL_REGISTRY
 
 
-def load_skill(call: ToolCall, loaded_skills: list[str]) -> tuple[ToolResult, str]:
-    name = str(call.arguments.get("name") or "").strip()
-    skill = SKILL_REGISTRY.get(name)
-    if not skill:
+def requested_skills(arguments: dict) -> list[str]:
+    """Skill names from a load_skill call: `names` (a list) or the older single `name`."""
+    raw = arguments.get("names")
+    if raw is None:
+        raw = [arguments.get("name")]
+    if isinstance(raw, str):
+        raw = [raw]
+    names: list[str] = []
+    for item in raw if isinstance(raw, (list, tuple)) else []:
+        name = str(item or "").strip()
+        if name and name not in names:
+            names.append(name)
+    return names
+
+
+def load_skill(call: ToolCall, loaded_skills: list[str]) -> tuple[ToolResult, list[str]]:
+    requested = requested_skills(call.arguments)
+    known = [name for name in requested if SKILL_REGISTRY.get(name)]
+    unknown = [name for name in requested if name not in known]
+    if not known:
+        missing = ", ".join(unknown) or "(none given)"
         return (
             ToolResult(
                 call=call,
                 ok=False,
-                payload={"error": f"Skill not found: {name}.", "available": SKILL_REGISTRY.names()},
+                payload={"error": f"Skill not found: {missing}.", "available": SKILL_REGISTRY.names()},
             ),
-            "",
+            [],
         )
-    newly_loaded = ""
-    if name not in loaded_skills:
-        extend_loaded(loaded_skills, name)
-        newly_loaded = name
-    tools = [tool.name for tool in tools_for_skills([name])]
-    result = ToolResult(call=call, ok=True, payload={"loaded": name, "tools": tools})
-    return result, newly_loaded
+    newly_loaded = []
+    for name in known:
+        if name not in loaded_skills:
+            extend_loaded(loaded_skills, name)
+            newly_loaded.append(name)
+    payload: dict = {"loaded": known, "tools": [tool.name for tool in tools_for_skills(known)]}
+    if unknown:
+        payload.update({"not_found": unknown, "available": SKILL_REGISTRY.names()})
+    return ToolResult(call=call, ok=True, payload=payload), newly_loaded
 
 
 def extend_loaded(loaded_skills: list[str], name: str) -> None:

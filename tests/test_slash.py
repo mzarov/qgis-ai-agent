@@ -57,11 +57,12 @@ class PromptTest(unittest.TestCase):
         self.assertNotIn(prompts.INVOKED_SKILLS_HEADER, prompt)
 
     def test_the_core_prompt_asks_for_one_turn_skill_loading(self):
-        self.assertIn("load every skill it needs in one turn", prompts.CORE_PROMPT)
+        self.assertIn("load every skill it needs in one load_skill call", prompts.CORE_PROMPT)
 
     def test_load_skill_enum_covers_every_registered_skill(self):
         schema = prompts.build_load_skill_schema(SKILL_REGISTRY.names())
-        self.assertEqual(schema["function"]["parameters"]["properties"]["name"]["enum"], SKILL_REGISTRY.names())
+        names = schema["function"]["parameters"]["properties"]["names"]
+        self.assertEqual(names["items"]["enum"], SKILL_REGISTRY.names())
 
 
 class SlashQueryTest(unittest.TestCase):

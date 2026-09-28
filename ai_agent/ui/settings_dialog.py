@@ -18,7 +18,6 @@ from ai_agent.core.llm.providers import TITLES, by_title, matching
 from ai_agent.core.settings import (
     AUTH_TYPE_BEARER,
     DEFAULT_API_URL,
-    DEFAULT_TOKEN_BUDGET,
     GEOCODER_NOMINATIM,
     credential_store_failure_message,
     delete_api_key,
@@ -54,7 +53,8 @@ MIN_WIDTH = 760
 MIN_HEIGHT = 520
 FOOTER_MARGINS = (16, 10, 16, 12)
 FOOTER_SPACING = 8
-SAVED = tr("Settings saved.")
+BUDGET_INVALID = tr("A budget must be a whole number of tokens, such as 200000 or 200k; empty means no limit.")
+PROBE_STOP_MS = 3000
 TESTING = tr("Testing the connection…")
 CANCELLING = tr("Cancelling the connection test…")
 CANCELLED = tr("Connection test cancelled.")
@@ -267,6 +267,11 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         if not model:
             self._show(MODEL_REQUIRED, style.danger(self.palette()))
             return
+        token_budget = fields.parsed_budget(self.budget_edit.text())
+        thinking_budget = fields.parsed_budget(self.thinking_edit.text())
+        if token_budget is None or thinking_budget is None:
+            self._show(BUDGET_INVALID, style.danger(self.palette()))
+            return
         set_api_url(url)
         set_model(model)
         set_auth_type(self.auth_type_combo.currentText())
@@ -275,8 +280,8 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         set_allow_sensitive_data(self.sensitive_data_cb.isChecked(), url)
         set_verify_after_apply(self.verify_apply_cb.isChecked())
         set_write_run_journal(self.journal_cb.isChecked())
-        set_token_budget(fields.parsed_budget(self.budget_edit.text(), DEFAULT_TOKEN_BUDGET))
-        set_thinking_budget(fields.parsed_budget(self.thinking_edit.text(), DEFAULT_TOKEN_BUDGET))
+        set_token_budget(token_budget)
+        set_thinking_budget(thinking_budget)
         set_geocoder_provider(geocoder_provider)
         if geocoder_provider == GEOCODER_NOMINATIM:
             set_custom_nominatim_url(geocoder_url)
@@ -287,8 +292,14 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
             except RuntimeError as error:
                 self._show(str(error), style.danger(self.palette()))
                 return
-        self._show(SAVED, style.success(self.palette()))
+        self._stop_probe_now()
         self.accept()
+
+    def _stop_probe_now(self) -> None:
+        thread = self._probe_thread
+        if thread is not None and thread.isRunning():
+            thread.cancel()
+            thread.wait(PROBE_STOP_MS)
 
     def _test_connection(self) -> None:
         if self._probe_thread is not None and self._probe_thread.isRunning():

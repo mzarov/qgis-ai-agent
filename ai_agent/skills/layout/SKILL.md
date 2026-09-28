@@ -52,13 +52,15 @@ On an A4 landscape page (297×210) a sane single-map start is: title at
 - `legend`: `title`, `map_id` (defaults to the first map)
 - `scale_bar`: `style` — `single_box` (default), `double_box`, `ticks`,
   `numeric`; `map_id`
+- `north_arrow`: `style` — `simple` (default), `compass`, `triangle`; about
+  15×15 mm in a corner of the map
+- `picture`: `path` — an image file on disk (a logo, a locator map)
 
-A legend and a scale bar need a map in the layout — queue the map first, in
-the same batch is fine: items are applied in queue order.
+A legend, a scale bar and a north arrow need a map in the layout — queue the
+map first, in the same batch is fine: items are applied in queue order.
 
 ## Honesty
 
 Queued items are not visible yet — never describe the layout as built before
-the user applies. After export, give the user the exact path. If a request
-needs an item type that does not exist (north arrow, picture, table), say so
-plainly — do not fake it with labels.
+the user applies. After export, give the user the exact path. There is no
+table or overview-map item: say so plainly instead of faking one with labels.

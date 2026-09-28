@@ -244,11 +244,28 @@ def paint_status(label: QLabel, text: str, colour: Any) -> None:
     label.setVisible(bool(text))
 
 
-def parsed_budget(raw: str, default: int) -> int:
+BUDGET_MULTIPLIERS = {"k": 1_000, "m": 1_000_000}
+
+
+def parsed_budget(raw: str) -> int | None:
+    """Read a token count such as 200000, 200 000, 200k or 1.5m; None when unreadable.
+
+    An empty field means no limit (0). Negative numbers are refused rather than
+    silently read as "no limit".
+    """
+    text = "".join((raw or "").split()).replace("_", "").lower()
+    if not text:
+        return 0
+    multiplier = BUDGET_MULTIPLIERS.get(text[-1], 1)
+    if multiplier != 1:
+        text = text[:-1]
     try:
-        return max(0, int(raw.strip()))
-    except (TypeError, ValueError):
-        return default
+        value = float(text.replace(",", "."))
+    except ValueError:
+        return None
+    if value < 0 or value != value:
+        return None
+    return int(value * multiplier)
 
 
 def select(combo: QComboBox, value: str) -> None:

@@ -78,3 +78,16 @@ agent your conventions, step order and pitfalls, and it appears in `/` and in
 the agent's own `load_skill` list like any built-in one. Problems — a missing
 name, a name taken by a built-in skill, an unknown tool — are listed on the
 same settings page instead of failing silently.
+
+## Naming layers with @
+
+Type `@` in the chat to pick a layer from the project: the list filters as you
+type, ↑↓ or the mouse choose, Tab or Enter insert. The layer name goes into the
+request exactly as QGIS knows it — `@rivers`, or `@"Main roads"` when the name
+has spaces — so the agent does not have to guess which layer you meant.
+
+## When a run stops or fails
+
+Stop or an error keeps whatever the agent had already written, puts your
+request back into the input box so you can resend or edit it, and still shows
+the changes the agent had prepared — apply them or dismiss them as usual.

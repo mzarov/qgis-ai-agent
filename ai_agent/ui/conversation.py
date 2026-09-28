@@ -133,6 +133,18 @@ class ConversationView(QScrollArea):
         self._scroll_when_pinned()
         return True
 
+    def keep_draft(self) -> str:
+        """Keep a half-streamed answer when the run stops or fails; return its text."""
+        draft = self._draft
+        if draft is None:
+            return ""
+        text = draft.plain_text().strip()
+        if not text:
+            self._drop_draft()
+            return ""
+        self.finish_draft(text)
+        return text
+
     def _drop_draft(self) -> None:
         if self._draft is None:
             return
