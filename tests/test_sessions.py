@@ -1,3 +1,4 @@
+import gc
 import os
 import shutil
 import tempfile
@@ -300,6 +301,18 @@ class ProjectIdentityTest(unittest.TestCase):
         self.assertEqual(project_identity(project), first)
         project.cleared.emit()
         self.assertNotEqual(project_identity(project), first)
+
+    def test_recycled_object_ids_never_share_state(self):
+        seen = set()
+        for _ in range(300):
+            project = Project()
+            first = project_identity(project)
+            self.assertNotIn(first, seen)
+            seen.add(first)
+            project.cleared.emit()
+            self.assertNotEqual(project_identity(project), first)
+            del project
+            gc.collect()
 
     def test_two_unsaved_projects_do_not_share_an_identity(self):
         self.assertNotEqual(project_identity(Project()), project_identity(Project()))

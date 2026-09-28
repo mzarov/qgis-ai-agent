@@ -8,6 +8,7 @@ UNSAVED_PREFIX = "unsaved:"
 STORAGE_PREFIX = "storage:"
 UNSAVED_ATTRIBUTE = "_ai_agent_unsaved_identity"
 CONNECTION_ATTRIBUTE = "_ai_agent_identity_connected"
+PROBE_ATTRIBUTE = "_ai_agent_accepts_attributes"
 STORAGE_SCHEMES = {"geopackage", "oracle", "postgresql"}
 SENSITIVE_URI_KEYS = {
     "access_token",
@@ -109,25 +110,34 @@ def _normalized_storage_uri(uri: str) -> str:
 
 
 def _unsaved_identity(project: Any) -> str:
+    """A random token that names an unsaved project until it is cleared.
+
+    The token lives on the project object. The id()-keyed fallback is only for
+    objects that refuse attributes: ids are reused after garbage collection, so
+    consulting it first would hand a new project the token of a dead one.
+    """
     token = getattr(project, UNSAVED_ATTRIBUTE, "")
     if not isinstance(token, str) or not token:
-        token = _UNSAVED_BY_OBJECT.get(id(project)) or uuid.uuid4().hex
-    _UNSAVED_BY_OBJECT[id(project)] = token
-    _set_attribute(project, UNSAVED_ATTRIBUTE, token)
+        remembered = _UNSAVED_BY_OBJECT.get(id(project), "")
+        token = uuid.uuid4().hex
+        if not _set_attribute(project, UNSAVED_ATTRIBUTE, token) and remembered:
+            token = remembered
+        _UNSAVED_BY_OBJECT[id(project)] = token
     _connect_clear(project)
     return token
 
 
 def _connect_clear(project: Any) -> None:
-    connected = getattr(project, CONNECTION_ATTRIBUTE, False) is True or id(project) in _CONNECTED_OBJECTS
-    if connected:
+    if getattr(project, CONNECTION_ATTRIBUTE, False) is True:
+        return
+    if not _accepts_attributes(project) and id(project) in _CONNECTED_OBJECTS:
         return
     try:
         project.cleared.connect(lambda: _rotate_unsaved_identity(project))
-        _set_attribute(project, CONNECTION_ATTRIBUTE, True)
-        _CONNECTED_OBJECTS.add(id(project))
     except Exception:
         return
+    if not _set_attribute(project, CONNECTION_ATTRIBUTE, True):
+        _CONNECTED_OBJECTS.add(id(project))
 
 
 def _rotate_unsaved_identity(project: Any) -> None:
@@ -136,8 +146,13 @@ def _rotate_unsaved_identity(project: Any) -> None:
     _set_attribute(project, UNSAVED_ATTRIBUTE, token)
 
 
-def _set_attribute(project: Any, name: str, value: Any) -> None:
+def _set_attribute(project: Any, name: str, value: Any) -> bool:
     try:
         setattr(project, name, value)
     except Exception:
-        return
+        return False
+    return True
+
+
+def _accepts_attributes(project: Any) -> bool:
+    return _set_attribute(project, PROBE_ATTRIBUTE, True)
