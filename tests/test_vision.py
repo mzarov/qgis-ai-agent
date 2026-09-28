@@ -212,6 +212,11 @@ class VerificationPromptTest(unittest.TestCase):
         self.assertIn("reorder_layers", prompt)
         self.assertIn("basemaps last", prompt)
 
+    def test_the_original_request_travels_with_the_verification(self):
+        prompt = build_verification_prompt([{"tool": "set_symbol", "ok": True}], "make   rivers blue")
+        self.assertIn("]\nThe user's request was: make rivers blue\nThe queued changes", prompt)
+        self.assertNotIn("request was", build_verification_prompt([]))
+
     def test_an_empty_apply_still_produces_a_prompt(self):
         self.assertIn("Verify", build_verification_prompt([]))
 

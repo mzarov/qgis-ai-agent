@@ -1,6 +1,6 @@
 ---
 name: edit
-description: Change or delete existing data in place — fix attribute values, remove features. Load this when the user wants the data itself corrected, not styled or analysed.
+description: Change or delete existing records in place — set attribute values, remove features; writes to the data source. Load this when the data itself must be corrected, not restyled, analysed or restructured.
 tools: [update_attributes, delete_features]
 ---
 
@@ -47,3 +47,9 @@ afterwards. Say what was changed in numbers — the tools return `updated` and
 `deleted` counts, and the verification pass can re-read the data to prove the
 result. Geometry editing is not supported yet: say so instead of improvising
 through processing algorithms.
+
+## Scratch layers
+
+Edits to a scratch layer (its `source` starts with `memory`) live only until QGIS
+closes. Say so when you edit one, and suggest `export_layer` from the project
+skill if the user wants to keep the result.

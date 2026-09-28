@@ -722,8 +722,8 @@ These verify the agent solves everyday tasks without wandering through search.
      the first action already uses `download_osm`, and the user bubble keeps the
      original `/osm …` text.
 178. **A local skill goes through the whole path.** Settings → Skills → *Create
-     an example* → the folder opens on demand and the example is listed; edit
-     its description → it appears in `/` with the *local* badge and the agent
+     an example* → the folder opens on demand and the page reports
+     `house-style` as still the example, absent from `/`; edit its description → it appears in `/` with the *local* badge and the agent
      can `load_skill` it; add an unknown tool name → the page lists the problem
      and the skill still loads with the known tools only.
 179. **An unknown command is refused, not sent.** `/nope do it` → one system

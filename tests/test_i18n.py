@@ -45,6 +45,14 @@ class SourceLanguageTest(unittest.TestCase):
         for layer in TRANSLATED_LAYERS:
             self.assertEqual(russian_constants(PACKAGE / layer), [], layer)
 
+    def test_skill_bodies_are_english(self):
+        russian = [
+            path.parent.name
+            for path in (PACKAGE / "skills").rglob("SKILL.md")
+            if CYRILLIC.search(path.read_text(encoding="utf-8"))
+        ]
+        self.assertEqual(russian, [])
+
     def test_the_prompt_itself_is_english(self):
         self.assertFalse(CYRILLIC.search((PACKAGE / "core" / "agent" / "prompts.py").read_text()))
 

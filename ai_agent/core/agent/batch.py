@@ -80,6 +80,14 @@ class WriteBatch:
     def pending(self) -> list[ToolCall]:
         return list(self._calls)
 
+    def pending_lines(self) -> list[str]:
+        """Model-facing lines for the queued steps: tool name and public arguments.
+
+        The user-facing summaries are translated and lossy; the model needs the
+        call it made, in the language of the schemas, to avoid queueing it twice.
+        """
+        return [_model_line(call) for call in self._calls]
+
     def pending_summaries(self) -> list[str]:
         return [summarize_tool_call(call.name, call.arguments) for call in self._calls]
 
@@ -155,3 +163,16 @@ def _cancelled_result(call: ToolCall) -> ToolResult:
 def _layer_changed_result(call: ToolCall, message: str) -> ToolResult:
     tool = get_tool_by_name(call.name)
     return ToolResult.failure(call, message, tool.egress if tool is not None else "metadata")
+
+
+MODEL_LINE_LIMIT = 240
+
+
+def _model_line(call: ToolCall) -> str:
+    public = {key: value for key, value in call.arguments.items() if not str(key).startswith("_")}
+    try:
+        arguments = json.dumps(public, ensure_ascii=False, sort_keys=True, default=str)
+    except (TypeError, ValueError):
+        arguments = str(public)
+    line = f"{call.name} {arguments}"
+    return line if len(line) <= MODEL_LINE_LIMIT else line[: MODEL_LINE_LIMIT - 1] + "…"

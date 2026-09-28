@@ -1,6 +1,6 @@
 ---
 name: processing
-description: Run QGIS geoprocessing algorithms — buffers, clips, joins, reprojection, statistics, raster maths. Load this for any request that transforms or analyses data.
+description: Geoprocessing and analysis — buffer, clip, intersect, dissolve, join, reproject, field calculator, heatmap, clustering, points in polygons, slope, hillshade, contours, interpolation, raster calculator. Load this to compute new data from existing layers.
 tools: [search_processing, describe_processing, run_processing]
 ---
 

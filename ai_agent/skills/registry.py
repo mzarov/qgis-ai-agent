@@ -35,6 +35,9 @@ class SkillRegistry:
     def names(self) -> list[str]:
         return sorted({*self._load(), *self._local})
 
+    def drop_local(self, name: str) -> None:
+        self._local.pop(name, None)
+
     def local_names(self) -> list[str]:
         return sorted(self._local)
 

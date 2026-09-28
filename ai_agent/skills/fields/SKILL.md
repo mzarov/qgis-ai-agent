@@ -1,6 +1,6 @@
 ---
 name: fields
-description: Change the attribute schema of a layer — add, rename and delete fields, including virtual fields computed from an expression. Load this when the request is about columns rather than values.
+description: Change a layer's columns — add a real or a virtual (expression) field, rename, delete. Load this when the request is about the attribute table's structure, including computed columns such as area in hectares.
 tools: [add_field, rename_field, delete_field]
 ---
 
@@ -51,3 +51,9 @@ Schema changes are committed to the provider. A failed commit rolls the layer
 back and the error says why — a read-only source (a joined layer, a service)
 is the usual reason, and that is worth telling the user plainly instead of
 retrying.
+
+## Shapefiles
+
+A Shapefile keeps at most 10 characters of a field name and may change its case:
+`population_2020` becomes `population`. On a `.shp` layer prefer a short name, a
+virtual field, or a GeoPackage copy of the layer.

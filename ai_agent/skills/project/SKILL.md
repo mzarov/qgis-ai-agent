@@ -1,6 +1,6 @@
 ---
 name: project
-description: Manage the project itself — add layers from files, basemaps and PostGIS, remove, rename, hide, group and reorder them, change project CRS, zoom the map, save the project. Load this to set a workflow up or to finish it.
+description: The workspace — add layers from files, basemaps, WMS/WFS or PostGIS; remove, rename, hide, group, reorder; project CRS; export a layer to a file; save; undo the last apply; remember notes about the project; bookmarks and map themes.
 tools: [zoom_to_layer, add_layer, add_basemap, add_service_layer, list_db_connections, list_db_tables, add_db_layer, remove_layer, reorder_layers, configure_layer, configure_project, save_project, export_layer, undo_last_apply, list_views, remember, list_notes, forget, save_bookmark, save_map_theme]
 ---
 
@@ -29,7 +29,7 @@ saved.
 
 `add_basemap` places the tile layer at the bottom of the tree, so it never
 covers the data. Presets carry their attribution — repeat it to the user when
-they ask about the source. "Подложка", "фон", "спутник" all mean a basemap;
+they ask about the source. "Background", "base layer", "satellite" all mean a basemap;
 `osm` is the safe default, `esri-imagery` is the satellite one. Tiles come from
 public services and need internet; a blank layer usually means no connection,
 not a wrong call.

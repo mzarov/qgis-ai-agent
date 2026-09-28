@@ -86,6 +86,12 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    (`_fail`) keeps its prepared batch and offers it after the error: a transport
    error at turn thirty must not throw away validated work. Only Stop clears it.
    A run that ends — completed or failed — is never left staged.
+   A final reply cut off by the output limit, or an empty one, gets exactly one
+   more turn with a plugin note (`notices.CONTINUE_TRUNCATED` / `EMPTY_REPLY`);
+   the cut-off text is kept as a preamble first so the chat does not lose it.
+   The queued steps the model sees are `WriteBatch.pending_lines()` — tool name
+   and public arguments, never the translated UI summaries — and an identical
+   second call is answered `duplicate: true` instead of a silent success.
 8. **A run can pause and resume.** `apply_now` marks the run staged: the loop
    emits `confirm_needed` but does **not** end. On confirm, the batch executes,
    its real results go into the same transcript and `_request_step` continues;

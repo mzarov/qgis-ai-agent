@@ -1,6 +1,6 @@
 ---
 name: annotations
-description: Notes drawn directly on the map — text labels and markers above all layers. Load this for "mark this", "label that spot", "point at".
+description: One-off notes and markers drawn on top of the map at a coordinate — not attribute labels (those are style). Load this for "put a note here", "mark this spot", "point at".
 tools: [add_annotation, list_annotations, remove_annotation]
 ---
 
@@ -18,7 +18,8 @@ project CRS itself. Where do coordinates come from? Never invented:
 
 - a place the user named → `geocode` from the `web` skill first
 - "here" / the current view → `get_canvas_extent`, take the centre
-- a feature → `query_layer` with `$x`/`$y` expressions
+- a feature → `query_layer` with `$x`/`$y` for points, or
+  `x(centroid($geometry))`/`y(centroid($geometry))` for lines and polygons
 
 For a text note pass `text`; `size` and `color` are optional and default to a
 readable label. A `marker` is a plain point symbol for "right here".

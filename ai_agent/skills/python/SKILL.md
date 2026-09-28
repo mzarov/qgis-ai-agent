@@ -1,6 +1,6 @@
 ---
 name: python
-description: Run a PyQGIS snippet when no dedicated tool covers the request — the escape hatch to the full QGIS API. Load this only after checking that a real tool cannot do the job.
+description: Run a PyQGIS snippet — the escape hatch to the whole QGIS API for what no tool covers (blend modes, 3D scene settings, exotic properties). Load this only after checking that a real tool cannot do the job.
 tools: [run_python]
 ---
 
@@ -32,8 +32,8 @@ the user a second dialog with the snippet itself before anything runs. So:
 
 - **keep it short.** Ten readable lines beat forty clever ones. A person is
   going to read this.
-- **`intent` is mandatory** and is written for that person, not for you: one
-  plain sentence saying what the snippet does.
+- **`intent` is written for that person**, not for you: one plain sentence
+  saying what the snippet does.
 - **no surprises.** A snippet whose `intent` says "read the CRS" must not also
   delete a layer. Split unrelated work into separate calls.
 
@@ -42,12 +42,10 @@ the user a second dialog with the snippet itself before anything runs. So:
 Ready-made names: `project` (`QgsProject.instance()`), `iface`, `processing`,
 and the `Qgs*` / Qt classes — no imports needed for those.
 
-`print()` is how you report back: the return value is not captured, and the
-output comes to you as `output`. Print what you checked, not just "done".
+`print()` is how you report back. Print what you checked, not just "done".
 
 Errors come back with the traceback — fix the snippet and queue a corrected
-one instead of asking the user what went wrong. An endless loop is stopped by
-a line budget; if you hit it, the loop is the bug.
+one instead of asking the user what went wrong.
 
 ## After it works
 

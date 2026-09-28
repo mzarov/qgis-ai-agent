@@ -1,6 +1,6 @@
 ---
 name: style
-description: Inspect how a layer is drawn — renderer type, classification field, classes with colours, labels, opacity. Load this for questions about appearance, colours or labelling.
+description: Change or inspect how a layer looks — single symbol, colours by category or graduated classes, feature labels, opacity, raster colour ramps and hillshade. Load this to recolour, classify, label or explain a layer's appearance.
 tools: [describe_style, describe_style_options, set_symbol, set_categories, set_graduated, set_labels, set_opacity, set_raster_style]
 ---
 
@@ -9,7 +9,6 @@ tools: [describe_style, describe_style_options, set_symbol, set_categories, set_
 `list_layers` and `describe_layer` in the `inspect` skill return a one-line
 `style_summary` per layer, such as "categories on field 'type', classes: 5". That
 summary names the renderer and nothing else — **it never contains a colour**.
-Those tools say so themselves, in `style_note`.
 
 So split the question by what it asks for:
 
@@ -82,9 +81,6 @@ question rather than stacking calls on the same layer:
 other three overwrite it, so applying `set_categories` after `set_symbol` on the
 same layer makes the first call pointless. Queue only the call you actually mean.
 
-These are write tools: the call returns `{"status": "queued"}` and the user
-applies the batch. Say "I will recolour", not "I recoloured".
-
 ### Choosing between categories and graduations
 
 Text field with a handful of distinct values — `set_categories`. Numeric field
@@ -97,9 +93,7 @@ produces an unreadable map, and the tool refuses past 60.
 
 Colours are `#rrggbb` or English colour names. A ramp name must exist in the user's
 QGIS style library, and that library varies per install — do not trust a name you
-merely remember. Omitting `ramp` is safe: the tool picks a sensible default. Naming
-one that does not exist is also safe: the error lists what is available and you
-pick from that list. Common built-ins are `Spectral`, `Viridis`, `Blues`, `Set2`.
+merely remember. Omitting `ramp` is safe: the tool picks a sensible default. Common built-ins are `Spectral`, `Viridis`, `Blues`, `Set2`.
 
 Pick a ramp that suits the data: sequential (`Blues`, `Viridis`) for magnitudes,
 diverging (`Spectral`, `RdYlGn`) when there is a meaningful middle, qualitative
@@ -180,3 +174,13 @@ the user singles out the fill or the text.
 For "why does it look like this" or "change this but leave the rest", call
 `describe_style` first. Without it you do not know what you are replacing, and
 these tools replace rather than patch.
+
+## Things that look like failures
+
+- Labels missing on a dense layer are usually collision culling: QGIS drops
+  labels that would overlap. A smaller size, a buffer or zooming in fixes it;
+  queueing `set_labels` again does not.
+- `describe_style` reads rule-based, heatmap and point-cluster renderers, but no
+  tool writes them. Say so, or use `run_python` from the python skill.
+- A raster with several bands (satellite imagery) is best left as it is:
+  `set_raster_style` paints one band.

@@ -1,6 +1,6 @@
 ---
 name: inspect
-description: Read the current QGIS project — structure, layers, attribute data, CRS, environment. Load this whenever you need facts about the project before answering or acting.
+description: Facts about the open project — layers, fields and their values, counts, lengths and areas via expressions, the user's selection, the current view, a rendered image of the map. Always loaded; read before you act.
 tools: [get_project_info, list_layers, describe_layer, get_field_values, sample_features, query_layer, get_selection, select_features, get_canvas_extent, render_map, get_qgis_info]
 ---
 
@@ -64,3 +64,12 @@ instead — say so rather than pretending you saw the map.
 
 `source` has credentials stripped (`password=<hidden>`). Never ask the user for a
 password or put one into a tool call.
+
+## "Why don't I see my layer?"
+
+Check in this order and stop at the first hit: `describe_layer` → `is_valid`
+false; `get_project_info` → the layer or its group is unchecked;
+`describe_style` → opacity 0 or a `subset_filter` that matches nothing;
+the extent is far from the view (`zoom_to_layer` in the project skill);
+scale-dependent visibility, which only `run_python` can read
+(`layer.hasScaleBasedVisibility()`).
