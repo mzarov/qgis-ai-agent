@@ -11,7 +11,7 @@ from qgis.core import (
 )
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.layers import bind_layer_reference, find_layer_by_id, find_layer_by_name
 from ai_agent.qgis_tools.common.paths import check_overwrites, outputs_safety, related_output_paths
 
@@ -32,6 +32,8 @@ class ExportLayerTool(BaseTool):
     )
     skill = "project"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    network_access = False
     external_effect = True
     constraints = [
         "The layer must exist and be a vector layer",

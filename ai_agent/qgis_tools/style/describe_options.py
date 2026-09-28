@@ -1,7 +1,7 @@
 from typing import Any
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.style.label_catalogue import LABELS
 from ai_agent.qgis_tools.style.symbol_catalogue import SYMBOLS
 
@@ -21,6 +21,9 @@ class DescribeStyleOptionsTool(BaseTool):
     )
     skill = "style"
     safety = SAFETY_READ
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = []
     examples = ["Which label settings are available?", "How do I offset the labels?"]
     params_schema = [

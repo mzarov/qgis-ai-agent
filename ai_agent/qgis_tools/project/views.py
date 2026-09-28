@@ -3,7 +3,7 @@ from typing import Any
 from qgis.core import QgsApplication, QgsBookmark, QgsProject, QgsReferencedRectangle
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, EGRESS_METADATA, SAFETY_READ, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.layers import canvas_extent, extent_dict
 from ai_agent.qgis_tools.project.tree import project
 
@@ -32,6 +32,9 @@ class ListViewsTool(BaseTool):
     )
     skill = "project"
     safety = SAFETY_READ
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     examples = ["Which bookmarks do I have?", "What map themes are saved?"]
     params_schema = []
 
@@ -52,6 +55,8 @@ class SaveBookmarkTool(BaseTool):
     description = "Save the current map view as a named spatial bookmark, so it can be returned to later."
     skill = "project"
     safety = SAFETY_WRITE
+    external_effect = False
+    network_access = False
     egress = EGRESS_FEATURE_VALUES
     constraints = ["The bookmark name must be new"]
     examples = ["Remember this view as 'city centre'"]
@@ -90,6 +95,9 @@ class SaveMapThemeTool(BaseTool):
     )
     skill = "project"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = ["The theme name must be new"]
     examples = ["Save this look as 'print version'"]
     params_schema = [

@@ -21,6 +21,8 @@ class QueryLayerTool(BaseTool):
     )
     skill = "inspect"
     safety = SAFETY_READ
+    external_effect = False
+    network_access = False
     egress = EGRESS_FEATURE_VALUES
     constraints = [
         "The layer must exist and be a vector layer",

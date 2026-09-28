@@ -164,8 +164,8 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     providers are never asked to count: `COUNT(*)` on a big table would stall
     the main thread before the first turn. Extents and values stay behind the
     sensitive-data switch.
-20. **Imports** — all at the top, absolute. Code without comments or docstrings
-    — see the root CLAUDE.md.
+20. **Imports** — all at the top, absolute. Use concise contract docstrings and
+    comments for non-obvious reasons — see the root CLAUDE.md.
 
 ## What lives where
 

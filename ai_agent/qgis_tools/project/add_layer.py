@@ -4,7 +4,7 @@ from typing import Any
 from qgis.core import QgsRasterLayer, QgsVectorLayer
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.layers import crs_authid, geometry_type_name, safe_feature_count
 from ai_agent.qgis_tools.project.tree import (
     describe_groups,
@@ -29,6 +29,9 @@ class AddLayerTool(BaseTool):
     )
     skill = "project"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = [
         "The file must exist and be readable by QGIS",
         "A group, if given, must exist or it will be created",

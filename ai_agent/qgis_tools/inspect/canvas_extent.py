@@ -12,6 +12,8 @@ class GetCanvasExtentTool(BaseTool):
     description = "Show the current extent of the QGIS canvas and the project coordinate system."
     skill = "inspect"
     safety = SAFETY_READ
+    external_effect = False
+    network_access = False
     egress = EGRESS_FEATURE_VALUES
     examples = ["What is the current map extent?", "What is visible on screen right now?"]
     params_schema = []

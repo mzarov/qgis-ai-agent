@@ -3,6 +3,7 @@ from typing import Any
 
 from ai_agent.qgis_tools.annotations import ANNOTATIONS_TOOLS
 from ai_agent.qgis_tools.base import BaseTool
+from ai_agent.qgis_tools.common.validation import validate_parameters
 from ai_agent.qgis_tools.edit import EDIT_TOOLS
 from ai_agent.qgis_tools.fields import FIELDS_TOOLS
 from ai_agent.qgis_tools.inspect import INSPECT_TOOLS
@@ -49,18 +50,29 @@ def build_tool_schemas(tools: Iterable[BaseTool]) -> list[dict[str, Any]]:
 
 def execute_tool(tool_name: str, params: dict[str, Any]) -> dict[str, Any]:
     tool = _require_tool(tool_name)
+    validate_parameters(params, tool.params_schema)
     return tool.execute(params)
 
 
 def prepare_tool_call(tool_name: str, params: dict[str, Any]) -> dict[str, Any]:
-    return _require_tool(tool_name).prepare(params)
+    tool = _require_tool(tool_name)
+    validate_parameters(params, tool.params_schema)
+    return tool.prepare(params)
+
+
+def validate_tool_arguments(tool_name: str, params: dict[str, Any]) -> None:
+    tool = get_tool_by_name(tool_name)
+    validate_parameters(params, tool.params_schema if tool is not None else ())
 
 
 def summarize_tool_call(tool_name: str, params: dict[str, Any]) -> str:
     tool = get_tool_by_name(tool_name)
     if not tool:
         return f"{tool_name}: {params}"
-    return tool.summarize_call(params)
+    try:
+        return tool.summarize_call(params)
+    except Exception:
+        return tool.name
 
 
 def _require_tool(tool_name: str) -> BaseTool:

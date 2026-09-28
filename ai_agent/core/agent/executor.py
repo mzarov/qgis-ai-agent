@@ -26,6 +26,11 @@ class ToolExecutor:
             )
         try:
             payload = execute_tool(call.name, dict(call.arguments))
+            prepared = self._as_dict(payload)
+            image = str(prepared.pop(RESULT_IMAGE_KEY, "") or "")
+            if image:
+                prepared["image_attached"] = True
+            ok = not bool(prepared.get("error"))
         except Exception as err:
             QgsMessageLog.logMessage(
                 f"Tool {call.name} [{call.id}] failed ({type(err).__name__}).",
@@ -33,11 +38,6 @@ class ToolExecutor:
                 Qgis.MessageLevel.Warning,
             )
             return ToolResult.failure(call, str(err), tool.egress)
-        prepared = self._as_dict(payload)
-        image = str(prepared.pop(RESULT_IMAGE_KEY, "") or "")
-        if image:
-            prepared["image_attached"] = True
-        ok = not bool(prepared.get("error"))
         if ok:
             QgsMessageLog.logMessage(f"Tool {call.name} finished.", LOG_TAG, Qgis.MessageLevel.Info)
         else:
@@ -54,4 +54,4 @@ class ToolExecutor:
 
     @staticmethod
     def _as_dict(payload: Any) -> dict[str, Any]:
-        return payload if isinstance(payload, dict) else {"result": payload}
+        return dict(payload) if isinstance(payload, dict) else {"result": payload}

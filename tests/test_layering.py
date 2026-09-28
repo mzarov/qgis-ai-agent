@@ -11,7 +11,15 @@ FORBIDDEN = {
     "ui": ("qgis_tools", "skills"),
     "skills": ("core", "ui", "qgis_tools"),
 }
-DOMAINS = ("edit", "fields", "inspect", "layout", "osm", "processing", "project", "python", "style", "web")
+TOOL_ROOT = SOURCE_ROOT / "qgis_tools"
+SHARED_TOOL_PACKAGES = {"common"}
+DOMAINS = tuple(
+    sorted(
+        item.name
+        for item in TOOL_ROOT.iterdir()
+        if item.is_dir() and (item / "__init__.py").is_file() and item.name not in SHARED_TOOL_PACKAGES
+    )
+)
 TOP_LEVEL_MODULES = ("i18n.py", "plugin.py")
 LEAF_MODULES = ("i18n.py",)
 
@@ -52,8 +60,10 @@ class LayeringTest(unittest.TestCase):
         for domain in DOMAINS:
             for path in (SOURCE_ROOT / "qgis_tools" / domain).rglob("*.py"):
                 for module in internal_imports(path):
-                    for other in DOMAINS:
-                        if other != domain and f"qgis_tools.{other}" in module:
+                    parts = module.split(".")
+                    if len(parts) >= 3 and parts[1] == "qgis_tools":
+                        target_domain = parts[2]
+                        if target_domain in DOMAINS and target_domain != domain:
                             problems.append(f"{domain}/{path.name} -> {module}")
         self.assertEqual(problems, [])
 

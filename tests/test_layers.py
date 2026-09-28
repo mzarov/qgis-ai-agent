@@ -154,6 +154,14 @@ class LayerIdentityTest(unittest.TestCase):
     def test_layer_id_selects_one_stable_target(self):
         self.assertIs(find_layer_by_id("roads_b"), self.second)
 
+    def test_duplicate_names_accept_a_matching_explicit_id(self):
+        prepared = pin_layer_references({"layer_name": "roads", "layer_id": "roads_b"})
+        self.assertEqual(prepared[LAYER_PINS_KEY], [{"name": "roads", "id": "roads_b"}])
+
+    def test_id_and_case_insensitive_name_accept_the_same_layer(self):
+        prepared = pin_layer_references({"layer_name": "ROADS", "layer_id": "roads_b"})
+        self.assertEqual(prepared[LAYER_PINS_KEY], [{"name": "roads", "id": "roads_b"}])
+
     def test_prepared_reference_keeps_both_human_name_and_stable_id(self):
         prepared = bind_layer_reference({"layer_name": "roads"}, self.second)
         self.assertEqual(prepared["layer_name"], "roads")

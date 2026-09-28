@@ -1,8 +1,9 @@
 # Smoke Checklist
 
-Manual verification in live QGIS — the part tests cannot cover: real PyQGIS
-calls against layers and Qt painting. Everything else is closed by the
-`tests/` suite.
+Manual verification in live QGIS complements the fast unit suite and the
+real-QGIS smoke and workflow tests in CI. Use this checklist for interactive
+behavior and visual output beyond the automated scenarios. When a reproducible
+API or lifecycle failure is found, add an automated regression when feasible.
 
 ## Technical check after edits
 

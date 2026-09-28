@@ -28,6 +28,8 @@ class RenderLayoutTool(BaseTool):
     )
     skill = "layout"
     safety = SAFETY_READ
+    external_effect = False
+    network_access = False
     egress = EGRESS_IMAGE
     constraints = ["The layout must exist (see list_layouts)"]
     examples = ["Show me the layout", "Check that the legend does not cover the map"]

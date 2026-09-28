@@ -3,7 +3,7 @@ from typing import Any
 from qgis.core import QgsGraduatedSymbolRenderer
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.style.apply import (
     base_symbol,
     refresh,
@@ -34,6 +34,9 @@ class SetGraduatedTool(BaseTool):
     )
     skill = "style"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = [
         "The field must exist and hold numbers",
         f"The number of classes runs from {MIN_CLASSES} to {MAX_CLASSES}",

@@ -3,7 +3,7 @@ from typing import Any
 from qgis.core import QgsProject
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common.layers import describe_layer_brief
 
 
@@ -15,6 +15,9 @@ class ListLayersTool(BaseTool):
     )
     skill = "inspect"
     safety = SAFETY_READ
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     examples = ["What layers does my project have?", "Which data is loaded?"]
     params_schema = []
 

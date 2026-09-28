@@ -159,13 +159,15 @@ def post_json(
     request = build_network_request(endpoint, headers, verify_override, timeout)
     caller = QgsBlockingNetworkRequest()
     payload = QByteArray(json.dumps(body, ensure_ascii=False).encode("utf-8"))
-    if caller.post(request, payload, False, feedback) != QgsBlockingNetworkRequest.ErrorCode.NoError:
-        raise ConnectionError(TRANSPORT_FAILED.format(endpoint=safe_endpoint_label(endpoint), reason=_reason(caller)))
+    error_code = caller.post(request, payload, False, feedback)
     reply = caller.reply()
-    text = bytes(reply.content()).decode("utf-8", errors="replace")
     status = _status_of(reply)
     if status >= 400:
+        text = bytes(reply.content()).decode("utf-8", errors="replace")
         raise ApiResponseError(status, text)
+    if error_code != QgsBlockingNetworkRequest.ErrorCode.NoError:
+        raise ConnectionError(TRANSPORT_FAILED.format(endpoint=safe_endpoint_label(endpoint), reason=_reason(caller)))
+    text = bytes(reply.content()).decode("utf-8", errors="replace")
     return _decoded(text, status)
 
 

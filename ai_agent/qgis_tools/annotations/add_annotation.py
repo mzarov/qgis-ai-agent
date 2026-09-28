@@ -13,7 +13,7 @@ from qgis.PyQt.QtGui import QColor
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.annotations.store import annotation_layer
-from ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 
 KIND_TEXT = "text"
 KIND_MARKER = "marker"
@@ -33,6 +33,9 @@ class AddAnnotationTool(BaseTool):
     )
     skill = "annotations"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = [
         "Coordinates are lon/lat in EPSG:4326 unless crs says otherwise",
         "kind is text or marker; text needs the text field",

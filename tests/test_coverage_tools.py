@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
 from ai_agent.qgis_tools.fields import manage_fields as fields_module
@@ -34,6 +35,8 @@ class VectorLayer:
         self.expression_fields = []
         self.rolled_back = False
         self._commit_ok = True
+        self.editing = False
+        self.commit_calls = 0
 
     def name(self):
         return "Дороги"
@@ -42,7 +45,11 @@ class VectorLayer:
         return self._fields
 
     def startEditing(self):
+        self.editing = True
         return True
+
+    def isEditable(self):
+        return self.editing
 
     def addAttribute(self, field):
         self.added.append(field)
@@ -50,14 +57,20 @@ class VectorLayer:
 
     def renameAttribute(self, index, new_name):
         self.renamed.append((index, new_name))
+        return True
 
     def deleteAttribute(self, index):
         self.deleted.append(index)
+        return True
 
     def addExpressionField(self, expression, field):
         self.expression_fields.append(expression)
+        return len(self._fields.names()) + len(self.expression_fields) - 1
 
     def commitChanges(self):
+        self.commit_calls += 1
+        if self._commit_ok:
+            self.editing = False
         return self._commit_ok
 
     def commitErrors(self):
@@ -65,6 +78,8 @@ class VectorLayer:
 
     def rollBack(self):
         self.rolled_back = True
+        self.editing = False
+        return True
 
 
 class FieldsTestBase(unittest.TestCase):
@@ -113,6 +128,32 @@ class AddFieldTest(FieldsTestBase):
         self.assertTrue(self.layer.rolled_back)
         self.assertIn("read-only", str(caught.exception))
 
+    def test_refused_plain_field_does_not_commit(self):
+        with (
+            patch.object(self.layer, "addAttribute", return_value=False),
+            self.assertRaisesRegex(ValueError, "refused to add"),
+        ):
+            self.tool.execute({"layer_name": "Дороги", "name": "status"})
+        self.assertTrue(self.layer.rolled_back)
+        self.assertEqual(self.layer.commit_calls, 0)
+
+    def test_refused_virtual_field_is_reported(self):
+        with (
+            patch.object(self.layer, "addExpressionField", return_value=-1),
+            self.assertRaisesRegex(ValueError, "refused to add virtual field"),
+        ):
+            self.tool.execute({"layer_name": "Дороги", "name": "status", "expression": "1"})
+        self.assertFalse(self.layer.editing)
+
+    def test_field_creation_exception_closes_the_edit_session(self):
+        with (
+            patch.object(self.layer, "addAttribute", side_effect=RuntimeError("provider failure")),
+            self.assertRaisesRegex(ValueError, "provider failure"),
+        ):
+            self.tool.execute({"layer_name": "Дороги", "name": "status"})
+        self.assertTrue(self.layer.rolled_back)
+        self.assertFalse(self.layer.editing)
+
     def test_summary_distinguishes_virtual(self):
         plain = self.tool.summarize_call({"name": "a", "layer_name": "Д"})
         virtual = self.tool.summarize_call({"name": "a", "layer_name": "Д", "expression": "1"})
@@ -147,6 +188,25 @@ class RenameDeleteFieldTest(FieldsTestBase):
     def test_delete_lands(self):
         DeleteFieldTool().execute({"layer_name": "Д", "name": "type"})
         self.assertEqual(self.layer.deleted, [1])
+
+    def test_refused_rename_and_delete_never_commit(self):
+        cases = [
+            (RenameFieldTool(), "renameAttribute", {"layer_name": "Д", "name": "name", "new_name": "title"}),
+            (DeleteFieldTool(), "deleteAttribute", {"layer_name": "Д", "name": "type"}),
+        ]
+        for tool, method, arguments in cases:
+            with self.subTest(tool=tool.name), patch.object(self.layer, method, return_value=False):
+                with self.assertRaisesRegex(ValueError, "QGIS refused"):
+                    tool.execute(arguments)
+                self.assertTrue(self.layer.rolled_back)
+                self.assertFalse(self.layer.editing)
+                self.assertEqual(self.layer.commit_calls, 0)
+
+    def test_last_field_guard_is_rechecked_at_execution(self):
+        self.layer._fields = Fields(["only"])
+        with self.assertRaisesRegex(ValueError, "only field"):
+            DeleteFieldTool().execute({"layer_name": "Д", "name": "only"})
+        self.assertFalse(self.layer.editing)
 
 
 class SchemaHelpersTest(unittest.TestCase):

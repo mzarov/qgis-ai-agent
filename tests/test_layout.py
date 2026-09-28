@@ -1,5 +1,7 @@
-import pathlib
 import unittest
+from unittest.mock import Mock, patch
+
+from qgis.core import QgsVectorLayer
 
 from ai_agent.qgis_tools.layout import add_layout_item as add_module
 from ai_agent.qgis_tools.layout import configure_layout_item as configure_module
@@ -88,6 +90,12 @@ class FakeLayout:
 
     def items(self):
         return list(self._items)
+
+    def addLayoutItem(self, item):
+        self._items.append(item)
+
+    def removeLayoutItem(self, item):
+        self._items.remove(item)
 
     def pageCollection(self):
         page = self._page
@@ -245,23 +253,191 @@ class ExportPathTest(unittest.TestCase):
             export_module.find_layout = saved
 
 
+class MapCreationTest(unittest.TestCase):
+    def setUp(self):
+        self.layout = FakeLayout()
+        self.item = Mock()
+        self.item.id.return_value = "map-1"
+        self.extent = object()
+        self.tool = AddLayoutItemTool()
+        self.params = {"layout_name": "Sheet", "item_type": "map", "x": 10, "y": 10}
+        for target, value in (
+            ("find_layout", lambda _: self.layout),
+            ("_map_view", lambda _: (self.extent, None)),
+        ):
+            replacement = patch.object(add_module, target, value)
+            replacement.start()
+            self.addCleanup(replacement.stop)
+        replacement = patch.dict(add_module.TYPE_CLASSES, {"map": lambda _: self.item})
+        replacement.start()
+        self.addCleanup(replacement.stop)
+
+    def test_map_is_sized_before_zoom_and_added_once(self):
+        events = []
+        self.item.zoomToExtent.side_effect = lambda extent: events.append("zoom")
+        with patch.object(add_module, "place", side_effect=lambda *args: events.append("place")):
+            self.tool.execute(self.params)
+        self.assertEqual(events, ["place", "zoom"])
+        self.assertEqual(self.layout.items(), [self.item])
+
+    def test_invalid_extent_fails_before_adding_any_item(self):
+        with patch.object(add_module, "_map_view", side_effect=ValueError("no spatial features")):
+            for operation in (self.tool.prepare, self.tool.execute):
+                with self.subTest(operation=operation.__name__), self.assertRaises(ValueError):
+                    operation(self.params)
+        self.assertEqual(self.layout.items(), [])
+        self.item.setId.assert_not_called()
+
+    def test_placement_failure_removes_the_new_item(self):
+        with (
+            patch.object(add_module, "place", side_effect=RuntimeError("placement failed")),
+            self.assertRaisesRegex(RuntimeError, "placement failed"),
+        ):
+            self.tool.execute(self.params)
+        self.assertEqual(self.layout.items(), [])
+
+    def test_zoom_failure_removes_the_new_item(self):
+        self.item.zoomToExtent.side_effect = RuntimeError("zoom failed")
+        self.item.setExtent.side_effect = RuntimeError("extent failed")
+        with self.assertRaisesRegex(RuntimeError, "extent failed"):
+            self.tool.execute(self.params)
+        self.assertEqual(self.layout.items(), [])
+
+    def test_zoom_uses_fallback_when_supported_by_the_item(self):
+        self.item.zoomToExtent.side_effect = RuntimeError("zoom failed")
+        self.tool.execute(self.params)
+        self.item.setExtent.assert_called_once_with(self.extent)
+        self.assertEqual(self.layout.items(), [self.item])
+
+    def test_page_bounds_are_rechecked_before_execution(self):
+        with self.assertRaisesRegex(ValueError, "sticks out"):
+            self.tool.execute({**self.params, "x": 1000})
+        self.assertEqual(self.layout.items(), [])
+
+    def test_map_uses_the_crs_of_its_resolved_extent(self):
+        crs = object()
+        with patch.object(add_module, "_map_view", return_value=(self.extent, crs)):
+            self.tool.execute(self.params)
+        self.item.setCrs.assert_called_once_with(crs)
+
+
+class Bounds:
+    def __init__(self, xmin, ymin, xmax, ymax):
+        self.values = xmin, ymin, xmax, ymax
+
+    def xMinimum(self):
+        return self.values[0]
+
+    def yMinimum(self):
+        return self.values[1]
+
+    def xMaximum(self):
+        return self.values[2]
+
+    def yMaximum(self):
+        return self.values[3]
+
+    def width(self):
+        return self.xMaximum() - self.xMinimum()
+
+    def height(self):
+        return self.yMaximum() - self.yMinimum()
+
+    def isEmpty(self):
+        return self.width() <= 0 or self.height() <= 0
+
+
+class ExtentLayer(QgsVectorLayer):
+    def __init__(self, extent, crs, features):
+        self.bounds = extent
+        self.coordinate_system = crs
+        self.features = features
+        self.spatial = True
+
+    def extent(self):
+        return self.bounds
+
+    def crs(self):
+        return self.coordinate_system
+
+    def isSpatial(self):
+        return self.spatial
+
+    def featureCount(self):
+        return len(self.features)
+
+    def getFeatures(self):
+        return iter(self.features)
+
+
+class MapExtentTest(unittest.TestCase):
+    def setUp(self):
+        self.crs = Mock()
+        self.crs.isValid.return_value = True
+        self.crs.isGeographic.return_value = False
+        feature = Mock()
+        feature.hasGeometry.return_value = True
+        feature.geometry.return_value.isEmpty.return_value = False
+        self.layer = ExtentLayer(Bounds(0, 0, 100, 0), self.crs, [feature])
+        self.project = Mock()
+        self.project.crs.return_value = self.crs
+        holder = Mock()
+        holder.instance.return_value = self.project
+        for target, value in (
+            ("find_layer_by_name", lambda _: self.layer),
+            ("QgsProject", holder),
+            ("QgsRectangle", Bounds),
+        ):
+            replacement = patch.object(add_module, target, value)
+            replacement.start()
+            self.addCleanup(replacement.stop)
+
+    def test_horizontal_features_receive_nonzero_height(self):
+        extent, crs = add_module._map_view({"extent": "points"})
+        self.assertGreater(extent.height(), 0)
+        self.assertEqual((extent.xMinimum(), extent.xMaximum()), (0, 100))
+        self.assertLess(extent.yMinimum(), 0)
+        self.assertGreater(extent.yMaximum(), 0)
+        self.assertIs(crs, self.crs)
+
+    def test_single_point_at_origin_receives_a_valid_extent(self):
+        self.layer.bounds = Bounds(0, 0, 0, 0)
+        extent, _ = add_module._map_view({"extent": "point"})
+        self.assertFalse(extent.isEmpty())
+        self.assertEqual(extent.xMinimum(), -extent.xMaximum())
+        self.assertEqual(extent.yMinimum(), -extent.yMaximum())
+
+    def test_empty_nonspatial_and_geometryless_layers_still_fail(self):
+        for invalid in ("empty", "nonspatial", "geometryless"):
+            with self.subTest(invalid=invalid):
+                feature = Mock()
+                feature.hasGeometry.return_value = False
+                self.layer.features = [] if invalid == "empty" else [feature]
+                self.layer.spatial = invalid != "nonspatial"
+                with self.assertRaisesRegex(ValueError, "no spatial features"):
+                    add_module._map_view({"extent": "points"})
+
+    def test_source_extent_is_transformed_to_the_project_crs(self):
+        target = Mock()
+        target.isValid.return_value = True
+        self.project.crs.return_value = target
+        transformed = Bounds(1000, 2000, 3000, 4000)
+        transform = Mock()
+        transform.transformBoundingBox.return_value = transformed
+        with patch.object(add_module, "QgsCoordinateTransform", return_value=transform) as factory:
+            extent, crs = add_module._map_view({"extent": "points"})
+        factory.assert_called_once_with(self.crs, target, self.project)
+        self.assertFalse(transform.transformBoundingBox.call_args.args[0].isEmpty())
+        self.assertIs(extent, transformed)
+        self.assertIs(crs, target)
+
+    def test_source_crs_is_used_if_the_project_has_none(self):
+        target = Mock()
+        target.isValid.return_value = False
+        self.project.crs.return_value = target
+        _, crs = add_module._map_view({"extent": "points"})
+        self.assertIs(crs, self.crs)
+
+
 if __name__ == "__main__":
     unittest.main()
-
-
-class MapZoomOrderTest(unittest.TestCase):
-    SOURCE = pathlib.Path("ai_agent/qgis_tools/layout/add_layout_item.py").read_text(encoding="utf-8")
-
-    def test_the_map_is_zoomed_only_after_it_has_a_size(self):
-        body = self.SOURCE.split("def execute", 1)[1].split("def _checked_kind", 1)[0]
-        self.assertIn("_zoom_map", body)
-        self.assertLess(body.index("place(item"), body.index("_zoom_map(item"))
-
-    def test_the_extent_is_no_longer_set_on_a_zero_sized_item(self):
-        configure = self.SOURCE.split("def _configure", 1)[1].split("def _zoom_map", 1)[0]
-        self.assertNotIn("setExtent", configure)
-
-    def test_zoom_falls_back_to_set_extent(self):
-        zoom = self.SOURCE.split("def _zoom_map", 1)[1].split("def _map_extent", 1)[0]
-        self.assertIn("zoomToExtent", zoom)
-        self.assertIn("setExtent", zoom)

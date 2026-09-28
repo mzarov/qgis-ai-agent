@@ -158,21 +158,27 @@ Before a PR, run the same scanners the QGIS plugin repository runs — CI runs
 them too:
 
 ```bash
-pip install bandit detect-secrets==1.5.0 ruff
-bandit -r ai_agent -q
-git ls-files -z | xargs -0 detect-secrets-hook --baseline .secrets.baseline
-ruff check . && ruff format --check .
+poetry run bandit -r ai_agent -q
+git ls-files -z | xargs -0 poetry run detect-secrets-hook --baseline .secrets.baseline
+poetry run ruff check .
+poetry run ruff format --check .
+poetry run mypy
 ```
 
 The unit suite itself has zero dependencies: stdlib only. On plain Python,
-`tests/stub.py` supplies narrow stand-ins for QGIS values. CI separately runs a
-focused import, icon and registry smoke test in the official QGIS 4 container;
-the full live workflow remains in the manual smoke checklist.
+`tests/stub.py` supplies QGIS stand-ins. CI also runs installed-package smoke
+checks and real-QGIS workflows against live layers and Qt lifecycle events.
+The manual smoke checklist covers interactive checks beyond those scenarios.
+CI attaches XML and HTML branch-coverage reports for the fast suite; real-QGIS
+integration coverage is separate and is not included in those percentages.
+Poetry manages locked development tools in dependency-only mode; the plugin ZIP
+still has no external Python dependencies.
 
 Code rules live in [CLAUDE.md](CLAUDE.md) and in each package's `CLAUDE.md`.
-In short: no comments or docstrings, files around 200 lines (hard cap 400),
-type hints everywhere, absolute imports. All of it is enforced by tests, not by
-eyeballing reviews.
+Use cohesive modules, typed contracts and absolute imports. Concise docstrings
+and comments explain contracts and non-obvious reasons. Ruff checks syntax and
+undefined names; mypy strictly checks the current boundary listed in
+`pyproject.toml`, with broader application typing added incrementally.
 
 Contributions follow [CONTRIBUTING.md](CONTRIBUTING.md), the
 [Code of Conduct](CODE_OF_CONDUCT.md) and the private reporting process in

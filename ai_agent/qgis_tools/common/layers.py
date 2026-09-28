@@ -266,20 +266,18 @@ def layer_pin_error(params: dict[str, Any]) -> str:
 
 
 def _resolve_layer_reference(layer_name: str, layer_id: str) -> QgsMapLayer:
-    layer_by_name = find_layer_by_name(layer_name) if layer_name else None
-    layer_by_id = find_layer_by_id(layer_id) if layer_id else None
-    if layer_by_name is not None and layer_by_id is not None:
-        name_identifier = layer_identifier(layer_by_name)
-        id_identifier = layer_identifier(layer_by_id)
-        if not name_identifier or name_identifier != id_identifier:
+    if layer_id:
+        layer = find_layer_by_id(layer_id)
+        actual_name = (layer.name() or "").strip()
+        if layer_name and actual_name.casefold() != layer_name.casefold():
             raise ValueError(
                 f"layer_name '{layer_name}' and layer_id '{layer_id}' identify different layers. "
                 "Use a matching name and id from list_layers."
             )
-    layer = layer_by_id if layer_by_id is not None else layer_by_name
-    if layer is None:
-        raise ValueError("A layer_name or layer_id is required.")
-    return layer
+        return layer
+    if layer_name:
+        return find_layer_by_name(layer_name)
+    raise ValueError("A layer_name or layer_id is required.")
 
 
 def _ambiguous_layer(name: str, matches: list[QgsMapLayer]) -> ValueError:

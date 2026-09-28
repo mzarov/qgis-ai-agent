@@ -10,6 +10,8 @@ class DescribeLayerTool(BaseTool):
     description = "..."                # English, goes into the schema for the model
     skill = "inspect"                  # domain: which skill loads this tool
     safety = SAFETY_READ               # read | write | destructive
+    egress = EGRESS_FEATURE_VALUES      # sources and attribute values are sensitive
+    external_effect = False            # true for changes a snapshot cannot restore
     network_access = False             # true when execute contacts a service
     constraints = ["The layer must exist"]
     examples = ["Which fields does the roads layer have?"]
@@ -26,6 +28,23 @@ class DescribeLayerTool(BaseTool):
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         ...
 ```
+
+Every tool class explicitly declares `safety`, `egress`, `external_effect` and
+`network_access`; inherited defaults are not a substitute for reviewing effects.
+Override `safety_for`, `has_external_effect` or `has_network_access` when effects
+depend on arguments. Classify all returned values with `egress`, including
+metadata that reveals source locations, exact extents or category values.
+
+`prepare` validates and normalizes arguments without modifying project state or
+contacting services; bind target layers by ID. `execute` runs on the main thread,
+returns JSON-compatible values and reports partial effects accurately on failure.
+Raise clear English errors with a recovery hint. `summarize_call` handles invalid
+input and uses translated text because it can run on an error path.
+
+Built-in Processing algorithms that modify existing sources belong in
+`processing/effects.py::SOURCE_WRITERS`. Add an effect-policy regression test
+when adding an entry. Unknown providers, scripts and models are conservative by
+default; output-path checks still apply to ordinary built-in algorithms.
 
 `get_openai_schema()` is built from `params_schema` automatically — never write
 the schema by hand. Supported `type`s: `string`, `number`, `integer`, `boolean`,
@@ -77,8 +96,8 @@ the schema by hand. Supported `type`s: `string`, `number`, `integer`, `boolean`,
 3. Processing: `QgsApplication.processingRegistry()`, the `processing` module.
 4. `try/except` around anything risky, log through
    `QgsMessageLog.logMessage(msg, "AI Agent", Qgis.Info)`.
-5. Imports at the top, absolute. Code without comments or docstrings — see the
-   root CLAUDE.md.
+5. Imports at the top, absolute. Concise docstrings document contracts; comments
+   explain non-obvious reasons — see the root CLAUDE.md.
 
 ## Domain boundaries
 

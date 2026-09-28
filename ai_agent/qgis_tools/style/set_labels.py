@@ -3,7 +3,7 @@ from typing import Any
 from qgis.core import QgsVectorLayerSimpleLabeling
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.properties import as_bool, properties_of, shown
 from ai_agent.qgis_tools.common.values import suggest_fields
 from ai_agent.qgis_tools.style.apply import (
@@ -26,6 +26,9 @@ class SetLabelsTool(BaseTool):
     )
     skill = "style"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = [
         "The label field must exist in the layer",
         "All properties go in one call, not several",

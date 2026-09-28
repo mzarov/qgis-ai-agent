@@ -9,7 +9,7 @@ from qgis.core import (
 )
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, BaseTool
 
 MAX_TREE_DEPTH = 6
 
@@ -23,6 +23,9 @@ class GetProjectInfoTool(BaseTool):
     )
     skill = "inspect"
     safety = SAFETY_READ
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     examples = ["Tell me about my project", "Which layer groups are there?", "What is on the map now?"]
     params_schema = []
 

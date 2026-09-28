@@ -1,7 +1,7 @@
 from typing import Any
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_READ, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.project.notes import MAX_NOTE_CHARS, NoteStore
 
 SCOPE_NOTE = "Remembered for this project only. It comes back on every future conversation about the same project."
@@ -19,6 +19,9 @@ class RememberTool(BaseTool):
     )
     skill = "project"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = [
         "One fact per note, short and self-contained",
         "Facts about the user's project, not about how to use QGIS",
@@ -56,6 +59,9 @@ class ListNotesTool(BaseTool):
     description = "Show everything remembered about this project."
     skill = "project"
     safety = SAFETY_READ
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     examples = ["What do you remember about this project?"]
     params_schema = []
 
@@ -72,6 +78,9 @@ class ForgetTool(BaseTool):
     description = "Remove one remembered fact about this project, matched exactly."
     skill = "project"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = ["The text must match a stored note exactly (see list_notes)"]
     examples = ["Forget that POP2020 note"]
     params_schema = [

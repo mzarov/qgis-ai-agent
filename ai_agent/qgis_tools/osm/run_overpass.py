@@ -1,7 +1,7 @@
 from typing import Any
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.osm.args import geometry, wanted_name
 from ai_agent.qgis_tools.osm.fetch import fetch
 from ai_agent.qgis_tools.osm.load import SUBLAYERS, load_sublayers, write_payload
@@ -35,6 +35,9 @@ class RunOverpassTool(BaseTool):
     )
     skill = "osm"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = [
         "The whole query is yours: the header, the territory and the output statement",
         f"End it with '{RECURSE_DOWN}' and then 'out body;' or the geometry cannot be built",

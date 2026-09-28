@@ -3,7 +3,7 @@ from typing import Any
 from qgis.core import QgsProviderRegistry
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, BaseTool
 
 DB_PROVIDER = "postgres"
 NO_CONNECTIONS_NOTE = (
@@ -37,6 +37,9 @@ class ListDbConnectionsTool(BaseTool):
     )
     skill = "project"
     safety = SAFETY_READ
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     examples = ["Which databases can I connect to?", "Load the roads table from PostGIS"]
     params_schema = []
 

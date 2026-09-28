@@ -3,7 +3,7 @@ from typing import Any
 from qgis.core import QgsSingleSymbolRenderer
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.layers import geometry_type_name
 from ai_agent.qgis_tools.common.properties import properties_of, shown
 from ai_agent.qgis_tools.style.apply import refresh, require_vector_layer
@@ -21,6 +21,9 @@ class SetSymbolTool(BaseTool):
     )
     skill = "style"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = [
         "The layer must exist and be a vector layer",
         "All properties go in one call, not several",

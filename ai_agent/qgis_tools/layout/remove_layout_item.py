@@ -1,7 +1,7 @@
 from typing import Any
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.layout.items import find_item, item_kind
 from ai_agent.qgis_tools.layout.pages import find_layout
 
@@ -11,6 +11,9 @@ class RemoveLayoutItemTool(BaseTool):
     description = "Remove one item from a print layout by its id. The layout itself stays."
     skill = "layout"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = ["The item id must exist (see describe_layout)"]
     examples = ["Drop the second label", "Remove the scale bar"]
     params_schema = [

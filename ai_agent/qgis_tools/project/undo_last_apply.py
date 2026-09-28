@@ -3,7 +3,7 @@ from typing import Any
 from qgis.core import QgsProject
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_DESTRUCTIVE, BaseTool
 from ai_agent.qgis_tools.project.snapshots import (
     capture_project_state,
     drop_snapshot,
@@ -36,6 +36,9 @@ class UndoLastApplyTool(BaseTool):
     )
     skill = "project"
     safety = SAFETY_DESTRUCTIVE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = ["A plan must have been applied in this session"]
     examples = ["Undo that", "Roll back the last change"]
     params_schema = []

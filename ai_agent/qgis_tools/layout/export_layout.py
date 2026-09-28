@@ -4,7 +4,7 @@ from typing import Any
 from qgis.core import QgsLayoutExporter
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.paths import (
     check_overwrites,
     numbered_output_paths,
@@ -25,6 +25,8 @@ class ExportLayoutTool(BaseTool):
     )
     skill = "layout"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    network_access = False
     external_effect = True
     constraints = [
         "The layout must exist",

@@ -33,6 +33,8 @@ class DescribeLayerTool(BaseTool):
     )
     skill = "inspect"
     safety = SAFETY_READ
+    external_effect = False
+    network_access = False
     egress = EGRESS_FEATURE_VALUES
     constraints = ["A layer with this name must exist in the project"]
     examples = ["Which fields does the 'Cities' layer have?", "What CRS is the roads layer in?"]

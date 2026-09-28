@@ -4,7 +4,7 @@ from urllib.parse import quote
 from qgis.core import QgsRasterLayer
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.project.tree import layer_names, layer_tree, project
 
 WMS_PROVIDER = "wms"
@@ -47,6 +47,9 @@ class AddBasemapTool(BaseTool):
     )
     skill = "project"
     safety = SAFETY_WRITE
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = ["A custom url must contain the {z}, {x} and {y} placeholders"]
     examples = ["Add an OpenStreetMap basemap", "Put satellite imagery under my layers"]
     params_schema = [

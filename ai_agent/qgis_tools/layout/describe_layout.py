@@ -1,7 +1,7 @@
 from typing import Any
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
+from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.layout.items import describe_item, layout_items
 from ai_agent.qgis_tools.layout.pages import current_page_mm, find_layout
 
@@ -20,6 +20,9 @@ class DescribeLayoutTool(BaseTool):
     )
     skill = "layout"
     safety = SAFETY_READ
+    egress = EGRESS_METADATA
+    external_effect = False
+    network_access = False
     constraints = ["The layout must exist (see list_layouts)"]
     examples = ["What is on the A4 layout?", "Where does the legend sit?"]
     params_schema = [

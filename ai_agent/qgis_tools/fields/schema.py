@@ -14,7 +14,6 @@ FIELD_TYPES = {
     "date": (QVariant.Date, 10, 0),
 }
 MAX_NAME_CHARS = 63
-COMMIT_FAILED = "QGIS could not commit the schema change: {reason}. The layer was rolled back."
 
 
 def require_vector(layer_name: str) -> QgsVectorLayer:
@@ -58,21 +57,3 @@ def build_field(name: str, kind: Any) -> QgsField:
         raise ValueError(f"Unknown field type '{kind}'. Available: {', '.join(sorted(FIELD_TYPES))}.")
     variant, length, precision = FIELD_TYPES[wanted]
     return QgsField(name, variant, "", length, precision)
-
-
-def commit(layer: QgsVectorLayer) -> None:
-    if layer.commitChanges():
-        return
-    reason = "; ".join(layer.commitErrors() or []) or "provider refused"
-    layer.rollBack()
-    raise ValueError(COMMIT_FAILED.format(reason=reason))
-
-
-def start_editing(layer: QgsVectorLayer) -> None:
-    if not layer.startEditing():
-        raise ValueError(
-            f"Layer '{layer.name()}' cannot be switched into editing mode — "
-            "its data source is read-only. Extract what you need into a new editable "
-            "layer instead: native:extractbyexpression with the features to KEEP, "
-            "then remove the old layer."
-        )
