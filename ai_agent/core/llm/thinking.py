@@ -7,10 +7,6 @@ class ThinkSplitter:
         self._pending = ""
         self._inside = False
 
-    @property
-    def inside(self) -> bool:
-        return self._inside
-
     def feed(self, text: str) -> tuple[str, str]:
         self._pending += text or ""
         visible: list[str] = []
@@ -37,6 +33,18 @@ class ThinkSplitter:
 
 
 def split_thinking(text: str) -> tuple[str, str]:
+    """Separate reasoning from the answer in a whole reply.
+
+    Local servers whose chat template opens `<think>` inside the prompt send
+    the reasoning with only a closing tag; everything before an unopened
+    closing tag is reasoning too.
+    """
+    text = text or ""
+    close_index, close_tag = _earliest(text, CLOSE_TAGS)
+    open_index, _ = _earliest(text, OPEN_TAGS)
+    if close_tag and (open_index < 0 or close_index < open_index):
+        visible, thought = split_thinking(text[close_index + len(close_tag) :])
+        return visible, text[:close_index] + thought
     splitter = ThinkSplitter()
     visible, thought = splitter.feed(text)
     tail_visible, tail_thought = splitter.flush()

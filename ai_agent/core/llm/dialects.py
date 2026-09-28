@@ -13,7 +13,7 @@ OPENAI_PATH = "/chat/completions"
 OPENROUTER_HOSTS = ("openrouter.ai",)
 REFERER = "https://github.com/mzarov/qgis-ai-agent"
 TITLE = "AI Agent"
-DEFAULT_MAX_TOKENS = 4096
+DEFAULT_MAX_TOKENS = 16000
 UNSPECIFIED_IPV4 = str(ipaddress.ip_address(0))
 LOOPBACK_HOSTS = ("localhost", UNSPECIFIED_IPV4)
 

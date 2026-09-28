@@ -55,11 +55,17 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    blocking for the caller and on the background thread. Parsing lives apart in
    `llm/stream.py`, pure Python and therefore testable. A refusing endpoint is
    remembered as `supports_streaming = false` and falls back to one request —
-   but only a genuine refusal counts. A 401 or a 429 says nothing about
-   streaming, and disabling the feature over one would be permanent and
-   silent; those are raised as themselves. A stream that yields no events at
-   all is a refusal too — that is a server ignoring `stream`, not an empty
-   answer.
+   but only a genuine refusal counts. `llm/refusals.py` requires the feature
+   named next to a refusal phrase, or a structured error pointing at the
+   feature's parameter; a context overflow, a quota error or a thinking
+   signature error never counts, and bare fragments like "stream" or
+   "function" are not enough. A 401 or a 429 says nothing about streaming and
+   is raised as itself. A stream that yields no SSE events at all is a refusal
+   — a server ignoring `stream`; its plain JSON body is read as the answer. An
+   error event inside a 200 stream is raised as an API error (overloaded →
+   529), and a stream that closes without `[DONE]` / a finish reason /
+   `message_stop` is incomplete, never a short answer. A successful connection
+   test in Settings forgets everything detected about that endpoint.
    Live deltas stop reaching the UI at the first tool-call delta, but the
    preamble is not lost: once the turn arrives, the loop emits it whole and the
    orchestrator saves it like any answer — so the chat keeps the text and still
@@ -126,9 +132,10 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    see something other than what the chat shows.
 14. **Aborting never blocks the main thread.** `abort` does not wait and does not
    kill the thread — it disconnects the signals and lets the HTTP request burn
-   out in the background; the result is discarded by the `_aborted` flag. The
-   hard `stop` with `terminate` remains only for plugin unload, when QGIS is
-   closing anyway.
+   out in the background; the result is discarded by the `_aborted` flag.
+   Plugin unload cancels and waits for every thread, retired ones included, and
+   keeps a thread that is still running alive until it finishes; nothing ever
+   calls `terminate`.
 15. **Keys live in the QGIS authentication database.** `credentials.py` talks to
     `QgsAuthManager`: the encrypted `qgis-auth.db` inside the profile, the same
     store QGIS uses for layer passwords. The earlier `keyring` route was the
@@ -152,12 +159,17 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     touches `qgis`.
 17. **The transport retries, but only what is worth retrying.** `llm/retry.py`
     wraps every `_dispatch` in `call_model`: three attempts, backoff 1.5 s then
-    4 s, on 408/425/429/5xx and on connection failures that came back **fast**
+    4 s or the server's `Retry-After` (capped at 30 s), on 408/425/429 and every
+    status ≥ 500 (529 is Anthropic's overload), never on a 429 for an exhausted
+    quota, and on connection failures that came back **fast**
     (under `FAST_FAILURE_SECONDS`) — a fast failure is a reset or a refusal, a
     slow one is a timeout that would only time out again. Never after a stream
     has delivered chunks (the draft would be duplicated), never after the user
-    cancelled (the pause polls the feedback every quarter second). Retries are
-    logged to the QGIS message log, not shown in the feed.
+    cancelled (the pause polls the feedback every quarter second); streamed
+    reasoning counts as delivered too. Retries are logged to the QGIS message
+    log, not shown in the feed. Blocking calls wait `blocking_timeout` — five
+    times the stream idle limit — because a non-streamed answer arrives only
+    when the model is done.
 18. **The prefix never moves; the state rides at the end.** Everything that
     changes during a run — notes, plan, queued steps, project context — is one
     state message appended after the transcript (`llm/live.py`), never part of
@@ -177,7 +189,18 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     providers are never asked to count: `COUNT(*)` on a big table would stall
     the main thread before the first turn. Extents and values stay behind the
     sensitive-data switch.
-20. **Imports** — all at the top, absolute. Use concise contract docstrings and
+20. **Anthropic thinking follows the model generation.** `anthropic.thinking_config`:
+    Fable, Mythos and Opus 5.5 always think (no `disabled`, no `budget_tokens`);
+    the 4.6+ generation takes only `adaptive`; older models keep
+    `budget_tokens`. `display: "summarized"` where the default is "omitted".
+    Thinking blocks go back unchanged whenever the model may have produced
+    them. Models that bind a thinking block to the exact conversation prefix
+    (Fable 5.1, Mythos 5.1, Opus 5.5) get `block_binding: drop_block` with the
+    `thinking-binding-controls` beta on api.anthropic.com: the state message
+    and compaction edit history every turn, so a mismatched block is dropped
+    instead of failing the request. A turn cut off by `max_tokens` with tool
+    calls runs none of them and tells the model to resend.
+21. **Imports** — all at the top, absolute. Use concise contract docstrings and
     comments for non-obvious reasons — see the root CLAUDE.md.
 
 ## What lives where

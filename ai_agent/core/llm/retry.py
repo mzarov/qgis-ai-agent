@@ -7,7 +7,10 @@ from qgis.core import Qgis, QgsMessageLog
 from ai_agent.core.llm.client import ApiResponseError
 
 LOG_TAG = "AI Agent"
-RETRYABLE_STATUSES = frozenset({408, 425, 429, 500, 502, 503, 504})
+RETRYABLE_STATUSES = frozenset({408, 425, 429})
+SERVER_ERROR = 500
+MAX_RETRY_AFTER_SECONDS = 30.0
+QUOTA_MARKERS = ("insufficient_quota", "billing", "credit balance")
 MAX_ATTEMPTS = 3
 BACKOFF_SECONDS = (1.5, 4.0)
 POLL_SECONDS = 0.25
@@ -18,6 +21,8 @@ CLOCK = time.monotonic
 
 
 class ChunkGuard:
+    """Count what reached the user, so a retry never repeats streamed text or reasoning."""
+
     def __init__(self, target: Callable[[str], None] | None):
         self._target = target
         self.delivered = 0
@@ -26,6 +31,16 @@ class ChunkGuard:
         self.delivered += 1
         if self._target is not None:
             self._target(text)
+
+    def wrap(self, target: Callable[[str], None] | None) -> Callable[[str], None] | None:
+        if target is None:
+            return None
+
+        def counted(text: str) -> None:
+            self.delivered += 1
+            target(text)
+
+        return counted
 
 
 def with_retries(
@@ -47,7 +62,7 @@ def with_retries(
             exhausted = attempts >= MAX_ATTEMPTS
             if exhausted or delivered() or is_cancelled(feedback) or not is_retryable(error, now() - started):
                 raise
-            delay = BACKOFF_SECONDS[min(attempts - 1, len(BACKOFF_SECONDS) - 1)]
+            delay = retry_delay(error, attempts)
             QgsMessageLog.logMessage(
                 RETRY_LOG.format(reason=_reason(error), delay=delay, attempt=attempts + 1, total=MAX_ATTEMPTS),
                 LOG_TAG,
@@ -56,9 +71,19 @@ def with_retries(
             _pause(delay, feedback, pause)
 
 
+def retry_delay(error: Exception, attempts: int) -> float:
+    """The server's Retry-After when it sent one (capped), else the backoff table."""
+    hinted = getattr(error, "retry_after", None)
+    if isinstance(hinted, (int, float)) and hinted > 0:
+        return min(float(hinted), MAX_RETRY_AFTER_SECONDS)
+    return BACKOFF_SECONDS[min(attempts - 1, len(BACKOFF_SECONDS) - 1)]
+
+
 def is_retryable(error: Exception, elapsed: float) -> bool:
     if isinstance(error, ApiResponseError):
-        return error.status_code in RETRYABLE_STATUSES
+        if error.status_code == 429 and any(marker in (error.body or "").lower() for marker in QUOTA_MARKERS):
+            return False
+        return error.status_code in RETRYABLE_STATUSES or error.status_code >= SERVER_ERROR
     return isinstance(error, ConnectionError) and elapsed < FAST_FAILURE_SECONDS
 
 

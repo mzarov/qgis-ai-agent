@@ -248,6 +248,22 @@ def _url_settings_key(url: str) -> str:
     return _scope_digest(normalized)
 
 
+CAPABILITIES = ("supports_images", "supports_thinking", "supports_streaming", "supports_tools")
+
+
+def reset_capabilities(url: str, model: str | None = None, dialect: str | None = None) -> None:
+    """Forget what was detected about an endpoint, so the next run detects it afresh.
+
+    Detection remembers refusals for good; a successful connection test is the
+    user's way to say "try everything again".
+    """
+    settings = QgsSettings()
+    key = _capability_settings_key(url, model, dialect)
+    for capability in CAPABILITIES:
+        settings.remove(f"{SETTINGS_PREFIX}/{capability}/{key}")
+    settings.sync()
+
+
 def _capability_settings_key(url: str, model: str | None, dialect: str | None) -> str:
     scope = "\n".join(
         (

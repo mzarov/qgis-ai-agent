@@ -28,3 +28,7 @@ CONTINUE_TRUNCATED = (
 )
 EMPTY_REPLY = "[Plugin note] Your last reply was empty. Call the tools you need or give the user your answer."
 TRUNCATED_REASONS = frozenset({"length", "max_tokens"})
+CALLS_CUT_OFF = (
+    "This turn was cut off by the output limit before its tool calls were complete, so none of them ran. "
+    "Send them again; split a long argument (code, a long list) into smaller calls."
+)

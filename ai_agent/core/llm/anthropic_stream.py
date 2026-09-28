@@ -3,11 +3,11 @@ from collections.abc import Callable
 from typing import Any
 
 from ai_agent.core.llm.anthropic import TEXT_BLOCK, THINKING_BLOCK, TOOL_USE
-from ai_agent.core.llm.client import ApiResponseError, post_json
+from ai_agent.core.llm.client import ApiResponseError, blocking_timeout, post_json
 from ai_agent.core.llm.dialects import resolve
 from ai_agent.core.llm.refusals import streaming_unsupported, thinking_unsupported
 from ai_agent.core.llm.stream import SseAccumulator
-from ai_agent.core.llm.stream_runner import post_stream
+from ai_agent.core.llm.stream_runner import STREAM_EVENTS_KEY, post_stream
 from ai_agent.core.settings import (
     get_dialect,
     get_model,
@@ -17,6 +17,8 @@ from ai_agent.core.settings import (
 
 MESSAGE_START = "message_start"
 MESSAGE_DELTA = "message_delta"
+MESSAGE_STOP = "message_stop"
+ERROR_EVENT = "error"
 BLOCK_START = "content_block_start"
 BLOCK_DELTA = "content_block_delta"
 BLOCK_STOP = "content_block_stop"
@@ -40,14 +42,27 @@ class StreamedMessage:
         self._json: dict[int, list[str]] = {}
         self._stop_reason = ""
         self._usage: dict[str, Any] = {}
+        self.stopped = False
+        self.error: dict[str, Any] | None = None
+
+    @property
+    def finished(self) -> bool:
+        return self.stopped
 
     def take(self, event: str) -> None:
         try:
             parsed = json.loads(event)
         except ValueError:
             return
+        if not isinstance(parsed, dict):
+            return
         kind = parsed.get("type")
-        if kind == MESSAGE_START:
+        if kind == ERROR_EVENT:
+            error = parsed.get("error")
+            self.error = error if isinstance(error, dict) else {"message": str(error or "")}
+        elif kind == MESSAGE_STOP:
+            self.stopped = True
+        elif kind == MESSAGE_START:
             self._merge_usage((parsed.get("message") or {}).get("usage"))
         elif kind == BLOCK_START:
             self._start_block(parsed)
@@ -143,7 +158,7 @@ class AnthropicExchange:
             self._endpoint,
             self._headers,
             body,
-            self._timeout,
+            blocking_timeout(self._timeout),
             self._verify,
             self._feedback,
         )
@@ -170,9 +185,9 @@ class AnthropicExchange:
                 raise
             set_supports_streaming(self._url, False, self._model, self._dialect)
             return None
-        if not data.get("content"):
+        if data.get(STREAM_EVENTS_KEY) == 0:
             set_supports_streaming(self._url, False, self._model, self._dialect)
-            return None
+            return data if data.get("content") else None
         if get_supports_streaming(self._url, self._model, self._dialect) is None:
             set_supports_streaming(self._url, True, self._model, self._dialect)
         return data

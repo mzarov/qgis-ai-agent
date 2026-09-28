@@ -5,6 +5,7 @@ from ai_agent.core.llm import anthropic, transport
 from ai_agent.core.llm.anthropic_stream import AnthropicExchange, StreamedMessage, consume_anthropic
 from ai_agent.core.llm.client import ApiResponseError
 from ai_agent.core.llm.stream import SseAccumulator
+from ai_agent.core.llm.stream_runner import _finished_response as finished_response
 
 URL = "https://api.anthropic.com"
 
@@ -162,13 +163,15 @@ class ExchangeTest(unittest.TestCase):
     def _exchange(self, on_chunk=None):
         return AnthropicExchange("https://api.anthropic.com/v1/messages", {}, 10, URL, {}, on_chunk, None)
 
-    def _streaming(self, *chunks):
+    def _streaming(self, *chunks, complete=True):
         def fake(endpoint, headers, body, message, timeout, verify=None):
             accumulator = SseAccumulator()
-            for chunk in chunks:
+            for chunk in (*chunks, event({"type": "message_stop"})) if complete else chunks:
                 for stream_event in accumulator.feed(chunk):
                     message.take(stream_event)
-            return message.response()
+            for stream_event in accumulator.flush():
+                message.take(stream_event)
+            return finished_response(message, accumulator, endpoint)
 
         return fake
 
@@ -226,7 +229,7 @@ class ExchangeTest(unittest.TestCase):
         self.assertEqual(self.flags, [])
 
     def test_an_empty_stream_counts_as_a_refusal(self):
-        self.module.post_stream = self._streaming(event({"type": "ping"}))
+        self.module.post_stream = self._streaming(complete=False)
         self.assertEqual(self._exchange(lambda t: None).send({})["content"][0]["text"], "plain")
         self.assertEqual(self.flags, [False])
 

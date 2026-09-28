@@ -5,7 +5,7 @@ from qgis.core import QgsNetworkAccessManager
 from qgis.PyQt.QtCore import QByteArray, QEventLoop, QObject, Qt, QTimer, pyqtSlot
 from qgis.PyQt.QtNetwork import QNetworkRequest
 
-from ai_agent.core.llm.client import ApiResponseError, build_network_request
+from ai_agent.core.llm.client import ApiResponseError, build_network_request, retry_after_of
 from ai_agent.core.llm.dialects import safe_endpoint_label
 from ai_agent.core.llm.stream import SseAccumulator
 
@@ -14,6 +14,10 @@ MILLISECONDS = 1000
 STREAM_TIMED_OUT = "The streaming connection to {endpoint} went quiet and was closed."
 STREAM_CANCELLED = "The streaming connection to {endpoint} was cancelled."
 STREAM_FAILED = "Could not stream from {endpoint}: {reason}."
+STREAM_INCOMPLETE = "The stream from {endpoint} ended before the answer was complete."
+STREAM_EVENTS_KEY = "_stream_events"
+ERROR_STATUS = {"overloaded_error": 529, "rate_limit_error": 429, "api_error": 500, "timeout_error": 504}
+DEFAULT_ERROR_STATUS = 502
 ERROR_BODY_LIMIT = 300
 ACCEPT_HEADER = {"Accept": "text/event-stream"}
 
@@ -93,6 +97,7 @@ def post_stream(
     drain()
     status = _status_of(reply)
     failure = _failure_of(reply)
+    retry_after = retry_after_of(reply)
     reply.deleteLater()
 
     if cancellation.cancelled:
@@ -101,10 +106,34 @@ def post_stream(
         raise ConnectionError(STREAM_TIMED_OUT.format(endpoint=safe_endpoint_label(endpoint)))
     if status >= 400:
         text = b"".join(error_tail).decode("utf-8", errors="replace")
-        raise ApiResponseError(status, text[:ERROR_BODY_LIMIT] or f"HTTP {status}")
+        raise ApiResponseError(status, text[:ERROR_BODY_LIMIT] or f"HTTP {status}", retry_after=retry_after)
     if failure:
         raise ConnectionError(STREAM_FAILED.format(endpoint=safe_endpoint_label(endpoint), reason=failure))
-    return completion.response()
+    for event in accumulator.flush():
+        completion.take(event)
+    return _finished_response(completion, accumulator, endpoint)
+
+
+def _finished_response(completion: Any, accumulator: SseAccumulator, endpoint: str) -> dict[str, Any]:
+    """Turn a closed stream into a response, or raise what really happened.
+
+    An error event inside a 200 stream (an overloaded model, an upstream
+    failure) is raised as an API error so the retry layer sees it; a stream
+    that closed without its terminator is an incomplete answer, not a short
+    one. A server that ignored `stream` and sent one plain JSON body is read as
+    that body.
+    """
+    error = getattr(completion, "error", None)
+    if error:
+        kind = str(error.get("type") or error.get("code") or "")
+        raise ApiResponseError(ERROR_STATUS.get(kind, DEFAULT_ERROR_STATUS), json.dumps(error, ensure_ascii=False))
+    if accumulator.event_count == 0:
+        plain = accumulator.plain_json()
+        response = plain if isinstance(plain, dict) else completion.response()
+        return {**response, STREAM_EVENTS_KEY: 0}
+    if not getattr(completion, "finished", True):
+        raise ConnectionError(STREAM_INCOMPLETE.format(endpoint=safe_endpoint_label(endpoint)))
+    return {**completion.response(), STREAM_EVENTS_KEY: accumulator.event_count}
 
 
 def _status_of(reply: Any) -> int:
