@@ -5,7 +5,7 @@ from collections.abc import Iterable
 from ai_agent.skills.base import Skill, parse_skill_markdown
 
 SKILL_FILENAME = "SKILL.md"
-SUMMARIES_HEADER = "Available skills (load one before acting in its domain):"
+SUMMARIES_HEADER = "Available skills (load the ones the task needs, several in one turn if needed):"
 BUILTIN = "builtin"
 LOCAL = "local"
 SKILL_NAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")

@@ -12,6 +12,7 @@ from ai_agent.core.llm.client import (
 )
 from ai_agent.core.llm.dialects import ANTHROPIC, host_of, resolve
 from ai_agent.core.llm.images import IMAGE_REJECTED_STATUS_CODES, has_images, without_images
+from ai_agent.core.llm.live import fold_live
 from ai_agent.core.llm.parser import parse_model_json, parse_tool_arguments
 from ai_agent.core.llm.refusals import streaming_unsupported, thinking_unsupported, tools_unsupported
 from ai_agent.core.llm.retry import ChunkGuard, with_retries
@@ -113,6 +114,7 @@ def _dispatch(
     cache_url, cache_model, cache_dialect = _capability_scope(url, overrides)
     if cache_dialect == ANTHROPIC:
         return _call_anthropic(messages, tool_schemas, overrides, timeout, url, on_chunk, on_thinking)
+    messages = fold_live(messages)
     supports_tools = get_supports_tools(cache_url, cache_model, cache_dialect)
 
     if supports_tools is not False and tool_schemas:

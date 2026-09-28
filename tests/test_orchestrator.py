@@ -58,8 +58,9 @@ class Agent:
         self.is_applying = False
         self.active_apply_tool = ""
 
-    def start(self, prompt, history, verification=False, verification_round=0, skills=None):
+    def start(self, prompt, history, verification=False, verification_round=0, skills=None, preload=None):
         self.skills = skills
+        self.preload = preload
         if verification:
             self.verification_round = verification_round
             self.verification_started = (prompt, list(history))
@@ -466,6 +467,12 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.assertIn("set_symbol: ok", prompt)
         self.assertIn("Verify", prompt)
         self.assertTrue(any("Done: 1 step applied" in item["content"] for item in history))
+
+    def test_verification_starts_with_the_skills_of_the_applying_run(self):
+        self.orchestrator.on_prompt("сделай реки синими")
+        self.orchestrator.agent.loaded_skills = ["inspect", "style"]
+        self.orchestrator.on_applied([Result(name="set_symbol")])
+        self.assertEqual(self.orchestrator.agent.preload, ["inspect", "style"])
 
     def test_failed_steps_reach_the_verification_prompt(self):
         self.orchestrator.on_prompt("сделай реки синими")

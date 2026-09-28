@@ -2,6 +2,7 @@ import json
 from typing import Any
 
 from ai_agent.core.llm.dialects import DEFAULT_MAX_TOKENS
+from ai_agent.core.llm.live import split_live
 
 TEXT_BLOCK = "text"
 IMAGE_BLOCK = "image"
@@ -36,7 +37,8 @@ def build_body(
     budget = int(thinking_budget or 0)
     mode = _thinking_mode(model, budget)
     thinking_on = mode in ("enabled", "adaptive")
-    system, turns = split_system(messages if thinking_on else _without_thinking(messages))
+    history, live = split_live(messages)
+    system, turns = split_system(history if thinking_on else _without_thinking(history))
     body: dict[str, Any] = {
         "model": model,
         "max_tokens": max(max_tokens, budget + ANSWER_HEADROOM) if mode == "enabled" else max_tokens,
@@ -50,6 +52,8 @@ def build_body(
         body["system"] = _system_blocks(system, cache_prefix_chars) if cache_prefix_chars > 0 else system
     if cache_prefix_chars > 0:
         body["messages"] = _with_message_breakpoint(turns)
+    if live:
+        body["messages"] = _with_live_state(body["messages"], live)
     if tool_schemas:
         body["tools"] = [translate_tool(schema) for schema in tool_schemas]
     return body
@@ -72,6 +76,15 @@ def _with_message_breakpoint(turns: list[dict[str, Any]]) -> list[dict[str, Any]
     if blocks and blocks[-1].get("type") not in THINKING_BLOCKS:
         blocks[-1]["cache_control"] = dict(EPHEMERAL)
     last["content"] = blocks
+    return [*turns[:-1], last]
+
+
+def _with_live_state(turns: list[dict[str, Any]], live: str) -> list[dict[str, Any]]:
+    block = {"type": TEXT_BLOCK, "text": live}
+    if not turns or turns[-1]["role"] != USER:
+        return [*turns, {"role": USER, "content": [block]}]
+    last = dict(turns[-1])
+    last["content"] = [*_as_blocks(last.get("content")), block]
     return [*turns[:-1], last]
 
 

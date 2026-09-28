@@ -207,7 +207,8 @@ class VerificationPromptTest(unittest.TestCase):
     def test_verification_asks_for_a_tidy_project(self):
         prompt = build_verification_prompt([{"tool": "download_osm", "ok": True}])
         self.assertIn("remove_layer", prompt)
-        self.assertIn("Never remove anything you did not create", prompt)
+        self.assertIn("Never remove a layer that existed before", prompt)
+        self.assertIn("If everything is right, queue nothing", prompt)
         self.assertIn("reorder_layers", prompt)
         self.assertIn("basemaps last", prompt)
 
