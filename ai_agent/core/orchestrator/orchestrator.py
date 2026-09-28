@@ -3,12 +3,12 @@ from typing import Any
 from qgis.core import Qgis, QgsMessageLog
 
 from ai_agent.core.agent.loop import AgentLoop
-from ai_agent.core.agent.prompts import build_verification_prompt
+from ai_agent.core.agent.verification import plan_verification
 from ai_agent.core.context.project import layer_choices
 from ai_agent.core.llm.client import is_local
 from ai_agent.core.orchestrator.contracts import DockWidgetContract
 from ai_agent.core.orchestrator.planning import destructive_lines, plan_line
-from ai_agent.core.orchestrator.presentation import compact_number, interrupted_outcome, is_configured, where_to_look
+from ai_agent.core.orchestrator.presentation import compact_number, is_configured, where_to_look
 from ai_agent.core.orchestrator.project_lifecycle import (
     PREVIOUS_APPLY_INTERRUPTED,
     PROJECT_CHANGED,
@@ -34,7 +34,6 @@ APPLY_STOPPED = tr("Run stopped during apply. Pending steps were cancelled; any 
 SWITCH_WHILE_RUNNING = tr("Wait for the current task to finish.")
 SWITCH_WHILE_APPLYING = tr("Changes are being applied — wait for that to finish.")
 VERIFYING = tr("Checking the applied changes…")
-MAX_VERIFICATION_ROUNDS = 3
 DESTRUCTIVE_DECLINED = tr("Kept everything as it was — the destructive steps were not applied.")
 INTERJECTED = tr("Passed to the agent — it will take this into account on its next step.")
 PLAN_DROPPED = tr("The planned changes were dropped — they were not applied. Starting over from your message.")
@@ -300,45 +299,20 @@ class CoreOrchestrator(ProjectLifecycleMixin):
             self._push_message(tr("Changes applied."), Qgis.MessageLevel.Success)
         self._maybe_verify(results)
 
-    def on_apply_interrupted(self, results: list) -> None:
-        scope = self._apply_scope
-        self._apply_scope = None
-        outcome = interrupted_outcome(results)
-        if not outcome:
-            return
-        current_scope = conversation_scope(self.conversation)
-        invalidated = scope is not None and scope == self._invalidated_scope
-        if scope != current_scope or invalidated:
-            if scope is not None:
-                self.conversation.add_scoped(scope, "assistant", outcome)
-            if invalidated and scope == current_scope:
-                self._deferred_interrupted_outcome = outcome
-            else:
-                self._show_previous_apply(outcome)
-            return
-        self.dock_widget.add_result_message(outcome)
-        self.conversation.add("assistant", outcome)
-
     def _maybe_verify(self, results: list) -> None:
         if not results or self.agent.is_running or not get_verify_after_apply():
             return
-        next_round = self.agent.verification_round + 1
-        if next_round > MAX_VERIFICATION_ROUNDS:
-            QgsMessageLog.logMessage(
-                f"Stopping after {MAX_VERIFICATION_ROUNDS} verification rounds.", LOG_TAG, Qgis.MessageLevel.Warning
-            )
+        loaded = list(getattr(self.agent, "loaded_skills", None) or [])
+        start = plan_verification(results, self.agent.verification_round, self._last_request, loaded)
+        if start is None:
             return
-        outcomes = [
-            {"tool": result.call.name, "ok": result.ok, "error": str(result.payload.get("error", ""))}
-            for result in results
-        ]
         self.dock_widget.add_system_message(VERIFYING)
         self.agent.start(
-            build_verification_prompt(outcomes, self._last_request),
+            start.prompt,
             self.conversation.window(),
             verification=True,
-            verification_round=next_round,
-            preload=list(getattr(self.agent, "loaded_skills", None) or []),
+            verification_round=start.round,
+            preload=start.preload,
         )
 
     def on_finished(self, text: str) -> None:

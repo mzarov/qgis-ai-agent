@@ -7,7 +7,7 @@ from unittest import mock
 
 from ai_agent.core.agent import batch_apply as batch_apply_module
 from ai_agent.core.agent import journal as journal_module
-from ai_agent.core.agent import loop as loop_module
+from ai_agent.core.agent import run_journal as run_journal_module
 from ai_agent.core.agent.journal import render_journal, write_journal
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.transcript import ToolResult, Transcript
@@ -126,36 +126,36 @@ class LoopJournalTest(unittest.TestCase):
     def setUp(self):
         self.paths = []
         self.outcomes = []
-        self.saved = loop_module.record_run
+        self.saved = run_journal_module.record_run
 
         def record(prompt, entries, outcome, applied):
             self.paths.append((prompt, applied))
             self.outcomes.append(outcome)
             return "/tmp/run_x.md"
 
-        loop_module.record_run = record
+        run_journal_module.record_run = record
         self.loop = AgentLoop()
-        self.loop._prompt = "скачай кафе"
+        self.loop._journal.prompt = "скачай кафе"
         self.emitted = []
         self.loop.journal_written.connect(self.emitted.append)
 
     def tearDown(self):
-        loop_module.record_run = self.saved
+        run_journal_module.record_run = self.saved
 
     def test_a_run_without_applies_writes_nothing(self):
-        self.loop._applied_steps = 0
+        self.loop._journal.applied = 0
         self.loop._write_journal("готово")
         self.assertEqual(self.paths, [])
         self.assertEqual(self.emitted, [])
 
     def test_a_run_with_applies_writes_and_announces(self):
-        self.loop._applied_steps = 3
+        self.loop._journal.applied = 3
         self.loop._write_journal("готово")
         self.assertEqual(self.paths, [("скачай кафе", 3)])
         self.assertEqual(self.emitted, ["/tmp/run_x.md"])
 
     def test_a_journal_is_announced_only_once(self):
-        self.loop._applied_steps = 1
+        self.loop._journal.applied = 1
         self.loop._write_journal("готово")
         self.loop._write_journal("готово ещё раз")
         self.assertEqual(self.paths, [("скачай кафе", 1)])
@@ -173,7 +173,6 @@ class LoopJournalTest(unittest.TestCase):
             ToolResult(call=calls[2], ok=False, payload={"status": "skipped", "error": "not run"}),
         ]
         self.loop._batch = _FinalBatch(calls, results)
-        self.loop._journal_outcome = "готово"
         saved_snapshot = batch_apply_module.take_snapshot
         batch_apply_module.take_snapshot = lambda: True
         try:
@@ -191,8 +190,7 @@ class LoopJournalTest(unittest.TestCase):
     def test_snapshot_failure_is_the_journal_outcome_not_model_text(self):
         call = ToolCall(id="blocked", name="unknown_write")
         self.loop._batch = _FinalBatch([call], [])
-        self.loop._applied_steps = 1
-        self.loop._journal_outcome = "готово"
+        self.loop._journal.applied = 1
         with (
             mock.patch.object(batch_apply_module, "take_snapshot", return_value=False),
             mock.patch.object(batch_apply_module, "snapshot_error", return_value="snapshot failed"),

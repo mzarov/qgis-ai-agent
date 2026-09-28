@@ -123,7 +123,8 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    become short notes. Without this a forty-turn run would not fit the model
    window. Compaction happens at render time — the entries themselves are never
    mutated, so the saved conversation stays complete.
-12. **The orchestrator only renders.** Decisions belong to the loop;
+12. **The orchestrator only renders.** Decisions belong to the loop and to
+   `agent/verification.py` (when and how the check after Apply starts);
    `CoreOrchestrator` subscribes to signals and draws them into the chat.
    Do not add branching logic there.
 13. **A message is written with one call.** `ConversationState.add` puts it both
@@ -210,6 +211,9 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `agent/loop.py`          | the run state machine                               |
 | `agent/turn_thread.py`   | background-thread ownership: start, detach, stop    |
 | `agent/notices.py`       | the texts the loop hands outwards                   |
+| `agent/run_journal.py`   | the optional Markdown record of one run             |
+| `agent/budget.py`        | tokens spent against the budget from Settings       |
+| `agent/verification.py`  | what the check after Apply starts with, and the round cap |
 | `agent/request.py`       | messages, tool schemas and transport settings       |
 | `agent/executor.py`      | tool-call execution with error capture              |
 | `agent/transcript.py`    | the run transcript and rendering for both protocols |

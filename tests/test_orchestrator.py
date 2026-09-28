@@ -498,7 +498,7 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.assertIn("FAILED — no such layer", prompt)
 
     def test_verification_iterates_but_stops_at_the_cap(self):
-        from ai_agent.core.orchestrator.orchestrator import MAX_VERIFICATION_ROUNDS
+        from ai_agent.core.agent.verification import MAX_VERIFICATION_ROUNDS
 
         self.orchestrator.on_prompt("сделай реки синими")
         self.orchestrator.agent.verification_round = MAX_VERIFICATION_ROUNDS

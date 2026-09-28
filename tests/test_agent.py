@@ -491,7 +491,7 @@ class BatchDedupTest(unittest.TestCase):
                 ]
                 loop._transcript.add_results(acknowledgements, "native")
                 loop._staged = staged
-                loop._journal_saved = True
+                loop._journal.saved = True
                 loop._request_step = lambda: None
 
                 with mock.patch.object(batch_apply_module, "take_snapshot", return_value="/tmp/snapshot.qgz"):
@@ -500,7 +500,7 @@ class BatchDedupTest(unittest.TestCase):
                 recorded = loop._transcript.entries[0]["results"]
                 by_id = {result.call.id: result for result in recorded}
                 self.assertEqual(executor.ran, ["set_opacity"])
-                self.assertEqual(loop._applied_steps, 1)
+                self.assertEqual(loop._journal.applied, 1)
                 self.assertEqual(set(by_id), {"write_1", "write_2"})
                 self.assertNotEqual(by_id["write_1"].payload.get("status"), "queued")
                 self.assertNotEqual(by_id["write_2"].payload.get("status"), "queued")

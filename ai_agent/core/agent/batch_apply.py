@@ -56,7 +56,7 @@ class BatchApplyMixin:
         finally:
             self._active_apply_call = None
         successful = sum(1 for result in results if result.ok)
-        self._applied_steps += successful
+        self._journal.count(successful)
         if not self._is_current(generation):
             self._transcript.replace_results(results, self._pending_protocol)
             self._write_journal(INTERRUPTED_JOURNAL_OUTCOME)

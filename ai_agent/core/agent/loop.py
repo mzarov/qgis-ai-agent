@@ -4,16 +4,17 @@ from qgis.PyQt.QtCore import QObject, pyqtSignal
 from ai_agent.core.agent import notices
 from ai_agent.core.agent.batch import WriteBatch
 from ai_agent.core.agent.batch_apply import BatchApplyMixin
+from ai_agent.core.agent.budget import TokenBudget
 from ai_agent.core.agent.dispatch import DispatchMixin
 from ai_agent.core.agent.executor import ToolExecutor
-from ai_agent.core.agent.journal import record_run
 from ai_agent.core.agent.prompts import render_queued_steps, render_task_plan
 from ai_agent.core.agent.request import build_overrides, build_step_request
+from ai_agent.core.agent.run_journal import RunJournal
 from ai_agent.core.agent.skills import extend_loaded
 from ai_agent.core.agent.transcript import ToolResult, Transcript
 from ai_agent.core.agent.turn_thread import TurnThreadOwner
 from ai_agent.core.llm.transport import PROTOCOL_JSON, PROTOCOL_NATIVE, ModelTurn, ToolCall
-from ai_agent.core.settings import get_token_budget, get_write_run_journal
+from ai_agent.core.settings import get_token_budget
 from ai_agent.qgis_tools.web.http import cancel_active_requests
 from ai_agent.skills.registry import SKILL_REGISTRY
 
@@ -60,8 +61,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._nudged = False
         self._aborted = False
         self._is_verification = False
-        self._tokens_spent = 0
-        self._token_budget = 0
+        self._budget = TokenBudget()
         self._plan_steps: list[str] = []
         self._plan_done = 0
         self._staged = False
@@ -73,10 +73,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._generation = 0
         self._turn_callbacks: tuple | None = None
         self._active_apply_call: ToolCall | None = None
-        self._prompt = ""
-        self._applied_steps = 0
-        self._journal_outcome = ""
-        self._journal_saved = False
+        self._journal = RunJournal()
 
     @property
     def is_running(self) -> bool:
@@ -122,15 +119,11 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._generation += 1
         self._transcript = Transcript()
         self._transcript.add_user(prompt)
-        self._prompt = prompt
-        self._applied_steps = 0
-        self._journal_outcome = ""
-        self._journal_saved = False
+        self._journal.begin(prompt)
         self._history = list(history or [])
         self._is_verification = verification
         self._verification_round = verification_round
-        self._tokens_spent = 0
-        self._token_budget = get_token_budget()
+        self._budget.reset(get_token_budget())
         self._plan_steps = []
         self._plan_done = 0
         self._staged = False
@@ -198,7 +191,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
 
     @property
     def tokens_spent(self) -> int:
-        return self._tokens_spent
+        return self._budget.spent
 
     def _request_step(self) -> None:
         generation = self._generation
@@ -207,7 +200,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         if self._iteration >= MAX_ITERATIONS:
             self._finish_on_limit(generation)
             return
-        if self._token_budget and self._tokens_spent >= self._token_budget:
+        if self._budget.exhausted:
             self._finish_on_budget(generation)
             return
         self._iteration += 1
@@ -348,7 +341,6 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
     def _complete(self, text: str, generation: int | None = None) -> None:
         if not self._is_current(generation):
             return
-        self._journal_outcome = text
         self._staged = False
         self._stage_call = None
         self._turn.release()
@@ -363,23 +355,13 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
             self.finished.emit(text)
 
     def _write_journal(self, outcome: str) -> None:
-        if not self._applied_steps or self._journal_saved or not get_write_run_journal():
-            return
-        try:
-            path = record_run(self._prompt, self._transcript.entries, outcome, self._applied_steps)
-        except Exception as err:
-            QgsMessageLog.logMessage(f"Journal not written: {err}", LOG_TAG, Qgis.MessageLevel.Warning)
-            return
-        self._journal_saved = True
-        QgsMessageLog.logMessage(f"Run journal: {path}", LOG_TAG, Qgis.MessageLevel.Info)
-        self.journal_written.emit(path)
+        path = self._journal.write(self._transcript.entries, outcome)
+        if path:
+            self.journal_written.emit(path)
 
     def _track_usage(self, turn: ModelTurn) -> None:
-        spent = int(turn.input_tokens) + int(turn.output_tokens)
-        if spent <= 0:
-            return
-        self._tokens_spent += spent
-        self.usage_changed.emit(self._tokens_spent)
+        if self._budget.add(turn):
+            self.usage_changed.emit(self._budget.spent)
 
     def _finish_on_limit(self, generation: int | None = None) -> None:
         QgsMessageLog.logMessage(f"Reached the limit of {MAX_ITERATIONS} turns.", LOG_TAG, Qgis.MessageLevel.Warning)
@@ -387,7 +369,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
 
     def _finish_on_budget(self, generation: int | None = None) -> None:
         QgsMessageLog.logMessage(
-            f"Token budget hit: {self._tokens_spent} of {self._token_budget}.", LOG_TAG, Qgis.MessageLevel.Warning
+            f"Token budget hit: {self._budget.spent} of {self._budget.limit}.", LOG_TAG, Qgis.MessageLevel.Warning
         )
         self._complete(notices.BUDGET_REACHED_MESSAGE, generation)
 
