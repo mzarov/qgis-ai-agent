@@ -27,6 +27,7 @@ from ai_agent.core.settings import (
     get_credential_store_error,
     get_model,
     get_verify_ssl,
+    reset_capabilities,
     set_allow_sensitive_data,
     set_api_key,
     set_api_url,
@@ -321,6 +322,11 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
 
     def _on_probe_completed(self, ok: bool, message: str) -> None:
         palette = self.palette()
+        if ok:
+            overrides = self._overrides()
+            reset_capabilities(
+                overrides["url_override"], overrides.get("model_override") or "", overrides.get("dialect_override")
+            )
         self._show(message, style.success(palette) if ok else style.danger(palette))
 
     def _on_probe_finished(self, thread: ProbeThread) -> None:
@@ -362,7 +368,7 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         return {
             "url_override": url,
             "model_override": self.model_edit.text().strip() or None,
-            "key_override": self.key_edit.text().strip() or get_api_key(url, dialect) or None,
+            "key_override": self.key_edit.text().strip() or get_api_key(url, dialect) or "",
             "auth_type_override": self.auth_type_combo.currentText() or None,
             "dialect_override": dialect or None,
             "verify_override": self.verify_ssl_cb.isChecked(),

@@ -1,4 +1,6 @@
 import json
+import re
+import time
 from typing import Any
 from urllib.parse import parse_qsl, urlsplit
 
@@ -27,6 +29,13 @@ from ai_agent.core.settings import (
 from ai_agent.i18n import tr
 
 DEFAULT_TIMEOUT = 120
+TIMEOUT_TOLERANCE = 0.95
+BLOCKING_TIMEOUT_FACTOR = 5
+RETRY_AFTER_HEADER = b"retry-after"
+MODEL_TIMED_OUT = tr(
+    "{endpoint} did not answer within {seconds} s. The model may still be working on it; "
+    "try again, or use a faster model."
+)
 MISSING_KEY_MSG = tr(
     "No API key. Set one in Settings — or connect to a local model: an address on localhost needs no key."
 )
@@ -85,11 +94,50 @@ URL_SECRET_SUFFIXES = (
 )
 
 
+MASKED_KEY = "[redacted]"
+SECRET_PATTERNS = (
+    (re.compile(r"\b(?:sk|pk|rk)-[A-Za-z0-9_\-]{8,}"), MASKED_KEY),
+    (re.compile(r"(?i)(bearer\s+)[A-Za-z0-9._\-]{8,}"), r"\1" + MASKED_KEY),
+    (re.compile(r"(?i)(api[_-]?key[\"'\s:=]+)[A-Za-z0-9._\-]{8,}"), r"\1" + MASKED_KEY),
+)
+
+
+def scrub_secrets(text: str) -> str:
+    """Mask anything shaped like a key before an error body reaches the chat, the log or a journal."""
+    for pattern, replacement in SECRET_PATTERNS:
+        text = pattern.sub(replacement, text)
+    return text
+
+
 class ApiResponseError(RuntimeError):
-    def __init__(self, status_code: int, body: str, message: str | None = None):
-        super().__init__(message or tr("The API returned {0}: {1}").format(status_code, body[:ERROR_BODY_LIMIT]))
+    def __init__(self, status_code: int, body: str, message: str | None = None, retry_after: float | None = None):
+        shown = scrub_secrets(body[:ERROR_BODY_LIMIT])
+        super().__init__(message or tr("The API returned {0}: {1}").format(status_code, shown))
         self.status_code = status_code
         self.body = body
+        self.retry_after = retry_after
+
+
+def blocking_timeout(idle_timeout: int) -> int:
+    """A whole non-streamed answer arrives at once, so the wait must cover all of the model's work.
+
+    A stream only needs data to keep flowing; a blocking call gets nothing until
+    the model is done, and a slow local model or a long think easily passes the
+    stream's idle limit.
+    """
+    return int(idle_timeout) * BLOCKING_TIMEOUT_FACTOR
+
+
+def retry_after_of(reply: Any) -> float | None:
+    """Seconds from a Retry-After header in seconds form; None when absent or a date."""
+    try:
+        raw = bytes(reply.rawHeader(QByteArray(RETRY_AFTER_HEADER))).decode("ascii", errors="ignore").strip()
+    except Exception:
+        return None
+    try:
+        return float(raw) if raw else None
+    except ValueError:
+        return None
 
 
 def resolve_endpoint(url_override: str | None = None) -> str:
@@ -159,13 +207,17 @@ def post_json(
     request = build_network_request(endpoint, headers, verify_override, timeout)
     caller = QgsBlockingNetworkRequest()
     payload = QByteArray(json.dumps(body, ensure_ascii=False).encode("utf-8"))
+    started = time.monotonic()
     error_code = caller.post(request, payload, False, feedback)
     reply = caller.reply()
     status = _status_of(reply)
     if status >= 400:
         text = bytes(reply.content()).decode("utf-8", errors="replace")
-        raise ApiResponseError(status, text)
+        raise ApiResponseError(status, text, retry_after=retry_after_of(reply))
     if error_code != QgsBlockingNetworkRequest.ErrorCode.NoError:
+        cancelled = feedback is not None and bool(feedback.isCanceled())
+        if not cancelled and time.monotonic() - started >= timeout * TIMEOUT_TOLERANCE:
+            raise ConnectionError(MODEL_TIMED_OUT.format(endpoint=safe_endpoint_label(endpoint), seconds=int(timeout)))
         raise ConnectionError(TRANSPORT_FAILED.format(endpoint=safe_endpoint_label(endpoint), reason=_reason(caller)))
     text = bytes(reply.content()).decode("utf-8", errors="replace")
     return _decoded(text, status)

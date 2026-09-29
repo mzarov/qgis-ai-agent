@@ -172,7 +172,7 @@ class TranslateTest(unittest.TestCase):
             "claude-sonnet-5",
             thinking_budget=4096,
         )
-        self.assertEqual(body["thinking"], {"type": "adaptive"})
+        self.assertEqual(body["thinking"], {"type": "adaptive", "display": "summarized"})
         self.assertNotIn("budget_tokens", body["thinking"])
 
     def test_sonnet_5_disabled_thinking_drops_prior_thinking_blocks(self):
@@ -196,7 +196,7 @@ class TranslateTest(unittest.TestCase):
             }
         ]
         body = anthropic.build_body(messages, [], "claude-sonnet-5", thinking_budget=1)
-        self.assertEqual(body["thinking"], {"type": "adaptive"})
+        self.assertEqual(body["thinking"], {"type": "adaptive", "display": "summarized"})
         self.assertEqual(
             [block["type"] for block in body["messages"][0]["content"]],
             ["thinking", "text"],

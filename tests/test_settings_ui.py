@@ -380,7 +380,7 @@ class ProbeTest(unittest.TestCase):
         settings_probe.probe({"url_override": "http://localhost:11434/v1", "key_override": None})
         self.assertEqual(seen["url_override"], "http://localhost:11434/v1")
         self.assertEqual(seen["schemas"], [])
-        self.assertEqual(seen["timeout"], 60)
+        self.assertEqual(seen["timeout"] * settings_probe.BLOCKING_TIMEOUT_FACTOR, settings_probe.PROBE_SECONDS)
 
     def test_anthropic_probe_builds_and_parses_anthropic_messages(self):
         seen = {}

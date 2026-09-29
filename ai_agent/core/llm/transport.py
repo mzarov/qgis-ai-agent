@@ -6,18 +6,24 @@ from ai_agent.core.llm import anthropic
 from ai_agent.core.llm.anthropic_stream import AnthropicExchange
 from ai_agent.core.llm.client import (
     ApiResponseError,
+    blocking_timeout,
     build_request,
     post_chat_completion,
     resolve_endpoint,
 )
-from ai_agent.core.llm.dialects import ANTHROPIC, host_of, resolve
+from ai_agent.core.llm.dialects import ANTHROPIC, ANTHROPIC_HOSTS, DEFAULT_MAX_TOKENS, host_of, resolve
 from ai_agent.core.llm.images import IMAGE_REJECTED_STATUS_CODES, has_images, without_images
 from ai_agent.core.llm.live import fold_live
 from ai_agent.core.llm.parser import parse_model_json, parse_tool_arguments
-from ai_agent.core.llm.refusals import streaming_unsupported, thinking_unsupported, tools_unsupported
+from ai_agent.core.llm.refusals import (
+    may_reject_images,
+    streaming_unsupported,
+    thinking_unsupported,
+    tools_unsupported,
+)
 from ai_agent.core.llm.retry import ChunkGuard, with_retries
 from ai_agent.core.llm.stream import StreamedCompletion, first_reasoning
-from ai_agent.core.llm.stream_runner import post_stream
+from ai_agent.core.llm.stream_runner import STREAM_EVENTS_KEY, post_stream
 from ai_agent.core.llm.thinking import split_thinking
 from ai_agent.core.settings import (
     get_dialect,
@@ -56,14 +62,27 @@ class ModelTurn:
     thinking_blocks: list[dict[str, Any]] = field(default_factory=list)
 
 
+ANTHROPIC_INPUT_KEYS = ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens")
+JSON_TURN_KEYS = ("text", "message", "tool_calls")
+
+
 def parse_usage(data: dict[str, Any]) -> tuple[int, int]:
+    """Input and output tokens of one turn, counted the same way for both dialects.
+
+    OpenAI's prompt_tokens already includes cached tokens; Anthropic's
+    input_tokens does not, so the cache reads and writes are added back —
+    otherwise the budget undercounts a cached run several times over.
+    """
     usage = data.get("usage") or {}
     if not isinstance(usage, dict):
         return 0, 0
-    incoming = usage.get("prompt_tokens", usage.get("input_tokens", 0))
     outgoing = usage.get("completion_tokens", usage.get("output_tokens", 0))
     try:
-        return int(incoming or 0), int(outgoing or 0)
+        if "prompt_tokens" in usage:
+            incoming = int(usage.get("prompt_tokens") or 0)
+        else:
+            incoming = sum(int(usage.get(key) or 0) for key in ANTHROPIC_INPUT_KEYS)
+        return incoming, int(outgoing or 0)
     except (TypeError, ValueError):
         return 0, 0
 
@@ -82,11 +101,12 @@ def call_model(
         overrides["verify_override"] = get_verify_ssl(url)
     guard = ChunkGuard(on_chunk)
     chunks = guard if on_chunk is not None else None
+    thoughts = guard.wrap(on_thinking)
     feedback = overrides.get("feedback_override")
 
     def attempt(payload: list[dict[str, Any]]) -> ModelTurn:
         return with_retries(
-            lambda: _dispatch(payload, tool_schemas, overrides, timeout, url, chunks, on_thinking),
+            lambda: _dispatch(payload, tool_schemas, overrides, timeout, url, chunks, thoughts),
             feedback,
             lambda: guard.delivered,
         )
@@ -94,7 +114,7 @@ def call_model(
     try:
         return attempt(messages)
     except ApiResponseError as err:
-        if not (has_images(messages) and err.status_code in IMAGE_REJECTED_STATUS_CODES):
+        if not (has_images(messages) and may_reject_images(err, IMAGE_REJECTED_STATUS_CODES)):
             raise
         turn = attempt(without_images(messages))
         cache_url, cache_model, cache_dialect = _capability_scope(url, overrides)
@@ -125,7 +145,7 @@ def _dispatch(
             data = post_chat_completion(
                 messages,
                 extra_body=_openai_options(url, tool_schemas),
-                timeout=timeout,
+                timeout=blocking_timeout(timeout),
                 **overrides,
             )
         except ApiResponseError as err:
@@ -138,7 +158,7 @@ def _dispatch(
             return _parse_native_turn(data)
 
     return _parse_json_turn(
-        post_chat_completion(messages, extra_body=_openai_options(url), timeout=timeout, **overrides)
+        post_chat_completion(messages, extra_body=_openai_options(url), timeout=blocking_timeout(timeout), **overrides)
     )
 
 
@@ -160,17 +180,33 @@ def _call_anthropic(
         overrides.get("dialect_override"),
     )
     budget = get_thinking_budget() if get_supports_thinking(cache_url, cache_model, cache_dialect) is not False else 0
+    bind = anthropic.binds_thinking(model) and host_of(url) in ANTHROPIC_HOSTS
+    if bind:
+        headers = _with_beta(headers, anthropic.BINDING_BETA)
     exchange = AnthropicExchange(endpoint, headers, timeout, url, overrides, on_chunk, on_thinking)
     prefix = int(overrides.get(anthropic.CACHE_PREFIX_KEY) or 0)
-    try:
-        data = exchange.send(
-            anthropic.build_body(messages, tool_schemas, model, thinking_budget=budget, cache_prefix_chars=prefix)
+
+    def body(thinking_budget: int, max_tokens: int = DEFAULT_MAX_TOKENS) -> dict[str, Any]:
+        return anthropic.build_body(
+            messages,
+            tool_schemas,
+            model,
+            max_tokens=max_tokens,
+            thinking_budget=thinking_budget,
+            cache_prefix_chars=prefix,
+            bind_thinking=bind,
         )
+
+    try:
+        data = exchange.send(body(budget))
     except ApiResponseError as err:
-        if not budget or not thinking_unsupported(err):
+        if _asks_for_fewer_tokens(err):
+            data = exchange.send(body(budget, anthropic.FALLBACK_MAX_TOKENS))
+        elif budget and thinking_unsupported(err):
+            set_supports_thinking(cache_url, False, cache_model, cache_dialect)
+            data = exchange.send(body(0))
+        else:
             raise
-        set_supports_thinking(cache_url, False, cache_model, cache_dialect)
-        data = exchange.send(anthropic.build_body(messages, tool_schemas, model, cache_prefix_chars=prefix))
     text, calls, stop_reason = anthropic.parse_response(data)
     thinking, thinking_blocks = anthropic.parse_thinking(data)
     incoming, outgoing = parse_usage(data)
@@ -240,13 +276,29 @@ def _try_streaming(
             return None
         raise
     turn = _parse_native_turn(data)
-    if not turn.text and not turn.tool_calls and not turn.thinking:
+    if data.get(STREAM_EVENTS_KEY) == 0:
         set_supports_streaming(cache_url, False, cache_model, cache_dialect)
-        return None
+        if not turn.text and not turn.tool_calls:
+            return None
+        return turn
     if get_supports_streaming(cache_url, cache_model, cache_dialect) is None:
         set_supports_streaming(cache_url, True, cache_model, cache_dialect)
         set_supports_tools(cache_url, True, cache_model, cache_dialect)
     return turn
+
+
+def _with_beta(headers: dict[str, str], beta: str) -> dict[str, str]:
+    merged = dict(headers)
+    existing = [item.strip() for item in merged.get("anthropic-beta", "").split(",") if item.strip()]
+    if beta not in existing:
+        existing.append(beta)
+    merged["anthropic-beta"] = ",".join(existing)
+    return merged
+
+
+def _asks_for_fewer_tokens(err: ApiResponseError) -> bool:
+    body = (err.body or "").lower()
+    return err.status_code == 400 and "max_tokens" in body and "thinking" not in body
 
 
 def _capability_scope(url: str, overrides: dict[str, Any]) -> tuple[str, str, str]:
@@ -323,6 +375,8 @@ def _parse_json_turn(data: dict[str, Any]) -> ModelTurn:
     try:
         parsed = parse_model_json(content)
     except json.JSONDecodeError:
+        parsed = {}
+    if not isinstance(parsed, dict) or not any(key in parsed for key in JSON_TURN_KEYS):
         return ModelTurn(
             text=content,
             protocol=PROTOCOL_JSON,
@@ -338,11 +392,17 @@ def _parse_json_turn(data: dict[str, Any]) -> ModelTurn:
         text=(parsed.get("text") or parsed.get("message") or "").strip(),
         tool_calls=[
             call
-            for call in (_json_call(index, raw) for index, raw in enumerate(parsed.get("tool_calls") or []))
+            for call in (_json_call(index, raw) for index, raw in enumerate(_as_call_list(parsed.get("tool_calls"))))
             if call is not None
         ],
         protocol=PROTOCOL_JSON,
     )
+
+
+def _as_call_list(raw: Any) -> list[Any]:
+    if isinstance(raw, dict):
+        return [raw]
+    return raw if isinstance(raw, list) else []
 
 
 def _json_call(index: int, raw: Any) -> ToolCall | None:

@@ -35,17 +35,17 @@
         </translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="56"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="57"/>
         <source>A budget must be a whole number of tokens, such as 200000 or 200k; empty means no limit.</source>
         <translation>Бюджет — целое число токенов, например 200000 или 200k; пустое поле — без ограничения.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="64"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="65"/>
         <source>A local server needs no key — leave this empty.</source>
         <translation>Локальному серверу ключ не нужен — оставьте поле пустым.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="115"/>
+        <location filename="ai_agent/core/llm/client.py" line="163"/>
         <source>A non-local model endpoint must use HTTPS. Use an SSH tunnel to localhost for a trusted LAN server.</source>
         <translation>Нелокальная конечная точка модели должна использовать HTTPS. Для доверенного сервера в локальной сети используйте SSH-туннель на localhost.</translation>
     </message>
@@ -60,7 +60,7 @@
         <translation>Формат API</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="137"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="138"/>
         <source>API key</source>
         <translation>Ключ API</translation>
     </message>
@@ -110,7 +110,7 @@
         <translation>После нажатия «Применить» агент перечитывает проект и убеждается, что изменения действительно легли.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="65"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="66"/>
         <source>Allow sensitive GIS data</source>
         <translation>Разрешить конфиденциальные ГИС-данные</translation>
     </message>
@@ -166,7 +166,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/geocoder_settings.py" line="45"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="144"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="145"/>
         <source>Base URL</source>
         <translation>Базовый адрес</translation>
     </message>
@@ -181,7 +181,7 @@
         <translation>Отменить</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="313"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="314"/>
         <source>Cancel test</source>
         <translation>Отменить проверку</translation>
     </message>
@@ -191,7 +191,7 @@
         <translation>Отменено</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="59"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="60"/>
         <source>Cancelling the connection test…</source>
         <translation>Отменяю проверку подключения…</translation>
     </message>
@@ -241,7 +241,7 @@
         <translation>Проверяю применённые изменения…</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="162"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="163"/>
         <source>Close</source>
         <translation>Закрыть</translation>
     </message>
@@ -256,7 +256,7 @@
         <translation>Раскрашиваю «{0}» по полю «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/probe.py" line="7"/>
+        <location filename="ai_agent/core/llm/probe.py" line="9"/>
         <source>Connected, but the model returned an empty answer.</source>
         <translation>Подключение есть, но модель вернула пустой ответ.</translation>
     </message>
@@ -266,7 +266,7 @@
         <translation>Подключение</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="60"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="61"/>
         <source>Connection test cancelled.</source>
         <translation>Проверка подключения отменена.</translation>
     </message>
@@ -291,7 +291,7 @@
         <translation>Не удалось создать страховочный снимок проекта. Запланированные изменения не применены.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="35"/>
+        <location filename="ai_agent/core/llm/client.py" line="44"/>
         <source>Could not reach {endpoint}: {reason}. Check the address, the network and the QGIS proxy settings.</source>
         <translation>Не удалось достучаться до {endpoint}: {reason}. Проверьте адрес, сеть и настройки прокси в QGIS.</translation>
     </message>
@@ -352,7 +352,7 @@
         <translation>Выключено</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="121"/>
+        <location filename="ai_agent/core/llm/client.py" line="169"/>
         <source>Do not put credentials in the API URL. Store the provider secret in the API key field instead.</source>
         <translation>Не добавляйте учётные данные в URL API. Сохраните секрет провайдера в поле API-ключа.</translation>
     </message>
@@ -381,7 +381,7 @@
         <translation>Каждый применённый прогон оставляет незашифрованный Markdown-файл в профиле QGIS с запросом, именами инструментов и итогом. По умолчанию выключено; файлы остаются, пока вы их не удалите.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="61"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="62"/>
         <source>Enter a model name from the provider.</source>
         <translation>Введите название модели, доступной у провайдера.</translation>
     </message>
@@ -411,7 +411,7 @@
         <translation>Бюджет расширенного рассуждения</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="66"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="67"/>
         <source>Feature attribute values, exact map and layer extents, layer filters and sources, style categories, Processing and Python results, and rendered map or layout images may be sent to this endpoint. Leave this off for sensitive projects.</source>
         <translation>В эту конечную точку могут передаваться значения атрибутов объектов, точные границы карты и слоёв, фильтры и источники слоёв, категории стилей, результаты Processing и Python, а также изображения карты или макета. Оставьте этот параметр выключенным для конфиденциальных проектов.</translation>
     </message>
@@ -466,7 +466,7 @@
         <translation>Загружаю таблицу {0}.{1} из базы данных.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="71"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="72"/>
         <source>Local endpoint: sensitive tools are enabled. The server may still store or forward data; review its configuration.</source>
         <translation>Локальный эндпоинт: чувствительные инструменты включены. Сервер всё равно может хранить или пересылать данные — проверьте его настройки.</translation>
     </message>
@@ -476,17 +476,17 @@
         <translation>Ищу «{0}» через {1}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="145"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="146"/>
         <source>Model</source>
         <translation>Модель</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="112"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="113"/>
         <source>Model endpoint</source>
         <translation>Адрес модели</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/probe.py" line="25"/>
+        <location filename="ai_agent/core/llm/probe.py" line="27"/>
         <source>Model replied: {0}</source>
         <translation>Модель ответила: {0}</translation>
     </message>
@@ -502,12 +502,12 @@
         <translation>Новые слои: {0}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="98"/>
+        <location filename="ai_agent/core/llm/client.py" line="146"/>
         <source>No API URL. Set one in Settings.</source>
         <translation>Не задан адрес API. Укажите его в настройках.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="30"/>
+        <location filename="ai_agent/core/llm/client.py" line="39"/>
         <source>No API key. Set one in Settings — or connect to a local model: an address on localhost needs no key.</source>
         <translation>Не задан ключ API. Укажите его в настройках — или подключитесь к локальной модели: адресу на localhost ключ не нужен.</translation>
     </message>
@@ -537,7 +537,7 @@
         <translation>Применились не все изменения.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="206"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="207"/>
         <source>Not required</source>
         <translation>Не обязателен</translation>
     </message>
@@ -612,13 +612,13 @@
         <translation>Приватность</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="143"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="144"/>
         <source>Provider</source>
         <translation>Провайдер</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="131"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="206"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="132"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="207"/>
         <source>Provider key</source>
         <translation>Ключ провайдера</translation>
     </message>
@@ -767,7 +767,7 @@
         <translation>Запоминаю: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="133"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="134"/>
         <source>Remove stored key</source>
         <translation>Удалить сохранённый ключ</translation>
     </message>
@@ -857,7 +857,7 @@
         <translation>Выполняю запрос Overpass для «{0}»: {1}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="167"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="168"/>
         <source>Save</source>
         <translation>Сохранить</translation>
     </message>
@@ -940,7 +940,7 @@
         <translation>Настройки</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="51"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="52"/>
         <source>Settings — AI Agent</source>
         <translation>Настройки — AI Agent</translation>
     </message>
@@ -980,7 +980,7 @@
         </translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="63"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="64"/>
         <source>Stored encrypted in the QGIS authentication database, not in the settings file.</source>
         <translation>Хранится зашифрованным в базе учётных данных QGIS, а не в файле настроек.</translation>
     </message>
@@ -1005,45 +1005,45 @@
         <translation>Связь с провайдером</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="150"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="336"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="151"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="342"/>
         <source>Test connection</source>
         <translation>Проверить подключение</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="58"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="59"/>
         <source>Testing the connection…</source>
         <translation>Проверяю подключение…</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="112"/>
-        <location filename="ai_agent/core/llm/client.py" line="102"/>
-        <location filename="ai_agent/core/llm/client.py" line="110"/>
+        <location filename="ai_agent/core/llm/client.py" line="160"/>
+        <location filename="ai_agent/core/llm/client.py" line="150"/>
+        <location filename="ai_agent/core/llm/client.py" line="158"/>
         <source>The API URL is malformed. Check its host, brackets and port.</source>
         <translation>URL API некорректен. Проверьте адрес узла, скобки и порт.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="105"/>
+        <location filename="ai_agent/core/llm/client.py" line="153"/>
         <source>The API URL must use http or https.</source>
         <translation>URL API должен использовать http или https.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="278"/>
+        <location filename="ai_agent/core/llm/client.py" line="330"/>
         <source>The API returned an empty answer.</source>
         <translation>API вернул пустой ответ.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="230"/>
+        <location filename="ai_agent/core/llm/client.py" line="282"/>
         <source>The API returned non-JSON: {0}</source>
         <translation>API вернул не JSON: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="233"/>
+        <location filename="ai_agent/core/llm/client.py" line="285"/>
         <source>The API returned something that is not a JSON object.</source>
         <translation>API вернул нечто, что не является объектом JSON.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="90"/>
+        <location filename="ai_agent/core/llm/client.py" line="115"/>
         <source>The API returned {0}: {1}</source>
         <translation>API вернул {0}: {1}</translation>
     </message>
@@ -1103,7 +1103,7 @@
         <translation>Папка скиллов недоступна в этом профиле QGIS.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="62"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="63"/>
         <source>The stored key for this endpoint was removed.</source>
         <translation>Сохранённый ключ для этого адреса удалён.</translation>
     </message>
@@ -1213,7 +1213,7 @@
         <translation>С геокодером агент превращает «кафе в Дивноморском» в прямоугольник координат и передаёт его в загрузку OpenStreetMap. Без него он тоже умеет искать по названию, но только там, где OpenStreetMap это название уже знает.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="144"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="145"/>
         <source>Without /chat/completions at the end.</source>
         <translation>Без /chat/completions на конце.</translation>
     </message>
@@ -1298,8 +1298,8 @@
         <translation>выбираю объекты</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="239"/>
-        <location filename="ai_agent/core/llm/client.py" line="241"/>
+        <location filename="ai_agent/core/llm/client.py" line="291"/>
+        <location filename="ai_agent/core/llm/client.py" line="293"/>
         <source>service unavailable</source>
         <translation>сервис недоступен</translation>
     </message>
@@ -1364,6 +1364,11 @@
         <location filename="ai_agent/core/orchestrator/orchestrator.py" line="43"/>
         <source>{0} tokens</source>
         <translation>{0} токенов</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/llm/client.py" line="35"/>
+        <source>{endpoint} did not answer within {seconds} s. The model may still be working on it; try again, or use a faster model.</source>
+        <translation>{endpoint} не ответил за {seconds} с. Возможно, модель ещё работает; попробуйте снова или выберите модель побыстрее.</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/composer.py" line="35"/>

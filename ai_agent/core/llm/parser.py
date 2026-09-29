@@ -12,9 +12,10 @@ def parse_model_json(reply: str) -> dict:
         if match:
             raw = match.group(1).strip()
     try:
-        return json.loads(raw)
+        parsed = json.loads(raw)
     except json.JSONDecodeError:
         return _parse_best_object(raw)
+    return parsed if isinstance(parsed, dict) else _parse_best_object(raw)
 
 
 def _parse_best_object(raw: str) -> dict:

@@ -21,7 +21,21 @@ THINKING_BLOCKS = (THINKING_BLOCK, REDACTED_THINKING_BLOCK)
 THINKING_KEY = "thinking_blocks"
 MIN_THINKING_BUDGET = 1024
 ANSWER_HEADROOM = 4096
-SONNET_5_PREFIX = "claude-sonnet-5"
+ALWAYS_THINKING_PREFIXES = ("claude-fable", "claude-mythos", "claude-opus-5-5")
+ADAPTIVE_PREFIXES = (
+    "claude-opus-5",
+    "claude-sonnet-5",
+    "claude-opus-4-8",
+    "claude-opus-4-7",
+    "claude-opus-4-6",
+    "claude-sonnet-4-6",
+)
+SUMMARY_DEFAULT_PREFIXES = ("claude-opus-4-6", "claude-sonnet-4-6")
+DISABLE_PREFIXES = ("claude-sonnet-5", "claude-opus-4-8", "claude-opus-4-7")
+BINDING_PREFIXES = ("claude-fable-5-1", "claude-mythos-5-1", "claude-opus-5-5")
+BINDING_BETA = "thinking-binding-controls-2026-08-01"
+ADAPTIVE_MAX_TOKENS = 32000
+FALLBACK_MAX_TOKENS = 4096
 CACHE_PREFIX_KEY = "cache_prefix_chars"
 EPHEMERAL = {"type": "ephemeral"}
 
@@ -33,21 +47,17 @@ def build_body(
     max_tokens: int = DEFAULT_MAX_TOKENS,
     thinking_budget: int = 0,
     cache_prefix_chars: int = 0,
+    bind_thinking: bool = False,
 ) -> dict[str, Any]:
     budget = int(thinking_budget or 0)
-    mode = _thinking_mode(model, budget)
-    thinking_on = mode in ("enabled", "adaptive")
+    thinking = thinking_config(model, budget)
     history, live = split_live(messages)
-    system, turns = split_system(history if thinking_on else _without_thinking(history))
-    body: dict[str, Any] = {
-        "model": model,
-        "max_tokens": max(max_tokens, budget + ANSWER_HEADROOM) if mode == "enabled" else max_tokens,
-        "messages": turns,
-    }
-    if mode == "enabled":
-        body["thinking"] = {"type": "enabled", "budget_tokens": budget}
-    elif mode:
-        body["thinking"] = {"type": mode}
+    system, turns = split_system(history if replays_thinking(model, thinking) else _without_thinking(history))
+    body: dict[str, Any] = {"model": model, "max_tokens": _max_tokens(max_tokens, thinking), "messages": turns}
+    if thinking:
+        if bind_thinking and _family(model, BINDING_PREFIXES) and thinking.get("type") == "adaptive":
+            thinking = {**thinking, "block_binding": {"prefix_mismatch_behavior": "drop_block"}}
+        body["thinking"] = thinking
     if system:
         body["system"] = _system_blocks(system, cache_prefix_chars) if cache_prefix_chars > 0 else system
     if cache_prefix_chars > 0:
@@ -57,6 +67,58 @@ def build_body(
     if tool_schemas:
         body["tools"] = [translate_tool(schema) for schema in tool_schemas]
     return body
+
+
+def thinking_config(model: str, budget: int) -> dict[str, Any]:
+    """The thinking parameter each model generation accepts.
+
+    Fable, Mythos and Opus 5.5 always think and reject both `disabled` and
+    `budget_tokens`; the 4.6+ generation takes only `adaptive`; older models
+    take a fixed `budget_tokens`. Models whose default display is "omitted"
+    get "summarized" so the reasoning panel is not empty.
+    """
+    adaptive: dict[str, Any] = {"type": "adaptive"}
+    if not _family(model, SUMMARY_DEFAULT_PREFIXES):
+        adaptive["display"] = "summarized"
+    if _family(model, ALWAYS_THINKING_PREFIXES):
+        return adaptive
+    if _family(model, ADAPTIVE_PREFIXES):
+        if budget > 0:
+            return adaptive
+        return {"type": "disabled"} if _family(model, DISABLE_PREFIXES) else {}
+    if budget >= MIN_THINKING_BUDGET:
+        return {"type": "enabled", "budget_tokens": budget}
+    return {}
+
+
+def replays_thinking(model: str, thinking: dict[str, Any]) -> bool:
+    """Whether earlier thinking blocks go back to the model unchanged.
+
+    The 4.6+ generation may think without being asked and requires its blocks
+    back; older models only when thinking is enabled for this request.
+    """
+    if thinking.get("type") == "disabled":
+        return False
+    if _family(model, ALWAYS_THINKING_PREFIXES + ADAPTIVE_PREFIXES):
+        return True
+    return thinking.get("type") == "enabled"
+
+
+def binds_thinking(model: str) -> bool:
+    return _family(model, BINDING_PREFIXES)
+
+
+def _family(model: str, prefixes: tuple[str, ...]) -> bool:
+    return (model or "").strip().lower().startswith(prefixes)
+
+
+def _max_tokens(requested: int, thinking: dict[str, Any]) -> int:
+    kind = thinking.get("type")
+    if kind == "enabled":
+        return max(requested, int(thinking.get("budget_tokens") or 0) + ANSWER_HEADROOM)
+    if kind == "adaptive":
+        return max(requested, ADAPTIVE_MAX_TOKENS)
+    return requested
 
 
 def _system_blocks(system: str, prefix_chars: int) -> list[dict[str, Any]]:
@@ -86,12 +148,6 @@ def _with_live_state(turns: list[dict[str, Any]], live: str) -> list[dict[str, A
     last = dict(turns[-1])
     last["content"] = [*_as_blocks(last.get("content")), block]
     return [*turns[:-1], last]
-
-
-def _thinking_mode(model: str, budget: int) -> str:
-    if (model or "").strip().lower().startswith(SONNET_5_PREFIX):
-        return "adaptive" if budget > 0 else "disabled"
-    return "enabled" if budget >= MIN_THINKING_BUDGET else ""
 
 
 def _without_thinking(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:

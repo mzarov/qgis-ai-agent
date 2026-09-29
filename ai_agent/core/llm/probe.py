@@ -1,9 +1,11 @@
 from typing import Any
 
+from ai_agent.core.llm.client import BLOCKING_TIMEOUT_FACTOR
 from ai_agent.i18n import tr
 
 PROBE_PROMPT = "Reply with one word: ok"
 REPLY_LIMIT = 160
+PROBE_SECONDS = 60
 EMPTY_REPLY = tr("Connected, but the model returned an empty answer.")
 
 
@@ -15,7 +17,7 @@ def probe(overrides: dict[str, Any]) -> tuple[bool, str]:
             [{"role": "user", "content": PROBE_PROMPT}],
             [],
             overrides=overrides,
-            timeout=60,
+            timeout=PROBE_SECONDS // BLOCKING_TIMEOUT_FACTOR,
         )
     except Exception as error:
         return False, _shortened(str(error) or type(error).__name__)

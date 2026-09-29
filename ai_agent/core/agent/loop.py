@@ -10,7 +10,7 @@ from ai_agent.core.agent.journal import record_run
 from ai_agent.core.agent.prompts import render_queued_steps, render_task_plan
 from ai_agent.core.agent.request import build_overrides, build_step_request
 from ai_agent.core.agent.skills import extend_loaded
-from ai_agent.core.agent.transcript import Transcript
+from ai_agent.core.agent.transcript import ToolResult, Transcript
 from ai_agent.core.agent.turn_thread import TurnThreadOwner
 from ai_agent.core.llm.transport import PROTOCOL_JSON, PROTOCOL_NATIVE, ModelTurn, ToolCall
 from ai_agent.core.settings import get_token_budget, get_write_run_journal
@@ -279,6 +279,12 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
             return
         self._transcript.add_turn(turn)
         if not turn.tool_calls and self._nudge_once(turn, generation):
+            return
+        if turn.tool_calls and turn.finish_reason in notices.TRUNCATED_REASONS:
+            self._transcript.add_results(
+                [ToolResult.failure(call, notices.CALLS_CUT_OFF) for call in turn.tool_calls], turn.protocol
+            )
+            self._request_step()
             return
         if not turn.tool_calls:
             self._complete(turn.text, generation)

@@ -5,19 +5,25 @@ import unittest
 from ai_agent.core.llm import transport, worker
 from ai_agent.core.llm.client import ApiResponseError
 from ai_agent.core.llm.stream import SseAccumulator, consume
+from ai_agent.core.llm.stream_runner import _finished_response as finished_response
 from ai_agent.core.llm.transport import ModelTurn, _openai_options
 
 SCHEMAS = [{"type": "function", "function": {"name": "list_layers", "parameters": {}}}]
 URL = "https://api.example/v1"
 
 
-def streaming(*chunks):
+DONE = b"data: [DONE]\n\n"
+
+
+def streaming(*chunks, complete=True):
     def fake(endpoint, headers, body, completion, timeout, verify=None):
         accumulator = SseAccumulator()
-        for chunk in chunks:
+        for chunk in (*chunks, DONE) if complete else chunks:
             for stream_event in accumulator.feed(chunk):
                 completion.take(stream_event)
-        return completion.response()
+        for stream_event in accumulator.flush():
+            completion.take(stream_event)
+        return finished_response(completion, accumulator, endpoint)
 
     return fake
 
@@ -217,8 +223,8 @@ class StreamingDispatchTest(unittest.TestCase):
         self.assertEqual(self.flags, [True])
 
     def test_a_server_that_ignores_the_stream_flag_falls_back(self):
-        transport.post_stream = streaming(b'{"choices": [{"message": {"content": "plain"}}]}')
-        self.assertEqual(self._call(lambda text: None).text, "not streamed")
+        transport.post_stream = streaming(b'{"choices": [{"message": {"content": "plain"}}]}', complete=False)
+        self.assertEqual(self._call(lambda text: None).text, "plain")
         self.assertEqual(self.flags, [False])
 
     def test_deltas_reach_the_callback(self):
