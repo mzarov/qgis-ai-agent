@@ -99,6 +99,13 @@ class ProjectContextTest(unittest.TestCase):
         self.use(Project([], crs=""))
         self.assertEqual(context.get_project_context(), context.NO_LAYERS)
 
+    def test_layer_choices_feed_the_mention_list(self):
+        self.use(Project([Layer("rivers"), Layer("Cafes", selected=2)]))
+        choices = context.layer_choices()
+        self.assertEqual([name for name, _, _ in choices], ["Cafes", "rivers"])
+        self.assertEqual(choices[0][1], "point, EPSG:4326, 17 features, 2 selected")
+        self.assertEqual(choices[0][2], context.LAYER_ORIGIN)
+
     def test_the_list_is_capped_with_a_remainder(self):
         self.use(Project([Layer(f"l{index}") for index in range(15)], crs=""))
         self.assertTrue(context.get_project_context().endswith("and 3 more."))

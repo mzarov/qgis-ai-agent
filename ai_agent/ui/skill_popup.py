@@ -1,4 +1,6 @@
-from qgis.PyQt.QtCore import QPoint, pyqtSignal
+from typing import Any
+
+from qgis.PyQt.QtCore import QPoint, Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from ai_agent.i18n import tr
@@ -11,6 +13,8 @@ POPUP_MARGINS = (4, 4, 4, 4)
 ROW_MARGINS = (10, 5, 10, 5)
 ROW_GAP = 10
 GAP_ABOVE_ANCHOR = 6
+SELECTION_TINT = 0.22
+SKILL_PREFIX = "/"
 DESCRIPTION_SCALE = 0.86
 LOCAL_BADGE = tr("local")
 EMPTY = tr("No matching skill")
@@ -23,6 +27,24 @@ def match_skills(query: str, items: list[tuple[str, str, str]]) -> list[tuple[st
     return (prefixed + inside)[:MAX_ROWS]
 
 
+class SkillRow(QFrame):
+    clicked = pyqtSignal(str)
+    hovered = pyqtSignal(str)
+
+    def __init__(self, name: str):
+        super().__init__()
+        self.name = name
+        self.setObjectName(ROW_NAME)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setMouseTracking(True)
+
+    def mousePressEvent(self, event: Any) -> None:
+        self.clicked.emit(self.name)
+
+    def enterEvent(self, event: Any) -> None:
+        self.hovered.emit(self.name)
+
+
 class SkillPopup(QFrame):
     chosen = pyqtSignal(str)
 
@@ -33,6 +55,7 @@ class SkillPopup(QFrame):
         self._matches: list[tuple[str, str, str]] = []
         self._rows: list[QFrame] = []
         self._index = 0
+        self._prefix = SKILL_PREFIX
         self.setObjectName(POPUP_NAME)
         self.setStyleSheet(
             f"QFrame#{POPUP_NAME} {{ background: {style.css_color(style.panel(self._palette))};"
@@ -44,7 +67,10 @@ class SkillPopup(QFrame):
         self._column.setSpacing(0)
         self.hide()
 
-    def show_matches(self, query: str, items: list[tuple[str, str, str]], anchor: QWidget) -> None:
+    def show_matches(
+        self, query: str, items: list[tuple[str, str, str]], anchor: QWidget, prefix: str = SKILL_PREFIX
+    ) -> None:
+        self._prefix = prefix
         self._matches = match_skills(query, items)
         self._rebuild()
         self._index = 0
@@ -95,12 +121,13 @@ class SkillPopup(QFrame):
         return frame
 
     def _row(self, name: str, description: str, origin: str) -> QFrame:
-        frame = QFrame()
-        frame.setObjectName(ROW_NAME)
+        frame = SkillRow(name)
+        frame.clicked.connect(self.chosen.emit)
+        frame.hovered.connect(self._hover)
         line = QHBoxLayout(frame)
         line.setContentsMargins(*ROW_MARGINS)
         line.setSpacing(ROW_GAP)
-        title = QLabel(f"/{name}")
+        title = QLabel(f"{self._prefix}{name}")
         font = title.font()
         font.setBold(True)
         title.setFont(font)
@@ -117,10 +144,17 @@ class SkillPopup(QFrame):
         line.addWidget(note, 1)
         return frame
 
+    def _hover(self, name: str) -> None:
+        names = [match[0] for match in self._matches]
+        if name in names:
+            self._index = names.index(name)
+            self._paint_selection()
+
     def _paint_selection(self) -> None:
+        tint = style.blend(style.panel(self._palette), style.accent(self._palette), SELECTION_TINT)
         for index, row in enumerate(self._rows):
             selected = bool(self._matches) and index == self._index
-            fill = style.css_color(style.card(self._palette)) if selected else "transparent"
+            fill = style.css_color(tint) if selected else "transparent"
             row.setStyleSheet(f"QFrame#{ROW_NAME} {{ background: {fill}; border-radius: {style.CARD_RADIUS - 2}px; }}")
 
     def _place_above(self, anchor: QWidget) -> None:

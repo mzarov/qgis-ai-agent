@@ -37,6 +37,7 @@ class ActivityGroup(QFrame):
         column.addWidget(self._header)
         column.addWidget(self._build_steps(palette))
         self._count = 0
+        self._extras = 0
         self._pending = 0
         self._failed = False
         self._rejected = False
@@ -97,6 +98,7 @@ class ActivityGroup(QFrame):
 
     def add_widget(self, widget: QWidget) -> None:
         self._steps.addWidget(widget)
+        self._extras += 1
         self._refresh()
 
     def reveal(self) -> None:
@@ -105,6 +107,8 @@ class ActivityGroup(QFrame):
     def rest(self) -> None:
         self._closed = True
         self._toggle.setChecked(False)
+        if not self._count:
+            self._steps_holder.setVisible(self._extras > 0)
         self._refresh()
 
     def mark_step(self, row: "StepRow", ok: bool) -> None:

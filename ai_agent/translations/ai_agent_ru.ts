@@ -4,14 +4,14 @@
 <context>
     <name>QgisAiAgent</name>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="281"/>
-        <location filename="ai_agent/ui/dock_widget.py" line="260"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="299"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="278"/>
         <source>&#10;&#10;Apply them?</source>
         <translation>&#10;&#10;Применить их?</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="280"/>
-        <location filename="ai_agent/ui/dock_widget.py" line="252"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="298"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="270"/>
         <source>&#10;&#10;Exact code to be executed:&#10;&#10;{0}</source>
         <translation>&#10;&#10;Точный код, который будет выполнен:&#10;&#10;{0}</translation>
     </message>
@@ -26,13 +26,18 @@
         <translation> при условии {0}</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/activity.py" line="129"/>
+        <location filename="ai_agent/ui/activity.py" line="133"/>
         <source>%n action(s)</source>
         <translation>
             <numerusform>%n действие</numerusform>
             <numerusform>%n действия</numerusform>
             <numerusform>%n действий</numerusform>
         </translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/settings_dialog.py" line="56"/>
+        <source>A budget must be a whole number of tokens, such as 200000 or 200k; empty means no limit.</source>
+        <translation>Бюджет — целое число токенов, например 200000 или 200k; пустое поле — без ограничения.</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/settings_dialog.py" line="64"/>
@@ -146,8 +151,8 @@
     </message>
     <message>
         <location filename="ai_agent/ui/composer.py" line="20"/>
-        <source>Ask about the project, or type / to pick a skill</source>
-        <translation>Спросите о проекте или наберите /, чтобы выбрать скилл</translation>
+        <source>Ask about the project; / picks a skill, @ picks a layer</source>
+        <translation>Спросите о проекте; / — выбрать скилл, @ — выбрать слой</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/welcome.py" line="23"/>
@@ -176,7 +181,7 @@
         <translation>Отменить</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="302"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="313"/>
         <source>Cancel test</source>
         <translation>Отменить проверку</translation>
     </message>
@@ -191,12 +196,12 @@
         <translation>Отменяю проверку подключения…</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="294"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="300"/>
         <source>Changes applied.</source>
         <translation>Изменения применены.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="34"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="35"/>
         <source>Changes are being applied — wait for that to finish.</source>
         <translation>Изменения применяются — дождитесь окончания.</translation>
     </message>
@@ -231,7 +236,7 @@
         <translation>Проверять результат после применения изменений</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="35"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="36"/>
         <source>Checking the applied changes…</source>
         <translation>Проверяю применённые изменения…</translation>
     </message>
@@ -266,7 +271,7 @@
         <translation>Проверка подключения отменена.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="30"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="31"/>
         <source>Conversation not found.</source>
         <translation>Диалог не найден.</translation>
     </message>
@@ -276,9 +281,14 @@
         <translation>Диалоги</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/conversation.py" line="211"/>
+        <location filename="ai_agent/ui/conversation.py" line="223"/>
         <source>Copy the whole conversation</source>
         <translation>Скопировать весь диалог</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/agent/notices.py" line="20"/>
+        <source>Could not create the safety snapshot. No planned changes were applied.</source>
+        <translation>Не удалось создать страховочный снимок проекта. Запланированные изменения не применены.</translation>
     </message>
     <message>
         <location filename="ai_agent/core/llm/client.py" line="35"/>
@@ -331,8 +341,8 @@
         <translation>Удаляю объектов: {0} — из «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="245"/>
-        <location filename="ai_agent/ui/dock_widget.py" line="192"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="263"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="210"/>
         <source>Destructive steps</source>
         <translation>Необратимые шаги</translation>
     </message>
@@ -347,7 +357,7 @@
         <translation>Не добавляйте учётные данные в URL API. Сохраните секрет провайдера в поле API-ключа.</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="291"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="297"/>
         <source>Done: %n step(s) applied.{0}</source>
         <translation>
             <numerusform>Применён %n шаг.{0}</numerusform>
@@ -376,12 +386,12 @@
         <translation>Введите название модели, доступной у провайдера.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer.py" line="28"/>
+        <location filename="ai_agent/ui/composer.py" line="32"/>
         <source>Enter to send, Shift+Enter for a new line</source>
         <translation>Enter — отправить, Shift+Enter — новая строка</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="353"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="360"/>
         <source>Error: {0}</source>
         <translation>Ошибка: {0}</translation>
     </message>
@@ -436,7 +446,7 @@
         <translation>Как работает агент</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="37"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="38"/>
         <source>Kept everything as it was — the destructive steps were not applied.</source>
         <translation>Всё осталось как было — необратимые шаги не применялись.</translation>
     </message>
@@ -446,7 +456,7 @@
         <translation>Слой «{0}»: {1}{2}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="231"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="237"/>
         <source>Loading knowledge: {0}</source>
         <translation>Загружаю знания: {0}</translation>
     </message>
@@ -507,7 +517,7 @@
         <translation>Локальных скиллов пока нет — создайте пример и отредактируйте его.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/skill_popup.py" line="16"/>
+        <location filename="ai_agent/ui/skill_popup.py" line="20"/>
         <source>No matching skill</source>
         <translation>Подходящего скилла нет</translation>
     </message>
@@ -517,12 +527,12 @@
         <translation>Прошлых диалогов нет</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="43"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="44"/>
         <source>No skill named /{0}. Available: {1}.</source>
         <translation>Скилла /{0} нет. Доступны: {1}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="289"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="295"/>
         <source>Not all changes were applied.</source>
         <translation>Применились не все изменения.</translation>
     </message>
@@ -567,7 +577,7 @@
         <translation>Перезаписываю {0} макетом «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="38"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="39"/>
         <source>Passed to the agent — it will take this into account on its next step.</source>
         <translation>Передано агенту — он учтёт это на следующем шаге.</translation>
     </message>
@@ -592,7 +602,7 @@
         <translation>Ставлю заметку на карту: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="228"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="234"/>
         <source>Plan {0}/{1}: {2}</source>
         <translation>План {0}/{1}: {2}</translation>
     </message>
@@ -747,7 +757,7 @@
         </translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="224"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="230"/>
         <source>Rejected: {0}</source>
         <translation>Отклонено: {0}</translation>
     </message>
@@ -802,7 +812,12 @@
         <translation>Делаю снимок карты.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="41"/>
+        <location filename="ai_agent/ui/composer.py" line="137"/>
+        <source>Request</source>
+        <translation>Запрос</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="42"/>
         <source>Request not sent.</source>
         <translation>Запрос не отправлен.</translation>
     </message>
@@ -812,22 +827,22 @@
         <translation>Откатываю проект к состоянию до последнего применения.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="264"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="270"/>
         <source>Run journal: {0}</source>
         <translation>Журнал прогона: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="32"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="33"/>
         <source>Run stopped during apply. Pending steps were cancelled; any completed changes remain.</source>
         <translation>Запуск остановлен во время применения. Ожидающие шаги отменены; уже выполненные изменения сохранены.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="31"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="32"/>
         <source>Run stopped. Pending work was cancelled.</source>
         <translation>Запуск остановлен. Ожидающие действия отменены.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="111"/>
+        <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="112"/>
         <source>Run {0} ({1}{2}){3}.</source>
         <translation>Запустить {0} ({1}{2}){3}.</translation>
     </message>
@@ -887,13 +902,15 @@
         <translation>Выделяю объекты в «{0}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer.py" line="129"/>
-        <location filename="ai_agent/ui/composer.py" line="205"/>
+        <location filename="ai_agent/ui/composer.py" line="164"/>
+        <location filename="ai_agent/ui/composer.py" line="165"/>
+        <location filename="ai_agent/ui/composer.py" line="287"/>
+        <location filename="ai_agent/ui/composer.py" line="288"/>
         <source>Send</source>
         <translation>Отправить</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="205"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="223"/>
         <source>Send the request to {0}?&#10;&#10;The provider receives your prompt and basic project metadata: layer and field names, CRS and project notes. Feature values, extents, layer sources and rendered images stay blocked until you allow them in Settings.</source>
         <translation>Отправить запрос в {0}?&#10;&#10;Провайдер получит ваш запрос и базовые метаданные проекта: имена слоёв и полей, CRS и заметки проекта. Значения объектов, границы, источники слоёв и изображения останутся закрытыми, пока вы не разрешите их в настройках.</translation>
     </message>
@@ -923,17 +940,12 @@
         <translation>Настройки</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="57"/>
-        <source>Settings saved.</source>
-        <translation>Настройки сохранены.</translation>
-    </message>
-    <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="52"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="51"/>
         <source>Settings — AI Agent</source>
         <translation>Настройки — AI Agent</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="202"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="220"/>
         <source>Share project data?</source>
         <translation>Передать данные проекта?</translation>
     </message>
@@ -948,12 +960,13 @@
         <translation>Скиллы</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="286"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="292"/>
         <source>Some steps did not run: {0}</source>
         <translation>Часть шагов не выполнилась: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer.py" line="205"/>
+        <location filename="ai_agent/ui/composer.py" line="287"/>
+        <location filename="ai_agent/ui/composer.py" line="288"/>
         <source>Stop</source>
         <translation>Стоп</translation>
     </message>
@@ -993,7 +1006,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/settings_dialog.py" line="150"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="325"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="336"/>
         <source>Test connection</source>
         <translation>Проверить подключение</translation>
     </message>
@@ -1065,12 +1078,12 @@
         <translation>Агент обращается к языковой модели на ваш выбор, поэтому ему нужен адрес и ключ — либо вообще ничего, если модель работает локально на localhost.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="341"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="347"/>
         <source>The model returned nothing. Try rephrasing.</source>
         <translation>Модель ничего не вернула. Попробуйте переформулировать.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="39"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="40"/>
         <source>The planned changes were dropped — they were not applied. Starting over from your message.</source>
         <translation>Запланированные изменения сняты — они не применялись. Начинаю заново с вашего сообщения.</translation>
     </message>
@@ -1095,22 +1108,32 @@
         <translation>Сохранённый ключ для этого адреса удалён.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="245"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="251"/>
         <source>There are no changes to apply.</source>
         <translation>Применять нечего.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="273"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="291"/>
         <source>These steps change or delete data and cannot be undone:&#10;&#10;{0}</source>
         <translation>Эти шаги изменяют или удаляют данные, и их нельзя отменить:&#10;&#10;{0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/thinking.py" line="21"/>
+        <location filename="ai_agent/ui/thinking.py" line="22"/>
         <source>Thinking…</source>
         <translation>Размышляет…</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/thinking.py" line="22"/>
+        <location filename="ai_agent/core/agent/notices.py" line="16"/>
+        <source>This task hit the token budget set in the settings, so I stopped where I got to. Raise the budget or split the request into smaller steps.</source>
+        <translation>Задача упёрлась в бюджет токенов из настроек, поэтому я остановился на достигнутом. Увеличьте бюджет или разбейте запрос на шаги поменьше.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/agent/notices.py" line="3"/>
+        <source>This task ran longer than I am allowed to, so I stopped where I got to. Narrow the request or split it into steps.</source>
+        <translation>Задача заняла больше ходов, чем мне разрешено, поэтому я остановился на достигнутом. Сузьте запрос или разбейте его на шаги.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/thinking.py" line="23"/>
         <source>Thought</source>
         <translation>Рассуждение</translation>
     </message>
@@ -1135,7 +1158,7 @@
         <translation>Название места в координаты</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="135"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="140"/>
         <source>Type a request.</source>
         <translation>Введите запрос.</translation>
     </message>
@@ -1165,12 +1188,12 @@
         <translation>Проверять сертификат SSL</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="33"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="34"/>
         <source>Wait for the current task to finish.</source>
         <translation>Дождитесь окончания текущей задачи.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="40"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="41"/>
         <source>Waiting for your answer — the run continues from it.</source>
         <translation>Жду вашего ответа — прогон продолжится с него.</translation>
     </message>
@@ -1195,7 +1218,7 @@
         <translation>Без /chat/completions на конце.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer.py" line="29"/>
+        <location filename="ai_agent/ui/composer.py" line="33"/>
         <source>Working… type to correct me, or press ■ to stop</source>
         <translation>Работаю… напишите, чтобы поправить, или нажмите ■ для остановки</translation>
     </message>
@@ -1203,6 +1226,11 @@
         <location filename="ai_agent/ui/settings_advanced.py" line="33"/>
         <source>Write a run journal after applying</source>
         <translation>Писать журнал прогона после применения</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/agent/notices.py" line="15"/>
+        <source>You declined to apply the changes, so the run stopped here.</source>
+        <translation>Вы отказались применять изменения, поэтому работа остановлена.</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/skills_settings.py" line="12"/>
@@ -1245,7 +1273,7 @@
         <translation>по умолчанию</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/skill_popup.py" line="15"/>
+        <location filename="ai_agent/ui/skill_popup.py" line="19"/>
         <source>local</source>
         <translation>локальный</translation>
     </message>
@@ -1316,29 +1344,34 @@
         <translation>{0} и ещё {1}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/activity.py" line="194"/>
-        <location filename="ai_agent/ui/thinking.py" line="131"/>
+        <location filename="ai_agent/ui/activity.py" line="198"/>
+        <location filename="ai_agent/ui/thinking.py" line="145"/>
         <source>{0} min {1} s</source>
         <translation>{0} мин {1} с</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/activity.py" line="191"/>
+        <location filename="ai_agent/ui/activity.py" line="195"/>
         <source>{0} ms</source>
         <translation>{0} мс</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/activity.py" line="193"/>
-        <location filename="ai_agent/ui/thinking.py" line="130"/>
+        <location filename="ai_agent/ui/activity.py" line="197"/>
+        <location filename="ai_agent/ui/thinking.py" line="144"/>
         <source>{0} s</source>
         <translation>{0} с</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="42"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="43"/>
         <source>{0} tokens</source>
         <translation>{0} токенов</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer.py" line="30"/>
+        <location filename="ai_agent/ui/composer.py" line="35"/>
+        <source>↑↓ to choose a layer, Tab or Enter to insert, Esc to dismiss</source>
+        <translation>↑↓ — выбрать слой, Tab или Enter — вставить, Esc — закрыть</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/composer.py" line="34"/>
         <source>↑↓ to choose a skill, Tab or Enter to insert, Esc to dismiss</source>
         <translation>↑↓ — выбрать скилл, Tab или Enter — вставить, Esc — закрыть</translation>
     </message>

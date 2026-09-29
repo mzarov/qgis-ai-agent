@@ -42,6 +42,9 @@ class _Stub(metaclass=_Meta):
     def isVisible(self):
         return self.__dict__.get("_stub_visible", True)
 
+    def isHidden(self):
+        return not self.__dict__.get("_stub_visible", True)
+
     def __int__(self):
         return 0
 

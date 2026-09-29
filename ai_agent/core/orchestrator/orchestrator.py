@@ -4,6 +4,7 @@ from qgis.core import Qgis, QgsMessageLog
 
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.prompts import build_verification_prompt
+from ai_agent.core.context.project import layer_choices
 from ai_agent.core.llm.client import is_local
 from ai_agent.core.orchestrator.contracts import DockWidgetContract
 from ai_agent.core.orchestrator.planning import destructive_lines, plan_line
@@ -55,6 +56,7 @@ class CoreOrchestrator(ProjectLifecycleMixin):
         self._apply_scope: tuple[str, str] | None = None
         self._invalidated_scope: tuple[str, str] | None = None
         self._deferred_interrupted_outcome = ""
+        self._last_request = ""
         self._connect_agent()
         self.dock_widget.set_session_source(self.conversation.recent)
         self.refresh_configured()
@@ -62,6 +64,7 @@ class CoreOrchestrator(ProjectLifecycleMixin):
     def refresh_configured(self) -> None:
         self.dock_widget.set_configured(_is_configured())
         self.dock_widget.set_skill_source(choices)
+        self.dock_widget.set_layer_source(layer_choices)
 
     def _connect_agent(self) -> None:
         self.agent.tool_started.connect(self.on_tool_started)
@@ -99,7 +102,9 @@ class CoreOrchestrator(ProjectLifecycleMixin):
             else:
                 self.dock_widget.mark_plan_cancelled(self._plan_message_id)
         self._plan_message_id = None
+        self._keep_partial_answer()
         self.dock_widget.add_system_message(APPLY_STOPPED if applying else RUN_STOPPED)
+        self._offer_request_again()
 
     def on_new_session(self) -> None:
         if self._busy_with_current():
@@ -155,6 +160,7 @@ class CoreOrchestrator(ProjectLifecycleMixin):
         self.dock_widget.set_usage("")
         history = self.conversation.window()
         self.conversation.add("user", text)
+        self._last_request = text
         prompt = prompt_for(skill, rest) if skill else text
         self.agent.start(prompt, history, skills=[skill] if skill else None)
 
@@ -350,8 +356,19 @@ class CoreOrchestrator(ProjectLifecycleMixin):
     def on_failed(self, message: str) -> None:
         self._active_tool_message_id = None
         self._plan_message_id = None
+        self._keep_partial_answer()
         self.dock_widget.add_system_message(tr("Error: {0}").format(message))
         self._push_message(message, Qgis.MessageLevel.Critical)
+        self._offer_request_again()
+
+    def _keep_partial_answer(self) -> None:
+        partial = self.dock_widget.keep_stream()
+        if isinstance(partial, str) and partial:
+            self.conversation.add("assistant", partial)
+
+    def _offer_request_again(self) -> None:
+        if self._last_request and not getattr(self.agent, "is_verification", False):
+            self.dock_widget.restore_prompt(self._last_request)
 
     def shutdown(self) -> None:
         self.conversation.save()

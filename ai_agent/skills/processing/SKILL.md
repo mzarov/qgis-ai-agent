@@ -218,5 +218,9 @@ for each step.
 ## Results
 
 `run_processing` loads its output into the project by default, so the new layer
-becomes available to later steps. Pass `load_output: false` only when the user
+becomes available to later steps. With no `OUTPUT` given the result is a scratch
+layer in memory: it disappears when QGIS closes. When the user will want the
+result next time — anything they asked to make, keep or put on a map sheet —
+say that it is temporary, and write it to a file only with a path the user gave
+(`"OUTPUT": "<their path>.gpkg"`) or through `export_layer` from the project skill. Pass `load_output: false` only when the user
 explicitly wants the result not added.

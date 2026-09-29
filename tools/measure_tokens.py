@@ -107,8 +107,7 @@ QUEUED = {"status": "queued"}
 APPLYING_RUN = [
     [
         (call("update_plan", steps=["read data", "compute density", "classify", "label"]), {"ok": True}),
-        (call("load_skill", name="style"), "SKILL"),
-        (call("load_skill", name="processing"), "SKILL"),
+        (call("load_skill", names=["style", "processing"]), "SKILL"),
         (call("describe_layer", layer_name="districts"), DESCRIBE),
     ],
     [(call("query_layer", layer_name="districts", aggregate="stats", expression="POP2020"), STATS)],
@@ -141,7 +140,10 @@ APPLYING_RUN = [
     ],
 ]
 VERIFICATION_RUN = [
-    [(call("load_skill", name="style"), "SKILL"), (call("describe_style", layer_name="districts_density"), DESCRIBE)],
+    [
+        (call("load_skill", names=["style"]), "SKILL"),
+        (call("describe_style", layer_name="districts_density"), DESCRIBE),
+    ],
     [(call("render_map", layer_name="districts_density"), {"ok": True, "width": 800})],
     [(call("reorder_layers", order=["districts_density", "OpenStreetMap"]), QUEUED)],
 ]
@@ -204,8 +206,9 @@ def run(
         results = []
         for tool_call, payload in turn:
             if payload == "SKILL":
-                extend_loaded(loaded, tool_call.arguments["name"])
-                payload = {"loaded": tool_call.arguments["name"], "tools": ["a_tool"] * 8}
+                for name in tool_call.arguments["names"]:
+                    extend_loaded(loaded, name)
+                payload = {"loaded": tool_call.arguments["names"], "tools": ["a_tool"] * 8}
             elif payload == "APPLY":
                 payload = {"applied": [{"tool": item.name, "ok": True} for item in queued]}
                 queued = []
@@ -220,7 +223,7 @@ def run(
 
 
 def _redundant_load(tool_call: ToolCall, loaded: list[str]) -> bool:
-    return tool_call.name == "load_skill" and tool_call.arguments.get("name") in loaded
+    return tool_call.name == "load_skill" and set(tool_call.arguments.get("names", [])) <= set(loaded)
 
 
 def measure() -> dict[str, float]:

@@ -728,3 +728,27 @@ These verify the agent solves everyday tasks without wandering through search.
      and the skill still loads with the known tools only.
 179. **An unknown command is refused, not sent.** `/nope do it` → one system
      message naming the available commands; nothing reaches the model.
+
+## Chat recovery and @ mentions
+
+180. **@ inserts an exact layer name.** Type `colour @ri` → a list of matching
+     layers above the input; a click or Tab inserts `@rivers ` (or
+     `@"Main roads" ` for a name with spaces) at the cursor, the rest of the text
+     stays; an e-mail address like `me@example.com` opens nothing.
+181. **The skill list works with the mouse.** `/` → hovering a row highlights it
+     clearly in light and dark themes; a click inserts it; Tab on `/zzz` sends
+     nothing.
+182. **A stopped run keeps its partial answer.** Stop while the answer streams →
+     the written part stays in the chat, "Run stopped" follows, the request is back
+     in the input box.
+183. **A failed run still offers prepared changes.** Queue two styling steps, then
+     break the key in Settings mid-run → the error shows, then the plan card with
+     the prepared steps; Apply works.
+184. **A reasoning-only turn stays visible.** With extended thinking on, ask a
+     question answered without tools → after the answer a folded "Thought" line
+     stays above it and opens on click.
+185. **Verification speaks the user's language.** Russian UI, apply a styling
+     change → the verification verdict is in Russian and queues nothing when the
+     result is right.
+186. **Budgets are validated.** Settings → Advanced → type `10k` in the token
+     budget → saved as 10000; `ten` → an error, the dialog stays open.
