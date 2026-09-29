@@ -1,6 +1,6 @@
 ---
 name: web
-description: Look things up on the internet — search the web, read a page, or use the geocoder selected in Settings. Load this when the answer is not in the project.
+description: Internet lookups — web search, reading a URL, geocoding a place name to coordinates and a bounding box. Load this for facts outside the project, for a pasted link, or when another skill needs where a named place is.
 tools: [search_web, fetch_url, geocode]
 ---
 
@@ -20,12 +20,8 @@ access parameters, tokens or private/intranet addresses in a URL. Do not try to
 work around a rejected address through redirects, alternate numeric spelling or
 another web service.
 
-The public OSMF service `https://nominatim.openstreetmap.org` is intentionally
-unsupported for generic agent geocoding. The Photon demo preset permits
-reasonable use but may throttle heavy traffic and has no availability guarantee.
-For other use, the user can select a Nominatim-compatible service whose operator
-permits it. Do not substitute the OSMF endpoint. See the official
-[Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/).
+The geocoder is whatever Settings selects; never put a provider URL into a call
+and never substitute the public OSMF Nominatim endpoint.
 
 ## geocode first for places
 

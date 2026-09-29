@@ -22,3 +22,9 @@ SENSITIVE_DATA_BLOCKED = (
     "Privacy mode blocked this tool because its result can contain sensitive GIS data. "
     "The user can allow sensitive data for this endpoint in Settings."
 )
+CONTINUE_TRUNCATED = (
+    "[Plugin note] Your reply was cut off by the output limit. Continue exactly where it "
+    "stopped; do not repeat what you already wrote."
+)
+EMPTY_REPLY = "[Plugin note] Your last reply was empty. Call the tools you need or give the user your answer."
+TRUNCATED_REASONS = frozenset({"length", "max_tokens"})

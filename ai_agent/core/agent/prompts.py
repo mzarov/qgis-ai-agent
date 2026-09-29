@@ -54,8 +54,8 @@ A name after @ in the user's request (@roads, @"Main roads") is the exact name
 of a layer in the project.
 Read it before creating anything: if the layer is already in the project,
 work with it instead of downloading or adding it again, and if you have already
-queued the step, it is queued — queueing it a second time gives the user two
-identical layers, not a better result. When you are unsure whether something
+queued the step, it is queued — a second call with slightly different arguments
+gives the user two layers, not a better result. When you are unsure whether something
 exists, call a read tool; that is cheaper than a duplicate.
 
 The project context shows only what is already applied. Your queued steps have
@@ -123,6 +123,7 @@ TOOLS_BLOCK_HEADER = "Available tools (name and JSON Schema of arguments):"
 VERIFICATION_PROMPT = (
     "[Message from the plugin, not from the user — answer in the language of the "
     "user's own request.]\n"
+    "{request}"
     "The queued changes have just been applied. Results per step:\n{outcomes}\n"
     "Verify that the project now matches what the user originally asked for: "
     "re-read the affected state with read tools (describe_style, query_layer, "
@@ -148,16 +149,24 @@ VERIFICATION_PROMPT = (
     "If everything is right, queue nothing."
 )
 OUTCOME_LINE = "- {tool}: {status}"
+REQUEST_LINE = "The user's request was: {request}\n"
+REQUEST_LIMIT = 600
 OUTCOME_OK = "ok"
 OUTCOME_FAILED = "FAILED — {error}"
 
 
-def build_verification_prompt(outcomes: list[dict[str, Any]]) -> str:
+def build_verification_prompt(outcomes: list[dict[str, Any]], request: str = "") -> str:
     lines = []
     for outcome in outcomes:
         status = OUTCOME_OK if outcome.get("ok") else OUTCOME_FAILED.format(error=outcome.get("error", ""))
         lines.append(OUTCOME_LINE.format(tool=outcome.get("tool", ""), status=status))
-    return VERIFICATION_PROMPT.format(outcomes="\n".join(lines) or "- (nothing ran)")
+    asked = " ".join((request or "").split())
+    if len(asked) > REQUEST_LIMIT:
+        asked = asked[: REQUEST_LIMIT - 1] + "…"
+    return VERIFICATION_PROMPT.format(
+        outcomes="\n".join(lines) or "- (nothing ran)",
+        request=REQUEST_LINE.format(request=asked) if asked else "",
+    )
 
 
 def build_apply_now_schema() -> dict[str, Any]:

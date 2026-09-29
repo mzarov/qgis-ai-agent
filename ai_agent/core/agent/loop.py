@@ -57,6 +57,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._prompt_protocol = PROTOCOL_NATIVE
         self._overrides: dict = {}
         self._protocol_retried = False
+        self._nudged = False
         self._aborted = False
         self._is_verification = False
         self._tokens_spent = 0
@@ -143,6 +144,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._batch.clear()
         self._iteration = 0
         self._protocol_retried = False
+        self._nudged = False
         self._aborted = False
         self._overrides = build_overrides()
         self.busy_changed.emit(True)
@@ -242,7 +244,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         )
 
     def _queued_summaries(self) -> str:
-        return render_queued_steps(self._batch.pending_summaries())
+        return render_queued_steps(self._batch.pending_lines())
 
     def _on_chunk(self, text: str, generation: int | None = None) -> None:
         if self._is_current(generation) and text:
@@ -276,6 +278,8 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         if not self._is_current(generation):
             return
         self._transcript.add_turn(turn)
+        if not turn.tool_calls and self._nudge_once(turn, generation):
+            return
         if not turn.tool_calls:
             self._complete(turn.text, generation)
             return
@@ -300,6 +304,20 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
             return
         if self._is_current(generation):
             self._request_step()
+
+    def _nudge_once(self, turn: ModelTurn, generation: int) -> bool:
+        """Give a cut-off or empty final reply one more turn instead of ending the run."""
+        truncated = turn.finish_reason in notices.TRUNCATED_REASONS
+        if self._nudged or not (truncated or not turn.text.strip()):
+            return False
+        self._nudged = True
+        if turn.text.strip():
+            self.preamble.emit(turn.text)
+            if not self._is_current(generation):
+                return True
+        self._transcript.add_user(notices.CONTINUE_TRUNCATED if truncated else notices.EMPTY_REPLY)
+        self._request_step()
+        return True
 
     def _pause_for_question(self, generation: int | None = None) -> None:
         if not self._is_current(generation):

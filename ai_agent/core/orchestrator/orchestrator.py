@@ -334,7 +334,7 @@ class CoreOrchestrator(ProjectLifecycleMixin):
         ]
         self.dock_widget.add_system_message(VERIFYING)
         self.agent.start(
-            build_verification_prompt(outcomes),
+            build_verification_prompt(outcomes, self._last_request),
             self.conversation.window(),
             verification=True,
             verification_round=next_round,

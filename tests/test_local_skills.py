@@ -137,8 +137,15 @@ class LocalSkillsHelpersTest(unittest.TestCase):
         with open(path, encoding="utf-8") as handle:
             self.assertIn("keep me", handle.read())
         problems = local_skills.register_local_skills()
-        self.assertIn("example-skill", SKILL_REGISTRY.local_names())
-        self.assertFalse(any("example-skill" in problem for problem in problems))
+        self.assertNotIn("house-style", SKILL_REGISTRY.local_names())
+        self.assertTrue(any("still the example" in problem for problem in problems))
+        with open(path, encoding="utf-8") as handle:
+            edited = handle.read().replace(local_skills.EXAMPLE_DESCRIPTION, "Load when styling maps for our team.")
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(edited)
+        problems = local_skills.register_local_skills()
+        self.assertIn("house-style", SKILL_REGISTRY.local_names())
+        self.assertFalse(any("house-style" in problem for problem in problems))
 
     def test_choices_carry_origin_for_the_popup(self):
         choices = local_skills.skill_choices()

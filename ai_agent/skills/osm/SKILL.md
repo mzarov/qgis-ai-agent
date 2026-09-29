@@ -1,6 +1,6 @@
 ---
 name: osm
-description: Download OpenStreetMap data through Overpass and add it to the project as layers — cafes, roads, buildings, water, land use, anything with an OSM key. Load this when the user wants data they do not have yet.
+description: Fetch OpenStreetMap data through Overpass into new layers — roads, buildings, POIs, water, land use, anything by OSM tag — for a named place or the current view. Load this when the data is neither in the project nor on disk.
 tools: [download_osm, run_overpass]
 ---
 
@@ -25,8 +25,8 @@ OSM tags are English regardless of what language the user speaks. A request for
 cafes in Berlin is `key=amenity`, `value=cafe`, `area=Berlin`. When the user writes
 in another language, translate the *tag* into English — a translated tag matches
 nothing at all. The *place name* may be given either way: the territory is matched
-against `name`, `name:en` and `int_name`, so both `Тверь` and `Tver` find the same
-city.
+against `name`, `name:en` and `int_name`, so a local-script name and its English spelling
+(`Αθήνα`, `Athens`) find the same city.
 
 The tags that cover most requests:
 
@@ -87,7 +87,7 @@ Two rules there, and the second one is not optional:
 
 ```
 [out:xml][timeout:90];
-area["name"="Тверь"]->.a;
+area["name"="Tver"]->.a;
 (
   way["leisure"="park"](area.a);
 );

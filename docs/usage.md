@@ -70,7 +70,8 @@ turn later. A bare `/skill` applies the skill to the current project.
 
 Your own skills live in the QGIS profile, in `ai_agent_skills/<name>/SKILL.md`
 — **Settings → Skills** shows the folder, opens it and writes an example to
-start from. The frontmatter needs `name` (lowercase letters, digits, `-` or
+start from — a `house-style` skill that stays switched off until you edit its
+description. The frontmatter needs `name` (lowercase letters, digits, `-` or
 `_`) and `description` (the sentence the model picks the skill by); an optional
 `tools` list names existing tools to bring along — the domain rules of those
 tools load with them. A local skill cannot add Python code: it teaches the

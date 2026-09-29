@@ -7,22 +7,31 @@ from ai_agent.qgis_tools.registry import ALL_TOOLS
 from ai_agent.skills.registry import SKILL_FILENAME, SKILL_REGISTRY
 
 FOLDER_NAME = "ai_agent_skills"
-EXAMPLE_FOLDER = "example-skill"
+EXAMPLE_FOLDER = "house-style"
+EXAMPLE_DESCRIPTION = (
+    "EXAMPLE — replace this line with when to load the skill, e.g. when styling or exporting maps for our team."
+)
 PROBLEM_UNKNOWN_TOOLS = "{name}: unknown tools ignored: {tools}"
-EXAMPLE_SKILL = """---
-name: example-skill
-description: Rename me — one line saying when the agent should load this skill. The model picks skills by this sentence.
-tools: [list_layers, describe_layer]
+PROBLEM_EXAMPLE_INACTIVE = "{name}: still the example — edit its description to switch it on."
+EXAMPLE_SKILL = f"""---
+name: house-style
+description: {EXAMPLE_DESCRIPTION}
+tools: [set_symbol, set_labels, export_layout]
 ---
 
-# Example skill
+# House style (edit me)
 
-Write here the rules the agent must follow while this skill is loaded:
-step order, units, pitfalls, house conventions. Plain Markdown, in English.
+- Roads: grey #6b6b6b, 0.4 mm; primary roads #d97b00, 0.8 mm.
+- Labels: Arial, size 9, white buffer 1 mm.
+- Print exports: PDF, A3 landscape, into the project folder.
 
-The tools list above is optional. Name existing tools to make them available
-together with these rules; the domain rules of those tools load automatically.
-Type /example-skill in the chat to invoke this skill explicitly.
+How this file works. One folder per skill, and the file is always SKILL.md.
+`name` is lowercase letters, digits, - or _ and becomes the /command. The
+`description` is the one line the agent reads to decide when to load the
+skill, so write it as "load when ...". `tools` is optional: it names existing
+plugin tools to load together with these rules, with their own domain rules.
+Write in English — the agent reads English best and still answers in your
+language. This example stays switched off until you change its description.
 """
 
 
@@ -50,6 +59,9 @@ def register_local_skills(path: str | None = None) -> list[str]:
         if unknown:
             skill.tool_names = [tool for tool in skill.tool_names if tool in known]
             problems.append(PROBLEM_UNKNOWN_TOOLS.format(name=name, tools=", ".join(unknown)))
+        if skill.description.strip() == EXAMPLE_DESCRIPTION:
+            SKILL_REGISTRY.drop_local(name)
+            problems.append(PROBLEM_EXAMPLE_INACTIVE.format(name=name))
     return problems
 
 

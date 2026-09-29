@@ -1,6 +1,6 @@
 ---
 name: layout
-description: Build print layouts — a map sheet with a title, legend and scale bar — and export them to PDF or PNG. Load this when the user wants a map for printing or a file to hand over.
+description: Print output — a page with map, title, legend, scale bar, north arrow or picture, exported to PDF or PNG. Load this for "print", "PDF", "A3", "map sheet", "poster"; a data file is export_layer in project.
 tools: [list_layouts, describe_layout, render_layout, create_layout, add_layout_item, configure_layout_item, remove_layout_item, export_layout]
 ---
 
@@ -14,7 +14,9 @@ the result.
 ## The workflow
 
 1. `create_layout` — page size and orientation. Landscape A4 (297×210) is the
-   default and fits most single-map sheets.
+   default and fits most single-map sheets. Landscape sizes in mm: A5 210×148,
+   A4 297×210, A3 420×297, A2 594×420, Letter 279.4×215.9; portrait swaps them.
+   Scale every position below to the page you chose.
 2. `add_layout_item` for each piece, all queued in the same turn. Give every
    item a readable `id` (`map-1`, `title`) — you will address them later.
 3. After the user applies, the verification pass runs: call `render_layout`

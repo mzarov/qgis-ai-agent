@@ -16,6 +16,7 @@ from ai_agent.qgis_tools.base import SAFETY_READ
 from ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call, validate_tool_arguments
 
 LOG_TAG = "AI Agent"
+DUPLICATE_NOTE = "An identical call is already queued; it was not added again."
 
 
 class DispatchMixin:
@@ -59,6 +60,7 @@ class DispatchMixin:
         return result
 
     def _queue_write(self, call: ToolCall) -> ToolResult:
+        before = len(self._batch.pending())
         try:
             queued = self._batch.add(call)
         except Exception as err:
@@ -69,6 +71,10 @@ class DispatchMixin:
                 Qgis.MessageLevel.Warning,
             )
             return ToolResult.failure(call, str(err))
+        if len(self._batch.pending()) == before:
+            return ToolResult(
+                call=call, ok=True, payload={"status": "queued", "duplicate": True, "note": DUPLICATE_NOTE}
+            )
         tool = get_tool_by_name(queued.name)
         if tool is not None and tool.safety_for(queued.arguments) == SAFETY_READ:
             self._staged = self._staged or tool.has_network_access(queued.arguments)
