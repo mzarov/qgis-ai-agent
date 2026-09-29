@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import Mock, patch
 
 from ai_agent.qgis_tools.annotations import add_annotation as add_module
 from ai_agent.qgis_tools.annotations import store as store_module
@@ -82,6 +83,41 @@ class AnnotationsTest(unittest.TestCase):
         with self.assertRaises(ValueError) as caught:
             store_module.remove_item("a7")
         self.assertIn("a5", str(caught.exception))
+
+    def test_removing_an_unknown_id_is_refused_before_apply(self):
+        self.layer._items["a5"] = FakeItem()
+        with self.assertRaisesRegex(ValueError, "Available: a5"):
+            RemoveAnnotationTool().prepare({"id": "a7"})
+        self.assertEqual(RemoveAnnotationTool().prepare({"id": " a5 "})["id"], "a5")
+
+    def test_an_unknown_crs_is_refused_before_apply(self):
+        invalid = Mock()
+        invalid.isValid.return_value = False
+        with (
+            patch.object(add_module, "QgsCoordinateReferenceSystem", return_value=invalid),
+            self.assertRaisesRegex(ValueError, "Unknown CRS 'EPSG:0'"),
+        ):
+            AddAnnotationTool().prepare({"kind": "marker", "x": 1, "y": 2, "crs": "EPSG:0"})
+
+    def test_a_failed_transform_is_reported_not_swallowed(self):
+        source = Mock()
+        source.isValid.return_value = True
+        source.authid.return_value = "EPSG:4326"
+        target = Mock()
+        target.isValid.return_value = True
+        target.authid.return_value = "EPSG:3857"
+        project = Mock()
+        project.crs.return_value = target
+        point = Mock()
+        point.transform.side_effect = RuntimeError("latitude out of range")
+        with (
+            patch.object(add_module, "QgsCoordinateReferenceSystem", return_value=source),
+            patch.object(add_module.QgsProject, "instance", return_value=project),
+            patch.object(add_module, "QgsPoint", return_value=point),
+            self.assertRaisesRegex(ValueError, "latitude out of range"),
+        ):
+            AddAnnotationTool().execute({"kind": "marker", "x": 10, "y": 95})
+        self.assertEqual(self.layer.items(), {})
 
     def test_summaries_never_raise(self):
         for tool in (AddAnnotationTool(), ListAnnotationsTool(), RemoveAnnotationTool()):

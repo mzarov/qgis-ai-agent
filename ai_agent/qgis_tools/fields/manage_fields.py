@@ -10,8 +10,10 @@ from ai_agent.qgis_tools.common.layers import bind_layer_reference, find_layer_b
 from ai_agent.qgis_tools.fields.schema import (
     FIELD_TYPES,
     build_field,
+    build_virtual_field,
     checked_new_name,
     field_names,
+    infer_virtual_type,
     require_field_index,
     require_vector,
 )
@@ -56,7 +58,10 @@ class AddFieldTool(BaseTool):
             "name": "type",
             "type": "string",
             "enum": sorted(FIELD_TYPES),
-            "description": "Field type; ignored for a virtual field, whose type follows the expression",
+            "description": (
+                "Field type. For a virtual field omit it: the type is inferred from the "
+                "expression's values (text when the layer has no features to evaluate)"
+            ),
             "required": False,
         },
         {
@@ -74,11 +79,14 @@ class AddFieldTool(BaseTool):
         layer = _field_target(params)
         name = checked_new_name(layer, params.get("name"))
         expression = str(params.get("expression") or "").strip()
+        prepared = bind_layer_reference(params, layer)
         if expression:
             compile_expression(expression, name, layer)
+            kind = str(params.get("type") or "").strip().lower() or infer_virtual_type(layer, expression)
+            build_virtual_field(name, kind)
+            prepared["type"] = kind
         else:
             build_field(name, params.get("type") or "text")
-        prepared = bind_layer_reference(params, layer)
         prepared["name"] = name
         return prepared
 
@@ -95,10 +103,11 @@ class AddFieldTool(BaseTool):
         expression = str(params.get("expression") or "").strip()
         if expression:
             compile_expression(expression, name, layer)
-            index = layer.addExpressionField(expression, build_field(name, params.get("type") or "double"))
+            kind = str(params.get("type") or "").strip().lower() or infer_virtual_type(layer, expression)
+            index = layer.addExpressionField(expression, build_virtual_field(name, kind))
             if index < 0:
                 raise ValueError(f"QGIS refused to add virtual field '{name}'.")
-            return {"layer": layer.name(), "field": name, "virtual": True, "note": VIRTUAL_NOTE}
+            return {"layer": layer.name(), "field": name, "virtual": True, "type": kind, "note": VIRTUAL_NOTE}
         field = build_field(name, params.get("type") or "text")
         with edit_session(layer, "the schema change"):
             if not layer.addAttribute(field):

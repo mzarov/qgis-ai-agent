@@ -92,7 +92,7 @@ class EmptyOutputTest(unittest.TestCase):
         layer.name.return_value = "buffer"
         with (
             mock.patch.object(processing_utils, "resolve_layer", return_value=layer),
-            mock.patch.object(processing_utils, "safe_feature_count", return_value=0),
+            mock.patch.object(processing_utils, "feature_count_if_cheap", return_value=0),
         ):
             warnings = processing_utils.empty_output_warnings({"OUTPUT": "id1"})
         self.assertEqual(len(warnings), 1)
@@ -101,12 +101,12 @@ class EmptyOutputTest(unittest.TestCase):
     def test_a_populated_output_gives_no_warning(self):
         with (
             mock.patch.object(processing_utils, "resolve_layer", return_value=mock.Mock()),
-            mock.patch.object(processing_utils, "safe_feature_count", return_value=12),
+            mock.patch.object(processing_utils, "feature_count_if_cheap", return_value=12),
         ):
             self.assertEqual(processing_utils.empty_output_warnings({"OUTPUT": "id1"}), [])
 
     def test_a_raster_or_a_number_gives_no_warning(self):
-        with mock.patch.object(processing_utils, "safe_feature_count", return_value=None):
+        with mock.patch.object(processing_utils, "feature_count_if_cheap", return_value=None):
             self.assertEqual(processing_utils.empty_output_warnings({"OUTPUT": 3.5, "X": None}), [])
 
 

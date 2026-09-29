@@ -1,6 +1,8 @@
 import unittest
+from unittest.mock import patch
 
-from ai_agent.qgis_tools.inspect.queries import run_rows
+from ai_agent.qgis_tools.inspect import queries
+from ai_agent.qgis_tools.inspect.queries import run_aggregate, run_rows
 
 
 class _Fields:
@@ -65,3 +67,78 @@ class QueryBoundsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class _AggregatingLayer(_Layer):
+    """A remote-looking layer whose native aggregate answers are recorded."""
+
+    def __init__(self, answers, provider="postgres", count=250_000):
+        super().__init__(size=count)
+        self.answers = dict(answers)
+        self.calls = []
+        self.provider = provider
+        self.count = count
+
+    def providerType(self):
+        return self.provider
+
+    def featureCount(self):
+        return self.count
+
+    def selectedFeatureIds(self):
+        return [4, 5]
+
+    def aggregate(self, kind, expression, parameters, context, fids=None):
+        self.calls.append((kind, expression, getattr(parameters, "filter", ""), fids))
+        return self.answers.get(expression, (None, False))
+
+    def getFeatures(self, request):
+        raise AssertionError("a native aggregate must not scan features in Python")
+
+
+class _Parameters:
+    filter = ""
+
+
+class NativeAggregateTest(unittest.TestCase):
+    def setUp(self):
+        replacement = patch.object(queries, "prepared", lambda text, label, context, layer=None: text)
+        replacement.start()
+        self.addCleanup(replacement.stop)
+        replacement = patch.object(queries.QgsAggregateCalculator, "AggregateParameters", _Parameters)
+        replacement.start()
+        self.addCleanup(replacement.stop)
+
+    def test_a_bare_count_on_a_local_layer_uses_the_cheap_count(self):
+        layer = _AggregatingLayer({}, provider="ogr", count=12)
+        result = run_aggregate(layer, _Request(), None, {}, "count")
+        self.assertEqual((result["matched"], result["value"]), (12, 12))
+        self.assertEqual(layer.calls, [])
+
+    def test_a_filtered_sum_runs_natively_past_the_python_scan_limit(self):
+        layer = _AggregatingLayer({"1": (float(queries.MAX_SCAN + 10), True), "population": (1234.56789, True)})
+        params = {"filter": "kind = 'city'", "expression": "population"}
+        result = run_aggregate(layer, _Request(), None, params, "sum")
+        self.assertEqual(result["matched"], queries.MAX_SCAN + 10)
+        self.assertEqual(result["value"], 1234.5679)
+        self.assertEqual([call[1:3] for call in layer.calls], [("1", "kind = 'city'"), ("population", "kind = 'city'")])
+
+    def test_selected_only_passes_the_selected_ids(self):
+        layer = _AggregatingLayer({"1": (2.0, True), "$area": (10.0, True)})
+        result = run_aggregate(layer, _Request(), None, {"selected_only": True, "expression": "$area"}, "max")
+        self.assertEqual((result["matched"], result["value"]), (2, 10.0))
+        self.assertTrue(all(call[3] == [4, 5] for call in layer.calls))
+
+    def test_a_refused_native_aggregate_falls_back_to_the_scan(self):
+        layer = _AggregatingLayer({"1": (3.0, True)}, count=3)
+        layer.getFeatures = _Layer(size=3).getFeatures
+        with (
+            patch.object(queries, "evaluate", lambda expression, context, feature: "text"),
+            self.assertRaisesRegex(ValueError, "numbers only"),
+        ):
+            run_aggregate(layer, _Request(), None, {"expression": "name"}, "sum")
+
+    def test_no_match_keeps_the_empty_answer(self):
+        layer = _AggregatingLayer({"1": (0.0, True)})
+        result = run_aggregate(layer, _Request(), None, {"filter": "false", "expression": "n"}, "sum")
+        self.assertEqual((result["matched"], result["value"]), (0, None))

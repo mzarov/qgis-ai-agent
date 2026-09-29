@@ -4,7 +4,7 @@ from qgis.core import QgsVectorLayer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
-from ai_agent.qgis_tools.common.layers import crs_authid, geometry_type_name, safe_feature_count
+from ai_agent.qgis_tools.common.layers import crs_authid, feature_count_block, geometry_type_name
 from ai_agent.qgis_tools.project.list_db_connections import require_connection
 from ai_agent.qgis_tools.project.tree import layer_names, project
 
@@ -85,7 +85,7 @@ class AddDbLayerTool(BaseTool):
             "name": layer.name(),
             "crs": crs_authid(layer),
             "geometry": geometry_type_name(layer),
-            "feature_count": safe_feature_count(layer),
+            **feature_count_block(layer),
         }
 
 

@@ -125,9 +125,10 @@ match the key:
   only" is `fill_style: "none"`
 
 Set everything in one call. "Label them with the name, bold, 12, white halo" is
-one call with four keys, not four calls. Queueing either tool twice for one layer
-means the second call wins outright and the first was wasted — both rebuild the
-whole configuration each time rather than patching it.
+one call with four keys, not four calls. `set_symbol` rebuilds the whole symbol
+each time, so a second call for one layer wins outright. `set_labels` patches
+labels that are already on: only the given keys change, and `field` is needed
+only to switch labels on. Labels that are off (or rule-based) are built afresh.
 
 Not every symbol property fits every geometry: `shape` is meaningless for lines,
 `fill_style` for points. Such keys come back in `skipped` with a note. That is a

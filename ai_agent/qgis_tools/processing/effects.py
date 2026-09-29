@@ -30,6 +30,19 @@ SOURCE_WRITERS = frozenset(
     }
 )
 
+# These contact a remote service while running. The senders can also push
+# arbitrary data out (HTTP POST bodies), so each call needs its own confirmation.
+NETWORK_SENDERS = frozenset({"native:filedownloader", "native:httprequest"})
+NETWORK_ALGORITHMS = NETWORK_SENDERS | frozenset({"native:batchnominatimgeocoder", "native:downloadvectortiles"})
+
+
+def contacts_network(identifier: str) -> bool:
+    return identifier.strip().lower() in NETWORK_ALGORITHMS
+
+
+def sends_network_data(identifier: str) -> bool:
+    return identifier.strip().lower() in NETWORK_SENDERS
+
 
 def writes_external_data(identifier: str, security_risk: bool = False) -> bool:
     """Classify source writes separately from output destinations.

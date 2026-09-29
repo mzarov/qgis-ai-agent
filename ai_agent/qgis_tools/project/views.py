@@ -1,6 +1,6 @@
 from typing import Any
 
-from qgis.core import QgsApplication, QgsBookmark, QgsProject, QgsReferencedRectangle
+from qgis.core import QgsBookmark, QgsProject, QgsReferencedRectangle
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, EGRESS_METADATA, SAFETY_READ, SAFETY_WRITE, BaseTool
@@ -14,7 +14,9 @@ NO_THEMES_NOTE = (
 
 
 def bookmark_manager() -> Any:
-    return QgsApplication.bookmarkManager()
+    # The project's manager, not the application's: its bookmarks are saved
+    # with the project and restored by a snapshot, the user-wide ones are not.
+    return project().bookmarkManager()
 
 
 def project_themes() -> list[str]:

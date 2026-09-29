@@ -1,3 +1,5 @@
+import os
+import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
@@ -10,6 +12,7 @@ from ai_agent.qgis_tools.layout import items, pages
 from ai_agent.qgis_tools.layout.add_layout_item import AddLayoutItemTool
 from ai_agent.qgis_tools.layout.configure_layout_item import ConfigureLayoutItemTool
 from ai_agent.qgis_tools.layout.export_layout import ExportLayoutTool, _checked_path
+from ai_agent.qgis_tools.layout.items import north_arrow_path
 
 
 class PageSizeTest(unittest.TestCase):
@@ -228,6 +231,38 @@ class ConfigureItemTest(unittest.TestCase):
             {"layout_name": "Лист", "item_id": "title", "properties": {"text": "Новый заголовок"}}
         )
         self.assertEqual(result["item"]["text"], "Новый заголовок")
+
+    def test_font_size_alone_is_not_applied_to_a_map(self):
+        self.layout = FakeLayout([_map_item("map-1")])
+        with self.assertRaisesRegex(ValueError, "font_size do not apply to a map"):
+            self.tool.prepare({"layout_name": "Лист", "item_id": "map-1", "properties": {"font_size": 20}})
+
+    def test_properties_of_another_kind_are_refused(self):
+        with self.assertRaisesRegex(ValueError, "title do not apply to a label"):
+            self.tool.prepare({"layout_name": "Лист", "item_id": "title", "properties": {"title": "Legend"}})
+        with self.assertRaisesRegex(ValueError, "positive"):
+            self.tool.prepare({"layout_name": "Лист", "item_id": "title", "properties": {"font_size": "big"}})
+
+    def test_a_failing_property_leaves_the_item_where_it_was(self):
+        item = self.layout.items()[0]
+        with (
+            patch.object(configure_module, "apply_label_text", side_effect=RuntimeError("font failure")),
+            self.assertRaisesRegex(RuntimeError, "font failure"),
+        ):
+            self.tool.execute(
+                {"layout_name": "Лист", "item_id": "title", "x": 30, "properties": {"text": "New", "font_size": 12}}
+            )
+        self.assertIsNone(item._moved)
+
+
+class NorthArrowPathTest(unittest.TestCase):
+    def test_the_folder_that_holds_the_arrow_wins(self):
+        with tempfile.TemporaryDirectory() as profile, tempfile.TemporaryDirectory() as bundled:
+            arrow = os.path.join(bundled, "arrows", "NorthArrow_02.svg")
+            os.makedirs(os.path.dirname(arrow))
+            open(arrow, "w").close()
+            with patch("ai_agent.qgis_tools.layout.items.QgsApplication.svgPaths", return_value=[profile, bundled]):
+                self.assertEqual(north_arrow_path("simple"), arrow)
 
 
 class ExportPathTest(unittest.TestCase):

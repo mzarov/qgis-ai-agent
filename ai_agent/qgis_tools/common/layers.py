@@ -16,6 +16,10 @@ FALLBACK_EXTENT = (0.0, 0.0, 100.0, 100.0)
 FALLBACK_CRS = "EPSG:3857"
 GEOMETRY_NAMES = ("point", "line", "polygon")
 LAYER_PINS_KEY = "_ai_agent_layer_pins"
+# Providers whose featureCount() is a cheap local answer. Remote ones may run
+# COUNT(*) over a big table on the main thread, or answer -1 (unknown).
+COUNTABLE_PROVIDERS = frozenset({"ogr", "memory", "delimitedtext", "spatialite", "virtual"})
+NOT_COUNTED_NOTE = "Features are not counted for remote sources; use query_layer with aggregate=count."
 
 
 def geometry_type_name(layer: QgsMapLayer) -> str:
@@ -139,9 +143,7 @@ def describe_layer_brief(layer: QgsMapLayer) -> dict[str, Any]:
     }
     if kind == "vector":
         brief["geometry"] = geometry_type_name(layer)
-        feature_count = safe_feature_count(layer)
-        if feature_count is not None:
-            brief["feature_count"] = feature_count
+        brief.update(feature_count_block(layer))
     brief.update(style_block(layer))
     return brief
 
@@ -153,10 +155,42 @@ def safe_feature_count(layer: QgsMapLayer) -> int | None:
         return None
 
 
+def feature_count_if_cheap(layer: QgsMapLayer) -> int | None:
+    """The feature count of a local provider; None for remote or unknown counts."""
+    provider = ""
+    with suppress(Exception):
+        provider = str(layer.providerType() or "").lower()
+    if provider not in COUNTABLE_PROVIDERS:
+        return None
+    count = safe_feature_count(layer)
+    return count if count is not None and count >= 0 else None
+
+
+def feature_count_block(layer: QgsMapLayer, key: str = "feature_count") -> dict[str, Any]:
+    """`{key: count}` when counting is cheap, otherwise a note telling how to count."""
+    count = feature_count_if_cheap(layer)
+    if count is None:
+        return {f"{key}_note": NOT_COUNTED_NOTE}
+    return {key: count}
+
+
+def layer_reference(layer: QgsMapLayer) -> dict[str, str]:
+    """The standard result keys naming a layer: layer_name and, when known, layer_id."""
+    reference = {"layer_name": (layer.name() or "").strip()}
+    identifier = layer_identifier(layer)
+    if identifier:
+        reference["layer_id"] = identifier
+    return reference
+
+
 def find_layer_by_name(name: str) -> QgsMapLayer:
+    """Resolve a layer by exact id first, then by name; ids break name ties."""
     wanted = (name or "").strip()
     project = QgsProject.instance()
     if wanted:
+        by_id = _layer_with_id(project, wanted)
+        if by_id is not None:
+            return by_id
         matches = project.mapLayersByName(wanted)
         if len(matches) == 1:
             return matches[0]
@@ -190,6 +224,14 @@ def find_layer_by_id(layer_id: str) -> QgsMapLayer:
     available = [_layer_reference(item) for item in project.mapLayers().values()]
     hint = ", ".join(available) if available else "the project has no layers"
     raise ValueError(f"Layer id not found: '{wanted}'. Available layers: {hint}.")
+
+
+def _layer_with_id(project: QgsProject, identifier: str) -> QgsMapLayer | None:
+    try:
+        layers = project.mapLayers()
+    except Exception:
+        return None
+    return layers.get(identifier) if isinstance(layers, dict) else None
 
 
 def layer_identifier(layer: QgsMapLayer) -> str:
@@ -284,7 +326,7 @@ def _ambiguous_layer(name: str, matches: list[QgsMapLayer]) -> ValueError:
     choices = ", ".join(_layer_reference(layer) for layer in matches)
     return ValueError(
         f"Layer name '{name}' is ambiguous: {len(matches)} project layers match ({choices}). "
-        "Use layer_id from list_layers for a stable target."
+        "Pass the layer id from list_layers as layer_name (or as layer_id where the tool has it)."
     )
 
 

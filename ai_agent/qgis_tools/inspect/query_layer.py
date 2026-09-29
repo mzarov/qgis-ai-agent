@@ -5,7 +5,7 @@ from qgis.core import QgsVectorLayer
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common.expressions import build_context, build_request
-from ai_agent.qgis_tools.common.layers import find_layer_by_name
+from ai_agent.qgis_tools.common.layers import find_layer_by_name, layer_reference
 from ai_agent.qgis_tools.inspect.aggregates import AGGREGATE_FUNCTIONS
 from ai_agent.qgis_tools.inspect.queries import DEFAULT_ROW_LIMIT, run_aggregate, run_rows
 
@@ -112,7 +112,7 @@ class QueryLayerTool(BaseTool):
             _restrict_to_selection(layer, request)
         aggregate = (params.get("aggregate") or "").strip().lower()
 
-        result: dict[str, Any] = {"layer_name": layer.name()}
+        result: dict[str, Any] = layer_reference(layer)
         condition = (params.get("filter") or "").strip()
         if condition:
             result["filter"] = condition

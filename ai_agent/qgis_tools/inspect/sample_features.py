@@ -4,7 +4,7 @@ from qgis.core import QgsFeatureRequest, QgsVectorLayer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
-from ai_agent.qgis_tools.common.layers import find_layer_by_name, safe_feature_count
+from ai_agent.qgis_tools.common.layers import feature_count_block, find_layer_by_name, layer_reference
 from ai_agent.qgis_tools.common.values import clamp_limit, plain_value, wanted_fields
 
 DEFAULT_LIMIT = 5
@@ -62,9 +62,9 @@ class SampleFeaturesTool(BaseTool):
         for feature in layer.getFeatures(QgsFeatureRequest().setLimit(limit)):
             features.append(self._describe_feature(feature, wanted))
         return {
-            "layer_name": layer.name(),
+            **layer_reference(layer),
             "shown": len(features),
-            "total": safe_feature_count(layer),
+            **feature_count_block(layer, "total"),
             "features": features,
         }
 

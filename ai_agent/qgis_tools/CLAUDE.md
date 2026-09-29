@@ -59,7 +59,8 @@ the schema by hand. Supported `type`s: `string`, `number`, `integer`, `boolean`,
    user's confirmation. A read that contacts a service must declare
    `network_access = True`; it queues for exact per-call confirmation but does
    not need a project snapshot. Any mutation of the project is `write`, however
-   harmless.
+   harmless. A write that downloads also declares `network_access`: it stays an
+   ordinary queued write with a snapshot, and its plan line names the service.
 3. **`summarize_call` has no right to crash.** The loop calls it on the error
    path too: if it throws on malformed arguments, error handling itself breaks,
    not just one line in the feed. Wrap anything that may fail to parse in `try`

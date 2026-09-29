@@ -5,7 +5,7 @@ from qgis.core import QgsVectorLayer
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common.expressions import compile_expression
-from ai_agent.qgis_tools.common.layers import find_layer_by_name
+from ai_agent.qgis_tools.common.layers import find_layer_by_name, layer_reference
 
 MAX_FLASH = 200
 NOTHING_MATCHED = (
@@ -13,6 +13,10 @@ NOTHING_MATCHED = (
     "values with get_field_values before selecting."
 )
 SHOWN_NOTE = "The matching features are now selected and highlighted on the map."
+REPLACED_NOTE = (
+    "The user's previous selection of {count} features on this layer was replaced. "
+    "Say so in the answer; it cannot be restored automatically."
+)
 
 
 class SelectFeaturesTool(BaseTool):
@@ -60,14 +64,24 @@ class SelectFeaturesTool(BaseTool):
         if not expression:
             raise ValueError("filter is required — an expression saying what to select.")
         compile_expression(expression, "filter", layer)
+        previous_ids = _selected_ids(layer)
+        previous = len(previous_ids)
         layer.selectByExpression(expression)
-        selected = int(layer.selectedFeatureCount())
+        selected = _selected_count(layer)
+        result: dict[str, Any] = {**layer_reference(layer), "selected": selected, "previous_selection_count": previous}
         if not selected:
-            return {"layer": layer.name(), "selected": 0, "note": NOTHING_MATCHED}
+            # selectByExpression clears the selection when nothing matches;
+            # an empty answer must not cost the user what they had selected.
+            if previous_ids:
+                layer.selectByIds(previous_ids)
+            return {**result, "note": NOTHING_MATCHED}
         if params.get("zoom") is not False:
             _zoom_to_selection(layer)
         _flash(layer)
-        return {"layer": layer.name(), "selected": selected, "note": SHOWN_NOTE}
+        note = SHOWN_NOTE
+        if previous:
+            note += " " + REPLACED_NOTE.format(count=previous)
+        return {**result, "note": note}
 
 
 def _require_vector(layer_name: str) -> QgsVectorLayer:
@@ -75,6 +89,20 @@ def _require_vector(layer_name: str) -> QgsVectorLayer:
     if not isinstance(layer, QgsVectorLayer):
         raise ValueError(f"Layer '{layer.name()}' is not a vector layer, there is nothing to select.")
     return layer
+
+
+def _selected_ids(layer: Any) -> list[int]:
+    try:
+        return [int(identifier) for identifier in layer.selectedFeatureIds()]
+    except Exception:
+        return []
+
+
+def _selected_count(layer: Any) -> int:
+    try:
+        return int(layer.selectedFeatureCount())
+    except Exception:
+        return 0
 
 
 def _zoom_to_selection(layer: Any) -> None:

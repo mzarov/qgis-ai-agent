@@ -2,7 +2,7 @@ import re
 from typing import Any
 
 from qgis.core import QgsField
-from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QMetaType
 
 TAGS_FIELD = "other_tags"
 KEY_PATTERN = re.compile(r'"([^"]+)"=>')
@@ -34,7 +34,7 @@ def promote_tags(layer: Any) -> list[str]:
 
 def _add_one(layer: Any, tag: str) -> bool:
     try:
-        layer.addExpressionField(EXPRESSION.format(field=TAGS_FIELD, tag=tag), QgsField(tag, QVariant.String))
+        layer.addExpressionField(EXPRESSION.format(field=TAGS_FIELD, tag=tag), QgsField(tag, QMetaType.Type.QString))
     except Exception:
         return False
     return True

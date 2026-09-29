@@ -2,6 +2,7 @@ from typing import Any
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.project.scratch_copies import is_memory_layer, scratch_layers_over_budget
 from ai_agent.qgis_tools.project.tree import find_layer, project
 
 
@@ -26,6 +27,14 @@ class RemoveLayerTool(BaseTool):
         },
     ]
 
+    def has_external_effect(self, params: dict[str, Any]) -> bool:
+        """A scratch layer too large to copy beside the snapshot is gone for good once removed."""
+        try:
+            layer = find_layer(params.get("layer_name") or "")
+        except Exception:
+            return False
+        return is_memory_layer(layer) and str(layer.id()) in scratch_layers_over_budget(project())
+
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = find_layer(params.get("layer_name") or "")
         prepared = dict(params)
@@ -39,5 +48,8 @@ class RemoveLayerTool(BaseTool):
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = find_layer(params.get("layer_name") or "")
         name = layer.name()
+        scratch = is_memory_layer(layer)
         project().removeMapLayer(layer.id())
+        if scratch:
+            return {"removed": name, "note": "This was a temporary (memory) layer; its features lived only in QGIS."}
         return {"removed": name, "note": "The file on disk stayed where it was."}

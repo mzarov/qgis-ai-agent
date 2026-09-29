@@ -4,7 +4,7 @@ from qgis.core import QgsRasterLayer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
-from ai_agent.qgis_tools.common.layers import find_layer_by_name
+from ai_agent.qgis_tools.common.layers import find_layer_by_name, layer_reference
 from ai_agent.qgis_tools.style.apply import refresh
 from ai_agent.qgis_tools.style.raster import (
     DEFAULT_CLASSES,
@@ -22,6 +22,9 @@ from ai_agent.qgis_tools.style.raster import (
     checked_band,
     checked_classes,
     checked_interpolation,
+    checked_no_data,
+    require_local_raster,
+    restore_no_data,
 )
 
 
@@ -112,6 +115,8 @@ class SetRasterStyleTool(BaseTool):
         layer = _require_raster(params.get("layer_name") or "")
         mode = _checked_mode(params.get("mode"))
         checked_band(layer, params.get("band"))
+        require_local_raster(layer)
+        checked_no_data(params.get("no_data_values"))
         if mode == MODE_PSEUDOCOLOR:
             checked_classes(params.get("classes"))
             checked_interpolation(params.get("interpolation"))
@@ -129,11 +134,19 @@ class SetRasterStyleTool(BaseTool):
         layer = _require_raster(params.get("layer_name") or "")
         mode = _checked_mode(params.get("mode"))
         band = checked_band(layer, params.get("band"))
-        hidden = apply_no_data(layer, params.get("no_data_values"))
-        renderer, details = _built(layer, mode, band, params)
+        require_local_raster(layer)
+        hidden = checked_no_data(params.get("no_data_values"))
+        # No-data goes in before the renderer is built, so the statistics skip
+        # the hidden values; a failed build puts the old no-data back.
+        previous = apply_no_data(layer, hidden)
+        try:
+            renderer, details = _built(layer, mode, band, params)
+        except Exception:
+            restore_no_data(layer, previous)
+            raise
         layer.setRenderer(renderer)
         refresh(layer)
-        result: dict[str, Any] = {"layer": layer.name(), "mode": mode, "band": band}
+        result: dict[str, Any] = {**layer_reference(layer), "mode": mode, "band": band}
         result.update(details)
         if hidden:
             result["hidden_values"] = hidden

@@ -1,6 +1,6 @@
 from typing import Any
 
-from qgis.core import QgsFeatureRequest
+from qgis.core import Qgis, QgsAggregateCalculator, QgsFeatureRequest
 
 from ai_agent.qgis_tools.common.expressions import (
     evaluate,
@@ -9,13 +9,28 @@ from ai_agent.qgis_tools.common.expressions import (
     prepared,
     sort_key,
 )
+from ai_agent.qgis_tools.common.layers import feature_count_if_cheap
 from ai_agent.qgis_tools.common.values import clamp_limit, wanted_fields
-from ai_agent.qgis_tools.inspect.aggregates import compute
+from ai_agent.qgis_tools.inspect.aggregates import ROUND_DIGITS, compute
 
 MAX_SCAN = 50000
 DEFAULT_ROW_LIMIT = 20
 MAX_ROW_LIMIT = 200
 MAX_GROUPS = 50
+# Qgis.Aggregate member per aggregate the native calculator can answer without
+# a Python scan. Concatenation stays in Python for its item cap and
+# count_distinct because QGIS counts NULL as a distinct text value; "count" is
+# the number of matching features, which COUNT_EXPRESSION yields for each one.
+NATIVE_AGGREGATES = {
+    "sum": "Sum",
+    "mean": "Mean",
+    "median": "Median",
+    "min": "Min",
+    "max": "Max",
+    "stdev": "StDevSample",
+}
+COUNT_EXPRESSION = "1"
+_FAILED = object()
 SCAN_LIMIT_MESSAGE = (
     "More than {limit} features match the condition, so an exact answer cannot be computed. "
     "Narrow the selection down with the filter parameter."
@@ -28,6 +43,10 @@ def run_aggregate(layer, request, context, params, aggregate: str) -> dict[str, 
     value_expression = prepared(expression_text, "expression", context, layer) if expression_text else None
     group_expression = prepared(group_text, "group_by", context, layer) if group_text else None
 
+    if group_expression is None:
+        native = _native_aggregate(layer, context, params, aggregate, expression_text)
+        if native is not None:
+            return native
     if value_expression is None and group_expression is None:
         return _bare_count(layer, request, aggregate)
 
@@ -55,6 +74,60 @@ def run_aggregate(layer, request, context, params, aggregate: str) -> dict[str, 
     if len(groups) > MAX_GROUPS:
         info["groups_note"] = f"showing the first {MAX_GROUPS} groups out of {len(groups)}"
     return info
+
+
+def _native_aggregate(layer, context, params, aggregate: str, expression_text: str) -> dict[str, Any] | None:
+    """Answer an ungrouped aggregate through QgsVectorLayer.aggregate; None means scan instead."""
+    if expression_text and aggregate != "count" and aggregate not in NATIVE_AGGREGATES:
+        return None
+    filter_text = (params.get("filter") or "").strip()
+    fids = _selected_ids(layer) if params.get("selected_only") else None
+    matched = feature_count_if_cheap(layer) if not filter_text and fids is None else None
+    if matched is None:
+        counted = _native_value(layer, context, "Count", COUNT_EXPRESSION, filter_text, fids)
+        if not isinstance(counted, (int, float)):
+            return None
+        matched = int(counted)
+    info: dict[str, Any] = {"aggregate": aggregate, "matched": matched}
+    if not expression_text or aggregate == "count" or not matched:
+        if expression_text:
+            info["expression"] = expression_text
+        info["value"] = compute(aggregate, [], matched)
+        return info
+    value = _native_value(layer, context, NATIVE_AGGREGATES[aggregate], expression_text, filter_text, fids)
+    if value is _FAILED:
+        return None
+    info["expression"] = expression_text
+    info["value"] = _rounded(plain_value(value))
+    return info
+
+
+def _native_value(layer, context, member: str, expression_text: str, filter_text: str, fids) -> Any:
+    try:
+        parameters = QgsAggregateCalculator.AggregateParameters()
+        if filter_text:
+            parameters.filter = filter_text
+        kind = getattr(Qgis.Aggregate, member)
+        if fids is None:
+            value, ok = layer.aggregate(kind, expression_text, parameters, context)
+        else:
+            value, ok = layer.aggregate(kind, expression_text, parameters, context, fids)
+    except Exception:
+        return _FAILED
+    return value if ok is True else _FAILED
+
+
+def _selected_ids(layer) -> list[int]:
+    try:
+        return [int(identifier) for identifier in layer.selectedFeatureIds()]
+    except Exception:
+        return []
+
+
+def _rounded(value: Any) -> Any:
+    if isinstance(value, float):
+        return round(value, ROUND_DIGITS)
+    return value
 
 
 def _bare_count(layer, request, aggregate: str) -> dict[str, Any]:

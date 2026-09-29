@@ -382,6 +382,7 @@ core = _mod(
         "QgsAnnotationMarkerItem",
         "QgsAnnotationPointTextItem",
         "QgsPoint",
+        "QgsAggregateCalculator",
     ],
 )
 pyqt = _mod("qgis.PyQt")
@@ -408,6 +409,7 @@ _qtcore = _mod(
         "QRectF",
         "QTranslator",
         "QVariant",
+        "QMetaType",
         "QCoreApplication",
     ],
 )

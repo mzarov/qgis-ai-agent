@@ -49,7 +49,7 @@ class AddBasemapTool(BaseTool):
     safety = SAFETY_WRITE
     egress = EGRESS_METADATA
     external_effect = False
-    network_access = False
+    network_access = True
     constraints = ["A custom url must contain the {z}, {x} and {y} placeholders"]
     examples = ["Add an OpenStreetMap basemap", "Put satellite imagery under my layers"]
     params_schema = [

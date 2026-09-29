@@ -1,11 +1,12 @@
 from contextlib import suppress
 from typing import Any
 
-from qgis.core import QgsProject
+from qgis.core import QgsFeatureRequest, QgsProject
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common.layer_meta import selected_count
+from ai_agent.qgis_tools.common.layers import layer_reference
 from ai_agent.qgis_tools.common.values import plain_value
 
 SAMPLE_LIMIT = 10
@@ -43,7 +44,7 @@ class GetSelectionTool(BaseTool):
             total += count
             selections.append(
                 {
-                    "layer": layer.name(),
+                    **layer_reference(layer),
                     "count": count,
                     "features": _sample(layer),
                 }
@@ -56,11 +57,15 @@ class GetSelectionTool(BaseTool):
 def _sample(layer: Any) -> list[dict[str, Any]]:
     try:
         names = layer.fields().names()
-        features = layer.selectedFeatures()
+        # Only the sample is read: selectedFeatures() would load every selected
+        # feature, with geometry, just to show ten of them.
+        features = layer.getSelectedFeatures(QgsFeatureRequest().setLimit(SAMPLE_LIMIT).setNoGeometry())
     except Exception:
         return []
     sampled = []
-    for feature in features[:SAMPLE_LIMIT]:
+    for feature in features:
+        if len(sampled) >= SAMPLE_LIMIT:
+            break
         attributes = {}
         for name in names:
             with suppress(Exception):

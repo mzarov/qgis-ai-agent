@@ -12,7 +12,12 @@ from qgis.core import (
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
-from ai_agent.qgis_tools.common.layers import bind_layer_reference, find_layer_by_id, find_layer_by_name
+from ai_agent.qgis_tools.common.layers import (
+    bind_layer_reference,
+    find_layer_by_id,
+    find_layer_by_name,
+    layer_reference,
+)
 from ai_agent.qgis_tools.common.paths import check_overwrites, outputs_safety, related_output_paths
 
 FORMATS = {
@@ -21,6 +26,10 @@ FORMATS = {
     ".shp": "ESRI Shapefile",
     ".csv": "CSV",
 }
+CSV_SUFFIX = ".csv"
+# Without it the CSV driver silently drops the geometry and keeps attributes only.
+CSV_GEOMETRY_OPTIONS = ["GEOMETRY=AS_WKT"]
+CSV_NOTE = "The geometry is stored as WKT text in a column named WKT."
 
 
 class ExportLayerTool(BaseTool):
@@ -117,6 +126,9 @@ class ExportLayerTool(BaseTool):
         options = QgsVectorFileWriter.SaveVectorOptions()
         options.driverName = FORMATS[_suffix(path)]
         options.onlySelectedFeatures = bool(params.get("selected_only"))
+        spatial_csv = _suffix(path) == CSV_SUFFIX and _is_spatial(layer)
+        if spatial_csv:
+            options.layerOptions = list(CSV_GEOMETRY_OPTIONS)
         crs = _checked_crs(params.get("crs"))
         if crs is not None:
             options.ct = _transform(layer, crs)
@@ -125,12 +137,15 @@ class ExportLayerTool(BaseTool):
         if code != QgsVectorFileWriter.WriterError.NoError:
             reason = error[1] if isinstance(error, tuple) and len(error) > 1 else code
             raise ValueError(f"QGIS could not write '{path}': {reason}.")
-        return {
-            "layer": layer.name(),
+        result = {
+            **layer_reference(layer),
             "path": path,
             "format": options.driverName,
             "selected_only": options.onlySelectedFeatures,
         }
+        if spatial_csv:
+            result["note"] = CSV_NOTE
+        return result
 
 
 def _require_vector(layer_name: str, layer_id: str = "") -> Any:
@@ -139,6 +154,13 @@ def _require_vector(layer_name: str, layer_id: str = "") -> Any:
     if not isinstance(layer, QgsVectorLayer):
         raise ValueError(f"Layer '{layer.name()}' is not a vector layer — rasters export through processing.")
     return layer
+
+
+def _is_spatial(layer: Any) -> bool:
+    try:
+        return bool(layer.isSpatial())
+    except Exception:
+        return True
 
 
 def _prepared_vector(params: dict[str, Any]) -> Any:

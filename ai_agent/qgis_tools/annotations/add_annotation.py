@@ -4,6 +4,7 @@ from typing import Any
 from qgis.core import (
     QgsAnnotationMarkerItem,
     QgsAnnotationPointTextItem,
+    QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsPoint,
     QgsProject,
@@ -65,6 +66,8 @@ class AddAnnotationTool(BaseTool):
         colour = str(params.get("color") or "").strip()
         if colour and not QColor(colour).isValid():
             raise ValueError(f"'{colour}' is not a colour. Use #rrggbb or a colour name.")
+        authid = _checked_crs(params.get("crs")).authid()
+        prepared["crs"] = authid if isinstance(authid, str) and authid else str(params.get("crs") or WGS84).strip()
         return prepared
 
     def summarize_call(self, params: dict[str, Any]) -> str:
@@ -76,7 +79,7 @@ class AddAnnotationTool(BaseTool):
         kind = _checked_kind(params.get("kind"))
         x, y = _checked_xy(params)
         layer = annotation_layer()
-        point = _to_layer_point(layer, x, y, str(params.get("crs") or WGS84))
+        point = _to_project_point(x, y, _checked_crs(params.get("crs")))
         if kind == KIND_MARKER:
             item = QgsAnnotationMarkerItem(point)
         else:
@@ -100,21 +103,28 @@ def _checked_xy(params: dict[str, Any]) -> tuple[float, float]:
         raise ValueError("x and y are numbers — longitude and latitude for EPSG:4326.") from None
 
 
-def _to_layer_point(layer: Any, x: float, y: float, crs_text: str) -> Any:
+def _to_project_point(x: float, y: float, source: Any) -> Any:
     point = QgsPoint(x, y)
-    with suppress(Exception):
-        source = _crs(crs_text)
-        target = QgsProject.instance().crs()
-        if source is not None and target is not None and source.authid() != target.authid():
-            point.transform(QgsCoordinateTransform(source, target, QgsProject.instance()))
+    project = QgsProject.instance()
+    target = project.crs()
+    if not target.isValid() or source.authid() == target.authid():
+        return point
+    try:
+        point.transform(QgsCoordinateTransform(source, target, project))
+    except Exception as failure:
+        raise ValueError(
+            f"Could not move ({x}, {y}) from {source.authid()} into the project CRS {target.authid()}: {failure}. "
+            "Check that x/y are in the given crs (lon/lat for EPSG:4326)."
+        ) from None
     return point
 
 
-def _crs(text: str) -> Any:
-    from qgis.core import QgsCoordinateReferenceSystem
-
+def _checked_crs(raw: Any) -> Any:
+    text = str(raw or "").strip() or WGS84
     crs = QgsCoordinateReferenceSystem(text)
-    return crs if crs.isValid() else None
+    if not crs.isValid():
+        raise ValueError(f"Unknown CRS '{text}'. Give an authority id such as EPSG:4326.")
+    return crs
 
 
 def _apply_text_look(item: Any, params: dict[str, Any]) -> None:

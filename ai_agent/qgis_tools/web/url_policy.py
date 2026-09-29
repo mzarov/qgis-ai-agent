@@ -27,6 +27,9 @@ SECRET_QUERY_KEYS = {
 }
 SECRET_QUERY_SUFFIXES = ("_credential", "_password", "_secret", "_signature", "_token")
 MAX_URL_CHARS = 4096
+# RFC 6052 well-known NAT64 prefix: the last 32 bits are an IPv4 address the
+# translator will reach, so a private one there is a private destination.
+NAT64_PREFIX = ipaddress.IPv6Network("64:ff9b::/96")
 
 
 def canonical_host(host: str) -> str:
@@ -105,8 +108,19 @@ def is_public_address(address: ipaddress.IPv4Address | ipaddress.IPv6Address) ->
         return False
     if address.is_reserved or address.is_unspecified or not address.is_global:
         return False
-    mapped = getattr(address, "ipv4_mapped", None)
-    return mapped is None or is_public_address(mapped)
+    return all(is_public_address(embedded) for embedded in embedded_ipv4(address))
+
+
+def embedded_ipv4(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> list[ipaddress.IPv4Address]:
+    """IPv4 destinations tunnelled inside an IPv6 address (mapped, 6to4, Teredo, NAT64)."""
+    if not isinstance(address, ipaddress.IPv6Address):
+        return []
+    embedded = [candidate for candidate in (address.ipv4_mapped, address.sixtofour) if candidate is not None]
+    if address.teredo is not None:
+        embedded.extend(address.teredo)
+    if address in NAT64_PREFIX:
+        embedded.append(ipaddress.IPv4Address(int(address) & 0xFFFFFFFF))
+    return embedded
 
 
 def address_sort_key(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> tuple[int, int]:

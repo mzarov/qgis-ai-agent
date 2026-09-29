@@ -5,7 +5,7 @@ from qgis.core import QgsRasterLayer, QgsVectorLayer
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common.layer_meta import layer_opacity
-from ai_agent.qgis_tools.common.layers import find_layer_by_name, layer_kind
+from ai_agent.qgis_tools.common.layers import find_layer_by_name, layer_identifier, layer_kind
 from ai_agent.qgis_tools.style.labeling import describe_labeling
 from ai_agent.qgis_tools.style.renderers import (
     describe_raster_renderer,
@@ -45,6 +45,7 @@ class DescribeStyleTool(BaseTool):
         layer = find_layer_by_name(params.get("layer_name") or "")
         result: dict[str, Any] = {
             "name": (layer.name() or "").strip(),
+            "layer_id": layer_identifier(layer),
             "kind": layer_kind(layer),
             "opacity": layer_opacity(layer),
         }

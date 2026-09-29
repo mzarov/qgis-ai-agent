@@ -8,7 +8,7 @@ from qgis.core import (
     QgsProject,
 )
 
-from ai_agent.qgis_tools.common.layers import find_layer_by_name, safe_feature_count
+from ai_agent.qgis_tools.common.layers import feature_count_if_cheap, find_layer_by_name
 
 DESTINATION_TYPES = {
     "filedestination",
@@ -251,7 +251,7 @@ def empty_output_warnings(result: Any) -> list[str]:
         layer = resolve_layer(value)
         if layer is None:
             continue
-        if safe_feature_count(layer) == 0:
+        if feature_count_if_cheap(layer) == 0:
             warning = EMPTY_OUTPUT_WARNING.format(name=layer.name())
             if warning not in warnings:
                 warnings.append(warning)

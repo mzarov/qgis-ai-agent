@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from ai_agent.core.llm.transport import ToolCall
-from ai_agent.core.orchestrator.planning import EFFECT_EXTERNAL, destructive_lines, plan_line
+from ai_agent.core.orchestrator.planning import EFFECT_EXTERNAL, EFFECT_NETWORK, destructive_lines, plan_line
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE, SAFETY_WRITE
 from ai_agent.qgis_tools.processing.effects import writes_external_data
 from ai_agent.qgis_tools.processing.run_processing import RunProcessingTool
@@ -69,3 +69,35 @@ class ProcessingEffectsTest(unittest.TestCase):
         self.assertEqual(prepared["algorithm_id"], "native:truncatetable")
         self.assertTrue(prepared["_algorithm_security_risk"])
         self.assertEqual(tool.safety_for(prepared), SAFETY_DESTRUCTIVE)
+
+
+class ProcessingNetworkTest(unittest.TestCase):
+    def test_network_algorithms_announce_the_external_service(self):
+        for identifier in ("native:batchnominatimgeocoder", "native:downloadvectortiles"):
+            with self.subTest(identifier=identifier):
+                call = ToolCall("net", "run_processing", {"algorithm_id": identifier, "parameters": {}})
+                self.assertTrue(RunProcessingTool().has_network_access(call.arguments))
+                self.assertEqual(RunProcessingTool().safety_for(call.arguments), SAFETY_WRITE)
+                self.assertIn(EFFECT_NETWORK, plan_line(call))
+
+    def test_algorithms_that_can_send_data_need_their_own_confirmation(self):
+        for identifier in ("native:filedownloader", "native:httprequest", "NATIVE:FileDownloader"):
+            with self.subTest(identifier=identifier):
+                params = {"algorithm_id": identifier, "parameters": {"URL": "https://example.com", "METHOD": 1}}
+                self.assertTrue(RunProcessingTool().has_network_access(params))
+                self.assertEqual(RunProcessingTool().safety_for(params), SAFETY_DESTRUCTIVE)
+
+    def test_local_algorithms_do_not_claim_network_access(self):
+        self.assertFalse(RunProcessingTool().has_network_access({"algorithm_id": "native:buffer"}))
+        self.assertFalse(RunProcessingTool().has_network_access({}))
+
+    def test_detail_lists_every_parameter(self):
+        params = {
+            "algorithm_id": "native:filedownloader",
+            "parameters": {"URL": "https://example.com/upload", "METHOD": 1, "DATA": "secret=1", "OUTPUT": "x"},
+        }
+        call = ToolCall("net", "run_processing", params)
+        _lines, detail = destructive_lines([call])
+        for fragment in ("native:filedownloader", "URL = https://example.com/upload", "DATA = secret=1", "OUTPUT = x"):
+            self.assertIn(fragment, detail)
+        self.assertTrue(RunProcessingTool().detail_call({"parameters": "broken"}))

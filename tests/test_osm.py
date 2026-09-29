@@ -281,8 +281,10 @@ class PayloadIsolationTest(unittest.TestCase):
             for folder in folders:
                 os.mkdir(folder)
             with mock.patch.object(load.tempfile, "mkdtemp", side_effect=folders):
-                first = load.write_payload("<osm/>", "cafes")
-                second = load.write_payload("<osm/>", "cafes")
+                first, first_temporary = load.write_payload("<osm/>", "cafes")
+                second, _ = load.write_payload("<osm/>", "cafes")
+
+            self.assertTrue(first_temporary)
 
             self.assertNotEqual(first, second)
             self.assertNotEqual(os.path.dirname(first), os.path.dirname(second))
@@ -290,6 +292,43 @@ class PayloadIsolationTest(unittest.TestCase):
             if os.name != "nt":
                 self.assertEqual(stat.S_IMODE(os.stat(first).st_mode), 0o600)
                 self.assertEqual(stat.S_IMODE(os.stat(os.path.dirname(first)).st_mode), 0o700)
+
+
+class ProjectFolderTest(unittest.TestCase):
+    def _project(self, home):
+        return mock.patch.object(load.QgsProject, "instance", return_value=mock.Mock(homePath=lambda: home))
+
+    def test_a_saved_project_keeps_downloads_beside_itself(self):
+        with tempfile.TemporaryDirectory() as home, self._project(home):
+            first, temporary = load.write_payload("<osm/>", "cafes")
+            pathlib.Path(load._gpkg_path(first, "points")).touch()
+            second, _ = load.write_payload("<osm/>", "cafes")
+            self.assertFalse(temporary)
+            self.assertEqual(os.path.dirname(first), os.path.join(home, "osm"))
+            self.assertNotEqual(first, second)
+            self.assertEqual(load.storage_note(temporary), {})
+
+    def test_a_temporary_download_is_announced(self):
+        self.assertIn("temporary folder", load.storage_note(True)["storage_note"])
+
+    def test_the_raw_file_goes_once_every_layer_reads_its_geopackage(self):
+        with tempfile.TemporaryDirectory() as home:
+            path = os.path.join(home, "cafes.osm")
+            pathlib.Path(path).write_text("<osm/>", encoding="utf-8")
+            copy = {"name": "cafes", "kind": "points", "feature_count": 3, "source": load._gpkg_path(path, "points")}
+            with mock.patch.object(load, "_load_one", side_effect=[copy, None]):
+                loaded = load.load_sublayers(path, "lines", "cafes")
+            self.assertEqual(loaded, [copy])
+            self.assertFalse(os.path.exists(path))
+
+    def test_the_raw_file_stays_while_a_layer_still_reads_it(self):
+        with tempfile.TemporaryDirectory() as home:
+            path = os.path.join(home, "cafes.osm")
+            pathlib.Path(path).write_text("<osm/>", encoding="utf-8")
+            raw = {"name": "cafes", "kind": "points", "feature_count": 3, "source": path}
+            with mock.patch.object(load, "_load_one", return_value=raw):
+                load.load_sublayers(path, "points", "cafes")
+            self.assertTrue(os.path.exists(path))
 
 
 class SublayerTest(unittest.TestCase):
@@ -471,7 +510,7 @@ class EditableDownloadTest(unittest.TestCase):
         self.assertIn("CreateOrOverwriteFile", self.SOURCE)
 
     def test_a_failed_conversion_falls_back_to_the_raw_layer(self):
-        self.assertIn("_materialized(raw, path, sublayer) or raw", self.SOURCE)
+        self.assertIn("layer = materialized or raw", self.SOURCE)
 
     def test_the_read_only_refusal_names_the_way_out(self):
         layer = mock.Mock()

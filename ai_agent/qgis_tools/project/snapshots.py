@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from qgis.core import Qgis, QgsMessageLog, QgsProject
 
 from ai_agent.qgis_tools.common.project_identity import project_identity, restore_project_identity
+from ai_agent.qgis_tools.project.scratch_copies import ScratchCopies, copy_scratch_layers
 
 LOG_TAG = "AI Agent"
 FOLDER = "ai_agent_snapshots"
@@ -15,6 +16,7 @@ SUFFIX = ".qgz"
 MAX_SNAPSHOTS = 10
 _LAST: list[str] = []
 _STATES: dict[str, "ProjectState"] = {}
+_SCRATCH: dict[str, ScratchCopies] = {}
 _LAST_ERROR = ""
 _PROCESS_FOLDER = ""
 EDIT_BUFFER_ERROR = (
@@ -78,6 +80,7 @@ def _write_snapshot() -> str:
         pass
     _LAST.append(path)
     _STATES[path] = state
+    _SCRATCH[path] = copy_scratch_layers(project)
     _trim()
     QgsMessageLog.logMessage(f"Project snapshot written: {path}", LOG_TAG, Qgis.MessageLevel.Info)
     return path
@@ -90,6 +93,7 @@ def last_snapshot() -> str:
             return candidate
         _LAST.pop()
         _STATES.pop(candidate, None)
+        _SCRATCH.pop(candidate, None)
     return ""
 
 
@@ -104,11 +108,17 @@ def drop_snapshot(path: str) -> None:
     except ValueError:
         pass
     _STATES.pop(path, None)
+    _SCRATCH.pop(path, None)
     _remove_file(path)
 
 
 def snapshot_state(path: str) -> ProjectState | None:
     return _STATES.get(path)
+
+
+def snapshot_scratch(path: str) -> ScratchCopies:
+    """Memory-layer features kept for the snapshot; empty when none were copied."""
+    return _SCRATCH.get(path) or ScratchCopies()
 
 
 def capture_project_state(project: QgsProject) -> ProjectState:
@@ -155,6 +165,7 @@ def _trim() -> None:
     while len(_LAST) > MAX_SNAPSHOTS:
         stale = _LAST.pop(0)
         _STATES.pop(stale, None)
+        _SCRATCH.pop(stale, None)
         _remove_file(stale)
 
 

@@ -5,7 +5,7 @@ from qgis.core import Qgis
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_DESTRUCTIVE, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.paths import check_overwrite
-from ai_agent.qgis_tools.processing.effects import writes_external_data
+from ai_agent.qgis_tools.processing.effects import contacts_network, sends_network_data, writes_external_data
 from ai_agent.qgis_tools.processing.units import check_distance_units
 from ai_agent.qgis_tools.processing.utils import (
     apply_output_name,
@@ -90,11 +90,14 @@ class RunProcessingTool(BaseTool):
         }
 
     def safety_for(self, params: dict[str, Any]) -> str:
-        if _known_external_algorithm(params):
+        if _known_external_algorithm(params) or sends_network_data(str(params.get("algorithm_id") or "")):
             return SAFETY_DESTRUCTIVE
         if bool(params.get("overwrite_outputs")):
             return SAFETY_DESTRUCTIVE
         return SAFETY_WRITE
+
+    def has_network_access(self, params: dict[str, Any]) -> bool:
+        return contacts_network(str(params.get("algorithm_id") or ""))
 
     def has_external_effect(self, params: dict[str, Any]) -> bool:
         arguments = params.get("parameters")
@@ -110,6 +113,17 @@ class RunProcessingTool(BaseTool):
         output_name = (params.get("output_name") or "").strip()
         result_part = f" → '{output_name}'" if output_name else ""
         return tr("Run {0} ({1}{2}){3}.").format(algorithm_id, shown, tail, result_part)
+
+    def detail_call(self, params: dict[str, Any]) -> str:
+        algorithm_id = str(params.get("algorithm_id") or "").strip()
+        arguments = params.get("parameters")
+        lines = [tr("Algorithm: {0}").format(algorithm_id or tr("unknown"))]
+        if isinstance(arguments, dict) and arguments:
+            lines.append(tr("Parameters:"))
+            lines.extend(f"  {key} = {value}" for key, value in arguments.items())
+        else:
+            lines.append(tr("No parameters."))
+        return "\n".join(lines)
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         algorithm, prepared = self._prepare(params)

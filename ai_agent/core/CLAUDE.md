@@ -188,8 +188,9 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     the active layer, and per layer geometry, CRS, selection count and — only
     for local providers in `COUNTABLE_PROVIDERS` — the feature count. Remote
     providers are never asked to count: `COUNT(*)` on a big table would stall
-    the main thread before the first turn. Extents and values stay behind the
-    sensitive-data switch.
+    the main thread before the first turn. The rule and the provider list live
+    in `qgis_tools/common/layers.py::feature_count_if_cheap`, shared with the
+    tools. Extents and values stay behind the sensitive-data switch.
 20. **Anthropic thinking follows the model generation.** `anthropic.thinking_config`:
     Fable, Mythos and Opus 5.5 always think (no `disabled`, no `budget_tokens`);
     the 4.6+ generation takes only `adaptive`; older models keep

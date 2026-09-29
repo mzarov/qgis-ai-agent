@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+from unittest import mock
 
 from qgis.core import QgsVectorLayer
 
@@ -12,21 +13,29 @@ from ai_agent.ui import welcome
 
 
 class SelectableLayer(QgsVectorLayer):
-    def __init__(self, matched=3):
+    def __init__(self, matched=3, selected=()):
         self.expressions = []
         self._matched = matched
+        self._selected = list(selected)
 
     def name(self):
         return "Дороги"
 
+    def id(self):
+        return "roads_id"
+
     def selectByExpression(self, expression):
         self.expressions.append(expression)
+        self._selected = list(range(self._matched))
+
+    def selectByIds(self, ids):
+        self._selected = list(ids)
 
     def selectedFeatureCount(self):
-        return self._matched
+        return len(self._selected)
 
     def selectedFeatureIds(self):
-        return list(range(self._matched))
+        return list(self._selected)
 
 
 class SelectFeaturesTest(unittest.TestCase):
@@ -60,6 +69,20 @@ class SelectFeaturesTest(unittest.TestCase):
         result = self.tool.execute({"layer_name": "Дороги", "filter": "highway = 'nope'"})
         self.assertEqual(result["selected"], 0)
         self.assertIn("Nothing matches", result["note"])
+
+    def test_a_replaced_selection_is_reported(self):
+        self.layer._selected = [10, 11]
+        result = self.tool.execute({"layer_name": "Дороги", "filter": "highway = 'motorway'"})
+        self.assertEqual(result["previous_selection_count"], 2)
+        self.assertIn("previous selection of 2 features", result["note"])
+        self.assertEqual(result["layer_id"], "roads_id")
+
+    def test_an_empty_match_keeps_the_users_selection(self):
+        self.layer._matched = 0
+        self.layer._selected = [10, 11]
+        result = self.tool.execute({"layer_name": "Дороги", "filter": "highway = 'nope'"})
+        self.assertEqual(self.layer.selectedFeatureIds(), [10, 11])
+        self.assertEqual(result["previous_selection_count"], 2)
 
     def test_summary_never_raises(self):
         self.assertTrue(self.tool.summarize_call({}).strip())
@@ -95,7 +118,7 @@ class ExportLayerTest(unittest.TestCase):
         self.tool = ExportLayerTool()
         self.layer = SelectableLayer(matched=0)
         self.saved = export_module._require_vector
-        export_module._require_vector = lambda name: self.layer
+        export_module._require_vector = lambda name, layer_id="": self.layer
 
     def tearDown(self):
         export_module._require_vector = self.saved
@@ -132,6 +155,24 @@ class ExportLayerTest(unittest.TestCase):
 
     def test_summary_never_raises(self):
         self.assertTrue(self.tool.summarize_call({}).strip())
+
+    def test_a_csv_export_keeps_the_geometry_as_wkt(self):
+        written = []
+
+        def write(layer, path, context, options):
+            written.append(options)
+            return (export_module.QgsVectorFileWriter.WriterError.NoError, "")
+
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            mock.patch.object(export_module.QgsVectorFileWriter, "writeAsVectorFormatV3", side_effect=write),
+        ):
+            result = self.tool.execute({"layer_name": "Дороги", "path": os.path.join(folder, "roads.csv")})
+            gpkg = self.tool.execute({"layer_name": "Дороги", "path": os.path.join(folder, "roads.gpkg")})
+        self.assertEqual(written[0].layerOptions, ["GEOMETRY=AS_WKT"])
+        self.assertIn("WKT", result["note"])
+        self.assertNotIn("note", gpkg)
+        self.assertEqual(result["layer_id"], "roads_id")
 
 
 class WelcomeTest(unittest.TestCase):
