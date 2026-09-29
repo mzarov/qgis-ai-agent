@@ -175,6 +175,56 @@ class _Interface:
 
 
 class PluginLifecycleTest(unittest.TestCase):
+    def test_feed_popups_and_settings_work_under_real_qt(self):
+        from ai_agent.ui.settings_dialog import SettingsDialog
+
+        iface = _Interface()
+        plugin = QgisAiAgentPlugin(iface)
+        try:
+            plugin.initGui()
+            plugin.run()
+            dock = plugin.dock_widget
+            dock.add_user_message("Colour the <b>rivers</b>")
+            dock.add_thinking_chunk("Checking the layer first.")
+            dock.add_tool_message("Reading the project.")
+            dock.add_stream_chunk("Half an ")
+            dock.add_stream_chunk("answer")
+            QCoreApplication.processEvents()
+            self.assertEqual(dock.keep_stream(), "Half an answer")
+            dock.conversation.add_assistant_message("**Done**: two steps.")
+            dock.add_plan_message(["Colour rivers · reversible"])
+            dock.add_system_message("Run stopped.")
+            QCoreApplication.processEvents()
+
+            composer = dock.composer
+            composer.set_skill_source(lambda: [("osm", "OpenStreetMap", "builtin"), ("style", "Style", "builtin")])
+            composer.set_layer_source(lambda: [("Main roads", "line", "layer"), ("rivers", "line", "layer")])
+            composer._edit.clear()
+            composer._edit.insertPlainText("/o")
+            QCoreApplication.processEvents()
+            self.assertFalse(composer._popup.isHidden())
+            self.assertEqual(composer._popup.current_name(), "osm")
+            composer._on_complete()
+            self.assertEqual(composer._edit.toPlainText(), "/osm ")
+
+            composer._edit.clear()
+            composer._edit.insertPlainText("paint @ma")
+            QCoreApplication.processEvents()
+            self.assertFalse(composer._popup.isHidden())
+            composer._on_complete()
+            self.assertEqual(composer._edit.toPlainText(), 'paint @"Main roads" ')
+            self.assertTrue(composer._popup.isHidden())
+
+            dialog = SettingsDialog(dock)
+            QCoreApplication.processEvents()
+            dialog.reject()
+            dialog.deleteLater()
+            QCoreApplication.processEvents()
+        finally:
+            plugin.unload()
+            iface.window.deleteLater()
+            QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
     def test_plugin_builds_real_widgets_and_unloads(self):
         iface = _Interface()
         plugin = QgisAiAgentPlugin(iface)

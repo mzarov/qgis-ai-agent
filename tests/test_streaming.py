@@ -322,6 +322,39 @@ class ModelWorkerCancellationTest(unittest.TestCase):
         thread.cancel()
         self.assertTrue(thread._feedback.isCanceled())
 
+    def test_unload_waits_for_threads_left_running_by_an_abort(self):
+        from ai_agent.core.agent import turn_thread
+
+        class Thread:
+            def __init__(self, finishes):
+                self.finishes = finishes
+                self.cancelled = False
+                self.slots = []
+                self.finished = self
+
+            def connect(self, slot):
+                self.slots.append(slot)
+
+            def isRunning(self):
+                return True
+
+            def cancel(self):
+                self.cancelled = True
+
+            def wait(self, timeout):
+                return self.finishes
+
+        owner = turn_thread.TurnThreadOwner()
+        quick, stuck = Thread(True), Thread(False)
+        owner._retired = [quick, stuck]
+        owner.stop()
+        self.assertTrue(quick.cancelled and stuck.cancelled)
+        self.assertIn(stuck, turn_thread._ORPHANS)
+        self.assertNotIn(quick, turn_thread._ORPHANS)
+        for slot in stuck.slots:
+            slot()
+        self.assertNotIn(stuck, turn_thread._ORPHANS)
+
     def test_owner_never_uses_unsafe_qthread_termination(self):
         source = (pathlib.Path(__file__).parent.parent / "ai_agent/core/agent/turn_thread.py").read_text(
             encoding="utf-8"

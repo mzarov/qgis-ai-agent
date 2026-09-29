@@ -1,11 +1,12 @@
 import unittest
 
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QWidget
 
 from ai_agent.core.agent import prompts
 from ai_agent.core.orchestrator import slash
 from ai_agent.skills.registry import SKILL_REGISTRY
-from ai_agent.ui.composer import Composer, slash_query
+from ai_agent.ui.composer import Composer, PromptEdit, slash_query
 from ai_agent.ui.skill_popup import MAX_ROWS, SkillPopup, match_skills
 
 ITEMS = [
@@ -135,6 +136,49 @@ class ComposerWiringTest(unittest.TestCase):
         composer._edit.setPlainText = seen.append
         composer._insert_skill("osm")
         self.assertEqual(seen, ["/osm "])
+
+
+class _Key:
+    def __init__(self, key, modifiers=0):
+        self._key = key
+        self._modifiers = modifiers
+
+    def key(self):
+        return self._key
+
+    def modifiers(self):
+        return self._modifiers
+
+
+class KeyboardTest(unittest.TestCase):
+    def setUp(self):
+        self.edit = PromptEdit()
+        self.seen = []
+        self.edit.submitted.connect(lambda: self.seen.append("submit"))
+        self.edit.navigated.connect(lambda delta: self.seen.append(("move", delta)))
+        self.edit.accepted.connect(lambda: self.seen.append("accept"))
+        self.edit.completed.connect(lambda: self.seen.append("complete"))
+        self.edit.dismissed.connect(lambda: self.seen.append("dismiss"))
+
+    def test_the_key_constants_are_distinct(self):
+        keys = {Qt.Key.Key_Up, Qt.Key.Key_Down, Qt.Key.Key_Tab, Qt.Key.Key_Return, Qt.Key.Key_Escape}
+        self.assertEqual(len(keys), 5)
+
+    def test_enter_sends_and_shift_enter_does_not(self):
+        self.edit.keyPressEvent(_Key(Qt.Key.Key_Return))
+        self.edit.keyPressEvent(_Key(Qt.Key.Key_Return, Qt.KeyboardModifier.ShiftModifier))
+        self.assertEqual(self.seen, ["submit"])
+
+    def test_the_open_popup_takes_the_steering_keys(self):
+        self.edit.popup_open = True
+        for key in (Qt.Key.Key_Up, Qt.Key.Key_Down, Qt.Key.Key_Tab, Qt.Key.Key_Return, Qt.Key.Key_Escape):
+            self.edit.keyPressEvent(_Key(key))
+        self.assertEqual(self.seen, [("move", -1), ("move", 1), "complete", "accept", "dismiss"])
+
+    def test_other_keys_keep_typing_while_the_popup_is_open(self):
+        self.edit.popup_open = True
+        self.edit.keyPressEvent(_Key(Qt.Key.Key_A))
+        self.assertEqual(self.seen, [])
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ from typing import Any
 from ai_agent.core.llm.worker import ModelTurnThread
 
 THREAD_STOP_TIMEOUT_MS = 3000
+_ORPHANS: list[ModelTurnThread] = []
 
 
 class TurnThreadOwner:
@@ -68,14 +69,22 @@ class TurnThreadOwner:
             self._retire(thread)
 
     def stop(self) -> None:
-        thread = self._thread
+        """Stop every thread this owner started, for plugin unload.
+
+        Threads left running after abort() are retired, not forgotten: a QThread
+        destroyed while running aborts the whole QGIS process. Each one is
+        cancelled and waited for; one that still runs is kept alive at module
+        level until it finishes.
+        """
+        threads = [thread for thread in (self._thread, *self._retired) if thread is not None]
         self._thread = None
-        if not thread or not thread.isRunning():
-            return
-        thread.cancel()
-        if thread.wait(THREAD_STOP_TIMEOUT_MS):
-            return
-        self._retire(thread)
+        self._retired = []
+        for thread in threads:
+            if not thread.isRunning():
+                continue
+            thread.cancel()
+            if not thread.wait(THREAD_STOP_TIMEOUT_MS):
+                _keep_until_finished(thread)
 
     def _retire(self, thread: ModelTurnThread) -> None:
         if thread in self._retired:
@@ -88,3 +97,10 @@ class TurnThreadOwner:
     def _forget(self, thread: ModelTurnThread) -> None:
         if thread in self._retired:
             self._retired.remove(thread)
+
+
+def _keep_until_finished(thread: ModelTurnThread) -> None:
+    if thread in _ORPHANS:
+        return
+    _ORPHANS.append(thread)
+    thread.finished.connect(lambda: _ORPHANS.remove(thread) if thread in _ORPHANS else None)
