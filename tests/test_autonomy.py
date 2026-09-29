@@ -255,8 +255,8 @@ class BudgetTest(unittest.TestCase):
     def test_the_budget_stops_the_run_politely(self):
         completed = []
         self.loop.finished.connect(lambda text: completed.append(text))
-        self.loop._token_budget = 100
-        self.loop._tokens_spent = 150
+        self.loop._budget.limit = 100
+        self.loop._budget.spent = 150
         self.loop._request_step()
         self.assertEqual(completed, [BUDGET_REACHED_MESSAGE])
 
@@ -265,8 +265,8 @@ class BudgetTest(unittest.TestCase):
         saved = loop_module.build_step_request
         loop_module.build_step_request = lambda *args, **kwargs: _FakeRequest()
         self.loop._turn.start = lambda *args: started.append(True)
-        self.loop._token_budget = 0
-        self.loop._tokens_spent = 10**9
+        self.loop._budget.limit = 0
+        self.loop._budget.spent = 10**9
         try:
             self.loop._request_step()
         finally:
