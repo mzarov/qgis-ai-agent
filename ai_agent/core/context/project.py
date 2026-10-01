@@ -46,7 +46,7 @@ def describe_layer_line(layer: Any) -> str:
     if kind != "raster":
         count = feature_count_if_cheap(layer)
         if count is not None:
-            facts.append(f"{count} features")
+            facts.append(f"{count} feature" if count == 1 else f"{count} features")
         selected = selected_count(layer)
         if selected:
             facts.append(f"{selected} selected")

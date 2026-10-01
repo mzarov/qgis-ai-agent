@@ -214,5 +214,29 @@ class LayerIdentityTest(unittest.TestCase):
         self.assertIn("rivers", layer_pin_error(prepared))
 
 
+class GeometryNameTest(unittest.TestCase):
+    def test_qt6_int_enum_members_are_named_by_their_name(self):
+        import enum
+
+        from qgis.core import QgsVectorLayer
+
+        from ai_agent.qgis_tools.common.layers import geometry_type_name
+
+        class GeometryType(enum.IntEnum):
+            Point = 0
+            Line = 1
+            Polygon = 2
+
+        for member, expected in (
+            (GeometryType.Point, "point"),
+            (GeometryType.Line, "line"),
+            (GeometryType.Polygon, "polygon"),
+        ):
+            layer = QgsVectorLayer()
+            layer.geometryType = lambda member=member: member
+            self.assertEqual(str(member), str(int(member)))
+            self.assertEqual(geometry_type_name(layer), expected)
+
+
 if __name__ == "__main__":
     unittest.main()

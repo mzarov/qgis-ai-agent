@@ -26,9 +26,11 @@ def geometry_type_name(layer: QgsMapLayer) -> str:
     if not isinstance(layer, QgsVectorLayer):
         return ""
     try:
-        geometry = str(layer.geometryType()).lower()
+        kind = layer.geometryType()
     except Exception:
         return "vector"
+    # A Qt6 enum member is an IntEnum: str() gives "1", not "Line", so match on its name.
+    geometry = str(getattr(kind, "name", "") or kind).lower()
     for name in GEOMETRY_NAMES:
         if name in geometry:
             return name

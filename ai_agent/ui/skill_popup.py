@@ -101,6 +101,7 @@ class SkillPopup(QFrame):
     def _rebuild(self) -> None:
         for row in self._rows:
             self._column.removeWidget(row)
+            row.hide()
             row.deleteLater()
         self._rows = []
         if not self._matches:
