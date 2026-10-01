@@ -12,6 +12,10 @@ on:
         description: "Upload the zip to plugins.qgis.org (needs the QGIS_PLUGIN_TOKEN secret)"
         type: boolean
         default: true
+      live_model_check:
+        description: "Run the live-model scenarios first (spends real tokens on the YANDEX_API_KEY account)"
+        type: boolean
+        default: true
 
 concurrency:
   group: release
@@ -46,10 +50,17 @@ jobs:
           path: build/e2e
           if-no-files-found: ignore
 
+  live-model:
+    if: github.ref == 'refs/heads/main' && inputs.live_model_check
+    uses: ./.github/workflows/live-model.yml
+    secrets:
+      YANDEX_API_KEY: ${{ secrets.YANDEX_API_KEY }}
+
   release:
-    needs: real-qgis
+    needs: [real-qgis, live-model]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    # A skipped live-model check (unticked) must not skip the release; a failed one must stop it.
+    if: ${{ !failure() && !cancelled() && github.ref == 'refs/heads/main' }}
     env:
       PLUGIN: ai_agent
     steps:

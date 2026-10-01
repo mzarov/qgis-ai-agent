@@ -31,7 +31,41 @@ QT_QPA_PLATFORM=offscreen python3 tests/real_qgis_workflows.py
 ```
 
 A scripted model proves the plugin's plumbing, not the model's judgement.
-Checks that need a real model's choices stay in this checklist.
+
+## Live-model scenarios
+
+`tests/real_qgis_live.py` gives a real model ordinary work: a graduated
+style, a counting question, labels, a metric buffer. It checks only the
+outcome (the renderer, the label field, the new layer, the number in the
+answer), because a model is free to choose its own route. A failure here
+means a prompt, skill or tool schema misleads real models, or the provider
+changed.
+
+The `live-model` workflow runs it in QGIS CI against Yandex AI Studio. It
+never runs on push or on pull requests: start it from the Actions tab, or
+let the release workflow run it first. It needs the `YANDEX_API_KEY` secret
+(a service account that may only call models) and the `YANDEX_MODEL`
+variable. Spending is capped per agent run, per suite and by the job
+timeout; screenshots and `live_usage.json` with the tokens spent are
+attached to the run.
+
+A billing budget on the `qgis-ai-agent` folder (2000 ₽ a month) triggers a
+Cloud Function, `tools/budget_killswitch/index.py`, that removes the model
+role from the CI service account once the budget is spent. If live runs
+suddenly fail with 403, that is why; once the month resets, restore the role:
+
+```bash
+yc resource-manager folder add-access-binding qgis-ai-agent --role ai.languageModels.user --service-account-name qgis-ai-agent-ci
+```
+
+Any OpenAI-compatible server works locally:
+
+```bash
+LIVE_MODEL_URL=http://localhost:11434/v1 LIVE_MODEL=qwen3 LIVE_MODEL_KEY=local \
+  QT_QPA_PLATFORM=offscreen python3 tests/real_qgis_workflows.py real_qgis_live
+```
+
+Checks that need a person's eye stay in this checklist.
 
 ## Technical check after edits
 

@@ -1,0 +1,65 @@
+name: live-model
+
+# Whole-plugin scenarios against a real model (tests/real_qgis_live.py).
+# Real tokens cost money, so this never runs on push or pull_request: start it
+# from the Actions tab, or let the release workflow call it. Pull requests from
+# forks cannot reach it or its secret.
+#
+# Repository settings:
+#   secret   YANDEX_API_KEY  API key of the service account that may only call models
+#   variable YANDEX_MODEL    model URI, e.g. gpt://<folder>/deepseek-v4.1-flash
+#
+# Spending caps: LIVE_RUN_TOKENS per agent run, LIVE_TOTAL_TOKENS per suite,
+# and the job timeout. Usage is in the live_usage.json artifact.
+
+on:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "Run only these scenarios (comma-separated class names); empty runs all"
+        type: string
+        default: ""
+  workflow_call:
+    secrets:
+      YANDEX_API_KEY:
+        required: true
+
+concurrency:
+  group: live-model
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  live-model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container:
+      image: qgis/qgis:stable-trixie
+    env:
+      QT_QPA_PLATFORM: offscreen
+      E2E_ARTIFACTS: build/live
+      LIVE_MODEL_URL: https://ai.api.cloud.yandex.net/v1
+      LIVE_MODEL: ${{ vars.YANDEX_MODEL }}
+      LIVE_MODEL_KEY: ${{ secrets.YANDEX_API_KEY }}
+      LIVE_TOTAL_TOKENS: "1500000"
+      LIVE_RUN_TOKENS: "150000"
+      LIVE_ONLY: ${{ inputs.only }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the configuration
+        run: |
+          if [ -z "${LIVE_MODEL_KEY}" ] || [ -z "${LIVE_MODEL}" ]; then
+            echo "::error::Set the YANDEX_API_KEY secret and the YANDEX_MODEL variable."
+            exit 1
+          fi
+      - name: Live-model scenarios in real QGIS
+        run: python3 tests/real_qgis_workflows.py real_qgis_live
+      - name: Upload screenshots and token usage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-model
+          path: build/live
+          if-no-files-found: ignore
