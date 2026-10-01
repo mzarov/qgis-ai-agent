@@ -123,6 +123,7 @@ TOOLS_BLOCK_HEADER = "Available tools (name and JSON Schema of arguments):"
 VERIFICATION_PROMPT = (
     "[Message from the plugin, not from the user — answer in the language of the "
     "user's own request.]\n"
+    "The skills you need to check this are already loaded; load another only for a tool you are missing.\n"
     "{request}"
     "The queued changes have just been applied. Results per step:\n{outcomes}\n"
     "Verify that the project now matches what the user originally asked for: "
