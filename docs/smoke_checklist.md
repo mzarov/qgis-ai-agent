@@ -5,6 +5,34 @@ real-QGIS smoke and workflow tests in CI. Use this checklist for interactive
 behavior and visual output beyond the automated scenarios. When a reproducible
 API or lifecycle failure is found, add an automated regression when feasible.
 
+## End-to-end scenarios in CI
+
+`tests/real_qgis_e2e.py` drives the whole plugin in a real QGIS the way a
+person does: it types into the composer, presses send, applies the batch,
+stops a run, undoes. The model is `tests/e2e_model.py`, a scripted
+OpenAI-compatible server on `127.0.0.1` that replays prepared turns over the
+same streaming protocol a provider uses and records every request. A scenario
+therefore checks both sides: what QGIS looks like afterwards and what the
+plugin sent to the model (tool schemas, tool results, the verification run).
+
+The scenarios run in the `real-qgis-smoke` CI job on every push and gate the
+release workflow. Each one saves a screenshot of the dock; CI uploads them as
+the `e2e-screens-*` artifacts, so a layout regression is visible without
+opening QGIS.
+
+To add a scenario, subclass `ScenarioCase`, queue the model turns with
+`say()`, `call()`, `calls()` and `fail()`, then drive the dock with `ask()`,
+`apply()` and `wait_idle()`. A scenario fails when the plugin makes a request
+the script did not expect or leaves a scripted turn unused. Run the suite
+locally with the QGIS Python:
+
+```bash
+QT_QPA_PLATFORM=offscreen python3 tests/real_qgis_workflows.py
+```
+
+A scripted model proves the plugin's plumbing, not the model's judgement.
+Checks that need a real model's choices stay in this checklist.
+
 ## Technical check after edits
 
 ```bash

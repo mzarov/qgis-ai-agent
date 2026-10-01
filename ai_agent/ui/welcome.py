@@ -61,6 +61,8 @@ class WelcomeCard(QWidget):
 
     def _suggestion(self, text: str, palette: Any) -> QPushButton:
         button = QPushButton(text)
+        button.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        button.setMinimumWidth(0)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.setStyleSheet(
             f"QPushButton {{ text-align: left;"

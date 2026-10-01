@@ -30,7 +30,7 @@ def main() -> int:
                 raise RuntimeError("Integration tests must import the extracted plugin ZIP")
             suite = unittest.TestSuite(
                 unittest.defaultTestLoader.loadTestsFromModule(importlib.import_module(name))
-                for name in ("real_qgis_cases", "real_qgis_network")
+                for name in ("real_qgis_cases", "real_qgis_network", "real_qgis_e2e")
             )
             print(f"Installed-package workflows on QGIS {Qgis.QGIS_VERSION}", flush=True)
             result = unittest.TextTestRunner(verbosity=2).run(suite)
