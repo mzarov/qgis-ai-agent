@@ -49,6 +49,15 @@ QT_QPA_PLATFORM=offscreen python3 tests/real_qgis_workflows.py
 таймаутом задачи; скриншоты и `live_usage.json` с потраченными токенами
 прикладываются к запуску.
 
+Бюджет на каталог `qgis-ai-agent` (2000 ₽ в месяц) вызывает Cloud Function
+`tools/budget_killswitch/index.py`, которая снимает роль вызова моделей с
+сервисного аккаунта CI, когда бюджет исчерпан. Если сценарии вдруг падают с
+403, причина в этом; после начала нового месяца верните роль:
+
+```bash
+yc resource-manager folder add-access-binding qgis-ai-agent --role ai.languageModels.user --service-account-name qgis-ai-agent-ci
+```
+
 Локально подойдёт любой OpenAI-совместимый сервер:
 
 ```bash

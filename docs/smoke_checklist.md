@@ -49,6 +49,15 @@ variable. Spending is capped per agent run, per suite and by the job
 timeout; screenshots and `live_usage.json` with the tokens spent are
 attached to the run.
 
+A billing budget on the `qgis-ai-agent` folder (2000 ₽ a month) triggers a
+Cloud Function, `tools/budget_killswitch/index.py`, that removes the model
+role from the CI service account once the budget is spent. If live runs
+suddenly fail with 403, that is why; once the month resets, restore the role:
+
+```bash
+yc resource-manager folder add-access-binding qgis-ai-agent --role ai.languageModels.user --service-account-name qgis-ai-agent-ci
+```
+
 Any OpenAI-compatible server works locally:
 
 ```bash
