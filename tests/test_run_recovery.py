@@ -68,6 +68,13 @@ class LoadSeveralSkillsTest(unittest.TestCase):
         self.assertEqual(result.payload["not_found"], ["nope"])
         self.assertEqual(fresh, ["style"])
 
+    def test_loading_everything_at_once_is_refused(self):
+        everything = ["annotations", "edit", "layout", "osm", "processing", "project", "python", "three_d", "web"]
+        result, fresh = load_skill(call("load_skill", names=everything), ["inspect"])
+        self.assertFalse(result.ok)
+        self.assertIn("at most", result.payload["error"])
+        self.assertEqual(fresh, [])
+
     def test_only_unknown_names_are_an_error(self):
         result, fresh = load_skill(call("load_skill", names=["nope"]), ["inspect"])
         self.assertFalse(result.ok)
