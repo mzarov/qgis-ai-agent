@@ -22,6 +22,32 @@ COUNTABLE_PROVIDERS = frozenset({"ogr", "memory", "delimitedtext", "spatialite",
 NOT_COUNTED_NOTE = "Features are not counted for remote sources; use query_layer with aggregate=count."
 
 
+def enum_name(value: Any) -> str:
+    """The readable name of a Qt or QGIS enum member under Qt5 and Qt6 alike.
+
+    A Qt6 member is an IntEnum: str() gives its number ("2") and repr() a
+    dotted path, so only `.name` is the word a model can read.
+    """
+    name = getattr(value, "name", "")
+    if isinstance(name, str) and name:
+        return name
+    return str(value).split(".")[-1]
+
+
+def field_type_name(field: Any) -> str:
+    """A field's type as a word: the provider's own name, else the variant type."""
+    try:
+        name = field.typeName()
+    except Exception:
+        name = ""
+    if name:
+        return str(name)
+    try:
+        return enum_name(field.type()).lstrip("Q").lower()
+    except Exception:
+        return ""
+
+
 def geometry_type_name(layer: QgsMapLayer) -> str:
     if not isinstance(layer, QgsVectorLayer):
         return ""
@@ -29,8 +55,7 @@ def geometry_type_name(layer: QgsMapLayer) -> str:
         kind = layer.geometryType()
     except Exception:
         return "vector"
-    # A Qt6 enum member is an IntEnum: str() gives "1", not "Line", so match on its name.
-    geometry = str(getattr(kind, "name", "") or kind).lower()
+    geometry = enum_name(kind).lower()
     for name in GEOMETRY_NAMES:
         if name in geometry:
             return name

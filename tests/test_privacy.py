@@ -2,11 +2,8 @@ import pathlib
 import unittest
 
 from ai_agent.core import privacy
-from ai_agent.core.agent import dispatch as dispatch_module
 from ai_agent.core.agent import request as request_module
-from ai_agent.core.agent.loop import AgentLoop
-from ai_agent.core.llm.transport import ToolCall
-from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, EGRESS_IMAGE, EGRESS_METADATA, EGRESS_WEB_CONTENT
+from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, EGRESS_IMAGE, EGRESS_METADATA
 from ai_agent.qgis_tools.inspect.canvas_extent import GetCanvasExtentTool
 from ai_agent.qgis_tools.inspect.describe_layer import DescribeLayerTool
 from ai_agent.qgis_tools.inspect.field_values import GetFieldValuesTool
@@ -17,9 +14,6 @@ from ai_agent.qgis_tools.project.views import SaveBookmarkTool
 from ai_agent.qgis_tools.project.zoom_to_layer import ZoomToLayerTool
 from ai_agent.qgis_tools.python.run_python import RunPythonTool
 from ai_agent.qgis_tools.style.describe_style import DescribeStyleTool
-from ai_agent.qgis_tools.web.fetch_url import FetchUrlTool
-from ai_agent.qgis_tools.web.geocode import GeocodeTool
-from ai_agent.qgis_tools.web.search_web import SearchWebTool
 from ai_agent.ui import dock_widget
 
 
@@ -82,20 +76,6 @@ class PrivacyClassificationTest(unittest.TestCase):
         self.assertEqual(ZoomToLayerTool().egress, EGRESS_FEATURE_VALUES)
         self.assertEqual(SaveBookmarkTool().egress, EGRESS_FEATURE_VALUES)
 
-    def test_web_content_is_distinct_from_sensitive_gis_egress(self):
-        web_tools = (FetchUrlTool(), SearchWebTool(), GeocodeTool())
-        self.assertTrue(all(tool.egress == EGRESS_WEB_CONTENT for tool in web_tools))
-        saved = privacy.sensitive_data_allowed
-        privacy.sensitive_data_allowed = lambda endpoint=None: False
-        try:
-            self.assertTrue(all(privacy.tool_output_allowed(tool, "https://model.example/v1") for tool in web_tools))
-            self.assertFalse(privacy.tool_output_allowed(SampleFeaturesTool(), "https://model.example/v1"))
-        finally:
-            privacy.sensitive_data_allowed = saved
-
-    def test_local_endpoint_keeps_sensitive_tools_on_device(self):
-        self.assertTrue(privacy.sensitive_data_allowed("http://127.0.0.1:11434/v1"))
-
     def test_endpoint_label_never_displays_path_query_or_credentials(self):
         label = privacy.endpoint_label("https://user:secret@example.com:8443/v1?token=x")
         self.assertEqual(label, "https://example.com:8443")
@@ -116,32 +96,16 @@ class PrivacyClassificationTest(unittest.TestCase):
         self.assertEqual(MessageBoxProbe.latest.default_button, MessageBoxProbe.StandardButton.Yes)
 
 
-class PrivacyEnforcementTest(unittest.TestCase):
-    def test_sensitive_tools_are_hidden_from_the_model(self):
-        saved = request_module.tool_output_allowed
-        request_module.tool_output_allowed = lambda tool, endpoint=None: tool.egress == EGRESS_METADATA
-        try:
-            names = [item["function"]["name"] for item in request_module.build_tool_schemas_for(["inspect"])]
-        finally:
-            request_module.tool_output_allowed = saved
-        self.assertIn("list_layers", names)
-        self.assertNotIn("sample_features", names)
-        self.assertNotIn("render_map", names)
+class NoPrivacyModeTest(unittest.TestCase):
+    def test_every_tool_of_a_loaded_skill_is_offered_to_a_cloud_model(self):
+        from ai_agent.core.agent.request import build_tool_schemas_for
 
-    def test_hallucinated_sensitive_call_is_still_blocked(self):
-        saved = dispatch_module.tool_output_allowed
-        seen = []
-        dispatch_module.tool_output_allowed = lambda tool, endpoint=None: seen.append(endpoint) or False
-        loop = AgentLoop()
-        loop._overrides = {"url_override": "https://frozen.example/v1"}
-        try:
-            result = loop._dispatch(ToolCall(id="sensitive", name="sample_features", arguments={}))
-        finally:
-            dispatch_module.tool_output_allowed = saved
-        self.assertFalse(result.ok)
-        self.assertIn("Privacy mode", result.payload["error"])
-        self.assertFalse(loop.has_pending_writes)
-        self.assertEqual(seen, ["https://frozen.example/v1"])
+        names = {
+            schema["function"]["name"]
+            for schema in build_tool_schemas_for(["inspect", "processing", "style"], "https://api.example.com/v1")
+        }
+        for tool in ("describe_layer", "query_layer", "render_map", "run_processing", "describe_style"):
+            self.assertIn(tool, names)
 
 
 if __name__ == "__main__":

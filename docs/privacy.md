@@ -5,25 +5,21 @@ project without receiving context. “Read-only” in the plan means that a tool
 does not mutate QGIS. It is not a promise that the tool result remains on the
 device.
 
-## Privacy mode
+## What you agree to by using the agent
 
-Sending a request shares your prompt and basic project metadata — layer and
-field names, CRS, project notes — with the configured endpoint. The first send
-to a remote endpoint shows one confirmation naming its address; agreeing is
-remembered for that endpoint, declining cancels just that send and asks again
-next time. Local addresses skip the dialog.
+The agent works by showing your project to the language model you configure.
+**Everything a tool reads goes to that model**: layer and field names, CRS,
+attribute values it samples or queries, extents, layer filters and sources,
+style categories, Processing and Python results, and rendered images of the map
+or a print layout. There is no switch that keeps those details back — an agent
+that cannot read the data cannot do GIS work, and an earlier "privacy mode" that
+hid such tools only left the model guessing.
 
-The **Allow sensitive GIS data and tool results** option is off by default for
-remote endpoints. It covers feature attribute values, exact map and layer
-extents, layer filters and sources, style categories, Processing and Python
-results, and rendered map or layout images. While it is off, tools that can
-expose those details are omitted from the model's tool schemas and are also
-blocked if the model invents a call anyway. Prompts, recent chat, remembered
-notes and basic project metadata are not covered by that switch; they travel
-with every request and are not automatically private or safe.
-
-Addresses recognised as local permit sensitive tools without the switch. A
-local server can still log or forward data, so review its configuration.
+The first send to a remote endpoint shows one confirmation naming its address;
+agreeing is remembered for that endpoint, declining cancels just that send and
+asks again next time. Local addresses skip the dialog. If a project must not
+leave your computer, use a local model server (Ollama, LM Studio) — and remember
+that a local server can still log or forward data, so review its configuration.
 
 ## Web tools
 
@@ -71,11 +67,10 @@ confirmation is independent of the model endpoint.
 Every model turn includes the current prompt, a
 recent window of the conversation, a short project context, the loaded skill
 instructions and tool schemas. Project notes created with `remember` are
-included as well. A request can therefore expose basic metadata such as
-layer names and types even while the sensitive-data option is off.
+included as well.
 
 After a tool runs, its result is returned to the model so it can decide the next
-step. With the separate sensitive-data option enabled, tool results can include:
+step. Tool results can include:
 
 - sampled, queried or selected feature attribute values, unique values and
   numeric ranges;
@@ -130,8 +125,7 @@ requests independently of this plugin.
 ## Working with sensitive projects
 
 - Prefer a local OpenAI-compatible server whose storage and logging you control.
-- Keep sensitive-data sharing disabled unless the task genuinely needs one of
-  the detailed result types listed above.
+- If it must not reach a provider at all, do not use a remote endpoint for it.
 - Ask for schema or aggregates instead of samples when real attribute values are
   not needed.
 - Limit requested fields before sampling records.

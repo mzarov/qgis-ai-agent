@@ -17,7 +17,6 @@ from ai_agent.core.llm.anthropic import CACHE_PREFIX_KEY
 from ai_agent.core.llm.client import resolve_endpoint
 from ai_agent.core.llm.live import live_message
 from ai_agent.core.llm.transport import PROTOCOL_JSON, PROTOCOL_NATIVE
-from ai_agent.core.privacy import sensitive_data_allowed, tool_output_allowed
 from ai_agent.core.settings import (
     get_api_key,
     get_api_url,
@@ -32,12 +31,6 @@ from ai_agent.i18n import locale_code
 from ai_agent.qgis_tools.project.notes import NoteStore
 from ai_agent.qgis_tools.registry import build_tool_schemas
 from ai_agent.skills.registry import SKILL_REGISTRY
-
-PRIVACY_MODE_PROMPT = (
-    "Privacy mode is active. Do not request sampled feature values, selected feature details, "
-    "query result rows, or rendered map/layout images. Ask the user to enable sensitive data "
-    "sharing in Settings if the task genuinely requires them."
-)
 
 
 @dataclass
@@ -71,20 +64,16 @@ def build_step_request(
         project_notes=_project_notes(),
         invoked_skills=invoked_skills,
     )
-    allow_sensitive = sensitive_data_allowed(endpoint)
     system_prompt = static_prompt
     if json_protocol:
         tools_block = build_json_tools_block(schemas)
         if tools_block:
             system_prompt = f"{system_prompt}\n\n{tools_block}"
-    if not allow_sensitive:
-        system_prompt = f"{system_prompt}\n\n{PRIVACY_MODE_PROMPT}"
     effective_overrides[CACHE_PREFIX_KEY] = len(system_prompt)
     messages = transcript.build_messages(
         system_prompt,
         history,
         include_images=not detect_images_unsupported(effective_overrides),
-        allow_sensitive=allow_sensitive,
     )
     if live_prompt:
         messages.append(live_message(live_prompt))
@@ -104,7 +93,7 @@ def _project_notes() -> str:
 
 
 def build_tool_schemas_for(loaded_skills: list[str], endpoint: str | None = None) -> list[dict[str, Any]]:
-    tools = [tool for tool in tools_for_skills(loaded_skills) if tool_output_allowed(tool, endpoint)]
+    tools = tools_for_skills(loaded_skills)
     schemas = build_tool_schemas(tools)
     schemas.insert(0, build_apply_now_schema())
     schemas.insert(0, build_ask_user_schema())

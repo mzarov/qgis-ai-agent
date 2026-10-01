@@ -249,18 +249,6 @@ class ScopedCapabilityTest(unittest.TestCase):
         self.assertIsNone(settings.get_supports_tools(REMOTE, "model-a", "anthropic"))
         self.assertIsNone(settings.get_supports_tools(OTHER_REMOTE, "model-a", "openai"))
 
-    def test_sensitive_data_opt_in_is_scoped_by_endpoint_and_default_off(self):
-        self.assertFalse(settings.get_allow_sensitive_data(REMOTE))
-        settings.set_allow_sensitive_data(True, REMOTE)
-        self.assertTrue(settings.get_allow_sensitive_data(REMOTE))
-        self.assertFalse(settings.get_allow_sensitive_data(OTHER_REMOTE))
-
-    def test_corrupt_opt_in_values_fail_closed(self):
-        suffix = settings._url_settings_key(REMOTE)
-        for raw in ("", "garbage", "enabled-ish"):
-            MemorySettings.values[f"ai_agent/allow_sensitive_data/{suffix}"] = raw
-            self.assertFalse(settings.get_allow_sensitive_data(REMOTE), raw)
-
     def test_ssl_opt_out_is_scoped_by_endpoint_and_defaults_on(self):
         self.assertTrue(settings.get_verify_ssl(REMOTE))
         settings.set_verify_ssl(False, REMOTE)

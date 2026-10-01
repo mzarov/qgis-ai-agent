@@ -12,6 +12,7 @@ from ai_agent.qgis_tools.common.layers import (
     crs_units,
     extent_dict,
     feature_count_block,
+    field_type_name,
     find_layer_by_name,
     geometry_type_name,
     layer_identifier,
@@ -93,7 +94,7 @@ class DescribeLayerTool(BaseTool):
         fields: list[dict[str, Any]] = []
         with suppress(Exception):
             for field in layer.fields():
-                fields.append({"name": field.name(), "type": field.typeName() or str(field.type())})
+                fields.append({"name": field.name(), "type": field_type_name(field)})
         return fields
 
     @staticmethod
