@@ -25,7 +25,13 @@ the logs.
 2. Merge that to `main`.
 3. **Actions → release → Run workflow** on `main`.
 
-The run fails, before anything is published, when the tests fail, when the tag
+Before anything is built, the run starts QGIS in a container and runs the
+installed-zip smoke test, the real layer workflows and the scripted-model
+end-to-end scenarios described in the [smoke checklist](smoke_checklist.md).
+Their screenshots are attached to the run as the `e2e-screens-release`
+artifact.
+
+The run fails, before anything is published, when any test fails, when the tag
 for that version already exists, or when the changelog has no entry for it.
 If plugins.qgis.org rejects the upload, nothing is tagged — fix the problem and
 run it again. `python3 tools/release_notes.py` prints the notes the release will

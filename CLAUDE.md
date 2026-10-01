@@ -250,5 +250,8 @@ survived all the way to live QGIS precisely because nobody called the tool code:
 
 `tests/real_qgis_smoke.py` checks the installed ZIP, and
 `tests/real_qgis_workflows.py` exercises live layer and Qt lifecycle workflows
-in QGIS CI. Interactive checks beyond those scenarios follow
+in QGIS CI, including `tests/real_qgis_e2e.py`: whole-plugin scenarios against
+the scripted model in `tests/e2e_model.py`. A user-visible flow change (send,
+apply, stop, undo, verification, composer) needs a scenario there; the release
+workflow is gated on it. Interactive checks beyond those scenarios follow
 [docs/smoke_checklist.md](docs/smoke_checklist.md).

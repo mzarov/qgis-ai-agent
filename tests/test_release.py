@@ -48,6 +48,10 @@ class WorkflowTest(unittest.TestCase):
         self.assertIn("refs/heads/main", self.text)
         self.assertLess(self.text.index("unittest discover"), self.text.index("build_plugin.py"))
 
+    def test_nothing_is_published_before_the_real_qgis_scenarios_pass(self):
+        self.assertIn("needs: real-qgis", self.text)
+        self.assertIn("tests/real_qgis_workflows.py", self.text)
+
 
 if __name__ == "__main__":
     unittest.main()
