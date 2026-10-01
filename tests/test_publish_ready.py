@@ -66,7 +66,8 @@ class MetadataRulesTest(unittest.TestCase):
             "plain json",
         ):
             self.assertIn(phrase, about)
-        self.assertIn("off by default", about)
+        self.assertIn("local model server", about)
+        self.assertNotIn("off by default", about)
         self.assertNotIn("per-endpoint consent", about)
 
     def test_credential_storage_is_disclosed_without_promising_dependencies(self):
