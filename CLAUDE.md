@@ -204,6 +204,11 @@ Building the installable archive:
 python3 tools/build_plugin.py
 ```
 
+Releasing is the `release` workflow in GitHub Actions: it tests, builds,
+uploads to plugins.qgis.org with the `QGIS_PLUGIN_TOKEN` secret, then tags and
+publishes the GitHub release. Bump the version only when the user decides to
+release — details in [docs/releasing.md](docs/releasing.md).
+
 Updating translations after adding or changing a `tr()` string:
 
 ```bash
