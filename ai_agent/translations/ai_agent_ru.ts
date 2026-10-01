@@ -35,12 +35,12 @@
         </translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="57"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="55"/>
         <source>A budget must be a whole number of tokens, such as 200000 or 200k; empty means no limit.</source>
         <translation>Бюджет — целое число токенов, например 200000 или 200k; пустое поле — без ограничения.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="65"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="63"/>
         <source>A local server needs no key — leave this empty.</source>
         <translation>Локальному серверу ключ не нужен — оставьте поле пустым.</translation>
     </message>
@@ -55,12 +55,12 @@
         <translation>Скилл — это папка с файлом SKILL.md: имя, одна строка о том, когда его применять, и правила в Markdown. Наберите / в чате, чтобы вызвать скилл; агент может подгрузить его и сам, когда задача подходит.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="93"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="90"/>
         <source>API format</source>
         <translation>Формат API</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="138"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="124"/>
         <source>API key</source>
         <translation>Ключ API</translation>
     </message>
@@ -115,11 +115,6 @@
         <translation>Алгоритм: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="66"/>
-        <source>Allow sensitive GIS data</source>
-        <translation>Разрешить конфиденциальные ГИС-данные</translation>
-    </message>
-    <message>
         <location filename="ai_agent/core/orchestrator/project_lifecycle.py" line="6"/>
         <source>An interrupted run completed work in the previous project; see its conversation.</source>
         <translation>Прерванный запуск успел выполнить действия в предыдущем проекте; подробности сохранены в его переписке.</translation>
@@ -165,13 +160,13 @@
         <translation>Спрашивайте обычными словами</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="94"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="91"/>
         <source>Authorisation type</source>
         <translation>Тип авторизации</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/geocoder_settings.py" line="45"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="145"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="131"/>
         <source>Base URL</source>
         <translation>Базовый адрес</translation>
     </message>
@@ -186,7 +181,7 @@
         <translation>Отменить</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="314"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="295"/>
         <source>Cancel test</source>
         <translation>Отменить проверку</translation>
     </message>
@@ -196,7 +191,7 @@
         <translation>Отменено</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="60"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="58"/>
         <source>Cancelling the connection test…</source>
         <translation>Отменяю проверку подключения…</translation>
     </message>
@@ -246,7 +241,7 @@
         <translation>Проверяю применённые изменения…</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="163"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="149"/>
         <source>Close</source>
         <translation>Закрыть</translation>
     </message>
@@ -271,7 +266,12 @@
         <translation>Подключение</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="61"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="42"/>
+        <source>Connection security and records</source>
+        <translation>Защита соединения и журнал</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/settings_dialog.py" line="59"/>
         <source>Connection test cancelled.</source>
         <translation>Проверка подключения отменена.</translation>
     </message>
@@ -386,7 +386,7 @@
         <translation>Каждый применённый прогон оставляет незашифрованный Markdown-файл в профиле QGIS с запросом, именами инструментов и итогом. По умолчанию выключено; файлы остаются, пока вы их не удалите.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="62"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="60"/>
         <source>Enter a model name from the provider.</source>
         <translation>Введите название модели, доступной у провайдера.</translation>
     </message>
@@ -414,11 +414,6 @@
         <location filename="ai_agent/ui/settings_advanced.py" line="26"/>
         <source>Extended thinking budget</source>
         <translation>Бюджет расширенного рассуждения</translation>
-    </message>
-    <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="67"/>
-        <source>Feature attribute values, exact map and layer extents, layer filters and sources, style categories, Processing and Python results, and rendered map or layout images may be sent to this endpoint. Leave this off for sensitive projects.</source>
-        <translation>В эту конечную точку могут передаваться значения атрибутов объектов, точные границы карты и слоёв, фильтры и источники слоёв, категории стилей, результаты Processing и Python, а также изображения карты или макета. Оставьте этот параметр выключенным для конфиденциальных проектов.</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="80"/>
@@ -472,7 +467,7 @@
         <translation>Строю градации «{0}» по «{1}», классов: {2}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="65"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="62"/>
         <source>How the agent works</source>
         <translation>Как работает агент</translation>
     </message>
@@ -503,22 +498,17 @@
         <translation>Загружаю таблицу {0}.{1} из базы данных.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="72"/>
-        <source>Local endpoint: sensitive tools are enabled. The server may still store or forward data; review its configuration.</source>
-        <translation>Локальный эндпоинт: чувствительные инструменты включены. Сервер всё равно может хранить или пересылать данные — проверьте его настройки.</translation>
-    </message>
-    <message>
         <location filename="ai_agent/qgis_tools/web/geocode.py" line="49"/>
         <source>Looking up '{0}' with {1}.</source>
         <translation>Ищу «{0}» через {1}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="146"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="132"/>
         <source>Model</source>
         <translation>Модель</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="113"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="99"/>
         <source>Model endpoint</source>
         <translation>Адрес модели</translation>
     </message>
@@ -584,7 +574,7 @@
         <translation>Применились не все изменения.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="207"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="193"/>
         <source>Not required</source>
         <translation>Не обязателен</translation>
     </message>
@@ -664,13 +654,13 @@
         <translation>Приватность</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="144"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="130"/>
         <source>Provider</source>
         <translation>Провайдер</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="132"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="207"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="118"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="193"/>
         <source>Provider key</source>
         <translation>Ключ провайдера</translation>
     </message>
@@ -819,7 +809,7 @@
         <translation>Запоминаю: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="134"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="120"/>
         <source>Remove stored key</source>
         <translation>Удалить сохранённый ключ</translation>
     </message>
@@ -909,7 +899,7 @@
         <translation>Выполняю запрос Overpass для «{0}»: {1}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="168"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="154"/>
         <source>Save</source>
         <translation>Сохранить</translation>
     </message>
@@ -992,7 +982,7 @@
         <translation>Настройки</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="52"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="50"/>
         <source>Settings — AI Agent</source>
         <translation>Настройки — AI Agent</translation>
     </message>
@@ -1032,7 +1022,7 @@
         </translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="64"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="62"/>
         <source>Stored encrypted in the QGIS authentication database, not in the settings file.</source>
         <translation>Хранится зашифрованным в базе учётных данных QGIS, а не в файле настроек.</translation>
     </message>
@@ -1052,18 +1042,18 @@
         <translation>Оформляю растр «{0}»: {1}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="81"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="78"/>
         <source>Talking to the provider</source>
         <translation>Связь с провайдером</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="151"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="342"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="137"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="323"/>
         <source>Test connection</source>
         <translation>Проверить подключение</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="59"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="57"/>
         <source>Testing the connection…</source>
         <translation>Проверяю подключение…</translation>
     </message>
@@ -1155,7 +1145,7 @@
         <translation>Папка скиллов недоступна в этом профиле QGIS.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="63"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="61"/>
         <source>The stored key for this endpoint was removed.</source>
         <translation>Сохранённый ключ для этого адреса удалён.</translation>
     </message>
@@ -1260,17 +1250,12 @@
         <translation>Какие у меня слои и что в них?</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="42"/>
-        <source>What leaves this computer</source>
-        <translation>Что уходит с этого компьютера</translation>
-    </message>
-    <message>
         <location filename="ai_agent/ui/geocoder_settings.py" line="22"/>
         <source>With a geocoder the agent can turn "cafes in Divnomorskoye" into a bounding box and hand it to the OpenStreetMap download. Without one it can still work by place name, but only where OpenStreetMap already knows that name.</source>
         <translation>С геокодером агент превращает «кафе в Дивноморском» в прямоугольник координат и передаёт его в загрузку OpenStreetMap. Без него он тоже умеет искать по названию, но только там, где OpenStreetMap это название уже знает.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="145"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="131"/>
         <source>Without /chat/completions at the end.</source>
         <translation>Без /chat/completions на конце.</translation>
     </message>

@@ -18,10 +18,6 @@ BUDGET_REACHED_MESSAGE = tr(
     "Raise the budget or split the request into smaller steps."
 )
 SNAPSHOT_FAILED_MESSAGE = tr("Could not create the safety snapshot. No planned changes were applied.")
-SENSITIVE_DATA_BLOCKED = (
-    "Privacy mode blocked this tool because its result can contain sensitive GIS data. "
-    "The user can allow sensitive data for this endpoint in Settings."
-)
 CONTINUE_TRUNCATED = (
     "[Plugin note] Your reply was cut off by the output limit. Continue exactly where it "
     "stopped; do not repeat what you already wrote."

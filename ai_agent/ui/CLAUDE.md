@@ -201,10 +201,7 @@ they were right). The mark is a plain `QLabel` that shows its tooltip on
 hover — it was briefly a click-to-show button, and the user rejected that:
 hover is the whole interaction, a mark that reacts to clicks overpromises.
 Tooltip text goes through `rich_tooltip()` (a `<qt>` wrapper), otherwise Qt
-renders plain-text tooltips as one endless unwrapped line. The
-safety-critical explanation of the sensitive switch is not lost to the
-tooltip: the per-endpoint consent dialog spells out the same boundary before
-the first request is ever sent. The geocoder's hint changes with the chosen
+renders plain-text tooltips as one endless unwrapped line. The geocoder's hint changes with the chosen
 provider, so its row keeps a reference to the mark and rewrites the tooltip.
 Titles are single-line labels without word wrap; wrapping came from the
 title competing with a trailing stretch for width, and the cure is short

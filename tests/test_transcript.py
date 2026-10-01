@@ -67,24 +67,6 @@ class NativeRenderingTest(unittest.TestCase):
         self.assertIn("applied", messages[1]["content"])
         self.assertNotIn("queued", messages[1]["content"])
 
-    def test_revoked_sensitive_permission_redacts_staged_result_and_image(self):
-        transcript = Transcript()
-        sensitive = ToolResult(
-            call=call("sample_features"),
-            payload={"value": "sentinel-feature-value"},
-            image="sentinel-image-base64",
-            egress="feature_values",
-        )
-        transcript.add_results([sensitive], "native")
-
-        messages = transcript.build_messages("S", allow_sensitive=False)
-        rendered = json.dumps(messages)
-
-        self.assertNotIn("sentinel-feature-value", rendered)
-        self.assertNotIn("sentinel-image-base64", rendered)
-        self.assertEqual(messages[1]["tool_call_id"], "c1")
-        self.assertIn("sensitive tool result omitted", messages[1]["content"])
-
 
 class JsonRenderingTest(unittest.TestCase):
     def test_results_come_back_as_user_message(self):

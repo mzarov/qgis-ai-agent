@@ -69,13 +69,12 @@ text JSON protocol that switches on by itself.
 on the device. The first agent run against a remote endpoint requires explicit,
 per-endpoint consent. The separate **Test connection** action sends one short
 diagnostic request when you click it, independently of agent-run consent.
-Sharing sensitive GIS data and tool results is a second option that stays off by
-default. It covers feature attribute values, exact map and layer extents, layer
-filters and sources, style categories, Processing and Python results, and
-rendered map or layout images; those tools are hidden and
-blocked until the option is enabled. The configured model can otherwise receive
-the prompt, recent chat context, project notes and basic layer and field
-metadata. Conversation messages and project notes are saved as plain JSON in
+Everything the agent reads goes to the configured model: the prompt, recent chat,
+project notes, layer and field metadata, and whatever tools read — attribute
+values, extents, layer filters and sources, style categories, Processing and
+Python results, rendered map or layout images. If you install an AI agent, expect
+your project data to reach the model; use a local model server for projects that
+must not leave your computer. Conversation messages and project notes are saved as plain JSON in
 the active QGIS profile. When an applied run produces an audit journal, it is
 saved as a plaintext Markdown file in that profile's `ai_agent_runs` directory;
 the UI reports the exact path. The directory and files use owner-only
@@ -95,7 +94,7 @@ cached on disk.
 
 Review [the complete data boundary](docs/privacy.md) before connecting a
 sensitive project to a remote provider. Local endpoints are allowed without the
-remote-consent prompt and may access sensitive tools, but a local server can
+remote-consent prompt, but a local server can
 still store or forward data, so review its storage and logging configuration.
 
 ## How it works

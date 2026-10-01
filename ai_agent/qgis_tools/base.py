@@ -124,7 +124,3 @@ class BaseTool(ABC):
         accurately. The output classification must cover every returned value.
         """
         ...
-
-
-def is_sensitive_egress(egress: str) -> bool:
-    return egress in SENSITIVE_EGRESS

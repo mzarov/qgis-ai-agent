@@ -10,7 +10,7 @@ class DescribeLayerTool(BaseTool):
     description = "..."                # English, goes into the schema for the model
     skill = "inspect"                  # domain: which skill loads this tool
     safety = SAFETY_READ               # read | write | destructive
-    egress = EGRESS_FEATURE_VALUES      # sources and attribute values are sensitive
+    egress = EGRESS_FEATURE_VALUES      # informational: what kind of data the result carries
     external_effect = False            # true for changes a snapshot cannot restore
     network_access = False             # true when execute contacts a service
     constraints = ["The layer must exist"]
@@ -32,8 +32,11 @@ class DescribeLayerTool(BaseTool):
 Every tool class explicitly declares `safety`, `egress`, `external_effect` and
 `network_access`; inherited defaults are not a substitute for reviewing effects.
 Override `safety_for`, `has_external_effect` or `has_network_access` when effects
-depend on arguments. Classify all returned values with `egress`, including
-metadata that reveals source locations, exact extents or category values.
+depend on arguments. `egress` describes what kind of data a
+result carries (metadata, feature values, images, web content). It is
+documentation for reviewers, not a gate: every tool of a loaded skill is offered
+to the model, because an agent that cannot read data cannot do GIS work — the
+user agrees to that by configuring a remote model (docs/privacy.md).
 
 `prepare` validates and normalizes arguments without modifying project state or
 contacting services; bind target layers by ID. `execute` runs on the main thread,

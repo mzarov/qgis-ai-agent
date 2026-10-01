@@ -11,7 +11,6 @@ from ai_agent.core.agent.prompts import (
 from ai_agent.core.agent.skills import load_skill
 from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.core.llm.transport import ToolCall
-from ai_agent.core.privacy import tool_output_allowed
 from ai_agent.qgis_tools.base import SAFETY_READ
 from ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call, validate_tool_arguments
 
@@ -44,9 +43,6 @@ class DispatchMixin:
         if call.name == ASK_USER_TOOL:
             return self._take_question(call)
         tool = get_tool_by_name(call.name)
-        if tool is not None and not tool_output_allowed(tool, self.endpoint):
-            self.tool_rejected.emit(summarize_tool_call(call.name, call.arguments))
-            return ToolResult.failure(call, notices.SENSITIVE_DATA_BLOCKED)
         if tool is None:
             return self._run_now(call)
         if tool.safety_for(call.arguments) == SAFETY_READ and not tool.has_network_access(call.arguments):

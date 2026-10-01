@@ -4,7 +4,6 @@ from typing import Any
 
 from ai_agent.core.llm.anthropic import THINKING_KEY
 from ai_agent.core.llm.transport import PROTOCOL_NATIVE, ModelTurn, ToolCall
-from ai_agent.qgis_tools.base import is_sensitive_egress
 
 MAX_RESULT_CHARS = 4000
 COMPACT_RESULT_CHARS = 500
@@ -17,7 +16,6 @@ EARLIER_IMAGE_NOTE = "[an earlier image was dropped to save space — render aga
 IMAGE_MEDIA = "image/png"
 IMAGE_INTRO = "Image rendered by {tool}:"
 IMAGE_OMITTED_NOTE = "[image omitted: this endpoint does not accept image input]"
-SENSITIVE_RESULT_OMITTED = "[sensitive tool result omitted because sharing is disabled]"
 
 
 @dataclass
@@ -85,7 +83,6 @@ class Transcript:
         system_prompt: str,
         history: list[dict[str, str]] | None = None,
         include_images: bool = True,
-        allow_sensitive: bool = True,
     ) -> list[dict[str, Any]]:
         messages: list[dict[str, Any]] = [{"role": "system", "content": system_prompt}]
         if history:
@@ -99,7 +96,6 @@ class Transcript:
                     index in fresh_results,
                     index == last_image,
                     include_images,
-                    allow_sensitive,
                 )
             )
         return messages
@@ -131,7 +127,6 @@ class Transcript:
         fresh: bool,
         carries_image: bool,
         images_allowed: bool,
-        allow_sensitive: bool,
     ) -> list[dict[str, Any]]:
         kind = entry["kind"]
         if kind == "user":
@@ -145,7 +140,6 @@ class Transcript:
                 fresh,
                 carries_image,
                 images_allowed,
-                allow_sensitive,
             )
         return []
 
@@ -184,7 +178,6 @@ class Transcript:
         fresh: bool,
         carries_image: bool,
         images_allowed: bool,
-        allow_sensitive: bool,
     ) -> list[dict[str, Any]]:
         limit = MAX_RESULT_CHARS if fresh else COMPACT_RESULT_CHARS
         if protocol == PROTOCOL_NATIVE:
@@ -192,26 +185,18 @@ class Transcript:
                 {
                     "role": "tool",
                     "tool_call_id": result.call.id,
-                    "content": cls._result_text(result, limit, allow_sensitive),
+                    "content": result.to_text(limit),
                 }
                 for result in results
             ]
         else:
-            lines = [f"{result.call.name} -> {cls._result_text(result, limit, allow_sensitive)}" for result in results]
+            lines = [f"{result.call.name} -> {result.to_text(limit)}" for result in results]
             rendered = [{"role": "user", "content": RESULTS_HEADER + "\n" + "\n".join(lines)}]
         for result in results:
-            if not allow_sensitive and is_sensitive_egress(result.egress):
-                continue
             attachment = cls._image_message(result, carries_image, images_allowed)
             if attachment is not None:
                 rendered.append(attachment)
         return rendered
-
-    @staticmethod
-    def _result_text(result: ToolResult, limit: int, allow_sensitive: bool) -> str:
-        if not allow_sensitive and is_sensitive_egress(result.egress):
-            return SENSITIVE_RESULT_OMITTED
-        return result.to_text(limit)
 
     @staticmethod
     def _image_message(result: ToolResult, carries_image: bool, images_allowed: bool) -> dict[str, Any] | None:

@@ -45,11 +45,10 @@ press the gear icon:
 The **Test connection** button sends one short request and shows the model's
 reply — proof that the URL, the key and the model name agree with each other.
 
-Sending a request shares your prompt and basic project metadata with the
-configured endpoint. **Allow sensitive GIS data** is a separate,
-off-by-default permission for feature attribute values, exact map and layer
-extents, layer filters and sources, style categories, Processing and Python
-results, and rendered map or layout images.
+Sending a request shares your prompt, project metadata and whatever the agent's
+tools read — attribute values, extents, styles, Processing results, rendered
+maps — with the configured endpoint. There is no switch that holds them back;
+use a local model server for projects that must stay on your computer.
 
 Geocoding is disabled by default. In the **Geocoding** card, choose **Photon
 demo (fair use)** for occasional interactive lookups or **Custom Nominatim**

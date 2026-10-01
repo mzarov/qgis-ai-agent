@@ -39,9 +39,7 @@ JOURNAL_HINT = tr(
 
 def build_privacy(owner: Any, palette: Any) -> QWidget:
     holder, column = fields.page()
-    column.addWidget(fields.group(tr("What leaves this computer"), palette))
-    owner.sensitive_data_cb = fields.switch(palette)
-    owner.sensitive_data_cb.setToolTip(owner.sensitive_hint)
+    column.addWidget(fields.group(tr("Connection security and records"), palette))
     owner.verify_ssl_cb = fields.switch(palette)
     owner.verify_ssl_cb.setChecked(get_verify_ssl())
     owner.journal_cb = fields.switch(palette)
@@ -51,7 +49,6 @@ def build_privacy(owner: Any, palette: Any) -> QWidget:
         column,
         palette,
         [
-            fields.switch_row(owner.sensitive_label, owner.sensitive_data_cb, owner.sensitive_hint, palette),
             fields.switch_row(SSL_LABEL, owner.verify_ssl_cb, SSL_HINT, palette),
             fields.switch_row(JOURNAL_LABEL, owner.journal_cb, JOURNAL_HINT, palette),
         ],

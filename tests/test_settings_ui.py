@@ -149,7 +149,7 @@ class SidebarSettingsTest(unittest.TestCase):
 
     def test_consent_controls_live_on_the_privacy_page(self):
         privacy = ADVANCED_SOURCE.split("def build_privacy(")[1].split("\ndef ")[0]
-        for control in ("sensitive_data_cb", "verify_ssl_cb", "journal_cb"):
+        for control in ("verify_ssl_cb", "journal_cb"):
             self.assertIn(control, privacy, control)
         self.assertNotIn("data_sharing_cb", privacy)
 
@@ -211,7 +211,6 @@ class SidebarSettingsTest(unittest.TestCase):
             "dialect_combo",
             "auth_type_combo",
             "verify_ssl_cb",
-            "sensitive_data_cb",
             "verify_apply_cb",
             "journal_cb",
             "budget_edit",
@@ -262,17 +261,6 @@ class CredentialUiContractTest(unittest.TestCase):
         self.assertIn('tr("Remove stored key")', DIALOG_SOURCE)
         self.assertIn("delete_api_key(url, dialect)", DIALOG_SOURCE)
 
-    def test_sensitive_data_copy_names_every_sensitive_category(self):
-        self.assertIn("Feature attribute values", DIALOG_SOURCE)
-        self.assertIn("exact map and layer extents", DIALOG_SOURCE)
-        self.assertIn("layer filters and sources", DIALOG_SOURCE)
-        self.assertIn("Processing and Python results", DIALOG_SOURCE)
-        self.assertIn("rendered map or layout images", DIALOG_SOURCE)
-
-    def test_sensitive_opt_in_is_loaded_and_saved_for_the_edited_endpoint(self):
-        self.assertIn("get_allow_sensitive_data(url)", DIALOG_SOURCE)
-        self.assertIn("set_allow_sensitive_data(self.sensitive_data_cb.isChecked(), url)", DIALOG_SOURCE)
-
     def test_connection_probe_runs_outside_the_ui_thread_and_can_be_cancelled(self):
         self.assertIn("ProbeThread(self._overrides(), self)", DIALOG_SOURCE)
         self.assertIn("thread.start()", DIALOG_SOURCE)
@@ -285,10 +273,6 @@ class CredentialUiContractTest(unittest.TestCase):
         self.assertIn("self._reject_after_probe = True", reject_body)
         self.assertIn("super().reject()", finished_body)
         self.assertIn("thread.cancel()", DIALOG_SOURCE)
-
-    def test_local_endpoint_controls_match_the_auto_allowed_runtime_policy(self):
-        self.assertIn("self.sensitive_data_cb.setChecked(local or get_allow_sensitive_data(url))", DIALOG_SOURCE)
-        self.assertIn("self.sensitive_data_cb.setEnabled(not local)", DIALOG_SOURCE)
 
     def test_geocoder_is_selected_in_settings_not_by_the_model(self):
         self.assertIn('tr("Photon demo (fair use)")', GEOCODER_SOURCE)

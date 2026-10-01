@@ -21,14 +21,12 @@ from ai_agent.core.settings import (
     GEOCODER_NOMINATIM,
     credential_store_failure_message,
     delete_api_key,
-    get_allow_sensitive_data,
     get_api_key,
     get_api_url,
     get_credential_store_error,
     get_model,
     get_verify_ssl,
     reset_capabilities,
-    set_allow_sensitive_data,
     set_api_key,
     set_api_url,
     set_auth_type,
@@ -63,21 +61,9 @@ MODEL_REQUIRED = tr("Enter a model name from the provider.")
 KEY_REMOVED = tr("The stored key for this endpoint was removed.")
 KEY_HINT = tr("Stored encrypted in the QGIS authentication database, not in the settings file.")
 KEYLESS_HINT = tr("A local server needs no key — leave this empty.")
-SENSITIVE_LABEL = tr("Allow sensitive GIS data")
-SENSITIVE_HINT = tr(
-    "Feature attribute values, exact map and layer extents, layer filters and sources, style categories, "
-    "Processing and Python results, and rendered map or layout images may be sent to this endpoint. "
-    "Leave this off for sensitive projects."
-)
-LOCAL_SENSITIVE_HINT = tr(
-    "Local endpoint: sensitive tools are enabled. The server may still store or forward data; review its configuration."
-)
 
 
 class SettingsDialog(SettingsStatusMixin, QDialog):
-    sensitive_label = SENSITIVE_LABEL
-    sensitive_hint = SENSITIVE_HINT
-
     def __init__(self, parent: Any = None):
         super().__init__(parent)
         self._syncing_preset = False
@@ -221,10 +207,6 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
             key = get_api_key(url, dialect)
         self.key_edit.setText(key)
         self._active_credential_target = target
-        local = is_local(url)
-        self.sensitive_data_cb.setChecked(local or get_allow_sensitive_data(url))
-        self.sensitive_data_cb.setEnabled(not local)
-        self.sensitive_data_cb.setToolTip(LOCAL_SENSITIVE_HINT if local else SENSITIVE_HINT)
         self.verify_ssl_cb.setChecked(get_verify_ssl(url))
         if get_credential_store_error() and not is_local(url):
             self._show(credential_store_failure_message(), style.danger(self.palette()))
@@ -278,7 +260,6 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         set_auth_type(self.auth_type_combo.currentText())
         set_dialect(dialect)
         set_verify_ssl(self.verify_ssl_cb.isChecked(), url)
-        set_allow_sensitive_data(self.sensitive_data_cb.isChecked(), url)
         set_verify_after_apply(self.verify_apply_cb.isChecked())
         set_write_run_journal(self.journal_cb.isChecked())
         set_token_budget(token_budget)
