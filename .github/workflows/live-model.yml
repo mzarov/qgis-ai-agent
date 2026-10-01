@@ -14,6 +14,11 @@ name: live-model
 
 on:
   workflow_dispatch:
+    inputs:
+      only:
+        description: "Run only these scenarios (comma-separated class names); empty runs all"
+        type: string
+        default: ""
   workflow_call:
     secrets:
       YANDEX_API_KEY:
@@ -40,6 +45,7 @@ jobs:
       LIVE_MODEL_KEY: ${{ secrets.YANDEX_API_KEY }}
       LIVE_TOTAL_TOKENS: "1500000"
       LIVE_RUN_TOKENS: "150000"
+      LIVE_ONLY: ${{ inputs.only }}
     steps:
       - uses: actions/checkout@v4
       - name: Check the configuration

@@ -29,7 +29,9 @@ Before anything is built, the run starts QGIS in a container and runs the
 installed-zip smoke test, the real layer workflows and the scripted-model
 end-to-end scenarios described in the [smoke checklist](smoke_checklist.md).
 Their screenshots are attached to the run as the `e2e-screens-release`
-artifact.
+artifact. With **live_model_check** ticked (the default) it also runs the
+live-model scenarios against a real model, which spends tokens on the
+`YANDEX_API_KEY` account; untick it when the provider is down.
 
 The run fails, before anything is published, when any test fails, when the tag
 for that version already exists, or when the changelog has no entry for it.

@@ -18,6 +18,7 @@ Configuration comes from the environment; without a key the module skips:
     LIVE_MODEL_KEY      API key
     LIVE_TOTAL_TOKENS   suite-wide cap (default 1 500 000)
     LIVE_RUN_TOKENS     per-run cap (default 150 000)
+    LIVE_ONLY           comma-separated scenario names to run, e.g. LiveBufferScenario
 
 Run: `python3 tests/real_qgis_workflows.py real_qgis_live`.
 """
@@ -41,6 +42,8 @@ LIVE_IDLE_TIMEOUT_S = 300
 PROFILE_MASTER_PASSWORD = "ai-agent-live-profile"  # pragma: allowlist secret
 POPULATION_THRESHOLD = 50000
 USAGE_FILE = "live_usage.json"
+LOG_TAG = "AI Agent"
+ONLY = [name.strip() for name in os.environ.get("LIVE_ONLY", "").split(",") if name.strip()]
 
 USAGE: dict[str, int] = {}
 
@@ -68,38 +71,57 @@ class LiveCase(PluginCase):
             manager.setMasterPassword(PROFILE_MASTER_PASSWORD, True)
 
     def setUp(self) -> None:
+        if ONLY and not any(name in self.id() for name in ONLY):
+            self.skipTest("not selected by LIVE_ONLY")
         if _spent() >= TOTAL_TOKENS:
             self.skipTest(f"suite token cap reached: {_spent()} of {TOTAL_TOKENS}")
         super().setUp()
         set_api_key(LIVE_KEY, LIVE_URL, "openai")
         set_data_sharing_consent(True, LIVE_URL)
         set_token_budget(RUN_TOKENS)
-        self.runs = 0
+        self.runs: list[str] = []
+        self.log: list[str] = []
         self._run_spent = 0
         USAGE[self.id()] = 0
         self.agent.usage_changed.connect(self._count)
-        self.agent.finished.connect(self._run_ended)
-        self.agent.failed.connect(self._run_ended)
+        QgsApplication.messageLog().messageReceived.connect(self._logged)
+        # Instrumentation only: record each run start, then hand over unchanged.
+        start = self.agent.start
+        self.agent.start = lambda *args, **kwargs: (self._run_started(kwargs), start(*args, **kwargs))[1]
 
     def tearDown(self) -> None:
+        QgsApplication.messageLog().messageReceived.disconnect(self._logged)
+        name = self.id().rsplit(".", 1)[-1]
+        self.shot(f"{name}_end")
         _write_usage()
-        print(f"  tokens: {USAGE.get(self.id(), 0)} (suite {_spent()} of {TOTAL_TOKENS})", flush=True)
+        transcript = {
+            "runs": self.runs,
+            "conversation": self.orchestrator.conversation.messages,
+            "plugin_log": self.log,
+        }
+        (ARTIFACTS / f"{name}.json").write_text(json.dumps(transcript, indent=2, default=str), encoding="utf-8")
+        print(
+            f"  tokens: {USAGE.get(self.id(), 0)} (suite {_spent()} of {TOTAL_TOKENS}), runs: {self.runs}", flush=True
+        )
         super().tearDown()
+
+    def _run_started(self, options: dict) -> None:
+        self.runs.append("verification" if options.get("verification") else "request")
+        self._run_spent = 0
 
     def _count(self, spent: int) -> None:
         # The signal carries the running total of the current run.
         USAGE[self.id()] += max(0, spent - self._run_spent)
         self._run_spent = spent
 
-    def _run_ended(self, _text: str) -> None:
-        self.runs += 1
-        self._run_spent = 0
+    def _logged(self, message: str, tag: str, level: object) -> None:
+        if tag == LOG_TAG:
+            self.log.append(message)
 
     def ask_and_apply(self, text: str) -> None:
         self.ask(text)
-        runs_before = self.runs
         self.apply()
-        self.assertGreater(self.runs, runs_before, "no verification run after Apply")
+        self.assertIn("verification", self.runs, f"no verification run after Apply; runs: {self.runs}")
 
 
 class LiveStyleScenario(LiveCase):

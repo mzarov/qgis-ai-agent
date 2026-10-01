@@ -253,5 +253,7 @@ survived all the way to live QGIS precisely because nobody called the tool code:
 in QGIS CI, including `tests/real_qgis_e2e.py`: whole-plugin scenarios against
 the scripted model in `tests/e2e_model.py`. A user-visible flow change (send,
 apply, stop, undo, verification, composer) needs a scenario there; the release
-workflow is gated on it. Interactive checks beyond those scenarios follow
+workflow is gated on it. `tests/real_qgis_live.py` checks outcomes with a real
+model; it spends money, so it runs only by hand or from the release workflow,
+never on push or pull requests. Interactive checks beyond those scenarios follow
 [docs/smoke_checklist.md](docs/smoke_checklist.md).
