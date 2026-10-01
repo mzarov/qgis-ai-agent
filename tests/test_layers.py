@@ -238,5 +238,33 @@ class GeometryNameTest(unittest.TestCase):
             self.assertEqual(geometry_type_name(layer), expected)
 
 
+class EnumNameTest(unittest.TestCase):
+    def test_int_enum_members_give_their_names(self):
+        import enum
+
+        from ai_agent.qgis_tools.common.layers import enum_name, field_type_name
+
+        class Type(enum.IntEnum):
+            Double = 6
+            QString = 10
+
+        self.assertEqual(enum_name(Type.Double), "Double")
+        self.assertEqual(enum_name("Qgis.GeometryType.Polygon"), "Polygon")
+
+        class Field:
+            def __init__(self, provider_name, kind):
+                self.provider_name, self.kind = provider_name, kind
+
+            def typeName(self):
+                return self.provider_name
+
+            def type(self):
+                return self.kind
+
+        self.assertEqual(field_type_name(Field("", Type.Double)), "double")
+        self.assertEqual(field_type_name(Field("", Type.QString)), "string")
+        self.assertEqual(field_type_name(Field("Integer64", Type.Double)), "Integer64")
+
+
 if __name__ == "__main__":
     unittest.main()

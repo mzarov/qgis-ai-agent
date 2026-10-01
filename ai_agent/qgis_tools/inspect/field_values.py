@@ -5,7 +5,7 @@ from qgis.core import QgsVectorLayer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
-from ai_agent.qgis_tools.common.layers import find_layer_by_name, layer_reference
+from ai_agent.qgis_tools.common.layers import field_type_name, find_layer_by_name, layer_reference
 from ai_agent.qgis_tools.common.values import clamp_limit, plain_value, suggest_fields
 
 DEFAULT_LIMIT = 25
@@ -83,7 +83,7 @@ class GetFieldValuesTool(BaseTool):
     def _field_type(layer: QgsVectorLayer, index: int) -> str:
         try:
             field = layer.fields().at(index)
-            return field.typeName() or str(field.type())
+            return field_type_name(field)
         except Exception:
             return ""
 

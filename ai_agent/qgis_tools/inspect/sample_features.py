@@ -4,7 +4,7 @@ from qgis.core import QgsFeatureRequest, QgsVectorLayer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
-from ai_agent.qgis_tools.common.layers import feature_count_block, find_layer_by_name, layer_reference
+from ai_agent.qgis_tools.common.layers import enum_name, feature_count_block, find_layer_by_name, layer_reference
 from ai_agent.qgis_tools.common.values import clamp_limit, plain_value, wanted_fields
 
 DEFAULT_LIMIT = 5
@@ -91,7 +91,7 @@ def _geometry_type(feature) -> str:
         geometry = feature.geometry()
         if geometry.isEmpty():
             return "empty"
-        return str(geometry.type()).split(".")[-1]
+        return enum_name(geometry.type()).lower()
     except Exception:
         return ""
 
