@@ -9,8 +9,10 @@ import qgis
 from qgis.core import Qgis, QgsApplication
 from real_qgis_smoke import _build_and_extract, qgis_application
 
+DEFAULT_MODULES = ("real_qgis_cases", "real_qgis_network", "real_qgis_e2e")
 
-def main() -> int:
+
+def main(modules: tuple[str, ...] = DEFAULT_MODULES) -> int:
     """Run behavior tests against an installed ZIP in an isolated QGIS profile."""
     with tempfile.TemporaryDirectory(prefix="ai-agent-integration-") as temporary:
         root = pathlib.Path(temporary)
@@ -29,8 +31,7 @@ def main() -> int:
             if pathlib.Path(installed.__file__).resolve().parent != package.resolve():
                 raise RuntimeError("Integration tests must import the extracted plugin ZIP")
             suite = unittest.TestSuite(
-                unittest.defaultTestLoader.loadTestsFromModule(importlib.import_module(name))
-                for name in ("real_qgis_cases", "real_qgis_network", "real_qgis_e2e")
+                unittest.defaultTestLoader.loadTestsFromModule(importlib.import_module(name)) for name in modules
             )
             print(f"Installed-package workflows on QGIS {Qgis.QGIS_VERSION}", flush=True)
             result = unittest.TextTestRunner(verbosity=2).run(suite)
@@ -38,4 +39,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(tuple(sys.argv[1:]) or DEFAULT_MODULES))

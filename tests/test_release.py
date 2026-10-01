@@ -6,6 +6,7 @@ from tools import release_notes
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release.yml"
+LIVE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "live-model.yml"
 
 
 class MetadataParsesTest(unittest.TestCase):
@@ -49,8 +50,24 @@ class WorkflowTest(unittest.TestCase):
         self.assertLess(self.text.index("unittest discover"), self.text.index("build_plugin.py"))
 
     def test_nothing_is_published_before_the_real_qgis_scenarios_pass(self):
-        self.assertIn("needs: real-qgis", self.text)
+        self.assertIn("needs: [real-qgis, live-model]", self.text)
+        self.assertIn("!failure() && !cancelled()", self.text)
         self.assertIn("tests/real_qgis_workflows.py", self.text)
+
+
+class LiveModelWorkflowTest(unittest.TestCase):
+    def setUp(self):
+        self.text = LIVE_WORKFLOW.read_text(encoding="utf-8")
+
+    def test_real_tokens_are_never_spent_on_push_or_pull_requests(self):
+        triggers = self.text[self.text.index("\non:") : self.text.index("\nconcurrency:")]
+        self.assertNotIn("push", triggers)
+        self.assertNotIn("pull_request", triggers)
+
+    def test_the_key_comes_from_a_secret_and_spending_is_capped(self):
+        self.assertIn("secrets.YANDEX_API_KEY", self.text)
+        for cap in ("timeout-minutes:", "LIVE_TOTAL_TOKENS:", "LIVE_RUN_TOKENS:"):
+            self.assertIn(cap, self.text)
 
 
 if __name__ == "__main__":
