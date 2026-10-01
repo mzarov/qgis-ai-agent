@@ -222,9 +222,9 @@ class AgentDockWidget(QDockWidget):
         box.setText(
             tr(
                 "Send the request to {0}?\n\n"
-                "The provider receives your prompt and basic project metadata: layer and field names, "
-                "CRS and project notes. Feature values, extents, layer sources and rendered images stay "
-                "blocked until you allow them in Settings."
+                "The provider receives your prompt and everything the agent reads to answer it: layer and "
+                "field names, feature values, extents, layer sources and rendered map images. For data that "
+                "must stay on this computer, use a local model server."
             ).format(endpoint)
         )
         box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)

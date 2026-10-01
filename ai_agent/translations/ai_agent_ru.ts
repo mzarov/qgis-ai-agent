@@ -286,7 +286,7 @@
         <translation>Диалоги</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/conversation.py" line="223"/>
+        <location filename="ai_agent/ui/conversation.py" line="224"/>
         <source>Copy the whole conversation</source>
         <translation>Скопировать весь диалог</translation>
     </message>
@@ -675,7 +675,7 @@
         <translation>QGIS отказался удалить ключ.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/inspect/describe_layer.py" line="55"/>
+        <location filename="ai_agent/qgis_tools/inspect/describe_layer.py" line="56"/>
         <source>Reading layer '{0}'.</source>
         <translation>Смотрю слой «{0}».</translation>
     </message>
@@ -725,7 +725,7 @@
         <translation>Смотрю оформление слоя.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/inspect/describe_layer.py" line="54"/>
+        <location filename="ai_agent/qgis_tools/inspect/describe_layer.py" line="55"/>
         <source>Reading the layer.</source>
         <translation>Смотрю слой.</translation>
     </message>
@@ -953,8 +953,8 @@
     </message>
     <message>
         <location filename="ai_agent/ui/dock_widget.py" line="223"/>
-        <source>Send the request to {0}?&#10;&#10;The provider receives your prompt and basic project metadata: layer and field names, CRS and project notes. Feature values, extents, layer sources and rendered images stay blocked until you allow them in Settings.</source>
-        <translation>Отправить запрос в {0}?&#10;&#10;Провайдер получит ваш запрос и базовые метаданные проекта: имена слоёв и полей, CRS и заметки проекта. Значения объектов, границы, источники слоёв и изображения останутся закрытыми, пока вы не разрешите их в настройках.</translation>
+        <source>Send the request to {0}?&#10;&#10;The provider receives your prompt and everything the agent reads to answer it: layer and field names, feature values, extents, layer sources and rendered map images. For data that must stay on this computer, use a local model server.</source>
+        <translation>Отправить запрос в {0}?&#10;&#10;Провайдер получит ваш запрос и всё, что агент прочитает для ответа: имена слоёв и полей, значения объектов, границы, источники слоёв и изображения карты. Если данные не должны покидать компьютер, используйте локальный сервер модели.</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/geocoder_settings.py" line="50"/>
