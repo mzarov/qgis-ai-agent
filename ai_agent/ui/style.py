@@ -10,6 +10,11 @@ BORDER_TINT = 0.8
 MUTED_TINT = 0.38
 PANEL_LIFT = 0.11
 SOFT_TINT = 0.14
+ACCENT_LIFT_DARK = 0.28
+COOL_TINT = 0.035
+SIDEBAR_LIFT = 0.055
+CONTENT_LIFT = 0.025
+FIELD_LIFT = 0.035
 SOFT_TINT_DARK = 0.24
 
 
@@ -47,7 +52,7 @@ def panel(palette: QPalette) -> QColor:
     base = palette.base().color()
     if not is_dark(palette):
         return base
-    return blend(base, QColor(255, 255, 255), PANEL_LIFT)
+    return cool(palette, blend(base, QColor(255, 255, 255), PANEL_LIFT))
 
 
 def hairline(palette: QPalette) -> QColor:
@@ -66,8 +71,61 @@ def warning(palette: QPalette) -> QColor:
     return QColor(230, 178, 90) if is_dark(palette) else QColor(160, 105, 15)
 
 
-def accent(palette: QPalette) -> QColor:
+def system_accent(palette: QPalette) -> QColor:
+    """The OS accent colour (Qt 6.6+ `Accent` role); the selection highlight where there is none.
+
+    On macOS the highlight is the muted text-selection fill, not the accent the system draws
+    buttons and focus rings with, so it made every accent in the plugin look dull.
+    """
+    role = getattr(getattr(QPalette, "ColorRole", None), "Accent", None)
+    if role is not None:
+        try:
+            found = palette.color(role)
+        except Exception:
+            found = None
+        if isinstance(found, QColor) and found.isValid() and found.alpha() > 0:
+            return found
     return palette.highlight().color()
+
+
+def accent(palette: QPalette) -> QColor:
+    """The accent for fills, borders and rings: the system accent, softened on a dark palette."""
+    found = system_accent(palette)
+    return blend(found, QColor(255, 255, 255), ACCENT_LIFT_DARK) if is_dark(palette) else found
+
+
+def on_accent(palette: QPalette) -> QColor:
+    """Text and glyphs on an accent fill: dark on the softened dark-theme accent, white otherwise."""
+    return palette.base().color() if is_dark(palette) else QColor(255, 255, 255)
+
+
+def cool(palette: QPalette, colour: QColor) -> QColor:
+    """Nudge a dark surface towards the accent so greys read cool rather than flat."""
+    return blend(colour, system_accent(palette), COOL_TINT) if is_dark(palette) else colour
+
+
+def field(palette: QPalette) -> QColor:
+    """Input fill: recessed below the cards, but not a black hole on a dark palette."""
+    base = surface(palette)
+    if not is_dark(palette):
+        return base
+    return cool(palette, blend(base, QColor(255, 255, 255), FIELD_LIFT))
+
+
+def sidebar(palette: QPalette) -> QColor:
+    """The settings sidebar: a step above the content, the way the window chrome sits."""
+    window = palette.window().color()
+    if not is_dark(palette):
+        return blend(window, QColor(0, 0, 0), 0.03)
+    return cool(palette, blend(window, QColor(255, 255, 255), SIDEBAR_LIFT))
+
+
+def content(palette: QPalette) -> QColor:
+    """The settings page background."""
+    window = palette.window().color()
+    if not is_dark(palette):
+        return palette.base().color()
+    return cool(palette, blend(window, QColor(255, 255, 255), CONTENT_LIFT))
 
 
 def user_bubble(palette: QPalette) -> QColor:

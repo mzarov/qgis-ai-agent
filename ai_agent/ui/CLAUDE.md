@@ -220,6 +220,17 @@ sidebar and Save stays disabled until something changed. The connection probe
 answers in the status card at the top of the Connection page, with latency and
 what is known about the endpoint; the footer line is for validation errors.
 
+**The accent is the system accent, not the selection highlight.**
+`style.accent` reads the Qt 6.6+ `Accent` role and falls back to `highlight`.
+On macOS the highlight is the muted text-selection fill (`#314f78` in the dark
+appearance), which made every button and ring look dull. On a dark palette the
+accent is softened towards white and text on it uses `style.on_accent` (the
+dark base), as in the mockup. Dark surfaces get a slight cool tint
+(`style.cool`); the settings sidebar (`style.sidebar`) sits a step above the
+content (`style.content`) and runs the full height, with the footer only under
+the pages. Verify the window inside a real QGIS too: offscreen renders a
+smaller font and the standard palette, and both hid real layout faults.
+
 **Nothing that cannot shrink may sit in a grid.** A pill badge or an unelided
 name in the provider tiles widened the whole page in Russian; tile captions are
 wrapping text and names elide. The screen checks' overflow detector found it.

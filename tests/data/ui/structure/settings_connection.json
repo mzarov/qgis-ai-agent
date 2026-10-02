@@ -5,7 +5,8 @@
  },
  {
   "depth": 1,
-  "type": "QWidget"
+  "type": "QWidget",
+  "name": "settingsNav"
  },
  {
   "depth": 2,
@@ -51,306 +52,312 @@
   "checked": false
  },
  {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "AI Agent 0.1.1"
+ },
+ {
   "depth": 1,
   "type": "QFrame",
   "name": "settingsSeparator"
  },
  {
   "depth": 1,
-  "type": "QStackedWidget"
+  "type": "QWidget",
+  "name": "settingsContent"
  },
  {
   "depth": 2,
-  "type": "QScrollArea"
+  "type": "QStackedWidget"
  },
  {
   "depth": 3,
-  "type": "QWidget"
+  "type": "QScrollArea"
  },
  {
   "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
   "type": "QLabel",
   "text": "Connection"
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "QLabel",
   "text": "Any OpenAI-compatible server works. A local server keeps the project on this computer."
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "StatusCard",
   "name": "connectionStatus"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "QLabel"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "QLabel",
   "text": "Not tested yet"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "QLabel",
   "text": "Test the connection to see that the model answers."
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "QPushButton",
   "text": "Test connection"
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "QLabel",
   "text": "PROVIDER"
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "ProviderTiles"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "ProviderTile",
   "name": "providerTile"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "O"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "ElidedLabel",
   "text": "Ollama"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "local · no key"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "ProviderTile",
   "name": "providerTile"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "LS"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "ElidedLabel",
   "text": "LM Studio"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "local · no key"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "ProviderTile",
   "name": "providerTile"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "O"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "ElidedLabel",
   "text": "OpenAI"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "cloud"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "ProviderTile",
   "name": "providerTile"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "O"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "ElidedLabel",
   "text": "OpenRouter"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "cloud"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "ProviderTile",
   "name": "providerTile"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "A"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "ElidedLabel",
   "text": "Anthropic"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "cloud"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "ProviderTile",
   "name": "providerTile"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "D"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "ElidedLabel",
   "text": "DeepSeek"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "cloud"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "ProviderTile",
   "name": "providerTile"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "G"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "ElidedLabel",
   "text": "Groq"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "cloud"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "ProviderTile",
   "name": "providerTile"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "GG"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "ElidedLabel",
   "text": "Google Gemini"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "cloud"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "ProviderTile",
   "name": "providerTile"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "M"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "ElidedLabel",
   "text": "Mistral"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "cloud"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "ProviderTile",
   "name": "providerTile"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "CA"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "ElidedLabel",
   "text": "Custom address"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "any OpenAI-compatible"
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "QLabel",
   "text": "ENDPOINT"
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "QFrame",
   "name": "settingsCard"
  },
  {
-  "depth": 5,
-  "type": "QWidget"
- },
- {
   "depth": 6,
   "type": "QWidget"
  },
  {
   "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
   "type": "QLabel",
   "text": "Base URL"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "QLabel",
   "text": "Without /chat/completions at the end."
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLineEdit",
   "text": "http://localhost:11434/v1"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "QFrame",
   "name": "settingsSeparator"
- },
- {
-  "depth": 5,
-  "type": "QWidget"
  },
  {
   "depth": 6,
@@ -358,27 +365,27 @@
  },
  {
   "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
   "type": "QLabel",
   "text": "Model"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "QLabel",
   "text": "The model name exactly as the provider spells it."
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLineEdit",
   "text": "qwen3"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "QFrame",
   "name": "settingsSeparator"
- },
- {
-  "depth": 5,
-  "type": "QWidget"
  },
  {
   "depth": 6,
@@ -386,45 +393,49 @@
  },
  {
   "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
   "type": "QLabel",
   "text": "API key"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "QLabel",
   "text": "A local server needs no key — leave this empty."
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QWidget"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "QLineEdit",
   "text": "Not required"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "QPushButton",
   "text": "Remove stored key"
  },
  {
-  "depth": 1,
+  "depth": 2,
   "type": "QFrame",
   "name": "settingsSeparator"
  },
  {
-  "depth": 1,
+  "depth": 2,
   "type": "QLabel",
   "text": "All changes saved"
  },
  {
-  "depth": 1,
+  "depth": 2,
   "type": "QPushButton",
   "text": "Cancel"
  },
  {
-  "depth": 1,
+  "depth": 2,
   "type": "QPushButton",
   "text": "Save",
   "enabled": false

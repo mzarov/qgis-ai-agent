@@ -221,11 +221,14 @@ class RadioCard(QFrame):
     def set_checked(self, checked: bool) -> None:
         self.mark.checked = checked
         self.mark.update()
+        # The chosen card keeps its fill and gains a two-pixel accent edge, as in the approved mockup;
+        # the margin swap keeps every card the same outer size.
         border = style.accent(self._palette) if checked else style.hairline(self._palette)
-        fill = style.soft(self._palette, style.accent(self._palette)) if checked else style.panel(self._palette)
+        width = 2 if checked else style.HAIRLINE
         self.setStyleSheet(
-            f"QFrame#{CARD_NAME} {{ background: {style.css_color(fill)};"
-            f"border: {style.HAIRLINE}px solid {style.css_color(border)}; border-radius: {style.CARD_RADIUS}px; }}"
+            f"QFrame#{CARD_NAME} {{ background: {style.css_color(style.panel(self._palette))};"
+            f"border: {width}px solid {style.css_color(border)}; border-radius: {style.CARD_RADIUS}px;"
+            f"margin: {2 - width}px; }}"
         )
 
     def mousePressEvent(self, _event: Any) -> None:

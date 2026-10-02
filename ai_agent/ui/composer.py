@@ -146,7 +146,7 @@ class Composer(QWidget):
         if self._busy:
             fill, ink, glyph, name = style.text(palette), style.surface(palette), STOP_GLYPH, tr("Stop")
         elif has_text:
-            fill, ink, glyph, name = style.accent(palette), palette.highlightedText().color(), SEND_GLYPH, tr("Send")
+            fill, ink, glyph, name = style.accent(palette), style.on_accent(palette), SEND_GLYPH, tr("Send")
         else:
             fill, ink, glyph, name = style.card(palette), style.muted(palette), SEND_GLYPH, tr("Send")
         self._send.setText(glyph)

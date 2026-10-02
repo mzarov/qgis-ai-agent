@@ -1,7 +1,9 @@
+import configparser
+import os
 from typing import Any
 
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QScrollArea, QWidget
+from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 
 from ai_agent.i18n import tr
 from ai_agent.ui import controls, icons, settings_advanced, style
@@ -14,16 +16,21 @@ BRAND_RADIUS = 8
 BRAND_GAP = 8
 DOT_SIZE = 7
 DOT_NAME = "pageDirty"
+NAV_NAME = "settingsNav"
+CONTENT_NAME = "settingsContent"
+METADATA = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "metadata.txt")
 
 
-def build_body(owner: Any, palette: Any) -> QHBoxLayout:
+def build_body(owner: Any, palette: Any) -> tuple[QHBoxLayout, QVBoxLayout]:
+    """The sidebar, full height, beside the content column; the caller adds its footer to that column."""
     body = QHBoxLayout()
     body.setContentsMargins(0, 0, 0, 0)
     body.setSpacing(0)
     owner.pages = fields.pages()
     nav, nav_column = fields.sidebar()
-    nav.setAutoFillBackground(True)
-    nav.setStyleSheet(f"background: {style.css_color(style.card(palette))};")
+    nav.setObjectName(NAV_NAME)
+    nav.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+    nav.setStyleSheet(f"QWidget#{NAV_NAME} {{ background: {style.css_color(style.sidebar(palette))}; }}")
     nav_column.addWidget(_brand(palette))
     owner._nav_buttons = []
     entries = (
@@ -41,11 +48,24 @@ def build_body(owner: Any, palette: Any) -> QHBoxLayout:
         nav_column.addWidget(button)
         owner._nav_buttons.append(button)
     nav_column.addStretch(1)
+    version = _version()
+    if version:
+        label = controls.small(f"{BRAND} {version}", palette)
+        label.setContentsMargins(6, 0, 0, 0)
+        nav_column.addWidget(label)
+    content = QWidget()
+    content.setObjectName(CONTENT_NAME)
+    content.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+    content.setStyleSheet(f"QWidget#{CONTENT_NAME} {{ background: {style.css_color(style.content(palette))}; }}")
+    right = QVBoxLayout(content)
+    right.setContentsMargins(0, 0, 0, 0)
+    right.setSpacing(0)
+    right.addWidget(owner.pages, 1)
     body.addWidget(nav)
     body.addWidget(fields.vertical_separator(palette))
-    body.addWidget(owner.pages, 1)
+    body.addWidget(content, 1)
     show_page(owner, 0)
-    return body
+    return body, right
 
 
 def show_page(owner: Any, index: int) -> None:
@@ -83,7 +103,7 @@ def _brand(palette: Any) -> QWidget:
     tile.setStyleSheet(
         f"QLabel {{ background: {style.css_color(style.accent(palette))}; border-radius: {BRAND_RADIUS}px; }}"
     )
-    icon = _drawn(icons.brand, palette.highlightedText().color())
+    icon = _drawn(icons.brand, style.on_accent(palette))
     if icon is not None:
         tile.setPixmap(icon.pixmap(BRAND_ICON, BRAND_ICON))
     line.addWidget(tile)
@@ -111,3 +131,12 @@ def _drawn(paint: Any, colour: Any) -> Any:
     except Exception:
         return None
     return None if icon.isNull() else icon
+
+
+def _version() -> str:
+    parser = configparser.ConfigParser(interpolation=None)
+    try:
+        parser.read(METADATA, encoding="utf-8")
+        return parser.get("general", "version", fallback="").strip()
+    except (configparser.Error, OSError):
+        return ""

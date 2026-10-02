@@ -138,7 +138,7 @@ def _accent_button(palette) -> str:
     accent = style.css_color(style.accent(palette))
     return (
         f"QPushButton {{ background: {accent};"
-        f"color: {style.css_color(palette.highlightedText().color())};"
+        f"color: {style.css_color(style.on_accent(palette))};"
         f"border: {style.HAIRLINE}px solid {accent}; border-radius: 6px;"
         "padding: 0 14px; font-weight: 600; }"
         f"QPushButton:hover {{ background: {style.css_color(style.accent(palette).lighter(112))}; }}"

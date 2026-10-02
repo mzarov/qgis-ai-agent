@@ -108,7 +108,7 @@ class StyleSheetTest(unittest.TestCase):
         self.assertNotIn("style.card(palette)", body)
 
     def test_inputs_sit_on_the_recessed_surface(self):
-        self.assertIn("style.surface(palette)", SOURCE)
+        self.assertIn("style.field(palette)", SOURCE)
 
     def test_borders_are_not_blanket_erased_on_containers(self):
         offenders = [line.strip() for line in SOURCE.split("\n") if "border: none" in line and "drop-down" not in line]

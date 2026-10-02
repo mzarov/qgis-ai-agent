@@ -306,7 +306,7 @@ def input_style(palette: Any) -> str:
     border = style.css_color(style.hairline(palette))
     return (
         "QLineEdit, QComboBox {"
-        f"background: {style.css_color(style.surface(palette))};"
+        f"background: {style.css_color(style.field(palette))};"
         f"color: {style.css_color(style.text(palette))};"
         f"border: {style.HAIRLINE}px solid {border};"
         f"border-radius: {INPUT_RADIUS}px; padding: {INPUT_PADDING};"
@@ -328,7 +328,7 @@ def accent_button(palette: Any) -> str:
     fill = style.css_color(style.accent(palette))
     return (
         f"QPushButton {{ background: {fill};"
-        f"color: {style.css_color(palette.highlightedText().color())};"
+        f"color: {style.css_color(style.on_accent(palette))};"
         f"border: {style.HAIRLINE}px solid {fill}; border-radius: {BUTTON_RADIUS}px;"
         "padding: 6px 18px; font-weight: 600; }"
         f"QPushButton:hover {{ background: {style.css_color(style.accent(palette).lighter(112))}; }}"

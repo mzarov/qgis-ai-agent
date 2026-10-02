@@ -5,7 +5,8 @@
  },
  {
   "depth": 1,
-  "type": "QWidget"
+  "type": "QWidget",
+  "name": "settingsNav"
  },
  {
   "depth": 2,
@@ -51,121 +52,131 @@
   "checked": false
  },
  {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "AI Agent 0.1.1"
+ },
+ {
   "depth": 1,
   "type": "QFrame",
   "name": "settingsSeparator"
  },
  {
   "depth": 1,
-  "type": "QStackedWidget"
+  "type": "QWidget",
+  "name": "settingsContent"
  },
  {
   "depth": 2,
-  "type": "QScrollArea"
+  "type": "QStackedWidget"
  },
  {
   "depth": 3,
-  "type": "QWidget"
+  "type": "QScrollArea"
  },
  {
   "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
   "type": "QLabel",
   "text": "Geocoding"
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "QLabel",
   "text": "With a geocoder the agent can turn \"cafes in Divnomorskoye\" into a bounding box and hand it to the OpenStreetMap downloa"
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "QLabel",
   "text": "SERVICE"
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "RadioCards"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "RadioCard",
   "name": "radioCard"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "RadioMark"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "Disabled"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "Geocoding stays unavailable until you select a service."
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "RadioCard",
   "name": "radioCard"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "RadioMark"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "Photon demo (fair use)"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "Photon's public demo permits reasonable use, may throttle heavy traffic and has no availability guarantee."
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "RadioCard",
   "name": "radioCard"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "RadioMark"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "Custom Nominatim"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "Use a public HTTPS Nominatim-compatible service whose operator permits your intended use."
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLineEdit",
   "text": "https://geocoder.example",
   "enabled": false
  },
  {
-  "depth": 1,
+  "depth": 2,
   "type": "QFrame",
   "name": "settingsSeparator"
  },
  {
-  "depth": 1,
+  "depth": 2,
   "type": "QLabel",
   "text": "All changes saved"
  },
  {
-  "depth": 1,
+  "depth": 2,
   "type": "QPushButton",
   "text": "Cancel"
  },
  {
-  "depth": 1,
+  "depth": 2,
   "type": "QPushButton",
   "text": "Save",
   "enabled": false

@@ -5,7 +5,8 @@
  },
  {
   "depth": 1,
-  "type": "QWidget"
+  "type": "QWidget",
+  "name": "settingsNav"
  },
  {
   "depth": 2,
@@ -51,212 +52,222 @@
   "checked": false
  },
  {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "AI Agent 0.1.1"
+ },
+ {
   "depth": 1,
   "type": "QFrame",
   "name": "settingsSeparator"
  },
  {
   "depth": 1,
-  "type": "QStackedWidget"
+  "type": "QWidget",
+  "name": "settingsContent"
  },
  {
   "depth": 2,
-  "type": "QScrollArea"
+  "type": "QStackedWidget"
  },
  {
   "depth": 3,
-  "type": "QWidget"
+  "type": "QScrollArea"
  },
  {
   "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
   "type": "QLabel",
   "text": "Skills"
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "QLabel",
   "text": "A skill is a folder with a SKILL.md inside: a name, one line saying when to use it, and the rules in Markdown. Type / in"
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "QLabel",
   "text": "YOUR SKILLS"
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "QFrame",
   "name": "skillsPath"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "ElidedLabel",
   "text": "/Users/someone-with-a-long-name/Library/Application Support/QGIS/QGIS4/profiles/default/config/profiles/default/ai_agent"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "QPushButton",
   "text": "Open folder"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "QPushButton",
   "text": "Create an example"
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "QLabel",
   "text": "BUILT IN"
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "QWidget"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "QFrame",
   "name": "skillTile"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "annotations"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "QFrame",
   "name": "skillTile"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "edit"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "QFrame",
   "name": "skillTile"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "fields"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "QFrame",
   "name": "skillTile"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "inspect"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "QFrame",
   "name": "skillTile"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "layout"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "QFrame",
   "name": "skillTile"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "osm"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "QFrame",
   "name": "skillTile"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "processing"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "QFrame",
   "name": "skillTile"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "project"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "QFrame",
   "name": "skillTile"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "python"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "QFrame",
   "name": "skillTile"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "style"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "QFrame",
   "name": "skillTile"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "three_d"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "QFrame",
   "name": "skillTile"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
   "text": "web"
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "QWidget"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "QLabel",
   "text": "No local skills yet — create the example and edit it."
  },
  {
-  "depth": 1,
+  "depth": 2,
   "type": "QFrame",
   "name": "settingsSeparator"
  },
  {
-  "depth": 1,
+  "depth": 2,
   "type": "QLabel",
   "text": "All changes saved"
  },
  {
-  "depth": 1,
+  "depth": 2,
   "type": "QPushButton",
   "text": "Cancel"
  },
  {
-  "depth": 1,
+  "depth": 2,
   "type": "QPushButton",
   "text": "Save",
   "enabled": false
