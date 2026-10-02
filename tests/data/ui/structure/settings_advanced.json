@@ -99,12 +99,12 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "Check the result after applying changes"
+  "text": "Check the result after Apply"
  },
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "After you press Apply, the agent re-reads the project and confirms the changes really landed."
+  "text": "The agent re-reads the project to confirm the changes."
  },
  {
   "depth": 7,
@@ -132,7 +132,7 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "The run stops politely once it has spent this many tokens. 0 removes the limit."
+  "text": "A run stops after this many tokens."
  },
  {
   "depth": 7,
@@ -192,7 +192,7 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "Anthropic only. 0 turns extended thinking off."
+  "text": "Anthropic only. 0 turns it off."
  },
  {
   "depth": 7,
@@ -224,7 +224,7 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "auto picks the format from the address: api.anthropic.com is Anthropic, everything else is OpenAI."
+  "text": "auto picks it from the address."
  },
  {
   "depth": 7,
@@ -270,7 +270,7 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "Bearer suits almost everyone; OAuth is for corporate gateways."
+  "text": "Bearer suits almost everyone."
  },
  {
   "depth": 7,

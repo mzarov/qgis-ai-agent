@@ -267,7 +267,7 @@ class CredentialUiContractTest(unittest.TestCase):
         self.assertIn("set_api_key(key, url, dialect)", DIALOG_SOURCE)
 
     def test_stored_key_has_an_explicit_remove_action(self):
-        self.assertIn('tr("Remove stored key")', DIALOG_SOURCE)
+        self.assertIn('tr("Remove key")', DIALOG_SOURCE)
         self.assertIn("delete_api_key(url, dialect)", DIALOG_SOURCE)
 
     def test_connection_probe_runs_outside_the_ui_thread_and_can_be_cancelled(self):
@@ -284,8 +284,8 @@ class CredentialUiContractTest(unittest.TestCase):
         self.assertIn("thread.cancel()", DIALOG_SOURCE)
 
     def test_geocoder_is_selected_in_settings_not_by_the_model(self):
-        self.assertIn('tr("Photon demo (fair use)")', GEOCODER_SOURCE)
-        self.assertIn('tr("Custom Nominatim")', GEOCODER_SOURCE)
+        self.assertIn('addItem("Photon", GEOCODER_PHOTON)', GEOCODER_SOURCE)
+        self.assertIn('addItem("Nominatim", GEOCODER_NOMINATIM)', GEOCODER_SOURCE)
         self.assertIn("validated_service_url", GEOCODER_SOURCE)
         self.assertIn("self.geocoder.values()", DIALOG_SOURCE)
 

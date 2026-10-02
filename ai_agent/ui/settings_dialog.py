@@ -54,8 +54,8 @@ MIN_WIDTH = 860
 MIN_HEIGHT = 600
 FOOTER_MARGINS = (24, 12, 24, 12)
 FOOTER_SPACING = 8
-CONNECTION_LEAD = tr("Any OpenAI-compatible server works. A local server keeps the project on this computer.")
-NOT_TESTED_DETAIL = tr("Test the connection to see that the model answers.")
+CONNECTION_LEAD = tr("Any OpenAI-compatible server works.")
+NOT_TESTED_DETAIL = tr("Not tested yet.")
 CONNECTED = tr("Connected · {0} · {1}")
 SECONDS = tr("{0} s")
 FAILED = tr("The connection failed")
@@ -68,9 +68,9 @@ CANCELLING = tr("Cancelling the connection test…")
 CANCELLED = tr("Connection test cancelled.")
 MODEL_REQUIRED = tr("Enter a model name from the provider.")
 KEY_REMOVED = tr("The stored key for this endpoint was removed.")
-KEY_HINT = tr("Stored encrypted in the QGIS authentication database, not in the settings file.")
-KEYLESS_HINT = tr("A local server needs no key — leave this empty.")
-MODEL_HINT = tr("The model name exactly as the provider spells it.")
+KEY_HINT = tr("Kept in the QGIS authentication database.")
+KEYLESS_HINT = tr("A local server needs no key.")
+MODEL_HINT = tr("As the provider names it.")
 
 
 class SettingsDialog(SettingsStatusMixin, QDialog):
@@ -145,7 +145,7 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         self.key_edit.setEchoMode(QLineEdit.EchoMode.Password)
         self.key_edit.setPlaceholderText(tr("Provider key"))
         key_column.addWidget(self.key_edit)
-        self.remove_key_btn = QPushButton(tr("Remove stored key"))
+        self.remove_key_btn = QPushButton(tr("Remove key"))
         self.remove_key_btn.setStyleSheet(fields.ghost_button(palette))
         self.remove_key_btn.clicked.connect(self._remove_key)
         key_column.addWidget(self.remove_key_btn, 0, Qt.AlignmentFlag.AlignRight)
@@ -155,7 +155,7 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
             fields.card_rows(
                 palette,
                 [
-                    fields.row(tr("Base URL"), self.url_edit, tr("Without /chat/completions at the end."), palette),
+                    fields.row(tr("Base URL"), self.url_edit, tr("Without /chat/completions."), palette),
                     self._model_field,
                     self._key_field,
                     self.status_card,

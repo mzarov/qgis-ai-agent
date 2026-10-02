@@ -54,6 +54,7 @@ class Segmented(QFrame):
         super().__init__(parent)
         self._palette = palette
         self._items: list[str] = []
+        self._data: dict[int, Any] = {}
         self._group = QButtonGroup(self)
         self._group.setExclusive(True)
         self._group.idClicked.connect(self._chosen)
@@ -78,6 +79,16 @@ class Segmented(QFrame):
             self._items.append(item)
         if self._group.checkedId() < 0 and self._items:
             self._group.button(0).setChecked(True)
+
+    def addItem(self, text: str, data: Any = None) -> None:
+        self.addItems([text])
+        self._data[len(self._items) - 1] = data
+
+    def findData(self, data: Any) -> int:
+        return next((index for index, value in self._data.items() if value == data), -1)
+
+    def currentData(self) -> Any:
+        return self._data.get(self.currentIndex())
 
     def count(self) -> int:
         return len(self._items)

@@ -206,6 +206,12 @@ reads as a setting. `Switch` subclasses `QCheckBox` — the whole checkbox API
 disabled, knob from `highlightedText`. Same approach as the header icons:
 palette-driven `QPainter`, no image assets.
 
+**Copy is short.** Every hint is one short phrase; a page or section note is
+one sentence. Wordy explanations read as generated filler (the user's word
+was "нейрослоп") — cut them, or move detail to a tooltip. The geocoder is one
+row with a segmented Off · Photon · Nominatim choice, its hint follows the
+choice, and the server address row appears only for Nominatim.
+
 **Hints are visible, one short line under each title.** They used to hide
 behind "?" marks to avoid a wall of text; the user approved the redesign
 (`design/mockups/index.html`) that shows them again, so every hint must stay a

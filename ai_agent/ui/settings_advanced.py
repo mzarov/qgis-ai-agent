@@ -18,27 +18,24 @@ from ai_agent.i18n import tr
 from ai_agent.ui import controls
 from ai_agent.ui import settings_fields as fields
 
-DIALECT_HINT = tr("auto picks the format from the address: api.anthropic.com is Anthropic, everything else is OpenAI.")
-AUTH_HINT = tr("Bearer suits almost everyone; OAuth is for corporate gateways.")
-VERIFY_LABEL = tr("Check the result after applying changes")
-VERIFY_HINT = tr("After you press Apply, the agent re-reads the project and confirms the changes really landed.")
+DIALECT_HINT = tr("auto picks it from the address.")
+AUTH_HINT = tr("Bearer suits almost everyone.")
+VERIFY_LABEL = tr("Check the result after Apply")
+VERIFY_HINT = tr("The agent re-reads the project to confirm the changes.")
 BUDGET_LABEL = tr("Token budget per run")
-BUDGET_HINT = tr("The run stops politely once it has spent this many tokens. 0 removes the limit.")
+BUDGET_HINT = tr("A run stops after this many tokens.")
 THINKING_LABEL = tr("Extended thinking budget")
 THINKING_HINT = tr(
     "Anthropic only: 0 disables extended thinking. For Sonnet 5, any positive value enables adaptive thinking; "
     "older models require at least 1024 tokens and use the value as their reasoning budget."
 )
 SSL_LABEL = tr("Verify the SSL certificate")
-SSL_HINT = tr("Turn this off only for a server with a self-signed certificate that you trust.")
+SSL_HINT = tr("Turn off only for a trusted self-signed server.")
 JOURNAL_LABEL = tr("Write a run journal after applying")
-JOURNAL_NOTE = tr("A Markdown file in the QGIS profile folder: the request, every step and its result.")
-THINKING_NOTE = tr("Anthropic only. 0 turns extended thinking off.")
+JOURNAL_NOTE = tr("A Markdown log in the QGIS profile.")
+THINKING_NOTE = tr("Anthropic only. 0 turns it off.")
 PRIVACY_CALLOUT = tr("Everything the agent reads goes to the model.")
-PRIVACY_DETAIL = tr(
-    "Layer and field names, feature values, extents, rendered maps. For data that must stay here, "
-    "use a local server such as Ollama or LM Studio."
-)
+PRIVACY_DETAIL = tr("Use a local server to keep project data on this computer.")
 NO_LIMIT = tr("No limit")
 BUDGET_PRESETS = [("100k", "100000"), ("300k", "300000"), ("1M", "1000000")]
 BUDGET_FIELD_WIDTH = 96

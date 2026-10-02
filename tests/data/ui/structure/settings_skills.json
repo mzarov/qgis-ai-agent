@@ -90,27 +90,37 @@
  },
  {
   "depth": 6,
-  "type": "QWidget"
- },
- {
-  "depth": 7,
-  "type": "QPushButton",
-  "text": "Open folder"
- },
- {
-  "depth": 7,
   "type": "QPushButton",
   "text": "+  Create an example"
  },
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "A skill is a folder with a SKILL.md inside: a name, one line saying when to use it, and the rules in Markdown. Type / in"
+  "text": "Folders with a SKILL.md. Type / in the chat to use one."
  },
  {
   "depth": 5,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Folder"
+ },
+ {
+  "depth": 6,
   "type": "ElidedLabel",
   "text": "/Users/someone-with-a-long-name/Library/Application Support/QGIS/QGIS4/profiles/default/config/profiles/default/ai_agent"
+ },
+ {
+  "depth": 6,
+  "type": "QPushButton",
+  "text": "Open"
  },
  {
   "depth": 5,
@@ -146,7 +156,7 @@
  {
   "depth": 7,
   "type": "ElidedLabel",
-  "text": "built in · One-off notes and markers drawn on top of the map at a coordinate — not attribute labels (those are style). L"
+  "text": "One-off notes and markers drawn on top of the map at a coordinate — not attribute labels (those are style). Load this fo"
  },
  {
   "depth": 6,
@@ -169,7 +179,7 @@
  {
   "depth": 7,
   "type": "ElidedLabel",
-  "text": "built in · Change or delete existing records in place — set attribute values, remove features; writes to the data source"
+  "text": "Change or delete existing records in place — set attribute values, remove features; writes to the data source. Load this"
  },
  {
   "depth": 6,
@@ -192,7 +202,7 @@
  {
   "depth": 7,
   "type": "ElidedLabel",
-  "text": "built in · Change a layer's columns — add a real or a virtual (expression) field, rename, delete. Load this when the req"
+  "text": "Change a layer's columns — add a real or a virtual (expression) field, rename, delete. Load this when the request is abo"
  },
  {
   "depth": 6,
@@ -215,7 +225,7 @@
  {
   "depth": 7,
   "type": "ElidedLabel",
-  "text": "built in · Facts about the open project — layers, fields and their values, counts, lengths and areas via expressions, th"
+  "text": "Facts about the open project — layers, fields and their values, counts, lengths and areas via expressions, the user's se"
  },
  {
   "depth": 6,
@@ -238,7 +248,7 @@
  {
   "depth": 7,
   "type": "ElidedLabel",
-  "text": "built in · Print output — a page with map, title, legend, scale bar, north arrow or picture, exported to PDF or PNG. Loa"
+  "text": "Print output — a page with map, title, legend, scale bar, north arrow or picture, exported to PDF or PNG. Load this for "
  },
  {
   "depth": 6,
@@ -261,7 +271,7 @@
  {
   "depth": 7,
   "type": "ElidedLabel",
-  "text": "built in · Fetch OpenStreetMap data through Overpass into new layers — roads, buildings, POIs, water, land use, anything"
+  "text": "Fetch OpenStreetMap data through Overpass into new layers — roads, buildings, POIs, water, land use, anything by OSM tag"
  },
  {
   "depth": 6,
@@ -284,7 +294,7 @@
  {
   "depth": 7,
   "type": "ElidedLabel",
-  "text": "built in · Geoprocessing and analysis — buffer, clip, intersect, dissolve, join, reproject, field calculator, heatmap, c"
+  "text": "Geoprocessing and analysis — buffer, clip, intersect, dissolve, join, reproject, field calculator, heatmap, clustering, "
  },
  {
   "depth": 6,
@@ -307,7 +317,7 @@
  {
   "depth": 7,
   "type": "ElidedLabel",
-  "text": "built in · The workspace — add layers from files, basemaps, WMS/WFS or PostGIS; remove, rename, hide, group, reorder; pr"
+  "text": "The workspace — add layers from files, basemaps, WMS/WFS or PostGIS; remove, rename, hide, group, reorder; project CRS; "
  },
  {
   "depth": 6,
@@ -330,7 +340,7 @@
  {
   "depth": 7,
   "type": "ElidedLabel",
-  "text": "built in · Run a PyQGIS snippet — the escape hatch to the whole QGIS API for what no tool covers (blend modes, 3D scene "
+  "text": "Run a PyQGIS snippet — the escape hatch to the whole QGIS API for what no tool covers (blend modes, 3D scene settings, e"
  },
  {
   "depth": 6,
@@ -353,7 +363,7 @@
  {
   "depth": 7,
   "type": "ElidedLabel",
-  "text": "built in · Change or inspect how a layer looks — single symbol, colours by category or graduated classes, feature labels"
+  "text": "Change or inspect how a layer looks — single symbol, colours by category or graduated classes, feature labels, opacity, "
  },
  {
   "depth": 6,
@@ -376,7 +386,7 @@
  {
   "depth": 7,
   "type": "ElidedLabel",
-  "text": "built in · Open a 3D map view. Load this for \"show in 3D\", \"terrain view\", \"tilt the map\"; terrain, exaggeration and cam"
+  "text": "Open a 3D map view. Load this for \"show in 3D\", \"terrain view\", \"tilt the map\"; terrain, exaggeration and camera are the"
  },
  {
   "depth": 6,
@@ -399,7 +409,7 @@
  {
   "depth": 7,
   "type": "ElidedLabel",
-  "text": "built in · Internet lookups — web search, reading a URL, geocoding a place name to coordinates and a bounding box. Load "
+  "text": "Internet lookups — web search, reading a URL, geocoding a place name to coordinates and a bounding box. Load this for fa"
  },
  {
   "depth": 5,
@@ -408,7 +418,7 @@
  {
   "depth": 6,
   "type": "QLabel",
-  "text": "No local skills yet — create the example and edit it."
+  "text": "No skills of your own yet."
  },
  {
   "depth": 2,

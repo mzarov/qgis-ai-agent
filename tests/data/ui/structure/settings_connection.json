@@ -87,7 +87,7 @@
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "Any OpenAI-compatible server works. A local server keeps the project on this computer."
+  "text": "Any OpenAI-compatible server works."
  },
  {
   "depth": 5,
@@ -216,7 +216,7 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "Without /chat/completions at the end."
+  "text": "Without /chat/completions."
  },
  {
   "depth": 7,
@@ -244,7 +244,7 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "The model name exactly as the provider spells it."
+  "text": "As the provider names it."
  },
  {
   "depth": 7,
@@ -272,7 +272,7 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "A local server needs no key — leave this empty."
+  "text": "A local server needs no key."
  },
  {
   "depth": 7,
@@ -286,7 +286,7 @@
  {
   "depth": 8,
   "type": "QPushButton",
-  "text": "Remove stored key"
+  "text": "Remove key"
  },
  {
   "depth": 6,
@@ -310,7 +310,7 @@
  {
   "depth": 7,
   "type": "QLabel",
-  "text": "Test the connection to see that the model answers."
+  "text": "Not tested yet."
  },
  {
   "depth": 7,

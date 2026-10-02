@@ -17,20 +17,16 @@ from ai_agent.ui import controls, icons, style
 from ai_agent.ui import settings_fields as fields
 
 TITLE = tr("Your skills")
-INTRO = tr(
-    "A skill is a folder with a SKILL.md inside: a name, one line saying when to use it, and the rules in "
-    "Markdown. Type / in the chat to invoke one; the agent can also load it by itself when the task fits."
-)
-OPEN_FOLDER = tr("Open folder")
+INTRO = tr("Folders with a SKILL.md. Type / in the chat to use one.")
+OPEN_FOLDER = tr("Open")
+FOLDER = tr("Folder")
 CREATE_EXAMPLE = tr("Create an example")
-NONE_YET = tr("No local skills yet — create the example and edit it.")
+NONE_YET = tr("No skills of your own yet.")
 FOLDER_UNAVAILABLE = tr("The skills folder is unavailable in this QGIS profile.")
 TOOLS_LINE = tr("Tools: {0}")
 BUILT_IN = tr("Built in")
-LOCAL_ORIGIN = tr("yours")
-BUILT_IN_ORIGIN = tr("built in")
 DRAFT = tr("draft")
-DRAFT_NOTE = tr("Write when to use it in the description line of SKILL.md to turn it on.")
+DRAFT_NOTE = tr("Add a description in SKILL.md to turn it on.")
 EDIT = tr("Edit")
 ROW_SEPARATOR = " · "
 BUTTON_GAP = 8
@@ -44,23 +40,21 @@ class SkillsSettings:
     def __init__(self, palette: Any):
         self._palette = palette
         holder, self._column = fields.page()
-        self._column.addWidget(self._header(TITLE, self._actions(palette)))
+        self._column.addWidget(self._header(TITLE, self._create_button(palette)))
         self._column.addWidget(fields.hint(INTRO, palette))
-        self._path = controls.ElidedLabel("", mode=Qt.TextElideMode.ElideMiddle)
-        self._path.setStyleSheet(f"color: {style.css_color(style.faint(palette))};")
-        self._path.setFont(fields.hint("", palette).font())
-        self._column.addWidget(self._path)
         self._column.addSpacing(fields.SECTION_TO_CARD)
         self._list: QWidget = QWidget()
         self._list_index = self._column.count()
         self._column.addWidget(self._list)
+        self._column.addWidget(fields.separator(palette))
+        self._column.addWidget(self._folder_row(palette))
         built_in = [choice for choice in skill_choices() if choice[2] != "local"]
         self._column.addSpacing(fields.SECTION_GAP)
         self._column.addWidget(self._header(BUILT_IN, None, len(built_in)))
         self._column.addWidget(
             fields.card_rows(
                 palette,
-                [self._row(name, BUILT_IN_ORIGIN, description, description) for name, description, _ in built_in],
+                [self._row(name, "", description, description) for name, description, _ in built_in],
             )
         )
         self._column.addStretch(1)
@@ -75,10 +69,7 @@ class SkillsSettings:
         column = QVBoxLayout(fresh)
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(4)
-        rows = [
-            self._row(entry["name"], LOCAL_ORIGIN, entry["description"], self._tools(entry))
-            for entry in described["skills"]
-        ]
+        rows = [self._row(entry["name"], "", entry["description"], self._tools(entry)) for entry in described["skills"]]
         rows += [self._draft(draft) for draft in described["drafts"]]
         if rows:
             column.addWidget(fields.card_rows(self._palette, rows))
@@ -111,19 +102,31 @@ class SkillsSettings:
             line.addWidget(actions)
         return holder
 
-    def _actions(self, palette: Any) -> QWidget:
+    def _create_button(self, palette: Any) -> QPushButton:
+        button = QPushButton(f"+  {CREATE_EXAMPLE}")
+        button.setStyleSheet(fields.plain_button(palette))
+        button.clicked.connect(self._create_example)
+        return button
+
+    def _folder_row(self, palette: Any) -> QWidget:
         holder = QWidget()
         line = QHBoxLayout(holder)
-        line.setContentsMargins(0, 0, 0, 0)
-        line.setSpacing(BUTTON_GAP)
+        line.setContentsMargins(*fields.FLAT_ROW_PADDING)
+        line.setSpacing(fields.ROW_GAP)
+        text = QVBoxLayout()
+        text.setSpacing(fields.FIELD_SPACING)
+        name = QLabel(FOLDER)
+        name.setStyleSheet(f"color: {style.css_color(style.text(palette))};")
+        text.addWidget(name)
+        self._path = controls.ElidedLabel("", mode=Qt.TextElideMode.ElideMiddle)
+        self._path.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
+        self._path.setFont(fields.hint("", palette).font())
+        text.addWidget(self._path)
+        line.addLayout(text, 1)
         open_button = QPushButton(OPEN_FOLDER)
-        open_button.setStyleSheet(fields.ghost_button(palette))
+        open_button.setStyleSheet(fields.plain_button(palette))
         open_button.clicked.connect(self._open_folder)
-        line.addWidget(open_button)
-        example_button = QPushButton(f"+  {CREATE_EXAMPLE}")
-        example_button.setStyleSheet(fields.plain_button(palette))
-        example_button.clicked.connect(self._create_example)
-        line.addWidget(example_button)
+        line.addWidget(open_button, 0, Qt.AlignmentFlag.AlignVCenter)
         return holder
 
     def _row(self, name: str, origin: str, description: str, tooltip: str, badge: Any = None) -> QWidget:

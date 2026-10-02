@@ -87,7 +87,7 @@
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "Layer and field names, feature values, extents, rendered maps. For data that must stay here, use a local server such as "
+  "text": "Use a local server to keep project data on this computer."
  },
  {
   "depth": 5,
@@ -114,7 +114,7 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "Turn this off only for a server with a self-signed certificate that you trust."
+  "text": "Turn off only for a trusted self-signed server."
  },
  {
   "depth": 7,
@@ -146,7 +146,7 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "A Markdown file in the QGIS profile folder: the request, every step and its result."
+  "text": "A Markdown log in the QGIS profile."
  },
  {
   "depth": 7,

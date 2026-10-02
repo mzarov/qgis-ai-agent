@@ -15,16 +15,11 @@ from ai_agent.i18n import tr
 from ai_agent.ui import controls
 from ai_agent.ui import settings_fields as fields
 
-PHOTON_HINT = tr(
-    "Photon's public demo permits reasonable use, may throttle heavy traffic and has no availability guarantee."
-)
-CUSTOM_HINT = tr("Use a public HTTPS Nominatim-compatible service whose operator permits your intended use.")
-DISABLED_HINT = tr("Geocoding stays unavailable until you select a service.")
-PURPOSE_HINT = tr(
-    'With a geocoder the agent can turn "cafes in Divnomorskoye" into a bounding box and hand it to the '
-    "OpenStreetMap download. Without one it can still work by place name, but only where OpenStreetMap "
-    "already knows that name."
-)
+PURPOSE_HINT = tr("Turns place names into coordinates for OpenStreetMap downloads.")
+DISABLED_HINT = tr("Only names OpenStreetMap already knows will be found.")
+PHOTON_HINT = tr("Free public demo, fine for occasional lookups.")
+CUSTOM_HINT = tr("Your own server, or a public one that allows your use.")
+HINTS = {GEOCODER_DISABLED: DISABLED_HINT, GEOCODER_PHOTON: PHOTON_HINT, GEOCODER_NOMINATIM: CUSTOM_HINT}
 
 
 class GeocoderSettings:
@@ -33,18 +28,21 @@ class GeocoderSettings:
         self._custom_url = get_custom_nominatim_url()
         self._last_provider = get_geocoder_provider()
         holder, column = fields.page()
-        fields.section(column, tr("Service"), palette, PURPOSE_HINT)
-        self.provider_combo = controls.RadioCards(palette)
-        self.provider_combo.addItem(tr("Disabled"), GEOCODER_DISABLED, DISABLED_HINT)
-        self.provider_combo.addItem(tr("Photon demo (fair use)"), GEOCODER_PHOTON, PHOTON_HINT)
-        custom = self.provider_combo.addItem(tr("Custom Nominatim"), GEOCODER_NOMINATIM, CUSTOM_HINT)
+        fields.section(column, tr("Geocoding"), palette, PURPOSE_HINT)
+        self.provider_combo = controls.Segmented(palette)
+        self.provider_combo.addItem(tr("Off"), GEOCODER_DISABLED)
+        self.provider_combo.addItem("Photon", GEOCODER_PHOTON)
+        self.provider_combo.addItem("Nominatim", GEOCODER_NOMINATIM)
+        self.provider_combo.setCurrentIndex(max(0, self.provider_combo.findData(self._last_provider)))
+        self._service_row = fields.custom_row(tr("Service"), self.provider_combo, "", palette)
         self.url_edit = QLineEdit()
-        self.url_edit.setPlaceholderText("https://geocoder.example")
-        self.url_edit.setStyleSheet(fields.input_style(palette))
-        custom.add_extra(self.url_edit)
-        index = self.provider_combo.findData(self._last_provider)
-        self.provider_combo.setCurrentIndex(max(0, index))
-        column.addWidget(self.provider_combo)
+        self.url_edit.setPlaceholderText("https://nominatim.example.org")
+        # The address row carries its own hairline, so hiding it leaves no stray line behind.
+        self._url_row = fields.card_rows(
+            palette, [QWidget(), fields.row(tr("Server address"), self.url_edit, "", palette)]
+        )
+        column.addWidget(self._service_row)
+        column.addWidget(self._url_row)
         column.addStretch(1)
         self.provider_combo.currentIndexChanged.connect(self._sync_provider)
         self._sync_provider()
@@ -69,6 +67,7 @@ class GeocoderSettings:
         if self._last_provider == GEOCODER_NOMINATIM:
             self._custom_url = self.url_edit.text().strip()
         self._last_provider = provider
-        # The address belongs to the custom service only; it stays visible but idle otherwise.
         self.url_edit.setText(self._custom_url)
-        self.url_edit.setEnabled(provider == GEOCODER_NOMINATIM)
+        fields.set_row_hint(self._service_row, HINTS[provider])
+        # The address belongs to the custom server only: the row shows up when it is chosen.
+        self._url_row.setVisible(provider == GEOCODER_NOMINATIM)

@@ -82,79 +82,53 @@
  {
   "depth": 5,
   "type": "QLabel",
+  "text": "Geocoding"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Turns place names into coordinates for OpenStreetMap downloads."
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
   "text": "Service"
  },
  {
-  "depth": 5,
+  "depth": 7,
   "type": "QLabel",
-  "text": "With a geocoder the agent can turn \"cafes in Divnomorskoye\" into a bounding box and hand it to the OpenStreetMap downloa"
- },
- {
-  "depth": 5,
-  "type": "RadioCards"
+  "text": "Only names OpenStreetMap already knows will be found."
  },
  {
   "depth": 6,
-  "type": "RadioCard",
-  "name": "radioCard"
+  "type": "Segmented",
+  "name": "segmented"
  },
  {
   "depth": 7,
-  "type": "RadioMark"
+  "type": "QPushButton",
+  "text": "Off",
+  "checked": true
  },
  {
   "depth": 7,
-  "type": "QLabel",
-  "text": "Disabled"
+  "type": "QPushButton",
+  "text": "Photon",
+  "checked": false
  },
  {
   "depth": 7,
-  "type": "QLabel",
-  "text": "Geocoding stays unavailable until you select a service."
- },
- {
-  "depth": 6,
-  "type": "RadioCard",
-  "name": "radioCard"
- },
- {
-  "depth": 7,
-  "type": "RadioMark"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Photon demo (fair use)"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Photon's public demo permits reasonable use, may throttle heavy traffic and has no availability guarantee."
- },
- {
-  "depth": 6,
-  "type": "RadioCard",
-  "name": "radioCard"
- },
- {
-  "depth": 7,
-  "type": "RadioMark"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Custom Nominatim"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Use a public HTTPS Nominatim-compatible service whose operator permits your intended use."
- },
- {
-  "depth": 7,
-  "type": "QLineEdit",
-  "text": "https://geocoder.example",
-  "enabled": false
+  "type": "QPushButton",
+  "text": "Nominatim",
+  "checked": false
  },
  {
   "depth": 2,
