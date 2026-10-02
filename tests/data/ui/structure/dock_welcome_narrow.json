@@ -45,6 +45,39 @@
   "type": "ConversationView"
  },
  {
+  "depth": 3,
+  "type": "QWidget"
+ },
+ {
+  "depth": 4,
+  "type": "WelcomeCard"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Ask in plain language"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "The agent reads the project itself. Nothing changes until you press Apply."
+ },
+ {
+  "depth": 5,
+  "type": "QPushButton",
+  "text": "What layers do I have and what is in them?"
+ },
+ {
+  "depth": 5,
+  "type": "QPushButton",
+  "text": "Colour the layer by its type and label the features"
+ },
+ {
+  "depth": 5,
+  "type": "QPushButton",
+  "text": "Download the cafes in Tver from OpenStreetMap"
+ },
+ {
   "depth": 2,
   "type": "QWidget"
  },

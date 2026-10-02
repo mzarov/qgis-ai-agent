@@ -51,6 +51,44 @@
   "type": "QScrollArea"
  },
  {
+  "depth": 3,
+  "type": "QWidget"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "Your skills"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "A skill is a folder with a SKILL.md inside: a name, one line saying when to use it, and the rules in Markdown. Type / in"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "<profile>/config/profiles/default/ai_agent_skills"
+ },
+ {
+  "depth": 4,
+  "type": "QPushButton",
+  "text": "Open folder"
+ },
+ {
+  "depth": 4,
+  "type": "QPushButton",
+  "text": "Create an example"
+ },
+ {
+  "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "No local skills yet — create the example and edit it."
+ },
+ {
   "depth": 1,
   "type": "QFrame",
   "name": "settingsSeparator"

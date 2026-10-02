@@ -62,9 +62,16 @@ UI_UPDATE_GOLDENS=1 QT_QPA_PLATFORM=offscreen python3 tests/real_qgis_workflows.
 ```
 
 That rewrites the structure goldens; review the JSON diff before committing.
-Pixel goldens never come from a local machine: download the `ui-pixels`
-artifact of the failed run and copy its `ui-actual` images into
-`tests/data/ui/pixels`.
+Pixel goldens only come from the pinned image, never from a desktop QGIS.
+Either download the `ui-pixels` artifact of the failed run and copy its
+`ui-actual` images into `tests/data/ui/pixels`, or run the same image locally:
+
+```bash
+docker run --rm --platform linux/amd64 -v "$PWD":/repo -w /repo \
+  -e QT_QPA_PLATFORM=offscreen -e UI_PIXEL_BASELINE=1 -e UI_UPDATE_GOLDENS=1 \
+  qgis/qgis@sha256:23c12670e69909e8659a5c098aa307996735a5763b9ff9c3268bdeeee1a10916 \
+  sh -c 'python3 tests/real_qgis_workflows.py real_qgis_visual && UI_LOCALE=ru python3 tests/real_qgis_workflows.py real_qgis_visual'
+```
 
 ## Live-model scenarios
 

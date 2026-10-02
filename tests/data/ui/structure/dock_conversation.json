@@ -45,6 +45,110 @@
   "type": "ConversationView"
  },
  {
+  "depth": 3,
+  "type": "QWidget"
+ },
+ {
+  "depth": 4,
+  "type": "UserMessage"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Colour districts by pop2020 in 5 classes"
+ },
+ {
+  "depth": 4,
+  "type": "AssistantMessage"
+ },
+ {
+  "depth": 5,
+  "type": "QTextBrowser",
+  "text": "districts has a numeric pop2020 field from 20 000 to 95 000. I prepared a graduated renderer with 5 classes, equal inter"
+ },
+ {
+  "depth": 4,
+  "type": "PlanCard"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "◆"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Ready to run — 2 action(s)"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "1."
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Graduating 'districts' by 'pop2020', classes: 5."
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "2."
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Labeling 'districts' with 'name'."
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QPushButton",
+  "text": "Apply"
+ },
+ {
+  "depth": 6,
+  "type": "QPushButton",
+  "text": "Cancel"
+ },
+ {
+  "depth": 4,
+  "type": "SystemMessage"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Checking the applied changes…"
+ },
+ {
+  "depth": 4,
+  "type": "AssistantMessage"
+ },
+ {
+  "depth": 5,
+  "type": "QTextBrowser",
+  "text": "Done: 2 step(s) applied."
+ },
+ {
   "depth": 2,
   "type": "QWidget"
  },

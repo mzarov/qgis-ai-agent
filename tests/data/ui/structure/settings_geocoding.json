@@ -51,6 +51,66 @@
   "type": "QScrollArea"
  },
  {
+  "depth": 3,
+  "type": "QWidget"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "Turning a place name into coordinates"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "With a geocoder the agent can turn \"cafes in Divnomorskoye\" into a bounding box and hand it to the OpenStreetMap downloa"
+ },
+ {
+  "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Service"
+ },
+ {
+  "depth": 5,
+  "type": "QComboBox",
+  "text": "Disabled"
+ },
+ {
+  "depth": 4,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Base URL"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "?"
+ },
+ {
+  "depth": 5,
+  "type": "QLineEdit",
+  "text": "https://geocoder.example"
+ },
+ {
   "depth": 1,
   "type": "QFrame",
   "name": "settingsSeparator"

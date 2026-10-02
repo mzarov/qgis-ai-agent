@@ -39,7 +39,9 @@ GOLDENS = pathlib.Path(__file__).resolve().parent / "data" / "ui"
 PIXEL_BASELINE = os.environ.get("UI_PIXEL_BASELINE") == "1"
 UPDATE_GOLDENS = os.environ.get("UI_UPDATE_GOLDENS") == "1"
 CHANNEL_TOLERANCE = 24
-MAX_CHANGED_SHARE = 0.001
+MAX_CHANGED_PIXELS = 25
+SCROLL_HELPER = "qt_scrollarea"
+VIEWPORT = "qt_scrollarea_viewport"
 FIT_SLACK_PX = 1
 TEXT_LIMIT = 120
 VOLATILE = [
@@ -133,9 +135,9 @@ def compare_pixels(name: str, image: QImage, artifacts: pathlib.Path) -> str | N
         image.save(str(actual_dir / f"{name}.png"))
         return f"size changed: {golden.width()}x{golden.height()} -> {image.width()}x{image.height()}"
     changed = _changed_pixels(golden, image)
-    share = len(changed) / max(1, image.width() * image.height())
-    if share <= MAX_CHANGED_SHARE:
+    if len(changed) <= MAX_CHANGED_PIXELS:
         return None
+    share = len(changed) / max(1, image.width() * image.height())
     actual_dir.mkdir(parents=True, exist_ok=True)
     image.save(str(actual_dir / f"{name}.png"))
     _diff_image(image, changed).save(str(artifacts / f"{name}.diff.png"))
@@ -172,11 +174,18 @@ def _scrub(text: str, replacements: dict[str, str]) -> str:
 
 
 def _walk(widget: QWidget, depth: int, rows: list[dict[str, object]]) -> None:
-    if not _counts(widget):
+    if not widget.isVisible() or isinstance(widget, QScrollBar):
+        return
+    name = widget.objectName()
+    if name.startswith(SCROLL_HELPER):
+        # A scroll area's viewport holds the content; its scroll bar containers
+        # come and go with font metrics. Walk the content, not the helper.
+        if name == VIEWPORT:
+            _walk_children(widget, depth, rows)
         return
     row: dict[str, object] = {"depth": depth, "type": type(widget).__name__}
-    if widget.objectName() and not widget.objectName().startswith("qt_"):
-        row["name"] = widget.objectName()
+    if name and not name.startswith("qt_"):
+        row["name"] = name
     text = _text(widget)
     if text:
         row["text"] = text[:TEXT_LIMIT]
@@ -185,16 +194,13 @@ def _walk(widget: QWidget, depth: int, rows: list[dict[str, object]]) -> None:
     if isinstance(widget, QAbstractButton) and widget.isCheckable():
         row["checked"] = widget.isChecked()
     rows.append(row)
+    _walk_children(widget, depth + 1, rows)
+
+
+def _walk_children(widget: QWidget, depth: int, rows: list[dict[str, object]]) -> None:
     for child in widget.children():
         if isinstance(child, QWidget) and not child.isWindow():
-            _walk(child, depth + 1, rows)
-
-
-def _counts(widget: QWidget) -> bool:
-    # Scroll bars come and go with font metrics; Qt's own helpers are not ours to pin.
-    if not widget.isVisible() or isinstance(widget, QScrollBar):
-        return False
-    return not widget.objectName().startswith("qt_scrollarea")
+            _walk(child, depth, rows)
 
 
 def _text(widget: QWidget) -> str:
