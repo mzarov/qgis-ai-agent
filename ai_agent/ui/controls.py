@@ -10,7 +10,7 @@ from collections.abc import Callable
 from typing import Any
 
 from qgis.PyQt.QtCore import QRectF, QSize, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QPainter, QPen
+from qgis.PyQt.QtGui import QColor, QPainter, QPen
 from qgis.PyQt.QtWidgets import (
     QButtonGroup,
     QFrame,
@@ -288,6 +288,31 @@ class RadioCards(QWidget):
         self._index = index
         for at, card in enumerate(self._cards):
             card.set_checked(at == index)
+
+
+class PaintedDot(QWidget):
+    """A round status dot drawn by hand, recoloured with `set_colour` and no style sheet."""
+
+    def __init__(self, size: int, parent: QWidget | None = None):
+        super().__init__(parent)
+        self._size = size
+        self.colour = ""
+        self.setFixedSize(size, size)
+
+    def set_colour(self, name: str) -> None:
+        if name != self.colour:
+            self.colour = name
+            self.update()
+
+    def paintEvent(self, _event: Any) -> None:
+        if not self.colour:
+            return
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(self.colour))
+        painter.drawEllipse(QRectF(0, 0, self._size, self._size))
+        painter.end()
 
 
 def small(text: str, palette: Any) -> QLabel:

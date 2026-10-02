@@ -1,21 +1,25 @@
-"""Pieces of the composer: the editor, /skill and @layer parsing, highlighting, the key hints."""
+"""Pieces of the composer: the editor, /skill and @layer parsing, highlighting, the frame, the toolbar."""
 
 import re
 from typing import Any
 
-from qgis.PyQt.QtCore import QRectF, Qt, pyqtSignal
+from qgis.PyQt.QtCore import QPoint, QRectF, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QFont, QPainter, QPen, QSyntaxHighlighter, QTextCharFormat
-from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QPlainTextEdit, QWidget
+from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QMenu, QPlainTextEdit, QToolButton, QWidget
 
-from ai_agent.ui import controls, style
+from ai_agent.i18n import tr
+from ai_agent.ui import style
 
 SKILL_TOKEN = re.compile(r"^/\S+")
 LAYER_TOKEN = re.compile(r'(?:(?<=\s)|^)@(?:"[^"]*"?|\S+)')
 SLASH = "/"
 MENTION = "@"
 QUOTE = '"'
-HINT_GAP = 5
-PAIR_GAP = 10
+PLUS = "+"
+MENU_GAP = 4
+ATTACH = tr("Attach")
+ATTACH_SOON = tr("Attaching files is coming soon")
+NO_MODEL = tr("No model")
 
 
 def slash_query(text: str) -> str | None:
@@ -122,57 +126,45 @@ def _token_format(palette: Any, colour: Any) -> QTextCharFormat:
     return token
 
 
-class HintBar(QWidget):
-    """Keycaps with a word after each, or one plain line; rebuilt when the composer changes state."""
+class ComposerToolbar(QWidget):
+    """The row under the composer: + on the left, the model's name on the right."""
 
     def __init__(self, palette: Any, parent: QWidget | None = None):
         super().__init__(parent)
         self._palette = palette
-        self._line = QHBoxLayout(self)
-        self._line.setContentsMargins(0, 0, 0, 0)
-        self._line.setSpacing(HINT_GAP)
-        self._parts: list[QWidget] = []
-        self._line.addStretch(1)
-        self.text = ""
+        line = QHBoxLayout(self)
+        line.setContentsMargins(2, 6, 4, 0)
+        line.setSpacing(2)
+        self.attach = QToolButton()
+        self.attach.setText(PLUS)
+        self.attach.setToolTip(ATTACH)
+        self.attach.setAccessibleName(ATTACH)
+        self.attach.setAutoRaise(True)
+        self.attach.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.attach.setStyleSheet(
+            f"QToolButton {{ border: none; background: transparent; padding: 2px 8px; border-radius: 7px;"
+            f"color: {style.css_color(style.muted(palette))}; font-size: 16px; }}"
+            f"QToolButton:hover {{ background: {style.css_color(style.card(palette))};"
+            f"color: {style.css_color(style.text(palette))}; }}"
+        )
+        self.menu = QMenu(self.attach)
+        soon = self.menu.addAction(ATTACH_SOON)
+        soon.setEnabled(False)
+        self.attach.clicked.connect(self._open_menu)
+        line.addWidget(self.attach)
+        line.addStretch(1)
+        self.model = QLabel()
+        self.model.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
+        line.addWidget(self.model)
 
-    def show_keys(self, pairs: list[tuple[str, str]]) -> None:
-        text = "  ".join(f"{key} {word}" for key, word in pairs)
-        if text == self.text and self._parts:
-            return
-        self._clear()
-        for index, (key, word) in enumerate(pairs):
-            cap = controls.keycap(key, self._palette)
-            if index:
-                cap.setContentsMargins(PAIR_GAP - HINT_GAP, 0, 0, 0)
-            self._add(cap)
-            self._add(self._word(word))
-        self.text = "  ".join(f"{key} {word}" for key, word in pairs)
+    def set_model(self, name: str) -> None:
+        self.model.setText(name.rsplit("/", 1)[-1] if name else NO_MODEL)
+        self.model.setToolTip(name or NO_MODEL)
 
-    def show_text(self, text: str) -> None:
-        # The composer repaints on every keystroke; rebuilding unchanged hints churned widgets for nothing.
-        if text == self.text and self._parts:
-            return
-        self._clear()
-        self._add(self._word(text))
-        self.text = text
-
-    def _word(self, text: str) -> QLabel:
-        label = controls.small(text, self._palette)
-        label.setWordWrap(False)
-        label.setStyleSheet(f"color: {style.css_color(style.muted(self._palette))}; border: none;")
-        return label
-
-    def _add(self, widget: QWidget) -> None:
-        # Insert before the trailing stretch so the hints hug the left edge.
-        self._line.insertWidget(len(self._parts), widget, 0, Qt.AlignmentFlag.AlignVCenter)
-        self._parts.append(widget)
-
-    def _clear(self) -> None:
-        for widget in self._parts:
-            self._line.removeWidget(widget)
-            widget.hide()
-            widget.deleteLater()
-        self._parts = []
+    def _open_menu(self) -> None:
+        # The composer sits at the bottom of the dock: the menu opens upwards, above the button.
+        above = self.attach.mapToGlobal(QPoint(0, 0))
+        self.menu.popup(QPoint(above.x(), above.y() - self.menu.sizeHint().height() - MENU_GAP))
 
 
 class ComposerFrame(QFrame):

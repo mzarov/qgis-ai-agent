@@ -10,7 +10,7 @@ Runs inside `real_qgis_workflows.py` against the extracted plugin ZIP.
 import unittest
 
 from e2e_harness import PluginCase, pump
-from qgis.PyQt.QtCore import QEvent, Qt
+from qgis.PyQt.QtCore import QEvent, QPoint, Qt
 from qgis.PyQt.QtGui import QColor, QKeyEvent
 from qgis.PyQt.QtWidgets import QLineEdit, QWidget
 
@@ -160,19 +160,27 @@ class ComposerBehaviourTest(PluginCase):
         self.dock.set_busy(False)
         self.assertTrue(self.dock.progress.isHidden())
 
-    def test_the_hint_and_button_follow_the_state(self) -> None:
+    def test_the_button_and_toolbar_follow_the_state(self) -> None:
         composer = self.dock.composer
-        self.assertIn("/", composer._hint.text)
         self.assertEqual(composer._send.toolTip(), "Send")
-        composer._edit.setPlainText("colour the rivers")
-        self.assertIn("Enter", composer._hint.text)
+        self.dock.set_model("moonshotai/kimi-k2.5")
+        self.assertEqual(composer.toolbar.model.text(), "kimi-k2.5")
         self.dock.set_busy(True)
-        self.assertIn("Esc", composer._hint.text)
         self.assertEqual(composer._send.toolTip(), "Stop")
         self.dock.set_busy(False)
         self.dock.set_configured(False)
         self.assertTrue(composer._send.isHidden())
         self.assertTrue(composer._edit.isReadOnly())
+
+    def test_the_attach_menu_opens_above_the_button(self) -> None:
+        toolbar = self.dock.composer.toolbar
+        toolbar.attach.click()
+        pump(0.05)
+        try:
+            self.assertTrue(toolbar.menu.isVisible())
+            self.assertLess(toolbar.menu.geometry().bottom(), toolbar.attach.mapToGlobal(QPoint(0, 0)).y())
+        finally:
+            toolbar.menu.hide()
 
     def test_the_popup_never_grows_wider_than_the_composer(self) -> None:
         composer = self.dock.composer

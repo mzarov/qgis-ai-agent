@@ -1,8 +1,9 @@
 # Usage
 
 Open the panel from the **AI Agent** menu entry or the toolbar icon, type a
-request, press Enter. Shift+Enter breaks the line. Type `/` to pick a skill
-and `@` to pick a layer; both are highlighted in the text. While the agent
+request, press Enter. Shift+Enter breaks the line. Type `/` (or use the
+skill button under the box) to pick a skill and `@` to pick a layer; both are
+highlighted in the text. The model name under the box opens the settings. While the agent
 works, a line above the box shows the current step, the send button becomes a
 stop button and Esc stops the run too; typing meanwhile corrects the agent.
 

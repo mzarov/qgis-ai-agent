@@ -81,8 +81,26 @@
  },
  {
   "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
   "type": "QLabel",
   "text": "Your skills"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QPushButton",
+  "text": "Open folder"
+ },
+ {
+  "depth": 7,
+  "type": "QPushButton",
+  "text": "+  Create an example"
  },
  {
   "depth": 5,
@@ -91,28 +109,8 @@
  },
  {
   "depth": 5,
-  "type": "QFrame",
-  "name": "skillsPath"
- },
- {
-  "depth": 6,
   "type": "ElidedLabel",
   "text": "/Users/someone-with-a-long-name/Library/Application Support/QGIS/QGIS4/profiles/default/config/profiles/default/ai_agent"
- },
- {
-  "depth": 6,
-  "type": "QPushButton",
-  "text": "Open folder"
- },
- {
-  "depth": 6,
-  "type": "QPushButton",
-  "text": "Create an example"
- },
- {
-  "depth": 5,
-  "type": "QLabel",
-  "text": "Built in"
  },
  {
   "depth": 5,
@@ -120,8 +118,25 @@
  },
  {
   "depth": 6,
-  "type": "QFrame",
-  "name": "skillTile"
+  "type": "QLabel",
+  "text": "Built in"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "12"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
  },
  {
   "depth": 7,
@@ -129,9 +144,22 @@
   "text": "annotations"
  },
  {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "built in · One-off notes and markers drawn on top of the map at a coordinate — not attribute labels (those are style). L"
+ },
+ {
   "depth": 6,
   "type": "QFrame",
-  "name": "skillTile"
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
  },
  {
   "depth": 7,
@@ -139,9 +167,22 @@
   "text": "edit"
  },
  {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "built in · Change or delete existing records in place — set attribute values, remove features; writes to the data source"
+ },
+ {
   "depth": 6,
   "type": "QFrame",
-  "name": "skillTile"
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
  },
  {
   "depth": 7,
@@ -149,9 +190,22 @@
   "text": "fields"
  },
  {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "built in · Change a layer's columns — add a real or a virtual (expression) field, rename, delete. Load this when the req"
+ },
+ {
   "depth": 6,
   "type": "QFrame",
-  "name": "skillTile"
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
  },
  {
   "depth": 7,
@@ -159,9 +213,22 @@
   "text": "inspect"
  },
  {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "built in · Facts about the open project — layers, fields and their values, counts, lengths and areas via expressions, th"
+ },
+ {
   "depth": 6,
   "type": "QFrame",
-  "name": "skillTile"
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
  },
  {
   "depth": 7,
@@ -169,9 +236,22 @@
   "text": "layout"
  },
  {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "built in · Print output — a page with map, title, legend, scale bar, north arrow or picture, exported to PDF or PNG. Loa"
+ },
+ {
   "depth": 6,
   "type": "QFrame",
-  "name": "skillTile"
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
  },
  {
   "depth": 7,
@@ -179,9 +259,22 @@
   "text": "osm"
  },
  {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "built in · Fetch OpenStreetMap data through Overpass into new layers — roads, buildings, POIs, water, land use, anything"
+ },
+ {
   "depth": 6,
   "type": "QFrame",
-  "name": "skillTile"
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
  },
  {
   "depth": 7,
@@ -189,9 +282,22 @@
   "text": "processing"
  },
  {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "built in · Geoprocessing and analysis — buffer, clip, intersect, dissolve, join, reproject, field calculator, heatmap, c"
+ },
+ {
   "depth": 6,
   "type": "QFrame",
-  "name": "skillTile"
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
  },
  {
   "depth": 7,
@@ -199,9 +305,22 @@
   "text": "project"
  },
  {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "built in · The workspace — add layers from files, basemaps, WMS/WFS or PostGIS; remove, rename, hide, group, reorder; pr"
+ },
+ {
   "depth": 6,
   "type": "QFrame",
-  "name": "skillTile"
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
  },
  {
   "depth": 7,
@@ -209,9 +328,22 @@
   "text": "python"
  },
  {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "built in · Run a PyQGIS snippet — the escape hatch to the whole QGIS API for what no tool covers (blend modes, 3D scene "
+ },
+ {
   "depth": 6,
   "type": "QFrame",
-  "name": "skillTile"
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
  },
  {
   "depth": 7,
@@ -219,9 +351,22 @@
   "text": "style"
  },
  {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "built in · Change or inspect how a layer looks — single symbol, colours by category or graduated classes, feature labels"
+ },
+ {
   "depth": 6,
   "type": "QFrame",
-  "name": "skillTile"
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
  },
  {
   "depth": 7,
@@ -229,14 +374,32 @@
   "text": "three_d"
  },
  {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "built in · Open a 3D map view. Load this for \"show in 3D\", \"terrain view\", \"tilt the map\"; terrain, exaggeration and cam"
+ },
+ {
   "depth": 6,
   "type": "QFrame",
-  "name": "skillTile"
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
  },
  {
   "depth": 7,
   "type": "QLabel",
   "text": "web"
+ },
+ {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "built in · Internet lookups — web search, reading a URL, geocoding a place name to coordinates and a bounding box. Load "
  },
  {
   "depth": 5,

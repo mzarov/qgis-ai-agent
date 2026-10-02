@@ -108,11 +108,6 @@
   "text": "Ollama"
  },
  {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "local · no key"
- },
- {
   "depth": 6,
   "type": "ProviderTile",
   "name": "providerTile"
@@ -125,11 +120,6 @@
   "depth": 7,
   "type": "ElidedLabel",
   "text": "LM Studio"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "local · no key"
  },
  {
   "depth": 6,
@@ -146,11 +136,6 @@
   "text": "OpenAI"
  },
  {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "cloud"
- },
- {
   "depth": 6,
   "type": "ProviderTile",
   "name": "providerTile"
@@ -163,11 +148,6 @@
   "depth": 7,
   "type": "ElidedLabel",
   "text": "OpenRouter"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "cloud"
  },
  {
   "depth": 6,
@@ -184,11 +164,6 @@
   "text": "Anthropic"
  },
  {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "cloud"
- },
- {
   "depth": 6,
   "type": "ProviderTile",
   "name": "providerTile"
@@ -203,11 +178,6 @@
   "text": "Google Gemini"
  },
  {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "cloud"
- },
- {
   "depth": 6,
   "type": "ProviderTile",
   "name": "providerTile"
@@ -220,11 +190,6 @@
   "depth": 7,
   "type": "ElidedLabel",
   "text": "Custom address"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "any OpenAI-compatible"
  },
  {
   "depth": 5,
@@ -335,12 +300,12 @@
  },
  {
   "depth": 7,
-  "type": "QLabel"
+  "type": "QLabel",
+  "text": "Connection test"
  },
  {
   "depth": 7,
-  "type": "QLabel",
-  "text": "Not tested yet"
+  "type": "PaintedDot"
  },
  {
   "depth": 7,

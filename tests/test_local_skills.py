@@ -147,6 +147,13 @@ class LocalSkillsHelpersTest(unittest.TestCase):
         self.assertIn("house-style", SKILL_REGISTRY.local_names())
         self.assertFalse(any("house-style" in problem for problem in problems))
 
+    def test_a_fresh_example_is_a_draft_not_a_problem(self):
+        path = local_skills.write_example_skill()
+        described = local_skills.describe_local_skills()
+        self.assertEqual(described["drafts"], [{"name": "house-style", "path": path}])
+        self.assertFalse(any("still the example" in problem for problem in described["problems"]))
+        self.assertNotIn("house-style", [entry["name"] for entry in described["skills"]])
+
     def test_choices_carry_origin_for_the_popup(self):
         choices = local_skills.skill_choices()
         origins = {name: origin for name, _, origin in choices}

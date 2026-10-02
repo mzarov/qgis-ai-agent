@@ -20,10 +20,8 @@ TILE_HEIGHT = 58
 MONOGRAM = 30
 LOGO = 17
 MONOGRAM_RADIUS = 7
-LIGHT = 10
-LOCAL_BADGE = tr("local · no key")
-CLOUD = tr("cloud")
-ANY_SERVER = tr("any OpenAI-compatible")
+LIGHT = 8
+CONNECTION_TEST = tr("Connection test")
 STATE_IDLE = "idle"
 STATE_OK = "ok"
 STATE_BAD = "bad"
@@ -73,23 +71,9 @@ class ProviderTile(QFrame):
             monogram.setFont(font)
             monogram.setText(_initials(preset.title))
         line.addWidget(monogram)
-        text = QVBoxLayout()
-        text.setSpacing(1)
-        text.addStretch(1)
         name = controls.ElidedLabel(preset.title)
         name.setStyleSheet(f"color: {style.css_color(style.text(palette))};")
-        text.addWidget(name)
-        if preset.is_custom:
-            kind = controls.small(ANY_SERVER, palette)
-        elif preset.needs_key:
-            kind = controls.small(CLOUD, palette)
-        else:
-            # Plain wrapping text, not a pill: a pill cannot shrink and would widen the whole grid.
-            kind = controls.small(LOCAL_BADGE, palette)
-            kind.setStyleSheet(f"color: {style.css_color(style.success(palette))};")
-        text.addWidget(kind)
-        text.addStretch(1)
-        line.addLayout(text, 1)
+        line.addWidget(name, 1)
         self.set_selected(False)
 
     def set_selected(self, selected: bool) -> None:
@@ -150,7 +134,7 @@ class ProviderTiles(QWidget):
 
 
 class StatusCard(QFrame):
-    """What the last connection test found: a light, one line, details and badges."""
+    """The connection test as one settings row: its name, a status line with a dot, the button."""
 
     def __init__(self, palette: Any, action: QWidget):
         super().__init__()
@@ -158,48 +142,34 @@ class StatusCard(QFrame):
         self.setObjectName(STATUS_NAME)
         line = QHBoxLayout(self)
         line.setContentsMargins(*fields.FLAT_ROW_PADDING)
-        line.setSpacing(12)
-        self._light = QLabel()
-        self._light.setFixedSize(LIGHT, LIGHT)
-        line.addWidget(self._light, 0, Qt.AlignmentFlag.AlignVCenter)
+        line.setSpacing(fields.ROW_GAP)
         text = QVBoxLayout()
-        text.setSpacing(3)
-        self.title = QLabel()
-        self.title.setStyleSheet(f"color: {style.css_color(style.text(palette))};")
-        text.addWidget(self.title)
+        text.setSpacing(fields.FIELD_SPACING)
+        name = QLabel(CONNECTION_TEST)
+        name.setStyleSheet(f"color: {style.css_color(style.text(palette))};")
+        text.addWidget(name)
+        status = QHBoxLayout()
+        status.setSpacing(7)
+        self._light = controls.PaintedDot(LIGHT)
+        status.addWidget(self._light, 0, Qt.AlignmentFlag.AlignVCenter)
+        self.title = controls.small("", palette)
+        self.title.setWordWrap(False)
+        status.addWidget(self.title, 1)
+        text.addLayout(status)
         self.detail = controls.small("", palette)
         text.addWidget(self.detail)
-        self._badges = QHBoxLayout()
-        self._badges.setContentsMargins(0, 0, 0, 0)
-        self._badges.setSpacing(6)
-        self._badge_row = QWidget()
-        self._badge_row.setLayout(self._badges)
-        self._badges.addStretch(1)
-        self._badge_widgets: list[QWidget] = []
-        text.addWidget(self._badge_row)
         line.addLayout(text, 1)
         line.addWidget(action, 0, Qt.AlignmentFlag.AlignVCenter)
         self.state = STATE_IDLE
-        self.show_state(STATE_IDLE, "", "", [])
+        self.show_state(STATE_IDLE, "", "")
 
-    def show_state(self, state: str, title: str, detail: str, badges: list[tuple[str, str]]) -> None:
+    def show_state(self, state: str, title: str, detail: str) -> None:
+        """One line of status; the detail shows only when something went wrong."""
         self.state = state
-        colours = {
-            STATE_OK: style.success(self._palette),
-            STATE_BAD: style.danger(self._palette),
-        }
-        colour = colours.get(state, style.muted(self._palette))
-        self._light.setStyleSheet(f"QLabel {{ background: {style.css_color(colour)}; border-radius: {LIGHT // 2}px; }}")
+        colours = {STATE_OK: style.success(self._palette), STATE_BAD: style.danger(self._palette)}
+        colour = colours.get(state, style.faint(self._palette))
+        self._light.set_colour(colour.name())
         self.title.setText(title)
         self.detail.setText(detail)
-        self.detail.setVisible(bool(detail))
-        for widget in self._badge_widgets:
-            self._badges.removeWidget(widget)
-            widget.hide()
-            widget.deleteLater()
-        self._badge_widgets = []
-        for index, (text, kind) in enumerate(badges):
-            widget = controls.badge(text, kind, self._palette)
-            self._badges.insertWidget(index, widget)
-            self._badge_widgets.append(widget)
-        self._badge_row.setVisible(bool(badges))
+        self.detail.setStyleSheet(f"color: {style.css_color(style.danger(self._palette))};")
+        self.detail.setVisible(state == STATE_BAD and bool(detail))

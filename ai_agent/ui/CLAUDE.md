@@ -35,8 +35,8 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `messages.py`     | the user message, the agent reply, the service message |
 | `activity.py`     | the collapsible group of tool calls |
 | `plan.py`         | the plan card with its buttons inside |
-| `composer.py`     | the input box: one `_paint()` draws offline, busy, typing and idle; Enter sends, Esc stops a run; `/` and `@` open the popup |
-| `composer_parts.py` | the editor, `/skill` and `@layer` parsing, token highlighting, the keycap hint bar |
+| `composer.py`     | the input box as in Claude Code: text and the send/stop button inside, the toolbar under it; Enter sends, Esc stops a run; `/` and `@` open the popup |
+| `composer_parts.py` | the editor, `/skill` and `@layer` parsing, token highlighting, the painted frame, the toolbar (+, skill picker, model) |
 | `progress.py`     | the line above the composer while a run works: pulsing dot, current step, step count |
 | `controls.py`     | custom controls: `Segmented` and `RadioCards` keep the combo-box API, `Chips`, badges, keycaps, `ElidedLabel` |
 | `connection_widgets.py` | provider tiles and the connection status card |

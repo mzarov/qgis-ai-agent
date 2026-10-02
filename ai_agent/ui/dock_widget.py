@@ -112,6 +112,9 @@ class AgentDockWidget(QDockWidget):
         self.conversation.set_configured(configured)
         self.composer.set_configured(configured)
 
+    def set_model(self, name: str) -> None:
+        self.composer.set_model(name)
+
     def _build_conversation(self) -> QWidget:
         self.conversation = ConversationView()
         self.conversation.confirm_requested.connect(self.confirm_plan_clicked.emit)

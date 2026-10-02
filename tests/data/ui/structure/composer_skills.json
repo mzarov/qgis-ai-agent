@@ -99,17 +99,22 @@
  },
  {
   "depth": 5,
-  "type": "HintBar"
+  "type": "QPushButton",
+  "text": "↑"
  },
  {
-  "depth": 6,
-  "type": "QLabel",
-  "text": "Pick a skill"
+  "depth": 4,
+  "type": "ComposerToolbar"
  },
  {
   "depth": 5,
-  "type": "QPushButton",
-  "text": "↑"
+  "type": "QToolButton",
+  "text": "+"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "qwen3"
  },
  {
   "depth": 2,

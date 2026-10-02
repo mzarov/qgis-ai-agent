@@ -55,16 +55,12 @@ MIN_HEIGHT = 600
 FOOTER_MARGINS = (24, 12, 24, 12)
 FOOTER_SPACING = 8
 CONNECTION_LEAD = tr("Any OpenAI-compatible server works. A local server keeps the project on this computer.")
-NOT_TESTED = tr("Not tested yet")
 NOT_TESTED_DETAIL = tr("Test the connection to see that the model answers.")
-CONNECTED = tr("Connected · {0}")
+CONNECTED = tr("Connected · {0} · {1}")
+SECONDS = tr("{0} s")
 FAILED = tr("The connection failed")
 SAVED = tr("All changes saved")
 UNSAVED = tr("Unsaved changes")
-LATENCY = tr("{0} ms")
-LOCAL = tr("local · no key")
-KEY_STORED = tr("key stored")
-FORMAT = tr("{0} format")
 BUDGET_INVALID = tr("A budget must be a whole number of tokens, such as 200000 or 200k; empty means no limit.")
 PROBE_STOP_MS = 3000
 TESTING = tr("Testing the connection…")
@@ -353,7 +349,7 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         if not self._valid_url(self._edited_url()):
             return
         self.test_btn.setText(tr("Cancel test"))
-        self.status_card.show_state(STATE_IDLE, TESTING, "", [])
+        self.status_card.show_state(STATE_IDLE, TESTING, "")
         self._probe_started = time.monotonic()
         self._probe_was_cancelled = False
         thread = ProbeThread(self._overrides(), self)
@@ -364,24 +360,18 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
 
     def _on_probe_completed(self, ok: bool, message: str) -> None:
         if not ok:
-            self.status_card.show_state(STATE_BAD, FAILED, message, [])
+            self.status_card.show_state(STATE_BAD, FAILED, message)
             return
         overrides = self._overrides()
         reset_capabilities(
             overrides["url_override"], overrides.get("model_override") or "", overrides.get("dialect_override")
         )
-        elapsed = int((time.monotonic() - self._probe_started) * 1000)
-        url = overrides["url_override"]
-        badges = [(LATENCY.format(elapsed), "neutral")]
-        if is_local(url):
-            badges.append((LOCAL, "ok"))
-        elif overrides.get("key_override"):
-            badges.append((KEY_STORED, "ok"))
-        badges.append((FORMAT.format(resolve(url, overrides.get("dialect_override") or "")), "neutral"))
-        self.status_card.show_state(STATE_OK, CONNECTED.format(self.model_edit.text().strip()), message, badges)
+        seconds = time.monotonic() - self._probe_started
+        summary = CONNECTED.format(self.model_edit.text().strip(), SECONDS.format(f"{seconds:.1f}"))
+        self.status_card.show_state(STATE_OK, summary, message)
 
     def _show_untested(self) -> None:
-        self.status_card.show_state(STATE_IDLE, NOT_TESTED, NOT_TESTED_DETAIL, [])
+        self.status_card.show_state(STATE_IDLE, NOT_TESTED_DETAIL, "")
 
     def _on_probe_finished(self, thread: ProbeThread) -> None:
         thread.deleteLater()
@@ -397,7 +387,7 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         if close_dialog:
             super().reject()
         elif cancelled:
-            self.status_card.show_state(STATE_IDLE, CANCELLED, "", [])
+            self.status_card.show_state(STATE_IDLE, CANCELLED, "")
 
     def _cancel_probe(self) -> None:
         thread = self._probe_thread
@@ -406,7 +396,7 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         self._probe_was_cancelled = True
         thread.cancel()
         self.test_btn.setEnabled(False)
-        self.status_card.show_state(STATE_IDLE, CANCELLING, "", [])
+        self.status_card.show_state(STATE_IDLE, CANCELLING, "")
 
     def reject(self) -> None:
         if self._probe_thread is not None and self._probe_thread.isRunning():

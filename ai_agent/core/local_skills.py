@@ -4,6 +4,7 @@ from typing import Any
 from qgis.core import QgsApplication
 
 from ai_agent.qgis_tools.registry import ALL_TOOLS
+from ai_agent.skills.base import parse_skill_markdown
 from ai_agent.skills.registry import SKILL_FILENAME, SKILL_REGISTRY
 
 FOLDER_NAME = "ai_agent_skills"
@@ -66,13 +67,46 @@ def register_local_skills(path: str | None = None) -> list[str]:
 
 
 def describe_local_skills(path: str | None = None) -> dict[str, Any]:
+    """Local skills for the settings page: active skills, drafts still holding the example text, problems.
+
+    A draft is not an error: it is the example waiting for its description, so it is listed apart
+    with the file to open instead of among the problems.
+    """
     problems = register_local_skills(path)
+    root = SKILL_REGISTRY.local_root() or ""
+    drafts = _drafts(root)
+    inactive = {PROBLEM_EXAMPLE_INACTIVE.format(name=draft["name"]) for draft in drafts}
     skills = []
     for name in SKILL_REGISTRY.local_names():
         skill = SKILL_REGISTRY.get(name)
         if skill is not None:
             skills.append({"name": skill.name, "description": skill.description, "tools": list(skill.tool_names)})
-    return {"path": SKILL_REGISTRY.local_root() or "", "skills": skills, "problems": problems}
+    return {
+        "path": root,
+        "skills": skills,
+        "drafts": drafts,
+        "problems": [problem for problem in problems if problem not in inactive],
+    }
+
+
+def _drafts(root: str) -> list[dict[str, str]]:
+    if not root:
+        return []
+    try:
+        entries = sorted(os.listdir(root))
+    except OSError:
+        return []
+    found = []
+    for entry in entries:
+        target = os.path.join(root, entry, SKILL_FILENAME)
+        try:
+            with open(target, encoding="utf-8") as handle:
+                skill = parse_skill_markdown(handle.read(), fallback_name=entry)
+        except (OSError, UnicodeDecodeError):
+            continue
+        if skill.description.strip() == EXAMPLE_DESCRIPTION:
+            found.append({"name": skill.name or entry, "path": target})
+    return found
 
 
 def write_example_skill(path: str | None = None) -> str:

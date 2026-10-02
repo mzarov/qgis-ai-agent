@@ -17,7 +17,7 @@ from ai_agent.ui.composer_parts import (
     MENTION,
     SLASH,
     ComposerFrame,
-    HintBar,
+    ComposerToolbar,
     PromptEdit,
     PromptHighlighter,
     mention_query,
@@ -39,15 +39,6 @@ SEND_GLYPH = "↑"
 STOP_GLYPH = "■"
 MODE_SKILL = "skill"
 MODE_LAYER = "layer"
-KEY_SKILL = tr("skill")
-KEY_LAYER = tr("layer")
-KEY_SEND = tr("send")
-KEY_NEW_LINE = tr("new line")
-KEY_STOP = tr("stop")
-SHIFT_ENTER = "⇧ Enter"
-HINT_SKILLS = tr("Pick a skill")
-HINT_LAYERS = tr("Pick a layer")
-HINT_OFFLINE = tr("No model connected")
 
 
 class Composer(QWidget):
@@ -78,6 +69,9 @@ class Composer(QWidget):
         inner.addWidget(self._build_edit())
         inner.addLayout(self._build_footer(palette))
         column.addWidget(self._frame)
+        self.toolbar = ComposerToolbar(palette)
+        self.toolbar.set_model("")
+        column.addWidget(self.toolbar)
         self._paint()
 
     def _build_edit(self) -> QPlainTextEdit:
@@ -103,8 +97,7 @@ class Composer(QWidget):
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(8)
-        self._hint = HintBar(palette)
-        row.addWidget(self._hint, 1)
+        row.addStretch(1)
         self._send = QPushButton(SEND_GLYPH)
         self._send.setFixedSize(SEND_SIZE, SEND_SIZE)
         self._send.setToolTip(tr("Send"))
@@ -122,21 +115,11 @@ class Composer(QWidget):
         fill = style.surface(palette) if self._configured else style.card(palette)
         self._frame.set_look(fill.name(), border.name(), float(width))
         has_text = bool(self._edit.toPlainText().strip())
-        # Offline, the welcome card already offers Open settings; a second button here only repeats it.
         self._send.setVisible(self._configured)
         if not self._configured:
             self._edit.setPlaceholderText(PLACEHOLDER_OFFLINE)
-            self._hint.show_text(HINT_OFFLINE)
             return
         self._edit.setPlaceholderText(PLACEHOLDER_BUSY if self._busy else PLACEHOLDER)
-        if self._edit.popup_open:
-            self._hint.show_text(HINT_SKILLS if self._mode == MODE_SKILL else HINT_LAYERS)
-        elif self._busy:
-            self._hint.show_keys([("Esc", KEY_STOP)])
-        elif has_text:
-            self._hint.show_keys([("Enter", KEY_SEND), (SHIFT_ENTER, KEY_NEW_LINE)])
-        else:
-            self._hint.show_keys([(SLASH, KEY_SKILL), (MENTION, KEY_LAYER)])
         self._paint_send(has_text)
 
     def _paint_send(self, has_text: bool) -> None:
@@ -230,6 +213,9 @@ class Composer(QWidget):
         self._edit.setPlainText(f"{SLASH}{name} ")
         self._edit.moveCursor(QTextCursor.MoveOperation.End)
         self._hide_popup()
+
+    def set_model(self, name: str) -> None:
+        self.toolbar.set_model(name)
 
     def _insert_layer(self, name: str) -> None:
         text = self._edit.toPlainText()

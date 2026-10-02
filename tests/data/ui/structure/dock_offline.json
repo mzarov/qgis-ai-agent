@@ -88,12 +88,17 @@
   "text": "Connect a model to start"
  },
  {
-  "depth": 5,
-  "type": "HintBar"
+  "depth": 4,
+  "type": "ComposerToolbar"
  },
  {
-  "depth": 6,
+  "depth": 5,
+  "type": "QToolButton",
+  "text": "+"
+ },
+ {
+  "depth": 5,
   "type": "QLabel",
-  "text": "No model connected"
+  "text": "qwen3"
  }
 ]
