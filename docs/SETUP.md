@@ -72,6 +72,11 @@ pasting the URL, the key and the model name is enough.
 | Mistral | `https://api.mistral.ai/v1` | openai |
 | Together, Fireworks, Cerebras | the address from their docs | openai |
 
+The settings window offers tiles for OpenAI, OpenRouter, Anthropic, Google
+Gemini, Ollama and LM Studio; the rest of this table goes in as a custom
+address. Provider logos come from [Simple Icons](https://simpleicons.org)
+(CC0) and remain their owners' trademarks.
+
 OpenRouter exposes the models of nearly every vendor through one key and one
 address — including Claude and Gemini — and to the plugin it remains an ordinary
 OpenAI-compatible service. Setting the format by hand is only needed for a

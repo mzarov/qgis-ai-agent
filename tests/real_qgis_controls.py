@@ -11,7 +11,7 @@ import unittest
 
 from e2e_harness import PluginCase, pump
 from qgis.PyQt.QtCore import QEvent, Qt
-from qgis.PyQt.QtGui import QKeyEvent
+from qgis.PyQt.QtGui import QColor, QKeyEvent
 from qgis.PyQt.QtWidgets import QLineEdit, QWidget
 
 from ai_agent.ui import controls, settings_fields
@@ -112,6 +112,23 @@ class SettingsBehaviourTest(PluginCase):
         self.dialog.url_edit.setText("https://api.openai.com/v1")
         selected = [tile.title for tile in self.dialog.provider_tiles._tiles if "2px" in tile.styleSheet()]
         self.assertEqual(selected, ["OpenAI"])
+
+    def test_search_keeps_the_pages_that_mention_the_words(self) -> None:
+        self.dialog.search_edit.setText("SSL")
+        visible = [not button.isHidden() for button in self.dialog._nav_buttons]
+        self.assertEqual(visible, [False, True, False, False, False])
+        self.assertEqual(self.dialog.pages.currentIndex(), 1)
+        self.dialog.search_edit.clear()
+        self.assertTrue(all(not button.isHidden() for button in self.dialog._nav_buttons))
+
+    def test_only_the_main_providers_get_a_tile_and_they_carry_logos(self) -> None:
+        titles = [tile.title for tile in self.dialog.provider_tiles._tiles]
+        self.assertEqual(len(titles), 7)
+        self.assertNotIn("DeepSeek", titles)
+        from ai_agent.ui import logos
+
+        for title in titles[:-1]:
+            self.assertIsNotNone(logos.pixmap(title, QColor(0, 0, 0), 16), title)
 
     def test_the_probe_result_lands_in_the_status_card(self) -> None:
         self.dialog._probe_started = 0.0

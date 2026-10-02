@@ -69,7 +69,16 @@ def elevated(palette: QPalette) -> QColor:
 
 
 def sidebar(palette: QPalette) -> QColor:
-    return _token(palette, "surface_2")
+    return _token(palette, "bg")
+
+
+def nav_selected(palette: QPalette) -> QColor:
+    """The chosen sidebar entry: a step lighter on dark, a step darker on light."""
+    return _token(palette, "surface_2" if is_dark(palette) else "sunken")
+
+
+def nav_hover(palette: QPalette) -> QColor:
+    return _token(palette, "surface" if is_dark(palette) else "surface_2")
 
 
 def sunken(palette: QPalette) -> QColor:

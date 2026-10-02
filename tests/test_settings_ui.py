@@ -44,7 +44,7 @@ class PresetTest(unittest.TestCase):
         self.assertEqual(providers.matching("https://openrouter.ai/api/v1").title, "OpenRouter")
 
     def test_trailing_slash_still_matches(self):
-        self.assertEqual(providers.matching("https://api.deepseek.com/v1/").title, "DeepSeek")
+        self.assertEqual(providers.matching("https://openrouter.ai/api/v1/").title, "OpenRouter")
 
     def test_unknown_url_is_custom(self):
         self.assertTrue(providers.matching("https://шлюз.внутри/v1").is_custom)
@@ -57,7 +57,7 @@ class PresetTest(unittest.TestCase):
             self.assertFalse(providers.by_title(title).needs_key, title)
 
     def test_remote_presets_need_a_key(self):
-        for title in ("OpenAI", "Anthropic", "OpenRouter", "DeepSeek"):
+        for title in ("OpenAI", "Anthropic", "OpenRouter", "Google Gemini"):
             self.assertTrue(providers.by_title(title).needs_key, title)
 
     def test_declared_dialect_matches_what_detection_would_pick(self):
@@ -213,9 +213,15 @@ class SidebarSettingsTest(unittest.TestCase):
         grammar = SOURCE.split("def _row(")[1].split("\ndef ")[0]
         self.assertIn("caption.setToolTip(rich_tooltip(tooltip))", grammar)
 
-    def test_every_page_opens_with_its_title_and_one_sentence(self):
+    def test_pages_are_sections_of_flat_rows_like_claude_code(self):
         for source in (DIALOG_SOURCE, ADVANCED_SOURCE, GEOCODER_SOURCE):
-            self.assertIn("fields.page_header(", source)
+            self.assertIn("fields.section(", source)
+        rows = SOURCE.split("def card_rows(")[1].split("\ndef ")[0]
+        self.assertNotIn("QFrame", rows)
+
+    def test_the_sidebar_searches_and_groups_its_entries(self):
+        self.assertIn("def filter_pages(", LAYOUT_SOURCE)
+        self.assertIn("GROUPS = ", LAYOUT_SOURCE)
 
     def test_save_waits_for_an_edit(self):
         self.assertIn("self.save_btn.setEnabled(False)", DIALOG_SOURCE)
@@ -242,7 +248,6 @@ class SidebarSettingsTest(unittest.TestCase):
 
     def test_the_sidebar_carries_no_heading_of_its_own(self):
         self.assertNotIn("nav_heading", LAYOUT_SOURCE)
-        self.assertNotIn('tr("Settings")', LAYOUT_SOURCE)
 
     def test_pages_show_through_the_pane_not_their_own_grey(self):
         body = LAYOUT_SOURCE.split("def scrollable(")[1].split("\ndef ")[0]

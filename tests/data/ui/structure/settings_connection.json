@@ -10,16 +10,17 @@
  },
  {
   "depth": 2,
-  "type": "QWidget"
+  "type": "QLineEdit",
+  "text": "Search"
  },
  {
   "depth": 3,
-  "type": "QLabel"
+  "type": "QToolButton"
  },
  {
-  "depth": 3,
+  "depth": 2,
   "type": "QLabel",
-  "text": "AI Agent"
+  "text": "Settings"
  },
  {
   "depth": 2,
@@ -36,6 +37,17 @@
  {
   "depth": 2,
   "type": "QPushButton",
+  "text": "Advanced",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Customize"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
   "text": "Skills",
   "checked": false
  },
@@ -44,17 +56,6 @@
   "type": "QPushButton",
   "text": "Geocoding",
   "checked": false
- },
- {
-  "depth": 2,
-  "type": "QPushButton",
-  "text": "Advanced",
-  "checked": false
- },
- {
-  "depth": 2,
-  "type": "QLabel",
-  "text": "AI Agent 0.1.1"
  },
  {
   "depth": 1,
@@ -81,41 +82,12 @@
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "Connection"
+  "text": "Provider"
  },
  {
   "depth": 5,
   "type": "QLabel",
   "text": "Any OpenAI-compatible server works. A local server keeps the project on this computer."
- },
- {
-  "depth": 5,
-  "type": "StatusCard",
-  "name": "connectionStatus"
- },
- {
-  "depth": 6,
-  "type": "QLabel"
- },
- {
-  "depth": 6,
-  "type": "QLabel",
-  "text": "Not tested yet"
- },
- {
-  "depth": 6,
-  "type": "QLabel",
-  "text": "Test the connection to see that the model answers."
- },
- {
-  "depth": 6,
-  "type": "QPushButton",
-  "text": "Test connection"
- },
- {
-  "depth": 5,
-  "type": "QLabel",
-  "text": "PROVIDER"
  },
  {
   "depth": 5,
@@ -128,8 +100,7 @@
  },
  {
   "depth": 7,
-  "type": "QLabel",
-  "text": "O"
+  "type": "QLabel"
  },
  {
   "depth": 7,
@@ -148,8 +119,7 @@
  },
  {
   "depth": 7,
-  "type": "QLabel",
-  "text": "LS"
+  "type": "QLabel"
  },
  {
   "depth": 7,
@@ -168,8 +138,7 @@
  },
  {
   "depth": 7,
-  "type": "QLabel",
-  "text": "O"
+  "type": "QLabel"
  },
  {
   "depth": 7,
@@ -188,8 +157,7 @@
  },
  {
   "depth": 7,
-  "type": "QLabel",
-  "text": "O"
+  "type": "QLabel"
  },
  {
   "depth": 7,
@@ -208,8 +176,7 @@
  },
  {
   "depth": 7,
-  "type": "QLabel",
-  "text": "A"
+  "type": "QLabel"
  },
  {
   "depth": 7,
@@ -228,48 +195,7 @@
  },
  {
   "depth": 7,
-  "type": "QLabel",
-  "text": "D"
- },
- {
-  "depth": 7,
-  "type": "ElidedLabel",
-  "text": "DeepSeek"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "cloud"
- },
- {
-  "depth": 6,
-  "type": "ProviderTile",
-  "name": "providerTile"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "G"
- },
- {
-  "depth": 7,
-  "type": "ElidedLabel",
-  "text": "Groq"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "cloud"
- },
- {
-  "depth": 6,
-  "type": "ProviderTile",
-  "name": "providerTile"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "GG"
+  "type": "QLabel"
  },
  {
   "depth": 7,
@@ -288,28 +214,7 @@
  },
  {
   "depth": 7,
-  "type": "QLabel",
-  "text": "M"
- },
- {
-  "depth": 7,
-  "type": "ElidedLabel",
-  "text": "Mistral"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "cloud"
- },
- {
-  "depth": 6,
-  "type": "ProviderTile",
-  "name": "providerTile"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "CA"
+  "type": "QLabel"
  },
  {
   "depth": 7,
@@ -324,12 +229,11 @@
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "ENDPOINT"
+  "text": "Endpoint"
  },
  {
   "depth": 5,
-  "type": "QFrame",
-  "name": "settingsCard"
+  "type": "QWidget"
  },
  {
   "depth": 6,
@@ -418,6 +322,35 @@
   "depth": 8,
   "type": "QPushButton",
   "text": "Remove stored key"
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "StatusCard",
+  "name": "connectionStatus"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Not tested yet"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Test the connection to see that the model answers."
+ },
+ {
+  "depth": 7,
+  "type": "QPushButton",
+  "text": "Test connection"
  },
  {
   "depth": 2,

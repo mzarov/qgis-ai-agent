@@ -40,6 +40,7 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `progress.py`     | the line above the composer while a run works: pulsing dot, current step, step count |
 | `controls.py`     | custom controls: `Segmented` and `RadioCards` keep the combo-box API, `Chips`, badges, keycaps, `ElidedLabel` |
 | `connection_widgets.py` | provider tiles and the connection status card |
+| `logos.py`        | provider logos from `ui/logos/*.svg`, tinted to the theme's text colour |
 | `skill_popup.py`  | the list above the composer: prefix-then-substring ranking, keyboard steering, `local` badge |
 | `skills_settings.py` | the Skills settings page: folder, example, discovered local skills and their problems |
 | `theme.py`        | the mockup's light and dark colour tokens; the only module that spells a colour |
@@ -209,9 +210,17 @@ palette-driven `QPainter`, no image assets.
 behind "?" marks to avoid a wall of text; the user approved the redesign
 (`design/mockups/index.html`) that shows them again, so every hint must stay a
 single short sentence. A longer explanation goes to the row's tooltip
-(`tooltip=` in `fields.row`), never under the title. Each page opens with
-`page_header` (its title and one sentence) and groups rows into cards under
-small upper-case `section` captions.
+(`tooltip=` in `fields.row`), never under the title.
+
+**The window follows the Claude Code desktop settings** (the user's
+reference). The sidebar has a search field (`filter_pages` keeps the entries
+whose page mentions every typed word) and small group captions (`GROUPS`);
+pages carry no title of their own and open with bold `section` headings, each
+with an optional muted sentence; rows sit flat on the page with hairlines
+between them (`card_rows` builds no frame). Only the main providers get a
+tile — Ollama, LM Studio, OpenAI, OpenRouter, Anthropic, Google Gemini — with
+monochrome Simple Icons logos (CC0) in `ui/logos/`, tinted by `logos.py`;
+every other service is a custom address.
 
 **The custom controls keep the combo-box API.** `Segmented` (API format,
 authorisation) and `RadioCards` (geocoder) answer `currentText`, `findText`,

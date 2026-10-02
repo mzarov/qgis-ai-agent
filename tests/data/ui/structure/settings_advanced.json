@@ -10,16 +10,17 @@
  },
  {
   "depth": 2,
-  "type": "QWidget"
+  "type": "QLineEdit",
+  "text": "Search"
  },
  {
   "depth": 3,
-  "type": "QLabel"
+  "type": "QToolButton"
  },
  {
-  "depth": 3,
+  "depth": 2,
   "type": "QLabel",
-  "text": "AI Agent"
+  "text": "Settings"
  },
  {
   "depth": 2,
@@ -36,6 +37,17 @@
  {
   "depth": 2,
   "type": "QPushButton",
+  "text": "Advanced",
+  "checked": true
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Customize"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
   "text": "Skills",
   "checked": false
  },
@@ -44,17 +56,6 @@
   "type": "QPushButton",
   "text": "Geocoding",
   "checked": false
- },
- {
-  "depth": 2,
-  "type": "QPushButton",
-  "text": "Advanced",
-  "checked": true
- },
- {
-  "depth": 2,
-  "type": "QLabel",
-  "text": "AI Agent 0.1.1"
  },
  {
   "depth": 1,
@@ -81,22 +82,11 @@
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "Advanced"
+  "text": "How the agent works"
  },
  {
   "depth": 5,
-  "type": "QLabel",
-  "text": "Limits and protocol details. The defaults suit almost everyone."
- },
- {
-  "depth": 5,
-  "type": "QLabel",
-  "text": "HOW THE AGENT WORKS"
- },
- {
-  "depth": 5,
-  "type": "QFrame",
-  "name": "settingsCard"
+  "type": "QWidget"
  },
  {
   "depth": 6,
@@ -212,12 +202,11 @@
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "TALKING TO THE PROVIDER"
+  "text": "Talking to the provider"
  },
  {
   "depth": 5,
-  "type": "QFrame",
-  "name": "settingsCard"
+  "type": "QWidget"
  },
  {
   "depth": 6,

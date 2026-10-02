@@ -1,7 +1,7 @@
 from typing import Any
 
 from qgis.PyQt.QtCore import QRectF, QSize, Qt
-from qgis.PyQt.QtGui import QFont, QPainter
+from qgis.PyQt.QtGui import QPainter
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -18,7 +18,6 @@ from ai_agent.ui import style
 
 HINT_SCALE = 0.88
 SECTION_SCALE = 0.8
-TITLE_SCALE = 1.45
 GROUP_SCALE = 1.25
 CARD_NAME = "settingsCard"
 SEPARATOR_NAME = "settingsSeparator"
@@ -29,16 +28,19 @@ FIELD_SPACING = 2
 PAGE_MARGINS = (32, 24, 32, 24)
 PAGE_SPACING = 0
 LEAD_GAP = 4
-SECTION_GAP = 22
-SECTION_TO_CARD = 8
+SECTION_GAP = 30
+SECTION_TO_CARD = 4
 GROUP_GAP = 22
 NAV_WIDTH = 210
 NAV_MARGINS = (12, 14, 12, 14)
 NAV_SPACING = 2
 NAV_RADIUS = 7
-NAV_PADDING = "7px 10px"
+NAV_PADDING = "8px 10px"
 NAV_ICON = 16
 ROW_PADDING = (16, 12, 16, 12)
+FLAT_ROW_PADDING = (0, 13, 0, 13)
+SECTION_TITLE_SCALE = 1.12
+FIRST_SECTION_GAP = 2
 ROW_MIN_HEIGHT = 56
 ROW_GAP = 16
 CONTROL_WIDTH = 300
@@ -97,11 +99,14 @@ def card(palette: Any) -> tuple[QFrame, QVBoxLayout]:
     return frame, column
 
 
-def card_rows(palette: Any, rows: list[QWidget]) -> QFrame:
-    """One card holding `rows`, a hairline between neighbours and none after the last."""
-    frame, column = card(palette)
+def card_rows(palette: Any, rows: list[QWidget]) -> QWidget:
+    """Rows on the page itself, a hairline between neighbours: the flat Claude Code settings look."""
+    holder = QWidget()
+    column = QVBoxLayout(holder)
+    column.setContentsMargins(0, 0, 0, 0)
+    column.setSpacing(0)
     add_rows(column, palette, rows)
-    return frame
+    return holder
 
 
 def sidebar() -> tuple[QWidget, QVBoxLayout]:
@@ -122,15 +127,15 @@ def sidebar_button(title: str, palette: Any, icon: Any = None) -> QPushButton:
         button.setIconSize(QSize(NAV_ICON, NAV_ICON))
     button.setStyleSheet(
         "QPushButton {"
-        f"background: transparent; color: {style.css_color(style.muted(palette))};"
+        f"background: transparent; color: {style.css_color(style.text(palette))};"
         f"border: {style.HAIRLINE}px solid transparent; border-radius: {NAV_RADIUS}px;"
         f"padding: {NAV_PADDING}; text-align: left; }}"
         "QPushButton:hover:!checked {"
-        f"background: {style.css_color(style.sunken(palette))};"
+        f"background: {style.css_color(style.nav_hover(palette))};"
         f"color: {style.css_color(style.text(palette))}; }}"
         "QPushButton:checked {"
-        f"background: {style.css_color(style.panel(palette))};"
-        f"color: {style.css_color(style.text(palette))}; font-weight: 600; }}"
+        f"background: {style.css_color(style.nav_selected(palette))};"
+        f"color: {style.css_color(style.text(palette))}; }}"
     )
     return button
 
@@ -165,31 +170,20 @@ def group(title: str, palette: Any) -> QLabel:
     return label
 
 
-def page_header(column: QVBoxLayout, title: str, lead: str, palette: Any) -> None:
-    """The page's own title and one muted sentence under it."""
-    heading = QLabel(title)
-    font = heading.font()
-    font.setBold(True)
-    font.setPointSizeF(max(1.0, font.pointSizeF() * TITLE_SCALE))
-    heading.setFont(font)
-    heading.setStyleSheet(f"color: {style.css_color(style.text(palette))};")
-    column.addWidget(heading)
-    if lead:
-        column.addSpacing(LEAD_GAP)
-        column.addWidget(hint(lead, palette))
-
-
-def section(column: QVBoxLayout, title: str, palette: Any) -> None:
-    """A small upper-case caption that opens a group of cards."""
-    column.addSpacing(SECTION_GAP)
-    label = QLabel(title.upper())
+def section(column: QVBoxLayout, title: str, palette: Any, note: str = "") -> None:
+    """A bold heading that opens a group of rows, with an optional muted sentence under it."""
+    column.addSpacing(SECTION_GAP if column.count() else FIRST_SECTION_GAP)
+    label = QLabel(title)
+    label.setWordWrap(True)
     font = label.font()
     font.setBold(True)
-    font.setPointSizeF(max(1.0, font.pointSizeF() * SECTION_SCALE))
-    font.setLetterSpacing(QFont.SpacingType.PercentageSpacing, 106)
+    font.setPointSizeF(max(1.0, font.pointSizeF() * SECTION_TITLE_SCALE))
     label.setFont(font)
-    label.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
+    label.setStyleSheet(f"color: {style.css_color(style.text(palette))};")
     column.addWidget(label)
+    if note:
+        column.addSpacing(LEAD_GAP)
+        column.addWidget(hint(note, palette))
     column.addSpacing(SECTION_TO_CARD)
 
 
@@ -212,18 +206,21 @@ def _row(title: str, widget: QWidget, note: str, palette: Any, tooltip: str) -> 
     holder = QWidget()
     holder.setMinimumHeight(ROW_MIN_HEIGHT)
     line = QHBoxLayout(holder)
-    line.setContentsMargins(*ROW_PADDING)
+    line.setContentsMargins(*FLAT_ROW_PADDING)
     line.setSpacing(ROW_GAP)
     caption = QWidget()
     text = QVBoxLayout(caption)
     text.setContentsMargins(0, 0, 0, 0)
     text.setSpacing(FIELD_SPACING)
+    # Keep title and hint together, centred against a tall control, instead of spread apart.
+    text.addStretch(1)
     name = QLabel(title)
     name.setStyleSheet(f"color: {style.css_color(style.text(palette))};")
     text.addWidget(name)
     holder.hint = hint(note, palette)
     holder.hint.setVisible(bool(note))
     text.addWidget(holder.hint)
+    text.addStretch(1)
     line.addWidget(caption, 1)
     line.addWidget(widget, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
     if tooltip:

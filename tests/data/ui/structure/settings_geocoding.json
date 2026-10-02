@@ -10,16 +10,17 @@
  },
  {
   "depth": 2,
-  "type": "QWidget"
+  "type": "QLineEdit",
+  "text": "Search"
  },
  {
   "depth": 3,
-  "type": "QLabel"
+  "type": "QToolButton"
  },
  {
-  "depth": 3,
+  "depth": 2,
   "type": "QLabel",
-  "text": "AI Agent"
+  "text": "Settings"
  },
  {
   "depth": 2,
@@ -36,6 +37,17 @@
  {
   "depth": 2,
   "type": "QPushButton",
+  "text": "Advanced",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Customize"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
   "text": "Skills",
   "checked": false
  },
@@ -44,17 +56,6 @@
   "type": "QPushButton",
   "text": "Geocoding",
   "checked": true
- },
- {
-  "depth": 2,
-  "type": "QPushButton",
-  "text": "Advanced",
-  "checked": false
- },
- {
-  "depth": 2,
-  "type": "QLabel",
-  "text": "AI Agent 0.1.1"
  },
  {
   "depth": 1,
@@ -81,17 +82,12 @@
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "Geocoding"
+  "text": "Service"
  },
  {
   "depth": 5,
   "type": "QLabel",
   "text": "With a geocoder the agent can turn \"cafes in Divnomorskoye\" into a bounding box and hand it to the OpenStreetMap downloa"
- },
- {
-  "depth": 5,
-  "type": "QLabel",
-  "text": "SERVICE"
  },
  {
   "depth": 5,

@@ -20,6 +20,7 @@ class Preset:
         return not self.url
 
 
+# The main providers only; any other OpenAI-compatible service is a custom address.
 PRESETS: list[Preset] = [
     Preset(CUSTOM, "", AUTO, tr("the model name at your provider")),
     Preset("OpenAI", "https://api.openai.com/v1", OPENAI, "gpt-4o-mini", "gpt-4o-mini"),
@@ -31,14 +32,6 @@ PRESETS: list[Preset] = [
         "claude-sonnet-5",
         "claude-sonnet-5",
     ),
-    Preset("DeepSeek", "https://api.deepseek.com/v1", OPENAI, "deepseek-v4-pro", "deepseek-v4-pro"),
-    Preset(
-        "Groq",
-        "https://api.groq.com/openai/v1",
-        OPENAI,
-        tr("a model name from the Groq console"),
-        "openai/gpt-oss-120b",
-    ),
     Preset(
         "Google Gemini",
         "https://generativelanguage.googleapis.com/v1beta/openai",
@@ -46,7 +39,6 @@ PRESETS: list[Preset] = [
         "gemini-2.5-flash",
         "gemini-2.5-flash",
     ),
-    Preset("Mistral", "https://api.mistral.ai/v1", OPENAI, "mistral-large-latest", "mistral-large-latest"),
     Preset(
         "Ollama",
         "http://localhost:11434/v1",

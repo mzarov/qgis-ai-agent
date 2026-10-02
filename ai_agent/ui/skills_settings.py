@@ -31,8 +31,7 @@ class SkillsSettings:
     def __init__(self, palette: Any):
         self._palette = palette
         holder, self._column = fields.page()
-        fields.page_header(self._column, tr("Skills"), INTRO, palette)
-        fields.section(self._column, TITLE, palette)
+        fields.section(self._column, TITLE, palette, INTRO)
         self._column.addWidget(self._folder_strip(palette))
         self._column.addSpacing(GRID_GAP)
         self._list: QWidget = QWidget()

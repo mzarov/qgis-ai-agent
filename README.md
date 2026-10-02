@@ -56,8 +56,9 @@ install it and it runs. The development install is in
 ## Configuration
 
 The gear icon on the plugin panel. Picking a provider fills in the address and
-the API format — OpenAI, OpenRouter, Anthropic, Google Gemini, DeepSeek, Groq,
-Mistral and the local Ollama / LM Studio are supported (no key needed for
+the API format for OpenAI, OpenRouter, Anthropic, Google Gemini and the local
+Ollama / LM Studio; any other OpenAI-compatible service (DeepSeek, Groq,
+Mistral…) is entered as a custom address (no key needed for
 localhost). The key is stored encrypted in the QGIS authentication database, not in the config.
 
 The model must support function calling; for endpoints without it there is a

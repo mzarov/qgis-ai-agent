@@ -10,16 +10,17 @@
  },
  {
   "depth": 2,
-  "type": "QWidget"
+  "type": "QLineEdit",
+  "text": "Search"
  },
  {
   "depth": 3,
-  "type": "QLabel"
+  "type": "QToolButton"
  },
  {
-  "depth": 3,
+  "depth": 2,
   "type": "QLabel",
-  "text": "AI Agent"
+  "text": "Settings"
  },
  {
   "depth": 2,
@@ -36,6 +37,17 @@
  {
   "depth": 2,
   "type": "QPushButton",
+  "text": "Advanced",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Customize"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
   "text": "Skills",
   "checked": false
  },
@@ -44,17 +56,6 @@
   "type": "QPushButton",
   "text": "Geocoding",
   "checked": false
- },
- {
-  "depth": 2,
-  "type": "QPushButton",
-  "text": "Advanced",
-  "checked": false
- },
- {
-  "depth": 2,
-  "type": "QLabel",
-  "text": "AI Agent 0.1.1"
  },
  {
   "depth": 1,
@@ -81,37 +82,21 @@
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "Privacy"
+  "text": "Everything the agent reads goes to the model"
  },
  {
   "depth": 5,
-  "type": "QLabel",
-  "text": "What leaves this computer and what the plugin keeps."
- },
- {
-  "depth": 5,
-  "type": "QFrame",
-  "name": "callout"
- },
- {
-  "depth": 6,
-  "type": "QLabel",
-  "text": "Everything the agent reads goes to the model."
- },
- {
-  "depth": 6,
   "type": "QLabel",
   "text": "Layer and field names, feature values, extents, rendered maps. For data that must stay here, use a local server such as "
  },
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "CONNECTION SECURITY"
+  "text": "Connection security"
  },
  {
   "depth": 5,
-  "type": "QFrame",
-  "name": "settingsCard"
+  "type": "QWidget"
  },
  {
   "depth": 6,
@@ -139,12 +124,11 @@
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "RECORDS"
+  "text": "Records"
  },
  {
   "depth": 5,
-  "type": "QFrame",
-  "name": "settingsCard"
+  "type": "QWidget"
  },
  {
   "depth": 6,

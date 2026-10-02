@@ -118,15 +118,12 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
 
     def _build_connection(self, palette: Any) -> QWidget:
         holder, column = fields.page()
-        fields.page_header(column, tr("Connection"), CONNECTION_LEAD, palette)
-        column.addSpacing(fields.SECTION_GAP)
         self.test_btn = QPushButton(tr("Test connection"))
         self.test_btn.setStyleSheet(fields.plain_button(palette))
         self.test_btn.clicked.connect(self._test_connection)
         self.status_card = StatusCard(palette, self.test_btn)
-        column.addWidget(self.status_card)
 
-        fields.section(column, tr("Provider"), palette)
+        fields.section(column, tr("Provider"), palette, CONNECTION_LEAD)
         # The combo box stays the single source of truth for the preset; the tiles only draw it.
         self.preset_combo = QComboBox(holder)
         self.preset_combo.addItems(TITLES)
@@ -165,6 +162,7 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
                     fields.row(tr("Base URL"), self.url_edit, tr("Without /chat/completions at the end."), palette),
                     self._model_field,
                     self._key_field,
+                    self.status_card,
                 ],
             )
         )

@@ -7,7 +7,7 @@ from qgis.PyQt.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QVBoxL
 
 from ai_agent.core.llm.providers import Preset
 from ai_agent.i18n import tr
-from ai_agent.ui import controls, style
+from ai_agent.ui import controls, icons, logos, style
 from ai_agent.ui import settings_fields as fields
 
 TILE_NAME = "providerTile"
@@ -17,7 +17,8 @@ MIN_COLUMNS = 2
 MAX_COLUMNS = 4
 TILE_GAP = 8
 TILE_HEIGHT = 58
-MONOGRAM = 26
+MONOGRAM = 30
+LOGO = 17
 MONOGRAM_RADIUS = 7
 LIGHT = 10
 LOCAL_BADGE = tr("local · no key")
@@ -26,6 +27,15 @@ ANY_SERVER = tr("any OpenAI-compatible")
 STATE_IDLE = "idle"
 STATE_OK = "ok"
 STATE_BAD = "bad"
+
+
+def _logo(preset: Preset, palette: Any) -> Any:
+    if preset.is_custom:
+        try:
+            return icons.connection(style.text(palette), LOGO).pixmap(LOGO, LOGO)
+        except Exception:
+            return None
+    return logos.pixmap(preset.title, style.text(palette), LOGO)
 
 
 def _initials(title: str) -> str:
@@ -46,18 +56,22 @@ class ProviderTile(QFrame):
         line = QHBoxLayout(self)
         line.setContentsMargins(10, 9, 10, 9)
         line.setSpacing(8)
-        monogram = QLabel(_initials(preset.title))
+        monogram = QLabel()
         monogram.setFixedSize(MONOGRAM, MONOGRAM)
         monogram.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        font = monogram.font()
-        font.setBold(True)
-        font.setPointSizeF(max(1.0, font.pointSizeF() * 0.8))
-        monogram.setFont(font)
-        accent = style.accent(palette)
         monogram.setStyleSheet(
-            f"QLabel {{ background: {style.css_color(style.soft(palette, accent))};"
-            f"color: {style.css_color(style.accent_ink(palette))}; border-radius: {MONOGRAM_RADIUS}px; }}"
+            f"QLabel {{ background: {style.css_color(style.card(palette))};"
+            f"color: {style.css_color(style.text(palette))}; border-radius: {MONOGRAM_RADIUS}px; }}"
         )
+        art = _logo(preset, palette)
+        if art is not None:
+            monogram.setPixmap(art)
+        else:
+            font = monogram.font()
+            font.setBold(True)
+            font.setPointSizeF(max(1.0, font.pointSizeF() * 0.8))
+            monogram.setFont(font)
+            monogram.setText(_initials(preset.title))
         line.addWidget(monogram)
         text = QVBoxLayout()
         text.setSpacing(1)
@@ -142,13 +156,8 @@ class StatusCard(QFrame):
         super().__init__()
         self._palette = palette
         self.setObjectName(STATUS_NAME)
-        self.setStyleSheet(
-            f"QFrame#{STATUS_NAME} {{ background: {style.css_color(style.panel(palette))};"
-            f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
-            f"border-radius: {style.CARD_RADIUS}px; }}"
-        )
         line = QHBoxLayout(self)
-        line.setContentsMargins(*fields.ROW_PADDING)
+        line.setContentsMargins(*fields.FLAT_ROW_PADDING)
         line.setSpacing(12)
         self._light = QLabel()
         self._light.setFixedSize(LIGHT, LIGHT)

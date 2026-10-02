@@ -27,7 +27,6 @@ from ai_agent.ui import style
 
 SEGMENT_NAME = "segmented"
 CARD_NAME = "radioCard"
-CALLOUT_NAME = "callout"
 SEGMENT_RADIUS = 8
 SEGMENT_INNER_RADIUS = 6
 CHIP_HEIGHT = 26
@@ -289,27 +288,6 @@ class RadioCards(QWidget):
         self._index = index
         for at, card in enumerate(self._cards):
             card.set_checked(at == index)
-
-
-def callout(lead: str, body: str, palette: Any) -> QFrame:
-    """A tinted note that opens a page: one bold sentence, then the detail."""
-    frame = QFrame()
-    frame.setObjectName(CALLOUT_NAME)
-    frame.setStyleSheet(
-        f"QFrame#{CALLOUT_NAME} {{ background: {style.css_color(style.soft(palette, style.accent(palette)))};"
-        f"border-radius: {style.CARD_RADIUS}px; }}"
-    )
-    column = QVBoxLayout(frame)
-    column.setContentsMargins(14, 11, 14, 12)
-    column.setSpacing(3)
-    title = QLabel(lead)
-    title.setWordWrap(True)
-    font = title.font()
-    font.setBold(True)
-    title.setFont(font)
-    column.addWidget(title)
-    column.addWidget(small(body, palette))
-    return frame
 
 
 def small(text: str, palette: Any) -> QLabel:

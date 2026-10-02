@@ -16,7 +16,7 @@ TREE_SUFFIXES = {
     "qgis_tools": {".py"},
     "skills": {".md", ".py"},
     "translations": {".qm"},
-    "ui": {".py"},
+    "ui": {".py", ".svg"},
 }
 BLOCKED_PARTS = {"__pycache__", ".git", ".mypy_cache", ".ruff_cache"}
 REQUIRED_INSIDE = (

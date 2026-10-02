@@ -34,13 +34,11 @@ SSL_HINT = tr("Turn this off only for a server with a self-signed certificate th
 JOURNAL_LABEL = tr("Write a run journal after applying")
 JOURNAL_NOTE = tr("A Markdown file in the QGIS profile folder: the request, every step and its result.")
 THINKING_NOTE = tr("Anthropic only. 0 turns extended thinking off.")
-PRIVACY_LEAD = tr("What leaves this computer and what the plugin keeps.")
 PRIVACY_CALLOUT = tr("Everything the agent reads goes to the model.")
 PRIVACY_DETAIL = tr(
     "Layer and field names, feature values, extents, rendered maps. For data that must stay here, "
     "use a local server such as Ollama or LM Studio."
 )
-ADVANCED_LEAD = tr("Limits and protocol details. The defaults suit almost everyone.")
 NO_LIMIT = tr("No limit")
 BUDGET_PRESETS = [("100k", "100000"), ("300k", "300000"), ("1M", "1000000")]
 BUDGET_FIELD_WIDTH = 96
@@ -53,9 +51,7 @@ JOURNAL_HINT = tr(
 
 def build_privacy(owner: Any, palette: Any) -> QWidget:
     holder, column = fields.page()
-    fields.page_header(column, tr("Privacy"), PRIVACY_LEAD, palette)
-    column.addSpacing(fields.SECTION_GAP)
-    column.addWidget(controls.callout(PRIVACY_CALLOUT, PRIVACY_DETAIL, palette))
+    fields.section(column, PRIVACY_CALLOUT.rstrip("."), palette, PRIVACY_DETAIL)
     owner.verify_ssl_cb = fields.switch(palette)
     owner.verify_ssl_cb.setChecked(get_verify_ssl())
     owner.journal_cb = fields.switch(palette)
@@ -75,7 +71,6 @@ def build_privacy(owner: Any, palette: Any) -> QWidget:
 
 def build_advanced(owner: Any, palette: Any) -> QWidget:
     holder, column = fields.page()
-    fields.page_header(column, tr("Advanced"), ADVANCED_LEAD, palette)
     owner.verify_apply_cb = fields.switch(palette)
     owner.verify_apply_cb.setToolTip(VERIFY_HINT)
     owner.verify_apply_cb.setChecked(get_verify_after_apply())
