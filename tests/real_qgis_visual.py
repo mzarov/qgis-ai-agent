@@ -36,6 +36,8 @@ SETTINGS_WIDTH = 900
 SETTINGS_HEIGHT = 640
 SETTINGS_PAGES = ("connection", "privacy", "skills", "geocoding", "advanced")
 PROFILE_MARKER = "ai-agent-integration-"
+# A real profile path is long; a short stand-in once hid a skills page that overflowed on a real Mac.
+LONG_PROFILE = "/Users/someone-with-a-long-name/Library/Application Support/QGIS/QGIS4/profiles/default"
 LOCALE = os.environ.get("UI_LOCALE", "").strip()
 LOCALE_SUFFIX = f"_{LOCALE}" if LOCALE else ""
 REQUEST = "Colour districts by pop2020 in 5 classes"
@@ -80,7 +82,7 @@ class ScreenCase(PluginCase):
     def check(self, name: str, widget: QWidget) -> None:
         name += LOCALE_SUFFIX
         pump(0.3)
-        ui_snapshot.normalize_texts(widget, {_profile_root(): "<profile>"})
+        ui_snapshot.normalize_texts(widget, {_profile_root(): LONG_PROFILE})
         pump(0.1)
         image = widget.grab().toImage()
         ARTIFACTS.mkdir(parents=True, exist_ok=True)

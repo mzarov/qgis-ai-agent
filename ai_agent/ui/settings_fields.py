@@ -332,8 +332,8 @@ def accent_button(palette: Any) -> str:
         f"border: {style.HAIRLINE}px solid {fill}; border-radius: {BUTTON_RADIUS}px;"
         "padding: 6px 18px; font-weight: 600; }"
         f"QPushButton:hover {{ background: {style.css_color(style.accent(palette).lighter(112))}; }}"
-        f"QPushButton:disabled {{ background: {style.css_color(style.soft(palette, style.accent(palette)))};"
-        f"border-color: transparent; color: {style.css_color(style.surface(palette))}; }}"
+        f"QPushButton:disabled {{ background: {style.css_color(style.card(palette))};"
+        f"border-color: {style.css_color(style.hairline(palette))}; color: {style.css_color(style.muted(palette))}; }}"
     )
 
 

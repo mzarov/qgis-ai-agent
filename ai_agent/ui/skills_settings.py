@@ -1,6 +1,6 @@
 from typing import Any
 
-from qgis.PyQt.QtCore import QUrl
+from qgis.PyQt.QtCore import Qt, QUrl
 from qgis.PyQt.QtGui import QDesktopServices
 from qgis.PyQt.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
@@ -79,8 +79,9 @@ class SkillsSettings:
         line = QHBoxLayout(strip)
         line.setContentsMargins(12, 8, 8, 8)
         line.setSpacing(BUTTON_GAP)
-        self._path = controls.small("", palette)
-        self._path.setWordWrap(False)
+        # A profile path is long; it elides in the middle so both ends stay readable and the page keeps its width.
+        self._path = controls.ElidedLabel("", mode=Qt.TextElideMode.ElideMiddle)
+        self._path.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
         line.addWidget(self._path, 1)
         open_button = QPushButton(OPEN_FOLDER)
         open_button.setStyleSheet(fields.plain_button(palette))

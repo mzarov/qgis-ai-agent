@@ -89,8 +89,8 @@
  },
  {
   "depth": 5,
-  "type": "QLabel",
-  "text": "<profile>/config/profiles/default/ai_agent_skills"
+  "type": "ElidedLabel",
+  "text": "/Users/someone-with-a-long-name/Library/Application Support/QGIS/QGIS4/profiles/default/config/profiles/default/ai_agent"
  },
  {
   "depth": 5,

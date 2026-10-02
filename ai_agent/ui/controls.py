@@ -162,7 +162,8 @@ class Chips(QWidget):
             f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(self._palette))};"
             f"border-radius: {CHIP_RADIUS}px; padding: 0px 11px; }}"
             f"QPushButton:checked {{ background: {style.css_color(style.soft(self._palette, accent))};"
-            f"border-color: {style.css_color(accent)}; color: {style.css_color(accent)}; font-weight: 600; }}"
+            f"border-color: {style.css_color(accent)}; color: {style.css_color(style.accent_ink(self._palette))};"
+            "font-weight: 600; }"
         )
 
 
@@ -340,6 +341,8 @@ def paint_badge(label: QLabel, kind: str, palette: Any) -> None:
     colour = colours.get(kind)
     fill = style.soft(palette, colour) if colour is not None else style.card(palette)
     ink = colour if colour is not None else style.muted(palette)
+    if kind == "accent":
+        ink = style.accent_ink(palette)
     label.setStyleSheet(
         f"QLabel {{ background: {style.css_color(fill)}; color: {style.css_color(ink)};"
         f"border-radius: {BADGE_RADIUS}px; padding: 1px 7px; }}"
@@ -390,8 +393,9 @@ def keycap(text: str, palette: Any) -> QLabel:
 class ElidedLabel(QLabel):
     """One line that ends in an ellipsis instead of pushing its parent wider."""
 
-    def __init__(self, text: str = "", parent: QWidget | None = None):
+    def __init__(self, text: str = "", parent: QWidget | None = None, mode: Any = Qt.TextElideMode.ElideRight):
         super().__init__(text, parent)
+        self._mode = mode
         self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self.setMinimumWidth(1)
         self.setToolTip(text)
@@ -399,7 +403,7 @@ class ElidedLabel(QLabel):
     def paintEvent(self, _event: Any) -> None:
         painter = QPainter(self)
         painter.setPen(self.palette().color(self.foregroundRole()))
-        shown = self.fontMetrics().elidedText(self.text(), Qt.TextElideMode.ElideRight, self.width())
+        shown = self.fontMetrics().elidedText(self.text(), self._mode, self.width())
         painter.drawText(self.rect(), int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter), shown)
         painter.end()
 

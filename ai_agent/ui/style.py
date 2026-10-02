@@ -88,6 +88,13 @@ def soft(palette: QPalette, colour: QColor) -> QColor:
     return blend(palette.base().color(), colour, ratio)
 
 
+def accent_ink(palette: QPalette) -> QColor:
+    """Accent text that stays readable on its own soft wash: lifted towards white in the dark."""
+    if is_dark(palette):
+        return blend(accent(palette), QColor(255, 255, 255), 0.45)
+    return accent(palette)
+
+
 def ring(palette: QPalette) -> QColor:
     """The focus halo around an input: the accent, half way into the base."""
     return blend(palette.base().color(), accent(palette), 0.45)

@@ -12,7 +12,9 @@ from ai_agent.ui import settings_fields as fields
 
 TILE_NAME = "providerTile"
 STATUS_NAME = "connectionStatus"
-TILE_COLUMNS = 4
+MIN_TILE_WIDTH = 190
+MIN_COLUMNS = 2
+MAX_COLUMNS = 4
 TILE_GAP = 8
 TILE_HEIGHT = 58
 MONOGRAM = 26
@@ -54,11 +56,12 @@ class ProviderTile(QFrame):
         accent = style.accent(palette)
         monogram.setStyleSheet(
             f"QLabel {{ background: {style.css_color(style.soft(palette, accent))};"
-            f"color: {style.css_color(accent)}; border-radius: {MONOGRAM_RADIUS}px; }}"
+            f"color: {style.css_color(style.accent_ink(palette))}; border-radius: {MONOGRAM_RADIUS}px; }}"
         )
         line.addWidget(monogram)
         text = QVBoxLayout()
         text.setSpacing(1)
+        text.addStretch(1)
         name = controls.ElidedLabel(preset.title)
         name.setStyleSheet(f"color: {style.css_color(style.text(palette))};")
         text.addWidget(name)
@@ -71,6 +74,7 @@ class ProviderTile(QFrame):
             kind = controls.small(LOCAL_BADGE, palette)
             kind.setStyleSheet(f"color: {style.css_color(style.success(palette))};")
         text.addWidget(kind)
+        text.addStretch(1)
         line.addLayout(text, 1)
         self.set_selected(False)
 
@@ -95,20 +99,36 @@ class ProviderTiles(QWidget):
 
     def __init__(self, presets: list[Preset], palette: Any):
         super().__init__()
-        grid = QGridLayout(self)
-        grid.setContentsMargins(0, 0, 0, 0)
-        grid.setSpacing(TILE_GAP)
+        self._grid = QGridLayout(self)
+        self._grid.setContentsMargins(0, 0, 0, 0)
+        self._grid.setSpacing(TILE_GAP)
         ordered = [p for p in presets if not p.is_custom and not p.needs_key]
         ordered += [p for p in presets if not p.is_custom and p.needs_key]
         ordered += [p for p in presets if p.is_custom]
         self._tiles: list[ProviderTile] = []
-        for index, preset in enumerate(ordered):
+        for preset in ordered:
             tile = ProviderTile(preset, palette)
             tile.clicked.connect(self.chosen.emit)
-            grid.addWidget(tile, index // TILE_COLUMNS, index % TILE_COLUMNS)
             self._tiles.append(tile)
-        for column in range(TILE_COLUMNS):
-            grid.setColumnStretch(column, 1)
+        self._columns = 0
+        self._arrange(MAX_COLUMNS - 1)
+
+    def resizeEvent(self, event: Any) -> None:
+        super().resizeEvent(event)
+        # Columns follow the width: a larger system font or a narrow window gets fewer, wider tiles.
+        fits = (self.width() + TILE_GAP) // (MIN_TILE_WIDTH + TILE_GAP)
+        self._arrange(max(MIN_COLUMNS, min(MAX_COLUMNS, fits)))
+
+    def _arrange(self, columns: int) -> None:
+        if columns == self._columns:
+            return
+        for tile in self._tiles:
+            self._grid.removeWidget(tile)
+        for column in range(MAX_COLUMNS):
+            self._grid.setColumnStretch(column, 1 if column < columns else 0)
+        for index, tile in enumerate(self._tiles):
+            self._grid.addWidget(tile, index // columns, index % columns)
+        self._columns = columns
 
     def select(self, title: str) -> None:
         for tile in self._tiles:

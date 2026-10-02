@@ -244,6 +244,8 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
             fields.select(self.preset_combo, preset.title)
         finally:
             self._syncing_preset = False
+        # The combo only signals a change; the custom preset is its first item, so redraw the tiles directly.
+        self.provider_tiles.select(preset.title)
         self.model_edit.setPlaceholderText(preset.model_hint)
         self._paint_key_hint(preset.needs_key or preset.is_custom)
 
