@@ -100,7 +100,7 @@
  {
   "depth": 5,
   "type": "QPushButton",
-  "text": "↑"
+  "text": "↵"
  },
  {
   "depth": 4,

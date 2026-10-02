@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from typing import Any
 
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtGui import QTextCursor
@@ -31,11 +32,10 @@ PLACEHOLDER_BUSY = tr("Type to correct me…")
 PLACEHOLDER_OFFLINE = tr("Connect a model to start")
 FRAME_NAME = "composerFrame"
 FRAME_RADIUS = 14
-FOCUS_WIDTH = 2
-MIN_HEIGHT = 40
-MAX_HEIGHT = 160
-SEND_SIZE = 30
-SEND_GLYPH = "↑"
+MAX_LINES = 8
+HEIGHT_SLACK = 4
+SEND_SIZE = 28
+SEND_GLYPH = "↵"
 STOP_GLYPH = "■"
 MODE_SKILL = "skill"
 MODE_LAYER = "layer"
@@ -63,11 +63,12 @@ class Composer(QWidget):
         self._frame = ComposerFrame(FRAME_RADIUS)
         self._frame.setObjectName(FRAME_NAME)
         self._send_look = ""
-        inner = QVBoxLayout(self._frame)
-        inner.setContentsMargins(12, 8, 8, 8)
-        inner.setSpacing(4)
-        inner.addWidget(self._build_edit())
-        inner.addLayout(self._build_footer(palette))
+        # One row like Claude Code: the text grows line by line, the button stays at the bottom right.
+        inner = QHBoxLayout(self._frame)
+        inner.setContentsMargins(12, 6, 6, 6)
+        inner.setSpacing(8)
+        inner.addWidget(self._build_edit(), 1, Qt.AlignmentFlag.AlignVCenter)
+        inner.addWidget(self._build_send(), 0, Qt.AlignmentFlag.AlignBottom)
         column.addWidget(self._frame)
         self.toolbar = ComposerToolbar(palette)
         self.toolbar.set_model("")
@@ -81,7 +82,10 @@ class Composer(QWidget):
         self._edit.setFrameShape(QFrame.Shape.NoFrame)
         self._edit.setStyleSheet("QPlainTextEdit { border: none; background: transparent; }")
         self._edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        self._edit.setFixedHeight(MIN_HEIGHT)
+        self._edit.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        # The few spare pixels that keep the scroll bar away go half above, half below the text.
+        self._edit.pad_vertically(HEIGHT_SLACK)
+        self._edit.document().documentLayout().documentSizeChanged.connect(self._grow)
         self._highlighter = PromptHighlighter(self._edit.document(), self.palette())
         self._edit.submitted.connect(self._on_submit)
         self._edit.navigated.connect(self._on_navigate)
@@ -91,27 +95,23 @@ class Composer(QWidget):
         self._edit.escaped.connect(self._on_escape)
         self._edit.focus_changed.connect(self._on_focus)
         self._edit.textChanged.connect(self._on_text_changed)
+        self._grow()
         return self._edit
 
-    def _build_footer(self, palette) -> QHBoxLayout:
-        row = QHBoxLayout()
-        row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(8)
-        row.addStretch(1)
+    def _build_send(self) -> QPushButton:
         self._send = QPushButton(SEND_GLYPH)
         self._send.setFixedSize(SEND_SIZE, SEND_SIZE)
         self._send.setToolTip(tr("Send"))
         self._send.setAccessibleName(tr("Send"))
         self._send.clicked.connect(self._on_button)
-        row.addWidget(self._send)
-        return row
+        return self._send
 
     def _paint(self) -> None:
         """Frame, hint and button follow one state: offline, busy, typing or idle."""
         palette = self.palette()
         focused = self._focused and self._configured
-        border = style.ring(palette) if focused else style.border_strong(palette)
-        width = FOCUS_WIDTH if focused else style.HAIRLINE
+        border = style.faint(palette) if focused else style.border_strong(palette)
+        width = style.HAIRLINE
         fill = style.surface(palette) if self._configured else style.card(palette)
         self._frame.set_look(fill.name(), border.name(), float(width))
         has_text = bool(self._edit.toPlainText().strip())
@@ -123,13 +123,14 @@ class Composer(QWidget):
         self._paint_send(has_text)
 
     def _paint_send(self, has_text: bool) -> None:
+        # Quiet like Claude Code: a glyph, no accent fill; it brightens once there is something to send.
         palette = self.palette()
         if self._busy:
-            fill, ink, glyph, name = style.text(palette), style.surface(palette), STOP_GLYPH, tr("Stop")
+            fill, ink, glyph, name = style.card(palette), style.text(palette), STOP_GLYPH, tr("Stop")
         elif has_text:
-            fill, ink, glyph, name = style.accent(palette), style.on_accent(palette), SEND_GLYPH, tr("Send")
+            fill, ink, glyph, name = style.card(palette), style.text(palette), SEND_GLYPH, tr("Send")
         else:
-            fill, ink, glyph, name = style.card(palette), style.muted(palette), SEND_GLYPH, tr("Send")
+            fill, ink, glyph, name = style.surface(palette), style.faint(palette), SEND_GLYPH, tr("Send")
         self._send.setText(glyph)
         self._send.setToolTip(name)
         self._send.setAccessibleName(name)
@@ -239,9 +240,19 @@ class Composer(QWidget):
             return
         self._on_submit()
 
-    def _grow(self) -> None:
-        height = int(self._edit.document().size().height() * self._line_height()) + 12
-        self._edit.setFixedHeight(max(MIN_HEIGHT, min(height, MAX_HEIGHT)))
+    def _grow(self, *_args: Any) -> None:
+        """Fit the editor to its wrapped lines, one line at least and MAX_LINES at most."""
+        try:
+            wanted = max(1, int(round(float(self._edit.document().size().height()))))
+            margin = 2 * float(self._edit.document().documentMargin()) + 2 * float(self._edit.frameWidth())
+            line = float(self._line_height())
+        except (TypeError, ValueError):
+            return
+        lines = min(MAX_LINES, wanted)
+        self._edit.setFixedHeight(int(lines * line + margin + HEIGHT_SLACK))
+        # A scroll bar only once the text outgrows the cap; below it the box simply grows.
+        policy = Qt.ScrollBarPolicy.ScrollBarAsNeeded if wanted > MAX_LINES else Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        self._edit.setVerticalScrollBarPolicy(policy)
 
     def _line_height(self) -> float:
         return self._edit.fontMetrics().lineSpacing()

@@ -182,6 +182,23 @@ class ComposerBehaviourTest(PluginCase):
         finally:
             toolbar.menu.hide()
 
+    def test_the_box_starts_as_one_line_and_grows_to_a_cap(self) -> None:
+        edit = self.dock.composer._edit
+        one_line = edit.height()
+        edit.setPlainText("first\nsecond\nthird")
+        pump(0.05)
+        self.assertGreater(edit.height(), one_line)
+        edit.setPlainText("line\n" * 30)
+        pump(0.05)
+        capped = edit.height()
+        edit.setPlainText("line\n" * 60)
+        pump(0.05)
+        self.assertEqual(edit.height(), capped)
+        self.assertEqual(edit.verticalScrollBarPolicy(), Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        edit.clear()
+        pump(0.05)
+        self.assertEqual(edit.height(), one_line)
+
     def test_the_popup_never_grows_wider_than_the_composer(self) -> None:
         composer = self.dock.composer
         composer.set_skill_source(lambda: [("style", "x" * 400, "builtin")])

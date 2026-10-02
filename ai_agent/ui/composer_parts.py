@@ -63,6 +63,10 @@ class PromptEdit(QPlainTextEdit):
         super().__init__(parent)
         self.popup_open = False
 
+    def pad_vertically(self, pixels: int) -> None:
+        """Split spare height evenly above and below the text, so one line sits centred."""
+        self.setViewportMargins(0, pixels // 2, 0, pixels - pixels // 2)
+
     def focusInEvent(self, event: Any) -> None:
         super().focusInEvent(event)
         self.focus_changed.emit(True)

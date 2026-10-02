@@ -81,6 +81,10 @@ class ScreenCase(PluginCase):
 
     def check(self, name: str, widget: QWidget) -> None:
         name += LOCALE_SUFFIX
+        # Focus paints the composer's frame; which widget holds it depends on the tests run before.
+        focused = QApplication.focusWidget()
+        if focused is not None:
+            focused.clearFocus()
         pump(0.3)
         ui_snapshot.normalize_texts(widget, {_profile_root(): LONG_PROFILE})
         pump(0.1)
