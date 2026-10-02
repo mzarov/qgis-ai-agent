@@ -30,6 +30,7 @@ HEADER_MARGINS = (11, 8, 9, 8)
 HEADER_ICON = 15
 HEADER_BUTTON = 24
 BODY_MARGINS = (9, 0, 9, 9)
+BODY_NAME = "agentBody"
 
 
 class AgentDockWidget(QDockWidget):
@@ -46,6 +47,8 @@ class AgentDockWidget(QDockWidget):
         self.setWindowTitle(TITLE)
         self._sessions_provider: Callable[[], list[tuple[str, str]]] = list
         body = QWidget()
+        body.setObjectName(BODY_NAME)
+        style.fill(body, style.background(self.palette()))
         column = QVBoxLayout(body)
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(0)

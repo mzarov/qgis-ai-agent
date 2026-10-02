@@ -1,4 +1,5 @@
 import pathlib
+import re
 import unittest
 
 from ai_agent.core.llm import (
@@ -284,20 +285,34 @@ class CredentialUiContractTest(unittest.TestCase):
         self.assertIn("self.geocoder.values()", DIALOG_SOURCE)
 
 
-class PanelLevelTest(unittest.TestCase):
+class ThemeTest(unittest.TestCase):
     STYLE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "style.py").read_text(
         encoding="utf-8"
     )
+    MOCKUP = (pathlib.Path(__file__).resolve().parent.parent / "design" / "mockups" / "index.html").read_text(
+        encoding="utf-8"
+    )
 
-    def test_panel_exists_and_lifts_only_in_the_dark(self):
-        self.assertIn("def panel(", self.STYLE)
-        body = self.STYLE.split("def panel(")[1].split("def ")[0]
-        self.assertIn("if not is_dark(palette):", body)
-        self.assertIn("return base", body)
-        self.assertIn("PANEL_LIFT", body)
+    def test_the_two_palettes_are_the_mockup_tokens(self):
+        from ai_agent.ui import theme
 
-    def test_lift_is_meaningful(self):
-        self.assertGreater(_constant(self.STYLE, "PANEL_LIFT"), 0.05)
+        light = self.MOCKUP.split(":root {")[1].split("}")[0].lower()
+        dark = self.MOCKUP.split('[data-theme="dark"] {')[1].split("}")[0].lower()
+        for tokens, css in ((theme.LIGHT, light), (theme.DARK, dark)):
+            for name, value in vars(tokens).items():
+                self.assertIn(f"--{name.replace('_', '-')}: {value.lower()}", css, name)
+
+    def test_only_the_theme_spells_a_colour(self):
+        ui = pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui"
+        offenders = [
+            path.name
+            for path in ui.glob("*.py")
+            if path.name != "theme.py" and re.search(r"#[0-9a-fA-F]{6}\b|QColor\(\s*\d", path.read_text("utf-8"))
+        ]
+        self.assertEqual(offenders, [])
+
+    def test_the_palette_only_chooses_light_or_dark(self):
+        self.assertIn("theme.tokens(palette)", self.STYLE)
 
 
 def _constant(source, name):

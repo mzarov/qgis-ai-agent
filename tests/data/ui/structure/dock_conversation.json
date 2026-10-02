@@ -13,7 +13,8 @@
  },
  {
   "depth": 1,
-  "type": "QWidget"
+  "type": "QWidget",
+  "name": "agentBody"
  },
  {
   "depth": 2,
@@ -46,7 +47,8 @@
  },
  {
   "depth": 3,
-  "type": "QWidget"
+  "type": "QWidget",
+  "name": "feed"
  },
  {
   "depth": 4,
@@ -158,7 +160,7 @@
  },
  {
   "depth": 4,
-  "type": "QFrame",
+  "type": "ComposerFrame",
   "name": "composerFrame"
  },
  {

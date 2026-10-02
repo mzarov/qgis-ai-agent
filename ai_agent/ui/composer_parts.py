@@ -3,9 +3,9 @@
 import re
 from typing import Any
 
-from qgis.PyQt.QtCore import Qt, pyqtSignal
-from qgis.PyQt.QtGui import QFont, QSyntaxHighlighter, QTextCharFormat
-from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPlainTextEdit, QWidget
+from qgis.PyQt.QtCore import QRectF, Qt, pyqtSignal
+from qgis.PyQt.QtGui import QColor, QFont, QPainter, QPen, QSyntaxHighlighter, QTextCharFormat
+from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QPlainTextEdit, QWidget
 
 from ai_agent.ui import controls, style
 
@@ -136,6 +136,9 @@ class HintBar(QWidget):
         self.text = ""
 
     def show_keys(self, pairs: list[tuple[str, str]]) -> None:
+        text = "  ".join(f"{key} {word}" for key, word in pairs)
+        if text == self.text and self._parts:
+            return
         self._clear()
         for index, (key, word) in enumerate(pairs):
             cap = controls.keycap(key, self._palette)
@@ -146,6 +149,9 @@ class HintBar(QWidget):
         self.text = "  ".join(f"{key} {word}" for key, word in pairs)
 
     def show_text(self, text: str) -> None:
+        # The composer repaints on every keystroke; rebuilding unchanged hints churned widgets for nothing.
+        if text == self.text and self._parts:
+            return
         self._clear()
         self._add(self._word(text))
         self.text = text
@@ -167,3 +173,39 @@ class HintBar(QWidget):
             widget.hide()
             widget.deleteLater()
         self._parts = []
+
+
+class ComposerFrame(QFrame):
+    """The composer's rounded box, painted by hand.
+
+    It used to restyle itself with a style sheet on every focus change. A style
+    sheet on the frame cascades to the editor inside it, so the editor's style
+    was swapped while its own focusOutEvent was still running, and QGIS crashed
+    in event processing. Painting needs only `update()`.
+    """
+
+    def __init__(self, radius: float, parent: QWidget | None = None):
+        super().__init__(parent)
+        self._radius = radius
+        self._fill: Any = None
+        self._border: Any = None
+        self._width = 1.0
+
+    def set_look(self, fill: Any, border: Any, width: float) -> None:
+        if (fill, border, width) == (self._fill, self._border, self._width):
+            return
+        self._fill, self._border, self._width = fill, border, width
+        self.update()
+
+    def paintEvent(self, _event: Any) -> None:
+        if self._fill is None:
+            return
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        pen = QPen(QColor(self._border))
+        pen.setWidthF(self._width)
+        painter.setPen(pen)
+        painter.setBrush(QColor(self._fill))
+        inset = self._width / 2 + (2 - self._width) / 2
+        painter.drawRoundedRect(QRectF(self.rect()).adjusted(inset, inset, -inset, -inset), self._radius, self._radius)
+        painter.end()

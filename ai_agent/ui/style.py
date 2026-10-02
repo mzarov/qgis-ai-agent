@@ -1,21 +1,21 @@
+"""Named colours for the widgets, all read from the mockup tokens in `theme`.
+
+Widgets ask for a role (`panel`, `hairline`, `muted`, `accent`…), never for a
+hex value; `theme.tokens(palette)` picks the light or the dark set from the
+QGIS palette, so the plugin still follows the theme's lightness.
+"""
+
+from typing import Any
+
 from qgis.PyQt.QtGui import QColor, QPalette
+
+from ai_agent.ui import theme
 
 CARD_RADIUS = 10
 BUBBLE_RADIUS = 12
 HAIRLINE = 1
 USER_TINT = 0.26
-CARD_TINT = 0.5
-ELEVATED_TINT = 0.9
-BORDER_TINT = 0.8
-MUTED_TINT = 0.38
-PANEL_LIFT = 0.11
-SOFT_TINT = 0.14
-ACCENT_LIFT_DARK = 0.28
-COOL_TINT = 0.035
-SIDEBAR_LIFT = 0.055
-CONTENT_LIFT = 0.025
-FIELD_LIFT = 0.035
-SOFT_TINT_DARK = 0.24
+RING_TINT = 0.5
 
 
 def blend(first: QColor, second: QColor, ratio: float) -> QColor:
@@ -28,134 +28,144 @@ def blend(first: QColor, second: QColor, ratio: float) -> QColor:
 
 
 def is_dark(palette: QPalette) -> bool:
-    return palette.base().color().lightness() < 128
+    return theme.is_dark(palette)
+
+
+def _token(palette: QPalette, name: str) -> QColor:
+    return theme.colour(getattr(theme.tokens(palette), name))
+
+
+def background(palette: QPalette) -> QColor:
+    """The page behind everything: the dock body and the feed."""
+    return _token(palette, "bg")
 
 
 def surface(palette: QPalette) -> QColor:
-    return palette.base().color()
-
-
-def card(palette: QPalette) -> QColor:
-    base = palette.base().color()
-    target = QColor(255, 255, 255) if not is_dark(palette) else QColor(0, 0, 0)
-    lifted = blend(base, palette.window().color(), CARD_TINT)
-    return blend(lifted, target, 0.06 if is_dark(palette) else 0.0)
-
-
-def elevated(palette: QPalette) -> QColor:
-    base = palette.base().color()
-    lift = QColor(255, 255, 255) if is_dark(palette) else QColor(0, 0, 0)
-    return blend(base, lift, 0.07)
-
-
-def panel(palette: QPalette) -> QColor:
-    base = palette.base().color()
-    if not is_dark(palette):
-        return base
-    return cool(palette, blend(base, QColor(255, 255, 255), PANEL_LIFT))
-
-
-def hairline(palette: QPalette) -> QColor:
-    return blend(palette.base().color(), palette.mid().color(), BORDER_TINT)
-
-
-def success(palette: QPalette) -> QColor:
-    return QColor(106, 191, 142) if is_dark(palette) else QColor(31, 122, 71)
-
-
-def danger(palette: QPalette) -> QColor:
-    return QColor(226, 116, 116) if is_dark(palette) else QColor(176, 48, 48)
-
-
-def warning(palette: QPalette) -> QColor:
-    return QColor(230, 178, 90) if is_dark(palette) else QColor(160, 105, 15)
-
-
-def system_accent(palette: QPalette) -> QColor:
-    """The OS accent colour (Qt 6.6+ `Accent` role); the selection highlight where there is none.
-
-    On macOS the highlight is the muted text-selection fill, not the accent the system draws
-    buttons and focus rings with, so it made every accent in the plugin look dull.
-    """
-    role = getattr(getattr(QPalette, "ColorRole", None), "Accent", None)
-    if role is not None:
-        try:
-            found = palette.color(role)
-        except Exception:
-            found = None
-        if isinstance(found, QColor) and found.isValid() and found.alpha() > 0:
-            return found
-    return palette.highlight().color()
-
-
-def accent(palette: QPalette) -> QColor:
-    """The accent for fills, borders and rings: the system accent, softened on a dark palette."""
-    found = system_accent(palette)
-    return blend(found, QColor(255, 255, 255), ACCENT_LIFT_DARK) if is_dark(palette) else found
-
-
-def on_accent(palette: QPalette) -> QColor:
-    """Text and glyphs on an accent fill: dark on the softened dark-theme accent, white otherwise."""
-    return palette.base().color() if is_dark(palette) else QColor(255, 255, 255)
-
-
-def cool(palette: QPalette, colour: QColor) -> QColor:
-    """Nudge a dark surface towards the accent so greys read cool rather than flat."""
-    return blend(colour, system_accent(palette), COOL_TINT) if is_dark(palette) else colour
+    """Inputs and the composer."""
+    return _token(palette, "surface")
 
 
 def field(palette: QPalette) -> QColor:
-    """Input fill: recessed below the cards, but not a black hole on a dark palette."""
-    base = surface(palette)
-    if not is_dark(palette):
-        return base
-    return cool(palette, blend(base, QColor(255, 255, 255), FIELD_LIFT))
+    return _token(palette, "surface")
 
 
-def sidebar(palette: QPalette) -> QColor:
-    """The settings sidebar: a step above the content, the way the window chrome sits."""
-    window = palette.window().color()
-    if not is_dark(palette):
-        return blend(window, QColor(0, 0, 0), 0.03)
-    return cool(palette, blend(window, QColor(255, 255, 255), SIDEBAR_LIFT))
+def panel(palette: QPalette) -> QColor:
+    """Cards, tiles, the status card: the raised level."""
+    return _token(palette, "surface")
 
 
 def content(palette: QPalette) -> QColor:
     """The settings page background."""
-    window = palette.window().color()
-    if not is_dark(palette):
-        return palette.base().color()
-    return cool(palette, blend(window, QColor(255, 255, 255), CONTENT_LIFT))
+    return _token(palette, "surface")
 
 
-def user_bubble(palette: QPalette) -> QColor:
-    return blend(palette.base().color(), palette.highlight().color(), USER_TINT)
+def card(palette: QPalette) -> QColor:
+    """A quiet fill one step off the surface: hover, strips, chips at rest."""
+    return _token(palette, "surface_2")
 
 
-def text(palette: QPalette) -> QColor:
-    return palette.text().color()
+def elevated(palette: QPalette) -> QColor:
+    return _token(palette, "surface_2")
 
 
-def muted(palette: QPalette) -> QColor:
-    return blend(palette.text().color(), palette.base().color(), MUTED_TINT)
+def sidebar(palette: QPalette) -> QColor:
+    return _token(palette, "surface_2")
 
 
-def soft(palette: QPalette, colour: QColor) -> QColor:
-    """A pale wash of `colour` over the base: badge, selection and callout fills."""
-    ratio = SOFT_TINT_DARK if is_dark(palette) else SOFT_TINT
-    return blend(palette.base().color(), colour, ratio)
+def sunken(palette: QPalette) -> QColor:
+    """Below the surface: segmented-control tracks, sidebar hover."""
+    return _token(palette, "sunken")
+
+
+def hairline(palette: QPalette) -> QColor:
+    return _token(palette, "border")
+
+
+def border_strong(palette: QPalette) -> QColor:
+    """Input and plain-button outlines."""
+    return _token(palette, "border_strong")
+
+
+def success(palette: QPalette) -> QColor:
+    return _token(palette, "ok")
+
+
+def danger(palette: QPalette) -> QColor:
+    return _token(palette, "bad")
+
+
+def warning(palette: QPalette) -> QColor:
+    return _token(palette, "warn")
+
+
+def accent(palette: QPalette) -> QColor:
+    return _token(palette, "accent")
+
+
+def accent_hover(palette: QPalette) -> QColor:
+    return _token(palette, "accent_hover")
+
+
+def on_accent(palette: QPalette) -> QColor:
+    """Text and glyphs on an accent fill."""
+    return _token(palette, "accent_text")
 
 
 def accent_ink(palette: QPalette) -> QColor:
-    """Accent text that stays readable on its own soft wash: lifted towards white in the dark."""
-    if is_dark(palette):
-        return blend(accent(palette), QColor(255, 255, 255), 0.45)
-    return accent(palette)
+    """Accent text on its own soft wash."""
+    return _token(palette, "accent")
+
+
+def user_bubble(palette: QPalette) -> QColor:
+    return _token(palette, "accent_soft")
+
+
+def text(palette: QPalette) -> QColor:
+    return _token(palette, "text")
+
+
+def muted(palette: QPalette) -> QColor:
+    return _token(palette, "text_2")
+
+
+def faint(palette: QPalette) -> QColor:
+    """Placeholders and the least important captions."""
+    return _token(palette, "text_3")
+
+
+def soft(palette: QPalette, colour: QColor) -> QColor:
+    """The pale wash that belongs to a status colour: badge, selection and callout fills."""
+    tokens = theme.tokens(palette)
+    for strong, wash in (
+        (tokens.accent, tokens.accent_soft),
+        (tokens.ok, tokens.ok_soft),
+        (tokens.warn, tokens.warn_soft),
+        (tokens.bad, tokens.bad_soft),
+    ):
+        if colour.name().lower() == strong.lower():
+            return theme.colour(wash)
+    return blend(surface(palette), colour, 0.14)
 
 
 def ring(palette: QPalette) -> QColor:
-    """The focus halo around an input: the accent, half way into the base."""
-    return blend(palette.base().color(), accent(palette), 0.45)
+    """The focus halo around an input."""
+    return blend(surface(palette), accent(palette), RING_TINT)
+
+
+def fill(widget: Any, colour: QColor) -> None:
+    """Paint a container's background through its palette, not a style sheet.
+
+    A style sheet on a container switches its whole subtree to QStyleSheetStyle;
+    with children that restyle and delete themselves often (the composer's hint
+    bar) that crashed QGIS inside event processing.
+    """
+    role = getattr(getattr(QPalette, "ColorRole", None), "Window", None)
+    if role is None:
+        return
+    palette = widget.palette()
+    palette.setColor(role, colour)
+    widget.setPalette(palette)
+    widget.setAutoFillBackground(True)
 
 
 def css_color(color: QColor) -> str:

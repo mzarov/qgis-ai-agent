@@ -2,8 +2,9 @@
 
 from typing import Any
 
-from qgis.PyQt.QtCore import QTimer
-from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QWidget
+from qgis.PyQt.QtCore import QRectF, Qt, QTimer
+from qgis.PyQt.QtGui import QColor, QPainter
+from qgis.PyQt.QtWidgets import QHBoxLayout, QWidget
 
 from ai_agent.i18n import tr, tr_n
 from ai_agent.ui import controls, style
@@ -11,6 +12,30 @@ from ai_agent.ui import controls, style
 PULSE_MS = 600
 DOT = 8
 WORKING = tr("Working…")
+
+
+class PulseDot(QWidget):
+    """A dot painted by hand; restyling a label twice a second churned the style engine."""
+
+    def __init__(self, parent: QWidget | None = None):
+        super().__init__(parent)
+        self.setFixedSize(DOT, DOT)
+        self.colour = ""
+
+    def set_colour(self, name: str) -> None:
+        if name != self.colour:
+            self.colour = name
+            self.update()
+
+    def paintEvent(self, _event: Any) -> None:
+        if not self.colour:
+            return
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(self.colour))
+        painter.drawEllipse(QRectF(0, 0, DOT, DOT))
+        painter.end()
 
 
 class ProgressLine(QWidget):
@@ -22,8 +47,7 @@ class ProgressLine(QWidget):
         line = QHBoxLayout(self)
         line.setContentsMargins(4, 0, 4, 6)
         line.setSpacing(8)
-        self._dot = QLabel()
-        self._dot.setFixedSize(DOT, DOT)
+        self._dot = PulseDot()
         line.addWidget(self._dot)
         self._step = controls.small(WORKING, palette)
         self._step.setWordWrap(False)
@@ -65,4 +89,4 @@ class ProgressLine(QWidget):
     def _paint_dot(self) -> None:
         accent = style.accent(self._palette)
         colour = accent if self._lit else style.soft(self._palette, accent)
-        self._dot.setStyleSheet(f"QLabel {{ background: {style.css_color(colour)}; border-radius: {DOT // 2}px; }}")
+        self._dot.set_colour(colour.name())

@@ -63,7 +63,7 @@ class Segmented(QFrame):
         self._line.setSpacing(0)
         self.setObjectName(SEGMENT_NAME)
         self.setStyleSheet(
-            f"QFrame#{SEGMENT_NAME} {{ background: {style.css_color(style.card(palette))};"
+            f"QFrame#{SEGMENT_NAME} {{ background: {style.css_color(style.sunken(palette))};"
             f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
             f"border-radius: {SEGMENT_RADIUS}px; }}"
         )
@@ -159,7 +159,7 @@ class Chips(QWidget):
         return (
             f"QPushButton {{ background: {style.css_color(style.panel(self._palette))};"
             f"color: {style.css_color(style.text(self._palette))};"
-            f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(self._palette))};"
+            f"border: {style.HAIRLINE}px solid {style.css_color(style.border_strong(self._palette))};"
             f"border-radius: {CHIP_RADIUS}px; padding: 0px 11px; }}"
             f"QPushButton:checked {{ background: {style.css_color(style.soft(self._palette, accent))};"
             f"border-color: {style.css_color(accent)}; color: {style.css_color(style.accent_ink(self._palette))};"

@@ -46,6 +46,7 @@ SWITCH_WIDTH = 38
 SWITCH_HEIGHT = 22
 SWITCH_KNOB_MARGIN = 3
 BUTTON_RADIUS = 6
+DISABLED_OPACITY = 0.45
 
 
 class Switch(QCheckBox):
@@ -125,11 +126,10 @@ def sidebar_button(title: str, palette: Any, icon: Any = None) -> QPushButton:
         f"border: {style.HAIRLINE}px solid transparent; border-radius: {NAV_RADIUS}px;"
         f"padding: {NAV_PADDING}; text-align: left; }}"
         "QPushButton:hover:!checked {"
-        f"background: {style.css_color(style.card(palette))};"
+        f"background: {style.css_color(style.sunken(palette))};"
         f"color: {style.css_color(style.text(palette))}; }}"
         "QPushButton:checked {"
         f"background: {style.css_color(style.panel(palette))};"
-        f"border-color: {style.css_color(style.hairline(palette))};"
         f"color: {style.css_color(style.text(palette))}; font-weight: 600; }}"
     )
     return button
@@ -303,7 +303,7 @@ def select(combo: QComboBox, value: str) -> None:
 
 
 def input_style(palette: Any) -> str:
-    border = style.css_color(style.hairline(palette))
+    border = style.css_color(style.border_strong(palette))
     return (
         "QLineEdit, QComboBox {"
         f"background: {style.css_color(style.field(palette))};"
@@ -331,14 +331,19 @@ def accent_button(palette: Any) -> str:
         f"color: {style.css_color(style.on_accent(palette))};"
         f"border: {style.HAIRLINE}px solid {fill}; border-radius: {BUTTON_RADIUS}px;"
         "padding: 6px 18px; font-weight: 600; }"
-        f"QPushButton:hover {{ background: {style.css_color(style.accent(palette).lighter(112))}; }}"
-        f"QPushButton:disabled {{ background: {style.css_color(style.card(palette))};"
-        f"border-color: {style.css_color(style.hairline(palette))}; color: {style.css_color(style.muted(palette))}; }}"
+        f"QPushButton:hover {{ background: {style.css_color(style.accent_hover(palette))}; }}"
+        f"QPushButton:disabled {{ background: {style.css_color(_faded(style.accent(palette), palette))};"
+        f"border-color: transparent; color: {style.css_color(_faded(style.on_accent(palette), palette))}; }}"
     )
 
 
+def _faded(colour: Any, palette: Any) -> Any:
+    """A disabled primary button: the mockup's 45 % opacity, mixed onto the surface."""
+    return style.blend(style.surface(palette), colour, DISABLED_OPACITY)
+
+
 def plain_button(palette: Any) -> str:
-    border = style.css_color(style.hairline(palette))
+    border = style.css_color(style.border_strong(palette))
     return (
         f"QPushButton {{ background: {style.css_color(style.panel(palette))};"
         f"color: {style.css_color(style.text(palette))};"

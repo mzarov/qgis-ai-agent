@@ -29,8 +29,7 @@ def build_body(owner: Any, palette: Any) -> tuple[QHBoxLayout, QVBoxLayout]:
     owner.pages = fields.pages()
     nav, nav_column = fields.sidebar()
     nav.setObjectName(NAV_NAME)
-    nav.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-    nav.setStyleSheet(f"QWidget#{NAV_NAME} {{ background: {style.css_color(style.sidebar(palette))}; }}")
+    style.fill(nav, style.sidebar(palette))
     nav_column.addWidget(_brand(palette))
     owner._nav_buttons = []
     entries = (
@@ -55,8 +54,7 @@ def build_body(owner: Any, palette: Any) -> tuple[QHBoxLayout, QVBoxLayout]:
         nav_column.addWidget(label)
     content = QWidget()
     content.setObjectName(CONTENT_NAME)
-    content.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-    content.setStyleSheet(f"QWidget#{CONTENT_NAME} {{ background: {style.css_color(style.content(palette))}; }}")
+    style.fill(content, style.content(palette))
     right = QVBoxLayout(content)
     right.setContentsMargins(0, 0, 0, 0)
     right.setSpacing(0)

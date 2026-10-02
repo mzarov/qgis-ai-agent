@@ -16,6 +16,7 @@ from ai_agent.ui import style
 from ai_agent.ui.composer_parts import (
     MENTION,
     SLASH,
+    ComposerFrame,
     HintBar,
     PromptEdit,
     PromptHighlighter,
@@ -68,8 +69,9 @@ class Composer(QWidget):
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(0)
 
-        self._frame = QFrame()
+        self._frame = ComposerFrame(FRAME_RADIUS)
         self._frame.setObjectName(FRAME_NAME)
+        self._send_look = ""
         inner = QVBoxLayout(self._frame)
         inner.setContentsMargins(12, 8, 8, 8)
         inner.setSpacing(4)
@@ -115,14 +117,10 @@ class Composer(QWidget):
         """Frame, hint and button follow one state: offline, busy, typing or idle."""
         palette = self.palette()
         focused = self._focused and self._configured
-        border = style.ring(palette) if focused else style.hairline(palette)
+        border = style.ring(palette) if focused else style.border_strong(palette)
         width = FOCUS_WIDTH if focused else style.HAIRLINE
         fill = style.surface(palette) if self._configured else style.card(palette)
-        self._frame.setStyleSheet(
-            f"QFrame#{FRAME_NAME} {{ background: {style.css_color(fill)};"
-            f"border: {width}px solid {style.css_color(border)}; border-radius: {FRAME_RADIUS}px;"
-            f"margin: {FOCUS_WIDTH - width}px; }}"
-        )
+        self._frame.set_look(fill.name(), border.name(), float(width))
         has_text = bool(self._edit.toPlainText().strip())
         # Offline, the welcome card already offers Open settings; a second button here only repeats it.
         self._send.setVisible(self._configured)
@@ -152,10 +150,14 @@ class Composer(QWidget):
         self._send.setText(glyph)
         self._send.setToolTip(name)
         self._send.setAccessibleName(name)
-        self._send.setStyleSheet(
+        look = (
             f"QPushButton {{ background: {style.css_color(fill)}; color: {style.css_color(ink)};"
             f"border: none; border-radius: {SEND_SIZE // 2}px; font-weight: 600; }}"
         )
+        # Restyle only on a real change: a style sheet set per keystroke repolishes for nothing.
+        if look != self._send_look:
+            self._send_look = look
+            self._send.setStyleSheet(look)
 
     def _on_focus(self, focused: bool) -> None:
         self._focused = focused

@@ -25,6 +25,9 @@ SIDE_PADDING = 12
 PIN_TOLERANCE = 24
 
 
+FEED_NAME = "feed"
+
+
 class ConversationView(QScrollArea):
     confirm_requested = pyqtSignal()
     cancel_requested = pyqtSignal()
@@ -36,9 +39,13 @@ class ConversationView(QScrollArea):
         self.setWidgetResizable(True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setFrameShape(QFrame.Shape.NoFrame)
-        self.setStyleSheet(f"QScrollArea {{ background: {style.css_color(style.surface(self.palette()))}; }}")
+        self.setStyleSheet(f"QScrollArea {{ background: {style.css_color(style.background(self.palette()))}; }}")
 
+        # The viewport and the holder would otherwise paint the QGIS window colour over the backdrop.
         holder = QWidget()
+        holder.setObjectName(FEED_NAME)
+        style.fill(holder, style.background(self.palette()))
+        self.viewport().setAutoFillBackground(False)
         self._column = QVBoxLayout(holder)
         self._column.setContentsMargins(SIDE_PADDING, SIDE_PADDING, SIDE_PADDING, SIDE_PADDING)
         self._column.setSpacing(MESSAGE_SPACING)
