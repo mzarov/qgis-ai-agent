@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AI Agent — settings and composer mockups</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* Design tokens. Every value here maps 1:1 to a constant in the future
+   ai_agent/ui/theme.py, so the Qt port copies numbers, not impressions.
+   Only Qt-reachable effects: radii, 1px borders, one soft drop shadow,
+   flat fills. No blur, no backdrop filters, no CSS-only layout tricks. */
+:root {
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Ubuntu, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-pill: 999px;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px;
+  --t-xs: 11px; --t-sm: 12px; --t-md: 13px; --t-lg: 15px; --t-xl: 19px;
+
+  --bg: #f6f6f4; --surface: #ffffff; --surface-2: #f1f1ee; --sunken: #ececE8;
+  --border: #e3e3de; --border-strong: #cfcfc8;
+  --text: #1d1d1b; --text-2: #5f5f5a; --text-3: #8b8b85;
+  --accent: #2f6fde; --accent-hover: #2560c8; --accent-soft: #e8f0fd; --accent-text: #ffffff;
+  --ok: #1f8a4c; --ok-soft: #e5f4ea; --warn: #b26b00; --warn-soft: #fbf0dd; --bad: #c4362c; --bad-soft: #fbe7e5;
+  --shadow: 0 1px 2px rgba(0,0,0,.05), 0 6px 20px rgba(0,0,0,.07);
+  --ring: 0 0 0 3px rgba(47,111,222,.22);
+}
+[data-theme="dark"] {
+  --bg: #1b1c1e; --surface: #242528; --surface-2: #2b2c30; --sunken: #1f2023;
+  --border: #36383c; --border-strong: #46484d;
+  --text: #ececea; --text-2: #a9a9a4; --text-3: #7d7d78;
+  --accent: #5b8ff0; --accent-hover: #6f9df2; --accent-soft: #263552; --accent-text: #0f1420;
+  --ok: #4cc27f; --ok-soft: #1f3a2b; --warn: #e2a33d; --warn-soft: #3d3020; --bad: #ef6b60; --bad-soft: #432523;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  --ring: 0 0 0 3px rgba(91,143,240,.30);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font: var(--t-md)/1.45 var(--font); }
+button, input, select, textarea { font: inherit; color: inherit; }
+svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* Page chrome for the mockup itself, not part of the design. */
+.topbar { position: sticky; top: 0; z-index: 5; display: flex; gap: var(--s3); align-items: center; padding: var(--s3) var(--s6);
+  background: var(--bg); border-bottom: 1px solid var(--border); }
+.topbar h1 { font-size: var(--t-lg); margin: 0 auto 0 0; font-weight: 600; }
+.seg { display: inline-flex; background: var(--sunken); border: 1px solid var(--border); border-radius: var(--r-md); padding: 2px; }
+.seg button { border: 0; background: transparent; padding: 5px 12px; border-radius: 8px; cursor: pointer; color: var(--text-2); }
+.seg button.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+main { padding: var(--s8) var(--s6) 80px; display: grid; gap: 56px; justify-items: center; }
+.caption { width: 900px; max-width: 100%; }
+.caption h2 { font-size: var(--t-xl); margin: 0 0 4px; }
+.caption p { margin: 0; color: var(--text-2); }
+
+/* ---------- Settings window ---------- */
+.window { width: 900px; height: 640px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
+  box-shadow: var(--shadow); display: grid; grid-template-columns: 210px 1fr; grid-template-rows: 1fr auto; overflow: hidden; }
+.side { grid-row: 1 / 3; background: var(--surface-2); border-right: 1px solid var(--border); padding: var(--s4) var(--s3); display: flex; flex-direction: column; gap: 2px; }
+.brand { display: flex; align-items: center; gap: var(--s2); padding: var(--s2) var(--s2) var(--s4); font-weight: 600; }
+.brand .logo { width: 26px; height: 26px; border-radius: 8px; background: var(--accent); color: var(--accent-text); display: grid; place-items: center; }
+.brand .logo svg { width: 15px; height: 15px; }
+.nav { display: flex; align-items: center; gap: var(--s2); padding: 7px 10px; border-radius: var(--r-sm); color: var(--text-2); cursor: pointer; border: 0; background: none; text-align: left; width: 100%; }
+.nav:hover { background: var(--sunken); color: var(--text); }
+.nav.on { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+.nav .dot { margin-left: auto; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); }
+.side .ver { margin-top: auto; padding: var(--s2); color: var(--text-3); font-size: var(--t-xs); }
+
+.page { overflow: auto; padding: var(--s6) var(--s8) var(--s6); display: none; }
+.page.on { display: block; }
+.page h3 { font-size: var(--t-xl); margin: 0; font-weight: 600; }
+.page .lead { color: var(--text-2); margin: 4px 0 var(--s5); max-width: 560px; }
+.section-title { font-size: var(--t-xs); text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); font-weight: 600; margin: var(--s5) 0 var(--s2); }
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); }
+.row { display: flex; align-items: center; gap: var(--s4); padding: var(--s3) var(--s4); min-height: 56px; }
+.row + .row { border-top: 1px solid var(--border); }
+.row .label { flex: 1; min-width: 0; }
+.row .label b { display: block; font-weight: 500; }
+.row .label span { display: block; color: var(--text-2); font-size: var(--t-sm); margin-top: 1px; }
+.row .control { width: 300px; flex: none; display: flex; justify-content: flex-end; gap: var(--s2); }
+.row.stack { flex-direction: column; align-items: stretch; gap: var(--s2); }
+.row.stack .control { width: auto; justify-content: flex-start; }
+
+.field { width: 100%; height: 34px; padding: 0 var(--s3); border: 1px solid var(--border-strong); border-radius: var(--r-sm); background: var(--surface); outline: 0; display: flex; align-items: center; gap: var(--s2); }
+.field input { border: 0; outline: 0; background: transparent; flex: 1; min-width: 0; height: 100%; }
+.field:focus-within { border-color: var(--accent); box-shadow: var(--ring); }
+.field .suffix { color: var(--text-3); font-size: var(--t-sm); }
+.field .icon-btn { border: 0; background: none; color: var(--text-3); cursor: pointer; padding: 2px; display: grid; }
+.field .icon-btn:hover { color: var(--text); }
+.mono { font-family: var(--mono); font-size: var(--t-sm); }
+
+.btn { height: 32px; padding: 0 14px; border-radius: var(--r-sm); border: 1px solid var(--border-strong); background: var(--surface); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.btn:hover { background: var(--surface-2); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
+.btn.primary:hover { background: var(--accent-hover); }
+.btn.primary:disabled { opacity: .45; cursor: default; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--text-2); }
+.btn.ghost:hover { background: var(--surface-2); color: var(--text); }
+.btn.danger { color: var(--bad); }
+.btn.sm { height: 26px; padding: 0 10px; font-size: var(--t-sm); }
+
+.toggle { width: 38px; height: 22px; border-radius: var(--r-pill); background: var(--border-strong); position: relative; cursor: pointer; border: 0; flex: none; transition: background .15s; }
+.toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: left .15s; }
+.toggle.on { background: var(--accent); }
+.toggle.on::after { left: 19px; }
+
+/* Provider picker: tiles instead of a combo box. */
+.providers { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s2); }
+.tile { border: 1px solid var(--border); border-radius: var(--r-md); padding: 10px; display: flex; align-items: center; gap: var(--s2); cursor: pointer; background: var(--surface); min-width: 0; }
+.tile:hover { border-color: var(--border-strong); }
+.tile.on { border-color: var(--accent); box-shadow: var(--ring); }
+.mono-logo { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; font-weight: 700; font-size: 11px; color: #fff; flex: none; }
+.tile .t { min-width: 0; }
+.tile .t b { display: block; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .t span { display: block; font-size: var(--t-xs); color: var(--text-3); }
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: var(--r-pill); font-size: var(--t-xs); font-weight: 600; background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); white-space: nowrap; }
+.badge.ok { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+.badge.warn { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+.badge.accent { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+
+.status-card { display: flex; align-items: center; gap: var(--s3); padding: var(--s3) var(--s4); }
+.status-card .light { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px var(--ok-soft); flex: none; }
+.status-card .light.idle { background: var(--text-3); box-shadow: 0 0 0 4px var(--surface-2); }
+.status-card .what { flex: 1; }
+.status-card .what b { display: block; font-weight: 500; }
+.status-card .caps { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+
+.callout { display: flex; gap: var(--s3); padding: var(--s3) var(--s4); border-radius: var(--r-md); background: var(--accent-soft); color: var(--text); margin-bottom: var(--s4); }
+.callout svg { color: var(--accent); margin-top: 2px; }
+.callout p { margin: 0; color: var(--text-2); }
+.callout b { color: var(--text); }
+
+.chips { display: flex; gap: 6px; }
+.chip { height: 26px; padding: 0 10px; border-radius: var(--r-pill); border: 1px solid var(--border-strong); background: var(--surface); cursor: pointer; font-size: var(--t-sm); }
+.chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+.radio-cards { display: grid; gap: var(--s2); }
+.radio-card { display: flex; gap: var(--s3); align-items: flex-start; padding: var(--s3) var(--s4); border: 1px solid var(--border); border-radius: var(--r-md); cursor: pointer; }
+.radio-card.on { border-color: var(--accent); box-shadow: var(--ring); }
+.radio { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--border-strong); margin-top: 2px; flex: none; display: grid; place-items: center; }
+.radio-card.on .radio { border-color: var(--accent); }
+.radio-card.on .radio::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.radio-card b { display: block; font-weight: 500; }
+.radio-card span { display: block; color: var(--text-2); font-size: var(--t-sm); }
+.radio-card .extra { margin-top: var(--s2); }
+
+.skills { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s2); }
+.skill { border: 1px solid var(--border); border-radius: var(--r-md); padding: 10px 12px; min-width: 0; }
+.skill b { font-family: var(--mono); font-size: var(--t-sm); font-weight: 600; }
+.skill span { display: block; color: var(--text-2); font-size: var(--t-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.skill.local { border-style: dashed; }
+.path { display: flex; align-items: center; gap: var(--s2); padding: 8px 12px; background: var(--surface-2); border-radius: var(--r-sm); color: var(--text-2); }
+.path .mono { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.foot { grid-column: 2; display: flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s6); border-top: 1px solid var(--border); background: var(--surface); }
+.foot .note { margin-right: auto; color: var(--text-2); display: flex; align-items: center; gap: 6px; font-size: var(--t-sm); }
+.foot .note .d { width: 7px; height: 7px; border-radius: 50%; background: var(--warn); }
+
+/* ---------- Composer ---------- */
+.states { display: grid; grid-template-columns: repeat(2, 420px); gap: var(--s6) var(--s8); width: 900px; max-width: 100%; justify-content: center; }
+.state h4 { margin: 0 0 var(--s2); font-size: var(--t-sm); color: var(--text-2); font-weight: 600; }
+.dock { width: 420px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--s3); position: relative; }
+.dock .stub { height: 70px; border-radius: var(--r-sm); background: repeating-linear-gradient(0deg, transparent 0 14px, var(--border) 14px 15px); opacity: .5; margin-bottom: var(--s3); }
+
+.composer { background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--r-lg); box-shadow: 0 1px 2px rgba(0,0,0,.04); padding: 10px 10px 8px 14px; }
+.composer.focus { border-color: var(--accent); box-shadow: var(--ring); }
+.composer.busy { border-color: var(--border-strong); }
+.composer .text { min-height: 40px; max-height: 160px; overflow: auto; outline: 0; white-space: pre-wrap; word-break: break-word; padding-top: 2px; }
+.composer .text:empty::before { content: attr(data-placeholder); color: var(--text-3); }
+.composer .bar { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.composer .hint { margin-right: auto; color: var(--text-3); font-size: var(--t-xs); display: flex; align-items: center; gap: 6px; min-width: 0; }
+.composer .hint span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+kbd { font-family: var(--font); font-size: 10px; padding: 0 5px; border: 1px solid var(--border-strong); border-bottom-width: 2px; border-radius: 4px; color: var(--text-2); background: var(--surface); }
+.tool { width: 28px; height: 28px; border-radius: 8px; border: 0; background: transparent; color: var(--text-2); display: grid; place-items: center; cursor: pointer; }
+.tool:hover { background: var(--surface-2); color: var(--text); }
+.send { width: 30px; height: 30px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-text); display: grid; place-items: center; cursor: pointer; }
+.send:disabled { background: var(--surface-2); color: var(--text-3); cursor: default; }
+.send.stop { background: var(--text); color: var(--surface); }
+.send.stop svg { width: 12px; height: 12px; fill: currentColor; stroke: none; }
+.token-skill { color: var(--accent); background: var(--accent-soft); border-radius: 5px; padding: 0 4px; font-weight: 600; }
+.token-layer { color: var(--ok); background: var(--ok-soft); border-radius: 5px; padding: 0 4px; font-weight: 600; }
+.working { display: flex; align-items: center; gap: 8px; color: var(--text-2); font-size: var(--t-sm); padding: 0 4px 8px; }
+.pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .25; } }
+
+.popup { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow); padding: 6px; margin-bottom: 6px; }
+.popup .item { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: var(--r-sm); }
+.popup .item.on { background: var(--accent-soft); }
+.popup .item .ic { width: 26px; height: 26px; border-radius: 7px; background: var(--surface-2); display: grid; place-items: center; color: var(--text-2); flex: none; }
+.popup .item.on .ic { background: var(--surface); color: var(--accent); }
+.popup .item .t { min-width: 0; flex: 1; }
+.popup .item .t b { font-weight: 600; }
+.popup .item .t span { display: block; color: var(--text-2); font-size: var(--t-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.popup .foot2 { display: flex; gap: var(--s3); color: var(--text-3); font-size: var(--t-xs); padding: 6px 8px 2px; border-top: 1px solid var(--border); margin-top: 4px; }
+</style>
+</head>
+<body data-theme="light">
+<div class="topbar">
+  <h1>AI Agent — mockups</h1>
+  <div class="seg" id="theme"><button class="on" data-v="light">Light</button><button data-v="dark">Dark</button></div>
+</div>
+
+<main>
+  <section class="caption">
+    <h2>Settings window</h2>
+    <p>Click the pages on the left, the provider tiles, toggles and chips. A change marks the page with a dot and enables Save. New compared with today: provider tiles instead of a list, a live connection status with what the model supports, hints visible under each setting instead of behind a “?”, budget presets, segmented choices instead of drop-downs.</p>
+  </section>
+
+  <div class="window" id="settings">
+    <aside class="side">
+      <div class="brand"><div class="logo"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></div>AI Agent</div>
+      <button class="nav on" data-page="connection"><svg viewBox="0 0 24 24"><path d="M9 7V3M15 7V3M6 7h12v4a6 6 0 0 1-12 0zM12 17v4"/></svg>Connection</button>
+      <button class="nav" data-page="privacy"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Privacy</button>
+      <button class="nav" data-page="skills"><svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M9 8h6"/></svg>Skills</button>
+      <button class="nav" data-page="geocoding"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>Geocoding</button>
+      <button class="nav" data-page="advanced"><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Advanced</button>
+      <div class="ver">AI Agent 0.1.1</div>
+    </aside>
+
+    <!-- Connection -->
+    <section class="page on" id="page-connection">
+      <h3>Connection</h3>
+      <p class="lead">Any OpenAI-compatible server works. A local server keeps the project on this computer.</p>
+
+      <div class="card status-card">
+        <div class="light" id="light"></div>
+        <div class="what">
+          <b id="status-title">Connected to Ollama · qwen3</b>
+          <div class="caps" id="caps"><span class="badge ok">tools</span><span class="badge ok">streaming</span><span class="badge">no images</span><span class="badge">640 ms</span></div>
+        </div>
+        <button class="btn sm" id="test"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4"/></svg>Test again</button>
+      </div>
+
+      <div class="section-title">Provider</div>
+      <div class="providers" id="providers"></div>
+
+      <div class="section-title">Endpoint</div>
+      <div class="card">
+        <div class="row">
+          <div class="label"><b>Base URL</b><span>Without /chat/completions at the end.</span></div>
+          <div class="control"><div class="field"><input class="mono" id="url" value="http://localhost:11434/v1"></div></div>
+        </div>
+        <div class="row">
+          <div class="label"><b>Model</b><span id="model-hint">A name from <span class="mono" style="display:inline">ollama list</span>.</span></div>
+          <div class="control"><div class="field"><input class="mono" id="model" value="qwen3"></div></div>
+        </div>
+        <div class="row">
+          <div class="label"><b>API key</b><span id="key-hint">A local server needs no key — leave this empty.</span></div>
+          <div class="control"><div class="field"><svg viewBox="0 0 24 24" style="color:var(--text-3)"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><input id="key" type="password" placeholder="Not required"><button class="icon-btn" id="eye" title="Show"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+        </div>
+      </div>
+      <p style="color:var(--text-3);font-size:var(--t-xs);margin:8px 2px 0;display:flex;gap:6px;align-items:center"><svg viewBox="0 0 24 24" style="width:12px;height:12px"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Keys are stored encrypted in the QGIS authentication database, never in the settings file.</p>
+    </section>
+
+    <!-- Privacy -->
+    <section class="page" id="page-privacy">
+      <h3>Privacy</h3>
+      <p class="lead">What leaves this computer and what the plugin keeps.</p>
+      <div class="callout"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h0M11 12h1v5h1"/></svg>
+        <p><b>Everything the agent reads goes to the model.</b> Layer and field names, feature values, extents, rendered maps. For data that must stay here, use a local server such as Ollama or LM Studio.</p></div>
+      <div class="section-title">Connection security</div>
+      <div class="card">
+        <div class="row">
+          <div class="label"><b>Verify the SSL certificate</b><span>Turn this off only for a server with a self-signed certificate that you trust.</span></div>
+          <button class="toggle on"></button>
+        </div>
+      </div>
+      <div class="section-title">Records</div>
+      <div class="card">
+        <div class="row">
+          <div class="label"><b>Write a run journal after applying</b><span>A Markdown file in the QGIS profile folder: the request, every step and its result.</span></div>
+          <button class="toggle"></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Skills -->
+    <section class="page" id="page-skills">
+      <h3>Skills</h3>
+      <p class="lead">A skill is a folder with a SKILL.md inside: a name, one line saying when to use it, and the rules in Markdown. Type <span class="token-skill">/</span> in the chat to invoke one.</p>
+      <div class="section-title">Your skills</div>
+      <div class="path"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span class="mono">~/…/profiles/default/ai_agent_skills</span>
+        <button class="btn sm">Open folder</button><button class="btn sm primary"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Create an example</button></div>
+      <div class="skills" style="margin-top:var(--s2)">
+        <div class="skill local"><b>house-style</b><span>Load when styling maps for our team.</span></div>
+      </div>
+      <div class="section-title">Built in</div>
+      <div class="skills" id="builtin"></div>
+    </section>
+
+    <!-- Geocoding -->
+    <section class="page" id="page-geocoding">
+      <h3>Geocoding</h3>
+      <p class="lead">Turning a place name into coordinates. Each lookup asks for your consent first.</p>
+      <div class="radio-cards" id="geo">
+        <div class="radio-card"><div class="radio"></div><div><b>Disabled</b><span>Geocoding stays unavailable until you select a service.</span></div></div>
+        <div class="radio-card on"><div class="radio"></div><div><b>Photon demo <span class="badge warn">fair use</span></b><span>Free public demo by Komoot. Light, occasional use only.</span></div></div>
+        <div class="radio-card"><div class="radio"></div><div style="flex:1"><b>Custom Nominatim</b><span>A public HTTPS Nominatim-compatible service whose operator permits your use.</span>
+          <div class="extra"><div class="field"><input class="mono" placeholder="https://nominatim.example.org"></div></div></div></div>
+      </div>
+    </section>
+
+    <!-- Advanced -->
+    <section class="page" id="page-advanced">
+      <h3>Advanced</h3>
+      <p class="lead">Limits and protocol details. The defaults suit almost everyone.</p>
+      <div class="section-title">How the agent works</div>
+      <div class="card">
+        <div class="row">
+          <div class="label"><b>Check the result after applying</b><span>The agent re-reads the project and confirms the changes really landed.</span></div>
+          <button class="toggle on"></button>
+        </div>
+        <div class="row">
+          <div class="label"><b>Token budget per run</b><span>The run stops politely once it has spent this many tokens.</span></div>
+          <div class="control" style="flex-direction:column;align-items:flex-end;gap:6px">
+            <div class="chips" id="budget"><button class="chip">100k</button><button class="chip on">300k</button><button class="chip">1M</button><button class="chip">No limit</button></div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="label"><b>Extended thinking budget</b><span>Tokens a reasoning model may think before answering. 0 turns it off.</span></div>
+          <div class="control"><div class="field" style="width:140px"><input class="mono" value="0"><span class="suffix">tokens</span></div></div>
+        </div>
+      </div>
+      <div class="section-title">Talking to the provider</div>
+      <div class="card">
+        <div class="row">
+          <div class="label"><b>API format</b><span>auto picks it from the address: api.anthropic.com is Anthropic, everything else is OpenAI.</span></div>
+          <div class="control"><div class="seg"><button class="on">auto</button><button>OpenAI</button><button>Anthropic</button></div></div>
+        </div>
+        <div class="row">
+          <div class="label"><b>Authorisation type</b><span>Bearer suits almost everyone; OAuth is for corporate gateways.</span></div>
+          <div class="control"><div class="seg"><button class="on">Bearer</button><button>OAuth</button></div></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <div class="note" id="note">All changes saved</div>
+      <button class="btn ghost">Cancel</button>
+      <button class="btn primary" id="save" disabled>Save</button>
+    </footer>
+  </div>
+
+  <section class="caption">
+    <h2>Composer</h2>
+    <p>The text field at the bottom of the dock, in each state. The first one is live: type, use <kbd>/</kbd> or <kbd>@</kbd>.</p>
+  </section>
+
+  <div class="states">
+    <div class="state">
+      <h4>Idle — live</h4>
+      <div class="dock"><div class="stub"></div>
+        <div class="composer" id="live">
+          <div class="text" contenteditable="true" data-placeholder="Ask about the project…"></div>
+          <div class="bar">
+            <div class="hint"><kbd>/</kbd><span>skill</span><kbd>@</kbd><span>layer</span></div>
+            <button class="send" id="live-send" disabled title="Send"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="state">
+      <h4>Focused, with a skill and a layer <span class="badge accent">new: highlighted tokens</span></h4>
+      <div class="dock"><div class="stub"></div>
+        <div class="composer focus">
+          <div class="text"><span class="token-skill">/style</span> colour <span class="token-layer">@districts</span> by pop2020 in 5 classes, light to dark</div>
+          <div class="bar">
+            <div class="hint"><kbd>Enter</kbd><span>send</span><kbd>⇧ Enter</kbd><span>new line</span></div>
+            <button class="send" title="Send"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="state">
+      <h4>Skill picker after <kbd>/</kbd></h4>
+      <div class="dock with-popup">
+        <div class="popup">
+          <div class="item on"><div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18M3 12h18"/></svg></div><div class="t"><b>/osm</b><span>OpenStreetMap data through Overpass</span></div></div>
+          <div class="item"><div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9c0-1.7-1.3-2-2.5-2H16a2 2 0 0 1-2-2V7.5C14 5 13 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/></svg></div><div class="t"><b>/style</b><span>Vector and raster styling, labels</span></div></div>
+          <div class="item"><div class="ic"><svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/></svg></div><div class="t"><b>/house-style</b> <span class="badge" style="display:inline-flex">local</span><span>Load when styling maps for our team.</span></div></div>
+          <div class="foot2"><span><kbd>↑</kbd> <kbd>↓</kbd> choose</span><span><kbd>Tab</kbd> insert</span><span><kbd>Esc</kbd> close</span></div>
+        </div>
+        <div class="composer focus">
+          <div class="text">/s</div>
+          <div class="bar"><div class="hint"><span>Pick a skill</span></div>
+            <button class="send" title="Send"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="state">
+      <h4>Layer picker after <kbd>@</kbd></h4>
+      <div class="dock with-popup">
+        <div class="popup">
+          <div class="item on"><div class="ic"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4-8 4z"/><path d="M4 12l8 4 8-4M4 16l8 4 8-4"/></svg></div><div class="t"><b>@districts</b><span>polygon · EPSG:4326 · 6 features</span></div></div>
+          <div class="item"><div class="ic"><svg viewBox="0 0 24 24"><path d="M3 17c4-1 5-9 9-9s5 6 9 5"/></svg></div><div class="t"><b>@Main rivers</b><span>line · EPSG:4326 · 1 feature</span></div></div>
+          <div class="foot2"><span><kbd>↑</kbd> <kbd>↓</kbd> choose</span><span><kbd>Tab</kbd> insert</span><span><kbd>Esc</kbd> close</span></div>
+        </div>
+        <div class="composer focus">
+          <div class="text">colour @</div>
+          <div class="bar"><div class="hint"><span>Pick a layer</span></div>
+            <button class="send" title="Send"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="state">
+      <h4>Working — typing corrects the agent <span class="badge accent">new: Esc stops, progress line</span></h4>
+      <div class="dock"><div class="stub"></div>
+        <div class="working"><div class="pulse"></div>Reading layer “districts”… <span style="color:var(--text-3)">· 3 steps · 4.1k tokens</span></div>
+        <div class="composer busy">
+          <div class="text" data-placeholder="Type to correct me…"></div>
+          <div class="bar"><div class="hint"><kbd>Esc</kbd><span>stop</span></div>
+            <button class="send stop" title="Stop"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg></button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="state">
+      <h4>Not configured yet <span class="badge accent">new</span></h4>
+      <div class="dock"><div class="stub"></div>
+        <div class="composer" style="background:var(--surface-2)">
+          <div class="text" data-placeholder="Connect a model to start"></div>
+          <div class="bar"><div class="hint"><span>No model connected</span></div>
+            <button class="btn sm primary">Open settings</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+$$("#theme button").forEach(b => b.onclick = () => {
+  $$("#theme button").forEach(x => x.classList.toggle("on", x === b));
+  document.body.dataset.theme = b.dataset.v;
+});
+
+const PROVIDERS = [
+  ["Ollama", "local", "#1d1d1b", "http://localhost:11434/v1", "qwen3", true],
+  ["LM Studio", "local", "#4b4bd6", "http://localhost:1234/v1", "a name from LM Studio", true],
+  ["OpenAI", "cloud", "#10a37f", "https://api.openai.com/v1", "gpt-4o-mini", false],
+  ["Anthropic", "cloud", "#c96442", "https://api.anthropic.com/v1", "claude-sonnet-5", false],
+  ["OpenRouter", "cloud", "#6466f1", "https://openrouter.ai/api/v1", "vendor/model", false],
+  ["DeepSeek", "cloud", "#4d6bfe", "https://api.deepseek.com/v1", "deepseek-v4-pro", false],
+  ["Google Gemini", "cloud", "#1a73e8", "https://generativelanguage.googleapis.com/v1beta/openai", "gemini-2.5-flash", false],
+  ["Custom", "any OpenAI-compatible", "#8b8b85", "", "", false],
+];
+const grid = $("#providers");
+PROVIDERS.forEach(([name, kind, color, url, model, local], i) => {
+  const t = document.createElement("div");
+  t.className = "tile" + (i === 0 ? " on" : "");
+  t.innerHTML = `<div class="mono-logo" style="background:${color}">${name.split(" ").map(w => w[0]).join("").slice(0, 2)}</div>
+    <div class="t"><b>${name}</b><span>${local ? '<span class="badge ok" style="padding:0 5px">local · no key</span>' : kind}</span></div>`;
+  t.onclick = () => {
+    $$(".tile", grid).forEach(x => x.classList.toggle("on", x === t));
+    $("#url").value = url; $("#model").value = local ? model : model;
+    $("#key").placeholder = local ? "Not required" : "Provider key";
+    $("#key-hint").textContent = local ? "A local server needs no key — leave this empty." : "Stored encrypted in the QGIS authentication database.";
+    $("#light").className = "light idle";
+    $("#status-title").textContent = "Not tested yet · " + name;
+    $("#caps").innerHTML = '<span class="badge">press Test to check tools, streaming and images</span>';
+    $("#test").innerHTML = "Test connection";
+    dirty("connection");
+  };
+  grid.appendChild(t);
+});
+
+$("#test").onclick = () => {
+  $("#test").textContent = "Testing…";
+  setTimeout(() => {
+    $("#light").className = "light";
+    const name = $(".tile.on b").textContent;
+    $("#status-title").textContent = `Connected to ${name} · ${$("#model").value}`;
+    $("#caps").innerHTML = '<span class="badge ok">tools</span><span class="badge ok">streaming</span><span class="badge">no images</span><span class="badge">720 ms</span>';
+    $("#test").textContent = "Test again";
+  }, 900);
+};
+$("#eye").onclick = () => { const k = $("#key"); k.type = k.type === "password" ? "text" : "password"; };
+
+const SKILLS = [
+  ["inspect", "Read the project, selection, render the map"], ["project", "Layers, basemaps, services, bookmarks, undo"],
+  ["style", "Vector and raster styling, labels"], ["processing", "Processing algorithms"],
+  ["osm", "OpenStreetMap data through Overpass"], ["edit", "Attribute edits and deletion"],
+  ["fields", "Attribute schema and virtual fields"], ["layout", "Print layouts and export"],
+  ["python", "Run Python against the QGIS API"], ["web", "Search, read pages, geocode"],
+  ["annotations", "Map notes and markers"], ["three_d", "Open a 3D map view"],
+];
+$("#builtin").innerHTML = SKILLS.map(([n, d]) => `<div class="skill"><b>${n}</b><span>${d}</span></div>`).join("");
+
+function dirty(page) {
+  const nav = $(`.nav[data-page="${page}"]`);
+  if (!$(".dot", nav)) nav.insertAdjacentHTML("beforeend", '<span class="dot"></span>');
+  $("#save").disabled = false;
+  $("#note").innerHTML = '<span class="d"></span>Unsaved changes';
+}
+$$(".nav").forEach(n => n.onclick = () => {
+  $$(".nav").forEach(x => x.classList.toggle("on", x === n));
+  $$(".page").forEach(p => p.classList.toggle("on", p.id === "page-" + n.dataset.page));
+});
+$$(".toggle").forEach(t => t.onclick = () => { t.classList.toggle("on"); dirty(t.closest(".page").id.slice(5)); });
+$$("#budget .chip").forEach(c => c.onclick = () => { $$("#budget .chip").forEach(x => x.classList.toggle("on", x === c)); dirty("advanced"); });
+$$(".seg:not(#theme)").forEach(s => $$("button", s).forEach(b => b.onclick = () => { $$("button", s).forEach(x => x.classList.toggle("on", x === b)); dirty("advanced"); }));
+$$("#geo .radio-card").forEach(c => c.onclick = () => { $$("#geo .radio-card").forEach(x => x.classList.toggle("on", x === c)); dirty("geocoding"); });
+$$("#url, #model, #key").forEach(i => i.oninput = () => dirty("connection"));
+$("#save").onclick = () => {
+  $$(".nav .dot").forEach(d => d.remove());
+  $("#save").disabled = true;
+  $("#note").textContent = "Saved";
+};
+
+const live = $("#live"), text = $(".text", live), send = $("#live-send");
+text.addEventListener("focus", () => live.classList.add("focus"));
+text.addEventListener("blur", () => live.classList.remove("focus"));
+text.addEventListener("input", () => { send.disabled = !text.textContent.trim(); });
+text.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); text.textContent = ""; send.disabled = true; } });
+</script>
+</body>
+</html>
