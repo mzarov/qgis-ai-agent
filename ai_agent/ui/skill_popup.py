@@ -179,10 +179,10 @@ class SkillPopup(QFrame):
         line.setSpacing(5)
         for keys, word in ((("↑", "↓"), KEY_CHOOSE), (("Tab",), KEY_INSERT), (("Esc",), KEY_CLOSE)):
             for key in keys:
-                line.addWidget(controls.keycap(key, self._palette))
+                line.addWidget(controls.keycap(key, self._palette), 0, Qt.AlignmentFlag.AlignVCenter)
             label = controls.small(word, self._palette)
             label.setWordWrap(False)
-            line.addWidget(label)
+            line.addWidget(label, 0, Qt.AlignmentFlag.AlignVCenter)
             line.addSpacing(8)
         line.addStretch(1)
         return footer

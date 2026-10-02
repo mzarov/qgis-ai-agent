@@ -101,7 +101,7 @@
  },
  {
   "depth": 6,
-  "type": "QLabel",
+  "type": "KeyCap",
   "text": "Enter"
  },
  {
@@ -111,7 +111,7 @@
  },
  {
   "depth": 6,
-  "type": "QLabel",
+  "type": "KeyCap",
   "text": "⇧ Enter"
  },
  {

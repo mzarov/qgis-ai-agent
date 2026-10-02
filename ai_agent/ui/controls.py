@@ -34,6 +34,11 @@ CHIP_HEIGHT = 26
 CHIP_RADIUS = CHIP_HEIGHT // 2
 BADGE_RADIUS = 8
 KEY_RADIUS = 4
+KEY_SCALE = 0.8
+KEY_PADDING = 5
+KEY_MIN_WIDTH = 18
+KEY_EXTRA_HEIGHT = 4
+KEY_EDGE_TINT = 0.35
 RADIO_SIZE = 16
 RADIO_DOT = 8
 SMALL_SCALE = 0.85
@@ -341,20 +346,45 @@ def paint_badge(label: QLabel, kind: str, palette: Any) -> None:
     )
 
 
+class KeyCap(QLabel):
+    """A keyboard key drawn by hand: a rounded outline, a slightly heavier bottom edge, the glyph centred.
+
+    Style sheets cannot do this reliably: a thicker bottom border shifts the text off centre, and a
+    hairline border all but disappears on a dark palette.
+    """
+
+    def __init__(self, text: str, palette: Any, parent: QWidget | None = None):
+        super().__init__(text, parent)
+        self._palette = palette
+        font = self.font()
+        font.setPointSizeF(max(1.0, font.pointSizeF() * KEY_SCALE))
+        self.setFont(font)
+        metrics = self.fontMetrics()
+        self.setFixedSize(
+            max(KEY_MIN_WIDTH, metrics.horizontalAdvance(text) + 2 * KEY_PADDING), metrics.height() + KEY_EXTRA_HEIGHT
+        )
+
+    def paintEvent(self, _event: Any) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        edge = style.blend(style.muted(self._palette), style.surface(self._palette), KEY_EDGE_TINT)
+        body = QRectF(0.5, 0.5, self.width() - 1.0, self.height() - 2.0)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(edge)
+        painter.drawRoundedRect(body.translated(0, 1.0), KEY_RADIUS, KEY_RADIUS)
+        painter.setBrush(style.panel(self._palette))
+        pen = QPen(edge)
+        pen.setWidthF(1.0)
+        painter.setPen(pen)
+        painter.drawRoundedRect(body, KEY_RADIUS, KEY_RADIUS)
+        painter.setPen(style.muted(self._palette))
+        painter.drawText(body, int(Qt.AlignmentFlag.AlignCenter), self.text())
+        painter.end()
+
+
 def keycap(text: str, palette: Any) -> QLabel:
     """A keyboard key as a hint: Enter, Esc, /, @."""
-    label = QLabel(text)
-    font = label.font()
-    font.setPointSizeF(max(1.0, font.pointSizeF() * 0.78))
-    label.setFont(font)
-    label.setStyleSheet(
-        f"QLabel {{ color: {style.css_color(style.muted(palette))};"
-        f"background: {style.css_color(style.panel(palette))};"
-        f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
-        f"border-bottom-width: 2px; border-radius: {KEY_RADIUS}px; padding: 0px 5px; }}"
-    )
-    label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-    return label
+    return KeyCap(text, palette)
 
 
 class ElidedLabel(QLabel):

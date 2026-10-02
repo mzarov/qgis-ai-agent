@@ -172,7 +172,7 @@
  },
  {
   "depth": 6,
-  "type": "QLabel",
+  "type": "KeyCap",
   "text": "/"
  },
  {
@@ -182,7 +182,7 @@
  },
  {
   "depth": 6,
-  "type": "QLabel",
+  "type": "KeyCap",
   "text": "@"
  },
  {

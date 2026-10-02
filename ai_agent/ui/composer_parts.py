@@ -158,7 +158,7 @@ class HintBar(QWidget):
 
     def _add(self, widget: QWidget) -> None:
         # Insert before the trailing stretch so the hints hug the left edge.
-        self._line.insertWidget(len(self._parts), widget)
+        self._line.insertWidget(len(self._parts), widget, 0, Qt.AlignmentFlag.AlignVCenter)
         self._parts.append(widget)
 
     def _clear(self) -> None:

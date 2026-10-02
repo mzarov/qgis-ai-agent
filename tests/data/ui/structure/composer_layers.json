@@ -121,12 +121,12 @@
  },
  {
   "depth": 4,
-  "type": "QLabel",
+  "type": "KeyCap",
   "text": "↑"
  },
  {
   "depth": 4,
-  "type": "QLabel",
+  "type": "KeyCap",
   "text": "↓"
  },
  {
@@ -136,7 +136,7 @@
  },
  {
   "depth": 4,
-  "type": "QLabel",
+  "type": "KeyCap",
   "text": "Tab"
  },
  {
@@ -146,7 +146,7 @@
  },
  {
   "depth": 4,
-  "type": "QLabel",
+  "type": "KeyCap",
   "text": "Esc"
  },
  {
