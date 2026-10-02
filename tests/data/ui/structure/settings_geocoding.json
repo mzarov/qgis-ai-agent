@@ -1,0 +1,68 @@
+[
+ {
+  "depth": 0,
+  "type": "SettingsDialog"
+ },
+ {
+  "depth": 1,
+  "type": "QWidget"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Connection",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Privacy",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Skills",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Geocoding",
+  "checked": true
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Advanced",
+  "checked": false
+ },
+ {
+  "depth": 1,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 1,
+  "type": "QStackedWidget"
+ },
+ {
+  "depth": 2,
+  "type": "QScrollArea"
+ },
+ {
+  "depth": 1,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 1,
+  "type": "QPushButton",
+  "text": "Close"
+ },
+ {
+  "depth": 1,
+  "type": "QPushButton",
+  "text": "Save"
+ }
+]

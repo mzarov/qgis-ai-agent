@@ -1,0 +1,169 @@
+[
+ {
+  "depth": 0,
+  "type": "AgentDockWidget"
+ },
+ {
+  "depth": 1,
+  "type": "QAbstractButton"
+ },
+ {
+  "depth": 1,
+  "type": "QAbstractButton"
+ },
+ {
+  "depth": 1,
+  "type": "QWidget"
+ },
+ {
+  "depth": 2,
+  "type": "QWidget"
+ },
+ {
+  "depth": 3,
+  "type": "QLabel",
+  "text": "AI Agent"
+ },
+ {
+  "depth": 3,
+  "type": "QLabel"
+ },
+ {
+  "depth": 3,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 3,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 3,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 2,
+  "type": "ConversationView"
+ },
+ {
+  "depth": 2,
+  "type": "QWidget"
+ },
+ {
+  "depth": 3,
+  "type": "Composer"
+ },
+ {
+  "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
+  "type": "PromptEdit",
+  "text": "/s"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "↑↓ to choose a skill, Tab or Enter to insert, Esc to dismiss"
+ },
+ {
+  "depth": 5,
+  "type": "QPushButton",
+  "text": "↑"
+ },
+ {
+  "depth": 2,
+  "type": "SkillPopup",
+  "name": "skillPopup"
+ },
+ {
+  "depth": 3,
+  "type": "SkillRow",
+  "name": "skillRow"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "/style"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "Change or inspect how a layer looks — single symbol, colours by category or graduated classes, feature labels, opacity, "
+ },
+ {
+  "depth": 3,
+  "type": "SkillRow",
+  "name": "skillRow"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "/annotations"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "One-off notes and markers drawn on top of the map at a coordinate — not attribute labels (those are style). Load this fo"
+ },
+ {
+  "depth": 3,
+  "type": "SkillRow",
+  "name": "skillRow"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "/fields"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "Change a layer's columns — add a real or a virtual (expression) field, rename, delete. Load this when the request is abo"
+ },
+ {
+  "depth": 3,
+  "type": "SkillRow",
+  "name": "skillRow"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "/inspect"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "Facts about the open project — layers, fields and their values, counts, lengths and areas via expressions, the user's se"
+ },
+ {
+  "depth": 3,
+  "type": "SkillRow",
+  "name": "skillRow"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "/osm"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "Fetch OpenStreetMap data through Overpass into new layers — roads, buildings, POIs, water, land use, anything by OSM tag"
+ },
+ {
+  "depth": 3,
+  "type": "SkillRow",
+  "name": "skillRow"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "/processing"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "Geoprocessing and analysis — buffer, clip, intersect, dissolve, join, reproject, field calculator, heatmap, clustering, "
+ }
+]

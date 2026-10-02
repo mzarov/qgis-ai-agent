@@ -70,12 +70,40 @@ jobs:
       - uses: actions/checkout@v4
       - name: Installed-package smoke test in QGIS 4
         run: python3 tests/real_qgis_smoke.py
-      - name: Real QGIS workflows and scripted-model end-to-end scenarios
+      - name: Real QGIS workflows, end-to-end scenarios and screen structure
         run: python3 tests/real_qgis_workflows.py
+      - name: Screen structure in Russian
+        run: UI_LOCALE=ru python3 tests/real_qgis_workflows.py real_qgis_visual
       - name: Upload end-to-end screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: e2e-screens-${{ matrix.qgis_image }}
           path: build/e2e
+          if-no-files-found: ignore
+
+  ui-pixels:
+    # Pixel goldens are only valid for one font stack, so this job runs on one
+    # QGIS image pinned by digest. After an intended UI change, or a new pin,
+    # copy the ui-actual images of the artifact into tests/data/ui/pixels.
+    runs-on: ubuntu-latest
+    container:
+      image: qgis/qgis@sha256:23c12670e69909e8659a5c098aa307996735a5763b9ff9c3268bdeeee1a10916  # 4.0-trixie
+    env:
+      QT_QPA_PLATFORM: offscreen
+      E2E_ARTIFACTS: build/ui
+      UI_PIXEL_BASELINE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Screens against pixel goldens
+        run: python3 tests/real_qgis_workflows.py real_qgis_visual
+      - name: Screens against pixel goldens, Russian
+        if: always()
+        run: UI_LOCALE=ru python3 tests/real_qgis_workflows.py real_qgis_visual
+      - name: Upload screens, diffs and candidates
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-pixels
+          path: build/ui
           if-no-files-found: ignore

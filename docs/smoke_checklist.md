@@ -32,6 +32,40 @@ QT_QPA_PLATFORM=offscreen python3 tests/real_qgis_workflows.py
 
 A scripted model proves the plugin's plumbing, not the model's judgement.
 
+## Screen checks
+
+`tests/real_qgis_visual.py` builds the plugin's screens without a model (the
+dock empty and with a conversation, wide and narrow, the `/` and `@` popups,
+every settings page) and checks each one three ways:
+
+- **Structure.** Every visible widget with its type, name, text and state is
+  compared with a JSON golden in `tests/data/ui/structure`. It does not depend
+  on fonts, so it runs on every platform and catches a missing, renamed,
+  hidden or disabled control.
+- **Layout faults.** Text wider than its label or button, wrapped text cut at
+  the bottom, content wider than its scroll area. Computed, no golden needed.
+- **Pixels.** In the `ui-pixels` CI job only, on one QGIS image pinned by
+  digest, each screenshot is compared with a PNG golden in
+  `tests/data/ui/pixels`. A mismatch attaches the new image and a diff with
+  the changed pixels in red.
+
+Both languages are checked for layout faults and pixels: `UI_LOCALE=ru`
+switches the run to Russian, whose strings are longer and clip first. The
+structure golden is English only; translations are checked by
+`tests/test_i18n.py`. Every CI run attaches a gallery page,
+`index.html`, with all screenshots.
+
+After an intended UI change:
+
+```bash
+UI_UPDATE_GOLDENS=1 QT_QPA_PLATFORM=offscreen python3 tests/real_qgis_workflows.py real_qgis_visual
+```
+
+That rewrites the structure goldens; review the JSON diff before committing.
+Pixel goldens never come from a local machine: download the `ui-pixels`
+artifact of the failed run and copy its `ui-actual` images into
+`tests/data/ui/pixels`.
+
 ## Live-model scenarios
 
 `tests/real_qgis_live.py` gives a real model ordinary work: a graduated
