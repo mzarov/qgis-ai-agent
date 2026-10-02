@@ -87,17 +87,37 @@
  },
  {
   "depth": 4,
-  "type": "QWidget"
+  "type": "QFrame",
+  "name": "composerFrame"
  },
  {
   "depth": 5,
   "type": "PromptEdit",
-  "text": "Ask about the project; / picks a skill, @ picks a layer"
+  "text": "Ask about the project…"
  },
  {
   "depth": 5,
+  "type": "HintBar"
+ },
+ {
+  "depth": 6,
   "type": "QLabel",
-  "text": "Enter to send, Shift+Enter for a new line"
+  "text": "/"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "skill"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "@"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "layer"
  },
  {
   "depth": 5,

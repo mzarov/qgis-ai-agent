@@ -55,27 +55,17 @@
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "Ask in plain language"
+  "text": "One step before we start"
  },
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "The agent reads the project itself. Nothing changes until you press Apply."
+  "text": "The agent talks to a language model of your choice, so it needs an address and a key — or nothing at all if you run a lo"
  },
  {
   "depth": 5,
   "type": "QPushButton",
-  "text": "What layers do I have and what is in them?"
- },
- {
-  "depth": 5,
-  "type": "QPushButton",
-  "text": "Colour the layer by its type and label the features"
- },
- {
-  "depth": 5,
-  "type": "QPushButton",
-  "text": "Download the cafes in Tver from OpenStreetMap"
+  "text": "Open settings"
  },
  {
   "depth": 2,
@@ -93,7 +83,7 @@
  {
   "depth": 5,
   "type": "PromptEdit",
-  "text": "Ask about the project…"
+  "text": "Connect a model to start"
  },
  {
   "depth": 5,
@@ -102,26 +92,6 @@
  {
   "depth": 6,
   "type": "QLabel",
-  "text": "/"
- },
- {
-  "depth": 6,
-  "type": "QLabel",
-  "text": "skill"
- },
- {
-  "depth": 6,
-  "type": "QLabel",
-  "text": "@"
- },
- {
-  "depth": 6,
-  "type": "QLabel",
-  "text": "layer"
- },
- {
-  "depth": 5,
-  "type": "QPushButton",
-  "text": "↑"
+  "text": "No model connected"
  }
 ]

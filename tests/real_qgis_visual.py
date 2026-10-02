@@ -48,6 +48,8 @@ PLAN = [
     "Labeling 'districts' with 'name'.",
 ]
 CHECKING = "Checking the applied changes…"
+STEP = "Reading layer 'districts'"
+TOKENS = "/style colour @districts by pop2020 in 5 classes"
 DONE = "Done: %n step(s) applied.{0}"
 
 
@@ -68,6 +70,9 @@ class ScreenCase(PluginCase):
         if LOCALE:
             # The previous test's unload removed the translator; strings built at runtime need it back.
             i18n.install(os.path.dirname(os.path.abspath(ai_agent.__file__)))
+        ui_snapshot.EXTRA_VOLATILE[:] = ui_snapshot.duration_patterns(
+            [i18n.tr("{0} min {1} s"), i18n.tr("{0} ms"), i18n.tr("{0} s")]
+        )
         super().setUp()
         QApplication.setCursorFlashTime(0)
         self.faults: list[str] = []
@@ -119,6 +124,26 @@ class DockScreens(ScreenCase):
         self.conversation()
         self.check("dock_narrow", self.dock)
         self.iface.window.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
+
+
+class StateScreens(ScreenCase):
+    def test_working(self) -> None:
+        self.dock.add_user_message(REQUEST)
+        self.dock.set_busy(True)
+        self.dock.add_tool_message(STEP)
+        self.dock.progress._timer.stop()
+        try:
+            self.check("dock_working", self.dock)
+        finally:
+            self.dock.set_busy(False)
+
+    def test_no_model_connected(self) -> None:
+        self.dock.set_configured(False)
+        self.check("dock_offline", self.dock)
+
+    def test_tokens_are_highlighted(self) -> None:
+        self.dock.composer._edit.setPlainText(TOKENS)
+        self.check("composer_tokens", self.dock)
 
 
 class ComposerScreens(ScreenCase):

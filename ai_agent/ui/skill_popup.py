@@ -4,13 +4,21 @@ from qgis.PyQt.QtCore import QPoint, Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from ai_agent.i18n import tr
-from ai_agent.ui import style
+from ai_agent.ui import controls, icons, style
 
 MAX_ROWS = 8
 POPUP_NAME = "skillPopup"
 ROW_NAME = "skillRow"
-POPUP_MARGINS = (4, 4, 4, 4)
-ROW_MARGINS = (10, 5, 10, 5)
+POPUP_MARGINS = (6, 6, 6, 4)
+ROW_MARGINS = (8, 6, 8, 6)
+ICON_TILE = 26
+ICON_SIZE = 15
+ICON_RADIUS = 7
+FOOTER_NAME = "popupFooter"
+LAYER_PREFIX = "@"
+KEY_CHOOSE = tr("choose")
+KEY_INSERT = tr("insert")
+KEY_CLOSE = tr("close")
 ROW_GAP = 10
 GAP_ABOVE_ANCHOR = 6
 SELECTION_TINT = 0.22
@@ -65,6 +73,7 @@ class SkillPopup(QFrame):
         self._column = QVBoxLayout(self)
         self._column.setContentsMargins(*POPUP_MARGINS)
         self._column.setSpacing(0)
+        self._column.addWidget(self._footer())
         self.hide()
 
     def show_matches(
@@ -111,7 +120,7 @@ class SkillPopup(QFrame):
         for name, description, origin in self._matches:
             self._rows.append(self._row(name, description, origin))
         for row in self._rows:
-            self._column.addWidget(row)
+            self._column.insertWidget(self._column.count() - 1, row)
 
     def _wrap(self, widget: QWidget) -> QFrame:
         frame = QFrame()
@@ -128,22 +137,55 @@ class SkillPopup(QFrame):
         line = QHBoxLayout(frame)
         line.setContentsMargins(*ROW_MARGINS)
         line.setSpacing(ROW_GAP)
+        line.addWidget(self._icon_tile())
         title = QLabel(f"{self._prefix}{name}")
         font = title.font()
         font.setBold(True)
         title.setFont(font)
         line.addWidget(title)
         if origin == "local":
-            badge = QLabel(LOCAL_BADGE)
-            badge.setStyleSheet(f"color: {style.css_color(style.accent(self._palette))};")
-            line.addWidget(badge)
-        note = QLabel(description)
+            line.addWidget(controls.badge(LOCAL_BADGE, "accent", self._palette))
+        note = controls.ElidedLabel(description)
         note_font = note.font()
         note_font.setPointSizeF(max(1.0, note_font.pointSizeF() * DESCRIPTION_SCALE))
         note.setFont(note_font)
         note.setStyleSheet(f"color: {style.css_color(style.muted(self._palette))};")
         line.addWidget(note, 1)
         return frame
+
+    def _icon_tile(self) -> QLabel:
+        tile = QLabel()
+        tile.setFixedSize(ICON_TILE, ICON_TILE)
+        tile.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        tile.setStyleSheet(
+            f"QLabel {{ background: {style.css_color(style.card(self._palette))}; border-radius: {ICON_RADIUS}px; }}"
+        )
+        paint = icons.layer if self._prefix == LAYER_PREFIX else icons.skills
+        try:
+            tile.setPixmap(paint(style.muted(self._palette), ICON_SIZE).pixmap(ICON_SIZE, ICON_SIZE))
+        except Exception:
+            tile.setText(self._prefix)
+        return tile
+
+    def _footer(self) -> QFrame:
+        footer = QFrame()
+        footer.setObjectName(FOOTER_NAME)
+        footer.setStyleSheet(
+            f"QFrame#{FOOTER_NAME} {{ border-top: {style.HAIRLINE}px solid"
+            f" {style.css_color(style.hairline(self._palette))}; }}"
+        )
+        line = QHBoxLayout(footer)
+        line.setContentsMargins(8, 6, 8, 2)
+        line.setSpacing(5)
+        for keys, word in ((("↑", "↓"), KEY_CHOOSE), (("Tab",), KEY_INSERT), (("Esc",), KEY_CLOSE)):
+            for key in keys:
+                line.addWidget(controls.keycap(key, self._palette))
+            label = controls.small(word, self._palette)
+            label.setWordWrap(False)
+            line.addWidget(label)
+            line.addSpacing(8)
+        line.addStretch(1)
+        return footer
 
     def _hover(self, name: str) -> None:
         names = [match[0] for match in self._matches]
@@ -160,5 +202,6 @@ class SkillPopup(QFrame):
 
     def _place_above(self, anchor: QWidget) -> None:
         origin = anchor.mapTo(self._host, QPoint(0, 0))
-        self.setFixedWidth(max(anchor.width(), self.sizeHint().width()))
+        # The anchor's width, never the rows' wish: long descriptions elide instead of overflowing the dock.
+        self.setFixedWidth(anchor.width())
         self.move(origin.x(), origin.y() - self.sizeHint().height() - GAP_ABOVE_ANCHOR)

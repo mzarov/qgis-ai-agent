@@ -21,6 +21,7 @@ from ai_agent.i18n import tr
 from ai_agent.ui import icons, style
 from ai_agent.ui.composer import Composer
 from ai_agent.ui.conversation import ConversationView
+from ai_agent.ui.progress import ProgressLine
 
 TITLE = "AI Agent"
 NEW_SESSION_LABEL = tr("New conversation")
@@ -106,6 +107,7 @@ class AgentDockWidget(QDockWidget):
 
     def set_configured(self, configured: bool) -> None:
         self.conversation.set_configured(configured)
+        self.composer.set_configured(configured)
 
     def _build_conversation(self) -> QWidget:
         self.conversation = ConversationView()
@@ -119,6 +121,8 @@ class AgentDockWidget(QDockWidget):
         holder = QWidget()
         layout = QVBoxLayout(holder)
         layout.setContentsMargins(*BODY_MARGINS)
+        self.progress = ProgressLine(self.palette())
+        layout.addWidget(self.progress)
         self.composer = Composer()
         self.composer.submitted.connect(self.prompt_submitted.emit)
         self.composer.stopped.connect(self.stop_clicked.emit)
@@ -191,6 +195,7 @@ class AgentDockWidget(QDockWidget):
         return self.conversation.finish_draft(markdown)
 
     def add_tool_message(self, text: str) -> int:
+        self.progress.step(text)
         return self.conversation.add_activity_step(text)
 
     def add_rejected_message(self, text: str) -> int:
@@ -242,6 +247,10 @@ class AgentDockWidget(QDockWidget):
 
     def set_busy(self, busy: bool) -> None:
         self.composer.set_busy(busy)
+        if busy:
+            self.progress.start()
+        else:
+            self.progress.stop()
 
     def set_usage(self, text: str) -> None:
         self._usage_label.setText(text)

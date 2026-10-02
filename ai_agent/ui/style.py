@@ -9,6 +9,8 @@ ELEVATED_TINT = 0.9
 BORDER_TINT = 0.8
 MUTED_TINT = 0.38
 PANEL_LIFT = 0.11
+SOFT_TINT = 0.14
+SOFT_TINT_DARK = 0.24
 
 
 def blend(first: QColor, second: QColor, ratio: float) -> QColor:
@@ -78,6 +80,17 @@ def text(palette: QPalette) -> QColor:
 
 def muted(palette: QPalette) -> QColor:
     return blend(palette.text().color(), palette.base().color(), MUTED_TINT)
+
+
+def soft(palette: QPalette, colour: QColor) -> QColor:
+    """A pale wash of `colour` over the base: badge, selection and callout fills."""
+    ratio = SOFT_TINT_DARK if is_dark(palette) else SOFT_TINT
+    return blend(palette.base().color(), colour, ratio)
+
+
+def ring(palette: QPalette) -> QColor:
+    """The focus halo around an input: the accent, half way into the base."""
+    return blend(palette.base().color(), accent(palette), 0.45)
 
 
 def css_color(color: QColor) -> str:

@@ -143,10 +143,6 @@ class SidebarSettingsTest(unittest.TestCase):
         self.assertIn("setWidgetResizable(True)", LAYOUT_SOURCE)
         self.assertIn("scrollable(page)", LAYOUT_SOURCE)
 
-    def test_no_page_repeats_its_entry_name_as_a_heading(self):
-        self.assertNotIn('fields.group(tr("Connection")', DIALOG_SOURCE)
-        self.assertNotIn('fields.group(tr("Advanced")', ADVANCED_SOURCE)
-
     def test_consent_controls_live_on_the_privacy_page(self):
         privacy = ADVANCED_SOURCE.split("def build_privacy(")[1].split("\ndef ")[0]
         for control in ("verify_ssl_cb", "journal_cb"):
@@ -157,31 +153,9 @@ class SidebarSettingsTest(unittest.TestCase):
         privacy = ADVANCED_SOURCE.split("def build_privacy(")[1].split("\ndef ")[0]
         self.assertEqual(privacy.count("fields.switch_row("), privacy.count("fields.switch(palette)"))
 
-    def test_descriptions_hide_behind_a_help_mark(self):
-        self.assertIn("def help_mark(", SOURCE)
-        mark = SOURCE.split("def help_mark(")[1].split("\ndef ")[0]
-        self.assertIn("setToolTip(rich_tooltip(note))", mark)
-        caption = SOURCE.split("def _caption(")[1].split("\ndef ")[0]
-        self.assertIn("help_mark(note, palette)", caption)
-        self.assertNotIn("hint(note", caption)
-
-    def test_the_mark_is_a_hover_hint_not_a_button(self):
-        mark = SOURCE.split("def help_mark(")[1].split("\ndef ")[0]
-        self.assertIn('QLabel("?")', mark)
-        self.assertNotIn("clicked", mark)
-        self.assertNotIn("QToolButton", mark)
-
     def test_long_explanations_wrap_instead_of_crossing_the_screen(self):
         body = SOURCE.split("def rich_tooltip(")[1].split("\ndef ")[0]
         self.assertIn("<qt>", body)
-
-    def test_the_mark_hugs_the_text_and_titles_stay_single_line(self):
-        caption = SOURCE.split("def _caption(")[1].split("\ndef ")[0]
-        self.assertIn("line.addStretch(1)", caption)
-        self.assertNotIn("setWordWrap", caption)
-
-    def test_dynamic_geocoder_hint_reaches_the_help_mark(self):
-        self.assertIn("self.url_field.help.setToolTip(fields.rich_tooltip(hint))", GEOCODER_SOURCE)
 
     def test_the_probe_button_lives_on_the_connection_page(self):
         connection = DIALOG_SOURCE.split("def _build_connection(")[1].split("\n    def ")[0]
@@ -224,13 +198,42 @@ class SidebarSettingsTest(unittest.TestCase):
 
     def test_a_row_puts_the_control_opposite_its_label(self):
         body = SOURCE.split("def row(")[1].split("\ndef ")[0]
-        self.assertIn("Qt.AlignmentFlag.AlignRight", body)
         self.assertIn("setFixedWidth(CONTROL_WIDTH)", body)
+        grammar = SOURCE.split("def _row(")[1].split("\ndef ")[0]
+        self.assertIn("Qt.AlignmentFlag.AlignRight", grammar)
+
+    def test_every_row_shows_its_hint_under_the_title(self):
+        grammar = SOURCE.split("def _row(")[1].split("\ndef ")[0]
+        self.assertIn("holder.hint = hint(note, palette)", grammar)
+        self.assertNotIn("def help_mark(", SOURCE)
+
+    def test_hints_wrap_and_long_detail_stays_a_tooltip(self):
+        self.assertIn("label.setWordWrap(True)", SOURCE.split("def hint(")[1])
+        grammar = SOURCE.split("def _row(")[1].split("\ndef ")[0]
+        self.assertIn("caption.setToolTip(rich_tooltip(tooltip))", grammar)
+
+    def test_every_page_opens_with_its_title_and_one_sentence(self):
+        for source in (DIALOG_SOURCE, ADVANCED_SOURCE, GEOCODER_SOURCE):
+            self.assertIn("fields.page_header(", source)
+
+    def test_save_waits_for_an_edit(self):
+        self.assertIn("self.save_btn.setEnabled(False)", DIALOG_SOURCE)
+        dirty = DIALOG_SOURCE.split("def _mark_dirty(")[1].split("\n    def ")[0]
+        self.assertIn("self.save_btn.setEnabled(True)", dirty)
+        self.assertIn("if self._loading_endpoint:", dirty)
+
+    def test_the_preset_combo_stays_the_source_of_truth_for_the_tiles(self):
+        connection = DIALOG_SOURCE.split("def _build_connection(")[1].split("\n    def ")[0]
+        self.assertIn("self.provider_tiles.chosen.connect(self.preset_combo.setCurrentText)", connection)
+        self.assertIn("self.preset_combo.currentTextChanged.connect(self.provider_tiles.select)", connection)
 
     def test_separators_go_between_rows_never_after_the_last(self):
         body = SOURCE.split("def add_rows(")[1].split("\ndef ")[0]
         self.assertIn("if index:", body)
         self.assertIn("separator(palette)", body)
+
+    def test_the_sidebar_shows_which_pages_hold_unsaved_edits(self):
+        self.assertIn("def mark_page(", LAYOUT_SOURCE)
 
     def test_sidebar_and_pages_share_one_surface_split_by_a_line(self):
         self.assertIn("fields.vertical_separator(palette)", LAYOUT_SOURCE)

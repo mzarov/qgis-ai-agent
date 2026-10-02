@@ -9,6 +9,19 @@
  },
  {
   "depth": 2,
+  "type": "QWidget"
+ },
+ {
+  "depth": 3,
+  "type": "QLabel"
+ },
+ {
+  "depth": 3,
+  "type": "QLabel",
+  "text": "AI Agent"
+ },
+ {
+  "depth": 2,
   "type": "QPushButton",
   "text": "Connection",
   "checked": false
@@ -57,7 +70,7 @@
  {
   "depth": 4,
   "type": "QLabel",
-  "text": "Your skills"
+  "text": "Skills"
  },
  {
   "depth": 4,
@@ -67,17 +80,156 @@
  {
   "depth": 4,
   "type": "QLabel",
-  "text": "<profile>/config/profiles/default/ai_agent_skills"
+  "text": "YOUR SKILLS"
  },
  {
   "depth": 4,
+  "type": "QFrame",
+  "name": "skillsPath"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "<profile>/config/profiles/default/ai_agent_skills"
+ },
+ {
+  "depth": 5,
   "type": "QPushButton",
   "text": "Open folder"
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "QPushButton",
   "text": "Create an example"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "BUILT IN"
+ },
+ {
+  "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
+  "type": "QFrame",
+  "name": "skillTile"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "annotations"
+ },
+ {
+  "depth": 5,
+  "type": "QFrame",
+  "name": "skillTile"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "edit"
+ },
+ {
+  "depth": 5,
+  "type": "QFrame",
+  "name": "skillTile"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "fields"
+ },
+ {
+  "depth": 5,
+  "type": "QFrame",
+  "name": "skillTile"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "inspect"
+ },
+ {
+  "depth": 5,
+  "type": "QFrame",
+  "name": "skillTile"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "layout"
+ },
+ {
+  "depth": 5,
+  "type": "QFrame",
+  "name": "skillTile"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "osm"
+ },
+ {
+  "depth": 5,
+  "type": "QFrame",
+  "name": "skillTile"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "processing"
+ },
+ {
+  "depth": 5,
+  "type": "QFrame",
+  "name": "skillTile"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "project"
+ },
+ {
+  "depth": 5,
+  "type": "QFrame",
+  "name": "skillTile"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "python"
+ },
+ {
+  "depth": 5,
+  "type": "QFrame",
+  "name": "skillTile"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "style"
+ },
+ {
+  "depth": 5,
+  "type": "QFrame",
+  "name": "skillTile"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "three_d"
+ },
+ {
+  "depth": 5,
+  "type": "QFrame",
+  "name": "skillTile"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "web"
  },
  {
   "depth": 4,
@@ -95,12 +247,18 @@
  },
  {
   "depth": 1,
-  "type": "QPushButton",
-  "text": "Close"
+  "type": "QLabel",
+  "text": "All changes saved"
  },
  {
   "depth": 1,
   "type": "QPushButton",
-  "text": "Save"
+  "text": "Cancel"
+ },
+ {
+  "depth": 1,
+  "type": "QPushButton",
+  "text": "Save",
+  "enabled": false
  }
 ]

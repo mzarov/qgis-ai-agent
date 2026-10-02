@@ -1,11 +1,19 @@
 from typing import Any
 
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QHBoxLayout, QScrollArea, QWidget
+from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QScrollArea, QWidget
 
 from ai_agent.i18n import tr
-from ai_agent.ui import settings_advanced
+from ai_agent.ui import controls, icons, settings_advanced, style
 from ai_agent.ui import settings_fields as fields
+
+BRAND = "AI Agent"
+BRAND_ICON = 15
+BRAND_TILE = 26
+BRAND_RADIUS = 8
+BRAND_GAP = 8
+DOT_SIZE = 7
+DOT_NAME = "pageDirty"
 
 
 def build_body(owner: Any, palette: Any) -> QHBoxLayout:
@@ -14,18 +22,22 @@ def build_body(owner: Any, palette: Any) -> QHBoxLayout:
     body.setSpacing(0)
     owner.pages = fields.pages()
     nav, nav_column = fields.sidebar()
+    nav.setAutoFillBackground(True)
+    nav.setStyleSheet(f"background: {style.css_color(style.card(palette))};")
+    nav_column.addWidget(_brand(palette))
     owner._nav_buttons = []
     entries = (
-        (tr("Connection"), owner._build_connection(palette)),
-        (tr("Privacy"), settings_advanced.build_privacy(owner, palette)),
-        (tr("Skills"), owner.skills.widget),
-        (tr("Geocoding"), owner.geocoder.widget),
-        (tr("Advanced"), settings_advanced.build_advanced(owner, palette)),
+        (tr("Connection"), icons.connection, owner._build_connection(palette)),
+        (tr("Privacy"), icons.privacy, settings_advanced.build_privacy(owner, palette)),
+        (tr("Skills"), icons.skills, owner.skills.widget),
+        (tr("Geocoding"), icons.geocoding, owner.geocoder.widget),
+        (tr("Advanced"), icons.advanced, settings_advanced.build_advanced(owner, palette)),
     )
-    for index, (title, page) in enumerate(entries):
+    for index, (title, paint, page) in enumerate(entries):
         owner.pages.addWidget(scrollable(page))
-        button = fields.sidebar_button(title, palette)
+        button = fields.sidebar_button(title, palette, _drawn(paint, style.muted(palette)))
         button.clicked.connect(lambda _checked=False, at=index: show_page(owner, at))
+        _add_dot(button, palette)
         nav_column.addWidget(button)
         owner._nav_buttons.append(button)
     nav_column.addStretch(1)
@@ -42,6 +54,12 @@ def show_page(owner: Any, index: int) -> None:
         button.setChecked(at == index)
 
 
+def mark_page(owner: Any, index: int, edited: bool) -> None:
+    """Show or hide the dot that says this page holds unsaved changes."""
+    button = owner._nav_buttons[index]
+    button.findChild(QLabel, DOT_NAME).setVisible(edited)
+
+
 def scrollable(page: QWidget) -> QScrollArea:
     area = QScrollArea()
     area.setWidgetResizable(True)
@@ -52,3 +70,44 @@ def scrollable(page: QWidget) -> QScrollArea:
     area.viewport().setAutoFillBackground(False)
     page.setAutoFillBackground(False)
     return area
+
+
+def _brand(palette: Any) -> QWidget:
+    holder = QWidget()
+    line = QHBoxLayout(holder)
+    line.setContentsMargins(6, 4, 6, 14)
+    line.setSpacing(BRAND_GAP)
+    tile = QLabel()
+    tile.setFixedSize(BRAND_TILE, BRAND_TILE)
+    tile.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    tile.setStyleSheet(
+        f"QLabel {{ background: {style.css_color(style.accent(palette))}; border-radius: {BRAND_RADIUS}px; }}"
+    )
+    icon = _drawn(icons.brand, palette.highlightedText().color())
+    if icon is not None:
+        tile.setPixmap(icon.pixmap(BRAND_ICON, BRAND_ICON))
+    line.addWidget(tile)
+    name = QLabel(BRAND)
+    font = name.font()
+    font.setBold(True)
+    name.setFont(font)
+    line.addWidget(name, 1)
+    return holder
+
+
+def _add_dot(button: QWidget, palette: Any) -> None:
+    line = QHBoxLayout(button)
+    line.setContentsMargins(0, 0, 10, 0)
+    line.addStretch(1)
+    mark = controls.dot(style.warning(palette), DOT_SIZE)
+    mark.setObjectName(DOT_NAME)
+    mark.setVisible(False)
+    line.addWidget(mark, 0, Qt.AlignmentFlag.AlignVCenter)
+
+
+def _drawn(paint: Any, colour: Any) -> Any:
+    try:
+        icon = paint(colour, fields.NAV_ICON)
+    except Exception:
+        return None
+    return None if icon.isNull() else icon

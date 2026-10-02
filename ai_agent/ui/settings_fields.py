@@ -1,7 +1,7 @@
 from typing import Any
 
 from qgis.PyQt.QtCore import QRectF, QSize, Qt
-from qgis.PyQt.QtGui import QPainter
+from qgis.PyQt.QtGui import QFont, QPainter
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -16,32 +16,36 @@ from qgis.PyQt.QtWidgets import (
 
 from ai_agent.ui import style
 
-HINT_SCALE = 0.86
+HINT_SCALE = 0.88
+SECTION_SCALE = 0.8
+TITLE_SCALE = 1.45
 GROUP_SCALE = 1.25
 CARD_NAME = "settingsCard"
 SEPARATOR_NAME = "settingsSeparator"
 INPUT_RADIUS = 6
 INPUT_PADDING = "6px 10px"
-INPUT_MIN_HEIGHT = 18
-CARD_MARGINS = (14, 12, 14, 13)
-CARD_SPACING = 11
-FIELD_SPACING = 3
-PAGE_MARGINS = (28, 22, 28, 24)
-PAGE_SPACING = 8
+INPUT_MIN_HEIGHT = 20
+FIELD_SPACING = 2
+PAGE_MARGINS = (32, 24, 32, 24)
+PAGE_SPACING = 0
+LEAD_GAP = 4
+SECTION_GAP = 22
+SECTION_TO_CARD = 8
 GROUP_GAP = 22
-NAV_WIDTH = 190
-NAV_MARGINS = (12, 14, 8, 14)
+NAV_WIDTH = 210
+NAV_MARGINS = (12, 14, 12, 14)
 NAV_SPACING = 2
 NAV_RADIUS = 7
-NAV_PADDING = "8px 12px"
-ROW_VPAD = 10
-ROW_GAP = 24
-CONTROL_WIDTH = 320
-SWITCH_WIDTH = 40
+NAV_PADDING = "7px 10px"
+NAV_ICON = 16
+ROW_PADDING = (16, 12, 16, 12)
+ROW_MIN_HEIGHT = 56
+ROW_GAP = 16
+CONTROL_WIDTH = 300
+SWITCH_WIDTH = 38
 SWITCH_HEIGHT = 22
 SWITCH_KNOB_MARGIN = 3
-HELP_SIZE = 16
-HELP_GAP = 6
+BUTTON_RADIUS = 6
 
 
 class Switch(QCheckBox):
@@ -87,9 +91,16 @@ def card(palette: Any) -> tuple[QFrame, QVBoxLayout]:
         f"border-radius: {style.CARD_RADIUS}px; }}"
     )
     column = QVBoxLayout(frame)
-    column.setContentsMargins(*CARD_MARGINS)
-    column.setSpacing(CARD_SPACING)
+    column.setContentsMargins(0, 0, 0, 0)
+    column.setSpacing(0)
     return frame, column
+
+
+def card_rows(palette: Any, rows: list[QWidget]) -> QFrame:
+    """One card holding `rows`, a hairline between neighbours and none after the last."""
+    frame, column = card(palette)
+    add_rows(column, palette, rows)
+    return frame
 
 
 def sidebar() -> tuple[QWidget, QVBoxLayout]:
@@ -101,20 +112,24 @@ def sidebar() -> tuple[QWidget, QVBoxLayout]:
     return holder, column
 
 
-def sidebar_button(title: str, palette: Any) -> QPushButton:
+def sidebar_button(title: str, palette: Any, icon: Any = None) -> QPushButton:
     button = QPushButton(title)
     button.setCheckable(True)
     button.setCursor(Qt.CursorShape.PointingHandCursor)
+    if icon is not None:
+        button.setIcon(icon)
+        button.setIconSize(QSize(NAV_ICON, NAV_ICON))
     button.setStyleSheet(
         "QPushButton {"
         f"background: transparent; color: {style.css_color(style.muted(palette))};"
         f"border: {style.HAIRLINE}px solid transparent; border-radius: {NAV_RADIUS}px;"
         f"padding: {NAV_PADDING}; text-align: left; }}"
         "QPushButton:hover:!checked {"
-        f"background: {style.css_color(style.panel(palette))};"
+        f"background: {style.css_color(style.card(palette))};"
         f"color: {style.css_color(style.text(palette))}; }}"
         "QPushButton:checked {"
         f"background: {style.css_color(style.panel(palette))};"
+        f"border-color: {style.css_color(style.hairline(palette))};"
         f"color: {style.css_color(style.text(palette))}; font-weight: 600; }}"
     )
     return button
@@ -150,30 +165,75 @@ def group(title: str, palette: Any) -> QLabel:
     return label
 
 
-def row(title: str, widget: QWidget, note: str, palette: Any) -> QWidget:
-    holder = QWidget()
-    line = QHBoxLayout(holder)
-    line.setContentsMargins(0, ROW_VPAD, 0, ROW_VPAD)
-    line.setSpacing(ROW_GAP)
-    caption = _caption(title, note, palette)
-    holder.help = caption.help
-    line.addWidget(caption, 1)
+def page_header(column: QVBoxLayout, title: str, lead: str, palette: Any) -> None:
+    """The page's own title and one muted sentence under it."""
+    heading = QLabel(title)
+    font = heading.font()
+    font.setBold(True)
+    font.setPointSizeF(max(1.0, font.pointSizeF() * TITLE_SCALE))
+    heading.setFont(font)
+    heading.setStyleSheet(f"color: {style.css_color(style.text(palette))};")
+    column.addWidget(heading)
+    if lead:
+        column.addSpacing(LEAD_GAP)
+        column.addWidget(hint(lead, palette))
+
+
+def section(column: QVBoxLayout, title: str, palette: Any) -> None:
+    """A small upper-case caption that opens a group of cards."""
+    column.addSpacing(SECTION_GAP)
+    label = QLabel(title.upper())
+    font = label.font()
+    font.setBold(True)
+    font.setPointSizeF(max(1.0, font.pointSizeF() * SECTION_SCALE))
+    font.setLetterSpacing(QFont.SpacingType.PercentageSpacing, 106)
+    label.setFont(font)
+    label.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
+    column.addWidget(label)
+    column.addSpacing(SECTION_TO_CARD)
+
+
+def row(title: str, widget: QWidget, note: str, palette: Any, tooltip: str = "") -> QWidget:
     widget.setStyleSheet(input_style(palette))
     widget.setFixedWidth(CONTROL_WIDTH)
-    line.addWidget(widget, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-    return holder
+    return _row(title, widget, note, palette, tooltip)
 
 
-def switch_row(title: str, checkbox: QWidget, note: str, palette: Any) -> QWidget:
+def switch_row(title: str, checkbox: QWidget, note: str, palette: Any, tooltip: str = "") -> QWidget:
+    return _row(title, checkbox, note, palette, tooltip)
+
+
+def custom_row(title: str, widget: QWidget, note: str, palette: Any, tooltip: str = "") -> QWidget:
+    """A row whose control styles itself: segmented choices, chips, a field with a suffix."""
+    return _row(title, widget, note, palette, tooltip)
+
+
+def _row(title: str, widget: QWidget, note: str, palette: Any, tooltip: str) -> QWidget:
     holder = QWidget()
+    holder.setMinimumHeight(ROW_MIN_HEIGHT)
     line = QHBoxLayout(holder)
-    line.setContentsMargins(0, ROW_VPAD, 0, ROW_VPAD)
+    line.setContentsMargins(*ROW_PADDING)
     line.setSpacing(ROW_GAP)
-    caption = _caption(title, note, palette)
-    holder.help = caption.help
+    caption = QWidget()
+    text = QVBoxLayout(caption)
+    text.setContentsMargins(0, 0, 0, 0)
+    text.setSpacing(FIELD_SPACING)
+    name = QLabel(title)
+    name.setStyleSheet(f"color: {style.css_color(style.text(palette))};")
+    text.addWidget(name)
+    holder.hint = hint(note, palette)
+    holder.hint.setVisible(bool(note))
+    text.addWidget(holder.hint)
     line.addWidget(caption, 1)
-    line.addWidget(checkbox, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+    line.addWidget(widget, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+    if tooltip:
+        caption.setToolTip(rich_tooltip(tooltip))
     return holder
+
+
+def set_row_hint(holder: QWidget, note: str) -> None:
+    holder.hint.setText(note)
+    holder.hint.setVisible(bool(note))
 
 
 def add_rows(column: QVBoxLayout, palette: Any, rows: list[QWidget]) -> None:
@@ -193,38 +253,6 @@ def separator(palette: Any) -> QFrame:
 
 def rich_tooltip(note: str) -> str:
     return f"<qt>{note}</qt>"
-
-
-def help_mark(note: str, palette: Any) -> QLabel:
-    mark = QLabel("?")
-    mark.setToolTip(rich_tooltip(note))
-    mark.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    mark.setFixedSize(HELP_SIZE, HELP_SIZE)
-    font = mark.font()
-    font.setPointSizeF(max(1.0, font.pointSizeF() * HINT_SCALE))
-    mark.setFont(font)
-    mark.setStyleSheet(
-        "QLabel {"
-        f"color: {style.css_color(style.muted(palette))};"
-        f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
-        f"border-radius: {HELP_SIZE // 2}px; }}"
-        f"QLabel:hover {{ color: {style.css_color(style.text(palette))};"
-        f"border-color: {style.css_color(style.muted(palette))}; }}"
-    )
-    return mark
-
-
-def _caption(title: str, note: str, palette: Any) -> QWidget:
-    box = QWidget()
-    line = QHBoxLayout(box)
-    line.setContentsMargins(0, 0, 0, 0)
-    line.setSpacing(HELP_GAP)
-    line.addWidget(QLabel(title))
-    box.help = help_mark(note, palette) if note else None
-    if box.help is not None:
-        line.addWidget(box.help, 0, Qt.AlignmentFlag.AlignVCenter)
-    line.addStretch(1)
-    return box
 
 
 def status(palette: Any) -> QLabel:
@@ -285,6 +313,8 @@ def input_style(palette: Any) -> str:
         f"min-height: {INPUT_MIN_HEIGHT}px; }}"
         "QLineEdit:focus, QComboBox:focus {"
         f"border: {style.HAIRLINE}px solid {style.css_color(style.accent(palette))}; }}"
+        "QLineEdit:disabled, QComboBox:disabled {"
+        f"background: {style.css_color(style.card(palette))}; color: {style.css_color(style.muted(palette))}; }}"
         "QComboBox::drop-down { border: none; width: 24px; }"
         "QComboBox QAbstractItemView {"
         f"background: {style.css_color(style.panel(palette))};"
@@ -299,19 +329,31 @@ def accent_button(palette: Any) -> str:
     return (
         f"QPushButton {{ background: {fill};"
         f"color: {style.css_color(palette.highlightedText().color())};"
-        f"border: {style.HAIRLINE}px solid {fill}; border-radius: 6px;"
-        "padding: 5px 16px; font-weight: 600; }"
+        f"border: {style.HAIRLINE}px solid {fill}; border-radius: {BUTTON_RADIUS}px;"
+        "padding: 6px 18px; font-weight: 600; }"
         f"QPushButton:hover {{ background: {style.css_color(style.accent(palette).lighter(112))}; }}"
+        f"QPushButton:disabled {{ background: {style.css_color(style.soft(palette, style.accent(palette)))};"
+        f"border-color: transparent; color: {style.css_color(style.surface(palette))}; }}"
     )
 
 
 def plain_button(palette: Any) -> str:
     border = style.css_color(style.hairline(palette))
     return (
-        f"QPushButton {{ background: transparent; color: {style.css_color(style.text(palette))};"
-        f"border: {style.HAIRLINE}px solid {border}; border-radius: 6px; padding: 5px 14px; }}"
+        f"QPushButton {{ background: {style.css_color(style.panel(palette))};"
+        f"color: {style.css_color(style.text(palette))};"
+        f"border: {style.HAIRLINE}px solid {border}; border-radius: {BUTTON_RADIUS}px; padding: 6px 14px; }}"
         f"QPushButton:hover {{ background: {style.css_color(style.card(palette))}; }}"
         "QPushButton:disabled { color: palette(mid); }"
+    )
+
+
+def ghost_button(palette: Any) -> str:
+    return (
+        f"QPushButton {{ background: transparent; color: {style.css_color(style.muted(palette))};"
+        f"border: {style.HAIRLINE}px solid transparent; border-radius: {BUTTON_RADIUS}px; padding: 6px 14px; }}"
+        f"QPushButton:hover {{ background: {style.css_color(style.card(palette))};"
+        f"color: {style.css_color(style.text(palette))}; }}"
     )
 
 

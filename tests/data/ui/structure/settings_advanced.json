@@ -9,6 +9,19 @@
  },
  {
   "depth": 2,
+  "type": "QWidget"
+ },
+ {
+  "depth": 3,
+  "type": "QLabel"
+ },
+ {
+  "depth": 3,
+  "type": "QLabel",
+  "text": "AI Agent"
+ },
+ {
+  "depth": 2,
   "type": "QPushButton",
   "text": "Connection",
   "checked": false
@@ -57,11 +70,22 @@
  {
   "depth": 4,
   "type": "QLabel",
-  "text": "How the agent works"
+  "text": "Advanced"
  },
  {
   "depth": 4,
-  "type": "QWidget"
+  "type": "QLabel",
+  "text": "Limits and protocol details. The defaults suit almost everyone."
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "HOW THE AGENT WORKS"
+ },
+ {
+  "depth": 4,
+  "type": "QFrame",
+  "name": "settingsCard"
  },
  {
   "depth": 5,
@@ -69,27 +93,27 @@
  },
  {
   "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
   "type": "QLabel",
   "text": "Check the result after applying changes"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
-  "text": "?"
+  "text": "After you press Apply, the agent re-reads the project and confirms the changes really landed."
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "Switch",
   "checked": true
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "QFrame",
   "name": "settingsSeparator"
- },
- {
-  "depth": 4,
-  "type": "QWidget"
  },
  {
   "depth": 5,
@@ -97,55 +121,92 @@
  },
  {
   "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
   "type": "QLabel",
   "text": "Token budget per run"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
-  "text": "?"
+  "text": "The run stops politely once it has spent this many tokens. 0 removes the limit."
  },
  {
-  "depth": 5,
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "Chips"
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "100k",
+  "checked": false
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "300k",
+  "checked": true
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "1M",
+  "checked": false
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "No limit",
+  "checked": false
+ },
+ {
+  "depth": 7,
   "type": "QLineEdit",
   "text": "300000"
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "QFrame",
   "name": "settingsSeparator"
  },
  {
-  "depth": 4,
-  "type": "QWidget"
- },
- {
   "depth": 5,
   "type": "QWidget"
  },
  {
   "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
   "type": "QLabel",
   "text": "Extended thinking budget"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
-  "text": "?"
+  "text": "Anthropic only. 0 turns extended thinking off."
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "QLineEdit",
   "text": "0"
  },
  {
   "depth": 4,
   "type": "QLabel",
-  "text": "Talking to the provider"
+  "text": "TALKING TO THE PROVIDER"
  },
  {
   "depth": 4,
-  "type": "QWidget"
+  "type": "QFrame",
+  "name": "settingsCard"
  },
  {
   "depth": 5,
@@ -153,46 +214,80 @@
  },
  {
   "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
   "type": "QLabel",
   "text": "API format"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
-  "text": "?"
+  "text": "auto picks the format from the address: api.anthropic.com is Anthropic, everything else is OpenAI."
+ },
+ {
+  "depth": 6,
+  "type": "Segmented",
+  "name": "segmented"
+ },
+ {
+  "depth": 7,
+  "type": "QPushButton",
+  "text": "auto",
+  "checked": false
+ },
+ {
+  "depth": 7,
+  "type": "QPushButton",
+  "text": "openai",
+  "checked": true
+ },
+ {
+  "depth": 7,
+  "type": "QPushButton",
+  "text": "anthropic",
+  "checked": false
  },
  {
   "depth": 5,
-  "type": "QComboBox",
-  "text": "openai"
- },
- {
-  "depth": 4,
   "type": "QFrame",
   "name": "settingsSeparator"
  },
  {
-  "depth": 4,
-  "type": "QWidget"
- },
- {
   "depth": 5,
   "type": "QWidget"
  },
  {
   "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
   "type": "QLabel",
   "text": "Authorisation type"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
-  "text": "?"
+  "text": "Bearer suits almost everyone; OAuth is for corporate gateways."
  },
  {
-  "depth": 5,
-  "type": "QComboBox",
-  "text": "Bearer"
+  "depth": 6,
+  "type": "Segmented",
+  "name": "segmented"
+ },
+ {
+  "depth": 7,
+  "type": "QPushButton",
+  "text": "Bearer",
+  "checked": true
+ },
+ {
+  "depth": 7,
+  "type": "QPushButton",
+  "text": "OAuth",
+  "checked": false
  },
  {
   "depth": 1,
@@ -201,12 +296,18 @@
  },
  {
   "depth": 1,
-  "type": "QPushButton",
-  "text": "Close"
+  "type": "QLabel",
+  "text": "All changes saved"
  },
  {
   "depth": 1,
   "type": "QPushButton",
-  "text": "Save"
+  "text": "Cancel"
+ },
+ {
+  "depth": 1,
+  "type": "QPushButton",
+  "text": "Save",
+  "enabled": false
  }
 ]

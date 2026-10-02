@@ -59,16 +59,7 @@
  },
  {
   "depth": 4,
-  "type": "AssistantMessage"
- },
- {
-  "depth": 5,
-  "type": "QTextBrowser",
-  "text": "districts has a numeric pop2020 field from 20 000 to 95 000. I prepared a graduated renderer with 5 classes, equal inter"
- },
- {
-  "depth": 4,
-  "type": "PlanCard"
+  "type": "ActivityGroup"
  },
  {
   "depth": 5,
@@ -76,81 +67,46 @@
  },
  {
   "depth": 6,
-  "type": "QLabel",
-  "text": "◆"
+  "type": "QToolButton",
+  "text": "›",
+  "checked": false
  },
  {
   "depth": 6,
   "type": "QLabel",
-  "text": "Ready to run — 2 action(s)"
- },
- {
-  "depth": 5,
-  "type": "QWidget"
+  "text": "1 action(s)"
  },
  {
   "depth": 6,
-  "type": "QWidget"
- },
- {
-  "depth": 7,
   "type": "QLabel",
-  "text": "1."
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Graduating 'districts' by 'pop2020', classes: 5."
+  "text": "<duration>"
  },
  {
   "depth": 6,
-  "type": "QWidget"
- },
- {
-  "depth": 7,
   "type": "QLabel",
-  "text": "2."
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Labeling 'districts' with 'name'."
- },
- {
-  "depth": 5,
-  "type": "QWidget"
- },
- {
-  "depth": 6,
-  "type": "QPushButton",
-  "text": "Apply"
- },
- {
-  "depth": 6,
-  "type": "QPushButton",
-  "text": "Cancel"
- },
- {
-  "depth": 4,
-  "type": "SystemMessage"
- },
- {
-  "depth": 5,
-  "type": "QLabel",
-  "text": "Checking the applied changes…"
- },
- {
-  "depth": 4,
-  "type": "AssistantMessage"
- },
- {
-  "depth": 5,
-  "type": "QTextBrowser",
-  "text": "Done: 2 step(s) applied."
+  "text": "●"
  },
  {
   "depth": 2,
   "type": "QWidget"
+ },
+ {
+  "depth": 3,
+  "type": "ProgressLine"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "Reading layer 'districts'"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "1 step(s)"
  },
  {
   "depth": 3,
@@ -164,7 +120,7 @@
  {
   "depth": 5,
   "type": "PromptEdit",
-  "text": "Ask about the project…"
+  "text": "Type to correct me…"
  },
  {
   "depth": 5,
@@ -173,26 +129,16 @@
  {
   "depth": 6,
   "type": "QLabel",
-  "text": "/"
+  "text": "Esc"
  },
  {
   "depth": 6,
   "type": "QLabel",
-  "text": "skill"
- },
- {
-  "depth": 6,
-  "type": "QLabel",
-  "text": "@"
- },
- {
-  "depth": 6,
-  "type": "QLabel",
-  "text": "layer"
+  "text": "stop"
  },
  {
   "depth": 5,
   "type": "QPushButton",
-  "text": "↑"
+  "text": "■"
  }
 ]

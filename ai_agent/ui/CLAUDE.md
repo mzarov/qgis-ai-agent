@@ -31,11 +31,15 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `messages.py`     | the user message, the agent reply, the service message |
 | `activity.py`     | the collapsible group of tool calls |
 | `plan.py`         | the plan card with its buttons inside |
-| `composer.py`     | the input box: Enter sends, Shift+Enter breaks the line; the send button turns into “stop”; `/` opens the skill popup |
+| `composer.py`     | the input box: one `_paint()` draws offline, busy, typing and idle; Enter sends, Esc stops a run; `/` and `@` open the popup |
+| `composer_parts.py` | the editor, `/skill` and `@layer` parsing, token highlighting, the keycap hint bar |
+| `progress.py`     | the line above the composer while a run works: pulsing dot, current step, step count |
+| `controls.py`     | custom controls: `Segmented` and `RadioCards` keep the combo-box API, `Chips`, badges, keycaps, `ElidedLabel` |
+| `connection_widgets.py` | provider tiles and the connection status card |
 | `skill_popup.py`  | the list above the composer: prefix-then-substring ranking, keyboard steering, `local` badge |
 | `skills_settings.py` | the Skills settings page: folder, example, discovered local skills and their problems |
 | `style.py`        | palette colours; `panel()` — the raised level for dialogs |
-| `icons.py`        | header icons: drawn with a palette pen, one stroke weight |
+| `icons.py`        | header, settings-nav, brand and layer icons: drawn with a palette pen, one stroke weight |
 | `settings_dialog.py` | the settings window: state, saving, the connection probe |
 | `settings_layout.py` | the sidebar, the page stack and per-page scrolling |
 | `settings_fields.py` | the row grammar: rows, switches, separators, inputs, buttons |
@@ -157,7 +161,9 @@ honest.
 While the agent works, the send button does not grey out — it becomes “stop”:
 the glyph, the colour and the tooltip change. There is deliberately no separate
 button — it would be visible always and inactive most of the time. Enter is
-ignored while a run is active.
+ignored while a run is active; Esc stops it (with the popup open, Esc only
+closes the popup). On an empty box the button is grey; offline it hides, since
+the welcome card already offers Open settings.
 
 ## The conversations menu
 
@@ -168,24 +174,23 @@ orchestrator through `set_session_source` — the provider returns
 
 ## The settings window
 
-**A sidebar over a page stack, styled after Claude's own settings.** Four
-entries — Connection, Privacy, Geocoding, Advanced — ordered by how often each
-is touched. Sidebar and pages sit **full-bleed on the same window surface**,
+**A sidebar over a page stack, styled after Claude's own settings.** Five
+entries with drawn icons — Connection, Privacy, Skills, Geocoding, Advanced —
+ordered by how often each is touched. Sidebar and pages sit **full-bleed on the same window surface**,
 split by one vertical hairline; the footer is cut off by a horizontal one.
 A floating lifted pane was tried between the tab and this version and looked
 worse than both — a box inside a box reads as a widget, not a page. The
 selected entry is a `panel()` pill plus bold, so the selection survives the
-light theme where the lift is zero. The sidebar carries **no heading**: the
-window is already titled Settings, and repeating the word inside it was
-noise.
+light theme where the lift is zero. The sidebar opens with the plugin's
+brand mark, never with the word Settings: the window is already titled so.
 
 **One row grammar for every control.** A row is caption left (title plus a
 muted hint under it, both wrapping), control right at a fixed
 `CONTROL_WIDTH`, vertically centred. Uniform control width is what makes the
 pages read as straight columns instead of ragged boxes. `add_rows`
-interleaves hairline separators **between** rows, never after the last one.
-Each page starts with one bold `group()` header; a page never repeats its
-sidebar entry as a heading.
+interleaves hairline separators **between** rows, never after the last one;
+`card_rows` wraps them in a card. Controls that size themselves (segmented
+choices, chips) use `custom_row`.
 
 **Booleans are drawn switches, not native checkboxes.** A stray blue
 checkbox at the end of a wide row reads as debris; a track-and-knob toggle
@@ -195,25 +200,37 @@ reads as a setting. `Switch` subclasses `QCheckBox` — the whole checkbox API
 disabled, knob from `highlightedText`. Same approach as the header icons:
 palette-driven `QPainter`, no image assets.
 
-Descriptions live behind a small "?" mark right after the title — a page of
-stacked explanatory paragraphs read as a wall of text (the user's call, and
-they were right). The mark is a plain `QLabel` that shows its tooltip on
-hover — it was briefly a click-to-show button, and the user rejected that:
-hover is the whole interaction, a mark that reacts to clicks overpromises.
-Tooltip text goes through `rich_tooltip()` (a `<qt>` wrapper), otherwise Qt
-renders plain-text tooltips as one endless unwrapped line. The geocoder's hint changes with the chosen
-provider, so its row keeps a reference to the mark and rewrites the tooltip.
-Titles are single-line labels without word wrap; wrapping came from the
-title competing with a trailing stretch for width, and the cure is short
-titles, not wrapped ones — detail belongs to the mark anyway.
+**Hints are visible, one short line under each title.** They used to hide
+behind "?" marks to avoid a wall of text; the user approved the redesign
+(`design/mockups/index.html`) that shows them again, so every hint must stay a
+single short sentence. A longer explanation goes to the row's tooltip
+(`tooltip=` in `fields.row`), never under the title. Each page opens with
+`page_header` (its title and one sentence) and groups rows into cards under
+small upper-case `section` captions.
+
+**The custom controls keep the combo-box API.** `Segmented` (API format,
+authorisation) and `RadioCards` (geocoder) answer `currentText`, `findText`,
+`setCurrentIndex` and the change signals, so loading and saving did not change.
+The provider tiles only draw `preset_combo`, which stays hidden and remains the
+single source of truth: a tile sets the combo, the combo selects the tile.
+
+**Edits are tracked.** `_watch_changes` marks a page dirty from its controls'
+signals (never while `_loading_endpoint` is set); the page gets a dot in the
+sidebar and Save stays disabled until something changed. The connection probe
+answers in the status card at the top of the Connection page, with latency and
+what is known about the endpoint; the footer line is for validation errors.
+
+**Nothing that cannot shrink may sit in a grid.** A pill badge or an unelided
+name in the provider tiles widened the whole page in Russian; tile captions are
+wrapping text and names elide. The screen checks' overflow detector found it.
 
 Pages scroll individually (`scrollable()`), with the viewport forced
 transparent so the window surface shows through — a `QScrollArea` left to
 its own devices paints its own grey. Test connection lives on the
 Connection page — it tests exactly what that page edits and means nothing on
-the others. The status line and Save/Close stay in the footer under a full
-hairline, so the probe's answer is visible from any page and survives page
-switches.
+the others, and its answer stays in that page's status card. The validation
+line, the saved/unsaved note and Cancel/Save sit in the footer under a full
+hairline, visible from every page.
 
 The provider
 is picked from a list and fills in the address and the API format; the preset

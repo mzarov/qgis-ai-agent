@@ -1,12 +1,10 @@
 from collections.abc import Callable
-from typing import Any
 
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtGui import QTextCursor
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QHBoxLayout,
-    QLabel,
     QPlainTextEdit,
     QPushButton,
     QVBoxLayout,
@@ -15,90 +13,40 @@ from qgis.PyQt.QtWidgets import (
 
 from ai_agent.i18n import tr
 from ai_agent.ui import style
+from ai_agent.ui.composer_parts import (
+    MENTION,
+    SLASH,
+    HintBar,
+    PromptEdit,
+    PromptHighlighter,
+    mention_query,
+    mention_text,
+    slash_query,
+)
 from ai_agent.ui.skill_popup import SkillPopup
 
-PLACEHOLDER = tr("Ask about the project; / picks a skill, @ picks a layer")
-MIN_HEIGHT = 34
-MAX_HEIGHT = 120
-SEND_SIZE = 26
-HINT_FONT_SCALE = 0.85
+PLACEHOLDER = tr("Ask about the project…")
+PLACEHOLDER_BUSY = tr("Type to correct me…")
+PLACEHOLDER_OFFLINE = tr("Connect a model to start")
+FRAME_NAME = "composerFrame"
+FRAME_RADIUS = 14
+FOCUS_WIDTH = 2
+MIN_HEIGHT = 40
+MAX_HEIGHT = 160
+SEND_SIZE = 30
 SEND_GLYPH = "↑"
 STOP_GLYPH = "■"
-SLASH = "/"
-MENTION = "@"
-QUOTE = '"'
 MODE_SKILL = "skill"
 MODE_LAYER = "layer"
-HINT_IDLE = tr("Enter to send, Shift+Enter for a new line")
-HINT_BUSY = tr("Working… type to correct me, or press ■ to stop")
-HINT_SKILLS = tr("↑↓ to choose a skill, Tab or Enter to insert, Esc to dismiss")
-HINT_LAYERS = tr("↑↓ to choose a layer, Tab or Enter to insert, Esc to dismiss")
-
-
-def slash_query(text: str) -> str | None:
-    if not text.startswith(SLASH) or any(character.isspace() for character in text):
-        return None
-    return text[len(SLASH) :]
-
-
-def mention_query(text: str, cursor: int) -> tuple[int, str] | None:
-    """Return where an unfinished @mention starts before the cursor, and its text.
-
-    A mention starts at an @ that opens the text or follows whitespace and runs
-    to the cursor without whitespace, so an e-mail address is never a mention.
-    """
-    before = text[:cursor]
-    start = before.rfind(MENTION)
-    if start < 0 or (start > 0 and not before[start - 1].isspace()):
-        return None
-    query = before[start + len(MENTION) :]
-    if any(character.isspace() or character == QUOTE for character in query):
-        return None
-    return start, query
-
-
-def mention_text(name: str) -> str:
-    if any(character.isspace() for character in name):
-        return f"{MENTION}{QUOTE}{name}{QUOTE}"
-    return f"{MENTION}{name}"
-
-
-class PromptEdit(QPlainTextEdit):
-    submitted = pyqtSignal()
-    navigated = pyqtSignal(int)
-    accepted = pyqtSignal()
-    completed = pyqtSignal()
-    dismissed = pyqtSignal()
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.popup_open = False
-
-    def keyPressEvent(self, event: Any) -> None:
-        key = event.key()
-        if self.popup_open and self._steer(key):
-            return
-        enter = key in (Qt.Key.Key_Return, Qt.Key.Key_Enter)
-        plain = not event.modifiers() & Qt.KeyboardModifier.ShiftModifier
-        if enter and plain:
-            self.submitted.emit()
-            return
-        super().keyPressEvent(event)
-
-    def _steer(self, key: Any) -> bool:
-        if key == Qt.Key.Key_Up:
-            self.navigated.emit(-1)
-        elif key == Qt.Key.Key_Down:
-            self.navigated.emit(1)
-        elif key == Qt.Key.Key_Tab:
-            self.completed.emit()
-        elif key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-            self.accepted.emit()
-        elif key == Qt.Key.Key_Escape:
-            self.dismissed.emit()
-        else:
-            return False
-        return True
+KEY_SKILL = tr("skill")
+KEY_LAYER = tr("layer")
+KEY_SEND = tr("send")
+KEY_NEW_LINE = tr("new line")
+KEY_STOP = tr("stop")
+SHIFT_ENTER = "⇧ Enter"
+HINT_SKILLS = tr("Pick a skill")
+HINT_LAYERS = tr("Pick a layer")
+HINT_OFFLINE = tr("No model connected")
 
 
 class Composer(QWidget):
@@ -108,6 +56,8 @@ class Composer(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._busy = False
+        self._configured = True
+        self._focused = False
         self._skills: Callable[[], list[tuple[str, str, str]]] = list
         self._layers: Callable[[], list[tuple[str, str, str]]] = list
         self._popup: SkillPopup | None = None
@@ -118,32 +68,32 @@ class Composer(QWidget):
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(0)
 
-        frame = QWidget()
-        frame.setStyleSheet(
-            f"background: {style.css_color(style.surface(palette))};"
-            f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
-            f"border-radius: {style.BUBBLE_RADIUS}px;"
-        )
-        inner = QVBoxLayout(frame)
-        inner.setContentsMargins(9, 7, 8, 7)
-        inner.setSpacing(5)
+        self._frame = QFrame()
+        self._frame.setObjectName(FRAME_NAME)
+        inner = QVBoxLayout(self._frame)
+        inner.setContentsMargins(12, 8, 8, 8)
+        inner.setSpacing(4)
         inner.addWidget(self._build_edit())
         inner.addLayout(self._build_footer(palette))
-        column.addWidget(frame)
+        column.addWidget(self._frame)
+        self._paint()
 
     def _build_edit(self) -> QPlainTextEdit:
         self._edit = PromptEdit()
         self._edit.setPlaceholderText(PLACEHOLDER)
         self._edit.setAccessibleName(tr("Request"))
         self._edit.setFrameShape(QFrame.Shape.NoFrame)
-        self._edit.setStyleSheet("border: none; background: transparent;")
+        self._edit.setStyleSheet("QPlainTextEdit { border: none; background: transparent; }")
         self._edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self._edit.setFixedHeight(MIN_HEIGHT)
+        self._highlighter = PromptHighlighter(self._edit.document(), self.palette())
         self._edit.submitted.connect(self._on_submit)
         self._edit.navigated.connect(self._on_navigate)
         self._edit.accepted.connect(self._on_accept)
         self._edit.completed.connect(self._on_complete)
         self._edit.dismissed.connect(self._hide_popup)
+        self._edit.escaped.connect(self._on_escape)
+        self._edit.focus_changed.connect(self._on_focus)
         self._edit.textChanged.connect(self._on_text_changed)
         return self._edit
 
@@ -151,29 +101,74 @@ class Composer(QWidget):
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(8)
-
-        self._hint = QLabel(HINT_IDLE)
-        font = self._hint.font()
-        font.setPointSizeF(max(1.0, font.pointSizeF() * HINT_FONT_SCALE))
-        self._hint.setFont(font)
-        self._hint.setStyleSheet(f"color: {style.css_color(style.muted(palette))}; border: none;")
+        self._hint = HintBar(palette)
         row.addWidget(self._hint, 1)
-
         self._send = QPushButton(SEND_GLYPH)
         self._send.setFixedSize(SEND_SIZE, SEND_SIZE)
         self._send.setToolTip(tr("Send"))
         self._send.setAccessibleName(tr("Send"))
-        self._send.setStyleSheet(self._button_style(style.accent(palette)))
         self._send.clicked.connect(self._on_button)
         row.addWidget(self._send)
         return row
 
-    def _button_style(self, fill) -> str:
-        return (
-            f"QPushButton {{ background: {style.css_color(fill)};"
-            f"color: {style.css_color(self.palette().highlightedText().color())};"
-            f"border: none; border-radius: {SEND_SIZE // 2}px; }}"
+    def _paint(self) -> None:
+        """Frame, hint and button follow one state: offline, busy, typing or idle."""
+        palette = self.palette()
+        focused = self._focused and self._configured
+        border = style.ring(palette) if focused else style.hairline(palette)
+        width = FOCUS_WIDTH if focused else style.HAIRLINE
+        fill = style.surface(palette) if self._configured else style.card(palette)
+        self._frame.setStyleSheet(
+            f"QFrame#{FRAME_NAME} {{ background: {style.css_color(fill)};"
+            f"border: {width}px solid {style.css_color(border)}; border-radius: {FRAME_RADIUS}px;"
+            f"margin: {FOCUS_WIDTH - width}px; }}"
         )
+        has_text = bool(self._edit.toPlainText().strip())
+        # Offline, the welcome card already offers Open settings; a second button here only repeats it.
+        self._send.setVisible(self._configured)
+        if not self._configured:
+            self._edit.setPlaceholderText(PLACEHOLDER_OFFLINE)
+            self._hint.show_text(HINT_OFFLINE)
+            return
+        self._edit.setPlaceholderText(PLACEHOLDER_BUSY if self._busy else PLACEHOLDER)
+        if self._edit.popup_open:
+            self._hint.show_text(HINT_SKILLS if self._mode == MODE_SKILL else HINT_LAYERS)
+        elif self._busy:
+            self._hint.show_keys([("Esc", KEY_STOP)])
+        elif has_text:
+            self._hint.show_keys([("Enter", KEY_SEND), (SHIFT_ENTER, KEY_NEW_LINE)])
+        else:
+            self._hint.show_keys([(SLASH, KEY_SKILL), (MENTION, KEY_LAYER)])
+        self._paint_send(has_text)
+
+    def _paint_send(self, has_text: bool) -> None:
+        palette = self.palette()
+        if self._busy:
+            fill, ink, glyph, name = style.text(palette), style.surface(palette), STOP_GLYPH, tr("Stop")
+        elif has_text:
+            fill, ink, glyph, name = style.accent(palette), palette.highlightedText().color(), SEND_GLYPH, tr("Send")
+        else:
+            fill, ink, glyph, name = style.card(palette), style.muted(palette), SEND_GLYPH, tr("Send")
+        self._send.setText(glyph)
+        self._send.setToolTip(name)
+        self._send.setAccessibleName(name)
+        self._send.setStyleSheet(
+            f"QPushButton {{ background: {style.css_color(fill)}; color: {style.css_color(ink)};"
+            f"border: none; border-radius: {SEND_SIZE // 2}px; font-weight: 600; }}"
+        )
+
+    def _on_focus(self, focused: bool) -> None:
+        self._focused = focused
+        self._paint()
+
+    def _on_escape(self) -> None:
+        if self._busy:
+            self.stopped.emit()
+
+    def set_configured(self, configured: bool) -> None:
+        self._configured = configured
+        self._edit.setReadOnly(not configured)
+        self._paint()
 
     def set_skill_source(self, provider: Callable[[], list[tuple[str, str, str]]]) -> None:
         self._skills = provider
@@ -188,26 +183,27 @@ class Composer(QWidget):
     def _on_text_changed(self) -> None:
         self._grow()
         if self._popup is None:
+            self._paint()
             return
         text = self._edit.toPlainText()
         query = slash_query(text)
         if query is not None:
-            self._open_popup(MODE_SKILL, query, self._skills(), SLASH, HINT_SKILLS)
+            self._open_popup(MODE_SKILL, query, self._skills(), SLASH)
             return
         mention = mention_query(text, self._edit.textCursor().position())
         if mention is not None:
             self._mention_start = mention[0]
-            self._open_popup(MODE_LAYER, mention[1], self._layers(), MENTION, HINT_LAYERS)
+            self._open_popup(MODE_LAYER, mention[1], self._layers(), MENTION)
             return
         self._hide_popup()
 
-    def _open_popup(self, mode: str, query: str, items: list[tuple[str, str, str]], prefix: str, hint: str) -> None:
+    def _open_popup(self, mode: str, query: str, items: list[tuple[str, str, str]], prefix: str) -> None:
         if self._popup is None:
             return
         self._mode = mode
-        self._popup.show_matches(query, items, self._edit, prefix)
+        self._popup.show_matches(query, items, self._frame, prefix)
         self._edit.popup_open = True
-        self._hint.setText(hint)
+        self._paint()
 
     def _on_navigate(self, delta: int) -> None:
         if self._popup is not None:
@@ -247,7 +243,7 @@ class Composer(QWidget):
         if self._popup is not None:
             self._popup.hide()
         self._edit.popup_open = False
-        self._hint.setText(HINT_BUSY if self._busy else HINT_IDLE)
+        self._paint()
 
     def _on_button(self) -> None:
         if self._busy:
@@ -282,9 +278,4 @@ class Composer(QWidget):
 
     def set_busy(self, busy: bool) -> None:
         self._busy = busy
-        palette = self.palette()
-        self._send.setText(STOP_GLYPH if busy else SEND_GLYPH)
-        self._send.setToolTip(tr("Stop") if busy else tr("Send"))
-        self._send.setAccessibleName(tr("Stop") if busy else tr("Send"))
-        self._send.setStyleSheet(self._button_style(style.danger(palette) if busy else style.accent(palette)))
-        self._hint.setText(HINT_BUSY if busy else HINT_IDLE)
+        self._paint()

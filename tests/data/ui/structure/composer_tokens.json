@@ -93,7 +93,7 @@
  {
   "depth": 5,
   "type": "PromptEdit",
-  "text": "colour @"
+  "text": "/style colour @districts by pop2020 in 5 classes"
  },
  {
   "depth": 5,
@@ -102,94 +102,26 @@
  {
   "depth": 6,
   "type": "QLabel",
-  "text": "Pick a layer"
+  "text": "Enter"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "send"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "⇧ Enter"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "new line"
  },
  {
   "depth": 5,
   "type": "QPushButton",
   "text": "↑"
- },
- {
-  "depth": 2,
-  "type": "SkillPopup",
-  "name": "skillPopup"
- },
- {
-  "depth": 3,
-  "type": "QFrame",
-  "name": "popupFooter"
- },
- {
-  "depth": 4,
-  "type": "QLabel",
-  "text": "↑"
- },
- {
-  "depth": 4,
-  "type": "QLabel",
-  "text": "↓"
- },
- {
-  "depth": 4,
-  "type": "QLabel",
-  "text": "choose"
- },
- {
-  "depth": 4,
-  "type": "QLabel",
-  "text": "Tab"
- },
- {
-  "depth": 4,
-  "type": "QLabel",
-  "text": "insert"
- },
- {
-  "depth": 4,
-  "type": "QLabel",
-  "text": "Esc"
- },
- {
-  "depth": 4,
-  "type": "QLabel",
-  "text": "close"
- },
- {
-  "depth": 3,
-  "type": "SkillRow",
-  "name": "skillRow"
- },
- {
-  "depth": 4,
-  "type": "QLabel"
- },
- {
-  "depth": 4,
-  "type": "QLabel",
-  "text": "@districts"
- },
- {
-  "depth": 4,
-  "type": "ElidedLabel",
-  "text": "polygon, EPSG:4326, 6 features"
- },
- {
-  "depth": 3,
-  "type": "SkillRow",
-  "name": "skillRow"
- },
- {
-  "depth": 4,
-  "type": "QLabel"
- },
- {
-  "depth": 4,
-  "type": "QLabel",
-  "text": "@Main rivers"
- },
- {
-  "depth": 4,
-  "type": "ElidedLabel",
-  "text": "line, EPSG:4326, 1 feature"
  }
 ]

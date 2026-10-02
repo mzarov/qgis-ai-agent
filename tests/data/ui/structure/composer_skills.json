@@ -87,7 +87,8 @@
  },
  {
   "depth": 4,
-  "type": "QWidget"
+  "type": "QFrame",
+  "name": "composerFrame"
  },
  {
   "depth": 5,
@@ -96,8 +97,12 @@
  },
  {
   "depth": 5,
+  "type": "HintBar"
+ },
+ {
+  "depth": 6,
   "type": "QLabel",
-  "text": "↑↓ to choose a skill, Tab or Enter to insert, Esc to dismiss"
+  "text": "Pick a skill"
  },
  {
   "depth": 5,
@@ -111,8 +116,52 @@
  },
  {
   "depth": 3,
+  "type": "QFrame",
+  "name": "popupFooter"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "↑"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "↓"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "choose"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "Tab"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "insert"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "Esc"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "close"
+ },
+ {
+  "depth": 3,
   "type": "SkillRow",
   "name": "skillRow"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel"
  },
  {
   "depth": 4,
@@ -121,7 +170,7 @@
  },
  {
   "depth": 4,
-  "type": "QLabel",
+  "type": "ElidedLabel",
   "text": "Change or inspect how a layer looks — single symbol, colours by category or graduated classes, feature labels, opacity, "
  },
  {
@@ -131,12 +180,16 @@
  },
  {
   "depth": 4,
+  "type": "QLabel"
+ },
+ {
+  "depth": 4,
   "type": "QLabel",
   "text": "/annotations"
  },
  {
   "depth": 4,
-  "type": "QLabel",
+  "type": "ElidedLabel",
   "text": "One-off notes and markers drawn on top of the map at a coordinate — not attribute labels (those are style). Load this fo"
  },
  {
@@ -146,12 +199,16 @@
  },
  {
   "depth": 4,
+  "type": "QLabel"
+ },
+ {
+  "depth": 4,
   "type": "QLabel",
   "text": "/fields"
  },
  {
   "depth": 4,
-  "type": "QLabel",
+  "type": "ElidedLabel",
   "text": "Change a layer's columns — add a real or a virtual (expression) field, rename, delete. Load this when the request is abo"
  },
  {
@@ -161,12 +218,16 @@
  },
  {
   "depth": 4,
+  "type": "QLabel"
+ },
+ {
+  "depth": 4,
   "type": "QLabel",
   "text": "/inspect"
  },
  {
   "depth": 4,
-  "type": "QLabel",
+  "type": "ElidedLabel",
   "text": "Facts about the open project — layers, fields and their values, counts, lengths and areas via expressions, the user's se"
  },
  {
@@ -176,12 +237,16 @@
  },
  {
   "depth": 4,
+  "type": "QLabel"
+ },
+ {
+  "depth": 4,
   "type": "QLabel",
   "text": "/osm"
  },
  {
   "depth": 4,
-  "type": "QLabel",
+  "type": "ElidedLabel",
   "text": "Fetch OpenStreetMap data through Overpass into new layers — roads, buildings, POIs, water, land use, anything by OSM tag"
  },
  {
@@ -191,12 +256,16 @@
  },
  {
   "depth": 4,
+  "type": "QLabel"
+ },
+ {
+  "depth": 4,
   "type": "QLabel",
   "text": "/processing"
  },
  {
   "depth": 4,
-  "type": "QLabel",
+  "type": "ElidedLabel",
   "text": "Geoprocessing and analysis — buffer, clip, intersect, dissolve, join, reproject, field calculator, heatmap, clustering, "
  }
 ]

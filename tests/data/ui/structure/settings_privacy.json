@@ -9,6 +9,19 @@
  },
  {
   "depth": 2,
+  "type": "QWidget"
+ },
+ {
+  "depth": 3,
+  "type": "QLabel"
+ },
+ {
+  "depth": 3,
+  "type": "QLabel",
+  "text": "AI Agent"
+ },
+ {
+  "depth": 2,
   "type": "QPushButton",
   "text": "Connection",
   "checked": false
@@ -57,11 +70,37 @@
  {
   "depth": 4,
   "type": "QLabel",
-  "text": "Connection security and records"
+  "text": "Privacy"
  },
  {
   "depth": 4,
-  "type": "QWidget"
+  "type": "QLabel",
+  "text": "What leaves this computer and what the plugin keeps."
+ },
+ {
+  "depth": 4,
+  "type": "QFrame",
+  "name": "callout"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Everything the agent reads goes to the model."
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Layer and field names, feature values, extents, rendered maps. For data that must stay here, use a local server such as "
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "CONNECTION SECURITY"
+ },
+ {
+  "depth": 4,
+  "type": "QFrame",
+  "name": "settingsCard"
  },
  {
   "depth": 5,
@@ -69,27 +108,32 @@
  },
  {
   "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
   "type": "QLabel",
   "text": "Verify the SSL certificate"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
-  "text": "?"
+  "text": "Turn this off only for a server with a self-signed certificate that you trust."
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "Switch",
   "checked": true
  },
  {
   "depth": 4,
-  "type": "QFrame",
-  "name": "settingsSeparator"
+  "type": "QLabel",
+  "text": "RECORDS"
  },
  {
   "depth": 4,
-  "type": "QWidget"
+  "type": "QFrame",
+  "name": "settingsCard"
  },
  {
   "depth": 5,
@@ -97,16 +141,20 @@
  },
  {
   "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
   "type": "QLabel",
   "text": "Write a run journal after applying"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLabel",
-  "text": "?"
+  "text": "A Markdown file in the QGIS profile folder: the request, every step and its result."
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "Switch",
   "checked": false
  },
@@ -117,12 +165,18 @@
  },
  {
   "depth": 1,
-  "type": "QPushButton",
-  "text": "Close"
+  "type": "QLabel",
+  "text": "All changes saved"
  },
  {
   "depth": 1,
   "type": "QPushButton",
-  "text": "Save"
+  "text": "Cancel"
+ },
+ {
+  "depth": 1,
+  "type": "QPushButton",
+  "text": "Save",
+  "enabled": false
  }
 ]
