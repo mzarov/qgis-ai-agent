@@ -119,7 +119,7 @@
         <translation>Добавляю слой {0} «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_layout.py" line="36"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="33"/>
         <source>Advanced</source>
         <translation>Дополнительно</translation>
     </message>
@@ -315,7 +315,7 @@
         <translation>Подключение есть, но модель вернула пустой ответ.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_layout.py" line="32"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="29"/>
         <source>Connection</source>
         <translation>Подключение</translation>
     </message>
@@ -385,7 +385,7 @@
         <translation>Свой адрес</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_layout.py" line="13"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="12"/>
         <source>Customize</source>
         <translation>Под себя</translation>
     </message>
@@ -532,7 +532,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/geocoder_settings.py" line="31"/>
-        <location filename="ai_agent/ui/settings_layout.py" line="35"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="32"/>
         <source>Geocoding</source>
         <translation>Геокодирование</translation>
     </message>
@@ -739,7 +739,7 @@
         <translation>План {0}/{1}: {2}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_layout.py" line="33"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="30"/>
         <source>Privacy</source>
         <translation>Приватность</translation>
     </message>
@@ -1019,11 +1019,6 @@
         <translation>Сохраняю проект.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_layout.py" line="10"/>
-        <source>Search</source>
-        <translation>Поиск</translation>
-    </message>
-    <message>
         <location filename="ai_agent/qgis_tools/web/search_web.py" line="52"/>
         <source>Searching DuckDuckGo/Wikipedia: {0}.</source>
         <translation>Ищу в DuckDuckGo/Wikipedia: {0}.</translation>
@@ -1083,7 +1078,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/dock_widget.py" line="81"/>
-        <location filename="ai_agent/ui/settings_layout.py" line="13"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="12"/>
         <source>Settings</source>
         <translation>Настройки</translation>
     </message>
@@ -1103,7 +1098,7 @@
         <translation>Показываю слой «{0}» целиком.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_layout.py" line="34"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="31"/>
         <source>Skills</source>
         <translation>Скиллы</translation>
     </message>

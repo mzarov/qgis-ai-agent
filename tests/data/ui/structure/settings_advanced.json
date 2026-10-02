@@ -10,15 +10,6 @@
  },
  {
   "depth": 2,
-  "type": "QLineEdit",
-  "text": "Search"
- },
- {
-  "depth": 3,
-  "type": "QToolButton"
- },
- {
-  "depth": 2,
   "type": "QLabel",
   "text": "Settings"
  },

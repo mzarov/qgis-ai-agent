@@ -113,14 +113,6 @@ class SettingsBehaviourTest(PluginCase):
         selected = [tile.title for tile in self.dialog.provider_tiles._tiles if "2px" in tile.styleSheet()]
         self.assertEqual(selected, ["OpenAI"])
 
-    def test_search_keeps_the_pages_that_mention_the_words(self) -> None:
-        self.dialog.search_edit.setText("SSL")
-        visible = [not button.isHidden() for button in self.dialog._nav_buttons]
-        self.assertEqual(visible, [False, True, False, False, False])
-        self.assertEqual(self.dialog.pages.currentIndex(), 1)
-        self.dialog.search_edit.clear()
-        self.assertTrue(all(not button.isHidden() for button in self.dialog._nav_buttons))
-
     def test_only_the_main_providers_get_a_tile_and_they_carry_logos(self) -> None:
         titles = [tile.title for tile in self.dialog.provider_tiles._tiles]
         self.assertEqual(len(titles), 7)

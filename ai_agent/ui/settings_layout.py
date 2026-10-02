@@ -1,13 +1,12 @@
 from typing import Any
 
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QScrollArea, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 
 from ai_agent.i18n import tr
 from ai_agent.ui import controls, icons, settings_advanced, style
 from ai_agent.ui import settings_fields as fields
 
-SEARCH = tr("Search")
 CAPTION_TOP = 14
 # Sidebar groups as in the Claude Code settings; the numbers are page indices.
 GROUPS = ((tr("Settings"), (0, 1, 4)), (tr("Customize"), (2, 3)))
@@ -26,8 +25,6 @@ def build_body(owner: Any, palette: Any) -> tuple[QHBoxLayout, QVBoxLayout]:
     nav, nav_column = fields.sidebar()
     nav.setObjectName(NAV_NAME)
     style.fill(nav, style.sidebar(palette))
-    owner.search_edit = _search(palette)
-    nav_column.addWidget(owner.search_edit)
     pages = (
         (tr("Connection"), icons.connection, owner._build_connection(palette)),
         (tr("Privacy"), icons.privacy, settings_advanced.build_privacy(owner, palette)),
@@ -36,20 +33,17 @@ def build_body(owner: Any, palette: Any) -> tuple[QHBoxLayout, QVBoxLayout]:
         (tr("Advanced"), icons.advanced, settings_advanced.build_advanced(owner, palette)),
     )
     owner._nav_buttons = []
-    owner._page_words = []
     for index, (title, paint, page) in enumerate(pages):
         owner.pages.addWidget(scrollable(page))
         button = fields.sidebar_button(title, palette, _drawn(paint, style.muted(palette)))
         button.clicked.connect(lambda _checked=False, at=index: show_page(owner, at))
         _add_dot(button, palette)
         owner._nav_buttons.append(button)
-        owner._page_words.append(_words(title, page))
     for caption, members in GROUPS:
         nav_column.addWidget(_caption(caption, palette))
         for index in members:
             nav_column.addWidget(owner._nav_buttons[index])
     nav_column.addStretch(1)
-    owner.search_edit.textChanged.connect(lambda text: filter_pages(owner, text))
     content = QWidget()
     content.setObjectName(CONTENT_NAME)
     style.fill(content, style.content(palette))
@@ -62,17 +56,6 @@ def build_body(owner: Any, palette: Any) -> tuple[QHBoxLayout, QVBoxLayout]:
     body.addWidget(content, 1)
     show_page(owner, 0)
     return body, right
-
-
-def filter_pages(owner: Any, text: str) -> None:
-    """Keep the sidebar entries whose page mentions every typed word; open the first match."""
-    words = text.lower().split()
-    shown = [all(word in haystack for word in words) for haystack in owner._page_words]
-    for button, visible in zip(owner._nav_buttons, shown, strict=True):
-        button.setVisible(visible)
-    current = owner.pages.currentIndex()
-    if not shown[current] and any(shown):
-        show_page(owner, shown.index(True))
 
 
 def show_page(owner: Any, index: int) -> None:
@@ -99,28 +82,11 @@ def scrollable(page: QWidget) -> QScrollArea:
     return area
 
 
-def _search(palette: Any) -> QLineEdit:
-    edit = QLineEdit()
-    edit.setPlaceholderText(SEARCH)
-    edit.setClearButtonEnabled(True)
-    edit.setStyleSheet(fields.input_style(palette))
-    icon = _drawn(icons.search, style.muted(palette))
-    if icon is not None:
-        edit.addAction(icon, QLineEdit.ActionPosition.LeadingPosition)
-    return edit
-
-
 def _caption(text: str, palette: Any) -> QLabel:
     label = controls.small(text, palette)
     label.setWordWrap(False)
     label.setContentsMargins(10, CAPTION_TOP, 0, 4)
     return label
-
-
-def _words(title: str, page: QWidget) -> str:
-    """Everything a person could search for on a page: its title and every caption on it."""
-    texts = [title] + [label.text() for label in page.findChildren(QLabel)]
-    return " ".join(texts).lower()
 
 
 def _add_dot(button: QWidget, palette: Any) -> None:

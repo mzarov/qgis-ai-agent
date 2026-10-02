@@ -47,10 +47,6 @@ def advanced(colour: Any, size: int) -> QIcon:
     return _icon(_draw_sliders, colour, size)
 
 
-def search(colour: Any, size: int) -> QIcon:
-    return _icon(_draw_magnifier, colour, size)
-
-
 def brand(colour: Any, size: int) -> QIcon:
     return _icon(_draw_sparkle, colour, size)
 
@@ -229,8 +225,3 @@ def _star(x: float, y: float, reach: float, waist: float) -> QPainterPath:
     path.lineTo(x - waist, y - waist)
     path.closeSubpath()
     return path
-
-
-def _draw_magnifier(painter: QPainter) -> None:
-    painter.drawEllipse(QPointF(7.0, 7.0), 4.3, 4.3)
-    painter.drawLine(QPointF(10.2, 10.2), QPointF(13.6, 13.6))

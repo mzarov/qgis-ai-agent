@@ -219,8 +219,8 @@ single short sentence. A longer explanation goes to the row's tooltip
 (`tooltip=` in `fields.row`), never under the title.
 
 **The window follows the Claude Code desktop settings** (the user's
-reference). The sidebar has a search field (`filter_pages` keeps the entries
-whose page mentions every typed word) and small group captions (`GROUPS`);
+reference). The sidebar has small group captions (`GROUPS`) and no search — there are
+too few settings to need one (the user's call);
 pages carry no title of their own and open with bold `section` headings, each
 with an optional muted sentence; rows sit flat on the page with hairlines
 between them (`card_rows` builds no frame). Only the main providers get a

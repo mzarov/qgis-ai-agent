@@ -219,8 +219,7 @@ class SidebarSettingsTest(unittest.TestCase):
         rows = SOURCE.split("def card_rows(")[1].split("\ndef ")[0]
         self.assertNotIn("QFrame", rows)
 
-    def test_the_sidebar_searches_and_groups_its_entries(self):
-        self.assertIn("def filter_pages(", LAYOUT_SOURCE)
+    def test_the_sidebar_groups_its_entries(self):
         self.assertIn("GROUPS = ", LAYOUT_SOURCE)
 
     def test_save_waits_for_an_edit(self):
