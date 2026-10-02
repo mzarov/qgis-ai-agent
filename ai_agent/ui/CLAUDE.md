@@ -10,14 +10,18 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
    Never `PyQt5` or `PyQt6` directly — the Qt version depends on the QGIS build.
 3. **No Qt Designer.** Widgets and layouts are built in code; there are no
    `.ui` files.
-4. **Colours come from the QGIS theme.** The palette is read through `QPalette`
-   in `style.py`. Hard-coded colours are forbidden: the plugin must follow both
-   the light and the dark theme. The header icons are drawn in `icons.py` with a
-   pen from that same palette rather than taken from
-   `QgsApplication.getThemeIcon`: the stock icons are colourful and were drawn
-   for a toolbar, so in a compact header they look like three mismatched
-   stickers — and they ignore the theme. Outside our own panel the QGIS theme
-   is still respected.
+4. **Colours come from `theme.py`, the approved mockup's tokens.** Two sets,
+   light and dark, with the exact hex values of `design/mockups/index.html`
+   (`tests/test_settings_ui.py` checks they match). The QGIS palette only
+   decides which set applies, by its lightness, so the plugin follows the
+   light and the dark theme. It is deliberately not limited to the QGIS
+   colours (the user's call: the plugin must look good, and palette-derived
+   colours looked dull — on macOS the palette highlight is a muted navy).
+   No other module spells a colour: widgets ask `style` for a role (`panel`,
+   `hairline`, `muted`, `accent`…). The header icons are drawn in `icons.py`
+   with a pen from `style`, not taken from `QgsApplication.getThemeIcon`: the
+   stock icons are colourful toolbar art and look like mismatched stickers in
+   a compact header.
 5. **Enum compatibility.** Qt5 and Qt6 hold enums differently. Paths like
    `Qt.DockWidgetArea.RightDockWidgetArea` do not exist on Qt5 — wrap them in
    `getattr` with a fallback, as done in `plugin.py`.
@@ -38,7 +42,8 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `connection_widgets.py` | provider tiles and the connection status card |
 | `skill_popup.py`  | the list above the composer: prefix-then-substring ranking, keyboard steering, `local` badge |
 | `skills_settings.py` | the Skills settings page: folder, example, discovered local skills and their problems |
-| `style.py`        | palette colours; `panel()` — the raised level for dialogs |
+| `theme.py`        | the mockup's light and dark colour tokens; the only module that spells a colour |
+| `style.py`        | colour roles read from `theme`, `fill()` for container backgrounds |
 | `icons.py`        | header, settings-nav, brand and layer icons: drawn with a palette pen, one stroke weight |
 | `settings_dialog.py` | the settings window: state, saving, the connection probe |
 | `settings_layout.py` | the sidebar, the page stack and per-page scrolling |
@@ -230,6 +235,21 @@ dark base), as in the mockup. Dark surfaces get a slight cool tint
 content (`style.content`) and runs the full height, with the footer only under
 the pages. Verify the window inside a real QGIS too: offscreen renders a
 smaller font and the standard palette, and both hid real layout faults.
+
+**The roles follow the mockup's CSS.** The settings sidebar is `surface-2`
+and runs the full height with the footer only under the pages; pages, cards
+and inputs are `surface`; inputs and plain buttons take `border-strong`; the
+selected sidebar entry is a `surface` fill with no border and hover is
+`sunken`; the dock and feed backdrop is `bg`. Verify windows inside a real
+QGIS too: offscreen renders a smaller font, which hid real layout faults.
+
+**Never restyle a container from inside a child's event.** A style sheet on a
+container cascades to every descendant. The composer once changed its frame's
+style sheet in the editor's `focusOutEvent`; Qt swapped the editor's style
+mid-event and QGIS segfaulted in event processing, intermittently and only in
+a full test run. Container backgrounds go through `style.fill` (the palette),
+focus and state looks are painted (`ComposerFrame`, `PulseDot`), and a style
+sheet is set only when its text actually changed.
 
 **Nothing that cannot shrink may sit in a grid.** A pill badge or an unelided
 name in the provider tiles widened the whole page in Russian; tile captions are
