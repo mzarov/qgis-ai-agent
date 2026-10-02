@@ -1,0 +1,212 @@
+[
+ {
+  "depth": 0,
+  "type": "SettingsDialog"
+ },
+ {
+  "depth": 1,
+  "type": "QWidget"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Connection",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Privacy",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Skills",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Geocoding",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Advanced",
+  "checked": true
+ },
+ {
+  "depth": 1,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 1,
+  "type": "QStackedWidget"
+ },
+ {
+  "depth": 2,
+  "type": "QScrollArea"
+ },
+ {
+  "depth": 3,
+  "type": "QWidget"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "How the agent works"
+ },
+ {
+  "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Check the result after applying changes"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "?"
+ },
+ {
+  "depth": 5,
+  "type": "Switch",
+  "checked": true
+ },
+ {
+  "depth": 4,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Token budget per run"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "?"
+ },
+ {
+  "depth": 5,
+  "type": "QLineEdit",
+  "text": "300000"
+ },
+ {
+  "depth": 4,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Extended thinking budget"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "?"
+ },
+ {
+  "depth": 5,
+  "type": "QLineEdit",
+  "text": "0"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "Talking to the provider"
+ },
+ {
+  "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "API format"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "?"
+ },
+ {
+  "depth": 5,
+  "type": "QComboBox",
+  "text": "openai"
+ },
+ {
+  "depth": 4,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Authorisation type"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "?"
+ },
+ {
+  "depth": 5,
+  "type": "QComboBox",
+  "text": "Bearer"
+ },
+ {
+  "depth": 1,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 1,
+  "type": "QPushButton",
+  "text": "Close"
+ },
+ {
+  "depth": 1,
+  "type": "QPushButton",
+  "text": "Save"
+ }
+]

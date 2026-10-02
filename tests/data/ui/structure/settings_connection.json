@@ -1,0 +1,188 @@
+[
+ {
+  "depth": 0,
+  "type": "SettingsDialog"
+ },
+ {
+  "depth": 1,
+  "type": "QWidget"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Connection",
+  "checked": true
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Privacy",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Skills",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Geocoding",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Advanced",
+  "checked": false
+ },
+ {
+  "depth": 1,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 1,
+  "type": "QStackedWidget"
+ },
+ {
+  "depth": 2,
+  "type": "QScrollArea"
+ },
+ {
+  "depth": 3,
+  "type": "QWidget"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "Model endpoint"
+ },
+ {
+  "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Provider"
+ },
+ {
+  "depth": 5,
+  "type": "QComboBox",
+  "text": "Ollama"
+ },
+ {
+  "depth": 4,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Base URL"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "?"
+ },
+ {
+  "depth": 5,
+  "type": "QLineEdit",
+  "text": "http://localhost:11434/v1"
+ },
+ {
+  "depth": 4,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Model"
+ },
+ {
+  "depth": 5,
+  "type": "QLineEdit",
+  "text": "qwen3"
+ },
+ {
+  "depth": 4,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "API key"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "?"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QLineEdit",
+  "text": "Not required"
+ },
+ {
+  "depth": 6,
+  "type": "QPushButton",
+  "text": "Remove stored key"
+ },
+ {
+  "depth": 4,
+  "type": "QPushButton",
+  "text": "Test connection"
+ },
+ {
+  "depth": 1,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 1,
+  "type": "QPushButton",
+  "text": "Close"
+ },
+ {
+  "depth": 1,
+  "type": "QPushButton",
+  "text": "Save"
+ }
+]

@@ -6,10 +6,18 @@ import tempfile
 import unittest
 
 import qgis
-from qgis.core import Qgis, QgsApplication
+from qgis.core import Qgis, QgsApplication, QgsSettings
 from real_qgis_smoke import _build_and_extract, qgis_application
 
-DEFAULT_MODULES = ("real_qgis_cases", "real_qgis_network", "real_qgis_e2e")
+
+def _select_locale() -> None:
+    """Pick the UI language before `import ai_agent` installs the translator and builds translated constants."""
+    language = os.environ.get("UI_LOCALE", "").strip()
+    if language:
+        QgsSettings().setValue("locale/userLocale", language)
+
+
+DEFAULT_MODULES = ("real_qgis_cases", "real_qgis_network", "real_qgis_e2e", "real_qgis_visual")
 
 
 def main(modules: tuple[str, ...] = DEFAULT_MODULES) -> int:
@@ -27,6 +35,7 @@ def main(modules: tuple[str, ...] = DEFAULT_MODULES) -> int:
                     sys.path.append(os.fspath(candidate))
             processing = importlib.import_module("processing.core.Processing")
             processing.Processing.initialize()
+            _select_locale()
             installed = importlib.import_module("ai_agent")
             if pathlib.Path(installed.__file__).resolve().parent != package.resolve():
                 raise RuntimeError("Integration tests must import the extracted plugin ZIP")

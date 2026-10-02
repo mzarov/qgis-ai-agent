@@ -1,0 +1,128 @@
+[
+ {
+  "depth": 0,
+  "type": "SettingsDialog"
+ },
+ {
+  "depth": 1,
+  "type": "QWidget"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Connection",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Privacy",
+  "checked": true
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Skills",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Geocoding",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Advanced",
+  "checked": false
+ },
+ {
+  "depth": 1,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 1,
+  "type": "QStackedWidget"
+ },
+ {
+  "depth": 2,
+  "type": "QScrollArea"
+ },
+ {
+  "depth": 3,
+  "type": "QWidget"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "Connection security and records"
+ },
+ {
+  "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Verify the SSL certificate"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "?"
+ },
+ {
+  "depth": 5,
+  "type": "Switch",
+  "checked": true
+ },
+ {
+  "depth": 4,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Write a run journal after applying"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "?"
+ },
+ {
+  "depth": 5,
+  "type": "Switch",
+  "checked": false
+ },
+ {
+  "depth": 1,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 1,
+  "type": "QPushButton",
+  "text": "Close"
+ },
+ {
+  "depth": 1,
+  "type": "QPushButton",
+  "text": "Save"
+ }
+]
