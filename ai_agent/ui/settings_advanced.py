@@ -29,7 +29,8 @@ REASONING_LABEL = tr("Reasoning")
 REASONING_NOTE = tr("OpenAI-compatible APIs. Slower, more tokens.")
 REASONING_HINT = tr(
     "Asks the model to think before it answers, in the parameter its provider expects. "
-    "A server that rejects it is remembered and not asked again."
+    "A server that rejects it is skipped from then on; a connection test, "
+    "or saving the switch off and then on, asks it again."
 )
 THINKING_LABEL = tr("Extended thinking budget")
 THINKING_HINT = tr(

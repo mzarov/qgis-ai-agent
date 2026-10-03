@@ -6,6 +6,7 @@ from ai_agent.core.agent.transcript import Transcript
 from ai_agent.core.llm import transport
 from ai_agent.core.llm.client import ApiResponseError
 from ai_agent.core.llm.reasoning import REASONING_KEY, request_options, wire_messages
+from ai_agent.core.llm.refusals import thinking_unsupported, tools_unsupported
 from ai_agent.core.llm.transport import ModelTurn, ToolCall, _openai_options
 
 SCHEMAS = [{"type": "function", "function": {"name": "list_layers", "parameters": {}}}]
@@ -55,6 +56,25 @@ class ProviderBodyTest(unittest.TestCase):
         options = _openai_options(OPENROUTER, SCHEMAS, reasoning=True)
         self.assertEqual(options["tool_choice"], "auto")
         self.assertEqual(options["reasoning"], {"effort": "medium"})
+
+
+class ReasoningRefusalTest(unittest.TestCase):
+    def test_camel_case_parameter_names_count(self):
+        self.assertTrue(thinking_unsupported(ApiResponseError(400, "Unknown parameter: reasoningEffort")))
+        structured = json.dumps({"error": {"message": "bad request", "param": "reasoningEffort"}})
+        self.assertTrue(thinking_unsupported(ApiResponseError(400, structured)))
+
+    def test_a_rejected_value_counts_for_reasoning(self):
+        body = "Invalid value for reasoning_effort: must be one of none, default"
+        self.assertTrue(thinking_unsupported(ApiResponseError(400, body)))
+
+    def test_a_rejected_value_never_disables_tools(self):
+        body = "tools[0].function.parameters.type: must be one of object"
+        self.assertFalse(tools_unsupported(ApiResponseError(400, body)))
+
+    def test_deepseek_missing_echo_stays_a_hard_error(self):
+        body = "The reasoning_content in the thinking mode must be passed back to the API."
+        self.assertFalse(thinking_unsupported(ApiResponseError(400, body)))
 
 
 class WireMessagesTest(unittest.TestCase):

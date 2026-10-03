@@ -311,7 +311,7 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         set_write_run_journal(self.journal_cb.isChecked())
         set_token_budget(token_budget)
         set_thinking_budget(thinking_budget)
-        set_reasoning_enabled(self.reasoning_cb.isChecked())
+        set_reasoning_enabled(self.reasoning_cb.isChecked(), url, model, dialect)
         set_geocoder_provider(geocoder_provider)
         if geocoder_provider == GEOCODER_NOMINATIM:
             set_custom_nominatim_url(geocoder_url)

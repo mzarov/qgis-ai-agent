@@ -863,3 +863,8 @@ These verify the agent solves everyday tasks without wandering through search.
 189. **A model that cannot reason is not broken by the switch.** Reasoning on,
      OpenAI with `gpt-4o-mini` → the answer arrives; later runs send no
      `reasoning_effort`.
+190. **DeepSeek keeps reasoning across questions.** Reasoning on, DeepSeek: ask
+     for something needing tools, wait for the answer, then ask a second
+     tool-using question in the same chat → it also finishes without a 400
+     about `reasoning_content` (turns from the first run go back with an empty
+     one).

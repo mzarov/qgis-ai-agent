@@ -44,7 +44,7 @@
         </translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="42"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="43"/>
         <source>A Markdown log in the QGIS profile.</source>
         <translation>Журнал Markdown в профиле QGIS.</translation>
     </message>
@@ -69,7 +69,7 @@
         <translation>Запуск остановится после стольких токенов.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="112"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="113"/>
         <source>API format</source>
         <translation>Формат API</translation>
     </message>
@@ -149,12 +149,12 @@
         <translation>Прерванный запуск успел выполнить действия в предыдущем проекте; подробности сохранены в его переписке.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="43"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="44"/>
         <source>Anthropic only. 0 turns it off.</source>
         <translation>Только Anthropic. 0 — выключено.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="35"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="36"/>
         <source>Anthropic only: 0 disables extended thinking. For Sonnet 5, any positive value enables adaptive thinking; older models require at least 1024 tokens and use the value as their reasoning budget.</source>
         <translation>Только Anthropic: 0 отключает расширенное рассуждение. Для Sonnet 5 любое положительное значение включает адаптивное рассуждение; более старым моделям требуется не менее 1024 токенов, а заданное значение используется как бюджет рассуждения.</translation>
     </message>
@@ -205,8 +205,8 @@
     </message>
     <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="30"/>
-        <source>Asks the model to think before it answers, in the parameter its provider expects. A server that rejects it is remembered and not asked again.</source>
-        <translation>Просит модель подумать перед ответом — тем параметром, который ждёт её провайдер. Если сервер его отклонит, это запомнится и больше не повторится.</translation>
+        <source>Asks the model to think before it answers, in the parameter its provider expects. A server that rejects it is skipped from then on; a connection test, or saving the switch off and then on, asks it again.</source>
+        <translation>Просит модель подумать перед ответом — тем параметром, который ждёт её провайдер. Сервер, который его отклонил, дальше не спрашивается; проверка соединения или сохранение переключателя выключенным, а затем включённым, спросит снова.</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/composer_parts.py" line="20"/>
@@ -229,7 +229,7 @@
         <translation>Приложено: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="113"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="114"/>
         <source>Authorisation type</source>
         <translation>Тип авторизации</translation>
     </message>
@@ -345,7 +345,7 @@
         <translation>Подключение</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="64"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="65"/>
         <source>Connection security</source>
         <translation>Защита соединения</translation>
     </message>
@@ -465,7 +465,7 @@
         <translation>Скачиваю из OSM «{0}» ({1}) в {2}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="50"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="51"/>
         <source>Each applied run leaves an unencrypted Markdown file in the QGIS profile with the request, the tool names and the outcome. Off by default; the files stay until you delete them.</source>
         <translation>Каждый применённый прогон оставляет незашифрованный Markdown-файл в профиле QGIS с запросом, именами инструментов и итогом. По умолчанию выключено; файлы остаются, пока вы их не удалите.</translation>
     </message>
@@ -490,7 +490,7 @@
         <translation>Ошибка: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="44"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="45"/>
         <source>Everything the agent reads goes to the model.</source>
         <translation>Всё, что читает агент, уходит модели.</translation>
     </message>
@@ -505,7 +505,7 @@
         <translation>Экспортирую макет «{0}» в {1}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="34"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="35"/>
         <source>Extended thinking budget</source>
         <translation>Бюджет расширенного рассуждения</translation>
     </message>
@@ -577,7 +577,7 @@
         <translation>Строю градации «{0}» по «{1}», классов: {2}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="88"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="89"/>
         <source>How the agent works</source>
         <translation>Как работает агент</translation>
     </message>
@@ -653,7 +653,7 @@
         <translation>Не задан ключ API. Укажите его в настройках — или подключитесь к локальной модели: адресу на localhost ключ не нужен.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="46"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="47"/>
         <source>No limit</source>
         <translation>Без лимита</translation>
     </message>
@@ -938,7 +938,7 @@
         <translation>Рассуждение</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="66"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="67"/>
         <source>Records</source>
         <translation>Записи</translation>
     </message>
@@ -1188,7 +1188,7 @@
         <translation>Оформляю растр «{0}»: {1}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="107"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="108"/>
         <source>Talking to the provider</source>
         <translation>Связь с провайдером</translation>
     </message>
@@ -1346,7 +1346,7 @@
         <translation>Инструменты: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="40"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="41"/>
         <source>Turn off only for a trusted self-signed server.</source>
         <translation>Выключайте только для доверенного самоподписанного сервера.</translation>
     </message>
@@ -1386,12 +1386,12 @@
         <translation>Обновляю объектов: {0} — в «{1}»: {2}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="45"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="46"/>
         <source>Use a local server to keep project data on this computer.</source>
         <translation>Чтобы данные не покидали компьютер, используйте локальный сервер.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="39"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="40"/>
         <source>Verify the SSL certificate</source>
         <translation>Проверять сертификат SSL</translation>
     </message>
@@ -1421,7 +1421,7 @@
         <translation>Работаю…</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="41"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="42"/>
         <source>Write a run journal after applying</source>
         <translation>Писать журнал прогона после применения</translation>
     </message>

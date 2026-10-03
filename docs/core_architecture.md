@@ -309,8 +309,13 @@ it. The request is retried once without the parameter, and the refusal is kept
 in the same capability cache as streaming and tools (`supports_thinking`, per
 endpoint, model and dialect), so the parameter is never sent there again. The
 reasoning check runs before the streaming and tools checks: a complaint about
-`reasoning_effort` must not switch streaming off. A successful connection test
-forgets the refusal, as it does for every detected capability.
+`reasoning_effort` must not switch streaming off. For reasoning only, a
+rejected *value* also counts ("must be one of none, default"): the plugin sends
+one fixed value, so leaving the parameter out is the right fallback. For tools
+the same words mean a broken schema, so they never count there. Parameter names
+are matched in camelCase too (`reasoningEffort`). A successful connection test
+forgets the refusal, as it does for every detected capability, and so does
+saving the switch on after it was off.
 
 DeepSeek is the one exception to "reasoning is never sent back". V4 thinks by
 default, and in thinking mode a request with tools is answered 400 unless every
@@ -321,6 +326,15 @@ for DeepSeek it goes out as `reasoning_content` (an empty string for turns from
 earlier runs, which the API accepts), for every other endpoint the key is
 stripped. The saved conversation still never holds reasoning. OpenRouter also
 accepts reasoning back, but does not require it, so nothing is echoed there.
+
+The echo has a price: each request resends the reasoning of every turn in the
+run, so a long DeepSeek run with the switch on bills noticeably more input
+tokens; with prefix caching most of it is billed at the cached rate. That the
+API accepts an empty string for turns from earlier runs is observed, not
+documented — smoke check 190 covers it. The older `deepseek-reasoner` refused
+`reasoning_content` in input messages with a 400; that error names a message
+field, not a request parameter, so it is not taken for a refusal and surfaces
+as an ordinary API error — switch Reasoning off for such a model.
 
 OpenAI's Chat Completions API reasons without returning the text, so with
 OpenAI the switch makes answers better but adds no "Thought" line. DeepSeek and
