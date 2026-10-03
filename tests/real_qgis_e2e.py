@@ -63,6 +63,32 @@ class StyleScenario(ScenarioCase):
         self.shot("style_apply_verification")
 
 
+class TextOnlyScenario(ScenarioCase):
+    def test_a_model_known_to_reject_images_verifies_by_reading(self) -> None:
+        from ai_agent.core.settings import set_supports_images
+
+        set_supports_images(self.api_url, False, MODEL, "openai")
+        self.model.script(
+            call("load_skill", names=["style"]),
+            call("set_opacity", layer_name="districts", opacity=0.5),
+            say("I suggest making districts half transparent."),
+            call("describe_style", layer_name="districts"),
+            say("Checked: districts is half transparent."),
+        )
+        self.ask("Make districts half transparent")
+        self.apply()
+        self.assertAlmostEqual(self.layer("districts").opacity(), 0.5)
+
+        for index in range(len(self.model.requests)):
+            offered = self.model.tool_names(index)
+            self.assertNotIn("render_map", offered, "an image tool was offered to a text-only model")
+            self.assertNotIn("render_layout", offered, "an image tool was offered to a text-only model")
+        verification = self.model.sent_text(3)
+        self.assertIn("cannot see images", verification)
+        self.assertNotIn("call render_map", verification)
+        self.assertEqual(self.answers()[-1], "Checked: districts is half transparent.")
+
+
 class StopScenario(ScenarioCase):
     def test_stop_keeps_the_partial_answer_and_clears_the_box(self) -> None:
         self.model.script(say("A map projection flattens the surface of the Earth onto a plane. " * 20, 0.05))

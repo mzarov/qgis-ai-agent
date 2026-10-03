@@ -8,6 +8,7 @@ from ai_agent.core.agent.prompts import (
     LOAD_SKILL_TOOL,
     UPDATE_PLAN_TOOL,
 )
+from ai_agent.core.agent.request import detect_images_unsupported
 from ai_agent.core.agent.skills import load_skill
 from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.core.llm.transport import ToolCall
@@ -111,7 +112,8 @@ class DispatchMixin:
         return ToolResult(call=call, ok=True, payload={"steps": len(steps), "done": done})
 
     def _load_skill(self, call: ToolCall) -> ToolResult:
-        result, loaded = load_skill(call, self._loaded_skills)
+        images = not detect_images_unsupported(self._overrides)
+        result, loaded = load_skill(call, self._loaded_skills, images)
         for name in loaded:
             self.skill_loaded.emit(name)
             QgsMessageLog.logMessage(f"Skill loaded: {name}.", LOG_TAG, Qgis.MessageLevel.Info)

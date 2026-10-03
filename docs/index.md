@@ -26,6 +26,8 @@ Twelve domains, 65 tools:
 
 On a vision-capable model the agent **sees** the map: it renders the canvas or
 a print layout to an image and judges colours, labels and composition by eye.
+A model that has once turned image input down is no longer offered those
+tools: it checks its work by reading styles, data and layouts instead.
 And after you press Apply it **verifies itself** — re-reads the project,
 compares the result with what you asked for and queues fixes when something is
 off.

@@ -4,6 +4,7 @@ from typing import Any
 from qgis.core import Qgis, QgsMessageLog
 
 from ai_agent.core.agent.prompts import build_verification_prompt
+from ai_agent.core.agent.request import detect_images_unsupported
 
 LOG_TAG = "AI Agent"
 MAX_VERIFICATION_ROUNDS = 3
@@ -23,7 +24,8 @@ def plan_verification(
 
     It starts with the applying run's skills (no load_skill turn, the same
     cached prefix) and is told the user's original request, which a long run
-    may already have pushed out of the history window.
+    may already have pushed out of the history window. A model known to reject
+    images is told to check by reading instead of being sent to render_map.
     """
     next_round = current_round + 1
     if next_round > MAX_VERIFICATION_ROUNDS:
@@ -34,4 +36,5 @@ def plan_verification(
     outcomes = [
         {"tool": result.call.name, "ok": result.ok, "error": str(result.payload.get("error", ""))} for result in results
     ]
-    return VerificationStart(build_verification_prompt(outcomes, request), next_round, list(loaded_skills))
+    prompt = build_verification_prompt(outcomes, request, images=not detect_images_unsupported())
+    return VerificationStart(prompt, next_round, list(loaded_skills))

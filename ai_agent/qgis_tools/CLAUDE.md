@@ -32,7 +32,9 @@ class DescribeLayerTool(BaseTool):
 Every tool class explicitly declares `safety`, `egress`, `external_effect` and
 `network_access`; inherited defaults are not a substitute for reviewing effects.
 Override `safety_for`, `has_external_effect` or `has_network_access` when effects
-depend on arguments. `egress` describes what kind of data a
+depend on arguments. A tool whose result is only a picture sets
+`returns_image = True` (with `egress = EGRESS_IMAGE`): a model known to reject
+image input is not offered it. `egress` describes what kind of data a
 result carries (metadata, feature values, images, web content). It is
 documentation for reviewers, not a gate: every tool of a loaded skill is offered
 to the model, because an agent that cannot read data cannot do GIS work — the
