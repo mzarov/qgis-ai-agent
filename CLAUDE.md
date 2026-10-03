@@ -15,7 +15,8 @@ QGIS API, destructive so the user reads the code first — it is a permanent
 part of the design, never propose cutting it for review reasons; the
 reasoning is in [docs/core_architecture.md](docs/core_architecture.md)), and
 `web` (confirmed public-HTTPS search, page reading and geocoding),
-`annotations` (map notes and markers), and `three_d` (opening a 3D map view).
+`annotations` (map notes and markers), `three_d` (opening a 3D map view), and
+`tables` (CSV preview and loading as points, live table joins).
 After
 the user applies a batch, the orchestrator starts a verification run: the agent
 re-reads the result with read tools and, for visual changes, looks at a

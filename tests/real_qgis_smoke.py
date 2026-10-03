@@ -15,8 +15,8 @@ from qgis.PyQt.QtNetwork import QNetworkRequest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 MINIMUM_QGIS_VERSION = 40000
-EXPECTED_TOOLS = 66
-EXPECTED_SKILLS = 13
+EXPECTED_TOOLS = 71
+EXPECTED_SKILLS = 14
 
 
 def main() -> int:
@@ -123,6 +123,11 @@ def _run_checks(package_root: pathlib.Path) -> int:
             "remove_annotation",
             "open_3d_view",
             "draw_features",
+            "preview_table",
+            "load_table",
+            "join_table",
+            "list_joins",
+            "remove_join",
         }.issubset(tool_names),
         "web network policy": web_request_policy,
         "skill registry": len(SKILL_REGISTRY.names()) == EXPECTED_SKILLS,

@@ -334,6 +334,72 @@ class AttachScenario(ScenarioCase):
         self.assertIn("sketch.png", self.orchestrator.conversation.messages[-2]["content"])
 
 
+class TablesScenario(ScenarioCase):
+    def write_csv(self, name: str, text: str) -> str:
+        import os
+
+        path = os.path.join(self.folder, name)
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(text)
+        return path
+
+    def test_a_csv_joins_to_districts_and_another_becomes_points(self) -> None:
+        rows = "".join(f"District {index};{100 * index};{index:03d}\n" for index in range(1, 7))
+        stats = self.write_csv("district_stats.csv", "district;households;okato\n" + rows)
+        self.model.script(
+            call("load_skill", names=["tables"]),
+            call("preview_table", path=stats),
+            call(
+                "join_table",
+                layer_name="districts",
+                layer_field="name",
+                table=stats,
+                table_field="district",
+                fields=["households", "okato"],
+                prefix="",
+            ),
+            say("I suggest attaching households and okato to districts by name."),
+            call("list_joins", layer_name="districts"),
+            say("Checked: all six districts found their row."),
+        )
+        self.ask("Attach district_stats.csv to the districts by name")
+        preview = self.model.sent_text(2).replace('\\"', '"')
+        self.assertIn('"delimiter": ";"', preview)
+        self.assertIn('{"name": "okato", "type": "text"}', preview)
+
+        self.apply()
+        districts = self.layer("districts")
+        joined = {feature["name"]: (feature["households"], feature["okato"]) for feature in districts.getFeatures()}
+        self.assertEqual(joined["District 1"], (100, "001"), "codes with leading zeros must stay text")
+        self.assertTrue(all(households for households, _ in joined.values()), joined)
+        self.assertEqual(self.layer("district_stats").providerType(), "delimitedtext")
+        self.assertIn('"matched_keys": 6', self.model.sent_text(5).replace('\\"', '"'))
+        self.shot("tables_join")
+
+        cafes = self.write_csv("cafes.csv", "name,lon,lat\nA,37.61,55.75\nB,37.62,55.76\nC,37.63,55.77\n")
+        self.model.script(
+            call("load_skill", names=["tables"]),
+            call("load_table", path=cafes),
+            say("I suggest loading cafes as points."),
+            say("Checked: three cafes."),
+        )
+        self.ask("Make points from cafes.csv")
+        self.apply()
+        points = self.layer("cafes")
+        self.assertEqual(points.featureCount(), 3)
+        self.assertEqual(points.crs().authid(), "EPSG:4326")
+        self.assertEqual(points.geometryType().name, "Point")
+
+    def test_an_attached_csv_with_lon_lat_becomes_points(self) -> None:
+        stops = self.write_csv("stops.csv", "stop;lat;lon\nKremlin;55,752;37,617\n")
+        self.dock.files_attached.emit([stops])
+        pump(0.1)
+        layer = self.layer("stops")
+        self.assertEqual(layer.geometryType().name, "Point")
+        self.assertAlmostEqual(next(layer.getFeatures()).geometry().asPoint().x(), 37.617)
+        self.assertIn("@stops", self.dock.composer._edit.toPlainText())
+
+
 class FailureScenario(ScenarioCase):
     def test_a_failed_run_still_offers_the_prepared_steps(self) -> None:
         self.model.script(

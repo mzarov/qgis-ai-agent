@@ -49,6 +49,9 @@ files = [
     "ai_agent/qgis_tools/call_summary.py",
     "ai_agent/qgis_tools/common/validation.py",
     "ai_agent/qgis_tools/processing/effects.py",
+    "ai_agent/qgis_tools/tables/coordinates.py",
+    "ai_agent/qgis_tools/tables/delimited.py",
+    "ai_agent/qgis_tools/tables/keys.py",
 ]
 follow_imports = "silent"
 warn_unused_configs = true

@@ -7,7 +7,7 @@ confirm them.
 
 ## What it does
 
-Thirteen domains, 66 tools:
+Fourteen domains, 71 tools:
 
 | Domain | Example requests |
 | --- | --- |
@@ -24,6 +24,7 @@ Thirteen domains, 66 tools:
 | `web` | “find the EPSG code”, “read this documentation page”, “geocode this place” |
 | `annotations` | “mark this place”, “add a note to the map”, “remove that annotation” |
 | `three_d` | “open a 3D view of this project” |
+| `tables` | “join this CSV to the districts by code”, “make points from this CSV with lon/lat” |
 
 On a vision-capable model the agent **sees** the map: it renders the canvas or
 a print layout to an image and judges colours, labels and composition by eye.
