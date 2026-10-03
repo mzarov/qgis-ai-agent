@@ -10,7 +10,10 @@ name: live-model
 #   variable YANDEX_MODEL    model URI, e.g. gpt://<folder>/deepseek-v4.1-flash
 #
 # Spending caps: LIVE_RUN_TOKENS per agent run, LIVE_TOTAL_TOKENS per suite,
-# and the job timeout. Usage is in the live_usage.json artifact.
+# and the job timeout. A scenario fails when it spends more than its ceiling in
+# tests/data/token_ceilings.json. Usage per scenario (prompt and completion
+# tokens, model requests, verification included) is in the live-token-usage
+# artifact; tests/token_ceilings.py refreshes the ceilings from it.
 
 on:
   workflow_dispatch:
@@ -46,6 +49,8 @@ jobs:
       LIVE_TOTAL_TOKENS: "1500000"
       LIVE_RUN_TOKENS: "150000"
       LIVE_ONLY: ${{ inputs.only }}
+      # A scenario without a ceiling for YANDEX_MODEL fails instead of only reporting.
+      LIVE_REQUIRE_CEILINGS: "1"
     steps:
       - uses: actions/checkout@v4
       - name: Check the configuration
@@ -62,4 +67,11 @@ jobs:
         with:
           name: live-model
           path: build/live
+          if-no-files-found: ignore
+      - name: Upload the token usage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-token-usage
+          path: build/live/live_usage.json
           if-no-files-found: ignore

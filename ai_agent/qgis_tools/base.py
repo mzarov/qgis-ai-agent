@@ -39,6 +39,9 @@ class BaseTool(ABC):
     egress: str = EGRESS_METADATA
     external_effect: bool = False
     network_access: bool = False
+    # The result exists only to be looked at: a model known to reject image
+    # input is not offered the tool, since it would get an omission note back.
+    returns_image: bool = False
 
     @property
     def is_read_only(self) -> bool:

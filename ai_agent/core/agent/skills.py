@@ -27,7 +27,7 @@ TOO_MANY_SKILLS = (
 )
 
 
-def load_skill(call: ToolCall, loaded_skills: list[str]) -> tuple[ToolResult, list[str]]:
+def load_skill(call: ToolCall, loaded_skills: list[str], images: bool = True) -> tuple[ToolResult, list[str]]:
     requested = [name for name in requested_skills(call.arguments) if name not in loaded_skills] or requested_skills(
         call.arguments
     )
@@ -51,7 +51,7 @@ def load_skill(call: ToolCall, loaded_skills: list[str]) -> tuple[ToolResult, li
         if name not in loaded_skills:
             extend_loaded(loaded_skills, name)
             newly_loaded.append(name)
-    payload: dict = {"loaded": known, "tools": [tool.name for tool in tools_for_skills(known)]}
+    payload: dict = {"loaded": known, "tools": [tool.name for tool in tools_for_skills(known, images)]}
     if unknown:
         payload.update({"not_found": unknown, "available": SKILL_REGISTRY.names()})
     return ToolResult(call=call, ok=True, payload=payload), newly_loaded
@@ -75,7 +75,8 @@ def skills_to_load(name: str) -> list[str]:
     return names
 
 
-def tools_for_skills(loaded_skills) -> list[BaseTool]:
+def tools_for_skills(loaded_skills, images: bool = True) -> list[BaseTool]:
+    """The tools the loaded skills offer; without images, the ones that only return a picture drop out."""
     domains: set[str] = set()
     named: set[str] = set()
     for name in loaded_skills:
@@ -86,7 +87,11 @@ def tools_for_skills(loaded_skills) -> list[BaseTool]:
             named.update(skill.tool_names)
         else:
             domains.add(skill.name)
-    return [tool for tool in ALL_TOOLS if tool.skill in domains or tool.name in named]
+    return [
+        tool
+        for tool in ALL_TOOLS
+        if (tool.skill in domains or tool.name in named) and (images or not tool.returns_image)
+    ]
 
 
 def _named_tools(names) -> list[BaseTool]:

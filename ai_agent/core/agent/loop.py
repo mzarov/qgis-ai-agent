@@ -85,6 +85,11 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         return str(self._overrides.get("url_override") or "")
 
     @property
+    def overrides(self) -> dict:
+        """A copy of the endpoint settings this run was started with."""
+        return dict(self._overrides)
+
+    @property
     def is_awaiting_answer(self) -> bool:
         return bool(self._question)
 
@@ -195,6 +200,11 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
     def tokens_spent(self) -> int:
         return self._budget.spent
 
+    @property
+    def usage(self) -> dict[str, int]:
+        """Prompt tokens, completion tokens and answered requests of the current or last run."""
+        return self._budget.snapshot()
+
     def _request_step(self) -> None:
         generation = self._generation
         if not self._is_current(generation) or self._batch.is_applying:
@@ -262,6 +272,8 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         if turn.protocol == PROTOCOL_JSON and self._prompt_protocol == PROTOCOL_NATIVE and not self._protocol_retried:
             self._protocol_retried = True
             self._iteration -= 1
+            # The discarded turn was still answered, and billed.
+            self._track_usage(turn)
             if self._is_current(generation):
                 self._request_step()
             return

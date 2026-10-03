@@ -18,7 +18,7 @@ from ai_agent.core.agent.transcript import (
     ToolResult,
     Transcript,
 )
-from ai_agent.core.llm.transport import ModelTurn, ToolCall, parse_usage
+from ai_agent.core.llm.transport import PROTOCOL_JSON, ModelTurn, ToolCall, parse_usage
 
 
 def _call(tool, **arguments):
@@ -251,6 +251,23 @@ class BudgetTest(unittest.TestCase):
         self.loop.usage_changed.connect(lambda spent: seen.append(spent))
         self.loop._track_usage(ModelTurn())
         self.assertEqual(seen, [])
+
+    def test_usage_keeps_prompt_completion_and_requests_apart(self):
+        self.loop._track_usage(ModelTurn(input_tokens=100, output_tokens=20))
+        self.loop._track_usage(ModelTurn())
+        self.assertEqual(self.loop.usage, {"prompt_tokens": 100, "completion_tokens": 20, "requests": 2})
+        self.loop._budget.reset(0)
+        self.assertEqual(self.loop.usage, {"prompt_tokens": 0, "completion_tokens": 0, "requests": 0})
+
+    def test_a_turn_discarded_for_the_protocol_retry_is_still_counted(self):
+        saved = loop_module.build_step_request
+        loop_module.build_step_request = lambda *args, **kwargs: _FakeRequest()
+        self.loop._turn.start = lambda *args: None
+        try:
+            self.loop._on_turn(ModelTurn(protocol=PROTOCOL_JSON, input_tokens=40, output_tokens=5))
+        finally:
+            loop_module.build_step_request = saved
+        self.assertEqual(self.loop.usage, {"prompt_tokens": 40, "completion_tokens": 5, "requests": 1})
 
     def test_the_budget_stops_the_run_politely(self):
         completed = []

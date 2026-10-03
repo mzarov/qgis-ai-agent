@@ -52,7 +52,8 @@ def build_step_request(
 ) -> StepRequest:
     effective_overrides = dict(overrides) if overrides is not None else build_overrides()
     endpoint = str(effective_overrides.get("url_override") or get_api_url() or "")
-    schemas = build_tool_schemas_for(loaded_skills, endpoint)
+    images = not detect_images_unsupported(effective_overrides)
+    schemas = build_tool_schemas_for(loaded_skills, endpoint, images)
     json_protocol = detect_json_protocol(effective_overrides)
     static_prompt, live_prompt = build_system_parts(
         project_context=get_project_context(),
@@ -73,7 +74,7 @@ def build_step_request(
     messages = transcript.build_messages(
         system_prompt,
         history,
-        include_images=not detect_images_unsupported(effective_overrides),
+        include_images=images,
     )
     if live_prompt:
         messages.append(live_message(live_prompt))
@@ -92,8 +93,11 @@ def _project_notes() -> str:
         return ""
 
 
-def build_tool_schemas_for(loaded_skills: list[str], endpoint: str | None = None) -> list[dict[str, Any]]:
-    tools = tools_for_skills(loaded_skills)
+def build_tool_schemas_for(
+    loaded_skills: list[str], endpoint: str | None = None, images: bool = True
+) -> list[dict[str, Any]]:
+    """Tool schemas for one turn; `images=False` leaves out tools whose result is only a picture."""
+    tools = tools_for_skills(loaded_skills, images)
     schemas = build_tool_schemas(tools)
     schemas.insert(0, build_apply_now_schema())
     schemas.insert(0, build_ask_user_schema())
@@ -105,6 +109,7 @@ def build_tool_schemas_for(loaded_skills: list[str], endpoint: str | None = None
 
 
 def detect_images_unsupported(overrides: dict[str, Any] | None = None) -> bool:
+    """True only when this endpoint and model already rejected image input; unknown counts as supported."""
     scope = overrides or {}
     try:
         return (

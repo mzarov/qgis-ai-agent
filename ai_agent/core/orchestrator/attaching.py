@@ -3,9 +3,9 @@
 import os
 from dataclasses import dataclass, field
 
+from ai_agent.core.agent.request import detect_images_unsupported
 from ai_agent.core.attachments import attach, encode_picture
 from ai_agent.core.orchestrator.contracts import DockWidgetContract
-from ai_agent.core.settings import get_api_url, get_dialect, get_model, get_supports_images
 from ai_agent.i18n import tr
 
 NOT_ATTACHED = tr("Could not attach {0}: {1}")
@@ -38,7 +38,7 @@ def take_pictures(dock: DockWidgetContract) -> Pictures:
     if not paths:
         return pictures
     names = [os.path.basename(path) for path in paths]
-    if _known_blind():
+    if detect_images_unsupported():
         dock.add_system_message(NO_EYES.format(NAME_SEPARATOR.join(names)))
         return pictures
     for path, name in zip(paths, names, strict=True):
@@ -56,10 +56,3 @@ def with_names(text: str, pictures: Pictures) -> str:
     if not pictures.names:
         return text
     return f"{text}\n{ATTACHED.format(NAME_SEPARATOR.join(pictures.names))}"
-
-
-def _known_blind() -> bool:
-    try:
-        return get_supports_images(get_api_url(), get_model() or None, get_dialect() or None) is False
-    except Exception:
-        return False

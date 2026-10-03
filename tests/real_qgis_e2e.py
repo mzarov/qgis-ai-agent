@@ -6,19 +6,65 @@ over real HTTP and streaming. Assertions are on what matters to the user: the
 project state, what reached the model, and what the chat shows. Screenshots of
 the panel land in `E2E_ARTIFACTS` (default `build/e2e`) for a look by eye.
 
+Every request any scenario sends is also measured: the system prompt and the
+tool schemas, in characters, are what each step of a run pays again. The
+largest of each, and the smallest request (no skill loaded yet — what every
+run pays at least), must stay under the `scripted` ceilings in `tests/data/token_ceilings.json`
+and land in `request_sizes.json` next to the screenshots — a free, every-push
+guard against the permanent prompt growing back (issue #74).
+
 Runs inside `real_qgis_workflows.py` against the extracted plugin ZIP.
 """
 
-from e2e_harness import PluginCase, pump
-from e2e_model import ScriptedModel, call, calls, fail, say, think
+import json
+from typing import Any
+
+import token_ceilings
+from e2e_harness import ARTIFACTS, PluginCase, pump
+from e2e_model import USAGE, ScriptedModel, call, calls, fail, say, think
+
+from ai_agent.core.settings import set_supports_images
 
 from ai_agent.core.settings import set_reasoning_enabled
 
 MODEL = "scripted-model"
+SIZES_FILE = "request_sizes.json"
+SCRIPTED_CEILINGS = token_ceilings.load()[token_ceilings.SCRIPTED_KIND]
+# The largest request part of each metric across all scenarios so far, and where it came from.
+PEAKS: dict[str, Any] = {"kind": token_ceilings.SCRIPTED_KIND, "where": {}}
+
+
+def request_sizes(body: dict[str, Any]) -> dict[str, int]:
+    """Characters of the parts every request repeats: the system prompt and the tool schemas."""
+    system = [message.get("content") for message in body.get("messages", []) if message.get("role") == "system"]
+    return {
+        "system_chars": len(json.dumps(system, ensure_ascii=False)),
+        "tools_chars": len(json.dumps(body.get("tools") or [], ensure_ascii=False)),
+    }
+
+
+def _record_peaks(scenario: str, requests: list[dict[str, Any]], skill_free_start: bool) -> dict[str, int]:
+    sizes = [request_sizes(body) for body in requests]
+    if not sizes:
+        return {}
+    measured = {metric: max(size[metric] for size in sizes) for metric in ("system_chars", "tools_chars")}
+    if skill_free_start:
+        # The smallest request is the first one of a run that loaded no skill yet.
+        measured["base_chars"] = min(size["system_chars"] + size["tools_chars"] for size in sizes)
+    for metric, value in measured.items():
+        if value > PEAKS.get(metric, 0):
+            PEAKS[metric] = value
+            PEAKS["where"][metric] = scenario
+    ARTIFACTS.mkdir(parents=True, exist_ok=True)
+    (ARTIFACTS / SIZES_FILE).write_text(json.dumps(PEAKS, indent=2), encoding="utf-8")
+    return measured
 
 
 class ScenarioCase(PluginCase):
     model_name = MODEL
+    # False for a scenario whose every request already carries a skill (a slash
+    # command, a preload): it has no skill-free request to measure `base_chars` on.
+    skill_free_start = True
 
     def setUp(self) -> None:
         self.model = ScriptedModel().start()
@@ -30,6 +76,9 @@ class ScenarioCase(PluginCase):
         self.model.stop()
         self.assertEqual(self.model.unexpected, [], "the plugin sent requests no scenario turn answered")
         self.assertEqual(list(self.model.turns), [], "scripted turns were left unused")
+        measured = _record_peaks(type(self).__name__, self.model.requests, self.skill_free_start)
+        over = token_ceilings.exceeded(measured, SCRIPTED_CEILINGS)
+        self.assertEqual(over, [], "the per-request prompt grew past its ceiling; see docs/smoke_checklist.md")
 
 
 class StyleScenario(ScenarioCase):
@@ -62,7 +111,34 @@ class StyleScenario(ScenarioCase):
         self.assertIn("describe_style", verification, "verification started without the applying run's skills")
         self.assertIn("Message from the plugin", self.model.sent_text(4))
         self.assertEqual(self.answers()[-1], "Checked: districts is coloured in 5 classes.")
+        # The live-model token report reads these counters: the verification run's two requests.
+        expected = {"prompt_tokens": 2 * USAGE["prompt_tokens"], "completion_tokens": 2 * USAGE["completion_tokens"]}
+        self.assertEqual(self.agent.usage, {**expected, "requests": 2})
         self.shot("style_apply_verification")
+
+
+class TextOnlyScenario(ScenarioCase):
+    def test_a_model_known_to_reject_images_verifies_by_reading(self) -> None:
+        set_supports_images(self.api_url, False, MODEL, "openai")
+        self.model.script(
+            call("load_skill", names=["style"]),
+            call("set_opacity", layer_name="districts", opacity=0.5),
+            say("I suggest making districts half transparent."),
+            call("describe_style", layer_name="districts"),
+            say("Checked: districts is half transparent."),
+        )
+        self.ask("Make districts half transparent")
+        self.apply()
+        self.assertAlmostEqual(self.layer("districts").opacity(), 0.5)
+
+        for index in range(len(self.model.requests)):
+            offered = self.model.tool_names(index)
+            self.assertNotIn("render_map", offered, "an image tool was offered to a text-only model")
+            self.assertNotIn("render_layout", offered, "an image tool was offered to a text-only model")
+        verification = self.model.sent_text(3)
+        self.assertIn("cannot see images", verification)
+        self.assertNotIn("call render_map", verification)
+        self.assertEqual(self.answers()[-1], "Checked: districts is half transparent.")
 
 
 class StopScenario(ScenarioCase):

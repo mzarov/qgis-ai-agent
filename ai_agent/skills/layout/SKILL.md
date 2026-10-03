@@ -19,15 +19,18 @@ the result.
    Scale every position below to the page you chose.
 2. `add_layout_item` for each piece, all queued in the same turn. Give every
    item a readable `id` (`map-1`, `title`) — you will address them later.
-3. After the user applies, the verification pass runs: call `render_layout`
-   and **look at the image**. Fix what you see with `configure_layout_item`
-   (move, resize, retext) or `remove_layout_item` — those fixes queue into a
-   new plan.
+3. After the user applies, the verification pass runs. If `render_layout` is
+   in your tool list, call it and **look at the image**; otherwise judge the
+   page from the `describe_layout` geometry. Fix what you find with
+   `configure_layout_item` (move, resize, retext) or `remove_layout_item` —
+   those fixes queue into a new plan.
 4. `export_layout` to PDF or PNG when the user wants a file.
 
-The looking step is not optional politeness — it is how composition quality
-happens. Numeric positions from `describe_layout` tell you *whether* boxes
-overlap; only the rendered image tells you whether the page *reads well*.
+When you can see images, the looking step is not optional politeness — it is
+how composition quality happens. Numeric positions from `describe_layout` tell
+you *whether* boxes overlap; only the rendered image tells you whether the page
+*reads well*. Without `render_layout`, check the numbers against the guidance
+below: margins, overlaps, the map's share of the page.
 
 ## Composition guidance
 
