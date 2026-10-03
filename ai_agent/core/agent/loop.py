@@ -85,6 +85,11 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         return str(self._overrides.get("url_override") or "")
 
     @property
+    def overrides(self) -> dict:
+        """A copy of the endpoint settings this run was started with."""
+        return dict(self._overrides)
+
+    @property
     def is_awaiting_answer(self) -> bool:
         return bool(self._question)
 

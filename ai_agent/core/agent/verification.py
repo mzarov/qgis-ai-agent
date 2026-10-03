@@ -18,7 +18,11 @@ class VerificationStart:
 
 
 def plan_verification(
-    results: list[Any], current_round: int, request: str, loaded_skills: list[str]
+    results: list[Any],
+    current_round: int,
+    request: str,
+    loaded_skills: list[str],
+    overrides: dict[str, Any] | None = None,
 ) -> VerificationStart | None:
     """What the check after Apply runs with, or None once the round cap is reached.
 
@@ -36,5 +40,5 @@ def plan_verification(
     outcomes = [
         {"tool": result.call.name, "ok": result.ok, "error": str(result.payload.get("error", ""))} for result in results
     ]
-    prompt = build_verification_prompt(outcomes, request, images=not detect_images_unsupported())
+    prompt = build_verification_prompt(outcomes, request, images=not detect_images_unsupported(overrides))
     return VerificationStart(prompt, next_round, list(loaded_skills))

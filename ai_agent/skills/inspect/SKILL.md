@@ -57,8 +57,9 @@ When the answer is *which* features rather than *how many*, `select_features`
 shows them on the user's map — it changes no data.
 
 `render_map` (with `layer_name` to frame one layer) is for how the map *looks*,
-not for data questions. If the endpoint rejects images you get a text note
-instead — say so rather than pretending you saw the map.
+not for data questions. If it is not in your tool list, this model cannot see
+images: judge the look from `describe_style` and the data, and never claim you
+saw the map.
 
 ## Layer sources
 

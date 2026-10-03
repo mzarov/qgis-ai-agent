@@ -153,10 +153,9 @@ VISUAL_CHECK_BY_IMAGE = (
     "and render_layout for the image; render_map shows the canvas, not the layout. "
 )
 VISUAL_CHECK_BY_READING = (
-    ". This model cannot see images, so verify visual changes through read tools "
-    "only: describe_style for symbols and labels, query_layer for the data behind "
-    "them, describe_layout for a print layout. Do not ask for a rendered image and "
-    "do not tell the user an image is missing. "
+    ". This model cannot see images, so verify visual changes only through the "
+    "read tools of the skills you used. Do not ask for a rendered image and do "
+    "not tell the user an image is missing. "
 )
 OUTCOME_LINE = "- {tool}: {status}"
 REQUEST_LINE = "The user's request was: {request}\n"

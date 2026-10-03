@@ -7,7 +7,8 @@ from ai_agent.qgis_tools.layout.pages import current_page_mm, find_layout
 
 OVERLAP_NOTE = (
     "Positions and sizes are in millimetres from the top-left page corner. "
-    "To judge the visual result, call render_layout and look at the image."
+    "To judge the visual result, call render_layout if it is in your tool list; "
+    "otherwise check margins and overlaps from these numbers."
 )
 
 

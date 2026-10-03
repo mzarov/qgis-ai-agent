@@ -17,6 +17,10 @@ from ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call, 
 
 LOG_TAG = "AI Agent"
 DUPLICATE_NOTE = "An identical call is already queued; it was not added again."
+NO_IMAGE_INPUT = (
+    "{tool} returns only an image, and this model does not accept image input. "
+    "Check the result with the read tools of the skills you used instead."
+)
 
 
 class DispatchMixin:
@@ -46,6 +50,10 @@ class DispatchMixin:
         tool = get_tool_by_name(call.name)
         if tool is None:
             return self._run_now(call)
+        if tool.returns_image and detect_images_unsupported(self._overrides):
+            # An earlier load_skill result or the history may still name the tool;
+            # rendering would only cost main-thread time for an omission note.
+            return ToolResult.failure(call, NO_IMAGE_INPUT.format(tool=tool.name), tool.egress)
         if tool.safety_for(call.arguments) == SAFETY_READ and not tool.has_network_access(call.arguments):
             return self._run_now(call)
         return self._queue_write(call)

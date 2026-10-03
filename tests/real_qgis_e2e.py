@@ -12,6 +12,8 @@ Runs inside `real_qgis_workflows.py` against the extracted plugin ZIP.
 from e2e_harness import PluginCase, pump
 from e2e_model import ScriptedModel, call, calls, fail, say, think
 
+from ai_agent.core.settings import set_supports_images
+
 MODEL = "scripted-model"
 
 
@@ -65,8 +67,6 @@ class StyleScenario(ScenarioCase):
 
 class TextOnlyScenario(ScenarioCase):
     def test_a_model_known_to_reject_images_verifies_by_reading(self) -> None:
-        from ai_agent.core.settings import set_supports_images
-
         set_supports_images(self.api_url, False, MODEL, "openai")
         self.model.script(
             call("load_skill", names=["style"]),

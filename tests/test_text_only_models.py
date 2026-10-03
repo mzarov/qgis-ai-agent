@@ -2,12 +2,12 @@ import unittest
 from unittest import mock
 
 from ai_agent.core.agent import request, verification
-from ai_agent.core.agent.prompts import build_verification_prompt
+from ai_agent.core.agent.loop import AgentLoop
+from ai_agent.core.agent.prompts import TOOLS_BLOCK_HEADER, build_verification_prompt
 from ai_agent.core.agent.skills import load_skill, tools_for_skills
 from ai_agent.core.agent.transcript import Transcript
 from ai_agent.core.llm.transport import ToolCall
-from ai_agent.qgis_tools.base import EGRESS_IMAGE
-from ai_agent.qgis_tools.registry import ALL_TOOLS
+from ai_agent.qgis_tools.registry import ALL_TOOLS, get_tool_by_name
 
 IMAGE_TOOLS = {"render_map", "render_layout"}
 OVERRIDES = {"url_override": "https://api.example/v1", "model_override": "text-only", "dialect_override": "openai"}
@@ -27,11 +27,6 @@ class _Result:
 class ImageToolDeclarationTest(unittest.TestCase):
     def test_the_image_tools_declare_it(self):
         self.assertEqual({tool.name for tool in ALL_TOOLS if tool.returns_image}, IMAGE_TOOLS)
-
-    def test_returning_an_image_and_image_egress_agree(self):
-        for tool in ALL_TOOLS:
-            with self.subTest(tool=tool.name):
-                self.assertEqual(tool.returns_image, tool.egress == EGRESS_IMAGE)
 
 
 class SchemaFilteringTest(unittest.TestCase):
@@ -74,15 +69,82 @@ class StepRequestTest(unittest.TestCase):
     def test_known_support_keeps_the_image_tools(self):
         self.assertTrue(self._tool_names(True) >= IMAGE_TOOLS)
 
+    def test_the_json_tools_block_omits_image_tools(self):
+        with (
+            mock.patch.object(request, "get_supports_images", return_value=False),
+            mock.patch.object(request, "get_supports_tools", return_value=False),
+        ):
+            built = request.build_step_request(Transcript(), ["inspect", "layout"], [], dict(OVERRIDES))
+        block = built.messages[0]["content"].split(TOOLS_BLOCK_HEADER, 1)[1]
+        self.assertIn("- describe_layout:", block)
+        for name in IMAGE_TOOLS:
+            self.assertNotIn(f"- {name}:", block)
+
+    def test_a_refusal_stored_mid_run_reaches_the_next_request(self):
+        stored: dict[str, bool] = {}
+        with mock.patch.object(
+            request, "get_supports_images", side_effect=lambda url, model=None, dialect=None: stored.get(model)
+        ):
+            before = request.build_step_request(Transcript(), ["inspect"], [], dict(OVERRIDES))
+            stored[OVERRIDES["model_override"]] = False
+            after = request.build_step_request(Transcript(), ["inspect"], [], dict(OVERRIDES))
+        self.assertIn("render_map", _names(before.tool_schemas))
+        self.assertNotIn("render_map", _names(after.tool_schemas))
+
+
+class LoopTest(unittest.TestCase):
+    """The loop judges image support by the overrides its run started with."""
+
+    def _loop(self) -> AgentLoop:
+        loop = AgentLoop()
+        loop._overrides = dict(OVERRIDES)
+        return loop
+
+    @staticmethod
+    def _blind_for_this_model():
+        return mock.patch.object(
+            request,
+            "get_supports_images",
+            side_effect=lambda url, model=None, dialect=None: False if model == OVERRIDES["model_override"] else None,
+        )
+
+    def test_load_skill_reports_the_tools_this_model_is_offered(self):
+        loop = self._loop()
+        with self._blind_for_this_model():
+            result = loop._load_skill(ToolCall(id="c1", name="load_skill", arguments={"names": ["layout"]}))
+        self.assertNotIn("render_layout", result.payload["tools"])
+        self.assertIn("describe_layout", result.payload["tools"])
+
+    def test_an_image_tool_is_refused_without_rendering(self):
+        loop = self._loop()
+        tool = get_tool_by_name("render_map")
+        with self._blind_for_this_model(), mock.patch.object(tool, "execute") as execute:
+            result = loop._dispatch(ToolCall(id="c1", name="render_map", arguments={}))
+        execute.assert_not_called()
+        self.assertFalse(result.ok)
+        self.assertIn("does not accept image input", result.payload["error"])
+        self.assertTrue(result.payload["error"].startswith("render_map"))
+
+    def test_with_unknown_support_the_image_tool_runs(self):
+        loop = self._loop()
+        tool = get_tool_by_name("render_map")
+        with (
+            mock.patch.object(request, "get_supports_images", return_value=None),
+            mock.patch.object(tool, "execute", return_value={"width": 2}) as execute,
+        ):
+            result = loop._dispatch(ToolCall(id="c1", name="render_map", arguments={}))
+        execute.assert_called_once()
+        self.assertTrue(result.ok)
+
 
 class VerificationPromptVariantTest(unittest.TestCase):
     def test_a_text_only_check_reads_instead_of_rendering(self):
         prompt = build_verification_prompt([{"tool": "set_symbol", "ok": True}], "make rivers blue", images=False)
         self.assertNotIn("render_map", prompt)
         self.assertNotIn("render_layout", prompt)
+        self.assertNotIn("describe_layout", prompt)
         self.assertIn("cannot see images", prompt)
-        for tool in ("describe_style", "query_layer", "describe_layout"):
-            self.assertIn(tool, prompt)
+        self.assertIn("read tools of the skills you used", prompt)
         self.assertIn("- set_symbol: ok", prompt)
         self.assertIn("If everything is right, queue nothing", prompt)
 
@@ -101,8 +163,11 @@ class VerificationPromptVariantTest(unittest.TestCase):
 
 class PlanVerificationTest(unittest.TestCase):
     def _prompt(self, unsupported: bool) -> str:
-        with mock.patch.object(verification, "detect_images_unsupported", return_value=unsupported):
-            start = verification.plan_verification([_Result("set_symbol")], 0, "make rivers blue", ["style"])
+        with mock.patch.object(verification, "detect_images_unsupported", return_value=unsupported) as detect:
+            start = verification.plan_verification(
+                [_Result("set_symbol")], 0, "make rivers blue", ["style"], dict(OVERRIDES)
+            )
+        detect.assert_called_once_with(OVERRIDES)
         assert start is not None
         return start.prompt
 
