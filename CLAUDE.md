@@ -259,5 +259,9 @@ English JSON goldens, clipped text and overflow in English and Russian, pixels
 in the pinned `ui-pixels` CI job. A UI change means regenerated goldens, see
 [docs/smoke_checklist.md](docs/smoke_checklist.md). `tests/real_qgis_live.py` checks outcomes with a real
 model; it spends money, so it runs only by hand or from the release workflow,
-never on push or pull requests. Interactive checks beyond those scenarios follow
+never on push or pull requests. Both it and `real_qgis_e2e` fail when a
+scenario exceeds its ceiling in `tests/data/token_ceilings.json` (tokens per
+live scenario, prompt and schema characters per scripted request); a change
+that moves spending on purpose refreshes them with `tests/token_ceilings.py`,
+see [docs/smoke_checklist.md](docs/smoke_checklist.md). Interactive checks beyond those scenarios follow
 [docs/smoke_checklist.md](docs/smoke_checklist.md).

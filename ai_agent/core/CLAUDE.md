@@ -213,7 +213,7 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `agent/turn_thread.py`   | background-thread ownership: start, detach, stop    |
 | `agent/notices.py`       | the texts the loop hands outwards                   |
 | `agent/run_journal.py`   | the optional Markdown record of one run             |
-| `agent/budget.py`        | tokens spent against the budget from Settings       |
+| `agent/budget.py`        | tokens spent against the budget from Settings, plus the prompt/completion/request split for reports |
 | `agent/verification.py`  | what the check after Apply starts with, and the round cap |
 | `agent/request.py`       | messages, tool schemas and transport settings       |
 | `agent/executor.py`      | tool-call execution with error capture              |
