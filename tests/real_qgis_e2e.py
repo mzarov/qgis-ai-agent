@@ -510,7 +510,7 @@ class PlanModeScenario(ScenarioCase):
             say("Districts are graduated by pop2020."),
             say("Checked: 5 classes on pop2020."),
         )
-        offers[0]._buttons[1].click()
+        offers[0]._rows[0].clicked.emit(offers[0]._rows[0].key)
         self.wait_idle()
         self.assertEqual(self.layer("districts").renderer().type(), "graduatedSymbol")
         self.assertEqual(self.dock.composer.mode, "auto")

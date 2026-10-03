@@ -34,7 +34,7 @@ class ChoiceRow(controls.RoundedFrame):
     clicked = pyqtSignal(str)
     hovered = pyqtSignal(str)
 
-    def __init__(self, choice: Choice, number: int, palette: Any, parent: QWidget | None = None):
+    def __init__(self, choice: Choice, number: int, palette: Any, parent: QWidget | None = None, wrap: bool = False):
         super().__init__(ROW_RADIUS, parent)
         self.key = choice.key
         self._fill = style.card(palette).name()
@@ -54,16 +54,17 @@ class ChoiceRow(controls.RoundedFrame):
         head.addStretch(1)
         text.addLayout(head)
         note = controls.small(choice.note, palette)
-        # One line each: a wrapping label asks for height it never uses, and the caption got it.
-        note.setWordWrap(False)
+        # One line in the fixed-width popup: a wrapping label there asks for height it never uses.
+        # In the feed the row must shrink with the dock instead, so there it wraps.
+        note.setWordWrap(wrap)
         text.addWidget(note)
         line.addLayout(text, 1)
         self.check = QLabel(CHECK)
         self.check.setStyleSheet(f"color: {style.css_color(style.accent(palette))};")
         line.addWidget(self.check, 0, Qt.AlignmentFlag.AlignVCenter)
-        number_label = QLabel(str(number))
-        number_label.setStyleSheet(f"color: {style.css_color(style.faint(palette))};")
-        line.addWidget(number_label, 0, Qt.AlignmentFlag.AlignVCenter)
+        self.number = QLabel(str(number))
+        self.number.setStyleSheet(f"color: {style.css_color(style.faint(palette))};")
+        line.addWidget(self.number, 0, Qt.AlignmentFlag.AlignVCenter)
 
     def set_highlighted(self, highlighted: bool) -> None:
         self.set_look(self._fill if highlighted else None, None)

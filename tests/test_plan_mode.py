@@ -133,7 +133,7 @@ class PlanOfferWidgetTest(unittest.TestCase):
         view.add_plan_offer()
         first = view._plan_offers[0]
         view.add_user_message("поменяй план")
-        self.assertTrue(all(button.isHidden() for button in first._buttons))
+        self.assertTrue(all(button.isHidden() for button in first._rows))
 
     def test_a_choice_reports_its_mode_and_the_buttons_go(self):
         from qgis.PyQt.QtWidgets import QWidget
@@ -145,7 +145,7 @@ class PlanOfferWidgetTest(unittest.TestCase):
         offer.run_requested.connect(chosen.append)
         offer._run("ask")
         self.assertEqual(chosen, ["ask"])
-        self.assertTrue(all(button.isHidden() for button in offer._buttons))
+        self.assertTrue(all(button.isHidden() for button in offer._rows))
 
 
 if __name__ == "__main__":

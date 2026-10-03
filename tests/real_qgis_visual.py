@@ -150,6 +150,15 @@ class StateScreens(ScreenCase):
         self.dock.offer_plan()
         self.check("dock_plan", self.dock)
 
+    def test_plan_offer_in_a_narrow_dock(self) -> None:
+        self.iface.window.resize(NARROW_WIDTH, WINDOW_HEIGHT)
+        self.dock.set_work_mode("plan")
+        self.dock.add_user_message(REQUEST)
+        self.dock.conversation.add_assistant_message(ANSWER)
+        self.dock.offer_plan()
+        self.check("dock_plan_narrow", self.dock)
+        self.iface.window.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
+
     def test_auto_mode(self) -> None:
         self.dock.set_work_mode("auto")
         self.dock.add_user_message(REQUEST)
