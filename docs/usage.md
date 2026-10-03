@@ -86,8 +86,13 @@ before the plan card appears.
 
 Conversations persist across QGIS restarts and are bound to the project: the
 **Conversations** menu lists only the ones started in the currently open
-project. The title is your first message. Restoring a conversation restores the
-model's context too — a follow-up like *and how many are there?* keeps working.
+project. After the first answer the model names the conversation in a few words,
+as Claude does; until then the title is the start of your first message.
+Hovering a conversation in the menu shows a pencil to rename it in place (Enter
+keeps, Esc drops — a name you chose is never replaced) and a bin to delete it
+for good after a confirmation; deleting the open conversation starts a fresh one.
+Restoring a conversation restores the model's context too — a follow-up like
+*and how many are there?* keeps working.
 
 ### The context window
 

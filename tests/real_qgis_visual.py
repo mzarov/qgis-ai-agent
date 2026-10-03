@@ -192,6 +192,21 @@ class ComposerScreens(ScreenCase):
         finally:
             meter.popup.hide()
 
+    def test_conversations_menu(self) -> None:
+        self.dock.set_session_source(
+            lambda: [
+                ("a", "Town layers and what is in them"),
+                ("b", "Roads coloured by type, cafés labelled"),
+                ("c", "A very long conversation title that has to be cut short in the menu"),
+            ]
+        )
+        self.dock._show_sessions()
+        popup = self.dock._sessions_popup
+        try:
+            self.check("conversations_menu", popup)
+        finally:
+            popup.hide()
+
     def test_mode_menu(self) -> None:
         toolbar = self.dock.composer.toolbar
         toolbar.modes.open_above(toolbar.mode, "ask")

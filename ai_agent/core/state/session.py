@@ -26,6 +26,8 @@ class Session:
     context_tokens: int = 0
     spent_tokens: int = 0
     requests: int = 0
+    # The title was chosen by the user or written by the model: no longer the first message's start.
+    named: bool = False
 
     @classmethod
     def create(cls, project: str) -> "Session":
@@ -68,6 +70,15 @@ class Session:
         self.summary_index = start
         self.updated = time.time()
 
+    def rename(self, title: str) -> bool:
+        """Give the conversation a chosen title; an empty one changes nothing."""
+        cleaned = shorten(title)
+        if not cleaned:
+            return False
+        self.title = cleaned
+        self.named = True
+        return True
+
     def display_title(self) -> str:
         return self.title or UNTITLED
 
@@ -84,6 +95,7 @@ class Session:
             "context_tokens": self.context_tokens,
             "spent_tokens": self.spent_tokens,
             "requests": self.requests,
+            "named": self.named,
         }
 
     @classmethod
@@ -111,6 +123,7 @@ class Session:
             context_tokens=_as_int(raw.get("context_tokens")),
             spent_tokens=_as_int(raw.get("spent_tokens")),
             requests=_as_int(raw.get("requests")),
+            named=bool(raw.get("named")),
         )
 
 

@@ -64,11 +64,15 @@ class ScenarioCase(PluginCase):
     # False for a scenario whose every request already carries a skill (a slash
     # command, a preload): it has no skill-free request to measure `base_chars` on.
     skill_free_start = True
+    # Naming a conversation after its first answer is one more request; only the scenario about it scripts it.
+    names_conversations = False
 
     def setUp(self) -> None:
         self.model = ScriptedModel().start()
         self.api_url = self.model.url
         super().setUp()
+        if not self.names_conversations:
+            self.orchestrator.naming.after_answer = lambda: None
 
     def tearDown(self) -> None:
         super().tearDown()
@@ -515,6 +519,33 @@ class PlanModeScenario(ScenarioCase):
         self.assertEqual(self.layer("districts").renderer().type(), "graduatedSymbol")
         self.assertEqual(self.dock.composer.mode, "auto")
         self.assertIn("set_graduated", self.model.tool_names(3))
+
+
+class ConversationsScenario(ScenarioCase):
+    names_conversations = True
+
+    def test_the_model_names_a_conversation_and_the_user_renames_and_deletes_it(self) -> None:
+        self.model.script(say("There are three layers."), say("Project layers"))
+        self.ask("What layers do I have?")
+        self.wait_idle()
+        conversation = self.orchestrator.conversation
+        naming = self.model.requests[1]
+        self.assertFalse(naming.get("tools"), "naming asks for a title, not for tools")
+        self.assertIn("two to five words", self.model.sent_text(1))
+        self.assertEqual(conversation.messages and self.dock._sessions_provider()[0][1], "Project layers")
+
+        identifier = conversation.session_identifier
+        self.dock.session_renamed.emit(identifier, "Layers of the town")
+        self.assertEqual(self.dock._sessions_provider()[0][1], "Layers of the town")
+        self.dock._show_sessions()
+        pump(0.1)
+        self.assertEqual([row.title for row in self.dock._sessions_popup.rows][:1], ["Layers of the town"])
+        self.shot("conversations_menu")
+        self.dock._sessions_popup.hide()
+
+        self.dock.session_deleted.emit(identifier)
+        self.assertNotEqual(conversation.session_identifier, identifier, "deleting the open one starts afresh")
+        self.assertEqual(self.dock._sessions_provider(), [])
 
 
 class ComposerScenario(ScenarioCase):
