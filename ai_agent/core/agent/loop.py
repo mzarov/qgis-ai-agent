@@ -2,6 +2,7 @@ from qgis.core import Qgis, QgsMessageLog
 from qgis.PyQt.QtCore import QObject, pyqtSignal
 
 from ai_agent.core.agent import notices
+from ai_agent.core.agent.auto_apply import applies_itself
 from ai_agent.core.agent.batch import WriteBatch
 from ai_agent.core.agent.batch_apply import BatchApplyMixin
 from ai_agent.core.agent.budget import TokenBudget
@@ -31,7 +32,8 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
     tool_rejected = pyqtSignal(object)
     skill_loaded = pyqtSignal(str)
     plan_changed = pyqtSignal(object, int)
-    confirm_needed = pyqtSignal(object, str)
+    # The flag says the batch applies itself (auto mode, nothing destructive): no button to wait for.
+    confirm_needed = pyqtSignal(object, str, bool)
     question_asked = pyqtSignal(str)
     preamble = pyqtSignal(str)
     usage_changed = pyqtSignal(int)
@@ -350,7 +352,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self.busy_changed.emit(False)
         if not self._is_current(generation):
             return
-        self.confirm_needed.emit(self._batch.pending(), text)
+        self._offer(text)
 
     def _complete(self, text: str, generation: int | None = None) -> None:
         if not self._is_current(generation):
@@ -363,7 +365,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         if not self._is_current(generation):
             return
         if self._batch:
-            self.confirm_needed.emit(self._batch.pending(), text)
+            self._offer(text)
         else:
             self._write_journal(text)
             self.finished.emit(text)
@@ -400,7 +402,12 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._write_journal(f"Run failed: {message}")
         self.failed.emit(message)
         if self._batch and self._is_current(generation):
-            self.confirm_needed.emit(self._batch.pending(), "")
+            # After a failure the user looks first, auto mode or not.
+            self.confirm_needed.emit(self._batch.pending(), "", False)
+
+    def _offer(self, text: str) -> None:
+        calls = self._batch.pending()
+        self.confirm_needed.emit(calls, text, applies_itself(calls))
 
     def _is_current(self, generation: int | None) -> bool:
         return not self._aborted and (generation is None or generation == self._generation)

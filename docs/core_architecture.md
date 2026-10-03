@@ -54,6 +54,14 @@ Every tool declares `safety`:
 A write call returns `{"status": "queued"}` to the model — a normal success
 response, not an error. Changes apply only after the button is pressed.
 
+Auto mode presses that button for the user. The loop decides
+(`agent/auto_apply.py`): a batch applies itself only when the mode is on and no
+call in it is destructive or unknown; a batch left over after a failed run never
+does. The orchestrator then takes the same path as the button, so the project
+snapshot, the destructive check and the verification run are unchanged — the
+invariant becomes "writes run after the user's consent", given once for the
+mode instead of per batch, and never for destructive steps.
+
 Network access is a capability separate from mutation safety. A read tool with
 `network_access = True` is queued and automatically pauses the run for explicit
 per-call confirmation. After approval its result enters the same transcript and

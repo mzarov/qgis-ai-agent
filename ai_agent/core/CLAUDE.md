@@ -223,6 +223,7 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `agent/run_journal.py`   | the optional Markdown record of one run             |
 | `agent/budget.py`        | run tokens vs the Settings budget, usage split      |
 | `agent/verification.py`  | what the check after Apply starts with, and the round cap |
+| `agent/auto_apply.py`    | Auto mode: which batches apply without the button   |
 | `agent/request.py`       | messages, tool schemas and transport settings       |
 | `agent/executor.py`      | tool-call execution with error capture              |
 | `agent/transcript.py`    | the run transcript and rendering for both protocols |

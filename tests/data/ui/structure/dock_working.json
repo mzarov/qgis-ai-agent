@@ -124,6 +124,11 @@
  },
  {
   "depth": 5,
+  "type": "QToolButton",
+  "text": "Ask first"
+ },
+ {
+  "depth": 5,
   "type": "QLabel",
   "text": "qwen3"
  }

@@ -110,8 +110,9 @@ class PlanDock(Dock):
     def mark_plan_failed(self, message_id):
         self.failed_plans.append(message_id)
 
-    def add_plan_message(self, lines):
+    def add_plan_message(self, lines, applies_itself=False):
         self.plan_lines = list(lines)
+        self.applies_itself = applies_itself
         return 7
 
     def mark_plan_cancelled(self, message_id):

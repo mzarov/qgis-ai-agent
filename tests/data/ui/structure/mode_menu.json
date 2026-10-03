@@ -1,0 +1,59 @@
+[
+ {
+  "depth": 0,
+  "type": "ChoicePopup"
+ },
+ {
+  "depth": 1,
+  "type": "QLabel",
+  "text": "Mode"
+ },
+ {
+  "depth": 1,
+  "type": "ChoiceRow"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Ask first"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Default"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Every change waits for Apply"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "✓"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "1"
+ },
+ {
+  "depth": 1,
+  "type": "ChoiceRow"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Auto"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Applies changes itself; deleting still asks"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "2"
+ }
+]

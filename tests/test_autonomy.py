@@ -385,7 +385,7 @@ class PreambleTest(unittest.TestCase):
         self.preambles = []
         self.confirms = []
         self.loop.preamble.connect(self.preambles.append)
-        self.loop.confirm_needed.connect(lambda calls, text: self.confirms.append(text))
+        self.loop.confirm_needed.connect(lambda calls, text, _auto=False: self.confirms.append(text))
         self.loop._request_step = lambda: None
 
     def _turn(self, text, tool="get_project_info"):

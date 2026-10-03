@@ -1,6 +1,7 @@
 from typing import Any
 
 from qgis.core import Qgis, QgsMessageLog
+from qgis.PyQt.QtCore import QTimer
 
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.verification import plan_verification
@@ -23,7 +24,9 @@ from ai_agent.core.settings import (
     get_data_sharing_consent,
     get_model,
     get_verify_after_apply,
+    get_work_mode,
     set_data_sharing_consent,
+    set_work_mode,
 )
 from ai_agent.core.state.conversation import ConversationState
 from ai_agent.i18n import tr, tr_n
@@ -66,6 +69,7 @@ class CoreOrchestrator(ProjectLifecycleMixin):
     def refresh_configured(self) -> None:
         self.dock_widget.set_configured(_is_configured())
         self.dock_widget.set_model(get_model() if _is_configured() else "")
+        self.dock_widget.set_work_mode(get_work_mode())
         self.dock_widget.set_skill_source(choices)
         self.dock_widget.set_layer_source(layer_choices)
 
@@ -244,11 +248,17 @@ class CoreOrchestrator(ProjectLifecycleMixin):
     def on_skill_loaded(self, name: str) -> None:
         self.dock_widget.add_tool_message(CallSummary.of(tr("Loading knowledge: {0}"), name))
 
-    def on_confirm_needed(self, calls: list, final_text: str) -> None:
+    def on_confirm_needed(self, calls: list, final_text: str, applies_itself: bool = False) -> None:
         if final_text:
             self._render_answer(final_text)
         lines = [self._plan_line(call) for call in calls]
-        self._plan_message_id = self.dock_widget.add_plan_message(lines)
+        self._plan_message_id = self.dock_widget.add_plan_message(lines, applies_itself)
+        if applies_itself:
+            # Pressed for the user once the card is on screen; the same path as the button.
+            QTimer.singleShot(0, self.on_confirm_plan)
+
+    def on_work_mode(self, mode: str) -> None:
+        set_work_mode(mode)
 
     @staticmethod
     def _plan_line(call) -> str:

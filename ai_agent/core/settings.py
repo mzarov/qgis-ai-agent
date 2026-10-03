@@ -194,6 +194,26 @@ def set_reasoning_enabled(
     _write("reasoning_enabled", "true" if value else "false")
 
 
+WORK_MODE_ASK = "ask"
+WORK_MODE_AUTO = "auto"
+WORK_MODES = (WORK_MODE_ASK, WORK_MODE_AUTO)
+
+
+def get_work_mode() -> str:
+    """How prepared changes are applied: `ask` waits for the button, `auto` applies them itself."""
+    stored = QgsSettings().value(f"{SETTINGS_PREFIX}/work_mode")
+    return stored if isinstance(stored, str) and stored in WORK_MODES else WORK_MODE_ASK
+
+
+def set_work_mode(mode: str) -> None:
+    _write("work_mode", mode if mode in WORK_MODES else WORK_MODE_ASK)
+
+
+def get_auto_apply() -> bool:
+    """Auto mode: prepared batches apply without the button, destructive ones excepted."""
+    return get_work_mode() == WORK_MODE_AUTO
+
+
 def get_supports_thinking(url: str, model: str | None = None, dialect: str | None = None) -> bool | None:
     stored = QgsSettings().value(f"{SETTINGS_PREFIX}/supports_thinking/{_capability_settings_key(url, model, dialect)}")
     return None if stored is None else _as_bool(stored)

@@ -47,42 +47,62 @@
  },
  {
   "depth": 4,
-  "type": "WelcomeCard"
+  "type": "UserMessage"
  },
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "Ask in plain language"
+  "text": "Colour districts by pop2020 in 5 classes"
+ },
+ {
+  "depth": 4,
+  "type": "PlanCard"
  },
  {
   "depth": 5,
-  "type": "Suggestion",
-  "name": "suggestion"
+  "type": "QWidget"
  },
  {
   "depth": 6,
   "type": "QLabel",
-  "text": "What layers do I have and what is in them?"
- },
- {
-  "depth": 5,
-  "type": "Suggestion",
-  "name": "suggestion"
+  "text": "◆"
  },
  {
   "depth": 6,
   "type": "QLabel",
-  "text": "Colour the layer by category and add labels"
+  "text": "Applying by itself — 2 actions"
  },
  {
   "depth": 5,
-  "type": "Suggestion",
-  "name": "suggestion"
+  "type": "QWidget"
  },
  {
   "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
   "type": "QLabel",
-  "text": "Download cafés in Paris from OpenStreetMap"
+  "text": "1."
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Graduating 'districts' by 'pop2020', classes: 5."
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "2."
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Labeling 'districts' with 'name'."
  },
  {
   "depth": 2,
@@ -120,7 +140,7 @@
  {
   "depth": 5,
   "type": "QToolButton",
-  "text": "Ask first"
+  "text": "Auto"
  },
  {
   "depth": 5,

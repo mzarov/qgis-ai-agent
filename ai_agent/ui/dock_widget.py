@@ -33,6 +33,7 @@ class AgentDockWidget(QDockWidget):
     confirm_plan_clicked = pyqtSignal()
     cancel_plan_clicked = pyqtSignal()
     files_attached = pyqtSignal(list)
+    work_mode_changed = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -119,6 +120,7 @@ class AgentDockWidget(QDockWidget):
         self.composer.submitted.connect(self.prompt_submitted.emit)
         self.composer.stopped.connect(self.stop_clicked.emit)
         self.composer.files_attached.connect(self.files_attached.emit)
+        self.composer.mode_changed.connect(self.work_mode_changed.emit)
         layout.addWidget(self.composer)
         return holder
 
@@ -205,8 +207,11 @@ class AgentDockWidget(QDockWidget):
     def mark_tool_done(self, message_id: int, ok: bool = True) -> None:
         self.conversation.mark_activity_step(message_id, ok)
 
-    def add_plan_message(self, plan_lines: list[str]) -> int:
-        return self.conversation.add_plan_card(plan_lines)
+    def add_plan_message(self, plan_lines: list[str], applies_itself: bool = False) -> int:
+        return self.conversation.add_plan_card(plan_lines, applies_itself)
+
+    def set_work_mode(self, mode: str) -> None:
+        self.composer.set_mode(mode)
 
     def confirm_destructive(self, lines: list[str], details: str = "") -> bool:
         return confirmations.confirm_destructive(self, lines, details)
