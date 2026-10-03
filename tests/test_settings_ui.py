@@ -83,17 +83,19 @@ SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "
 DIALOG_SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "settings_dialog.py").read_text(
     encoding="utf-8"
 )
+PROBE_SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "settings_probe.py").read_text(
+    encoding="utf-8"
+)
+CONTROLS_SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "controls.py").read_text(
+    encoding="utf-8"
+)
 GEOCODER_SOURCE = (
     pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "geocoder_settings.py"
 ).read_text(encoding="utf-8")
 
 
 class StyleSheetTest(unittest.TestCase):
-    def test_card_style_is_scoped_by_object_name(self):
-        self.assertIn("QFrame#{CARD_NAME}", SOURCE)
-        self.assertIn("setObjectName(CARD_NAME)", SOURCE)
-
-    def test_card_never_uses_a_bare_type_selector(self):
+    def test_no_style_uses_a_bare_frame_selector(self):
         self.assertNotIn('f"QFrame {{', SOURCE)
 
     def test_inputs_get_their_own_border(self):
@@ -102,11 +104,6 @@ class StyleSheetTest(unittest.TestCase):
 
     def test_focus_is_visible_on_inputs(self):
         self.assertIn("QLineEdit:focus, QComboBox:focus", SOURCE)
-
-    def test_card_lifts_instead_of_sinking(self):
-        body = SOURCE.split("def card(")[1].split("\ndef ")[0]
-        self.assertIn("style.panel(palette)", body)
-        self.assertNotIn("style.card(palette)", body)
 
     def test_inputs_sit_on_the_recessed_surface(self):
         self.assertIn("style.field(palette)", SOURCE)
@@ -209,7 +206,8 @@ class SidebarSettingsTest(unittest.TestCase):
         self.assertNotIn("def help_mark(", SOURCE)
 
     def test_hints_wrap_and_long_detail_stays_a_tooltip(self):
-        self.assertIn("label.setWordWrap(True)", SOURCE.split("def hint(")[1])
+        self.assertIn("controls.small(", SOURCE.split("def hint(")[1])
+        self.assertIn("label.setWordWrap(True)", CONTROLS_SOURCE.split("def small(")[1].split("\ndef ")[0])
         grammar = SOURCE.split("def _row(")[1].split("\ndef ")[0]
         self.assertIn("caption.setToolTip(rich_tooltip(tooltip))", grammar)
 
@@ -270,17 +268,16 @@ class CredentialUiContractTest(unittest.TestCase):
         self.assertIn("delete_api_key(url, dialect)", DIALOG_SOURCE)
 
     def test_connection_probe_runs_outside_the_ui_thread_and_can_be_cancelled(self):
-        self.assertIn("ProbeThread(self._overrides(), self)", DIALOG_SOURCE)
-        self.assertIn("thread.start()", DIALOG_SOURCE)
-        self.assertIn("thread.cancel()", DIALOG_SOURCE)
-        self.assertNotIn("probe(self._overrides())", DIALOG_SOURCE)
+        self.assertIn("ProbeThread(self._overrides(), self)", PROBE_SOURCE)
+        self.assertIn("thread.start()", PROBE_SOURCE)
+        self.assertIn("thread.cancel()", PROBE_SOURCE)
+        self.assertNotIn("probe(self._overrides())", PROBE_SOURCE + DIALOG_SOURCE)
 
     def test_closing_waits_for_a_running_probe_to_finish(self):
-        reject_body = DIALOG_SOURCE.split("def reject(self)")[1].split("\n    def ")[0]
-        finished_body = DIALOG_SOURCE.split("def _on_probe_finished")[1].split("\n    def ")[0]
+        reject_body = PROBE_SOURCE.split("def reject(self)")[1].split("\n    def ")[0]
+        finished_body = PROBE_SOURCE.split("def _on_probe_finished")[1].split("\n    def ")[0]
         self.assertIn("self._reject_after_probe = True", reject_body)
         self.assertIn("super().reject()", finished_body)
-        self.assertIn("thread.cancel()", DIALOG_SOURCE)
 
     def test_geocoder_is_selected_in_settings_not_by_the_model(self):
         self.assertIn('addItem("Photon", GEOCODER_PHOTON)', GEOCODER_SOURCE)

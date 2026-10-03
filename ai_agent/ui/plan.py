@@ -89,10 +89,8 @@ class PlanCard(QFrame):
         label.setTextFormat(Qt.TextFormat.PlainText)
         label.setWordWrap(True)
         label.setStyleSheet("border: none;")
-        font = label.font()
-        font.setPointSizeF(max(1.0, font.pointSizeF() * STEP_FONT_SCALE))
-        label.setFont(font)
-        number.setFont(font)
+        style.scale_font(label, STEP_FONT_SCALE)
+        number.setFont(label.font())
         layout.addWidget(label, 1)
         return row
 

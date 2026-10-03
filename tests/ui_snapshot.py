@@ -237,8 +237,8 @@ def _visible(root: QWidget) -> list[QWidget]:
 
 
 def _elides(label: QLabel) -> bool:
-    # A label that ignores its size hint gave up its width on purpose: it elides or clips by design.
-    return label.sizePolicy().horizontalPolicy().name == "Ignored"
+    # Only the eliding label gives up its width on purpose; any other clipped label is a fault.
+    return type(label).__name__ == "ElidedLabel"
 
 
 def _label(widget: QWidget) -> str:

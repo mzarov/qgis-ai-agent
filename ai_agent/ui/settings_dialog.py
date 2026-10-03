@@ -1,4 +1,3 @@
-import time
 from typing import Any
 
 from qgis.PyQt.QtCore import Qt
@@ -27,7 +26,6 @@ from ai_agent.core.settings import (
     get_credential_store_error,
     get_model,
     get_verify_ssl,
-    reset_capabilities,
     set_api_key,
     set_api_url,
     set_auth_type,
@@ -44,8 +42,9 @@ from ai_agent.core.settings import (
 from ai_agent.i18n import tr
 from ai_agent.ui import controls, settings_layout, style
 from ai_agent.ui import settings_fields as fields
-from ai_agent.ui.connection_widgets import STATE_BAD, STATE_IDLE, STATE_OK, ProviderTiles, StatusCard
+from ai_agent.ui.connection_widgets import ProviderTiles, StatusCard
 from ai_agent.ui.geocoder_settings import GeocoderSettings
+from ai_agent.ui.settings_probe import MODEL_REQUIRED, ConnectionProbeMixin
 from ai_agent.ui.settings_status import SettingsStatusMixin
 from ai_agent.ui.skills_settings import SkillsSettings
 
@@ -55,25 +54,16 @@ MIN_HEIGHT = 600
 FOOTER_MARGINS = (24, 12, 24, 12)
 FOOTER_SPACING = 8
 CONNECTION_LEAD = tr("Any OpenAI-compatible server works.")
-NOT_TESTED_DETAIL = tr("Not tested yet.")
-CONNECTED = tr("Connected · {0} · {1}")
-SECONDS = tr("{0} s")
-FAILED = tr("The connection failed")
 SAVED = tr("All changes saved")
 UNSAVED = tr("Unsaved changes")
 BUDGET_INVALID = tr("A budget must be a whole number of tokens, such as 200000 or 200k; empty means no limit.")
-PROBE_STOP_MS = 3000
-TESTING = tr("Testing the connection…")
-CANCELLING = tr("Cancelling the connection test…")
-CANCELLED = tr("Connection test cancelled.")
-MODEL_REQUIRED = tr("Enter a model name from the provider.")
 KEY_REMOVED = tr("The stored key for this endpoint was removed.")
 KEY_HINT = tr("Kept in the QGIS authentication database.")
 KEYLESS_HINT = tr("A local server needs no key.")
 MODEL_HINT = tr("As the provider names it.")
 
 
-class SettingsDialog(SettingsStatusMixin, QDialog):
+class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
     def __init__(self, parent: Any = None):
         super().__init__(parent)
         self._syncing_preset = False
@@ -86,7 +76,6 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         self.setWindowTitle(TITLE)
         self.setMinimumWidth(MIN_WIDTH)
         self.setMinimumHeight(MIN_HEIGHT)
-        self._dirty: set[int] = set()
         self._probe_started = 0.0
         palette = self.palette()
         column = QVBoxLayout(self)
@@ -206,11 +195,11 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
     def _mark_dirty(self, index: int) -> None:
         if self._loading_endpoint:
             return
-        self._dirty.add(index)
-        settings_layout.mark_page(self, index, True)
+        settings_layout.mark_page(self, index)
         self.save_btn.setEnabled(True)
-        self._note.setText(UNSAVED)
-        self._note.setStyleSheet(f"color: {style.css_color(style.warning(self.palette()))};")
+        if self._note.text() != UNSAVED:
+            self._note.setText(UNSAVED)
+            self._note.setStyleSheet(f"color: {style.css_color(style.warning(self.palette()))};")
 
     def _apply_preset(self, title: str) -> None:
         if self._syncing_preset:
@@ -332,79 +321,6 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
                 return
         self._stop_probe_now()
         self.accept()
-
-    def _stop_probe_now(self) -> None:
-        thread = self._probe_thread
-        if thread is not None and thread.isRunning():
-            thread.cancel()
-            thread.wait(PROBE_STOP_MS)
-
-    def _test_connection(self) -> None:
-        if self._probe_thread is not None and self._probe_thread.isRunning():
-            self._cancel_probe()
-            return
-        if not self.model_edit.text().strip():
-            self._show(MODEL_REQUIRED, style.danger(self.palette()))
-            return
-        if not self._valid_url(self._edited_url()):
-            return
-        self.test_btn.setText(tr("Cancel test"))
-        self.status_card.show_state(STATE_IDLE, TESTING, "")
-        self._probe_started = time.monotonic()
-        self._probe_was_cancelled = False
-        thread = ProbeThread(self._overrides(), self)
-        thread.completed.connect(self._on_probe_completed)
-        thread.finished.connect(lambda: self._on_probe_finished(thread))
-        self._probe_thread = thread
-        thread.start()
-
-    def _on_probe_completed(self, ok: bool, message: str) -> None:
-        if not ok:
-            self.status_card.show_state(STATE_BAD, FAILED, message)
-            return
-        overrides = self._overrides()
-        reset_capabilities(
-            overrides["url_override"], overrides.get("model_override") or "", overrides.get("dialect_override")
-        )
-        seconds = time.monotonic() - self._probe_started
-        summary = CONNECTED.format(self.model_edit.text().strip(), SECONDS.format(f"{seconds:.1f}"))
-        self.status_card.show_state(STATE_OK, summary, message)
-
-    def _show_untested(self) -> None:
-        self.status_card.show_state(STATE_IDLE, NOT_TESTED_DETAIL, "")
-
-    def _on_probe_finished(self, thread: ProbeThread) -> None:
-        thread.deleteLater()
-        if self._probe_thread is not thread:
-            return
-        cancelled = self._probe_was_cancelled
-        close_dialog = self._reject_after_probe
-        self._probe_thread = None
-        self._probe_was_cancelled = False
-        self._reject_after_probe = False
-        self.test_btn.setEnabled(True)
-        self.test_btn.setText(tr("Test connection"))
-        if close_dialog:
-            super().reject()
-        elif cancelled:
-            self.status_card.show_state(STATE_IDLE, CANCELLED, "")
-
-    def _cancel_probe(self) -> None:
-        thread = self._probe_thread
-        if thread is None or not thread.isRunning():
-            return
-        self._probe_was_cancelled = True
-        thread.cancel()
-        self.test_btn.setEnabled(False)
-        self.status_card.show_state(STATE_IDLE, CANCELLING, "")
-
-    def reject(self) -> None:
-        if self._probe_thread is not None and self._probe_thread.isRunning():
-            self._reject_after_probe = True
-            self._cancel_probe()
-            return
-        self._cancel_probe()
-        super().reject()
 
     def _overrides(self) -> dict[str, Any]:
         url = self._edited_url()

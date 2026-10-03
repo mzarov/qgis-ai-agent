@@ -1,23 +1,17 @@
 from collections.abc import Callable
-from typing import Any
 
-from qgis.PyQt.QtCore import QPoint, QSize, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QFontDatabase, QIcon
+from qgis.PyQt.QtCore import QPoint, QSize, pyqtSignal
 from qgis.PyQt.QtWidgets import (
-    QDialog,
-    QDialogButtonBox,
     QDockWidget,
     QHBoxLayout,
     QLabel,
-    QMessageBox,
-    QPlainTextEdit,
     QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
 from ai_agent.i18n import tr
-from ai_agent.ui import controls, icons, style
+from ai_agent.ui import confirmations, controls, icons, style
 from ai_agent.ui.composer import Composer
 from ai_agent.ui.conversation import ConversationView
 
@@ -28,7 +22,6 @@ HEADER_ICON = 15
 HEADER_BUTTON = 24
 BODY_MARGINS = (9, 0, 9, 9)
 BODY_NAME = "agentBody"
-MENU_GAP = 4
 
 
 class AgentDockWidget(QDockWidget):
@@ -68,15 +61,15 @@ class AgentDockWidget(QDockWidget):
         self._usage_label = QLabel("")
         self._usage_label.setStyleSheet(f"border: none; color: {style.css_color(style.muted(palette))};")
         row.addWidget(self._usage_label, 1)
-        self._sessions_button = self._build_action(icons.sessions, "⟲", tr("Conversations"), self._show_sessions)
+        self._sessions_button = self._build_action("sessions", "⟲", tr("Conversations"), self._show_sessions)
         row.addWidget(self._sessions_button)
-        row.addWidget(self._build_action(icons.clear, "+", tr("New conversation"), self.new_session_clicked.emit))
-        row.addWidget(self._build_action(icons.settings, "⚙", tr("Settings"), self.open_settings_clicked.emit))
+        row.addWidget(self._build_action("clear", "+", tr("New conversation"), self.new_session_clicked.emit))
+        row.addWidget(self._build_action("settings", "⚙", tr("Settings"), self.open_settings_clicked.emit))
         return header
 
     def _build_action(
         self,
-        paint: Callable[[Any, int], QIcon],
+        role: str,
         glyph: str,
         tooltip: str,
         handler: Callable[[], None],
@@ -92,7 +85,7 @@ class AgentDockWidget(QDockWidget):
             f"QToolButton:hover {{ background: {style.css_color(style.card(self.palette()))};"
             "border-radius: 5px; }"
         )
-        icon = _drawn(paint, style.muted(self.palette()), HEADER_ICON)
+        icon = icons.drawn(role, style.muted(self.palette()), HEADER_ICON)
         if icon is None:
             button.setText(glyph)
         else:
@@ -160,7 +153,7 @@ class AgentDockWidget(QDockWidget):
         button = self._sessions_button
         # The button sits at the dock's right edge: align the menu's right edge with it.
         corner = button.mapToGlobal(button.rect().bottomRight())
-        chosen = menu.exec(QPoint(corner.x() - menu.sizeHint().width(), corner.y() + MENU_GAP))
+        chosen = menu.exec(QPoint(corner.x() - menu.sizeHint().width(), corner.y() + controls.MENU_GAP))
         menu.deleteLater()
         if chosen in actions:
             self.session_chosen.emit(actions[chosen])
@@ -205,33 +198,10 @@ class AgentDockWidget(QDockWidget):
         return self.conversation.add_plan_card(plan_lines)
 
     def confirm_destructive(self, lines: list[str], details: str = "") -> bool:
-        if (details or "").strip():
-            return _confirm_code(self, lines, details)
-        box = QMessageBox(self)
-        box.setIcon(QMessageBox.Icon.Warning)
-        box.setWindowTitle(tr("Destructive steps"))
-        box.setTextFormat(Qt.TextFormat.PlainText)
-        box.setText(_destructive_confirmation_text(lines, details))
-        box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        box.setDefaultButton(QMessageBox.StandardButton.No)
-        return box.exec() == QMessageBox.StandardButton.Yes
+        return confirmations.confirm_destructive(self, lines, details)
 
     def confirm_data_sharing(self, endpoint: str) -> bool:
-        box = QMessageBox(self)
-        box.setIcon(QMessageBox.Icon.Question)
-        box.setWindowTitle(tr("Share project data?"))
-        box.setTextFormat(Qt.TextFormat.PlainText)
-        box.setText(
-            tr(
-                "Send the request to {0}?\n\n"
-                "The provider receives your prompt and everything the agent reads to answer it: layer and "
-                "field names, feature values, extents, layer sources and rendered map images. For data that "
-                "must stay on this computer, use a local model server."
-            ).format(endpoint)
-        )
-        box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        box.setDefaultButton(QMessageBox.StandardButton.Yes)
-        return box.exec() == QMessageBox.StandardButton.Yes
+        return confirmations.confirm_data_sharing(self, endpoint)
 
     def mark_plan_completed(self, message_id: int) -> None:
         self.conversation.mark_plan_applied(message_id)
@@ -254,52 +224,3 @@ class AgentDockWidget(QDockWidget):
 
     def clear_prompt(self) -> None:
         self.composer.clear()
-
-
-def _drawn(paint: Callable[[Any, int], QIcon], colour: Any, size: int) -> QIcon | None:
-    try:
-        icon = paint(colour, size)
-    except Exception:
-        return None
-    return None if icon.isNull() else icon
-
-
-def _confirm_code(parent: QWidget, lines: list[str], details: str) -> bool:
-    dialog = QDialog(parent)
-    dialog.setWindowTitle(tr("Destructive steps"))
-    dialog.setMinimumWidth(720)
-    column = QVBoxLayout(dialog)
-    summary = QLabel(_destructive_steps_text(lines))
-    summary.setTextFormat(Qt.TextFormat.PlainText)
-    summary.setWordWrap(True)
-    column.addWidget(summary)
-    code_title = QLabel(tr("\n\nExact code to be executed:\n\n{0}").format("").strip())
-    code_title.setTextFormat(Qt.TextFormat.PlainText)
-    column.addWidget(code_title)
-    code = QPlainTextEdit((details or "").strip())
-    code.setReadOnly(True)
-    code.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
-    code.setMinimumHeight(240)
-    column.addWidget(code)
-    question = QLabel(tr("\n\nApply them?").strip())
-    question.setTextFormat(Qt.TextFormat.PlainText)
-    column.addWidget(question)
-    buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Yes | QDialogButtonBox.StandardButton.No)
-    buttons.accepted.connect(dialog.accept)
-    buttons.rejected.connect(dialog.reject)
-    buttons.button(QDialogButtonBox.StandardButton.No).setDefault(True)
-    column.addWidget(buttons)
-    return dialog.exec() == QDialog.DialogCode.Accepted
-
-
-def _destructive_steps_text(lines: list[str]) -> str:
-    listed = "\n".join(f"• {line}" for line in lines)
-    return tr("These steps change or delete data and cannot be undone:\n\n{0}").format(listed)
-
-
-def _destructive_confirmation_text(lines: list[str], details: str = "") -> str:
-    message = _destructive_steps_text(lines)
-    exact = (details or "").strip()
-    if exact:
-        message += tr("\n\nExact code to be executed:\n\n{0}").format(exact)
-    return message + tr("\n\nApply them?")

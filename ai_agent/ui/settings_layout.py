@@ -26,16 +26,16 @@ def build_body(owner: Any, palette: Any) -> tuple[QHBoxLayout, QVBoxLayout]:
     nav.setObjectName(NAV_NAME)
     style.fill(nav, style.sidebar(palette))
     pages = (
-        (tr("Connection"), icons.connection, owner._build_connection(palette)),
-        (tr("Privacy"), icons.privacy, settings_advanced.build_privacy(owner, palette)),
-        (tr("Skills"), icons.skills, owner.skills.widget),
-        (tr("Geocoding"), icons.geocoding, owner.geocoder.widget),
-        (tr("Advanced"), icons.advanced, settings_advanced.build_advanced(owner, palette)),
+        (tr("Connection"), "connection", owner._build_connection(palette)),
+        (tr("Privacy"), "privacy", settings_advanced.build_privacy(owner, palette)),
+        (tr("Skills"), "skills", owner.skills.widget),
+        (tr("Geocoding"), "geocoding", owner.geocoder.widget),
+        (tr("Advanced"), "advanced", settings_advanced.build_advanced(owner, palette)),
     )
     owner._nav_buttons = []
-    for index, (title, paint, page) in enumerate(pages):
+    for index, (title, role, page) in enumerate(pages):
         owner.pages.addWidget(scrollable(page))
-        button = fields.sidebar_button(title, palette, _drawn(paint, style.muted(palette)))
+        button = fields.sidebar_button(title, palette, icons.drawn(role, style.muted(palette), fields.NAV_ICON))
         button.clicked.connect(lambda _checked=False, at=index: show_page(owner, at))
         _add_dot(button, palette)
         owner._nav_buttons.append(button)
@@ -64,10 +64,9 @@ def show_page(owner: Any, index: int) -> None:
         button.setChecked(at == index)
 
 
-def mark_page(owner: Any, index: int, edited: bool) -> None:
-    """Show or hide the dot that says this page holds unsaved changes."""
-    button = owner._nav_buttons[index]
-    button.findChild(QLabel, DOT_NAME).setVisible(edited)
+def mark_page(owner: Any, index: int) -> None:
+    """Show the dot that says this page holds unsaved changes."""
+    owner._nav_buttons[index].findChild(controls.PaintedDot, DOT_NAME).setVisible(True)
 
 
 def scrollable(page: QWidget) -> QScrollArea:
@@ -93,15 +92,8 @@ def _add_dot(button: QWidget, palette: Any) -> None:
     line = QHBoxLayout(button)
     line.setContentsMargins(0, 0, 10, 0)
     line.addStretch(1)
-    mark = controls.dot(style.warning(palette), DOT_SIZE)
+    mark = controls.PaintedDot(DOT_SIZE)
+    mark.set_colour(style.warning(palette).name())
     mark.setObjectName(DOT_NAME)
     mark.setVisible(False)
     line.addWidget(mark, 0, Qt.AlignmentFlag.AlignVCenter)
-
-
-def _drawn(paint: Any, colour: Any) -> Any:
-    try:
-        icon = paint(colour, fields.NAV_ICON)
-    except Exception:
-        return None
-    return None if icon.isNull() else icon

@@ -14,12 +14,9 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ai_agent.ui import style
+from ai_agent.ui import controls, style
 
 HINT_SCALE = 0.88
-SECTION_SCALE = 0.8
-GROUP_SCALE = 1.25
-CARD_NAME = "settingsCard"
 SEPARATOR_NAME = "settingsSeparator"
 INPUT_RADIUS = 6
 INPUT_PADDING = "6px 10px"
@@ -30,14 +27,12 @@ PAGE_SPACING = 0
 LEAD_GAP = 5
 SECTION_GAP = 36
 SECTION_TO_CARD = 10
-GROUP_GAP = 22
 NAV_WIDTH = 210
 NAV_MARGINS = (12, 14, 12, 14)
 NAV_SPACING = 2
 NAV_RADIUS = 7
 NAV_PADDING = "8px 10px"
 NAV_ICON = 16
-ROW_PADDING = (16, 12, 16, 12)
 FLAT_ROW_PADDING = (0, 13, 0, 13)
 SECTION_TITLE_SCALE = 1.12
 FIRST_SECTION_GAP = 2
@@ -83,20 +78,6 @@ class Switch(QCheckBox):
 
 def switch(palette: Any) -> Switch:
     return Switch(palette)
-
-
-def card(palette: Any) -> tuple[QFrame, QVBoxLayout]:
-    frame = QFrame()
-    frame.setObjectName(CARD_NAME)
-    frame.setStyleSheet(
-        f"QFrame#{CARD_NAME} {{ background: {style.css_color(style.panel(palette))};"
-        f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
-        f"border-radius: {style.CARD_RADIUS}px; }}"
-    )
-    column = QVBoxLayout(frame)
-    column.setContentsMargins(0, 0, 0, 0)
-    column.setSpacing(0)
-    return frame, column
 
 
 def card_rows(palette: Any, rows: list[QWidget]) -> QWidget:
@@ -160,31 +141,23 @@ def page() -> tuple[QWidget, QVBoxLayout]:
     return holder, column
 
 
-def group(title: str, palette: Any) -> QLabel:
-    label = QLabel(title)
-    font = label.font()
-    font.setBold(True)
-    font.setPointSizeF(max(1.0, font.pointSizeF() * GROUP_SCALE))
-    label.setFont(font)
-    label.setStyleSheet(f"color: {style.css_color(style.text(palette))};")
-    return label
-
-
 def section(column: QVBoxLayout, title: str, palette: Any, note: str = "") -> None:
     """A bold heading that opens a group of rows, with an optional muted sentence under it."""
     column.addSpacing(SECTION_GAP if column.count() else FIRST_SECTION_GAP)
-    label = QLabel(title)
+    label = heading(title, palette)
     label.setWordWrap(True)
-    font = label.font()
-    font.setBold(True)
-    font.setPointSizeF(max(1.0, font.pointSizeF() * SECTION_TITLE_SCALE))
-    label.setFont(font)
-    label.setStyleSheet(f"color: {style.css_color(style.text(palette))};")
     column.addWidget(label)
     if note:
         column.addSpacing(LEAD_GAP)
         column.addWidget(hint(note, palette))
     column.addSpacing(SECTION_TO_CARD)
+
+
+def heading(title: str, palette: Any) -> QLabel:
+    label = QLabel(title)
+    style.scale_font(label, SECTION_TITLE_SCALE, bold=True)
+    label.setStyleSheet(f"color: {style.css_color(style.text(palette))};")
+    return label
 
 
 def row(title: str, widget: QWidget, note: str, palette: Any, tooltip: str = "") -> QWidget:
@@ -253,13 +226,8 @@ def rich_tooltip(note: str) -> str:
 
 
 def status(palette: Any) -> QLabel:
-    label = QLabel("")
-    label.setWordWrap(True)
+    label = hint("", palette)
     label.setVisible(False)
-    font = label.font()
-    font.setPointSizeF(max(1.0, font.pointSizeF() * HINT_SCALE))
-    label.setFont(font)
-    label.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
     return label
 
 
@@ -360,10 +328,4 @@ def ghost_button(palette: Any) -> str:
 
 
 def hint(text: str, palette: Any) -> QLabel:
-    label = QLabel(text)
-    label.setWordWrap(True)
-    font = label.font()
-    font.setPointSizeF(max(1.0, font.pointSizeF() * HINT_SCALE))
-    label.setFont(font)
-    label.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
-    return label
+    return controls.small(text, palette, HINT_SCALE)

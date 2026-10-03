@@ -36,18 +36,21 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `activity.py`     | the collapsible group of tool calls |
 | `disclosure.py`   | the fold line: title, detail, chevron after them |
 | `plan.py`         | the plan card with its buttons inside |
+| `confirmations.py` | the modal questions: share data with a provider, run destructive steps |
+| `durations.py`    | `3.4 s`, `2 min 5 s` — one formatter for the feed and the settings |
 | `composer.py`     | the input box as in Claude Code: text and the send/stop button inside, the toolbar under it; Enter sends, Esc stops a run; `/` and `@` open the popup |
-| `composer_parts.py` | the editor, `/skill` and `@layer` parsing, token highlighting, the painted frame, the toolbar (+, skill picker, model) |
+| `composer_parts.py` | the editor, `/skill` and `@layer` parsing, token highlighting, the toolbar (+, model) |
 | `progress.py`     | the working line as in Claude Code: walking dots, the current step, the elapsed time; the feed's last row, under the newest message |
-| `controls.py`     | custom controls: `Segmented` and `RadioCards` keep the combo-box API, `Chips`, badges, keycaps, `ElidedLabel` |
+| `controls.py`     | custom controls: `Segmented` keeps the combo-box API, `Chips`, `RoundedFrame` (every state-dependent box), icon tiles, badges, keycaps, `ElidedLabel`, menus |
 | `connection_widgets.py` | provider tiles and the connection status card |
 | `logos.py`        | provider logos from `ui/logos/*.svg`, tinted to the theme's text colour |
 | `skill_popup.py`  | the list above the composer: prefix-then-substring ranking, keyboard steering, `local` badge |
 | `skills_settings.py` | the Skills settings page: folder, example, discovered local skills and their problems |
 | `theme.py`        | the mockup's light and dark colour tokens; the only module that spells a colour |
-| `style.py`        | colour roles read from `theme`, `fill()` for container backgrounds |
+| `style.py`        | colour roles read from `theme`, `fill()` and `ink()` through the palette, `scale_font()` |
 | `icons.py`        | header, settings-nav, brand and layer icons: drawn with a palette pen, one stroke weight |
-| `settings_dialog.py` | the settings window: state, saving, the connection probe |
+| `settings_dialog.py` | the settings window: state, dirty tracking, saving |
+| `settings_probe.py` | the connection test: start, cancel, report, close only once stopped |
 | `settings_layout.py` | the sidebar, the page stack and per-page scrolling |
 | `settings_fields.py` | the row grammar: rows, switches, separators, inputs, buttons |
 | `settings_advanced.py` | the Privacy and Advanced pages |
@@ -234,7 +237,7 @@ monochrome Simple Icons logos (CC0) in `ui/logos/`, tinted by `logos.py`;
 every other service is a custom address.
 
 **The custom controls keep the combo-box API.** `Segmented` (API format,
-authorisation) and `RadioCards` (geocoder) answer `currentText`, `findText`,
+authorisation, geocoder) answers `currentText`, `findText`,
 `setCurrentIndex` and the change signals, so loading and saving did not change.
 The provider tiles only draw `preset_combo`, which stays hidden and remains the
 single source of truth: a tile sets the combo, the combo selects the tile.
@@ -268,7 +271,8 @@ container cascades to every descendant. The composer once changed its frame's
 style sheet in the editor's `focusOutEvent`; Qt swapped the editor's style
 mid-event and QGIS segfaulted in event processing, intermittently and only in
 a full test run. Container backgrounds go through `style.fill` (the palette),
-focus and state looks are painted (`ComposerFrame`, `WorkingDots`, `PaintedDot`), and a style
+focus and state looks are painted (`controls.RoundedFrame` for the composer, the activity list,
+provider tiles and popup rows; `WorkingDots`, `PaintedDot`), and a style
 sheet is set only when its text actually changed.
 
 **Nothing that cannot shrink may sit in a grid.** A pill badge or an unelided

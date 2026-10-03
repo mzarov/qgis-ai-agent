@@ -14,6 +14,7 @@ from qgis.PyQt.QtWidgets import QHBoxLayout, QWidget
 
 from ai_agent.i18n import tr
 from ai_agent.ui import controls, style
+from ai_agent.ui.durations import format_seconds
 
 FRAME_MS = 16
 WAVE_SECONDS = 1.1
@@ -24,8 +25,6 @@ DOT_GAP = 5
 BOUNCE = 2.0
 SMALLEST = 0.7
 WORKING = tr("Working…")
-SECONDS = tr("{0} s")
-MINUTES = tr("{0} min {1} s")
 
 
 class WorkingDots(QWidget):
@@ -90,7 +89,7 @@ class ProgressLine(QWidget):
         self._step.setText(WORKING)
         self._step.setToolTip(WORKING)
         self._shown_second = 0
-        self._elapsed.setText(_duration(0))
+        self._elapsed.setText(format_seconds(0, decimals=0))
         self._dots.set_phase(0.0)
         self._timer.start()
         self.show()
@@ -109,9 +108,4 @@ class ProgressLine(QWidget):
         # The text changes once a second; setting it every frame would relayout for nothing.
         if int(elapsed) != self._shown_second:
             self._shown_second = int(elapsed)
-            self._elapsed.setText(_duration(elapsed))
-
-
-def _duration(seconds: float) -> str:
-    whole = int(seconds)
-    return SECONDS.format(whole) if whole < 60 else MINUTES.format(whole // 60, whole % 60)
+            self._elapsed.setText(format_seconds(elapsed, decimals=0))

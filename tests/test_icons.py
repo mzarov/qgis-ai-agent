@@ -18,10 +18,11 @@ RENDERED_ICON = pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "i
 class ApiTest(unittest.TestCase):
     def test_header_has_an_icon_for_every_button(self):
         for name in ("sessions", "clear", "settings"):
-            self.assertTrue(callable(getattr(icons, name)), name)
+            self.assertIn(name, icons.NAMES)
 
     def test_dock_uses_the_drawn_set(self):
-        for name in ("icons.sessions", "icons.clear", "icons.settings"):
+        self.assertIn("icons.drawn(role", DOCK)
+        for name in ('"sessions"', '"clear"', '"settings"'):
             self.assertIn(name, DOCK)
 
     def test_dock_no_longer_names_qgis_theme_icons(self):
@@ -29,7 +30,10 @@ class ApiTest(unittest.TestCase):
 
     def test_glyph_fallback_survives(self):
         self.assertIn("button.setText(glyph)", DOCK)
-        self.assertIn("except Exception:", DOCK)
+        from unittest import mock
+
+        with mock.patch.object(icons, "glyph", side_effect=RuntimeError("no QtSvg")):
+            self.assertIsNone(icons.drawn("sessions", None, 15))
 
     def test_toolbar_icon_is_loaded_from_the_package_root(self):
         source = PLUGIN.read_text(encoding="utf-8")

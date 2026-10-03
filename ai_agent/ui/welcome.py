@@ -22,7 +22,6 @@ NEEDS_KEY_BODY = tr(
 )
 OPEN_SETTINGS = tr("Open settings")
 READY_TITLE = tr("Ask in plain language")
-READY_BODY = ""
 # Users are everywhere: the one place named is one everybody knows.
 SUGGESTIONS = (
     tr("What layers do I have and what is in them?"),
@@ -33,7 +32,7 @@ SUGGESTIONS = (
 
 def welcome_content(configured: bool) -> tuple[str, str, tuple[str, ...]]:
     if configured:
-        return READY_TITLE, READY_BODY, SUGGESTIONS
+        return READY_TITLE, "", SUGGESTIONS
     return NEEDS_KEY_TITLE, NEEDS_KEY_BODY, ()
 
 
@@ -107,10 +106,7 @@ class WelcomeCard(QWidget):
 def _title(text: str, palette: Any) -> QLabel:
     label = QLabel(text)
     label.setWordWrap(True)
-    font = label.font()
-    font.setBold(True)
-    font.setPointSizeF(max(1.0, font.pointSizeF() * TITLE_SCALE))
-    label.setFont(font)
+    style.scale_font(label, TITLE_SCALE, bold=True)
     label.setStyleSheet(f"color: {style.css_color(style.text(palette))}; border: none;")
     return label
 

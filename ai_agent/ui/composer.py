@@ -13,11 +13,10 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from ai_agent.i18n import tr
-from ai_agent.ui import style
+from ai_agent.ui import controls, style
 from ai_agent.ui.composer_parts import (
     MENTION,
     SLASH,
-    ComposerFrame,
     ComposerToolbar,
     PromptEdit,
     PromptHighlighter,
@@ -61,7 +60,7 @@ class Composer(QWidget):
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(0)
 
-        self._frame = ComposerFrame(FRAME_RADIUS)
+        self._frame = controls.RoundedFrame(FRAME_RADIUS)
         self._frame.setObjectName(FRAME_NAME)
         self._send_look = ""
         # One row like Claude Code: the text grows line by line, the button stays at the bottom right.
@@ -102,8 +101,6 @@ class Composer(QWidget):
     def _build_send(self) -> QPushButton:
         self._send = QPushButton(SEND_GLYPH)
         self._send.setFixedSize(SEND_SIZE, SEND_SIZE)
-        self._send.setToolTip(tr("Send"))
-        self._send.setAccessibleName(tr("Send"))
         self._send.clicked.connect(self._on_button)
         return self._send
 
@@ -112,9 +109,8 @@ class Composer(QWidget):
         palette = self.palette()
         focused = self._focused and self._configured
         border = style.faint(palette) if focused else style.border_strong(palette)
-        width = style.HAIRLINE
         fill = style.surface(palette) if self._configured else style.card(palette)
-        self._frame.set_look(fill.name(), border.name(), float(width))
+        self._frame.set_look(fill.name(), border.name())
         has_text = bool(self._edit.toPlainText().strip())
         self._send.setVisible(self._configured)
         if not self._configured:

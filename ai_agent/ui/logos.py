@@ -22,10 +22,6 @@ FILES = {
 }
 
 
-def has_logo(title: str) -> bool:
-    return title in FILES
-
-
 def pixmap(title: str, colour: Any, size: int) -> QPixmap | None:
     """The provider's logo at `size` logical pixels in `colour`, or None when it cannot be drawn."""
     name = FILES.get(title)

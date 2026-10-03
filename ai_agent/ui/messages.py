@@ -118,9 +118,7 @@ class SystemMessage(QWidget):
         label = QLabel(text)
         label.setWordWrap(True)
         label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        font = label.font()
-        font.setPointSizeF(max(1.0, font.pointSizeF() * SYSTEM_FONT_SCALE))
-        label.setFont(font)
+        style.scale_font(label, SYSTEM_FONT_SCALE)
         label.setStyleSheet(
             f"color: {style.css_color(style.muted(palette))};"
             f"border-left: 2px solid {style.css_color(style.hairline(palette))};"

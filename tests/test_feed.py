@@ -204,29 +204,29 @@ class ThinkingBlockTest(unittest.TestCase):
             block.append("one")
             block.append("two")
             block.finish()
-        self.assertTrue(block._elapsed.text())
+        self.assertTrue(block._header.detail.text())
 
     def test_a_burst_too_short_to_measure_claims_no_duration(self):
         block = ThinkingBlock()
         block.append("one")
         block.append("two")
         block.finish()
-        self.assertEqual(block._elapsed.text(), "")
+        self.assertEqual(block._header.detail.text(), "")
 
     def test_reasoning_that_arrived_whole_claims_no_duration(self):
         block = ThinkingBlock()
         block.append("the whole monologue at once")
         block.finish()
-        self.assertEqual(block._elapsed.text(), "")
+        self.assertEqual(block._header.detail.text(), "")
 
     def test_finishing_twice_changes_nothing(self):
         block = ThinkingBlock()
         block.append("a")
         block.append("b")
         block.finish()
-        first = block._elapsed.text()
+        first = block._header.detail.text()
         block.finish()
-        self.assertEqual(block._elapsed.text(), first)
+        self.assertEqual(block._header.detail.text(), first)
 
 
 class AssistantMessageTest(unittest.TestCase):
@@ -396,3 +396,12 @@ class ActivityListTest(unittest.TestCase):
             view.add_activity_step(text)
         kinds = [isinstance(item, Separator) for item in view._activity._steps_holder.items]
         self.assertEqual(kinds, [False, True, False, True, False])
+
+
+class DurationTest(unittest.TestCase):
+    def test_seconds_minutes_and_whole_seconds_never_rounded_up(self):
+        from ai_agent.ui.durations import format_seconds
+
+        self.assertEqual(format_seconds(3.44), "3.4 s")
+        self.assertEqual(format_seconds(5.9, decimals=0), "5 s")
+        self.assertEqual(format_seconds(125.0), "2 min 5 s")

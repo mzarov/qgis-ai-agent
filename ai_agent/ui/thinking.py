@@ -6,6 +6,7 @@ from qgis.PyQt.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget
 from ai_agent.i18n import tr
 from ai_agent.ui import style
 from ai_agent.ui.disclosure import Disclosure
+from ai_agent.ui.durations import format_seconds
 
 TEXT_FONT_SCALE = 0.9
 REPAINT_INTERVAL_MS = 80
@@ -27,7 +28,6 @@ class ThinkingBlock(QFrame):
         self._header = Disclosure(palette)
         self._toggle = self._header.toggle
         self._title = self._header.title
-        self._elapsed = self._header.detail
         self._header.toggled.connect(self._on_toggled)
         column.addWidget(self._header)
         column.addWidget(self._build_body(palette))
@@ -59,7 +59,7 @@ class ThinkingBlock(QFrame):
         font = self._body.font()
         font.setItalic(True)
         self._body.setFont(font)
-        _shrink(self._body)
+        style.scale_font(self._body, TEXT_FONT_SCALE)
         layout.addWidget(self._body)
         return self._body_holder
 
@@ -99,15 +99,3 @@ class ThinkingBlock(QFrame):
 
     def _on_toggled(self, expanded: bool) -> None:
         self._body_holder.setVisible(expanded)
-
-
-def format_seconds(seconds: float) -> str:
-    if seconds < 60:
-        return tr("{0} s").format(f"{seconds:.1f}")
-    return tr("{0} min {1} s").format(int(seconds // 60), int(seconds % 60))
-
-
-def _shrink(label: QLabel) -> None:
-    font = label.font()
-    font.setPointSizeF(max(1.0, font.pointSizeF() * TEXT_FONT_SCALE))
-    label.setFont(font)

@@ -1,15 +1,15 @@
 """Small custom controls for the settings window and the composer.
 
-`Segmented` and `RadioCards` keep the slice of the `QComboBox` API the dialog
-already relies on (`currentText`, `findText`, `setCurrentIndex`, the change
-signals), so saving and loading code reads them exactly like the combo boxes
-they replace. Everything is drawn from the palette through `style`.
+`Segmented` keeps the slice of the `QComboBox` API the dialog already relies
+on (`currentText`, `findText`, `setCurrentIndex`, item data, the change
+signals), so saving and loading code reads it exactly like the combo box it
+replaces. Everything is drawn from the palette through `style`.
 """
 
 from collections.abc import Callable
 from typing import Any
 
-from qgis.PyQt.QtCore import QRectF, QSize, Qt, pyqtSignal
+from qgis.PyQt.QtCore import QRectF, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QPainter, QPen
 from qgis.PyQt.QtWidgets import (
     QButtonGroup,
@@ -20,14 +20,12 @@ from qgis.PyQt.QtWidgets import (
     QMenu,
     QPushButton,
     QSizePolicy,
-    QVBoxLayout,
     QWidget,
 )
 
-from ai_agent.ui import style
+from ai_agent.ui import icons, style
 
 SEGMENT_NAME = "segmented"
-CARD_NAME = "radioCard"
 SEGMENT_RADIUS = 8
 SEGMENT_INNER_RADIUS = 6
 CHIP_HEIGHT = 26
@@ -36,15 +34,13 @@ BADGE_RADIUS = 8
 KEY_RADIUS = 4
 MENU_RADIUS = 10
 MENU_ITEM_RADIUS = 6
+MENU_GAP = 4
 KEY_SCALE = 0.8
 KEY_PADDING = 5
 KEY_MIN_WIDTH = 18
 KEY_EXTRA_HEIGHT = 4
 KEY_EDGE_TINT = 0.35
-RADIO_SIZE = 16
-RADIO_DOT = 8
 SMALL_SCALE = 0.85
-BADGE_KINDS = ("neutral", "ok", "warn", "accent", "bad")
 
 
 class Segmented(QFrame):
@@ -92,9 +88,6 @@ class Segmented(QFrame):
 
     def currentData(self) -> Any:
         return self._data.get(self.currentIndex())
-
-    def count(self) -> int:
-        return len(self._items)
 
     def itemText(self, index: int) -> str:
         return self._items[index] if 0 <= index < len(self._items) else ""
@@ -180,128 +173,42 @@ class Chips(QWidget):
         )
 
 
-class RadioMark(QWidget):
-    def __init__(self, palette: Any, parent: QWidget | None = None):
+class RoundedFrame(QFrame):
+    """A rounded box painted by hand; its look changes with `update()` and nothing else.
+
+    A style sheet on a frame cascades to every child. Swapping it while a child
+    was inside its own event handler (the composer editor's focusOut) crashed QGIS
+    in event processing, so frames whose look follows state are painted.
+    """
+
+    def __init__(self, radius: float, parent: QWidget | None = None):
         super().__init__(parent)
-        self._palette = palette
-        self.checked = False
-        self.setFixedSize(RADIO_SIZE, RADIO_SIZE)
+        self._radius = radius
+        self._look: tuple[Any, Any, float] | None = None
+
+    def set_look(self, fill: Any, border: Any, width: float = style.HAIRLINE) -> None:
+        """Fill and border colours, either None for none, and the border width."""
+        look = (fill, border, width)
+        if look != self._look:
+            self._look = look
+            self.update()
 
     def paintEvent(self, _event: Any) -> None:
+        if self._look is None or self._look[:2] == (None, None):
+            return
+        fill, border, width = self._look
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        colour = style.accent(self._palette) if self.checked else style.muted(self._palette)
-        pen = QPen(colour)
-        pen.setWidthF(1.5)
-        painter.setPen(pen)
-        painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.drawEllipse(QRectF(1, 1, RADIO_SIZE - 2, RADIO_SIZE - 2))
-        if self.checked:
+        if border is None:
             painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(colour)
-            offset = (RADIO_SIZE - RADIO_DOT) / 2
-            painter.drawEllipse(QRectF(offset, offset, RADIO_DOT, RADIO_DOT))
+        else:
+            pen = QPen(QColor(border))
+            pen.setWidthF(width)
+            painter.setPen(pen)
+        painter.setBrush(Qt.BrushStyle.NoBrush if fill is None else QColor(fill))
+        inset = width / 2
+        painter.drawRoundedRect(QRectF(self.rect()).adjusted(inset, inset, -inset, -inset), self._radius, self._radius)
         painter.end()
-
-
-class RadioCard(QFrame):
-    clicked = pyqtSignal()
-
-    def __init__(self, palette: Any, title: str, note: str):
-        super().__init__()
-        self._palette = palette
-        self.setObjectName(CARD_NAME)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-        line = QHBoxLayout(self)
-        line.setContentsMargins(14, 11, 14, 11)
-        line.setSpacing(12)
-        self.mark = RadioMark(palette)
-        line.addWidget(self.mark, 0, Qt.AlignmentFlag.AlignTop)
-        self._column = QVBoxLayout()
-        self._column.setSpacing(2)
-        self.title = QLabel(title)
-        self._column.addWidget(self.title)
-        self.note = small(note, palette)
-        self.note.setVisible(bool(note))
-        self._column.addWidget(self.note)
-        line.addLayout(self._column, 1)
-        self.set_checked(False)
-
-    def add_extra(self, widget: QWidget) -> None:
-        self._column.addSpacing(6)
-        self._column.addWidget(widget)
-
-    def set_checked(self, checked: bool) -> None:
-        self.mark.checked = checked
-        self.mark.update()
-        # The chosen card keeps its fill and gains a two-pixel accent edge, as in the approved mockup;
-        # the margin swap keeps every card the same outer size.
-        border = style.accent(self._palette) if checked else style.hairline(self._palette)
-        width = 2 if checked else style.HAIRLINE
-        self.setStyleSheet(
-            f"QFrame#{CARD_NAME} {{ background: {style.css_color(style.panel(self._palette))};"
-            f"border: {width}px solid {style.css_color(border)}; border-radius: {style.CARD_RADIUS}px;"
-            f"margin: {2 - width}px; }}"
-        )
-
-    def mousePressEvent(self, _event: Any) -> None:
-        self.clicked.emit()
-
-
-class RadioCards(QWidget):
-    """A vertical stack of choice cards; reads like a combo box with item data."""
-
-    currentIndexChanged = pyqtSignal(int)
-
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
-        self._palette = palette
-        self._cards: list[RadioCard] = []
-        self._data: list[Any] = []
-        self._index = -1
-        self._column = QVBoxLayout(self)
-        self._column.setContentsMargins(0, 0, 0, 0)
-        self._column.setSpacing(8)
-
-    def addItem(self, title: str, data: Any = None, note: str = "") -> RadioCard:
-        card = RadioCard(self._palette, title, note)
-        index = len(self._cards)
-        card.clicked.connect(lambda: self.setCurrentIndex(index))
-        self._cards.append(card)
-        self._data.append(data)
-        self._column.addWidget(card)
-        if self._index < 0:
-            self._select(0)
-        return card
-
-    def count(self) -> int:
-        return len(self._cards)
-
-    def card(self, index: int) -> RadioCard:
-        return self._cards[index]
-
-    def findData(self, data: Any) -> int:
-        return self._data.index(data) if data in self._data else -1
-
-    def currentIndex(self) -> int:
-        return self._index
-
-    def currentData(self) -> Any:
-        return self._data[self._index] if 0 <= self._index < len(self._data) else None
-
-    def currentText(self) -> str:
-        return self._cards[self._index].title.text() if 0 <= self._index < len(self._cards) else ""
-
-    def setCurrentIndex(self, index: int) -> None:
-        if not 0 <= index < len(self._cards) or index == self._index:
-            return
-        self._select(index)
-        self.currentIndexChanged.emit(index)
-
-    def _select(self, index: int) -> None:
-        self._index = index
-        for at, card in enumerate(self._cards):
-            card.set_checked(at == index)
 
 
 class PaintedDot(QWidget):
@@ -356,12 +263,28 @@ def menu(parent: QWidget, palette: Any) -> QMenu:
     return popup
 
 
-def small(text: str, palette: Any) -> QLabel:
+def icon_tile(role: str, palette: Any, tile: int, size: int, radius: int, fallback: str) -> QLabel:
+    """A glyph centred on a rounded card-coloured square; the fallback text when it cannot be drawn."""
+    label = QLabel()
+    label.setFixedSize(tile, tile)
+    label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    label.setStyleSheet(
+        f"QLabel {{ background: {style.css_color(style.card(palette))};"
+        f"color: {style.css_color(style.text(palette))}; border-radius: {radius}px; }}"
+    )
+    icon = icons.drawn(role, style.muted(palette), size)
+    if icon is None:
+        label.setText(fallback)
+    else:
+        label.setPixmap(icon.pixmap(size, size))
+    return label
+
+
+def small(text: str, palette: Any, scale: float = SMALL_SCALE) -> QLabel:
+    """A muted, wrapping caption a step below the body text."""
     label = QLabel(text)
     label.setWordWrap(True)
-    font = label.font()
-    font.setPointSizeF(max(1.0, font.pointSizeF() * SMALL_SCALE))
-    label.setFont(font)
+    style.scale_font(label, scale)
     label.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
     return label
 
@@ -369,16 +292,8 @@ def small(text: str, palette: Any) -> QLabel:
 def badge(text: str, kind: str, palette: Any) -> QLabel:
     """A small pill: neutral, ok, warn, accent or bad."""
     label = QLabel(text)
-    font = label.font()
-    font.setPointSizeF(max(1.0, font.pointSizeF() * SMALL_SCALE))
-    font.setBold(True)
-    label.setFont(font)
+    style.scale_font(label, SMALL_SCALE, bold=True)
     label.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
-    paint_badge(label, kind, palette)
-    return label
-
-
-def paint_badge(label: QLabel, kind: str, palette: Any) -> None:
     colours = {
         "ok": style.success(palette),
         "warn": style.warning(palette),
@@ -394,6 +309,7 @@ def paint_badge(label: QLabel, kind: str, palette: Any) -> None:
         f"QLabel {{ background: {style.css_color(fill)}; color: {style.css_color(ink)};"
         f"border-radius: {BADGE_RADIUS}px; padding: 1px 7px; }}"
     )
+    return label
 
 
 class KeyCap(QLabel):
@@ -406,9 +322,7 @@ class KeyCap(QLabel):
     def __init__(self, text: str, palette: Any, parent: QWidget | None = None):
         super().__init__(text, parent)
         self._palette = palette
-        font = self.font()
-        font.setPointSizeF(max(1.0, font.pointSizeF() * KEY_SCALE))
-        self.setFont(font)
+        style.scale_font(self, KEY_SCALE)
         metrics = self.fontMetrics()
         self.setFixedSize(
             max(KEY_MIN_WIDTH, metrics.horizontalAdvance(text) + 2 * KEY_PADDING), metrics.height() + KEY_EXTRA_HEIGHT
@@ -432,11 +346,6 @@ class KeyCap(QLabel):
         painter.end()
 
 
-def keycap(text: str, palette: Any) -> QLabel:
-    """A keyboard key as a hint: Enter, Esc, /, @."""
-    return KeyCap(text, palette)
-
-
 class ElidedLabel(QLabel):
     """One line that ends in an ellipsis instead of pushing its parent wider."""
 
@@ -453,10 +362,3 @@ class ElidedLabel(QLabel):
         shown = self.fontMetrics().elidedText(self.text(), self._mode, self.width())
         painter.drawText(self.rect(), int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter), shown)
         painter.end()
-
-
-def dot(colour: Any, size: int = 8) -> QLabel:
-    label = QLabel()
-    label.setFixedSize(QSize(size, size))
-    label.setStyleSheet(f"QLabel {{ background: {style.css_color(colour)}; border-radius: {size // 2}px; }}")
-    return label

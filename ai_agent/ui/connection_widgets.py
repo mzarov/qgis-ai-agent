@@ -20,6 +20,8 @@ TILE_HEIGHT = 58
 MONOGRAM = 30
 LOGO = 17
 MONOGRAM_RADIUS = 7
+MONOGRAM_SCALE = 0.8
+SELECTED_EDGE = 2
 LIGHT = 8
 CONNECTION_TEST = tr("Connection test")
 STATE_IDLE = "idle"
@@ -29,10 +31,8 @@ STATE_BAD = "bad"
 
 def _logo(preset: Preset, palette: Any) -> Any:
     if preset.is_custom:
-        try:
-            return icons.connection(style.text(palette), LOGO).pixmap(LOGO, LOGO)
-        except Exception:
-            return None
+        icon = icons.drawn("connection", style.text(palette), LOGO)
+        return None if icon is None else icon.pixmap(LOGO, LOGO)
     return logos.pixmap(preset.title, style.text(palette), LOGO)
 
 
@@ -41,12 +41,15 @@ def _initials(title: str) -> str:
     return "".join(word[0] for word in words[:2]).upper() or "?"
 
 
-class ProviderTile(QFrame):
+class ProviderTile(controls.RoundedFrame):
+    """A provider to pick; the chosen one gains a two-pixel accent edge, painted, not styled."""
+
     clicked = pyqtSignal(str)
 
     def __init__(self, preset: Preset, palette: Any):
-        super().__init__()
+        super().__init__(style.CARD_RADIUS)
         self.title = preset.title
+        self.selected = False
         self._palette = palette
         self.setObjectName(TILE_NAME)
         self.setMinimumHeight(TILE_HEIGHT)
@@ -65,10 +68,7 @@ class ProviderTile(QFrame):
         if art is not None:
             monogram.setPixmap(art)
         else:
-            font = monogram.font()
-            font.setBold(True)
-            font.setPointSizeF(max(1.0, font.pointSizeF() * 0.8))
-            monogram.setFont(font)
+            style.scale_font(monogram, MONOGRAM_SCALE, bold=True)
             monogram.setText(_initials(preset.title))
         line.addWidget(monogram)
         name = controls.ElidedLabel(preset.title)
@@ -77,14 +77,9 @@ class ProviderTile(QFrame):
         self.set_selected(False)
 
     def set_selected(self, selected: bool) -> None:
+        self.selected = selected
         border = style.accent(self._palette) if selected else style.hairline(self._palette)
-        width = 2 if selected else style.HAIRLINE
-        margin = 0 if selected else 1
-        self.setStyleSheet(
-            f"QFrame#{TILE_NAME} {{ background: {style.css_color(style.panel(self._palette))};"
-            f"border: {width}px solid {style.css_color(border)}; border-radius: {style.CARD_RADIUS}px;"
-            f"margin: {margin}px; }}"
-        )
+        self.set_look(style.panel(self._palette).name(), border.name(), SELECTED_EDGE if selected else style.HAIRLINE)
 
     def mousePressEvent(self, _event: Any) -> None:
         self.clicked.emit(self.title)

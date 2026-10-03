@@ -56,20 +56,6 @@ class ChipsTest(unittest.TestCase):
         self.assertTrue(buttons[0].isChecked())
 
 
-class RadioCardsTest(unittest.TestCase):
-    def test_cards_answer_like_a_combo_box_with_data(self) -> None:
-        cards = controls.RadioCards(QWidget().palette())
-        cards.addItem("Disabled", "disabled")
-        cards.addItem("Photon", "photon")
-        changes: list[int] = []
-        cards.currentIndexChanged.connect(changes.append)
-        self.assertEqual(cards.currentData(), "disabled")
-        cards.setCurrentIndex(cards.findData("photon"))
-        self.assertEqual((cards.currentData(), cards.currentText(), changes), ("photon", "Photon", [1]))
-        cards.card(0).clicked.emit()
-        self.assertEqual(cards.currentData(), "disabled")
-
-
 class TokenPatternTest(unittest.TestCase):
     def test_skill_and_layer_tokens(self) -> None:
         self.assertEqual(SKILL_TOKEN.match("/style colour").group(), "/style")
@@ -110,7 +96,7 @@ class SettingsBehaviourTest(PluginCase):
 
     def test_typing_an_address_selects_its_tile(self) -> None:
         self.dialog.url_edit.setText("https://api.openai.com/v1")
-        selected = [tile.title for tile in self.dialog.provider_tiles._tiles if "2px" in tile.styleSheet()]
+        selected = [tile.title for tile in self.dialog.provider_tiles._tiles if tile.selected]
         self.assertEqual(selected, ["OpenAI"])
 
     def test_only_the_main_providers_get_a_tile_and_they_carry_logos(self) -> None:

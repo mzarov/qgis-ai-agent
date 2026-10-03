@@ -8,12 +8,11 @@ is the quiet default and carries no mark; only a failed or rejected call does.
 from html import escape
 from typing import Any
 
-from qgis.PyQt.QtCore import QRectF, Qt
-from qgis.PyQt.QtGui import QColor, QPainter, QPen
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from ai_agent.i18n import tr_n
-from ai_agent.ui import style
+from ai_agent.ui import controls, style
 from ai_agent.ui.disclosure import Disclosure
 
 PENDING = "●"
@@ -29,7 +28,7 @@ ROW_PAD = 8
 HEADER_GAP = 6
 
 
-class ActivityList(QWidget):
+class ActivityList(controls.RoundedFrame):
     """The rows of a group, framed by a painted hairline once there is a call to list.
 
     A reasoning-only turn stays a bare line: a box around a single fold line would
@@ -37,7 +36,7 @@ class ActivityList(QWidget):
     """
 
     def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+        super().__init__(style.CARD_RADIUS, parent)
         self._border = style.hairline(palette)
         self.framed = False
         self.items: list[QWidget] = []
@@ -51,7 +50,7 @@ class ActivityList(QWidget):
         self.framed = framed
         pad = LIST_PAD if framed else 0
         self.rows.setContentsMargins(pad, 0, pad, 0)
-        self.update()
+        self.set_look(None, self._border if framed else None)
 
     def add_row(self, widget: QWidget) -> None:
         if self.items:
@@ -62,20 +61,6 @@ class ActivityList(QWidget):
     def _add(self, widget: QWidget) -> None:
         self.items.append(widget)
         self.rows.addWidget(widget)
-
-    def paintEvent(self, _event: Any) -> None:
-        if not self.framed:
-            return
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        pen = QPen(QColor(self._border))
-        pen.setWidthF(style.HAIRLINE)
-        painter.setPen(pen)
-        painter.setBrush(Qt.BrushStyle.NoBrush)
-        inset = style.HAIRLINE / 2
-        rect = QRectF(self.rect()).adjusted(inset, inset, -inset, -inset)
-        painter.drawRoundedRect(rect, style.CARD_RADIUS, style.CARD_RADIUS)
-        painter.end()
 
 
 class Separator(QWidget):
@@ -97,7 +82,6 @@ class ActivityGroup(QFrame):
         self._toggle = self._header.toggle
         self._title = self._header.title
         self._status = QLabel()
-        self._status.setStyleSheet("border: none;")
         self._header.add_note(self._status)
         self._header.toggled.connect(self._on_toggled)
         column.addWidget(self._header)
@@ -139,19 +123,20 @@ class ActivityGroup(QFrame):
         self._refresh()
 
     def mark_step(self, row: "StepRow", ok: bool) -> None:
-        if row.state == PENDING:
-            self._pending = max(0, self._pending - 1)
-        row.set_state(DONE if ok else FAILED)
+        self._settle(row, DONE if ok else FAILED)
         if not ok:
             self._failures += 1
         self._refresh()
 
     def mark_rejected(self, row: "StepRow") -> None:
-        if row.state == PENDING:
-            self._pending = max(0, self._pending - 1)
-        row.set_state(REJECTED)
+        self._settle(row, REJECTED)
         self._rejected = True
         self._refresh()
+
+    def _settle(self, row: "StepRow", state: str) -> None:
+        if row.state == PENDING:
+            self._pending = max(0, self._pending - 1)
+        row.set_state(state)
 
     def _refresh(self) -> None:
         palette = self.palette()
@@ -167,7 +152,7 @@ class ActivityGroup(QFrame):
             marker, colour = DONE, style.muted(palette)
         self._status.setText(marker)
         self._status.setVisible(marker not in (DONE, PENDING))
-        self._status.setStyleSheet(f"color: {style.css_color(colour)}; border: none;")
+        style.ink(self._status, colour)
 
     def _on_toggled(self, expanded: bool) -> None:
         if self._count:
@@ -192,13 +177,11 @@ class StepRow(QWidget):
         self._label.setText(_without_period(str(text)) if markup is None else markup)
         self._label.setWordWrap(True)
         self._label.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
-        font = self._label.font()
-        font.setPointSizeF(max(1.0, font.pointSizeF() * STEP_FONT_SCALE))
-        self._label.setFont(font)
+        style.scale_font(self._label, STEP_FONT_SCALE)
         row.addWidget(self._label, 1)
 
         self._marker = QLabel()
-        self._marker.setFont(font)
+        self._marker.setFont(self._label.font())
         self._marker.setVisible(False)
         row.addWidget(self._marker, 0, Qt.AlignmentFlag.AlignTop)
 

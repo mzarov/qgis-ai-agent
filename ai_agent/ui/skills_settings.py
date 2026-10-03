@@ -13,7 +13,7 @@ from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, Q
 
 from ai_agent.core.local_skills import describe_local_skills, skill_choices, write_example_skill
 from ai_agent.i18n import tr
-from ai_agent.ui import controls, icons, style
+from ai_agent.ui import controls, style
 from ai_agent.ui import settings_fields as fields
 
 TITLE = tr("Your skills")
@@ -29,7 +29,6 @@ DRAFT = tr("draft")
 DRAFT_NOTE = tr("Add a description in SKILL.md to turn it on.")
 EDIT = tr("Edit")
 ROW_SEPARATOR = " · "
-BUTTON_GAP = 8
 ICON_TILE = 34
 ICON_SIZE = 17
 ICON_RADIUS = 8
@@ -89,12 +88,7 @@ class SkillsSettings:
         line = QHBoxLayout(holder)
         line.setContentsMargins(0, 0, 0, fields.SECTION_TO_CARD)
         line.setSpacing(8)
-        label = QLabel(title)
-        font = label.font()
-        font.setBold(True)
-        font.setPointSizeF(max(1.0, font.pointSizeF() * fields.SECTION_TITLE_SCALE))
-        label.setFont(font)
-        line.addWidget(label)
+        line.addWidget(fields.heading(title, self._palette))
         if count is not None:
             line.addWidget(controls.badge(str(count), "neutral", self._palette), 0, Qt.AlignmentFlag.AlignVCenter)
         line.addStretch(1)
@@ -120,7 +114,7 @@ class SkillsSettings:
         text.addWidget(name)
         self._path = controls.ElidedLabel("", mode=Qt.TextElideMode.ElideMiddle)
         self._path.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
-        self._path.setFont(fields.hint("", palette).font())
+        style.scale_font(self._path, fields.HINT_SCALE)
         text.addWidget(self._path)
         line.addLayout(text, 1)
         open_button = QPushButton(OPEN_FOLDER)
@@ -134,7 +128,7 @@ class SkillsSettings:
         line = QHBoxLayout(holder)
         line.setContentsMargins(*ROW_PADDING)
         line.setSpacing(12)
-        line.addWidget(self._icon())
+        line.addWidget(controls.icon_tile("skills", self._palette, ICON_TILE, ICON_SIZE, ICON_RADIUS, "/"))
         text = QVBoxLayout()
         text.setSpacing(2)
         title_line = QHBoxLayout()
@@ -162,19 +156,6 @@ class SkillsSettings:
         edit.clicked.connect(lambda _checked=False, path=draft["path"]: _open(path))
         row.trailing.addWidget(edit, 0, Qt.AlignmentFlag.AlignVCenter)
         return row
-
-    def _icon(self) -> QLabel:
-        tile = QLabel()
-        tile.setFixedSize(ICON_TILE, ICON_TILE)
-        tile.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        tile.setStyleSheet(
-            f"QLabel {{ background: {style.css_color(style.card(self._palette))}; border-radius: {ICON_RADIUS}px; }}"
-        )
-        try:
-            tile.setPixmap(icons.skills(style.muted(self._palette), ICON_SIZE).pixmap(ICON_SIZE, ICON_SIZE))
-        except Exception:
-            tile.setText("/")
-        return tile
 
     @staticmethod
     def _tools(entry: dict[str, Any]) -> str:

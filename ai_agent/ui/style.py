@@ -14,8 +14,6 @@ from ai_agent.ui import theme
 CARD_RADIUS = 10
 BUBBLE_RADIUS = 12
 HAIRLINE = 1
-USER_TINT = 0.26
-RING_TINT = 0.5
 
 
 def blend(first: QColor, second: QColor, ratio: float) -> QColor:
@@ -156,11 +154,6 @@ def soft(palette: QPalette, colour: QColor) -> QColor:
     return blend(surface(palette), colour, 0.14)
 
 
-def ring(palette: QPalette) -> QColor:
-    """The focus halo around an input."""
-    return blend(surface(palette), accent(palette), RING_TINT)
-
-
 def fill(widget: Any, colour: QColor) -> None:
     """Paint a container's background through its palette, not a style sheet.
 
@@ -175,6 +168,25 @@ def fill(widget: Any, colour: QColor) -> None:
     palette.setColor(role, colour)
     widget.setPalette(palette)
     widget.setAutoFillBackground(True)
+
+
+def ink(widget: Any, colour: QColor) -> None:
+    """Set a label's text colour through its palette: safe to call from a hover event."""
+    role = getattr(getattr(QPalette, "ColorRole", None), "WindowText", None)
+    if role is None:
+        return
+    palette = widget.palette()
+    palette.setColor(role, colour)
+    widget.setPalette(palette)
+
+
+def scale_font(widget: Any, ratio: float, bold: bool = False) -> None:
+    """Resize a widget's font relative to the one it inherited, optionally bold."""
+    font = widget.font()
+    font.setPointSizeF(max(1.0, font.pointSizeF() * ratio))
+    if bold:
+        font.setBold(True)
+    widget.setFont(font)
 
 
 def css_color(color: QColor) -> str:

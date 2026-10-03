@@ -32,40 +32,13 @@ def glyph(role: str, colour: Any, size: int) -> QIcon:
     return QIcon() if image is None else QIcon(image)
 
 
-def sessions(colour: Any, size: int) -> QIcon:
-    return glyph("sessions", colour, size)
-
-
-def clear(colour: Any, size: int) -> QIcon:
-    return glyph("clear", colour, size)
-
-
-def settings(colour: Any, size: int) -> QIcon:
-    return glyph("settings", colour, size)
-
-
-def connection(colour: Any, size: int) -> QIcon:
-    return glyph("connection", colour, size)
-
-
-def privacy(colour: Any, size: int) -> QIcon:
-    return glyph("privacy", colour, size)
-
-
-def skills(colour: Any, size: int) -> QIcon:
-    return glyph("skills", colour, size)
-
-
-def geocoding(colour: Any, size: int) -> QIcon:
-    return glyph("geocoding", colour, size)
-
-
-def advanced(colour: Any, size: int) -> QIcon:
-    return glyph("advanced", colour, size)
-
-
-def layer(colour: Any, size: int) -> QIcon:
-    return glyph("layer", colour, size)
+def drawn(role: str, colour: Any, size: int) -> QIcon | None:
+    """The glyph, or None when it cannot be drawn and the caller shows its text fallback."""
+    try:
+        icon = glyph(role, colour, size)
+    except Exception:
+        return None
+    return None if icon.isNull() else icon
 
 
 def chevron(expanded: bool, colour: Any, size: int) -> QIcon:

@@ -155,7 +155,7 @@
  },
  {
   "depth": 4,
-  "type": "ComposerFrame",
+  "type": "RoundedFrame",
   "name": "composerFrame"
  },
  {

@@ -8,7 +8,6 @@ hover event would restyle the subtree in the middle of event processing.
 from typing import Any
 
 from qgis.PyQt.QtCore import QSize, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QPalette
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QToolButton, QWidget
 
 from ai_agent.ui import icons, style
@@ -34,14 +33,12 @@ class Disclosure(QWidget):
 
         self.title = QLabel()
         self.title.setTextFormat(Qt.TextFormat.PlainText)
-        _tint(self.title, self._rest)
+        style.ink(self.title, self._rest)
         self._row.addWidget(self.title, 0, Qt.AlignmentFlag.AlignVCenter)
 
         self.detail = QLabel()
-        _tint(self.detail, style.muted(palette))
-        font = self.detail.font()
-        font.setPointSizeF(max(1.0, font.pointSizeF() * DETAIL_SCALE))
-        self.detail.setFont(font)
+        style.ink(self.detail, style.muted(palette))
+        style.scale_font(self.detail, DETAIL_SCALE)
         self.detail.setVisible(False)
         self._row.addWidget(self.detail, 0, Qt.AlignmentFlag.AlignVCenter)
 
@@ -74,11 +71,11 @@ class Disclosure(QWidget):
             self.toggle.setChecked(not self.toggle.isChecked())
 
     def enterEvent(self, event: Any) -> None:
-        _tint(self.title, self._hover)
+        style.ink(self.title, self._hover)
         super().enterEvent(event)
 
     def leaveEvent(self, event: Any) -> None:
-        _tint(self.title, self._rest)
+        style.ink(self.title, self._rest)
         super().leaveEvent(event)
 
     def _on_toggled(self, expanded: bool) -> None:
@@ -91,12 +88,3 @@ class Disclosure(QWidget):
             self.toggle.setText(EXPANDED if expanded else COLLAPSED)
         else:
             self.toggle.setIcon(icon)
-
-
-def _tint(label: QLabel, colour: Any) -> None:
-    role = getattr(getattr(QPalette, "ColorRole", None), "WindowText", None)
-    if role is None:
-        return
-    palette = label.palette()
-    palette.setColor(role, colour)
-    label.setPalette(palette)
