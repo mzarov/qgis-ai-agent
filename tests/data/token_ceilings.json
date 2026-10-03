@@ -1,0 +1,24 @@
+{
+  "live": {
+    "model": "deepseek-v4.1-flash",
+    "scenarios": {
+      "LiveBufferScenario": {
+        "total_tokens": 166000
+      },
+      "LiveLabelScenario": {
+        "total_tokens": 73000
+      },
+      "LiveQuestionScenario": {
+        "total_tokens": 15000
+      },
+      "LiveStyleScenario": {
+        "total_tokens": 63000
+      }
+    }
+  },
+  "scripted": {
+    "system_chars": 23900,
+    "tools_chars": 25100,
+    "base_chars": 23400
+  }
+}

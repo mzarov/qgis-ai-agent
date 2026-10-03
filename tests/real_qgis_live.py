@@ -8,8 +8,14 @@ because a model is free to choose its own route.
 
 Spending is capped three ways: a per-run token budget through the plugin's
 own setting, a total for the whole suite after which the remaining scenarios
-are skipped, and the CI job timeout. Usage lands in `live_usage.json` next to
-the screenshots.
+are skipped, and the CI job timeout.
+
+Usage lands in `live_usage.json` next to the screenshots: per scenario the
+prompt tokens, completion tokens and model requests of every run, the
+verification run included. A scenario that spends more than its ceiling in
+`tests/data/token_ceilings.json` fails, so a token regression like issue #74
+cannot ship unnoticed; the ceilings apply only to the model they were measured
+on. `tests/token_ceilings.py` refreshes them from reports.
 
 Configuration comes from the environment; without a key the module skips:
 
@@ -19,6 +25,7 @@ Configuration comes from the environment; without a key the module skips:
     LIVE_TOTAL_TOKENS   suite-wide cap (default 1 500 000)
     LIVE_RUN_TOKENS     per-run cap (default 150 000)
     LIVE_ONLY           comma-separated scenario names to run, e.g. LiveBufferScenario
+    LIVE_REQUIRE_CEILINGS  1 fails a scenario that has no ceiling for this model (CI sets it)
 
 Run: `python3 tests/real_qgis_workflows.py real_qgis_live`.
 """
@@ -27,6 +34,7 @@ import json
 import os
 import unittest
 
+import token_ceilings
 from e2e_harness import ARTIFACTS, DISTRICT_POPULATIONS, PluginCase
 from qgis.core import Qgis, QgsApplication, QgsProject
 
@@ -44,17 +52,28 @@ POPULATION_THRESHOLD = 50000
 USAGE_FILE = "live_usage.json"
 LOG_TAG = "AI Agent"
 ONLY = [name.strip() for name in os.environ.get("LIVE_ONLY", "").split(",") if name.strip()]
+REQUIRE_CEILINGS = os.environ.get("LIVE_REQUIRE_CEILINGS", "").strip() == "1"
 
-USAGE: dict[str, int] = {}
+CEILINGS = token_ceilings.load()
+
+# Scenario class name -> its usage: the totals plus one entry per agent run.
+USAGE: dict[str, dict] = {}
 
 
 def _spent() -> int:
-    return sum(USAGE.values())
+    return sum(usage["total_tokens"] for usage in USAGE.values())
 
 
 def _write_usage() -> None:
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
-    report = {"model": LIVE_MODEL, "total_tokens": _spent(), "cap": TOTAL_TOKENS, "scenarios": USAGE}
+    report = {
+        "kind": token_ceilings.LIVE_KIND,
+        # The bare model id: a provider URI carries the cloud folder, and artifacts are public.
+        "model": token_ceilings.model_name(LIVE_MODEL),
+        "total_tokens": _spent(),
+        "cap": TOTAL_TOKENS,
+        "scenarios": USAGE,
+    }
     (ARTIFACTS / USAGE_FILE).write_text(json.dumps(report, indent=2), encoding="utf-8")
 
 
@@ -81,16 +100,30 @@ class LiveCase(PluginCase):
         set_token_budget(RUN_TOKENS)
         self.runs: list[str] = []
         self.log: list[str] = []
-        self._run_spent = 0
-        USAGE[self.id()] = 0
-        self.agent.usage_changed.connect(self._count)
+        self.scenario = type(self).__name__
+        self.usage = USAGE[self.scenario] = dict.fromkeys(token_ceilings.LIVE_METRICS, 0)
+        self.usage["runs"] = []
         QgsApplication.messageLog().messageReceived.connect(self._logged)
-        # Instrumentation only: record each run start, then hand over unchanged.
+        # Instrumentation only: record each run that really starts, then hand over unchanged.
         start = self.agent.start
-        self.agent.start = lambda *args, **kwargs: (self._run_started(kwargs), start(*args, **kwargs))[1]
+
+        def counted_start(*args: object, **kwargs: object) -> bool:
+            previous = dict(self.agent.usage)
+            started = start(*args, **kwargs)
+            if started:
+                self._close_run(previous)
+                self.runs.append("verification" if kwargs.get("verification") else "request")
+            return started
+
+        self.agent.start = counted_start
 
     def tearDown(self) -> None:
         QgsApplication.messageLog().messageReceived.disconnect(self._logged)
+        self._close_run()
+        ceiling = token_ceilings.live_ceiling(CEILINGS, LIVE_MODEL, self.scenario)
+        over = token_ceilings.exceeded(self.usage, ceiling)
+        self.usage["ceiling"] = ceiling
+        self.usage["exceeded"] = over
         name = self.id().rsplit(".", 1)[-1]
         self.shot(f"{name}_end")
         _write_usage()
@@ -100,19 +133,26 @@ class LiveCase(PluginCase):
             "plugin_log": self.log,
         }
         (ARTIFACTS / f"{name}.json").write_text(json.dumps(transcript, indent=2, default=str), encoding="utf-8")
-        print(
-            f"  tokens: {USAGE.get(self.id(), 0)} (suite {_spent()} of {TOTAL_TOKENS}), runs: {self.runs}", flush=True
-        )
+        totals = ", ".join(f"{metric} {self.usage[metric]}" for metric in token_ceilings.LIVE_METRICS)
+        print(f"  {totals} (suite {_spent()} of {TOTAL_TOKENS}), runs: {self.runs}", flush=True)
+        missing = f"no token ceiling for {self.scenario} on {token_ceilings.model_name(LIVE_MODEL)}"
+        if not ceiling:
+            print(f"  {missing}", flush=True)
         super().tearDown()
+        if over:
+            self.fail(f"{self.scenario} spent over its token ceiling: {'; '.join(over)}")
+        if REQUIRE_CEILINGS and not ceiling:
+            self.fail(f"{missing}; refresh tests/data/token_ceilings.json (docs/smoke_checklist.md)")
 
-    def _run_started(self, options: dict) -> None:
-        self.runs.append("verification" if options.get("verification") else "request")
-        self._run_spent = 0
-
-    def _count(self, spent: int) -> None:
-        # The signal carries the running total of the current run.
-        USAGE[self.id()] += max(0, spent - self._run_spent)
-        self._run_spent = spent
+    def _close_run(self, usage: dict[str, int] | None = None) -> None:
+        """Fold the last run's usage in, read before the next start resets the agent's counters."""
+        if len(self.usage["runs"]) == len(self.runs):
+            return
+        run = dict(self.agent.usage if usage is None else usage)
+        run["total_tokens"] = run["prompt_tokens"] + run["completion_tokens"]
+        for metric in token_ceilings.LIVE_METRICS:
+            self.usage[metric] += run[metric]
+        self.usage["runs"].append({"kind": self.runs[-1], **run})
 
     def _logged(self, message: str, tag: str, level: object) -> None:
         if tag == LOG_TAG:

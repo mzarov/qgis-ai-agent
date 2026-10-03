@@ -88,7 +88,8 @@ let the release workflow run it first. It needs the `YANDEX_API_KEY` secret
 (a service account that may only call models) and the `YANDEX_MODEL`
 variable. Spending is capped per agent run, per suite and by the job
 timeout; screenshots and `live_usage.json` with the tokens spent are
-attached to the run.
+attached to the run, and a scenario that spends more than its token ceiling
+fails (see below).
 
 A billing budget on the `qgis-ai-agent` folder (2000 ₽ a month) triggers a
 Cloud Function, `tools/budget_killswitch/index.py`, that removes the model
@@ -105,6 +106,59 @@ Any OpenAI-compatible server works locally:
 LIVE_MODEL_URL=http://localhost:11434/v1 LIVE_MODEL=qwen3 LIVE_MODEL_KEY=local \
   QT_QPA_PLATFORM=offscreen python3 tests/real_qgis_workflows.py real_qgis_live
 ```
+
+## Token ceilings
+
+Issue #74 showed how quietly token spending grows: one statistics map cost
+about 0.7M tokens. Two checks keep it from creeping back, both against
+`tests/data/token_ceilings.json`.
+
+- **Scripted, every push.** `tests/real_qgis_e2e.py` measures every request
+  the plugin sends to the scripted model: the largest system prompt, the
+  largest tool schema list, and the smallest request (`base_chars`: system
+  prompt and tool schemas before any skill is loaded, which every run pays
+  at least). All in characters, compared with the `scripted` section. A
+  bigger permanent prompt or a fattened schema fails the `real-qgis-smoke`
+  job. The measured numbers are attached as `request_sizes.json` in the
+  `e2e-screens-*` artifact.
+- **Live, by hand and before a release.** `tests/real_qgis_live.py` records
+  for each scenario the prompt tokens, completion tokens, total tokens and
+  model requests of all its runs, the verification run included, and writes
+  them to `live_usage.json` (also uploaded alone as the `live-token-usage`
+  artifact). A scenario fails when any metric goes over its ceiling in the
+  `live` section. The ceilings belong to the model they were measured on;
+  with another model, for example a local one, the run only reports. The
+  workflow sets `LIVE_REQUIRE_CEILINGS=1`, so there a scenario without a
+  ceiling for `YANDEX_MODEL` fails instead: a changed model must not turn the
+  guard off silently.
+
+Both are meant to fail on a regression, not on noise: live ceilings carry
+30 % headroom over the largest measured value (requests at least two more),
+scripted ones 10 %. A scenario that got no answer and a metric a report did
+not measure set no ceiling.
+
+**Refreshing.** Do it when the spending changed on purpose — a new scenario,
+a new skill a scenario loads, a cheaper prompt, another `YANDEX_MODEL` — and
+say why in the commit. A model varies from run to run, so build live
+ceilings from two or three runs of the `live-model` workflow; the script
+takes the largest value of each metric and adds the headroom. Scenarios
+absent from the reports keep their ceilings.
+
+```bash
+gh run download <run-id> -n live-token-usage -D /tmp/live-1
+python3 tests/token_ceilings.py /tmp/live-1/live_usage.json /tmp/live-2/live_usage.json
+```
+
+The scripted ceilings come from one run of the scripted scenarios, locally
+or from the `e2e-screens-*` artifact of a CI run:
+
+```bash
+E2E_ARTIFACTS=/tmp/e2e QT_QPA_PLATFORM=offscreen python3 tests/real_qgis_workflows.py real_qgis_e2e
+python3 tests/token_ceilings.py /tmp/e2e/request_sizes.json
+```
+
+Review the diff of `tests/data/token_ceilings.json` before committing: a
+ceiling that jumps is the regression this check exists to catch.
 
 Checks that need a person's eye stay in this checklist.
 
