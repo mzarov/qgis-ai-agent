@@ -26,6 +26,7 @@ from ai_agent.core.settings import (
 )
 from ai_agent.core.state.conversation import ConversationState
 from ai_agent.i18n import tr, tr_n
+from ai_agent.qgis_tools.call_summary import CallSummary
 
 LOG_TAG = "AI Agent"
 MESSAGE_DURATION_SEC = 8
@@ -228,14 +229,14 @@ class CoreOrchestrator(ProjectLifecycleMixin):
         QgsMessageLog.logMessage("A validated step was added to the plan.", LOG_TAG, Qgis.MessageLevel.Info)
 
     def on_tool_rejected(self, summary: str) -> None:
-        self.dock_widget.add_rejected_message(tr("Rejected: {0}").format(summary))
+        self.dock_widget.add_rejected_message(CallSummary.of(tr("Rejected: {0}"), summary))
 
     def on_plan_changed(self, steps: list, done: int) -> None:
         shown = " · ".join(f"✓ {step}" if index < done else step for index, step in enumerate(steps))
         self.dock_widget.add_tool_message(tr("Plan {0}/{1}: {2}").format(done, len(steps), shown))
 
     def on_skill_loaded(self, name: str) -> None:
-        self.dock_widget.add_tool_message(tr("Loading knowledge: {0}").format(name))
+        self.dock_widget.add_tool_message(CallSummary.of(tr("Loading knowledge: {0}"), name))
 
     def on_confirm_needed(self, calls: list, final_text: str) -> None:
         if final_text:

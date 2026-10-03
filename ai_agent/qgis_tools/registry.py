@@ -3,6 +3,7 @@ from typing import Any
 
 from ai_agent.qgis_tools.annotations import ANNOTATIONS_TOOLS
 from ai_agent.qgis_tools.base import BaseTool
+from ai_agent.qgis_tools.call_summary import CallSummary
 from ai_agent.qgis_tools.common.validation import validate_parameters
 from ai_agent.qgis_tools.edit import EDIT_TOOLS
 from ai_agent.qgis_tools.fields import FIELDS_TOOLS
@@ -65,14 +66,15 @@ def validate_tool_arguments(tool_name: str, params: dict[str, Any]) -> None:
     validate_parameters(params, tool.params_schema if tool is not None else ())
 
 
-def summarize_tool_call(tool_name: str, params: dict[str, Any]) -> str:
+def summarize_tool_call(tool_name: str, params: dict[str, Any]) -> CallSummary:
+    """The user-facing label of a call, with the spans that repeat its arguments marked."""
     tool = get_tool_by_name(tool_name)
     if not tool:
-        return f"{tool_name}: {params}"
+        return CallSummary.marking(f"{tool_name}: {params}", {})
     try:
-        return tool.summarize_call(params)
+        return CallSummary.marking(tool.summarize_call(params), params if isinstance(params, dict) else {})
     except Exception:
-        return tool.name
+        return CallSummary.marking(tool.name, {})
 
 
 def _require_tool(tool_name: str) -> BaseTool:

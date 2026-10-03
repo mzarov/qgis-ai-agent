@@ -46,6 +46,7 @@ files = [
     "ai_agent/config",
     "ai_agent/skills",
     "ai_agent/qgis_tools/base.py",
+    "ai_agent/qgis_tools/call_summary.py",
     "ai_agent/qgis_tools/common/validation.py",
     "ai_agent/qgis_tools/processing/effects.py",
 ]

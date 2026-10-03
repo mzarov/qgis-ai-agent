@@ -5,6 +5,7 @@ in a hairline list, one per call, with the reasoning as a row of its own. Succes
 is the quiet default and carries no mark; only a failed or rejected call does.
 """
 
+from html import escape
 from typing import Any
 
 from qgis.PyQt.QtCore import QRectF, Qt
@@ -21,6 +22,7 @@ FAILED = "✕"
 REJECTED = "⊘"
 RECOVERED = "↺"
 NOTE = "· {0}"
+CLOSING = {"'": "'", '"': '"', "«": "»", "“": "”"}
 STEP_FONT_SCALE = 0.95
 LIST_PAD = 12
 ROW_PAD = 8
@@ -173,7 +175,7 @@ class ActivityGroup(QFrame):
 
 
 class StepRow(QWidget):
-    """One call: its summary, and a mark at the end only when it did not succeed."""
+    """One call: the wording muted, its own values bright, a mark only when it did not succeed."""
 
     def __init__(self, text: str, palette, parent=None):
         super().__init__(parent)
@@ -184,13 +186,15 @@ class StepRow(QWidget):
         row.setSpacing(8)
 
         self.state = PENDING
-        self._label = QLabel(text)
-        self._label.setTextFormat(Qt.TextFormat.PlainText)
+        self._label = QLabel()
+        markup = step_markup(text, palette)
+        self._label.setTextFormat(Qt.TextFormat.PlainText if markup is None else Qt.TextFormat.RichText)
+        self._label.setText(_without_period(str(text)) if markup is None else markup)
         self._label.setWordWrap(True)
+        self._label.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
         font = self._label.font()
         font.setPointSizeF(max(1.0, font.pointSizeF() * STEP_FONT_SCALE))
         self._label.setFont(font)
-        self._paint_label(style.muted(palette))
         row.addWidget(self._label, 1)
 
         self._marker = QLabel()
@@ -200,11 +204,42 @@ class StepRow(QWidget):
 
     def set_state(self, marker: str) -> None:
         self.state = marker
-        self._paint_label(style.text(self._palette))
         self._marker.setText(marker)
         self._marker.setVisible(bool(marker))
         colour = style.warning(self._palette) if marker == REJECTED else style.danger(self._palette)
         self._marker.setStyleSheet(f"color: {style.css_color(colour)};")
 
-    def _paint_label(self, colour: Any) -> None:
-        self._label.setStyleSheet(f"color: {style.css_color(colour)};")
+
+def step_markup(text: str, palette: Any) -> str | None:
+    """Rich text for a summary with marked values, or None to show it as plain text.
+
+    Every span is escaped: the values come from the model, and a layer named
+    `<img src=…>` must read as its name, not render.
+    """
+    parts = list(getattr(text, "parts", ()))
+    if not any(marked for _, marked in parts):
+        return None
+    last, marked = parts[-1]
+    if not marked:
+        parts[-1] = (_without_period(last), False)
+    bright = style.css_color(style.text(palette))
+    return "".join(
+        f'<span style="color: {bright};">{escape(span, quote=False)}</span>' if marked else escape(span, quote=False)
+        for span, marked in _unquoted(parts)
+    )
+
+
+def _without_period(text: str) -> str:
+    # A row is a label, not a sentence; an ellipsis is kept, it means "cut".
+    return text[:-1] if text.endswith(".") and not text.endswith("..") else text
+
+
+def _unquoted(parts: list[tuple[str, bool]]) -> list[tuple[str, bool]]:
+    # A bright value already stands out; the quotes the wording put around it are noise.
+    for index in range(1, len(parts) - 1):
+        span, marked = parts[index]
+        before, after = parts[index - 1][0], parts[index + 1][0]
+        if marked and before and after and CLOSING.get(before[-1]) == after[0]:
+            parts[index - 1] = (before[:-1], False)
+            parts[index + 1] = (after[1:], False)
+    return parts
