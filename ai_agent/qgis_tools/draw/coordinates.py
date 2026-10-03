@@ -67,8 +67,14 @@ def parse_vertices(raw: Any, geometry: str, position: int) -> list[Vertex]:
     return vertices
 
 
-def check_ranges(shapes: list[list[Vertex]], crs: QgsCoordinateReferenceSystem, crs_text: str) -> None:
-    """Refuse coordinates that cannot be in `crs`: swapped lat/lon, or degrees in a metric CRS."""
+def check_ranges(
+    shapes: list[list[Vertex]], crs: QgsCoordinateReferenceSystem, crs_text: str, small_values_confirmed: bool = False
+) -> None:
+    """Refuse coordinates that cannot be in `crs`: swapped lat/lon, or degrees in a metric CRS.
+
+    Genuine small projected values (a local grid, EPSG:3857 near 0,0) pass once
+    `small_values_confirmed` says the caller has independent evidence for them.
+    """
     pairs = [vertex for vertices in shapes for vertex in vertices]
     if not pairs:
         return
@@ -86,10 +92,13 @@ def check_ranges(shapes: list[list[Vertex]], crs: QgsCoordinateReferenceSystem, 
                 "If these are projected metres, set crs to their CRS."
             )
         return
-    if all(abs(x) <= MAX_LONGITUDE and abs(y) <= MAX_LATITUDE for x, y in pairs):
+    if not small_values_confirmed and all(abs(x) <= MAX_LONGITUDE and abs(y) <= MAX_LATITUDE for x, y in pairs):
         raise ValueError(
             f"Every coordinate is within ±180/±90, which looks like longitude/latitude in degrees, "
-            f"but crs is {crs_text}, measured in metres or feet. For lon/lat pass crs {WGS84}."
+            f"but crs is {crs_text}, measured in metres or feet. For lon/lat pass crs {WGS84}. "
+            "If they really are small projected values (a local grid, EPSG:3857 near 0,0), confirm it: "
+            f"for a new layer also set layer_crs to {crs_text}; an existing layer in {crs_text} accepts "
+            "them when they fall inside its extent."
         )
 
 

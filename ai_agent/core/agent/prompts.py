@@ -115,6 +115,12 @@ DEFAULT_LANGUAGE = "English"
 LANGUAGE_NAMES = {"en": "English", "ru": "Russian"}
 PROJECT_CONTEXT_HEADER = "Project context — read live at the start of this turn (fields and values still need a tool):"
 LIVE_STATE_HEADER = "[Current state from the plugin, refreshed every turn — not a message from the user]"
+PLAN_MODE_NOTE = (
+    "Plan mode is on: you can only read. Use read tools for what you need to know, then reply with "
+    "a short numbered plan of the changes you would make — exact layer, field and file names, the "
+    "order, and what you would check afterwards — and stop. Change nothing: the user reads the plan "
+    "and then runs it."
+)
 LOADED_SKILLS_HEADER = "Currently loaded skills: "
 INVOKED_SKILLS_HEADER = "The user invoked these skills for this request — their rules come first: "
 TOOLS_BLOCK_HEADER = "Available tools (name and JSON Schema of arguments):"
@@ -318,6 +324,7 @@ def build_system_parts(
     project_notes: str = "",
     queued_steps: str = "",
     invoked_skills: list[str] | tuple[str, ...] = (),
+    planning: bool = False,
 ) -> tuple[str, str]:
     static = [CORE_PROMPT, language_policy(locale)]
     if json_protocol:
@@ -328,7 +335,8 @@ def build_system_parts(
         if invoked_skills:
             static.append(INVOKED_SKILLS_HEADER + ", ".join(invoked_skills) + ".")
         static.append(SKILL_REGISTRY.bodies_block(loaded_skills))
-    live = [project_notes, task_plan, queued_steps]
+    # The mode rides in the live state: the system prompt stays the cached prefix.
+    live = [PLAN_MODE_NOTE if planning else "", project_notes, task_plan, queued_steps]
     if project_context:
         live.append(PROJECT_CONTEXT_HEADER + "\n" + project_context)
     state = _joined(live)

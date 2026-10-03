@@ -7,7 +7,7 @@ from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.transcript import COMPACT_STEP, KEEP_FULL_RESULTS, ToolResult, Transcript
 from ai_agent.core.llm import anthropic
 from ai_agent.core.llm.live import LIVE_KEY, fold_live, live_message, split_live
-from ai_agent.core.llm.transport import ModelTurn, ToolCall
+from ai_agent.core.llm.turns import ModelTurn, ToolCall
 
 OVERRIDES = {"url_override": "https://api.example/v1"}
 SYSTEM = {"role": "system", "content": "rules"}

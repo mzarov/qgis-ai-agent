@@ -143,6 +143,21 @@ def check_free_name(name: str) -> None:
         )
 
 
+def inside_extent(layer: QgsVectorLayer, crs_text: str, vertices: list[Vertex]) -> bool:
+    """Whether the vertices, given in the layer's own CRS, fall inside its current extent."""
+    try:
+        if not vertices or layer.crs().authid() != crs_text:
+            return False
+        extent = layer.extent()
+        if extent.isEmpty():
+            return False
+        bounds = (extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum())
+    except Exception:
+        return False
+    xmin, ymin, xmax, ymax = (float(edge) for edge in bounds)
+    return all(xmin <= x <= xmax and ymin <= y <= ymax for x, y in vertices)
+
+
 def is_memory(layer: Any) -> bool:
     try:
         return str(layer.providerType()) == MEMORY_PROVIDER

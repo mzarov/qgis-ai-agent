@@ -4,7 +4,7 @@ from unittest import mock
 from ai_agent.core.agent import executor as executor_module
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.transcript import ToolResult
-from ai_agent.core.llm.transport import ModelTurn, ToolCall
+from ai_agent.core.llm.turns import ModelTurn, ToolCall
 from ai_agent.qgis_tools.base import RESULT_IMAGE_KEY
 from ai_agent.qgis_tools.common.validation import validate_parameters
 from ai_agent.qgis_tools.registry import ALL_TOOLS, execute_tool, get_tool_by_name, prepare_tool_call

@@ -205,6 +205,9 @@ class ExistingLayer(QgsVectorLayer):
     def crs(self):
         return FakeCrs("EPSG:3857")
 
+    def extent(self):
+        return FakeExtent(-50.0, -50.0, 50.0, 50.0)
+
     def fields(self):
         return self._fields
 
@@ -230,6 +233,26 @@ class ExistingLayer(QgsVectorLayer):
 
     def triggerRepaint(self):
         return None
+
+
+class FakeExtent:
+    def __init__(self, xmin, ymin, xmax, ymax):
+        self.edges = (xmin, ymin, xmax, ymax)
+
+    def isEmpty(self):
+        return False
+
+    def xMinimum(self):
+        return self.edges[0]
+
+    def yMinimum(self):
+        return self.edges[1]
+
+    def xMaximum(self):
+        return self.edges[2]
+
+    def yMaximum(self):
+        return self.edges[3]
 
 
 class FakeLayerUtils:
@@ -377,6 +400,23 @@ class PrepareCoordinatesTest(DrawTestBase):
 
     def test_degrees_with_a_metric_crs_are_caught(self):
         self.refused(self.new_point(crs="EPSG:3857"), "longitude/latitude", "EPSG:4326")
+
+    def test_small_projected_values_pass_once_confirmed_by_layer_crs(self):
+        message = self.refused(self.new_point([12.0, 7.0], crs="EPSG:3857"), "local grid", "layer_crs")
+        self.assertIn("EPSG:3857", message)
+        prepared = self.tool.prepare(self.new_point([12.0, 7.0], crs="EPSG:3857", layer_crs="EPSG:3857"))
+        self.assertEqual(prepared["layer_crs"], "EPSG:3857")
+
+    def test_small_projected_values_inside_an_existing_layer_extent_pass(self):
+        params = {
+            "layer_name": "Sights",
+            "geometry": "point",
+            "crs": "EPSG:3857",
+            "features": [{"coordinates": [[12.0, 7.0]]}],
+        }
+        self.assertEqual(self.tool.prepare(params)["layer_id"], "sights_id")
+        outside = {**params, "features": [{"coordinates": [[120.0, 70.0]]}]}
+        self.refused(outside, "looks like longitude/latitude")
 
     def test_metres_with_a_metric_crs_pass(self):
         prepared = self.tool.prepare(self.new_point([4187000.0, 7508000.0], crs="EPSG:3857"))
@@ -537,6 +577,8 @@ class SummaryTest(unittest.TestCase):
         self.assertIn("Pins", new)
         appended = tool.summarize_call({"layer_name": "Sights", "geometry": "polygon", "features": [{}]})
         self.assertIn("Sights", appended)
+        by_id = tool.summarize_call({"layer_id": "sights_id", "geometry": "point", "features": [{}]})
+        self.assertIn("sights_id", by_id)
 
     def test_malformed_arguments_never_crash_the_summary(self):
         tool = DrawFeaturesTool()

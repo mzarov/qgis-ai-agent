@@ -4,6 +4,7 @@ from qgis.core import QgsFeatureRequest, QgsVectorLayer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
+from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.layers import enum_name, feature_count_block, find_layer_by_name, layer_reference
 from ai_agent.qgis_tools.common.values import clamp_limit, plain_value, wanted_fields
 
@@ -26,12 +27,7 @@ class SampleFeaturesTool(BaseTool):
     constraints = ["The layer must exist and be a vector layer"]
     examples = ["Show me a couple of records from the cities layer", "What does the data look like?"]
     params_schema = [
-        {
-            "name": "layer_name",
-            "type": "string",
-            "description": "Layer name exactly as in the project",
-            "required": True,
-        },
+        params.layer_name(),
         {
             "name": "limit",
             "type": "integer",

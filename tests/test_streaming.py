@@ -2,11 +2,12 @@ import json
 import pathlib
 import unittest
 
-from ai_agent.core.llm import transport, worker
+from ai_agent.core.llm import transport, turns, worker
 from ai_agent.core.llm.client import ApiResponseError
 from ai_agent.core.llm.stream import SseAccumulator, consume
 from ai_agent.core.llm.stream_runner import _finished_response as finished_response
-from ai_agent.core.llm.transport import ModelTurn, _openai_options
+from ai_agent.core.llm.transport import _openai_options
+from ai_agent.core.llm.turns import ModelTurn
 
 SCHEMAS = [{"type": "function", "function": {"name": "list_layers", "parameters": {}}}]
 URL = "https://api.example/v1"
@@ -123,7 +124,7 @@ class StreamedCompletionTest(unittest.TestCase):
         self.assertEqual(data["choices"][0]["finish_reason"], "stop")
 
     def test_a_streamed_answer_parses_into_a_model_turn(self):
-        turn = transport._parse_native_turn(consume([text_delta("done")]))
+        turn = turns.parse_native_turn(consume([text_delta("done")]))
         self.assertEqual(turn.text, "done")
         self.assertEqual(turn.tool_calls, [])
 

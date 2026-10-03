@@ -11,7 +11,7 @@ from qgis.PyQt.QtWidgets import QMainWindow
 
 from ai_agent.core.agent.batch import WriteBatch
 from ai_agent.core.agent.executor import ToolExecutor
-from ai_agent.core.llm.transport import ToolCall
+from ai_agent.core.llm.turns import ToolCall
 from ai_agent.plugin import QgisAiAgentPlugin
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
 from ai_agent.qgis_tools.common.editing import edit_session
@@ -193,6 +193,22 @@ class GisWorkflowsTest(unittest.TestCase):
         added = [feature for feature in reread.getFeatures() if feature["name"] == "Kremlin"][0]
         self.assertEqual(added["count"], 7)
         self.assertAlmostEqual(added.geometry().asPoint().x(), 4187839.69, delta=1)
+
+    def test_an_open_ring_closes_and_a_crossing_ring_never_queues(self):
+        ring = [[0.0, 0.0], [10.0, 0.0], [10.0, 10.0]]
+        self._run("draw_features", new_layer_name="Zone", geometry="polygon", features=[{"coordinates": ring}])
+        polygon = next(self.project.mapLayersByName("Zone")[0].getFeatures()).geometry()
+        self.assertTrue(polygon.isGeosValid())
+        vertices = polygon.asPolygon()[0]
+        self.assertEqual(len(vertices), 4)
+        self.assertEqual(vertices[0], vertices[-1])
+        self.assertAlmostEqual(polygon.area(), 50.0)
+        bow_tie = [[0.0, 0.0], [10.0, 10.0], [10.0, 0.0], [0.0, 10.0]]
+        batch = WriteBatch(ToolExecutor())
+        crossing = {"new_layer_name": "Bow tie", "geometry": "polygon", "features": [{"coordinates": bow_tie}]}
+        with self.assertRaisesRegex(ValueError, "crosses itself"):
+            batch.add(ToolCall("crossing", "draw_features", crossing))
+        self.assertEqual(batch.pending(), [])
 
     def test_undo_removes_a_drawn_scratch_layer(self):
         self.assertTrue(take_snapshot())

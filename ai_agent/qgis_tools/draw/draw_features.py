@@ -2,6 +2,7 @@ from typing import Any
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_DESTRUCTIVE, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.layers import bind_layer_reference
 from ai_agent.qgis_tools.draw.attributes import (
     FIELD_TYPES,
@@ -33,6 +34,7 @@ from ai_agent.qgis_tools.draw.targets import (
     check_free_name,
     draw_new_layer,
     existing_layer,
+    inside_extent,
     is_memory,
     new_layer_crs,
 )
@@ -66,18 +68,8 @@ class DrawFeaturesTool(BaseTool):
             "description": "Create a new scratch layer with this name and draw into it",
             "required": False,
         },
-        {
-            "name": "layer_name",
-            "type": "string",
-            "description": "Existing layer to append to, exactly as in the project",
-            "required": False,
-        },
-        {
-            "name": "layer_id",
-            "type": "string",
-            "description": "Stable id of the existing layer; required when names are duplicated",
-            "required": False,
-        },
+        params.layer_name("Existing layer to append to, exactly as in the project", required=False),
+        params.layer_id(),
         {"name": "geometry", "type": "string", "enum": list(GEOMETRIES), "description": "Feature kind"},
         {
             "name": "features",
@@ -139,7 +131,6 @@ class DrawFeaturesTool(BaseTool):
         source = checked_crs(params.get("crs"))
         shapes, rows = _parsed_features(params.get("features"), geometry, allow_empty=bool(new_name))
         crs_text = crs_label(source, params.get("crs"))
-        check_ranges(shapes, source, crs_text)
         vertices = [vertex for shape in shapes for vertex in shape]
         prepared = {key: value for key, value in params.items() if key not in NEW_LAYER_ONLY and value is not None}
         prepared.update(geometry=geometry, crs=crs_text)
@@ -147,10 +138,17 @@ class DrawFeaturesTool(BaseTool):
             check_free_name(new_name)
             schema = new_layer_schema(params.get("fields"), rows)
             target = new_layer_crs(params.get("layer_crs"), source, shapes)
+            target_text = crs_label(target, params.get("layer_crs"))
+            check_ranges(
+                shapes,
+                source,
+                crs_text,
+                small_values_confirmed=bool(params.get("layer_crs")) and target_text == crs_text,
+            )
             transformed_points(vertices, source, target)
             prepared.update(
                 new_layer_name=new_name,
-                layer_crs=crs_label(target, params.get("layer_crs")),
+                layer_crs=target_text,
                 fields=schema,
                 features=_normalized(shapes, coerced_rows(schema, rows)),
             )
@@ -158,6 +156,7 @@ class DrawFeaturesTool(BaseTool):
         layer = existing_layer(params)
         check_existing_target(layer, geometry)
         check_existing_fields(layer, rows)
+        check_ranges(shapes, source, crs_text, small_values_confirmed=inside_extent(layer, crs_text, vertices))
         transformed_points(vertices, source, layer.crs())
         prepared["features"] = _normalized(shapes, rows)
         return bind_layer_reference(prepared, layer)
@@ -169,7 +168,8 @@ class DrawFeaturesTool(BaseTool):
         new_name = _new_name(params)
         if new_name:
             return _new_layer_summary(kind).format(count, new_name)
-        return _append_summary(kind).format(count, str(params.get("layer_name") or "").strip())
+        target = str(params.get("layer_name") or "").strip() or str(params.get("layer_id") or "").strip()
+        return _append_summary(kind).format(count, target)
 
     def detail_call(self, params: dict[str, Any]) -> str:
         features = params.get("features")

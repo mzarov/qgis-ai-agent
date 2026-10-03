@@ -18,7 +18,7 @@ from ai_agent.core.agent.transcript import (
     ToolResult,
     Transcript,
 )
-from ai_agent.core.llm.transport import PROTOCOL_JSON, ModelTurn, ToolCall, parse_usage
+from ai_agent.core.llm.turns import PROTOCOL_JSON, ModelTurn, ToolCall, parse_usage
 
 
 def _call(tool, **arguments):

@@ -4,6 +4,7 @@ from qgis.core import QgsGraduatedSymbolRenderer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.layers import layer_reference
 from ai_agent.qgis_tools.style.apply import (
     base_symbol,
@@ -44,12 +45,7 @@ class SetGraduatedTool(BaseTool):
     ]
     examples = ["Colour the districts by population", "Graduate by area, 7 classes, Viridis"]
     params_schema = [
-        {
-            "name": "layer_name",
-            "type": "string",
-            "description": "Layer name exactly as in the project",
-            "required": True,
-        },
+        params.layer_name(),
         {
             "name": "field",
             "type": "string",

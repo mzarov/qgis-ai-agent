@@ -2,6 +2,7 @@ from typing import Any
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.properties import properties_of, shown
 from ai_agent.qgis_tools.project.catalogues import LAYER_PROPERTIES
 from ai_agent.qgis_tools.project.tree import (
@@ -35,12 +36,7 @@ class ConfigureLayerTool(BaseTool):
         "Move the rivers to the top",
     ]
     params_schema = [
-        {
-            "name": "layer_name",
-            "type": "string",
-            "description": "Layer name exactly as in the project",
-            "required": True,
-        },
+        params.layer_name(),
         {
             "name": "properties",
             "type": "object",

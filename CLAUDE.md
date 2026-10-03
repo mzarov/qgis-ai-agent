@@ -60,7 +60,8 @@ Details: [docs/core_architecture.md](docs/core_architecture.md).
 3. **Safety classes instead of “plan → confirm”.** Every tool declares `safety`:
    - `read` — executes immediately unless it declares `network_access`
    - `write` — collected into a batch, applied after the user presses the button
-     (or at once in Auto mode — never a destructive batch, never after a failure)
+     (or at once in Auto mode — never a destructive batch, never after a failure;
+     Plan mode offers read tools only and refuses any other call)
    - `destructive` — reserved for per-call confirmation
 
    A write call returns `{"status": "queued"}` to the model — that is success,
