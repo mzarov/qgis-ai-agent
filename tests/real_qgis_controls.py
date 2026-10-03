@@ -155,10 +155,15 @@ class ComposerBehaviourTest(PluginCase):
     def test_the_button_and_toolbar_follow_the_state(self) -> None:
         composer = self.dock.composer
         self.assertEqual(composer._send.toolTip(), "Send")
+        self.assertFalse(composer._send.isEnabled(), "nothing to send yet")
+        composer._edit.setPlainText("colour the rivers")
+        self.assertTrue(composer._send.isEnabled())
+        composer._edit.clear()
         self.dock.set_model("moonshotai/kimi-k2.5")
         self.assertEqual(composer.toolbar.model.text(), "kimi-k2.5")
         self.dock.set_busy(True)
         self.assertEqual(composer._send.toolTip(), "Stop")
+        self.assertTrue(composer._send.isEnabled(), "stop works with an empty box")
         self.dock.set_busy(False)
         self.dock.set_configured(False)
         self.assertTrue(composer._send.isHidden())

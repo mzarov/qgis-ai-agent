@@ -35,6 +35,7 @@ FRAME_RADIUS = 14
 MAX_LINES = 8
 HEIGHT_SLACK = 4
 SEND_SIZE = 28
+SEND_RADIUS = 7
 SEND_GLYPH = "↵"
 STOP_GLYPH = "■"
 MODE_SKILL = "skill"
@@ -123,20 +124,20 @@ class Composer(QWidget):
         self._paint_send(has_text)
 
     def _paint_send(self, has_text: bool) -> None:
-        # Quiet like Claude Code: a glyph, no accent fill; it brightens once there is something to send.
+        """A bare glyph as in Claude Code: dim and disabled with nothing to send, bright once there is,
+        and a rounded plate only under the pointer."""
         palette = self.palette()
-        if self._busy:
-            fill, ink, glyph, name = style.card(palette), style.text(palette), STOP_GLYPH, tr("Stop")
-        elif has_text:
-            fill, ink, glyph, name = style.card(palette), style.text(palette), SEND_GLYPH, tr("Send")
-        else:
-            fill, ink, glyph, name = style.surface(palette), style.faint(palette), SEND_GLYPH, tr("Send")
+        active = self._busy or has_text
+        glyph, name = (STOP_GLYPH, tr("Stop")) if self._busy else (SEND_GLYPH, tr("Send"))
+        self._send.setEnabled(active)
         self._send.setText(glyph)
         self._send.setToolTip(name)
         self._send.setAccessibleName(name)
         look = (
-            f"QPushButton {{ background: {style.css_color(fill)}; color: {style.css_color(ink)};"
-            f"border: none; border-radius: {SEND_SIZE // 2}px; font-weight: 600; }}"
+            f"QPushButton {{ background: transparent; color: {style.css_color(style.text(palette))};"
+            f"border: none; border-radius: {SEND_RADIUS}px; font-weight: 600; }}"
+            f"QPushButton:hover {{ background: {style.css_color(style.card(palette))}; }}"
+            f"QPushButton:disabled {{ color: {style.css_color(style.faint(palette))}; background: transparent; }}"
         )
         # Restyle only on a real change: a style sheet set per keystroke repolishes for nothing.
         if look != self._send_look:
