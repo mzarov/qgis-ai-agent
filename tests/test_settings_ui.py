@@ -278,7 +278,7 @@ class CredentialUiContractTest(unittest.TestCase):
         self.assertIn("delete_api_key(url, dialect)", DIALOG_SOURCE)
 
     def test_connection_probe_runs_outside_the_ui_thread_and_can_be_cancelled(self):
-        self.assertIn("ProbeThread(self._overrides(), self)", PROBE_SOURCE)
+        self.assertIn("ProbeThread(overrides, self)", PROBE_SOURCE)
         self.assertIn("thread.start()", PROBE_SOURCE)
         self.assertIn("thread.cancel()", PROBE_SOURCE)
         self.assertNotIn("probe(self._overrides())", PROBE_SOURCE + DIALOG_SOURCE)

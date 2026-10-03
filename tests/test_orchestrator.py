@@ -138,7 +138,7 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.dock = Dock()
         self.orchestrator = CoreOrchestrator(Iface(), self.dock)
         self.store = SessionStore(self.root)
-        self.orchestrator.conversation = ConversationState(window_limit=4, store=self.store)
+        self.orchestrator.conversation = ConversationState(store=self.store)
         self.orchestrator.agent = Agent()
 
     def tearDown(self):

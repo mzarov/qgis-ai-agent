@@ -4,7 +4,6 @@ from qgis.PyQt.QtCore import QPoint, QSize, pyqtSignal
 from qgis.PyQt.QtWidgets import (
     QDockWidget,
     QHBoxLayout,
-    QLabel,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -34,6 +33,7 @@ class AgentDockWidget(QDockWidget):
     cancel_plan_clicked = pyqtSignal()
     files_attached = pyqtSignal(list)
     work_mode_changed = pyqtSignal(str)
+    compact_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -59,10 +59,8 @@ class AgentDockWidget(QDockWidget):
         row.setContentsMargins(*HEADER_MARGINS)
         row.setSpacing(4)
 
-        # No title here: the dock's own title bar already says AI Agent.
-        self._usage_label = QLabel("")
-        self._usage_label.setStyleSheet(f"border: none; color: {style.css_color(style.muted(palette))};")
-        row.addWidget(self._usage_label, 1)
+        # No title here: the dock's own title bar already says AI Agent; tokens live in the context meter.
+        row.addStretch(1)
         self._sessions_button = self._build_action("sessions", "⟲", tr("Conversations"), self._show_sessions)
         row.addWidget(self._sessions_button)
         row.addWidget(self._build_action("clear", "+", tr("New conversation"), self.new_session_clicked.emit))
@@ -121,6 +119,7 @@ class AgentDockWidget(QDockWidget):
         self.composer.stopped.connect(self.stop_clicked.emit)
         self.composer.files_attached.connect(self.files_attached.emit)
         self.composer.mode_changed.connect(self.work_mode_changed.emit)
+        self.composer.compact_requested.connect(self.compact_requested.emit)
         layout.addWidget(self.composer)
         return holder
 
@@ -235,8 +234,8 @@ class AgentDockWidget(QDockWidget):
         else:
             self.progress.stop()
 
-    def set_usage(self, text: str) -> None:
-        self._usage_label.setText(text)
+    def set_context(self, used: int, window: int, spent: int, turns: int = 0) -> None:
+        self.composer.set_context(used, window, spent, turns)
 
     def clear_prompt(self) -> None:
         self.composer.clear()

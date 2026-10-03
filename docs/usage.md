@@ -54,6 +54,28 @@ Conversations persist across QGIS restarts and are bound to the project: the
 project. The title is your first message. Restoring a conversation restores the
 model's context too — a follow-up like *and how many are there?* keeps working.
 
+### The context window
+
+The ring next to the model name under the chat box fills with the share of the
+model's context window the latest request used; click it for the numbers:
+
+- **Context window** — the latest request against the window, with a bar.
+- **… until auto-compact** — how much room is left before the conversation is
+  compacted on its own, at 90 % of the window, right before your next request.
+- **Compact** — compact now. The model writes a handoff summary (what you
+  asked for, what was done with exact layer names, decisions, what is left) and
+  from then on reads the summary plus the last exchange instead of the older
+  messages. The chat keeps every message and gains a line *Conversation
+  compacted · about N tokens saved*; the summary is saved with the conversation.
+- **Spent in this conversation** — tokens and requests over the whole
+  conversation. Every step of the agent is a request that sends the context
+  again, so this is many times the window.
+
+The window size comes from **Settings → Advanced → Context window** when set;
+otherwise from the server at the last connection test (OpenRouter and other
+`/models` listings, Ollama, LM Studio), otherwise from the model's name,
+otherwise 128k.
+
 ## Run journals
 
 After an applied run, the conversation shows the path to its plaintext Markdown

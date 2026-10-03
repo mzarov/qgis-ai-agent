@@ -6,6 +6,7 @@ from ai_agent.core.agent.auto_apply import applies_itself
 from ai_agent.core.agent.batch import WriteBatch
 from ai_agent.core.agent.batch_apply import BatchApplyMixin
 from ai_agent.core.agent.budget import TokenBudget
+from ai_agent.core.agent.compaction import estimated_tokens
 from ai_agent.core.agent.dispatch import DispatchMixin
 from ai_agent.core.agent.executor import ToolExecutor
 from ai_agent.core.agent.prompts import render_queued_steps, render_task_plan
@@ -37,6 +38,9 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
     question_asked = pyqtSignal(str)
     preamble = pyqtSignal(str)
     usage_changed = pyqtSignal(int)
+    # Each answered request: prompt tokens (estimated when the server reports none), completion
+    # tokens, and whether it opened the run, so its prompt is the conversation's own size.
+    turn_counted = pyqtSignal(int, int, bool)
     answer_chunk = pyqtSignal(str)
     thinking_chunk = pyqtSignal(str)
     applied = pyqtSignal(object)
@@ -65,6 +69,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._aborted = False
         self._is_verification = False
         self._budget = TokenBudget()
+        self._request_estimate = 0
         self._plan_steps: list[str] = []
         self._plan_done = 0
         self._staged = False
@@ -236,6 +241,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
             return
         self._prompt_protocol = request.protocol
         self._pending_protocol = request.protocol
+        self._request_estimate = estimated_tokens(request.messages)
         callbacks = (
             lambda turn, current=generation: self._on_turn(turn, current),
             lambda message, current=generation: self._fail(message, current),
@@ -378,6 +384,8 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
     def _track_usage(self, turn: ModelTurn) -> None:
         if self._budget.add(turn):
             self.usage_changed.emit(self._budget.spent)
+        prompt = max(0, int(turn.input_tokens)) or self._request_estimate
+        self.turn_counted.emit(prompt, max(0, int(turn.output_tokens)), self._budget.requests == 1)
 
     def _finish_on_limit(self, generation: int | None = None) -> None:
         QgsMessageLog.logMessage(f"Reached the limit of {MAX_ITERATIONS} turns.", LOG_TAG, Qgis.MessageLevel.Warning)

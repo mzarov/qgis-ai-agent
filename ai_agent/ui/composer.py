@@ -48,6 +48,7 @@ class Composer(QWidget):
     stopped = pyqtSignal()
     files_attached = pyqtSignal(list)
     mode_changed = pyqtSignal(str)
+    compact_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -86,6 +87,7 @@ class Composer(QWidget):
         self.toolbar.data_requested.connect(lambda: self._choose(DATA))
         self.toolbar.picture_requested.connect(lambda: self._choose(PICTURE))
         self.toolbar.mode_chosen.connect(self._on_mode)
+        self.toolbar.meter.compact_requested.connect(self.compact_requested.emit)
         column.addWidget(self.toolbar)
         self._paint()
 
@@ -292,6 +294,9 @@ class Composer(QWidget):
         paths = choose_files(self, kind)
         if paths:
             self.files_attached.emit(paths)
+
+    def set_context(self, used: int, window: int, spent: int, turns: int = 0) -> None:
+        self.toolbar.meter.set_numbers(used, window, spent, turns)
 
     @property
     def mode(self) -> str:

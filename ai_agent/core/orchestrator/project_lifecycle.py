@@ -49,6 +49,7 @@ class ProjectLifecycleMixin:
         self.conversation.add("assistant", outcome)
 
     def _abort_project_work(self) -> None:
+        self.compaction.cancel()
         if self.agent.is_running or self.agent.has_pending_writes or self.agent.is_awaiting_answer:
             self.agent.abort()
 

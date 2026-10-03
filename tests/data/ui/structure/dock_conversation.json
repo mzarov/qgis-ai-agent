@@ -22,10 +22,6 @@
  },
  {
   "depth": 3,
-  "type": "QLabel"
- },
- {
-  "depth": 3,
   "type": "QToolButton"
  },
  {
@@ -187,5 +183,13 @@
   "depth": 5,
   "type": "QLabel",
   "text": "qwen3"
+ },
+ {
+  "depth": 5,
+  "type": "ContextMeter"
+ },
+ {
+  "depth": 6,
+  "type": "ContextRing"
  }
 ]

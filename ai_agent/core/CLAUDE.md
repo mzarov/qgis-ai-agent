@@ -131,14 +131,20 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    become short notes. Without this a forty-turn run would not fit the model
    window. Compaction happens at render time — the entries themselves are never
    mutated, so the saved conversation stays complete.
+   Across runs the model gets the whole conversation, no message cap; once a
+   request took 90 % of the window (`llm/context_window.py`), the next one is
+   preceded by a compaction (`agent/compaction.py`, `orchestrator/compacting.py`):
+   a handoff summary replaces older messages in the model's window only. The
+   chat and the saved session keep every message; the summary is saved with it.
 12. **The orchestrator only renders.** Decisions belong to the loop and to
    `agent/verification.py` (when and how the check after Apply starts);
    `CoreOrchestrator` subscribes to signals and draws them into the chat.
    Do not add branching logic there.
-13. **A message is written with one call.** `ConversationState.add` puts it both
-   into the model's window and into the saved session. Never call
-   `HistoryStore` and `Session` separately — they diverge, and the model would
-   see something other than what the chat shows.
+13. **A message is written with one call.** `ConversationState.add` writes the
+   session; the model's window is derived from it (summary, then the messages
+   after `summary_index`). Never keep a second copy of the conversation for the
+   model — the two diverge, and the model would see something other than what
+   the chat shows.
 14. **Aborting never blocks the main thread.** `abort` does not wait and does not
    kill the thread — it disconnects the signals and lets the HTTP request burn
    out in the background; the result is discarded by the `_aborted` flag.
@@ -224,6 +230,7 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `agent/budget.py`        | run tokens vs the Settings budget, usage split      |
 | `agent/verification.py`  | what the check after Apply starts with, and the round cap |
 | `agent/auto_apply.py`    | Auto mode: which batches apply without the button   |
+| `agent/compaction.py`    | compacting a conversation: one tool-less summary request |
 | `agent/request.py`       | messages, tool schemas and transport settings       |
 | `agent/executor.py`      | tool-call execution with error capture              |
 | `agent/transcript.py`    | the run transcript and rendering for both protocols |
@@ -243,9 +250,11 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `llm/client.py`          | the HTTP layer, URL/key/header resolution           |
 | `llm/probe.py`           | the connection check for the settings dialog        |
 | `llm/providers.py`       | provider presets for the settings dialog            |
+| `llm/context_window.py`  | the model's window: setting, detected, guessed; the 90 % mark |
 | `credentials.py`         | API keys in the QGIS authentication database        |
 | `local_skills.py`        | the profile's skills folder: rescan, validation, example |
 | `attachments.py`         | attached files: data added as layers at once (the user's own act, not a queued write), pictures encoded for the request |
+| `orchestrator/compacting.py` | the context meter and compaction before a request or by hand |
 | `orchestrator/attaching.py` | attachments in the chat: mentions, waiting pictures, a blind model told so |
 | `orchestrator/slash.py`  | `/skill` parsing and the skill list for the composer |
 | `orchestrator/`          | UI-to-loop wiring, the DockWidget contract          |

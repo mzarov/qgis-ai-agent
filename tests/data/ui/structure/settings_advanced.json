@@ -178,6 +178,34 @@
  {
   "depth": 8,
   "type": "QLabel",
+  "text": "Context window"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Empty finds it on its own."
+ },
+ {
+  "depth": 7,
+  "type": "QLineEdit",
+  "text": "Auto"
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
   "text": "Reasoning"
  },
  {

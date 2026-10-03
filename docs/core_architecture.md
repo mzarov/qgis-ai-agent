@@ -377,14 +377,14 @@ Qt runtime behavior still needs execution tests.
 
 ## Conversations
 
-A conversation outlives the QGIS session. `ConversationState` holds two things
-at once:
+A conversation outlives the QGIS session. `ConversationState` wraps one
+`Session`: the full transcript, the one that reaches the disk, plus the summary
+left by the last compaction. The model's window is derived from it — the
+summary, then every message after `summary_index` — so the model gets the whole
+conversation until it stops fitting the context window, and there is no second
+copy that could diverge from what the chat shows.
 
-- `HistoryStore` — the short window (`WINDOW_LIMIT` messages) that goes to the model
-- `Session` — the full transcript, the one that reaches the disk
-
-One message is added with one `add(role, text)` call — the two stores must never
-diverge. Saving happens right after every message, so a QGIS crash does not eat
+One message is added with one `add(role, text)` call. Saving happens right after every message, so a QGIS crash does not eat
 the conversation.
 
 `SessionStore` writes one JSON per conversation into `ai_agent_sessions/`

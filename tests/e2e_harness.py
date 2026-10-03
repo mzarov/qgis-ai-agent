@@ -133,7 +133,11 @@ class PluginCase(unittest.TestCase):
         quiet_since = None
         while time.monotonic() < deadline:
             process()
-            busy = self.agent.is_running or bool(getattr(self.agent, "is_applying", False))
+            busy = (
+                self.agent.is_running
+                or bool(getattr(self.agent, "is_applying", False))
+                or self.orchestrator.compaction.is_running
+            )
             if busy:
                 quiet_since = None
             elif quiet_since is None:
