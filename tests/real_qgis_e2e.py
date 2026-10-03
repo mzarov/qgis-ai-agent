@@ -341,6 +341,37 @@ class AutoModeScenario(ScenarioCase):
         self.orchestrator.on_cancel_plan()
 
 
+class CompactionScenario(ScenarioCase):
+    skill_free_start = False
+
+    def test_a_full_window_is_compacted_before_the_request_and_by_hand(self) -> None:
+        conversation = self.orchestrator.conversation
+        conversation.add("user", "Colour districts by pop2020")
+        conversation.add("assistant", "Districts are coloured by pop2020 in 5 classes.")
+        conversation.set_context(10**9)
+        self.model.script(
+            say("The user coloured districts by pop2020 in 5 classes."), say("We coloured the districts.")
+        )
+        self.ask("What did we do so far?")
+
+        compaction_request = self.model.requests[0]
+        self.assertFalse(compaction_request.get("tools"), "compaction asks for a summary, not for tools")
+        self.assertIn("handoff summary", self.model.sent_text(0))
+        self.assertIn("Summary of our conversation so far", self.model.sent_text(1))
+        self.assertIn("coloured districts by pop2020", self.model.sent_text(1))
+        self.assertEqual(self.answers()[-1], "We coloured the districts.")
+        self.assertEqual(
+            conversation.context_tokens, USAGE["prompt_tokens"], "the run's first request measures the context afresh"
+        )
+        self.shot("compacted")
+
+        self.model.script(say("Still about the districts."))
+        self.dock.compact_requested.emit()
+        self.wait_idle()
+        self.assertEqual(len(self.model.requests), 3)
+        self.assertIn("Still about the districts.", conversation.window()[0]["content"])
+
+
 class ComposerScenario(ScenarioCase):
     def test_slash_and_at_popups_insert_what_was_chosen(self) -> None:
         composer = self.dock.composer

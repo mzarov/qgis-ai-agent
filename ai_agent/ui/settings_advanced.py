@@ -7,6 +7,7 @@ from ai_agent.core.settings import (
     AUTH_TYPE_BEARER,
     AUTH_TYPE_OAUTH,
     get_auth_type,
+    get_context_window,
     get_dialect,
     get_reasoning_enabled,
     get_thinking_budget,
@@ -31,6 +32,13 @@ REASONING_HINT = tr(
     "Asks the model to think before it answers, in the parameter its provider expects. "
     "A server that rejects it is skipped from then on; a connection test, "
     "or saving the switch off and then on, asks it again."
+)
+CONTEXT_LABEL = tr("Context window")
+CONTEXT_NOTE = tr("Empty finds it on its own.")
+CONTEXT_AUTO = tr("Auto")
+CONTEXT_HINT = tr(
+    "How many tokens the model reads at once. Left empty, the plugin asks the server at the connection "
+    "test and otherwise guesses from the model's name. The conversation is compacted at 90 % of it."
 )
 THINKING_LABEL = tr("Extended thinking budget")
 THINKING_HINT = tr(
@@ -83,6 +91,10 @@ def build_advanced(owner: Any, palette: Any) -> QWidget:
     owner.reasoning_cb = fields.switch(palette)
     owner.reasoning_cb.setToolTip(REASONING_HINT)
     owner.reasoning_cb.setChecked(get_reasoning_enabled())
+    owner.context_edit = QLineEdit(str(get_context_window() or ""))
+    owner.context_edit.setPlaceholderText(CONTEXT_AUTO)
+    owner.context_edit.setStyleSheet(fields.input_style(palette))
+    owner.context_edit.setFixedWidth(THINKING_FIELD_WIDTH)
     owner.thinking_edit = QLineEdit(str(get_thinking_budget()))
     owner.thinking_edit.setStyleSheet(fields.input_style(palette))
     owner.thinking_edit.setFixedWidth(THINKING_FIELD_WIDTH)
@@ -93,6 +105,7 @@ def build_advanced(owner: Any, palette: Any) -> QWidget:
             [
                 fields.switch_row(VERIFY_LABEL, owner.verify_apply_cb, VERIFY_HINT, palette),
                 fields.custom_row(BUDGET_LABEL, _budget_control(owner.budget_edit, palette), BUDGET_HINT, palette),
+                fields.custom_row(CONTEXT_LABEL, owner.context_edit, CONTEXT_NOTE, palette, CONTEXT_HINT),
                 fields.switch_row(REASONING_LABEL, owner.reasoning_cb, REASONING_NOTE, palette, REASONING_HINT),
                 fields.custom_row(THINKING_LABEL, owner.thinking_edit, THINKING_NOTE, palette, THINKING_HINT),
             ],

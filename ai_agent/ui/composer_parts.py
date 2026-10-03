@@ -12,6 +12,7 @@ from ai_agent.i18n import tr
 from ai_agent.ui import controls, style
 from ai_agent.ui.attachments import local_files
 from ai_agent.ui.choice_popup import Choice, ChoicePopup
+from ai_agent.ui.context_meter import ContextMeter
 
 SKILL_TOKEN = re.compile(r"^/\S+")
 LAYER_TOKEN = re.compile(r'(?:(?<=\s)|^)@(?:"[^"]*"?|\S+)')
@@ -225,6 +226,8 @@ class ComposerToolbar(QWidget):
         # A tool button takes the platform's smaller font; the mode reads at the model name's size.
         self.mode.setFont(self.model.font())
         line.addWidget(self.model)
+        self.meter = ContextMeter(palette)
+        line.addWidget(self.meter, 0, Qt.AlignmentFlag.AlignVCenter)
 
     def set_mode(self, mode: str) -> None:
         self._mode = mode

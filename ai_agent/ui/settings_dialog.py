@@ -29,6 +29,7 @@ from ai_agent.core.settings import (
     set_api_key,
     set_api_url,
     set_auth_type,
+    set_context_window,
     set_custom_nominatim_url,
     set_dialect,
     set_geocoder_provider,
@@ -186,6 +187,7 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
                 self.budget_edit.textChanged,
                 self.reasoning_cb.toggled,
                 self.thinking_edit.textEdited,
+                self.context_edit.textEdited,
                 self.dialect_combo.currentTextChanged,
                 self.auth_type_combo.currentTextChanged,
             ],
@@ -299,7 +301,8 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
             return
         token_budget = fields.parsed_budget(self.budget_edit.text())
         thinking_budget = fields.parsed_budget(self.thinking_edit.text())
-        if token_budget is None or thinking_budget is None:
+        context_window = fields.parsed_budget(self.context_edit.text())
+        if token_budget is None or thinking_budget is None or context_window is None:
             self._show(BUDGET_INVALID, style.danger(self.palette()))
             return
         set_api_url(url)
@@ -311,6 +314,7 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         set_write_run_journal(self.journal_cb.isChecked())
         set_token_budget(token_budget)
         set_thinking_budget(thinking_budget)
+        set_context_window(context_window)
         set_reasoning_enabled(self.reasoning_cb.isChecked(), url, model, dialect)
         set_geocoder_provider(geocoder_provider)
         if geocoder_provider == GEOCODER_NOMINATIM:

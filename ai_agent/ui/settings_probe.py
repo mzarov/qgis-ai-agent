@@ -8,7 +8,7 @@ import time
 from typing import Any
 
 from ai_agent.core.llm.probe_worker import ProbeThread
-from ai_agent.core.settings import reset_capabilities
+from ai_agent.core.settings import reset_capabilities, set_detected_context_window
 from ai_agent.i18n import tr
 from ai_agent.ui import style
 from ai_agent.ui.connection_widgets import STATE_BAD, STATE_IDLE, STATE_OK
@@ -32,6 +32,7 @@ class ConnectionProbeMixin:
     model_edit: Any
     test_btn: Any
     status_card: Any
+    _probe_scope: tuple[str, str, str | None]
 
     def _stop_probe_now(self) -> None:
         thread = self._probe_thread
@@ -52,8 +53,16 @@ class ConnectionProbeMixin:
         self.status_card.show_state(STATE_IDLE, TESTING, "")
         self._probe_started = time.monotonic()
         self._probe_was_cancelled = False
-        thread = ProbeThread(self._overrides(), self)
+        overrides = self._overrides()
+        # The window is stored for what was tested, even if the fields change meanwhile.
+        self._probe_scope = (
+            overrides["url_override"],
+            overrides.get("model_override") or "",
+            overrides.get("dialect_override"),
+        )
+        thread = ProbeThread(overrides, self)
         thread.completed.connect(self._on_probe_completed)
+        thread.window_found.connect(self._on_window_found)
         thread.finished.connect(lambda: self._on_probe_finished(thread))
         self._probe_thread = thread
         thread.start()
@@ -62,13 +71,14 @@ class ConnectionProbeMixin:
         if not ok:
             self.status_card.show_state(STATE_BAD, FAILED, message)
             return
-        overrides = self._overrides()
-        reset_capabilities(
-            overrides["url_override"], overrides.get("model_override") or "", overrides.get("dialect_override")
-        )
+        reset_capabilities(*self._probe_scope)
         seconds = time.monotonic() - self._probe_started
         summary = CONNECTED.format(self.model_edit.text().strip(), format_seconds(seconds))
         self.status_card.show_state(STATE_OK, summary, message)
+
+    def _on_window_found(self, tokens: int) -> None:
+        url, model, dialect = self._probe_scope
+        set_detected_context_window(tokens, url, model, dialect)
 
     def _show_untested(self) -> None:
         self.status_card.show_state(STATE_IDLE, NOT_TESTED_DETAIL, "")

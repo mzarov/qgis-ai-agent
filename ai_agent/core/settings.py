@@ -274,6 +274,31 @@ def _url_settings_key(url: str) -> str:
     return _scope_digest(normalized)
 
 
+def get_context_window() -> int:
+    """The model's context window set by hand, in tokens; 0 lets the plugin find it."""
+    stored = QgsSettings().value(f"{SETTINGS_PREFIX}/context_window")
+    try:
+        return max(0, int(stored or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+def set_context_window(tokens: int) -> None:
+    _write("context_window", str(max(0, int(tokens or 0))))
+
+
+def get_detected_context_window(url: str, model: str | None = None, dialect: str | None = None) -> int:
+    stored = QgsSettings().value(f"{SETTINGS_PREFIX}/context_detected/{_capability_settings_key(url, model, dialect)}")
+    try:
+        return max(0, int(stored or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+def set_detected_context_window(tokens: int, url: str, model: str | None = None, dialect: str | None = None) -> None:
+    _write(f"context_detected/{_capability_settings_key(url, model, dialect)}", str(max(0, int(tokens or 0))))
+
+
 CAPABILITIES = ("supports_images", "supports_thinking", "supports_streaming", "supports_tools")
 
 
@@ -285,7 +310,7 @@ def reset_capabilities(url: str, model: str | None = None, dialect: str | None =
     """
     settings = QgsSettings()
     key = _capability_settings_key(url, model, dialect)
-    for capability in CAPABILITIES:
+    for capability in (*CAPABILITIES, "context_detected"):
         settings.remove(f"{SETTINGS_PREFIX}/{capability}/{key}")
     settings.sync()
 

@@ -1,0 +1,45 @@
+[
+ {
+  "depth": 0,
+  "type": "ContextPopup"
+ },
+ {
+  "depth": 1,
+  "type": "QLabel",
+  "text": "Context window"
+ },
+ {
+  "depth": 1,
+  "type": "QLabel",
+  "text": "41.3k / 128k (32%)"
+ },
+ {
+  "depth": 1,
+  "type": "UsageBar"
+ },
+ {
+  "depth": 1,
+  "type": "QLabel",
+  "text": "73.9k until auto-compact"
+ },
+ {
+  "depth": 1,
+  "type": "QPushButton",
+  "text": "Compact"
+ },
+ {
+  "depth": 1,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 1,
+  "type": "QLabel",
+  "text": "Spent in this conversation"
+ },
+ {
+  "depth": 1,
+  "type": "QLabel",
+  "text": "<tokens> · 16 requests"
+ }
+]

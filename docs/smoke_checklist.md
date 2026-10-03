@@ -930,3 +930,13 @@ These verify the agent solves everyday tasks without wandering through search.
 192. **Auto mode never deletes on its own.** In Auto, *delete the rivers
      shorter than 1 km* → the card waits with **Apply**, which still asks the
      extra destructive question.
+193. **The ring tracks the context.** Ask two questions → the ring next to the
+     model name fills a little more each time; its popup shows the window, a
+     bar, the room before auto-compaction and tokens with the request count.
+194. **Compact by hand.** In the popup press **Compact** → *Conversation
+     compacted · about N tokens saved* appears, the ring drops; a follow-up
+     about an earlier answer is still answered correctly; restart QGIS, reopen
+     the conversation → the follow-up still works.
+195. **The window is found.** Point at OpenRouter or Ollama, run the
+     connection test → the popup's window matches the model (not 128k); set
+     **Context window** by hand in Advanced → the popup follows it.

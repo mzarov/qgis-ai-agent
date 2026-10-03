@@ -173,7 +173,7 @@ class ConversationStateTest(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp()
         self.store = SessionStore(self.root)
-        self.state = ConversationState(window_limit=4, store=self.store)
+        self.state = ConversationState(store=self.store)
 
     def tearDown(self):
         shutil.rmtree(self.root, ignore_errors=True)
@@ -191,11 +191,28 @@ class ConversationStateTest(unittest.TestCase):
         self.state.add("user", "вопрос")
         self.assertEqual(self.store.recent(current_project_key())[0].title, "вопрос")
 
-    def test_window_is_capped_but_session_is_not(self):
+    def test_the_window_holds_the_whole_conversation_until_compacted(self):
         for index in range(10):
-            self.state.add("user", f"сообщение {index}")
-        self.assertEqual(len(self.state.window()), 4)
-        self.assertEqual(len(self.state.messages), 10)
+            self.state.add("user" if index % 2 == 0 else "assistant", f"сообщение {index}")
+        self.assertEqual(len(self.state.window()), 10)
+        self.state.compact("Пользователь красил слои.")
+        self.state.set_context(1200)
+        window = self.state.window()
+        self.assertTrue(window[0]["content"].endswith("Пользователь красил слои."))
+        self.assertEqual([item["content"] for item in window[2:]], ["сообщение 8", "сообщение 9"])
+        self.assertEqual(len(self.state.messages), 10, "the chat keeps every message")
+        self.assertEqual(self.state.context_tokens, 1200)
+
+    def test_compaction_survives_a_restore(self):
+        for index in range(6):
+            self.state.add("user" if index % 2 == 0 else "assistant", f"сообщение {index}")
+        self.state.compact("сводка")
+        self.state.count_turn(1500, 200)
+        identifier = self.state.session_identifier
+        self.state.start_new()
+        self.assertTrue(self.state.restore(identifier))
+        self.assertTrue(self.state.window()[0]["content"].endswith("сводка"))
+        self.assertEqual((self.state.context_tokens, self.state.spent_tokens), (1500, 1700))
 
     def test_new_conversation_starts_blank(self):
         self.state.add("user", "старое")
@@ -223,13 +240,12 @@ class ConversationStateTest(unittest.TestCase):
         self.state.restore(identifier)
         self.assertEqual([item["role"] for item in self.state.window()], ["user", "assistant"])
 
-    def test_restore_window_respects_limit(self):
-        for index in range(10):
-            self.state.add("user", f"сообщение {index}")
-        identifier = self.store.recent(current_project_key())[0].identifier
-        self.state.start_new()
-        self.state.restore(identifier)
-        self.assertEqual(len(self.state.window()), 4)
+    def test_compaction_starts_the_kept_tail_at_a_user_message(self):
+        session = Session.create("/p.qgz")
+        for role in ("user", "assistant", "assistant", "user", "assistant"):
+            session.add(role, role)
+        session.compact("s", 3)
+        self.assertEqual(session.summary_index, 3)
 
     def test_restore_of_unknown_session_changes_nothing(self):
         self.state.add("user", "текущее")

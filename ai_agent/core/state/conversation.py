@@ -1,15 +1,23 @@
-from ai_agent.core.state.history import HistoryStore
 from ai_agent.core.state.session import Session
 from ai_agent.core.state.store import SessionStore, current_project_key
 
-WINDOW_LIMIT = 14
+# Model-facing, so plain English: the summary opens the window as a user turn and an
+# acknowledged one, because several chat templates reject two user turns in a row.
+SUMMARY_INTRO = "Summary of our conversation so far, written when it was compacted to save space:\n"
+SUMMARY_ACK = "Understood. I will continue from this summary."
+KEEP_AFTER_COMPACTION = 2
 
 
 class ConversationState:
-    def __init__(self, window_limit: int = WINDOW_LIMIT, store: SessionStore | None = None):
-        self._limit = window_limit
+    """The conversation the chat shows and the window the model gets, through one entry point.
+
+    The model gets the whole conversation for as long as it fits: no message count
+    cap. When it stops fitting, compact() replaces older messages with a summary in
+    the model's window; the saved conversation and the chat keep every message.
+    """
+
+    def __init__(self, store: SessionStore | None = None):
         self._store = store or SessionStore()
-        self._history = HistoryStore(max_messages=window_limit)
         self._session = Session.create(current_project_key())
 
     @property
@@ -24,12 +32,57 @@ class ConversationState:
     def project_key(self) -> str:
         return self._session.project
 
+    @property
+    def context_tokens(self) -> int:
+        """What a request of this conversation costs before any tool runs: measured, or estimated."""
+        return self._session.context_tokens
+
+    @property
+    def spent_tokens(self) -> int:
+        return self._session.spent_tokens
+
+    @property
+    def requests(self) -> int:
+        return self._session.requests
+
     def window(self) -> list[dict[str, str]]:
-        return self._history.get()
+        session = self._session
+        head = []
+        if session.summary:
+            head = [
+                {"role": "user", "content": SUMMARY_INTRO + session.summary},
+                {"role": "assistant", "content": SUMMARY_ACK},
+            ]
+        return head + [dict(message) for message in session.messages[session.summary_index :]]
 
     def add(self, role: str, text: str) -> None:
-        self._history.add(role, text)
         self._session.add(role, text)
+        self._store.save(self._session)
+
+    def count_turn(self, prompt_tokens: int, completion_tokens: int, measure: bool = True) -> None:
+        """Record one model request; with `measure`, its prompt is the conversation's request size.
+
+        Only a run's first request measures it: later ones carry that run's tool
+        results, which the next run does not send again.
+        """
+        if measure and prompt_tokens > 0:
+            self._session.context_tokens = prompt_tokens
+        self._session.spent_tokens += max(0, prompt_tokens) + max(0, completion_tokens)
+        self._session.requests += 1
+        self._store.save(self._session)
+
+    @property
+    def message_count(self) -> int:
+        return len(self._session.messages)
+
+    def compact(self, summary: str, upto: int | None = None) -> None:
+        """Let `summary` stand in for the first `upto` messages but the last exchange, in the model's window."""
+        self._session.compact(summary, KEEP_AFTER_COMPACTION, upto)
+        self._store.save(self._session)
+
+    def set_context(self, tokens: int) -> None:
+        """An estimate of the context in use until the next request measures it."""
+        self._session.context_tokens = max(0, tokens)
         self._store.save(self._session)
 
     def add_scoped(self, scope: tuple[str, str], role: str, text: str) -> bool:
@@ -72,6 +125,3 @@ class ConversationState:
 
     def _adopt(self, session: Session) -> None:
         self._session = session
-        self._history = HistoryStore(max_messages=self._limit)
-        for message in session.messages[-self._limit :]:
-            self._history.add(message["role"], message["content"])

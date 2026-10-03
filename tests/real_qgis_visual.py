@@ -167,6 +167,15 @@ class ComposerScreens(ScreenCase):
         self.dock.composer._edit.insertPlainText("colour @")
         self.check("composer_layers", self.dock)
 
+    def test_context_popup(self) -> None:
+        meter = self.dock.composer.toolbar.meter
+        meter.set_numbers(41_300, 128_000, 212_400, 16)
+        meter.popup.open_above(meter.ring)
+        try:
+            self.check("context_popup", meter.popup)
+        finally:
+            meter.popup.hide()
+
     def test_mode_menu(self) -> None:
         toolbar = self.dock.composer.toolbar
         toolbar.modes.open_above(toolbar.mode, "ask")
