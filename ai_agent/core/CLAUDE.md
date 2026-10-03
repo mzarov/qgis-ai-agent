@@ -76,8 +76,8 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    `refusals.py` keeps the three refusals apart — mixing them up disables the
    wrong feature, so a thinking complaint must be raised, not swallowed as a
    streaming one.
-6. **Reasoning is separated, never echoed back.** Three shapes arrive:
-   `<think>` inside `content` (local servers), a `reasoning_content` field
+6. **Reasoning is separated, echoed back only where an API demands it.**
+   Three shapes arrive: `<think>` inside `content` (local servers), a `reasoning_content` field
    (DeepSeek, OpenRouter) and Anthropic `thinking` blocks. `llm/thinking.py`
    cuts the tags out — across chunk boundaries, and before the JSON protocol
    parses, or the parser may pick a candidate object out of the reasoning.
@@ -85,7 +85,15 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    into the saved conversation. Anthropic blocks are the exception: with tools
    in the run the API demands them back verbatim with their `signature`, so
    `ModelTurn` carries them, the transcript keeps them and `_assistant_message`
-   re-emits them first.
+   re-emits them first. DeepSeek with the Reasoning switch on is the second:
+   thinking mode with tools 400s without `reasoning_content` on every earlier
+   assistant message. The transcript hands the text over under
+   `reasoning.REASONING_KEY`; `wire_messages` renames it for DeepSeek and strips
+   it everywhere else.
+   The Reasoning switch picks the request parameter from the host
+   (`llm/reasoning.py`); a refusal is retried once without it and remembered
+   as `supports_thinking = false`, checked before the streaming and tools
+   refusals. Rationale: docs/core_architecture.md.
 7. **`MAX_ITERATIONS`** guards against endless loops, and a token budget from
    the settings guards the user's wallet. Both end the run through `_complete`
    with a plain explanation — never by silently stopping. A failed run
@@ -228,6 +236,7 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `llm/live.py`            | the per-turn state message and how each dialect receives it |
 | `llm/images.py`          | finding and stripping image blocks in messages       |
 | `llm/thinking.py`        | cutting `<think>` out of content, across chunks      |
+| `llm/reasoning.py`       | the per-provider reasoning parameter and its echo    |
 | `llm/dialects.py`        | dialect detection from the address, paths, headers  |
 | `llm/anthropic.py`       | messages and tool schemas in the Anthropic format   |
 | `llm/client.py`          | the HTTP layer, URL/key/header resolution           |

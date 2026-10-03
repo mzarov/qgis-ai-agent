@@ -15,6 +15,7 @@ from ai_agent.core.llm.dialects import ANTHROPIC, ANTHROPIC_HOSTS, DEFAULT_MAX_T
 from ai_agent.core.llm.images import IMAGE_REJECTED_STATUS_CODES, has_images, without_images
 from ai_agent.core.llm.live import fold_live
 from ai_agent.core.llm.parser import parse_model_json, parse_tool_arguments
+from ai_agent.core.llm.reasoning import is_deepseek, request_options, wire_messages
 from ai_agent.core.llm.refusals import (
     may_reject_images,
     streaming_unsupported,
@@ -28,6 +29,7 @@ from ai_agent.core.llm.thinking import split_thinking
 from ai_agent.core.settings import (
     get_dialect,
     get_model,
+    get_reasoning_enabled,
     get_supports_streaming,
     get_supports_thinking,
     get_supports_tools,
@@ -135,21 +137,43 @@ def _dispatch(
     if cache_dialect == ANTHROPIC:
         return _call_anthropic(messages, tool_schemas, overrides, timeout, url, on_chunk, on_thinking)
     messages = fold_live(messages)
+    reasoning = get_reasoning_enabled() and get_supports_thinking(cache_url, cache_model, cache_dialect) is not False
+    try:
+        return _call_openai(messages, tool_schemas, overrides, timeout, url, on_chunk, on_thinking, reasoning)
+    except ApiResponseError as err:
+        if not (reasoning and thinking_unsupported(err)):
+            raise
+        set_supports_thinking(cache_url, False, cache_model, cache_dialect)
+        return _call_openai(messages, tool_schemas, overrides, timeout, url, on_chunk, on_thinking, False)
+
+
+def _call_openai(
+    messages: list[dict[str, Any]],
+    tool_schemas: list[dict[str, Any]],
+    overrides: dict[str, Any],
+    timeout: int,
+    url: str,
+    on_chunk: Any,
+    on_thinking: Any,
+    reasoning: bool,
+) -> ModelTurn:
+    cache_url, cache_model, cache_dialect = _capability_scope(url, overrides)
+    messages = wire_messages(messages, url, reasoning)
     supports_tools = get_supports_tools(cache_url, cache_model, cache_dialect)
 
     if supports_tools is not False and tool_schemas:
-        streamed = _try_streaming(messages, tool_schemas, overrides, timeout, url, on_chunk, on_thinking)
+        streamed = _try_streaming(messages, tool_schemas, overrides, timeout, url, on_chunk, on_thinking, reasoning)
         if streamed is not None:
             return streamed
         try:
             data = post_chat_completion(
                 messages,
-                extra_body=_openai_options(url, tool_schemas),
+                extra_body=_openai_options(url, tool_schemas, reasoning),
                 timeout=blocking_timeout(timeout),
                 **overrides,
             )
         except ApiResponseError as err:
-            if not tools_unsupported(err):
+            if not tools_unsupported(err) or _refuses_reasoning(err, reasoning):
                 raise
             set_supports_tools(cache_url, False, cache_model, cache_dialect)
         else:
@@ -158,8 +182,18 @@ def _dispatch(
             return _parse_native_turn(data)
 
     return _parse_json_turn(
-        post_chat_completion(messages, extra_body=_openai_options(url), timeout=blocking_timeout(timeout), **overrides)
+        post_chat_completion(
+            messages,
+            extra_body=_openai_options(url, reasoning=reasoning),
+            timeout=blocking_timeout(timeout),
+            **overrides,
+        )
     )
+
+
+def _refuses_reasoning(err: ApiResponseError, reasoning: bool) -> bool:
+    """A reasoning complaint must reach _dispatch, not be taken for a tools or streaming refusal."""
+    return reasoning and thinking_unsupported(err)
 
 
 def _call_anthropic(
@@ -238,6 +272,7 @@ def _try_streaming(
     url: str,
     on_chunk: Any,
     on_thinking: Any = None,
+    reasoning: bool = False,
 ) -> ModelTurn | None:
     cache_url, cache_model, cache_dialect = _capability_scope(url, overrides)
     if on_chunk is None or get_supports_streaming(cache_url, cache_model, cache_dialect) is False:
@@ -255,7 +290,7 @@ def _try_streaming(
         "stream": True,
         "stream_options": {"include_usage": True},
     }
-    body.update(_openai_options(url, tool_schemas))
+    body.update(_openai_options(url, tool_schemas, reasoning))
     try:
         completion = StreamedCompletion(on_chunk, on_thinking)
         stream_options = {}
@@ -271,7 +306,7 @@ def _try_streaming(
             **stream_options,
         )
     except ApiResponseError as err:
-        if streaming_unsupported(err):
+        if streaming_unsupported(err) and not _refuses_reasoning(err, reasoning):
             set_supports_streaming(cache_url, False, cache_model, cache_dialect)
             return None
         raise
@@ -309,14 +344,17 @@ def _capability_scope(url: str, overrides: dict[str, Any]) -> tuple[str, str, st
     return url, model, dialect
 
 
-def _openai_options(url: str, tool_schemas: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+def _openai_options(
+    url: str,
+    tool_schemas: list[dict[str, Any]] | None = None,
+    reasoning: bool = False,
+) -> dict[str, Any]:
     body: dict[str, Any] = {}
     if tool_schemas:
         body["tools"] = tool_schemas
-    if host_of(url) == "api.deepseek.com":
-        body["thinking"] = {"type": "disabled"}
-    elif tool_schemas:
+    if tool_schemas and not is_deepseek(url):
         body["tool_choice"] = "auto"
+    body.update(request_options(url, reasoning))
     return body
 
 

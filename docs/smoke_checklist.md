@@ -909,3 +909,16 @@ These verify the agent solves everyday tasks without wandering through search.
      result is right.
 186. **Budgets are validated.** Settings → Advanced → type `10k` in the token
      budget → saved as 10000; `ten` → an error, the dialog stays open.
+187. **Reasoning is off until asked for.** Settings → Advanced → the Reasoning
+     switch is off; with DeepSeek, a run that uses tools works exactly as before.
+188. **DeepSeek reasons when asked.** Switch Reasoning on, point at DeepSeek,
+     ask for something needing several tools → a "Thought" line fills before
+     each step and the run finishes without a 400 about `reasoning_content`.
+189. **A model that cannot reason is not broken by the switch.** Reasoning on,
+     OpenAI with `gpt-4o-mini` → the answer arrives; later runs send no
+     `reasoning_effort`.
+190. **DeepSeek keeps reasoning across questions.** Reasoning on, DeepSeek: ask
+     for something needing tools, wait for the answer, then ask a second
+     tool-using question in the same chat → it also finishes without a 400
+     about `reasoning_content` (turns from the first run go back with an empty
+     one).

@@ -3,6 +3,7 @@ from dataclasses import dataclass, field, replace
 from typing import Any
 
 from ai_agent.core.llm.anthropic import THINKING_KEY
+from ai_agent.core.llm.reasoning import REASONING_KEY
 from ai_agent.core.llm.transport import PROTOCOL_NATIVE, ModelTurn, ToolCall
 
 MAX_RESULT_CHARS = 4000
@@ -159,6 +160,8 @@ class Transcript:
             message["tool_calls"] = [cls._render_call(call) for call in turn.tool_calls]
         if turn.thinking_blocks:
             message[THINKING_KEY] = turn.thinking_blocks
+        if turn.thinking:
+            message[REASONING_KEY] = turn.thinking
         return message
 
     @staticmethod

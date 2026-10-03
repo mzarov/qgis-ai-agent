@@ -295,6 +295,8 @@ _FAKES = {
     "QPalette": _Palette,
     "QLabel": _Label,
     "QToolButton": _Toggle,
+    "QCheckBox": _Toggle,
+    "QLineEdit": _Label,
     "QTimer": _Timer,
     "QgsFeedback": _Feedback,
     "QgsProject": _Project,

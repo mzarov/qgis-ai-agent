@@ -28,22 +28,27 @@ NEVER_A_REFUSAL = re.compile(
 FEATURE_WORDS = {
     "tools": r"tools?|tool_choice|tool[_ ]calls?|function[_ ]calling|functions",
     "streaming": r"stream|streaming|stream_options|server-sent events|event-stream",
-    "thinking": r"thinking|budget_tokens|reasoning(?:_effort)?",
+    "thinking": r"thinking|budget_tokens|reasoning(?:_effort|Effort)?",
     "images": r"images?|image_url|vision|multimodal",
 }
 FEATURE_PARAMETERS = {
     "tools": ("tools", "tool_choice", "functions"),
     "streaming": ("stream", "stream_options"),
-    "thinking": ("thinking", "reasoning", "reasoning_effort"),
+    "thinking": ("thinking", "reasoning", "reasoning_effort", "reasoningeffort"),
     "images": ("image_url",),
 }
+# Rejecting a value counts only for thinking: the plugin sends one fixed reasoning
+# value, so a server that accepts others ("must be one of none, default") is best
+# served by leaving the parameter out. For tools the same words mean a bad schema.
+VALUE_REFUSALS = {"thinking": r"must be one of|invalid value|not a valid"}
 NEARBY = 60
 
 
 def _pattern(feature: str) -> re.Pattern[str]:
     words = FEATURE_WORDS[feature]
+    refusal = "|".join(filter(None, (REFUSAL_WORDS, VALUE_REFUSALS.get(feature))))
     return re.compile(
-        rf"\b(?:{words})\b.{{0,{NEARBY}}}\b(?:{REFUSAL_WORDS})\b|\b(?:{REFUSAL_WORDS})\b.{{0,{NEARBY}}}\b(?:{words})\b",
+        rf"\b(?:{words})\b.{{0,{NEARBY}}}\b(?:{refusal})\b|\b(?:{refusal})\b.{{0,{NEARBY}}}\b(?:{words})\b",
         re.IGNORECASE | re.DOTALL,
     )
 

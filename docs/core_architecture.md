@@ -269,8 +269,8 @@ field. It never touches `content`, so nothing breaks — but without reading the
 deltas the panel would sit still for the whole minute a model spends thinking,
 which is exactly when a sign of life is worth most.
 
-Anthropic returns typed `thinking` blocks carrying a `signature`. These are the
-one kind of reasoning that **must** travel back: with extended thinking and
+Anthropic returns typed `thinking` blocks carrying a `signature`. These
+**must** travel back (DeepSeek, below, is the only other case): with extended thinking and
 tool use in the same run, the API rejects an assistant turn whose thinking
 blocks are missing or reordered. So `ModelTurn` carries the raw blocks, the
 transcript keeps them beside the turn, and `_assistant_message` puts them back
@@ -278,9 +278,68 @@ first, ahead of text and tool calls. Extended thinking is off until a budget is
 set in the settings — it costs tokens — and an endpoint that refuses the
 parameter is remembered like any other unsupported feature.
 
-The reasoning **text** is never sent back to any endpoint and never enters the
-saved conversation. In the chat it lives in its own collapsible block: open
-while it grows, folded into one line once the answer starts.
+The reasoning **text** never enters the saved conversation and is not sent
+back to any endpoint except DeepSeek with reasoning switched on (below). In the
+chat it lives in its own collapsible block: open while it grows, folded into
+one line once the answer starts.
+
+### Asking an OpenAI-compatible endpoint to reason
+
+Some models reason only when asked, and there is no standard way to ask. The
+**Reasoning** switch on the Advanced settings page is off by default — reasoning
+is slower and costs tokens — and `llm/reasoning.py` turns it into the parameter
+the endpoint's provider expects, picked from the host:
+
+| Host | Body field |
+| --- | --- |
+| `api.deepseek.com` | `"thinking": {"type": "enabled"}` |
+| `openrouter.ai` | `"reasoning": {"effort": "medium"}` |
+| `api.openai.com` and any other host | `"reasoning_effort": "medium"` |
+
+An unknown host gets `reasoning_effort` rather than nothing. It is the shape
+OpenAI defined and most compatible servers copied, so it is the parameter most
+likely to work; a server that ignores unknown fields loses nothing, and a server
+that rejects it costs a single retry. Sending nothing would make the switch a
+silent no-op on every custom address, which is worse than one retry. The effort
+is fixed at `medium`: the switch says "think", not "how hard".
+
+A rejection is detected by `refusals.py` like any other unsupported feature —
+the parameter named next to a refusal phrase, or a structured error pointing at
+it. The request is retried once without the parameter, and the refusal is kept
+in the same capability cache as streaming and tools (`supports_thinking`, per
+endpoint, model and dialect), so the parameter is never sent there again. The
+reasoning check runs before the streaming and tools checks: a complaint about
+`reasoning_effort` must not switch streaming off. For reasoning only, a
+rejected *value* also counts ("must be one of none, default"): the plugin sends
+one fixed value, so leaving the parameter out is the right fallback. For tools
+the same words mean a broken schema, so they never count there. Parameter names
+are matched in camelCase too (`reasoningEffort`). A successful connection test
+forgets the refusal, as it does for every detected capability, and so does
+saving the switch on after it was off.
+
+DeepSeek is the one exception to "reasoning is never sent back". V4 thinks by
+default, and in thinking mode a request with tools is answered 400 unless every
+earlier assistant message carries its `reasoning_content`. That is why the
+switch off still sends `"type": "disabled"` explicitly. With it on, the
+transcript hands each turn's reasoning to the transport under an internal key;
+for DeepSeek it goes out as `reasoning_content` (an empty string for turns from
+earlier runs, which the API accepts), for every other endpoint the key is
+stripped. The saved conversation still never holds reasoning. OpenRouter also
+accepts reasoning back, but does not require it, so nothing is echoed there.
+
+The echo has a price: each request resends the reasoning of every turn in the
+run, so a long DeepSeek run with the switch on bills noticeably more input
+tokens; with prefix caching most of it is billed at the cached rate. That the
+API accepts an empty string for turns from earlier runs is observed, not
+documented — smoke check 190 covers it. The older `deepseek-reasoner` refused
+`reasoning_content` in input messages with a 400; that error names a message
+field, not a request parameter, so it is not taken for a refusal and surfaces
+as an ordinary API error — switch Reasoning off for such a model.
+
+OpenAI's Chat Completions API reasons without returning the text, so with
+OpenAI the switch makes answers better but adds no "Thought" line. DeepSeek and
+OpenRouter stream their reasoning and the line appears as usual. Anthropic is
+unaffected: its thinking follows the separate thinking budget.
 
 ## Adding a new domain
 

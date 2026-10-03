@@ -1,7 +1,13 @@
 import pathlib
 import re
 import unittest
+from types import SimpleNamespace
+from unittest import mock
 
+from qgis.PyQt.QtGui import QPalette
+
+from ai_agent.config import geocoder as geocoder_config
+from ai_agent.core import settings
 from ai_agent.core.llm import (
     anthropic_stream,
     probe_worker,
@@ -12,6 +18,9 @@ from ai_agent.core.llm import (
     probe as settings_probe,
 )
 from ai_agent.core.llm.dialects import ANTHROPIC, OPENAI, resolve
+from ai_agent.ui import settings_advanced
+from ai_agent.ui.settings_dialog import SettingsDialog
+from tests.test_credentials import MemorySettings
 
 
 class PresetTest(unittest.TestCase):
@@ -185,6 +194,7 @@ class SidebarSettingsTest(unittest.TestCase):
             "verify_ssl_cb",
             "verify_apply_cb",
             "journal_cb",
+            "reasoning_cb",
             "budget_edit",
             "thinking_edit",
             "model_edit",
@@ -442,6 +452,52 @@ class ProbeWorkerTest(unittest.TestCase):
         worker.cancel()
         worker.run()
         self.assertEqual(completed, [])
+
+
+class ReasoningSwitchTest(unittest.TestCase):
+    """The switch built, toggled and saved through the real dialog, on in-memory settings."""
+
+    def setUp(self):
+        MemorySettings.values = {}
+        for module in (settings, geocoder_config):
+            patcher = mock.patch.object(module, "QgsSettings", MemorySettings)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def test_reasoning_is_off_until_asked_for(self):
+        self.assertFalse(settings.get_reasoning_enabled())
+        self.assertFalse(SettingsDialog().reasoning_cb.isChecked())
+
+    def test_the_page_shows_the_stored_choice(self):
+        settings.set_reasoning_enabled(True)
+        owner = SimpleNamespace(_endpoint_finished=lambda *args: None)
+        settings_advanced.build_advanced(owner, QPalette())
+        self.assertTrue(owner.reasoning_cb.isChecked())
+
+    def test_toggling_the_switch_and_saving_stores_it(self):
+        dialog = SettingsDialog()
+        dialog.reasoning_cb.setChecked(True)
+        dialog._save()
+        self.assertTrue(settings.get_reasoning_enabled())
+        dialog = SettingsDialog()
+        dialog.reasoning_cb.setChecked(False)
+        dialog._save()
+        self.assertFalse(settings.get_reasoning_enabled())
+
+    def test_switching_on_forgets_a_remembered_refusal(self):
+        url, model = settings.DEFAULT_API_URL, settings.DEFAULT_MODEL
+        settings.set_supports_thinking(url, False, model, "openai")
+        dialog = SettingsDialog()
+        dialog.reasoning_cb.setChecked(True)
+        dialog._save()
+        self.assertIsNone(settings.get_supports_thinking(url, model, "openai"))
+
+    def test_saving_while_already_on_keeps_the_refusal(self):
+        url, model = settings.DEFAULT_API_URL, settings.DEFAULT_MODEL
+        settings.set_reasoning_enabled(True)
+        settings.set_supports_thinking(url, False, model, "openai")
+        settings.set_reasoning_enabled(True, url, model, "openai")
+        self.assertIs(settings.get_supports_thinking(url, model, "openai"), False)
 
 
 if __name__ == "__main__":

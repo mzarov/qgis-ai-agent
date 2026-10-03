@@ -4,6 +4,7 @@ import unittest
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.transcript import Transcript
 from ai_agent.core.llm import anthropic, transport
+from ai_agent.core.llm.reasoning import wire_messages
 from ai_agent.core.llm.stream import consume
 from ai_agent.core.llm.thinking import ThinkSplitter, split_thinking
 from ai_agent.core.llm.transport import PROTOCOL_JSON, ModelTurn
@@ -257,8 +258,8 @@ class TranscriptThinkingTest(unittest.TestCase):
     def test_the_reasoning_text_is_never_sent_back(self):
         transcript = Transcript()
         transcript.add_turn(ModelTurn(text="answer", thinking="a long private monologue"))
-        rendered = json.dumps(transcript.build_messages("system"))
-        self.assertNotIn("private monologue", rendered)
+        wired = wire_messages(transcript.build_messages("system"), "https://api.openai.com/v1", True)
+        self.assertNotIn("private monologue", json.dumps(wired))
 
     def test_anthropic_blocks_are_carried_for_the_round_trip(self):
         transcript = Transcript()

@@ -177,6 +177,23 @@ def set_thinking_budget(value: int) -> None:
     _write("thinking_budget", str(max(0, int(value or 0))))
 
 
+def get_reasoning_enabled() -> bool:
+    """Whether OpenAI-compatible endpoints are asked to reason; Anthropic uses the thinking budget."""
+    stored = QgsSettings().value(f"{SETTINGS_PREFIX}/reasoning_enabled")
+    return False if stored is None else _as_opt_in_bool(stored)
+
+
+def set_reasoning_enabled(
+    value: bool, url: str | None = None, model: str | None = None, dialect: str | None = None
+) -> None:
+    """Store the switch; turning it on forgets a remembered refusal so the endpoint is asked again."""
+    if value and not get_reasoning_enabled():
+        endpoint = (url if url is not None else get_api_url()) or ""
+        settings = QgsSettings()
+        settings.remove(f"{SETTINGS_PREFIX}/supports_thinking/{_capability_settings_key(endpoint, model, dialect)}")
+    _write("reasoning_enabled", "true" if value else "false")
+
+
 def get_supports_thinking(url: str, model: str | None = None, dialect: str | None = None) -> bool | None:
     stored = QgsSettings().value(f"{SETTINGS_PREFIX}/supports_thinking/{_capability_settings_key(url, model, dialect)}")
     return None if stored is None else _as_bool(stored)

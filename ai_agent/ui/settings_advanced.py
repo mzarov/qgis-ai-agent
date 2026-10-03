@@ -8,6 +8,7 @@ from ai_agent.core.settings import (
     AUTH_TYPE_OAUTH,
     get_auth_type,
     get_dialect,
+    get_reasoning_enabled,
     get_thinking_budget,
     get_token_budget,
     get_verify_after_apply,
@@ -24,6 +25,13 @@ VERIFY_LABEL = tr("Check the result after Apply")
 VERIFY_HINT = tr("The agent re-reads the project to confirm the changes.")
 BUDGET_LABEL = tr("Token budget per run")
 BUDGET_HINT = tr("A run stops after this many tokens.")
+REASONING_LABEL = tr("Reasoning")
+REASONING_NOTE = tr("OpenAI-compatible APIs. Slower, more tokens.")
+REASONING_HINT = tr(
+    "Asks the model to think before it answers, in the parameter its provider expects. "
+    "A server that rejects it is skipped from then on; a connection test, "
+    "or saving the switch off and then on, asks it again."
+)
 THINKING_LABEL = tr("Extended thinking budget")
 THINKING_HINT = tr(
     "Anthropic only: 0 disables extended thinking. For Sonnet 5, any positive value enables adaptive thinking; "
@@ -72,6 +80,9 @@ def build_advanced(owner: Any, palette: Any) -> QWidget:
     owner.verify_apply_cb.setToolTip(VERIFY_HINT)
     owner.verify_apply_cb.setChecked(get_verify_after_apply())
     owner.budget_edit = QLineEdit(str(get_token_budget()))
+    owner.reasoning_cb = fields.switch(palette)
+    owner.reasoning_cb.setToolTip(REASONING_HINT)
+    owner.reasoning_cb.setChecked(get_reasoning_enabled())
     owner.thinking_edit = QLineEdit(str(get_thinking_budget()))
     owner.thinking_edit.setStyleSheet(fields.input_style(palette))
     owner.thinking_edit.setFixedWidth(THINKING_FIELD_WIDTH)
@@ -82,6 +93,7 @@ def build_advanced(owner: Any, palette: Any) -> QWidget:
             [
                 fields.switch_row(VERIFY_LABEL, owner.verify_apply_cb, VERIFY_HINT, palette),
                 fields.custom_row(BUDGET_LABEL, _budget_control(owner.budget_edit, palette), BUDGET_HINT, palette),
+                fields.switch_row(REASONING_LABEL, owner.reasoning_cb, REASONING_NOTE, palette, REASONING_HINT),
                 fields.custom_row(THINKING_LABEL, owner.thinking_edit, THINKING_NOTE, palette, THINKING_HINT),
             ],
         )

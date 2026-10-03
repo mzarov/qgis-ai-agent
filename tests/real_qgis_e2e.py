@@ -23,7 +23,7 @@ import token_ceilings
 from e2e_harness import ARTIFACTS, PluginCase, pump
 from e2e_model import USAGE, ScriptedModel, call, calls, fail, say, think
 
-from ai_agent.core.settings import set_supports_images
+from ai_agent.core.settings import set_reasoning_enabled, set_supports_images
 
 MODEL = "scripted-model"
 SIZES_FILE = "request_sizes.json"
@@ -225,6 +225,22 @@ class ReasoningScenario(ScenarioCase):
         self.assertTrue(blocks[0].isVisibleTo(self.dock.conversation), "a reasoning-only turn must stay in the feed")
         self.assertEqual(self.answers()[-1], "There are three layers.")
         self.shot("reasoning_folded")
+
+    def test_the_reasoning_switch_asks_and_remembers_a_refusal(self) -> None:
+        set_reasoning_enabled(True)
+        self.addCleanup(set_reasoning_enabled, False)
+        self.model.script(
+            fail(400, "Unsupported parameter: 'reasoning_effort' is not supported with this model."),
+            think("Three layers are loaded.", "There are three layers."),
+        )
+        self.ask("What layers do I have?")
+        self.assertEqual(self.answers()[-1], "There are three layers.")
+        self.assertEqual(self.model.requests[0].get("reasoning_effort"), "medium")
+        self.assertNotIn("reasoning_effort", self.model.requests[1], "the refused parameter was sent again")
+        self.model.script(say("Still three."))
+        self.ask("And now?")
+        self.assertEqual(len(self.model.requests), 3)
+        self.assertNotIn("reasoning_effort", self.model.requests[2], "the refusal was not remembered")
 
 
 class AttachScenario(ScenarioCase):
