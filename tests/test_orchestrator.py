@@ -58,8 +58,9 @@ class Agent:
         self.is_applying = False
         self.active_apply_tool = ""
 
-    def start(self, prompt, history, verification=False, verification_round=0, skills=None, preload=None):
+    def start(self, prompt, history, verification=False, verification_round=0, skills=None, preload=None, images=None):
         self.skills = skills
+        self.images = images
         self.preload = preload
         if verification:
             self.verification_round = verification_round

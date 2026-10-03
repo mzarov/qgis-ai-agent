@@ -161,6 +161,7 @@ class ComposerBehaviourTest(PluginCase):
         pump(0.05)
         try:
             self.assertTrue(toolbar.menu.isVisible())
+            self.assertEqual([action.isEnabled() for action in toolbar.menu.actions()], [True, True])
             self.assertLess(toolbar.menu.geometry().bottom(), toolbar.attach.mapToGlobal(QPoint(0, 0)).y())
         finally:
             toolbar.menu.hide()

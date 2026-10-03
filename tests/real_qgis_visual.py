@@ -161,6 +161,20 @@ class ComposerScreens(ScreenCase):
         self.dock.composer._edit.insertPlainText("colour @")
         self.check("composer_layers", self.dock)
 
+    def test_attached_pictures(self) -> None:
+        import tempfile
+
+        from qgis.PyQt.QtGui import QColor, QImage
+
+        folder = tempfile.mkdtemp()
+        for name, colour in (("sketch.png", "orange"), ("a photo of the paper map from the archive.jpg", "teal")):
+            image = QImage(48, 32, QImage.Format.Format_RGB32)
+            image.fill(QColor(colour))
+            image.save(os.path.join(folder, name))
+            self.dock.add_attachment(os.path.join(folder, name))
+        self.dock.composer._edit.setPlainText("What is on these pictures?")
+        self.check("composer_attachments", self.dock)
+
 
 class SettingsScreens(ScreenCase):
     def test_every_settings_page(self) -> None:

@@ -235,6 +235,8 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `llm/providers.py`       | provider presets for the settings dialog            |
 | `credentials.py`         | API keys in the QGIS authentication database        |
 | `local_skills.py`        | the profile's skills folder: rescan, validation, example |
+| `attachments.py`         | attached files: data added as layers at once (the user's own act, not a queued write), pictures encoded for the request |
+| `orchestrator/attaching.py` | attachments in the chat: mentions, waiting pictures, a blind model told so |
 | `orchestrator/slash.py`  | `/skill` parsing and the skill list for the composer |
 | `orchestrator/`          | UI-to-loop wiring, the DockWidget contract          |
 | `state/conversation.py`  | the model window and the current dialogue, one entry point |
