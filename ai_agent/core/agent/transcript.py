@@ -17,6 +17,7 @@ EARLIER_IMAGE_NOTE = "[an earlier image was dropped to save space — render aga
 IMAGE_MEDIA = "image/png"
 IMAGE_INTRO = "Image rendered by {tool}:"
 IMAGE_OMITTED_NOTE = "[image omitted: this endpoint does not accept image input]"
+USER_IMAGE_OMITTED_NOTE = "[the user attached a picture, but this endpoint does not accept image input]"
 
 
 @dataclass
@@ -51,8 +52,9 @@ class ToolResult:
 class Transcript:
     entries: list[dict[str, Any]] = field(default_factory=list)
 
-    def add_user(self, text: str) -> None:
-        self.entries.append({"kind": "user", "text": text})
+    def add_user(self, text: str, images: list[str] | None = None) -> None:
+        """The request; `images` are base64 PNGs the user attached to it."""
+        self.entries.append({"kind": "user", "text": text, "images": list(images or [])})
 
     def add_turn(self, turn: ModelTurn) -> None:
         turn.tool_calls = _unique_tool_calls(turn.tool_calls)
@@ -131,7 +133,7 @@ class Transcript:
     ) -> list[dict[str, Any]]:
         kind = entry["kind"]
         if kind == "user":
-            return [{"role": "user", "content": entry["text"]}]
+            return [cls._render_user(entry["text"], entry.get("images") or [], images_allowed)]
         if kind == "turn":
             return [cls._render_turn(entry["turn"])]
         if kind == "results":
@@ -200,6 +202,19 @@ class Transcript:
             if attachment is not None:
                 rendered.append(attachment)
         return rendered
+
+    @staticmethod
+    def _render_user(text: str, images: list[str], images_allowed: bool) -> dict[str, Any]:
+        # The user's own pictures stay for the whole run: they are the request, not a tool's by-product.
+        if not images:
+            return {"role": "user", "content": text}
+        if not images_allowed:
+            return {"role": "user", "content": f"{text}\n{USER_IMAGE_OMITTED_NOTE}"}
+        blocks: list[dict[str, Any]] = [{"type": "text", "text": text}]
+        blocks.extend(
+            {"type": "image_url", "image_url": {"url": f"data:{IMAGE_MEDIA};base64,{image}"}} for image in images
+        )
+        return {"role": "user", "content": blocks}
 
     @staticmethod
     def _image_message(result: ToolResult, carries_image: bool, images_allowed: bool) -> dict[str, Any] | None:

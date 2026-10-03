@@ -114,12 +114,13 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         verification_round: int = 0,
         skills: list[str] | None = None,
         preload: list[str] | None = None,
+        images: list[str] | None = None,
     ) -> bool:
         if self.is_running or self._batch.is_applying:
             return False
         self._generation += 1
         self._transcript = Transcript()
-        self._transcript.add_user(prompt)
+        self._transcript.add_user(prompt, images)
         self._journal.begin(prompt)
         self._history = list(history or [])
         self._is_verification = verification
