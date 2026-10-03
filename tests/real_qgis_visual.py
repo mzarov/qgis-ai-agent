@@ -36,6 +36,8 @@ SETTINGS_WIDTH = 900
 SETTINGS_HEIGHT = 640
 SETTINGS_PAGES = ("connection", "privacy", "skills", "geocoding", "advanced")
 PROFILE_MARKER = "ai-agent-integration-"
+# A real profile path is long; a short stand-in once hid a skills page that overflowed on a real Mac.
+LONG_PROFILE = "/Users/someone-with-a-long-name/Library/Application Support/QGIS/QGIS4/profiles/default"
 LOCALE = os.environ.get("UI_LOCALE", "").strip()
 LOCALE_SUFFIX = f"_{LOCALE}" if LOCALE else ""
 REQUEST = "Colour districts by pop2020 in 5 classes"
@@ -48,6 +50,8 @@ PLAN = [
     "Labeling 'districts' with 'name'.",
 ]
 CHECKING = "Checking the applied changes…"
+STEP = "Reading layer 'districts'"
+TOKENS = "/style colour @districts by pop2020 in 5 classes"
 DONE = "Done: %n step(s) applied.{0}"
 
 
@@ -68,14 +72,21 @@ class ScreenCase(PluginCase):
         if LOCALE:
             # The previous test's unload removed the translator; strings built at runtime need it back.
             i18n.install(os.path.dirname(os.path.abspath(ai_agent.__file__)))
+        ui_snapshot.EXTRA_VOLATILE[:] = ui_snapshot.duration_patterns(
+            [i18n.tr("{0} min {1} s"), i18n.tr("{0} ms"), i18n.tr("{0} s")]
+        )
         super().setUp()
         QApplication.setCursorFlashTime(0)
         self.faults: list[str] = []
 
     def check(self, name: str, widget: QWidget) -> None:
         name += LOCALE_SUFFIX
+        # Focus paints the composer's frame; which widget holds it depends on the tests run before.
+        focused = QApplication.focusWidget()
+        if focused is not None:
+            focused.clearFocus()
         pump(0.3)
-        ui_snapshot.normalize_texts(widget, {_profile_root(): "<profile>"})
+        ui_snapshot.normalize_texts(widget, {_profile_root(): LONG_PROFILE})
         pump(0.1)
         image = widget.grab().toImage()
         ARTIFACTS.mkdir(parents=True, exist_ok=True)
@@ -119,6 +130,26 @@ class DockScreens(ScreenCase):
         self.conversation()
         self.check("dock_narrow", self.dock)
         self.iface.window.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
+
+
+class StateScreens(ScreenCase):
+    def test_working(self) -> None:
+        self.dock.add_user_message(REQUEST)
+        self.dock.set_busy(True)
+        self.dock.add_tool_message(STEP)
+        self.dock.progress._timer.stop()
+        try:
+            self.check("dock_working", self.dock)
+        finally:
+            self.dock.set_busy(False)
+
+    def test_no_model_connected(self) -> None:
+        self.dock.set_configured(False)
+        self.check("dock_offline", self.dock)
+
+    def test_tokens_are_highlighted(self) -> None:
+        self.dock.composer._edit.setPlainText(TOKENS)
+        self.check("composer_tokens", self.dock)
 
 
 class ComposerScreens(ScreenCase):

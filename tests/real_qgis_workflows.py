@@ -17,7 +17,7 @@ def _select_locale() -> None:
         QgsSettings().setValue("locale/userLocale", language)
 
 
-DEFAULT_MODULES = ("real_qgis_cases", "real_qgis_network", "real_qgis_e2e", "real_qgis_visual")
+DEFAULT_MODULES = ("real_qgis_cases", "real_qgis_network", "real_qgis_e2e", "real_qgis_controls", "real_qgis_visual")
 
 
 def main(modules: tuple[str, ...] = DEFAULT_MODULES) -> int:

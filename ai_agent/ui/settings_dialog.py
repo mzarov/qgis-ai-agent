@@ -14,7 +14,7 @@ from qgis.PyQt.QtWidgets import (
 from ai_agent.core.llm.client import is_local
 from ai_agent.core.llm.dialects import resolve
 from ai_agent.core.llm.probe_worker import ProbeThread
-from ai_agent.core.llm.providers import TITLES, by_title, matching
+from ai_agent.core.llm.providers import PRESETS, TITLES, by_title, matching
 from ai_agent.core.settings import (
     AUTH_TYPE_BEARER,
     DEFAULT_API_URL,
@@ -26,7 +26,6 @@ from ai_agent.core.settings import (
     get_credential_store_error,
     get_model,
     get_verify_ssl,
-    reset_capabilities,
     set_api_key,
     set_api_url,
     set_auth_type,
@@ -41,29 +40,30 @@ from ai_agent.core.settings import (
     set_write_run_journal,
 )
 from ai_agent.i18n import tr
+from ai_agent.ui import controls, settings_layout, style
 from ai_agent.ui import settings_fields as fields
-from ai_agent.ui import settings_layout, style
+from ai_agent.ui.connection_widgets import ProviderTiles, StatusCard
 from ai_agent.ui.geocoder_settings import GeocoderSettings
+from ai_agent.ui.settings_probe import MODEL_REQUIRED, ConnectionProbeMixin
 from ai_agent.ui.settings_status import SettingsStatusMixin
 from ai_agent.ui.skills_settings import SkillsSettings
 
 TITLE = tr("Settings — AI Agent")
-MIN_WIDTH = 760
-MIN_HEIGHT = 520
-FOOTER_MARGINS = (16, 10, 16, 12)
+MIN_WIDTH = 860
+MIN_HEIGHT = 600
+FOOTER_MARGINS = (24, 12, 24, 12)
 FOOTER_SPACING = 8
+CONNECTION_LEAD = tr("Any OpenAI-compatible server works.")
+SAVED = tr("All changes saved")
+UNSAVED = tr("Unsaved changes")
 BUDGET_INVALID = tr("A budget must be a whole number of tokens, such as 200000 or 200k; empty means no limit.")
-PROBE_STOP_MS = 3000
-TESTING = tr("Testing the connection…")
-CANCELLING = tr("Cancelling the connection test…")
-CANCELLED = tr("Connection test cancelled.")
-MODEL_REQUIRED = tr("Enter a model name from the provider.")
 KEY_REMOVED = tr("The stored key for this endpoint was removed.")
-KEY_HINT = tr("Stored encrypted in the QGIS authentication database, not in the settings file.")
-KEYLESS_HINT = tr("A local server needs no key — leave this empty.")
+KEY_HINT = tr("Kept in the QGIS authentication database.")
+KEYLESS_HINT = tr("A local server needs no key.")
+MODEL_HINT = tr("As the provider names it.")
 
 
-class SettingsDialog(SettingsStatusMixin, QDialog):
+class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
     def __init__(self, parent: Any = None):
         super().__init__(parent)
         self._syncing_preset = False
@@ -76,87 +76,130 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
         self.setWindowTitle(TITLE)
         self.setMinimumWidth(MIN_WIDTH)
         self.setMinimumHeight(MIN_HEIGHT)
+        self._probe_started = 0.0
         palette = self.palette()
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(0)
         self.geocoder = GeocoderSettings(palette)
         self.skills = SkillsSettings(palette)
-        column.addLayout(settings_layout.build_body(self, palette), 1)
-        column.addWidget(fields.separator(palette))
-        footer = QVBoxLayout()
+        body, right = settings_layout.build_body(self, palette)
+        column.addLayout(body, 1)
+        right.addWidget(fields.separator(palette))
+        footer = QHBoxLayout()
         footer.setContentsMargins(*FOOTER_MARGINS)
         footer.setSpacing(FOOTER_SPACING)
         self._status = fields.status(palette)
-        footer.addWidget(self._status)
+        self._note = controls.small(SAVED, palette)
+        self._note.setWordWrap(False)
+        footer.addWidget(self._status, 1)
+        footer.addWidget(self._note, 1)
         footer.addLayout(self._build_buttons(palette))
-        column.addLayout(footer)
+        right.addLayout(footer)
         self._sync_preset()
         self._load_endpoint_state(remember_current=False)
+        self._show_untested()
+        self._watch_changes()
 
     def _build_connection(self, palette: Any) -> QWidget:
         holder, column = fields.page()
-        column.addWidget(fields.group(tr("Model endpoint"), palette))
+        self.test_btn = QPushButton(tr("Test connection"))
+        self.test_btn.setStyleSheet(fields.plain_button(palette))
+        self.test_btn.clicked.connect(self._test_connection)
+        self.status_card = StatusCard(palette, self.test_btn)
 
-        self.preset_combo = QComboBox()
+        fields.section(column, tr("Provider"), palette, CONNECTION_LEAD)
+        # The combo box stays the single source of truth for the preset; the tiles only draw it.
+        self.preset_combo = QComboBox(holder)
         self.preset_combo.addItems(TITLES)
+        self.preset_combo.hide()
+        self.provider_tiles = ProviderTiles(PRESETS, palette)
+        self.provider_tiles.chosen.connect(self.preset_combo.setCurrentText)
+        self.preset_combo.currentTextChanged.connect(self.provider_tiles.select)
         self.preset_combo.currentTextChanged.connect(self._apply_preset)
+        column.addWidget(self.provider_tiles)
 
+        fields.section(column, tr("Endpoint"), palette)
         self.url_edit = QLineEdit(get_api_url())
         self.url_edit.setPlaceholderText("https://api.openai.com/v1")
         self.url_edit.textChanged.connect(self._sync_preset)
         self.url_edit.editingFinished.connect(self._endpoint_finished)
-
         self.model_edit = QLineEdit(get_model())
 
         key_box = QWidget()
         key_column = QVBoxLayout(key_box)
         key_column.setContentsMargins(0, 0, 0, 0)
-        key_column.setSpacing(8)
+        key_column.setSpacing(6)
         self.key_edit = QLineEdit()
         self.key_edit.setEchoMode(QLineEdit.EchoMode.Password)
         self.key_edit.setPlaceholderText(tr("Provider key"))
         key_column.addWidget(self.key_edit)
-        self.remove_key_btn = QPushButton(tr("Remove stored key"))
-        self.remove_key_btn.setStyleSheet(fields.plain_button(palette))
+        self.remove_key_btn = QPushButton(tr("Remove key"))
+        self.remove_key_btn.setStyleSheet(fields.ghost_button(palette))
         self.remove_key_btn.clicked.connect(self._remove_key)
         key_column.addWidget(self.remove_key_btn, 0, Qt.AlignmentFlag.AlignRight)
         self._key_field = fields.row(tr("API key"), key_box, KEY_HINT, palette)
-
-        fields.add_rows(
-            column,
-            palette,
-            [
-                fields.row(tr("Provider"), self.preset_combo, "", palette),
-                fields.row(tr("Base URL"), self.url_edit, tr("Without /chat/completions at the end."), palette),
-                fields.row(tr("Model"), self.model_edit, "", palette),
-                self._key_field,
-            ],
+        self._model_field = fields.row(tr("Model"), self.model_edit, MODEL_HINT, palette)
+        column.addWidget(
+            fields.card_rows(
+                palette,
+                [
+                    fields.row(tr("Base URL"), self.url_edit, tr("Without /chat/completions."), palette),
+                    self._model_field,
+                    self._key_field,
+                    self.status_card,
+                ],
+            )
         )
-        column.addSpacing(fields.GROUP_GAP)
-        self.test_btn = QPushButton(tr("Test connection"))
-        self.test_btn.setStyleSheet(fields.plain_button(palette))
-        self.test_btn.clicked.connect(self._test_connection)
-        column.addWidget(self.test_btn, 0, Qt.AlignmentFlag.AlignLeft)
         column.addStretch(1)
         return holder
 
     def _build_buttons(self, palette: Any) -> QHBoxLayout:
         row = QHBoxLayout()
         row.setSpacing(8)
-        row.addStretch(1)
-
-        close_btn = QPushButton(tr("Close"))
-        close_btn.setStyleSheet(fields.plain_button(palette))
+        close_btn = QPushButton(tr("Cancel"))
+        close_btn.setStyleSheet(fields.ghost_button(palette))
         close_btn.clicked.connect(self.reject)
         row.addWidget(close_btn)
-
-        save_btn = QPushButton(tr("Save"))
-        save_btn.setStyleSheet(fields.accent_button(palette))
-        save_btn.setDefault(True)
-        save_btn.clicked.connect(self._save)
-        row.addWidget(save_btn)
+        self.save_btn = QPushButton(tr("Save"))
+        self.save_btn.setStyleSheet(fields.accent_button(palette))
+        self.save_btn.setDefault(True)
+        self.save_btn.setEnabled(False)
+        self.save_btn.clicked.connect(self._save)
+        row.addWidget(self.save_btn)
         return row
+
+    def _watch_changes(self) -> None:
+        """Mark a page as edited the moment one of its controls changes; Save waits for that."""
+        pages = {
+            0: [
+                self.preset_combo.currentTextChanged,
+                self.url_edit.textEdited,
+                self.model_edit.textEdited,
+                self.key_edit.textEdited,
+            ],
+            1: [self.verify_ssl_cb.toggled, self.journal_cb.toggled],
+            3: [self.geocoder.provider_combo.currentIndexChanged, self.geocoder.url_edit.textEdited],
+            4: [
+                self.verify_apply_cb.toggled,
+                self.budget_edit.textChanged,
+                self.thinking_edit.textEdited,
+                self.dialect_combo.currentTextChanged,
+                self.auth_type_combo.currentTextChanged,
+            ],
+        }
+        for index, signals in pages.items():
+            for signal in signals:
+                signal.connect(lambda *_args, at=index: self._mark_dirty(at))
+
+    def _mark_dirty(self, index: int) -> None:
+        if self._loading_endpoint:
+            return
+        settings_layout.mark_page(self, index)
+        self.save_btn.setEnabled(True)
+        if self._note.text() != UNSAVED:
+            self._note.setText(UNSAVED)
+            self._note.setStyleSheet(f"color: {style.css_color(style.warning(self.palette()))};")
 
     def _apply_preset(self, title: str) -> None:
         if self._syncing_preset:
@@ -185,11 +228,13 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
             fields.select(self.preset_combo, preset.title)
         finally:
             self._syncing_preset = False
+        # The combo only signals a change; the custom preset is its first item, so redraw the tiles directly.
+        self.provider_tiles.select(preset.title)
         self.model_edit.setPlaceholderText(preset.model_hint)
         self._paint_key_hint(preset.needs_key or preset.is_custom)
 
     def _paint_key_hint(self, needs_key: bool) -> None:
-        self._key_field.setToolTip(KEY_HINT if needs_key else KEYLESS_HINT)
+        fields.set_row_hint(self._key_field, KEY_HINT if needs_key else KEYLESS_HINT)
         self.key_edit.setPlaceholderText(tr("Provider key") if needs_key else tr("Not required"))
 
     def _endpoint_finished(self, *_args: Any) -> None:
@@ -276,72 +321,6 @@ class SettingsDialog(SettingsStatusMixin, QDialog):
                 return
         self._stop_probe_now()
         self.accept()
-
-    def _stop_probe_now(self) -> None:
-        thread = self._probe_thread
-        if thread is not None and thread.isRunning():
-            thread.cancel()
-            thread.wait(PROBE_STOP_MS)
-
-    def _test_connection(self) -> None:
-        if self._probe_thread is not None and self._probe_thread.isRunning():
-            self._cancel_probe()
-            return
-        if not self.model_edit.text().strip():
-            self._show(MODEL_REQUIRED, style.danger(self.palette()))
-            return
-        if not self._valid_url(self._edited_url()):
-            return
-        self.test_btn.setText(tr("Cancel test"))
-        self._show(TESTING, style.muted(self.palette()))
-        self._probe_was_cancelled = False
-        thread = ProbeThread(self._overrides(), self)
-        thread.completed.connect(self._on_probe_completed)
-        thread.finished.connect(lambda: self._on_probe_finished(thread))
-        self._probe_thread = thread
-        thread.start()
-
-    def _on_probe_completed(self, ok: bool, message: str) -> None:
-        palette = self.palette()
-        if ok:
-            overrides = self._overrides()
-            reset_capabilities(
-                overrides["url_override"], overrides.get("model_override") or "", overrides.get("dialect_override")
-            )
-        self._show(message, style.success(palette) if ok else style.danger(palette))
-
-    def _on_probe_finished(self, thread: ProbeThread) -> None:
-        thread.deleteLater()
-        if self._probe_thread is not thread:
-            return
-        cancelled = self._probe_was_cancelled
-        close_dialog = self._reject_after_probe
-        self._probe_thread = None
-        self._probe_was_cancelled = False
-        self._reject_after_probe = False
-        self.test_btn.setEnabled(True)
-        self.test_btn.setText(tr("Test connection"))
-        if close_dialog:
-            super().reject()
-        elif cancelled:
-            self._show(CANCELLED, style.muted(self.palette()))
-
-    def _cancel_probe(self) -> None:
-        thread = self._probe_thread
-        if thread is None or not thread.isRunning():
-            return
-        self._probe_was_cancelled = True
-        thread.cancel()
-        self.test_btn.setEnabled(False)
-        self._show(CANCELLING, style.muted(self.palette()))
-
-    def reject(self) -> None:
-        if self._probe_thread is not None and self._probe_thread.isRunning():
-            self._reject_after_probe = True
-            self._cancel_probe()
-            return
-        self._cancel_probe()
-        super().reject()
 
     def _overrides(self) -> dict[str, Any]:
         url = self._edited_url()

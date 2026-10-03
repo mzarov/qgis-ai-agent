@@ -1,4 +1,5 @@
 import pathlib
+import re
 import unittest
 
 from ai_agent.core.llm import (
@@ -43,7 +44,7 @@ class PresetTest(unittest.TestCase):
         self.assertEqual(providers.matching("https://openrouter.ai/api/v1").title, "OpenRouter")
 
     def test_trailing_slash_still_matches(self):
-        self.assertEqual(providers.matching("https://api.deepseek.com/v1/").title, "DeepSeek")
+        self.assertEqual(providers.matching("https://openrouter.ai/api/v1/").title, "OpenRouter")
 
     def test_unknown_url_is_custom(self):
         self.assertTrue(providers.matching("https://шлюз.внутри/v1").is_custom)
@@ -56,7 +57,7 @@ class PresetTest(unittest.TestCase):
             self.assertFalse(providers.by_title(title).needs_key, title)
 
     def test_remote_presets_need_a_key(self):
-        for title in ("OpenAI", "Anthropic", "OpenRouter", "DeepSeek"):
+        for title in ("OpenAI", "Anthropic", "OpenRouter", "Google Gemini"):
             self.assertTrue(providers.by_title(title).needs_key, title)
 
     def test_declared_dialect_matches_what_detection_would_pick(self):
@@ -82,17 +83,19 @@ SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "
 DIALOG_SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "settings_dialog.py").read_text(
     encoding="utf-8"
 )
+PROBE_SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "settings_probe.py").read_text(
+    encoding="utf-8"
+)
+CONTROLS_SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "controls.py").read_text(
+    encoding="utf-8"
+)
 GEOCODER_SOURCE = (
     pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "geocoder_settings.py"
 ).read_text(encoding="utf-8")
 
 
 class StyleSheetTest(unittest.TestCase):
-    def test_card_style_is_scoped_by_object_name(self):
-        self.assertIn("QFrame#{CARD_NAME}", SOURCE)
-        self.assertIn("setObjectName(CARD_NAME)", SOURCE)
-
-    def test_card_never_uses_a_bare_type_selector(self):
+    def test_no_style_uses_a_bare_frame_selector(self):
         self.assertNotIn('f"QFrame {{', SOURCE)
 
     def test_inputs_get_their_own_border(self):
@@ -102,13 +105,8 @@ class StyleSheetTest(unittest.TestCase):
     def test_focus_is_visible_on_inputs(self):
         self.assertIn("QLineEdit:focus, QComboBox:focus", SOURCE)
 
-    def test_card_lifts_instead_of_sinking(self):
-        body = SOURCE.split("def card(")[1].split("\ndef ")[0]
-        self.assertIn("style.panel(palette)", body)
-        self.assertNotIn("style.card(palette)", body)
-
     def test_inputs_sit_on_the_recessed_surface(self):
-        self.assertIn("style.surface(palette)", SOURCE)
+        self.assertIn("style.field(palette)", SOURCE)
 
     def test_borders_are_not_blanket_erased_on_containers(self):
         offenders = [line.strip() for line in SOURCE.split("\n") if "border: none" in line and "drop-down" not in line]
@@ -143,10 +141,6 @@ class SidebarSettingsTest(unittest.TestCase):
         self.assertIn("setWidgetResizable(True)", LAYOUT_SOURCE)
         self.assertIn("scrollable(page)", LAYOUT_SOURCE)
 
-    def test_no_page_repeats_its_entry_name_as_a_heading(self):
-        self.assertNotIn('fields.group(tr("Connection")', DIALOG_SOURCE)
-        self.assertNotIn('fields.group(tr("Advanced")', ADVANCED_SOURCE)
-
     def test_consent_controls_live_on_the_privacy_page(self):
         privacy = ADVANCED_SOURCE.split("def build_privacy(")[1].split("\ndef ")[0]
         for control in ("verify_ssl_cb", "journal_cb"):
@@ -157,31 +151,9 @@ class SidebarSettingsTest(unittest.TestCase):
         privacy = ADVANCED_SOURCE.split("def build_privacy(")[1].split("\ndef ")[0]
         self.assertEqual(privacy.count("fields.switch_row("), privacy.count("fields.switch(palette)"))
 
-    def test_descriptions_hide_behind_a_help_mark(self):
-        self.assertIn("def help_mark(", SOURCE)
-        mark = SOURCE.split("def help_mark(")[1].split("\ndef ")[0]
-        self.assertIn("setToolTip(rich_tooltip(note))", mark)
-        caption = SOURCE.split("def _caption(")[1].split("\ndef ")[0]
-        self.assertIn("help_mark(note, palette)", caption)
-        self.assertNotIn("hint(note", caption)
-
-    def test_the_mark_is_a_hover_hint_not_a_button(self):
-        mark = SOURCE.split("def help_mark(")[1].split("\ndef ")[0]
-        self.assertIn('QLabel("?")', mark)
-        self.assertNotIn("clicked", mark)
-        self.assertNotIn("QToolButton", mark)
-
     def test_long_explanations_wrap_instead_of_crossing_the_screen(self):
         body = SOURCE.split("def rich_tooltip(")[1].split("\ndef ")[0]
         self.assertIn("<qt>", body)
-
-    def test_the_mark_hugs_the_text_and_titles_stay_single_line(self):
-        caption = SOURCE.split("def _caption(")[1].split("\ndef ")[0]
-        self.assertIn("line.addStretch(1)", caption)
-        self.assertNotIn("setWordWrap", caption)
-
-    def test_dynamic_geocoder_hint_reaches_the_help_mark(self):
-        self.assertIn("self.url_field.help.setToolTip(fields.rich_tooltip(hint))", GEOCODER_SOURCE)
 
     def test_the_probe_button_lives_on_the_connection_page(self):
         connection = DIALOG_SOURCE.split("def _build_connection(")[1].split("\n    def ")[0]
@@ -224,13 +196,48 @@ class SidebarSettingsTest(unittest.TestCase):
 
     def test_a_row_puts_the_control_opposite_its_label(self):
         body = SOURCE.split("def row(")[1].split("\ndef ")[0]
-        self.assertIn("Qt.AlignmentFlag.AlignRight", body)
         self.assertIn("setFixedWidth(CONTROL_WIDTH)", body)
+        grammar = SOURCE.split("def _row(")[1].split("\ndef ")[0]
+        self.assertIn("Qt.AlignmentFlag.AlignRight", grammar)
+
+    def test_every_row_shows_its_hint_under_the_title(self):
+        grammar = SOURCE.split("def _row(")[1].split("\ndef ")[0]
+        self.assertIn("holder.hint = hint(note, palette)", grammar)
+        self.assertNotIn("def help_mark(", SOURCE)
+
+    def test_hints_wrap_and_long_detail_stays_a_tooltip(self):
+        self.assertIn("controls.small(", SOURCE.split("def hint(")[1])
+        self.assertIn("label.setWordWrap(True)", CONTROLS_SOURCE.split("def small(")[1].split("\ndef ")[0])
+        grammar = SOURCE.split("def _row(")[1].split("\ndef ")[0]
+        self.assertIn("caption.setToolTip(rich_tooltip(tooltip))", grammar)
+
+    def test_pages_are_sections_of_flat_rows_like_claude_code(self):
+        for source in (DIALOG_SOURCE, ADVANCED_SOURCE, GEOCODER_SOURCE):
+            self.assertIn("fields.section(", source)
+        rows = SOURCE.split("def card_rows(")[1].split("\ndef ")[0]
+        self.assertNotIn("QFrame", rows)
+
+    def test_the_sidebar_groups_its_entries(self):
+        self.assertIn("GROUPS = ", LAYOUT_SOURCE)
+
+    def test_save_waits_for_an_edit(self):
+        self.assertIn("self.save_btn.setEnabled(False)", DIALOG_SOURCE)
+        dirty = DIALOG_SOURCE.split("def _mark_dirty(")[1].split("\n    def ")[0]
+        self.assertIn("self.save_btn.setEnabled(True)", dirty)
+        self.assertIn("if self._loading_endpoint:", dirty)
+
+    def test_the_preset_combo_stays_the_source_of_truth_for_the_tiles(self):
+        connection = DIALOG_SOURCE.split("def _build_connection(")[1].split("\n    def ")[0]
+        self.assertIn("self.provider_tiles.chosen.connect(self.preset_combo.setCurrentText)", connection)
+        self.assertIn("self.preset_combo.currentTextChanged.connect(self.provider_tiles.select)", connection)
 
     def test_separators_go_between_rows_never_after_the_last(self):
         body = SOURCE.split("def add_rows(")[1].split("\ndef ")[0]
         self.assertIn("if index:", body)
         self.assertIn("separator(palette)", body)
+
+    def test_the_sidebar_shows_which_pages_hold_unsaved_edits(self):
+        self.assertIn("def mark_page(", LAYOUT_SOURCE)
 
     def test_sidebar_and_pages_share_one_surface_split_by_a_line(self):
         self.assertIn("fields.vertical_separator(palette)", LAYOUT_SOURCE)
@@ -238,7 +245,6 @@ class SidebarSettingsTest(unittest.TestCase):
 
     def test_the_sidebar_carries_no_heading_of_its_own(self):
         self.assertNotIn("nav_heading", LAYOUT_SOURCE)
-        self.assertNotIn('tr("Settings")', LAYOUT_SOURCE)
 
     def test_pages_show_through_the_pane_not_their_own_grey(self):
         body = LAYOUT_SOURCE.split("def scrollable(")[1].split("\ndef ")[0]
@@ -258,43 +264,56 @@ class CredentialUiContractTest(unittest.TestCase):
         self.assertIn("set_api_key(key, url, dialect)", DIALOG_SOURCE)
 
     def test_stored_key_has_an_explicit_remove_action(self):
-        self.assertIn('tr("Remove stored key")', DIALOG_SOURCE)
+        self.assertIn('tr("Remove key")', DIALOG_SOURCE)
         self.assertIn("delete_api_key(url, dialect)", DIALOG_SOURCE)
 
     def test_connection_probe_runs_outside_the_ui_thread_and_can_be_cancelled(self):
-        self.assertIn("ProbeThread(self._overrides(), self)", DIALOG_SOURCE)
-        self.assertIn("thread.start()", DIALOG_SOURCE)
-        self.assertIn("thread.cancel()", DIALOG_SOURCE)
-        self.assertNotIn("probe(self._overrides())", DIALOG_SOURCE)
+        self.assertIn("ProbeThread(self._overrides(), self)", PROBE_SOURCE)
+        self.assertIn("thread.start()", PROBE_SOURCE)
+        self.assertIn("thread.cancel()", PROBE_SOURCE)
+        self.assertNotIn("probe(self._overrides())", PROBE_SOURCE + DIALOG_SOURCE)
 
     def test_closing_waits_for_a_running_probe_to_finish(self):
-        reject_body = DIALOG_SOURCE.split("def reject(self)")[1].split("\n    def ")[0]
-        finished_body = DIALOG_SOURCE.split("def _on_probe_finished")[1].split("\n    def ")[0]
+        reject_body = PROBE_SOURCE.split("def reject(self)")[1].split("\n    def ")[0]
+        finished_body = PROBE_SOURCE.split("def _on_probe_finished")[1].split("\n    def ")[0]
         self.assertIn("self._reject_after_probe = True", reject_body)
         self.assertIn("super().reject()", finished_body)
-        self.assertIn("thread.cancel()", DIALOG_SOURCE)
 
     def test_geocoder_is_selected_in_settings_not_by_the_model(self):
-        self.assertIn('tr("Photon demo (fair use)")', GEOCODER_SOURCE)
-        self.assertIn('tr("Custom Nominatim")', GEOCODER_SOURCE)
+        self.assertIn('addItem("Photon", GEOCODER_PHOTON)', GEOCODER_SOURCE)
+        self.assertIn('addItem("Nominatim", GEOCODER_NOMINATIM)', GEOCODER_SOURCE)
         self.assertIn("validated_service_url", GEOCODER_SOURCE)
         self.assertIn("self.geocoder.values()", DIALOG_SOURCE)
 
 
-class PanelLevelTest(unittest.TestCase):
+class ThemeTest(unittest.TestCase):
     STYLE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "style.py").read_text(
         encoding="utf-8"
     )
+    MOCKUP = (pathlib.Path(__file__).resolve().parent.parent / "design" / "mockups" / "index.html").read_text(
+        encoding="utf-8"
+    )
 
-    def test_panel_exists_and_lifts_only_in_the_dark(self):
-        self.assertIn("def panel(", self.STYLE)
-        body = self.STYLE.split("def panel(")[1].split("def ")[0]
-        self.assertIn("if not is_dark(palette):", body)
-        self.assertIn("return base", body)
-        self.assertIn("PANEL_LIFT", body)
+    def test_the_two_palettes_are_the_mockup_tokens(self):
+        from ai_agent.ui import theme
 
-    def test_lift_is_meaningful(self):
-        self.assertGreater(_constant(self.STYLE, "PANEL_LIFT"), 0.05)
+        light = self.MOCKUP.split(":root {")[1].split("}")[0].lower()
+        dark = self.MOCKUP.split('[data-theme="dark"] {')[1].split("}")[0].lower()
+        for tokens, css in ((theme.LIGHT, light), (theme.DARK, dark)):
+            for name, value in vars(tokens).items():
+                self.assertIn(f"--{name.replace('_', '-')}: {value.lower()}", css, name)
+
+    def test_only_the_theme_spells_a_colour(self):
+        ui = pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui"
+        offenders = [
+            path.name
+            for path in ui.glob("*.py")
+            if path.name != "theme.py" and re.search(r"#[0-9a-fA-F]{6}\b|QColor\(\s*\d", path.read_text("utf-8"))
+        ]
+        self.assertEqual(offenders, [])
+
+    def test_the_palette_only_chooses_light_or_dark(self):
+        self.assertIn("theme.tokens(palette)", self.STYLE)
 
 
 def _constant(source, name):

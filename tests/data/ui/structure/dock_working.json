@@ -1,0 +1,130 @@
+[
+ {
+  "depth": 0,
+  "type": "AgentDockWidget"
+ },
+ {
+  "depth": 1,
+  "type": "QAbstractButton"
+ },
+ {
+  "depth": 1,
+  "type": "QAbstractButton"
+ },
+ {
+  "depth": 1,
+  "type": "QWidget",
+  "name": "agentBody"
+ },
+ {
+  "depth": 2,
+  "type": "QWidget"
+ },
+ {
+  "depth": 3,
+  "type": "QLabel"
+ },
+ {
+  "depth": 3,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 3,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 3,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 2,
+  "type": "ConversationView"
+ },
+ {
+  "depth": 3,
+  "type": "QWidget",
+  "name": "feed"
+ },
+ {
+  "depth": 4,
+  "type": "ProgressLine"
+ },
+ {
+  "depth": 5,
+  "type": "WorkingDots"
+ },
+ {
+  "depth": 5,
+  "type": "ElidedLabel",
+  "text": "Reading layer 'districts'"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "<duration>"
+ },
+ {
+  "depth": 4,
+  "type": "UserMessage"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Colour districts by pop2020 in 5 classes"
+ },
+ {
+  "depth": 4,
+  "type": "ActivityGroup"
+ },
+ {
+  "depth": 5,
+  "type": "Disclosure"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "1 action"
+ },
+ {
+  "depth": 6,
+  "type": "QToolButton",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QWidget"
+ },
+ {
+  "depth": 3,
+  "type": "Composer"
+ },
+ {
+  "depth": 4,
+  "type": "RoundedFrame",
+  "name": "composerFrame"
+ },
+ {
+  "depth": 5,
+  "type": "PromptEdit",
+  "text": "Type to correct me…"
+ },
+ {
+  "depth": 5,
+  "type": "QPushButton",
+  "text": "■"
+ },
+ {
+  "depth": 4,
+  "type": "ComposerToolbar"
+ },
+ {
+  "depth": 5,
+  "type": "QToolButton",
+  "text": "+"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "qwen3"
+ }
+]

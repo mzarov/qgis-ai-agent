@@ -13,16 +13,12 @@
  },
  {
   "depth": 1,
-  "type": "QWidget"
+  "type": "QWidget",
+  "name": "agentBody"
  },
  {
   "depth": 2,
   "type": "QWidget"
- },
- {
-  "depth": 3,
-  "type": "QLabel",
-  "text": "AI Agent"
  },
  {
   "depth": 3,
@@ -46,7 +42,8 @@
  },
  {
   "depth": 3,
-  "type": "QWidget"
+  "type": "QWidget",
+  "name": "feed"
  },
  {
   "depth": 4,
@@ -59,23 +56,33 @@
  },
  {
   "depth": 5,
-  "type": "QLabel",
-  "text": "The agent reads the project itself. Nothing changes until you press Apply."
+  "type": "Suggestion",
+  "name": "suggestion"
  },
  {
-  "depth": 5,
-  "type": "QPushButton",
+  "depth": 6,
+  "type": "QLabel",
   "text": "What layers do I have and what is in them?"
  },
  {
   "depth": 5,
-  "type": "QPushButton",
-  "text": "Colour the layer by its type and label the features"
+  "type": "Suggestion",
+  "name": "suggestion"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Colour the layer by category and add labels"
  },
  {
   "depth": 5,
-  "type": "QPushButton",
-  "text": "Download the cafes in Tver from OpenStreetMap"
+  "type": "Suggestion",
+  "name": "suggestion"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Download cafés in Paris from OpenStreetMap"
  },
  {
   "depth": 2,
@@ -87,7 +94,8 @@
  },
  {
   "depth": 4,
-  "type": "QWidget"
+  "type": "RoundedFrame",
+  "name": "composerFrame"
  },
  {
   "depth": 5,
@@ -96,13 +104,22 @@
  },
  {
   "depth": 5,
-  "type": "QLabel",
-  "text": "↑↓ to choose a layer, Tab or Enter to insert, Esc to dismiss"
+  "type": "QPushButton",
+  "text": "↵"
+ },
+ {
+  "depth": 4,
+  "type": "ComposerToolbar"
  },
  {
   "depth": 5,
-  "type": "QPushButton",
-  "text": "↑"
+  "type": "QToolButton",
+  "text": "+"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "qwen3"
  },
  {
   "depth": 2,
@@ -111,8 +128,52 @@
  },
  {
   "depth": 3,
+  "type": "QFrame",
+  "name": "popupFooter"
+ },
+ {
+  "depth": 4,
+  "type": "KeyCap",
+  "text": "↑"
+ },
+ {
+  "depth": 4,
+  "type": "KeyCap",
+  "text": "↓"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "choose"
+ },
+ {
+  "depth": 4,
+  "type": "KeyCap",
+  "text": "Tab"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "insert"
+ },
+ {
+  "depth": 4,
+  "type": "KeyCap",
+  "text": "Esc"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "close"
+ },
+ {
+  "depth": 3,
   "type": "SkillRow",
   "name": "skillRow"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel"
  },
  {
   "depth": 4,
@@ -121,7 +182,7 @@
  },
  {
   "depth": 4,
-  "type": "QLabel",
+  "type": "ElidedLabel",
   "text": "polygon, EPSG:4326, 6 features"
  },
  {
@@ -131,12 +192,16 @@
  },
  {
   "depth": 4,
+  "type": "QLabel"
+ },
+ {
+  "depth": 4,
   "type": "QLabel",
   "text": "@Main rivers"
  },
  {
   "depth": 4,
-  "type": "QLabel",
+  "type": "ElidedLabel",
   "text": "line, EPSG:4326, 1 feature"
  }
 ]

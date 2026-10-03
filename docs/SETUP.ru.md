@@ -72,6 +72,11 @@ python3 tools/build_plugin.py
 | Mistral | `https://api.mistral.ai/v1` | openai |
 | Together, Fireworks, Cerebras | адрес из их документации | openai |
 
+В окне настроек есть плитки для OpenAI, OpenRouter, Anthropic, Google Gemini,
+Ollama и LM Studio; остальное из этой таблицы вводится как свой адрес.
+Логотипы провайдеров взяты из [Simple Icons](https://simpleicons.org) (CC0) и
+остаются товарными знаками их владельцев; иконки интерфейса — [Lucide](https://lucide.dev) (ISC).
+
 OpenRouter даёт доступ к моделям почти всех вендоров через один ключ и один
 адрес — включая Claude и Gemini, — и для плагина остаётся обычным
 OpenAI-совместимым сервисом. Ставить формат вручную нужно только для шлюза,

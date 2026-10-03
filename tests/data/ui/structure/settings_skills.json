@@ -5,7 +5,13 @@
  },
  {
   "depth": 1,
-  "type": "QWidget"
+  "type": "QWidget",
+  "name": "settingsNav"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Settings"
  },
  {
   "depth": 2,
@@ -22,6 +28,17 @@
  {
   "depth": 2,
   "type": "QPushButton",
+  "text": "Advanced",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Customize"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
   "text": "Skills",
   "checked": true
  },
@@ -32,52 +49,22 @@
   "checked": false
  },
  {
-  "depth": 2,
-  "type": "QPushButton",
-  "text": "Advanced",
-  "checked": false
- },
- {
   "depth": 1,
   "type": "QFrame",
   "name": "settingsSeparator"
  },
  {
   "depth": 1,
-  "type": "QStackedWidget"
+  "type": "QWidget",
+  "name": "settingsContent"
  },
  {
   "depth": 2,
-  "type": "QScrollArea"
+  "type": "QStackedWidget"
  },
  {
   "depth": 3,
-  "type": "QWidget"
- },
- {
-  "depth": 4,
-  "type": "QLabel",
-  "text": "Your skills"
- },
- {
-  "depth": 4,
-  "type": "QLabel",
-  "text": "A skill is a folder with a SKILL.md inside: a name, one line saying when to use it, and the rules in Markdown. Type / in"
- },
- {
-  "depth": 4,
-  "type": "QLabel",
-  "text": "<profile>/config/profiles/default/ai_agent_skills"
- },
- {
-  "depth": 4,
-  "type": "QPushButton",
-  "text": "Open folder"
- },
- {
-  "depth": 4,
-  "type": "QPushButton",
-  "text": "Create an example"
+  "type": "QScrollArea"
  },
  {
   "depth": 4,
@@ -85,22 +72,364 @@
  },
  {
   "depth": 5,
-  "type": "QLabel",
-  "text": "No local skills yet — create the example and edit it."
+  "type": "QWidget"
  },
  {
-  "depth": 1,
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Your skills"
+ },
+ {
+  "depth": 6,
+  "type": "QPushButton",
+  "text": "+  Create an example"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Folders with a SKILL.md. Type / in the chat to use one."
+ },
+ {
+  "depth": 5,
   "type": "QFrame",
   "name": "settingsSeparator"
  },
  {
-  "depth": 1,
-  "type": "QPushButton",
-  "text": "Close"
+  "depth": 5,
+  "type": "QWidget"
  },
  {
-  "depth": 1,
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Folder"
+ },
+ {
+  "depth": 6,
+  "type": "ElidedLabel",
+  "text": "/Users/someone-with-a-long-name/Library/Application Support/QGIS/QGIS4/profiles/default/config/profiles/default/ai_agent"
+ },
+ {
+  "depth": 6,
   "type": "QPushButton",
-  "text": "Save"
+  "text": "Open"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Built in"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "12"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "annotations"
+ },
+ {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "One-off notes and markers drawn on top of the map at a coordinate — not attribute labels (those are style). Load this fo"
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "edit"
+ },
+ {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "Change or delete existing records in place — set attribute values, remove features; writes to the data source. Load this"
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "fields"
+ },
+ {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "Change a layer's columns — add a real or a virtual (expression) field, rename, delete. Load this when the request is abo"
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "inspect"
+ },
+ {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "Facts about the open project — layers, fields and their values, counts, lengths and areas via expressions, the user's se"
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "layout"
+ },
+ {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "Print output — a page with map, title, legend, scale bar, north arrow or picture, exported to PDF or PNG. Load this for "
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "osm"
+ },
+ {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "Fetch OpenStreetMap data through Overpass into new layers — roads, buildings, POIs, water, land use, anything by OSM tag"
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "processing"
+ },
+ {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "Geoprocessing and analysis — buffer, clip, intersect, dissolve, join, reproject, field calculator, heatmap, clustering, "
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "project"
+ },
+ {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "The workspace — add layers from files, basemaps, WMS/WFS or PostGIS; remove, rename, hide, group, reorder; project CRS; "
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "python"
+ },
+ {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "Run a PyQGIS snippet — the escape hatch to the whole QGIS API for what no tool covers (blend modes, 3D scene settings, e"
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "style"
+ },
+ {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "Change or inspect how a layer looks — single symbol, colours by category or graduated classes, feature labels, opacity, "
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "three_d"
+ },
+ {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "Open a 3D map view. Load this for \"show in 3D\", \"terrain view\", \"tilt the map\"; terrain, exaggeration and camera are the"
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "web"
+ },
+ {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "Internet lookups — web search, reading a URL, geocoding a place name to coordinates and a bounding box. Load this for fa"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "No skills of your own yet."
+ },
+ {
+  "depth": 2,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "All changes saved"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Cancel"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Save",
+  "enabled": false
  }
 ]

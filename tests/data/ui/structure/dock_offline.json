@@ -1,0 +1,99 @@
+[
+ {
+  "depth": 0,
+  "type": "AgentDockWidget"
+ },
+ {
+  "depth": 1,
+  "type": "QAbstractButton"
+ },
+ {
+  "depth": 1,
+  "type": "QAbstractButton"
+ },
+ {
+  "depth": 1,
+  "type": "QWidget",
+  "name": "agentBody"
+ },
+ {
+  "depth": 2,
+  "type": "QWidget"
+ },
+ {
+  "depth": 3,
+  "type": "QLabel"
+ },
+ {
+  "depth": 3,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 3,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 3,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 2,
+  "type": "ConversationView"
+ },
+ {
+  "depth": 3,
+  "type": "QWidget",
+  "name": "feed"
+ },
+ {
+  "depth": 4,
+  "type": "WelcomeCard"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "One step before we start"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "The agent talks to a language model of your choice, so it needs an address and a key — or nothing at all if you run a lo"
+ },
+ {
+  "depth": 5,
+  "type": "QPushButton",
+  "text": "Open settings"
+ },
+ {
+  "depth": 2,
+  "type": "QWidget"
+ },
+ {
+  "depth": 3,
+  "type": "Composer"
+ },
+ {
+  "depth": 4,
+  "type": "RoundedFrame",
+  "name": "composerFrame"
+ },
+ {
+  "depth": 5,
+  "type": "PromptEdit",
+  "text": "Connect a model to start"
+ },
+ {
+  "depth": 4,
+  "type": "ComposerToolbar"
+ },
+ {
+  "depth": 5,
+  "type": "QToolButton",
+  "text": "+"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "qwen3"
+ }
+]

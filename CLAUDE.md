@@ -186,7 +186,8 @@ poetry run ruff format --check .
 poetry run mypy
 ```
 
-Strict mypy checking covers `config/`, `skills/`, `qgis_tools/base.py`, argument
+Strict mypy checking covers `config/`, `skills/`, `qgis_tools/base.py`, call
+summaries, argument
 validation and the Processing effect policy. Only unavailable QGIS imports are exempted; expand the
 checked scope as stable contracts are typed. Ruff owns undefined-name checking.
 

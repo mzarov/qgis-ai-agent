@@ -5,7 +5,13 @@
  },
  {
   "depth": 1,
-  "type": "QWidget"
+  "type": "QWidget",
+  "name": "settingsNav"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Settings"
  },
  {
   "depth": 2,
@@ -22,6 +28,17 @@
  {
   "depth": 2,
   "type": "QPushButton",
+  "text": "Advanced",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Customize"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
   "text": "Skills",
   "checked": false
  },
@@ -32,32 +49,22 @@
   "checked": false
  },
  {
-  "depth": 2,
-  "type": "QPushButton",
-  "text": "Advanced",
-  "checked": false
- },
- {
   "depth": 1,
   "type": "QFrame",
   "name": "settingsSeparator"
  },
  {
   "depth": 1,
-  "type": "QStackedWidget"
+  "type": "QWidget",
+  "name": "settingsContent"
  },
  {
   "depth": 2,
-  "type": "QScrollArea"
+  "type": "QStackedWidget"
  },
  {
   "depth": 3,
-  "type": "QWidget"
- },
- {
-  "depth": 4,
-  "type": "QLabel",
-  "text": "Connection security and records"
+  "type": "QScrollArea"
  },
  {
   "depth": 4,
@@ -65,31 +72,50 @@
  },
  {
   "depth": 5,
+  "type": "QLabel",
+  "text": "Everything the agent reads goes to the model"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Use a local server to keep project data on this computer."
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Connection security"
+ },
+ {
+  "depth": 5,
   "type": "QWidget"
  },
  {
   "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
   "type": "QLabel",
   "text": "Verify the SSL certificate"
  },
  {
-  "depth": 6,
+  "depth": 8,
   "type": "QLabel",
-  "text": "?"
+  "text": "Turn off only for a trusted self-signed server."
  },
  {
-  "depth": 5,
+  "depth": 7,
   "type": "Switch",
   "checked": true
  },
  {
-  "depth": 4,
-  "type": "QFrame",
-  "name": "settingsSeparator"
- },
- {
-  "depth": 4,
-  "type": "QWidget"
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Records"
  },
  {
   "depth": 5,
@@ -97,32 +123,46 @@
  },
  {
   "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
   "type": "QLabel",
   "text": "Write a run journal after applying"
  },
  {
-  "depth": 6,
+  "depth": 8,
   "type": "QLabel",
-  "text": "?"
+  "text": "A Markdown log in the QGIS profile."
  },
  {
-  "depth": 5,
+  "depth": 7,
   "type": "Switch",
   "checked": false
  },
  {
-  "depth": 1,
+  "depth": 2,
   "type": "QFrame",
   "name": "settingsSeparator"
  },
  {
-  "depth": 1,
-  "type": "QPushButton",
-  "text": "Close"
+  "depth": 2,
+  "type": "QLabel",
+  "text": "All changes saved"
  },
  {
-  "depth": 1,
+  "depth": 2,
   "type": "QPushButton",
-  "text": "Save"
+  "text": "Cancel"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Save",
+  "enabled": false
  }
 ]

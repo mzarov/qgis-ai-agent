@@ -484,12 +484,12 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.assertIn("Half an answer", contents)
         self.assertEqual(restored, ["сделай реки синими"])
 
-    def test_a_stopped_run_offers_the_request_again(self):
+    def test_a_stopped_run_leaves_the_box_empty(self):
         restored = []
         self.dock.restore_prompt = restored.append
         self.orchestrator.on_prompt("сделай реки синими")
         self.orchestrator.on_aborted()
-        self.assertEqual(restored, ["сделай реки синими"])
+        self.assertEqual(restored, [])
 
     def test_failed_steps_reach_the_verification_prompt(self):
         self.orchestrator.on_prompt("сделай реки синими")

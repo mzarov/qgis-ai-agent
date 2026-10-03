@@ -5,7 +5,13 @@
  },
  {
   "depth": 1,
-  "type": "QWidget"
+  "type": "QWidget",
+  "name": "settingsNav"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Settings"
  },
  {
   "depth": 2,
@@ -22,6 +28,17 @@
  {
   "depth": 2,
   "type": "QPushButton",
+  "text": "Advanced",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Customize"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
   "text": "Skills",
   "checked": false
  },
@@ -32,37 +49,22 @@
   "checked": true
  },
  {
-  "depth": 2,
-  "type": "QPushButton",
-  "text": "Advanced",
-  "checked": false
- },
- {
   "depth": 1,
   "type": "QFrame",
   "name": "settingsSeparator"
  },
  {
   "depth": 1,
-  "type": "QStackedWidget"
+  "type": "QWidget",
+  "name": "settingsContent"
  },
  {
   "depth": 2,
-  "type": "QScrollArea"
+  "type": "QStackedWidget"
  },
  {
   "depth": 3,
-  "type": "QWidget"
- },
- {
-  "depth": 4,
-  "type": "QLabel",
-  "text": "Turning a place name into coordinates"
- },
- {
-  "depth": 4,
-  "type": "QLabel",
-  "text": "With a geocoder the agent can turn \"cafes in Divnomorskoye\" into a bounding box and hand it to the OpenStreetMap downloa"
+  "type": "QScrollArea"
  },
  {
   "depth": 4,
@@ -70,59 +72,74 @@
  },
  {
   "depth": 5,
+  "type": "QLabel",
+  "text": "Geocoding"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Turns place names into coordinates for OpenStreetMap downloads."
+ },
+ {
+  "depth": 5,
   "type": "QWidget"
  },
  {
   "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
   "type": "QLabel",
   "text": "Service"
  },
  {
-  "depth": 5,
-  "type": "QComboBox",
-  "text": "Disabled"
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Only names OpenStreetMap already knows will be found."
  },
  {
-  "depth": 4,
+  "depth": 6,
+  "type": "Segmented",
+  "name": "segmented"
+ },
+ {
+  "depth": 7,
+  "type": "QPushButton",
+  "text": "Off",
+  "checked": true
+ },
+ {
+  "depth": 7,
+  "type": "QPushButton",
+  "text": "Photon",
+  "checked": false
+ },
+ {
+  "depth": 7,
+  "type": "QPushButton",
+  "text": "Nominatim",
+  "checked": false
+ },
+ {
+  "depth": 2,
   "type": "QFrame",
   "name": "settingsSeparator"
  },
  {
-  "depth": 4,
-  "type": "QWidget"
- },
- {
-  "depth": 5,
-  "type": "QWidget"
- },
- {
-  "depth": 6,
+  "depth": 2,
   "type": "QLabel",
-  "text": "Base URL"
+  "text": "All changes saved"
  },
  {
-  "depth": 6,
-  "type": "QLabel",
-  "text": "?"
- },
- {
-  "depth": 5,
-  "type": "QLineEdit",
-  "text": "https://geocoder.example"
- },
- {
-  "depth": 1,
-  "type": "QFrame",
-  "name": "settingsSeparator"
- },
- {
-  "depth": 1,
+  "depth": 2,
   "type": "QPushButton",
-  "text": "Close"
+  "text": "Cancel"
  },
  {
-  "depth": 1,
+  "depth": 2,
   "type": "QPushButton",
-  "text": "Save"
+  "text": "Save",
+  "enabled": false
  }
 ]

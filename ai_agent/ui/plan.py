@@ -89,10 +89,8 @@ class PlanCard(QFrame):
         label.setTextFormat(Qt.TextFormat.PlainText)
         label.setWordWrap(True)
         label.setStyleSheet("border: none;")
-        font = label.font()
-        font.setPointSizeF(max(1.0, font.pointSizeF() * STEP_FONT_SCALE))
-        label.setFont(font)
-        number.setFont(font)
+        style.scale_font(label, STEP_FONT_SCALE)
+        number.setFont(label.font())
         layout.addWidget(label, 1)
         return row
 
@@ -138,7 +136,7 @@ def _accent_button(palette) -> str:
     accent = style.css_color(style.accent(palette))
     return (
         f"QPushButton {{ background: {accent};"
-        f"color: {style.css_color(palette.highlightedText().color())};"
+        f"color: {style.css_color(style.on_accent(palette))};"
         f"border: {style.HAIRLINE}px solid {accent}; border-radius: 6px;"
         "padding: 0 14px; font-weight: 600; }"
         f"QPushButton:hover {{ background: {style.css_color(style.accent(palette).lighter(112))}; }}"

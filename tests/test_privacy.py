@@ -14,7 +14,7 @@ from ai_agent.qgis_tools.project.views import SaveBookmarkTool
 from ai_agent.qgis_tools.project.zoom_to_layer import ZoomToLayerTool
 from ai_agent.qgis_tools.python.run_python import RunPythonTool
 from ai_agent.qgis_tools.style.describe_style import DescribeStyleTool
-from ai_agent.ui import dock_widget
+from ai_agent.ui import confirmations
 
 
 class MessageBoxProbe:
@@ -87,12 +87,12 @@ class PrivacyClassificationTest(unittest.TestCase):
         self.assertNotIn("data_sharing", pathlib.Path(request_module.__file__).read_text(encoding="utf-8"))
 
     def test_first_send_dialog_defaults_to_yes_so_enter_sends(self):
-        saved = dock_widget.QMessageBox
-        dock_widget.QMessageBox = MessageBoxProbe
+        saved = confirmations.QMessageBox
+        confirmations.QMessageBox = MessageBoxProbe
         try:
-            dock_widget.AgentDockWidget.confirm_data_sharing(None, "https://provider.example")
+            confirmations.confirm_data_sharing(None, "https://provider.example")
         finally:
-            dock_widget.QMessageBox = saved
+            confirmations.QMessageBox = saved
         self.assertEqual(MessageBoxProbe.latest.default_button, MessageBoxProbe.StandardButton.Yes)
 
 

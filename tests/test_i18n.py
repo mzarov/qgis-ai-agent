@@ -80,6 +80,20 @@ class TrTest(unittest.TestCase):
         self.assertEqual(i18n.tr_n("%n step(s)", 0), "0 steps")
         self.assertEqual(i18n.tr_n("%n step(s)", 1), "1 step")
 
+    def test_plural_survives_qt_filling_in_the_count_itself(self):
+        class FillingQt:
+            @staticmethod
+            def translate(_context, text, _disambiguation, count):
+                return text.replace("%n", str(count))
+
+        saved = i18n.QCoreApplication
+        i18n.QCoreApplication = FillingQt
+        try:
+            self.assertEqual(i18n.tr_n("%n action(s)", 1), "1 action")
+            self.assertEqual(i18n.tr_n("%n action(s)", 4), "4 actions")
+        finally:
+            i18n.QCoreApplication = saved
+
     def test_plural_never_raises(self):
         saved = i18n.QCoreApplication
         i18n.QCoreApplication = None

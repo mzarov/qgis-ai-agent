@@ -50,6 +50,23 @@ VOLATILE = [
 ]
 
 
+def duration_patterns(formats: list[str]) -> list[tuple[re.Pattern[str], str]]:
+    """Patterns for durations as the UI writes them, built from its own (possibly translated) formats.
+
+    `formats` are format strings such as "{0} ms"; each placeholder becomes a number.
+    """
+    patterns = []
+    for text in formats:
+        parts = [re.escape(part) for part in re.split(r"\{\d+\}", text)]
+        # Whole words only: "{0} s" must not eat the start of "0 seconds" or a translated "0 sets".
+        body = r"\d+(?:[.,]\d+)?".join(parts)
+        patterns.append((re.compile(rf"(?<!\w){body}(?!\w)"), "<duration>"))
+    return patterns
+
+
+EXTRA_VOLATILE: list[tuple[re.Pattern[str], str]] = []
+
+
 def normalize_texts(root: QWidget, replacements: dict[str, str]) -> None:
     """Replace run-specific text (durations, token counts, temporary paths) before any check."""
     for widget in [root, *root.findChildren(QWidget)]:
@@ -168,7 +185,7 @@ def _scrub(text: str, replacements: dict[str, str]) -> str:
     for old, new in replacements.items():
         if old:
             text = text.replace(old, new)
-    for pattern, new in VOLATILE:
+    for pattern, new in [*EXTRA_VOLATILE, *VOLATILE]:
         text = pattern.sub(new, text)
     return text
 
@@ -220,8 +237,8 @@ def _visible(root: QWidget) -> list[QWidget]:
 
 
 def _elides(label: QLabel) -> bool:
-    # Labels sized to shrink on purpose (minimum width 0) elide by design.
-    return label.minimumWidth() == 0 and label.sizePolicy().horizontalPolicy().name == "Ignored"
+    # Only the eliding label gives up its width on purpose; any other clipped label is a fault.
+    return type(label).__name__ == "ElidedLabel"
 
 
 def _label(widget: QWidget) -> str:

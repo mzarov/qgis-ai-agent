@@ -72,7 +72,9 @@ the schema by hand. Supported `type`s: `string`, `number`, `integer`, `boolean`,
    wrapped in `tr()`, and only it may carry a literal for translation:
    `tr("Reading layer '{0}'.").format(name)`. The knowledge of what a step
    looks like lives in the tool, not in the registry. Show coordinates the user
-   did not give as “auto” — never substitute invented defaults.
+   did not give as “auto” — never substitute invented defaults. Put argument
+   values in **verbatim**: the registry marks the spans that repeat them
+   (`call_summary.py`) and the feed shows them bright, the wording muted.
 5. **Errors carry clear English text and a hint, without `tr()`.** The model
    reads them and corrects itself. When an object is missing, attach the list
    of available ones (see `common/layers.py::find_layer_by_name`).

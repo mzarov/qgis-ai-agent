@@ -4,17 +4,17 @@ from qgis.PyQt.QtCore import Qt, QTimer, pyqtSignal
 from qgis.PyQt.QtGui import QGuiApplication
 from qgis.PyQt.QtWidgets import (
     QFrame,
-    QMenu,
     QScrollArea,
     QVBoxLayout,
     QWidget,
 )
 
 from ai_agent.i18n import tr
-from ai_agent.ui import style
+from ai_agent.ui import controls, style
 from ai_agent.ui.activity import ActivityGroup
 from ai_agent.ui.messages import AssistantMessage, SystemMessage, UserMessage
 from ai_agent.ui.plan import PlanCard
+from ai_agent.ui.progress import ProgressLine
 from ai_agent.ui.thinking import ThinkingBlock
 from ai_agent.ui.welcome import WelcomeCard
 
@@ -23,6 +23,9 @@ WELCOME_STRETCH = 1
 TAIL_STRETCH = 1
 SIDE_PADDING = 12
 PIN_TOLERANCE = 24
+
+
+FEED_NAME = "feed"
 
 
 class ConversationView(QScrollArea):
@@ -36,12 +39,19 @@ class ConversationView(QScrollArea):
         self.setWidgetResizable(True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setFrameShape(QFrame.Shape.NoFrame)
-        self.setStyleSheet(f"QScrollArea {{ background: {style.css_color(style.surface(self.palette()))}; }}")
+        self.setStyleSheet(f"QScrollArea {{ background: {style.css_color(style.background(self.palette()))}; }}")
 
+        # The viewport and the holder would otherwise paint the QGIS window colour over the backdrop.
         holder = QWidget()
+        holder.setObjectName(FEED_NAME)
+        style.fill(holder, style.background(self.palette()))
+        self.viewport().setAutoFillBackground(False)
         self._column = QVBoxLayout(holder)
         self._column.setContentsMargins(SIDE_PADDING, SIDE_PADDING, SIDE_PADDING, SIDE_PADDING)
         self._column.setSpacing(MESSAGE_SPACING)
+        # The working line is the feed's last row: every message goes in above it.
+        self.progress = ProgressLine(self.palette())
+        self._column.addWidget(self.progress)
         self._column.addStretch(1)
         self.setWidget(holder)
 
@@ -103,7 +113,7 @@ class ConversationView(QScrollArea):
             if self._activity is None:
                 self._activity = ActivityGroup()
                 self._append(self._activity)
-            block = ThinkingBlock(framed=False)
+            block = ThinkingBlock()
             self._activity.add_widget(block)
             self._activity.reveal()
             self._thinking = block
@@ -197,10 +207,10 @@ class ConversationView(QScrollArea):
             card.mark_cancelled()
 
     def clear(self) -> None:
-        while self._column.count() > 1:
-            item = self._column.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
+        for index in reversed(range(self._column.count())):
+            widget = self._column.itemAt(index).widget()
+            if widget is not None and widget is not self.progress:
+                self._column.takeAt(index)
                 widget.deleteLater()
         self._activity = None
         self._draft = None
@@ -220,7 +230,7 @@ class ConversationView(QScrollArea):
             QGuiApplication.clipboard().setText(text)
 
     def contextMenuEvent(self, event: Any) -> None:
-        menu = QMenu(self)
+        menu = controls.menu(self, self.palette())
         copy_action = menu.addAction(tr("Copy the whole conversation"))
         if menu.exec(event.globalPos()) == copy_action:
             self.copy_all()
@@ -234,7 +244,7 @@ class ConversationView(QScrollArea):
         return self._remember(widget)
 
     def _insert(self, widget: QWidget, stretch: int = 0) -> None:
-        self._column.insertWidget(self._column.count() - 1, widget, stretch)
+        self._column.insertWidget(self._column.indexOf(self.progress), widget, stretch)
 
     def _remember(self, entry: object) -> int:
         entry_id = self._next_id

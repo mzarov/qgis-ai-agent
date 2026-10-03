@@ -5,7 +5,13 @@
  },
  {
   "depth": 1,
-  "type": "QWidget"
+  "type": "QWidget",
+  "name": "settingsNav"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Settings"
  },
  {
   "depth": 2,
@@ -22,6 +28,17 @@
  {
   "depth": 2,
   "type": "QPushButton",
+  "text": "Advanced",
+  "checked": true
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Customize"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
   "text": "Skills",
   "checked": false
  },
@@ -32,181 +49,256 @@
   "checked": false
  },
  {
-  "depth": 2,
-  "type": "QPushButton",
-  "text": "Advanced",
-  "checked": true
- },
- {
   "depth": 1,
   "type": "QFrame",
   "name": "settingsSeparator"
  },
  {
   "depth": 1,
-  "type": "QStackedWidget"
+  "type": "QWidget",
+  "name": "settingsContent"
  },
  {
   "depth": 2,
-  "type": "QScrollArea"
+  "type": "QStackedWidget"
  },
  {
   "depth": 3,
-  "type": "QWidget"
+  "type": "QScrollArea"
  },
  {
   "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
   "type": "QLabel",
   "text": "How the agent works"
  },
  {
-  "depth": 4,
-  "type": "QWidget"
- },
- {
   "depth": 5,
   "type": "QWidget"
  },
  {
   "depth": 6,
-  "type": "QLabel",
-  "text": "Check the result after applying changes"
+  "type": "QWidget"
  },
  {
-  "depth": 6,
-  "type": "QLabel",
-  "text": "?"
+  "depth": 7,
+  "type": "QWidget"
  },
  {
-  "depth": 5,
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Check the result after Apply"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "The agent re-reads the project to confirm the changes."
+ },
+ {
+  "depth": 7,
   "type": "Switch",
   "checked": true
  },
  {
-  "depth": 4,
+  "depth": 6,
   "type": "QFrame",
   "name": "settingsSeparator"
  },
  {
-  "depth": 4,
-  "type": "QWidget"
- },
- {
-  "depth": 5,
-  "type": "QWidget"
- },
- {
   "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
   "type": "QLabel",
   "text": "Token budget per run"
  },
  {
-  "depth": 6,
+  "depth": 8,
   "type": "QLabel",
-  "text": "?"
+  "text": "A run stops after this many tokens."
  },
  {
-  "depth": 5,
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "Chips"
+ },
+ {
+  "depth": 9,
+  "type": "QPushButton",
+  "text": "100k",
+  "checked": false
+ },
+ {
+  "depth": 9,
+  "type": "QPushButton",
+  "text": "300k",
+  "checked": true
+ },
+ {
+  "depth": 9,
+  "type": "QPushButton",
+  "text": "1M",
+  "checked": false
+ },
+ {
+  "depth": 9,
+  "type": "QPushButton",
+  "text": "No limit",
+  "checked": false
+ },
+ {
+  "depth": 8,
   "type": "QLineEdit",
   "text": "300000"
  },
  {
-  "depth": 4,
+  "depth": 6,
   "type": "QFrame",
   "name": "settingsSeparator"
  },
  {
-  "depth": 4,
-  "type": "QWidget"
- },
- {
-  "depth": 5,
-  "type": "QWidget"
- },
- {
   "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
   "type": "QLabel",
   "text": "Extended thinking budget"
  },
  {
-  "depth": 6,
+  "depth": 8,
   "type": "QLabel",
-  "text": "?"
+  "text": "Anthropic only. 0 turns it off."
  },
  {
-  "depth": 5,
+  "depth": 7,
   "type": "QLineEdit",
   "text": "0"
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "QLabel",
   "text": "Talking to the provider"
  },
  {
-  "depth": 4,
-  "type": "QWidget"
- },
- {
   "depth": 5,
   "type": "QWidget"
  },
  {
   "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
   "type": "QLabel",
   "text": "API format"
  },
  {
-  "depth": 6,
+  "depth": 8,
   "type": "QLabel",
-  "text": "?"
+  "text": "auto picks it from the address."
  },
  {
-  "depth": 5,
-  "type": "QComboBox",
-  "text": "openai"
+  "depth": 7,
+  "type": "Segmented",
+  "name": "segmented"
  },
  {
-  "depth": 4,
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "auto",
+  "checked": false
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "openai",
+  "checked": true
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "anthropic",
+  "checked": false
+ },
+ {
+  "depth": 6,
   "type": "QFrame",
   "name": "settingsSeparator"
  },
  {
-  "depth": 4,
-  "type": "QWidget"
- },
- {
-  "depth": 5,
-  "type": "QWidget"
- },
- {
   "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
   "type": "QLabel",
   "text": "Authorisation type"
  },
  {
-  "depth": 6,
+  "depth": 8,
   "type": "QLabel",
-  "text": "?"
+  "text": "Bearer suits almost everyone."
  },
  {
-  "depth": 5,
-  "type": "QComboBox",
-  "text": "Bearer"
+  "depth": 7,
+  "type": "Segmented",
+  "name": "segmented"
  },
  {
-  "depth": 1,
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "Bearer",
+  "checked": true
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "OAuth",
+  "checked": false
+ },
+ {
+  "depth": 2,
   "type": "QFrame",
   "name": "settingsSeparator"
  },
  {
-  "depth": 1,
-  "type": "QPushButton",
-  "text": "Close"
+  "depth": 2,
+  "type": "QLabel",
+  "text": "All changes saved"
  },
  {
-  "depth": 1,
+  "depth": 2,
   "type": "QPushButton",
-  "text": "Save"
+  "text": "Cancel"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Save",
+  "enabled": false
  }
 ]

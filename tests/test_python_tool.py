@@ -12,9 +12,9 @@ from ai_agent.qgis_tools.python.run_python import (
     _checked_intent,
 )
 from ai_agent.qgis_tools.python.sandbox import BudgetExceeded, LineBudget, run_snippet
-from ai_agent.ui.dock_widget import _destructive_confirmation_text
+from ai_agent.ui.confirmations import destructive_confirmation_text
 
-DOCK_SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "dock_widget.py").read_text(
+DOCK_SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "confirmations.py").read_text(
     encoding="utf-8"
 )
 
@@ -161,7 +161,7 @@ class ToolTest(unittest.TestCase):
 
     def test_exact_code_is_in_the_always_visible_confirmation_text(self):
         code = "print('<exact>')\nproject.clear()"
-        text = _destructive_confirmation_text(["Running Python: smoke"], code)
+        text = destructive_confirmation_text(["Running Python: smoke"], code)
         self.assertIn("Exact code to be executed", text)
         self.assertIn(code, text)
 

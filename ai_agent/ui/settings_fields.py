@@ -14,34 +14,36 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ai_agent.ui import style
+from ai_agent.ui import controls, style
 
-HINT_SCALE = 0.86
-GROUP_SCALE = 1.25
-CARD_NAME = "settingsCard"
+HINT_SCALE = 0.88
 SEPARATOR_NAME = "settingsSeparator"
 INPUT_RADIUS = 6
 INPUT_PADDING = "6px 10px"
-INPUT_MIN_HEIGHT = 18
-CARD_MARGINS = (14, 12, 14, 13)
-CARD_SPACING = 11
-FIELD_SPACING = 3
-PAGE_MARGINS = (28, 22, 28, 24)
-PAGE_SPACING = 8
-GROUP_GAP = 22
-NAV_WIDTH = 190
-NAV_MARGINS = (12, 14, 8, 14)
+INPUT_MIN_HEIGHT = 20
+FIELD_SPACING = 2
+PAGE_MARGINS = (32, 24, 32, 24)
+PAGE_SPACING = 0
+LEAD_GAP = 5
+SECTION_GAP = 36
+SECTION_TO_CARD = 10
+NAV_WIDTH = 210
+NAV_MARGINS = (12, 14, 12, 14)
 NAV_SPACING = 2
 NAV_RADIUS = 7
-NAV_PADDING = "8px 12px"
-ROW_VPAD = 10
-ROW_GAP = 24
-CONTROL_WIDTH = 320
-SWITCH_WIDTH = 40
+NAV_PADDING = "8px 10px"
+NAV_ICON = 16
+FLAT_ROW_PADDING = (0, 13, 0, 13)
+SECTION_TITLE_SCALE = 1.12
+FIRST_SECTION_GAP = 2
+ROW_MIN_HEIGHT = 56
+ROW_GAP = 16
+CONTROL_WIDTH = 300
+SWITCH_WIDTH = 38
 SWITCH_HEIGHT = 22
 SWITCH_KNOB_MARGIN = 3
-HELP_SIZE = 16
-HELP_GAP = 6
+BUTTON_RADIUS = 6
+DISABLED_OPACITY = 0.45
 
 
 class Switch(QCheckBox):
@@ -78,18 +80,14 @@ def switch(palette: Any) -> Switch:
     return Switch(palette)
 
 
-def card(palette: Any) -> tuple[QFrame, QVBoxLayout]:
-    frame = QFrame()
-    frame.setObjectName(CARD_NAME)
-    frame.setStyleSheet(
-        f"QFrame#{CARD_NAME} {{ background: {style.css_color(style.panel(palette))};"
-        f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
-        f"border-radius: {style.CARD_RADIUS}px; }}"
-    )
-    column = QVBoxLayout(frame)
-    column.setContentsMargins(*CARD_MARGINS)
-    column.setSpacing(CARD_SPACING)
-    return frame, column
+def card_rows(palette: Any, rows: list[QWidget]) -> QWidget:
+    """Rows on the page itself, a hairline between neighbours: the flat Claude Code settings look."""
+    holder = QWidget()
+    column = QVBoxLayout(holder)
+    column.setContentsMargins(0, 0, 0, 0)
+    column.setSpacing(0)
+    add_rows(column, palette, rows)
+    return holder
 
 
 def sidebar() -> tuple[QWidget, QVBoxLayout]:
@@ -101,21 +99,24 @@ def sidebar() -> tuple[QWidget, QVBoxLayout]:
     return holder, column
 
 
-def sidebar_button(title: str, palette: Any) -> QPushButton:
+def sidebar_button(title: str, palette: Any, icon: Any = None) -> QPushButton:
     button = QPushButton(title)
     button.setCheckable(True)
     button.setCursor(Qt.CursorShape.PointingHandCursor)
+    if icon is not None:
+        button.setIcon(icon)
+        button.setIconSize(QSize(NAV_ICON, NAV_ICON))
     button.setStyleSheet(
         "QPushButton {"
-        f"background: transparent; color: {style.css_color(style.muted(palette))};"
+        f"background: transparent; color: {style.css_color(style.text(palette))};"
         f"border: {style.HAIRLINE}px solid transparent; border-radius: {NAV_RADIUS}px;"
         f"padding: {NAV_PADDING}; text-align: left; }}"
         "QPushButton:hover:!checked {"
-        f"background: {style.css_color(style.panel(palette))};"
+        f"background: {style.css_color(style.nav_hover(palette))};"
         f"color: {style.css_color(style.text(palette))}; }}"
         "QPushButton:checked {"
-        f"background: {style.css_color(style.panel(palette))};"
-        f"color: {style.css_color(style.text(palette))}; font-weight: 600; }}"
+        f"background: {style.css_color(style.nav_selected(palette))};"
+        f"color: {style.css_color(style.text(palette))}; }}"
     )
     return button
 
@@ -140,40 +141,69 @@ def page() -> tuple[QWidget, QVBoxLayout]:
     return holder, column
 
 
-def group(title: str, palette: Any) -> QLabel:
+def section(column: QVBoxLayout, title: str, palette: Any, note: str = "") -> None:
+    """A bold heading that opens a group of rows, with an optional muted sentence under it."""
+    column.addSpacing(SECTION_GAP if column.count() else FIRST_SECTION_GAP)
+    label = heading(title, palette)
+    label.setWordWrap(True)
+    column.addWidget(label)
+    if note:
+        column.addSpacing(LEAD_GAP)
+        column.addWidget(hint(note, palette))
+    column.addSpacing(SECTION_TO_CARD)
+
+
+def heading(title: str, palette: Any) -> QLabel:
     label = QLabel(title)
-    font = label.font()
-    font.setBold(True)
-    font.setPointSizeF(max(1.0, font.pointSizeF() * GROUP_SCALE))
-    label.setFont(font)
+    style.scale_font(label, SECTION_TITLE_SCALE, bold=True)
     label.setStyleSheet(f"color: {style.css_color(style.text(palette))};")
     return label
 
 
-def row(title: str, widget: QWidget, note: str, palette: Any) -> QWidget:
-    holder = QWidget()
-    line = QHBoxLayout(holder)
-    line.setContentsMargins(0, ROW_VPAD, 0, ROW_VPAD)
-    line.setSpacing(ROW_GAP)
-    caption = _caption(title, note, palette)
-    holder.help = caption.help
-    line.addWidget(caption, 1)
+def row(title: str, widget: QWidget, note: str, palette: Any, tooltip: str = "") -> QWidget:
     widget.setStyleSheet(input_style(palette))
     widget.setFixedWidth(CONTROL_WIDTH)
-    line.addWidget(widget, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-    return holder
+    return _row(title, widget, note, palette, tooltip)
 
 
-def switch_row(title: str, checkbox: QWidget, note: str, palette: Any) -> QWidget:
+def switch_row(title: str, checkbox: QWidget, note: str, palette: Any, tooltip: str = "") -> QWidget:
+    return _row(title, checkbox, note, palette, tooltip)
+
+
+def custom_row(title: str, widget: QWidget, note: str, palette: Any, tooltip: str = "") -> QWidget:
+    """A row whose control styles itself: segmented choices, chips, a field with a suffix."""
+    return _row(title, widget, note, palette, tooltip)
+
+
+def _row(title: str, widget: QWidget, note: str, palette: Any, tooltip: str) -> QWidget:
     holder = QWidget()
+    holder.setMinimumHeight(ROW_MIN_HEIGHT)
     line = QHBoxLayout(holder)
-    line.setContentsMargins(0, ROW_VPAD, 0, ROW_VPAD)
+    line.setContentsMargins(*FLAT_ROW_PADDING)
     line.setSpacing(ROW_GAP)
-    caption = _caption(title, note, palette)
-    holder.help = caption.help
+    caption = QWidget()
+    text = QVBoxLayout(caption)
+    text.setContentsMargins(0, 0, 0, 0)
+    text.setSpacing(FIELD_SPACING)
+    # Keep title and hint together, centred against a tall control, instead of spread apart.
+    text.addStretch(1)
+    name = QLabel(title)
+    name.setStyleSheet(f"color: {style.css_color(style.text(palette))};")
+    text.addWidget(name)
+    holder.hint = hint(note, palette)
+    holder.hint.setVisible(bool(note))
+    text.addWidget(holder.hint)
+    text.addStretch(1)
     line.addWidget(caption, 1)
-    line.addWidget(checkbox, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+    line.addWidget(widget, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+    if tooltip:
+        caption.setToolTip(rich_tooltip(tooltip))
     return holder
+
+
+def set_row_hint(holder: QWidget, note: str) -> None:
+    holder.hint.setText(note)
+    holder.hint.setVisible(bool(note))
 
 
 def add_rows(column: QVBoxLayout, palette: Any, rows: list[QWidget]) -> None:
@@ -195,46 +225,9 @@ def rich_tooltip(note: str) -> str:
     return f"<qt>{note}</qt>"
 
 
-def help_mark(note: str, palette: Any) -> QLabel:
-    mark = QLabel("?")
-    mark.setToolTip(rich_tooltip(note))
-    mark.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    mark.setFixedSize(HELP_SIZE, HELP_SIZE)
-    font = mark.font()
-    font.setPointSizeF(max(1.0, font.pointSizeF() * HINT_SCALE))
-    mark.setFont(font)
-    mark.setStyleSheet(
-        "QLabel {"
-        f"color: {style.css_color(style.muted(palette))};"
-        f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
-        f"border-radius: {HELP_SIZE // 2}px; }}"
-        f"QLabel:hover {{ color: {style.css_color(style.text(palette))};"
-        f"border-color: {style.css_color(style.muted(palette))}; }}"
-    )
-    return mark
-
-
-def _caption(title: str, note: str, palette: Any) -> QWidget:
-    box = QWidget()
-    line = QHBoxLayout(box)
-    line.setContentsMargins(0, 0, 0, 0)
-    line.setSpacing(HELP_GAP)
-    line.addWidget(QLabel(title))
-    box.help = help_mark(note, palette) if note else None
-    if box.help is not None:
-        line.addWidget(box.help, 0, Qt.AlignmentFlag.AlignVCenter)
-    line.addStretch(1)
-    return box
-
-
 def status(palette: Any) -> QLabel:
-    label = QLabel("")
-    label.setWordWrap(True)
+    label = hint("", palette)
     label.setVisible(False)
-    font = label.font()
-    font.setPointSizeF(max(1.0, font.pointSizeF() * HINT_SCALE))
-    label.setFont(font)
-    label.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
     return label
 
 
@@ -275,16 +268,18 @@ def select(combo: QComboBox, value: str) -> None:
 
 
 def input_style(palette: Any) -> str:
-    border = style.css_color(style.hairline(palette))
+    border = style.css_color(style.border_strong(palette))
     return (
         "QLineEdit, QComboBox {"
-        f"background: {style.css_color(style.surface(palette))};"
+        f"background: {style.css_color(style.field(palette))};"
         f"color: {style.css_color(style.text(palette))};"
         f"border: {style.HAIRLINE}px solid {border};"
         f"border-radius: {INPUT_RADIUS}px; padding: {INPUT_PADDING};"
         f"min-height: {INPUT_MIN_HEIGHT}px; }}"
         "QLineEdit:focus, QComboBox:focus {"
         f"border: {style.HAIRLINE}px solid {style.css_color(style.accent(palette))}; }}"
+        "QLineEdit:disabled, QComboBox:disabled {"
+        f"background: {style.css_color(style.card(palette))}; color: {style.css_color(style.muted(palette))}; }}"
         "QComboBox::drop-down { border: none; width: 24px; }"
         "QComboBox QAbstractItemView {"
         f"background: {style.css_color(style.panel(palette))};"
@@ -298,28 +293,39 @@ def accent_button(palette: Any) -> str:
     fill = style.css_color(style.accent(palette))
     return (
         f"QPushButton {{ background: {fill};"
-        f"color: {style.css_color(palette.highlightedText().color())};"
-        f"border: {style.HAIRLINE}px solid {fill}; border-radius: 6px;"
-        "padding: 5px 16px; font-weight: 600; }"
-        f"QPushButton:hover {{ background: {style.css_color(style.accent(palette).lighter(112))}; }}"
+        f"color: {style.css_color(style.on_accent(palette))};"
+        f"border: {style.HAIRLINE}px solid {fill}; border-radius: {BUTTON_RADIUS}px;"
+        "padding: 6px 18px; font-weight: 600; }"
+        f"QPushButton:hover {{ background: {style.css_color(style.accent_hover(palette))}; }}"
+        f"QPushButton:disabled {{ background: {style.css_color(_faded(style.accent(palette), palette))};"
+        f"border-color: transparent; color: {style.css_color(_faded(style.on_accent(palette), palette))}; }}"
     )
 
 
+def _faded(colour: Any, palette: Any) -> Any:
+    """A disabled primary button: the mockup's 45 % opacity, mixed onto the surface."""
+    return style.blend(style.surface(palette), colour, DISABLED_OPACITY)
+
+
 def plain_button(palette: Any) -> str:
-    border = style.css_color(style.hairline(palette))
+    border = style.css_color(style.border_strong(palette))
     return (
-        f"QPushButton {{ background: transparent; color: {style.css_color(style.text(palette))};"
-        f"border: {style.HAIRLINE}px solid {border}; border-radius: 6px; padding: 5px 14px; }}"
+        f"QPushButton {{ background: {style.css_color(style.panel(palette))};"
+        f"color: {style.css_color(style.text(palette))};"
+        f"border: {style.HAIRLINE}px solid {border}; border-radius: {BUTTON_RADIUS}px; padding: 6px 14px; }}"
         f"QPushButton:hover {{ background: {style.css_color(style.card(palette))}; }}"
         "QPushButton:disabled { color: palette(mid); }"
     )
 
 
+def ghost_button(palette: Any) -> str:
+    return (
+        f"QPushButton {{ background: transparent; color: {style.css_color(style.muted(palette))};"
+        f"border: {style.HAIRLINE}px solid transparent; border-radius: {BUTTON_RADIUS}px; padding: 6px 14px; }}"
+        f"QPushButton:hover {{ background: {style.css_color(style.card(palette))};"
+        f"color: {style.css_color(style.text(palette))}; }}"
+    )
+
+
 def hint(text: str, palette: Any) -> QLabel:
-    label = QLabel(text)
-    label.setWordWrap(True)
-    font = label.font()
-    font.setPointSizeF(max(1.0, font.pointSizeF() * HINT_SCALE))
-    label.setFont(font)
-    label.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
-    return label
+    return controls.small(text, palette, HINT_SCALE)

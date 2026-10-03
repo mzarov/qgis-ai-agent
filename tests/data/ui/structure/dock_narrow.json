@@ -13,16 +13,12 @@
  },
  {
   "depth": 1,
-  "type": "QWidget"
+  "type": "QWidget",
+  "name": "agentBody"
  },
  {
   "depth": 2,
   "type": "QWidget"
- },
- {
-  "depth": 3,
-  "type": "QLabel",
-  "text": "AI Agent"
  },
  {
   "depth": 3,
@@ -46,7 +42,8 @@
  },
  {
   "depth": 3,
-  "type": "QWidget"
+  "type": "QWidget",
+  "name": "feed"
  },
  {
   "depth": 4,
@@ -82,7 +79,7 @@
  {
   "depth": 6,
   "type": "QLabel",
-  "text": "Ready to run — 2 action(s)"
+  "text": "Ready to run — 2 actions"
  },
  {
   "depth": 5,
@@ -146,7 +143,7 @@
  {
   "depth": 5,
   "type": "QTextBrowser",
-  "text": "Done: 2 step(s) applied."
+  "text": "Done: 2 steps applied."
  },
  {
   "depth": 2,
@@ -158,21 +155,32 @@
  },
  {
   "depth": 4,
-  "type": "QWidget"
+  "type": "RoundedFrame",
+  "name": "composerFrame"
  },
  {
   "depth": 5,
   "type": "PromptEdit",
-  "text": "Ask about the project; / picks a skill, @ picks a layer"
- },
- {
-  "depth": 5,
-  "type": "QLabel",
-  "text": "Enter to send, Shift+Enter for a new line"
+  "text": "Ask about the project…"
  },
  {
   "depth": 5,
   "type": "QPushButton",
-  "text": "↑"
+  "text": "↵",
+  "enabled": false
+ },
+ {
+  "depth": 4,
+  "type": "ComposerToolbar"
+ },
+ {
+  "depth": 5,
+  "type": "QToolButton",
+  "text": "+"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "qwen3"
  }
 ]
