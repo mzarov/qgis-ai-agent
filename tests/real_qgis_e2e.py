@@ -372,6 +372,40 @@ class CompactionScenario(ScenarioCase):
         self.assertIn("Still about the districts.", conversation.window()[0]["content"])
 
 
+class PlanModeScenario(ScenarioCase):
+    def tearDown(self) -> None:
+        set_work_mode("ask")
+        super().tearDown()
+
+    def test_plan_mode_reads_proposes_and_then_runs_the_plan(self) -> None:
+        from ai_agent.ui.plan import PlanOffer
+
+        self.dock.composer.toolbar.modes.choose("plan")
+        self.model.script(
+            call("load_skill", names=["style"]),
+            say("1. Graduate districts by pop2020 in 5 classes."),
+        )
+        self.ask("Colour districts by population")
+        self.assertNotIn("set_graduated", self.model.tool_names(1), "plan mode offers no tool that changes things")
+        self.assertIn("Plan mode is on", self.model.sent_text(0))
+        self.assertFalse(self.agent.has_pending_writes)
+        offers = self.dock.conversation.findChildren(PlanOffer)
+        self.assertEqual(len(offers), 1, "a plan ends on an offer to run it")
+        self.shot("plan_offer")
+
+        self.model.script(
+            call("load_skill", names=["style"]),
+            call("set_graduated", layer_name="districts", field="pop2020", classes=5),
+            say("Districts are graduated by pop2020."),
+            say("Checked: 5 classes on pop2020."),
+        )
+        offers[0]._buttons[1].click()
+        self.wait_idle()
+        self.assertEqual(self.layer("districts").renderer().type(), "graduatedSymbol")
+        self.assertEqual(self.dock.composer.mode, "auto")
+        self.assertIn("set_graduated", self.model.tool_names(3))
+
+
 class ComposerScenario(ScenarioCase):
     def test_slash_and_at_popups_insert_what_was_chosen(self) -> None:
         composer = self.dock.composer

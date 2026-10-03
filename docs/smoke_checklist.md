@@ -940,3 +940,9 @@ These verify the agent solves everyday tasks without wandering through search.
 195. **The window is found.** Point at OpenRouter or Ollama, run the
      connection test → the popup's window matches the model (not 128k); set
      **Context window** by hand in Advanced → the popup follows it.
+196. **Plan mode plans.** Choose **Plan** in the mode menu, *colour the districts
+     by population* → the agent reads, answers with a numbered plan, nothing is
+     queued, *Run this plan?* with two buttons appears under it.
+197. **A plan runs.** Press **Run automatically** → the mode becomes Auto and
+     the plan is applied; with **Run with approval** the plan card waits for
+     Apply instead.

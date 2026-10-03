@@ -163,7 +163,8 @@ def get_geocoder_url() -> str:
 DEFAULT_TOKEN_BUDGET = 300000
 WORK_MODE_ASK = "ask"
 WORK_MODE_AUTO = "auto"
-WORK_MODES = (WORK_MODE_ASK, WORK_MODE_AUTO)
+WORK_MODE_PLAN = "plan"
+WORK_MODES = (WORK_MODE_ASK, WORK_MODE_AUTO, WORK_MODE_PLAN)
 
 
 def get_token_budget() -> int:
@@ -222,6 +223,11 @@ def get_work_mode() -> str:
 
 def set_work_mode(mode: str) -> None:
     _write("work_mode", mode if mode in WORK_MODES else WORK_MODE_ASK)
+
+
+def get_planning() -> bool:
+    """Plan mode: the agent only reads and proposes a plan; nothing is queued."""
+    return get_work_mode() == WORK_MODE_PLAN
 
 
 def get_auto_apply() -> bool:

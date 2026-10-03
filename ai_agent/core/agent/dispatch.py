@@ -17,6 +17,7 @@ from ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call, 
 
 LOG_TAG = "AI Agent"
 DUPLICATE_NOTE = "An identical call is already queued; it was not added again."
+PLAN_MODE_REFUSAL = "Plan mode is on: {tool} would change the project, so it was not run. Put the step in your plan."
 NO_IMAGE_INPUT = (
     "{tool} returns only an image, and this model does not accept image input. "
     "Check the result with the read tools of the skills you used instead."
@@ -54,7 +55,10 @@ class DispatchMixin:
             # An earlier load_skill result or the history may still name the tool;
             # rendering would only cost main-thread time for an omission note.
             return ToolResult.failure(call, NO_IMAGE_INPUT.format(tool=tool.name), tool.egress)
-        if tool.safety_for(call.arguments) == SAFETY_READ and not tool.has_network_access(call.arguments):
+        reads = tool.safety_for(call.arguments) == SAFETY_READ
+        if self._planning and not reads:
+            return ToolResult.failure(call, PLAN_MODE_REFUSAL.format(tool=tool.name), tool.egress)
+        if reads and not tool.has_network_access(call.arguments):
             return self._run_now(call)
         return self._queue_write(call)
 
@@ -121,7 +125,7 @@ class DispatchMixin:
 
     def _load_skill(self, call: ToolCall) -> ToolResult:
         images = not detect_images_unsupported(self._overrides)
-        result, loaded = load_skill(call, self._loaded_skills, images)
+        result, loaded = load_skill(call, self._loaded_skills, images, writes=not self._planning)
         for name in loaded:
             self.skill_loaded.emit(name)
             QgsMessageLog.logMessage(f"Skill loaded: {name}.", LOG_TAG, Qgis.MessageLevel.Info)

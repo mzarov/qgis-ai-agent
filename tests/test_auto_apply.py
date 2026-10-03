@@ -89,7 +89,9 @@ class ComposerModeTest(unittest.TestCase):
         composer.set_mode("auto")
         self.assertEqual((seen, composer.mode, composer.toolbar.mode.text()), ([], "auto", "Auto"))
         composer._edit.mode_cycled.emit()
-        self.assertEqual((seen, composer.toolbar.mode.text()), (["ask"], "Ask first"))
+        self.assertEqual((seen, composer.toolbar.mode.text()), (["plan"], "Plan"))
+        composer._edit.mode_cycled.emit()
+        self.assertEqual(seen, ["plan", "ask"])
 
     def test_choosing_in_the_menu_reports_only_a_change(self):
         from ai_agent.ui.composer import Composer

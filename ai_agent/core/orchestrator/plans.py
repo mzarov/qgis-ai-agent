@@ -4,7 +4,16 @@ from qgis.core import Qgis
 from qgis.PyQt.QtCore import QTimer
 
 from ai_agent.core.agent.verification import plan_verification
-from ai_agent.core.orchestrator.notices import DESTRUCTIVE_DECLINED, PLAN_DROPPED, SWITCH_WHILE_RUNNING, VERIFYING
+from ai_agent.core.orchestrator.notices import (
+    DESTRUCTIVE_DECLINED,
+    MODE_NEXT_REQUEST,
+    PLAN_DROPPED,
+    RUN_THE_PLAN,
+    RUN_THE_PLAN_FOR,
+    RUN_THE_PLAN_MODEL,
+    SWITCH_WHILE_RUNNING,
+    VERIFYING,
+)
 from ai_agent.core.orchestrator.planning import destructive_lines, plan_line
 from ai_agent.core.orchestrator.presentation import where_to_look
 from ai_agent.core.orchestrator.scope import conversation_scope
@@ -22,8 +31,31 @@ class PlanMixin:
             # Pressed for the user once the card is on screen; the same path as the button.
             QTimer.singleShot(0, self.on_confirm_plan)
 
+    def on_run_plan(self, mode: str) -> None:
+        """Leave plan mode for `mode` and ask the agent to carry out the plan it just wrote.
+
+        The chat shows the user's words; the model gets them in English with the original
+        request, which the check after Apply also needs.
+        """
+        busy = (
+            self.agent.is_running
+            or self.agent.is_awaiting_answer
+            or bool(getattr(self.agent, "is_applying", False))
+            or self.compaction.is_running
+        )
+        if busy:
+            self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
+            return
+        set_work_mode(mode)
+        self.dock_widget.set_work_mode(mode)
+        request = self._last_request
+        prompt = RUN_THE_PLAN_FOR.format(request) if request else RUN_THE_PLAN_MODEL
+        self._start_run(RUN_THE_PLAN, prompt, request)
+
     def on_work_mode(self, mode: str) -> None:
         set_work_mode(mode)
+        if self.agent.is_running:
+            self.dock_widget.add_system_message(MODE_NEXT_REQUEST)
 
     @staticmethod
     def _plan_line(call) -> str:

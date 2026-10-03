@@ -13,7 +13,7 @@ from ai_agent.i18n import tr
 from ai_agent.ui import controls, style
 from ai_agent.ui.activity import ActivityGroup
 from ai_agent.ui.messages import AssistantMessage, SystemMessage, UserMessage
-from ai_agent.ui.plan import PlanCard
+from ai_agent.ui.plan import PlanCard, PlanOffer
 from ai_agent.ui.progress import ProgressLine
 from ai_agent.ui.thinking import ThinkingBlock
 from ai_agent.ui.welcome import WelcomeCard
@@ -31,6 +31,7 @@ FEED_NAME = "feed"
 class ConversationView(QScrollArea):
     confirm_requested = pyqtSignal()
     cancel_requested = pyqtSignal()
+    plan_run_requested = pyqtSignal(str)
     suggestion_chosen = pyqtSignal(str)
     settings_requested = pyqtSignal()
 
@@ -61,6 +62,7 @@ class ConversationView(QScrollArea):
         bar.valueChanged.connect(self._on_value_changed)
 
         self._activity: ActivityGroup | None = None
+        self._plan_offers: list[PlanOffer] = []
         self._draft: AssistantMessage | None = None
         self._thinking: ThinkingBlock | None = None
         self._entries: dict[int, object] = {}
@@ -96,6 +98,8 @@ class ConversationView(QScrollArea):
         self._column.setStretch(self._column.count() - 1, stretch)
 
     def add_user_message(self, text: str) -> int:
+        # Any new message makes an earlier plan offer stale: only the latest plan can be run.
+        self._retire_plan_offers()
         self._close_activity()
         return self._append(UserMessage(text))
 
@@ -191,6 +195,18 @@ class ConversationView(QScrollArea):
         card.cancelled.connect(self.cancel_requested.emit)
         return self._append(card)
 
+    def add_plan_offer(self) -> int:
+        self._retire_plan_offers()
+        offer = PlanOffer(self.palette())
+        self._plan_offers.append(offer)
+        offer.run_requested.connect(self.plan_run_requested.emit)
+        return self._append(offer)
+
+    def _retire_plan_offers(self) -> None:
+        for offer in self._plan_offers:
+            offer.retire()
+        self._plan_offers = []
+
     def mark_plan_applied(self, entry_id: int) -> None:
         card = self._entries.get(entry_id)
         if isinstance(card, PlanCard):
@@ -215,6 +231,7 @@ class ConversationView(QScrollArea):
         self._activity = None
         self._draft = None
         self._thinking = None
+        self._plan_offers = []
         self._entries.clear()
         self._empty = None
         self._show_welcome()

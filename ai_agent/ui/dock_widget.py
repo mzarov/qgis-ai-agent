@@ -34,6 +34,7 @@ class AgentDockWidget(QDockWidget):
     files_attached = pyqtSignal(list)
     work_mode_changed = pyqtSignal(str)
     compact_requested = pyqtSignal()
+    plan_run_requested = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -105,6 +106,7 @@ class AgentDockWidget(QDockWidget):
         self.conversation = ConversationView()
         self.progress = self.conversation.progress
         self.conversation.confirm_requested.connect(self.confirm_plan_clicked.emit)
+        self.conversation.plan_run_requested.connect(self.plan_run_requested.emit)
         self.conversation.cancel_requested.connect(self.cancel_plan_clicked.emit)
         self.conversation.suggestion_chosen.connect(self._on_suggestion)
         self.conversation.settings_requested.connect(self.open_settings_clicked.emit)
@@ -211,6 +213,9 @@ class AgentDockWidget(QDockWidget):
 
     def set_work_mode(self, mode: str) -> None:
         self.composer.set_mode(mode)
+
+    def offer_plan(self) -> None:
+        self.conversation.add_plan_offer()
 
     def confirm_destructive(self, lines: list[str], details: str = "") -> bool:
         return confirmations.confirm_destructive(self, lines, details)
