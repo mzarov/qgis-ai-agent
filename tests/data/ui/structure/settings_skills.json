@@ -125,7 +125,7 @@
  {
   "depth": 6,
   "type": "QLabel",
-  "text": "13"
+  "text": "14"
  },
  {
   "depth": 5,
@@ -148,6 +148,29 @@
   "depth": 7,
   "type": "ElidedLabel",
   "text": "One-off notes and markers drawn on top of the map at a coordinate — not attribute labels (those are style). Load this fo"
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "draw"
+ },
+ {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "Create point, line or polygon features from coordinates, in a new scratch layer or an existing one. Load for \"a point at"
  },
  {
   "depth": 6,

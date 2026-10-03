@@ -386,6 +386,10 @@ core = _mod(
         "QgsPoint",
         "QgsAggregateCalculator",
         "QgsVectorLayerJoinInfo",
+        "QgsFields",
+        "QgsPointXY",
+        "QgsMemoryProviderUtils",
+        "QgsVectorLayerUtils",
     ],
 )
 pyqt = _mod("qgis.PyQt")

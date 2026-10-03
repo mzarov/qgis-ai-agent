@@ -5,6 +5,7 @@ from ai_agent.qgis_tools.annotations import ANNOTATIONS_TOOLS
 from ai_agent.qgis_tools.base import BaseTool
 from ai_agent.qgis_tools.call_summary import CallSummary
 from ai_agent.qgis_tools.common.validation import validate_parameters
+from ai_agent.qgis_tools.draw import DRAW_TOOLS
 from ai_agent.qgis_tools.edit import EDIT_TOOLS
 from ai_agent.qgis_tools.fields import FIELDS_TOOLS
 from ai_agent.qgis_tools.inspect import INSPECT_TOOLS
@@ -28,6 +29,7 @@ ALL_TOOLS: list[BaseTool] = [
     *STYLE_TOOLS,
     *PROCESSING_TOOLS,
     *EDIT_TOOLS,
+    *DRAW_TOOLS,
     *LAYOUT_TOOLS,
     *PYTHON_TOOLS,
     *FIELDS_TOOLS,

@@ -60,6 +60,28 @@ that only compute statistics, so a plan names them instead of running them;
 selecting features or zooming to a layer is allowed, as it leaves the data as
 it is.
 
+### Drawing from coordinates
+
+The `draw` skill turns coordinates into real features — with attributes, so
+they can be styled, labelled and fed to processing (an annotation is only a
+picture on top of the map):
+
+- *put a point at 55.75, 37.62* — typed pairs are read latitude first, the
+  usual order on web maps; the agent says which order it took when it is
+  unclear
+- *add the town hall as a point* — a place or an address is geocoded first,
+  which asks for consent like every web request
+- *draw a line from Moscow to Kazan* — a straight segment, not a road route
+- *a 500 m buffer around this address* — geocode, a point in a metric UTM
+  layer and the buffer, in one plan card
+
+By default the features go into a new scratch layer, which lives in memory
+until QGIS closes: ask to export it to keep it. Adding to an existing file or
+database layer writes into its source, so the plugin asks a second time and
+*undo the last change* cannot take it back. Impossible coordinates — a
+latitude beyond 90 from a swapped pair, degrees given as metres — are caught
+before the plan card appears.
+
 ## Conversations
 
 Conversations persist across QGIS restarts and are bound to the project: the
@@ -111,7 +133,7 @@ plugin. It is not encrypted. See
 
 A skill is a knowledge package the agent loads when a task enters its domain:
 one `SKILL.md` with a name, a one-line description and the rules in Markdown.
-The thirteen built-in skills cover the QGIS domains; you can add your own.
+The fourteen built-in skills cover the QGIS domains; you can add your own.
 
 Type `/` in the chat to see the list. Pick a skill with the arrows and Tab, then
 write the request: `/osm cafes in Kazan` loads the OSM rules before the first

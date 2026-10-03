@@ -17,8 +17,8 @@ The architecture of `ai_agent`: an agent loop with skills.
 - `core/context/` — the short starting summary of the project
 - `core/state/` — the model's history window and the saved conversations
 - `qgis_tools/common/` — shared across domains: layers, CRS, values, renderer summary
-- `qgis_tools/` — tools in thirteen domains: `inspect/`, `project/`, `style/`,
-  `processing/`, `osm/`, `edit/`, `fields/`, `layout/`, `python/`, `web/`,
+- `qgis_tools/` — tools in fourteen domains: `inspect/`, `project/`, `style/`,
+  `processing/`, `osm/`, `draw/`, `edit/`, `fields/`, `layout/`, `python/`, `web/`,
   `annotations/`, `three_d/`, `tables/`
 - `skills/` — knowledge packages `<skill>/SKILL.md` and the registry
 
@@ -120,7 +120,7 @@ Two adjacent 2026 developments were evaluated and consciously not adopted:
   in-plugin loop — which vendor neutrality and the main-thread rule both
   require.
 - **Skills served over MCP.** Useful when one organisation feeds many agents
-  from a central skill registry. We have one agent and thirteen skills shipped in
+  from a central skill registry. We have one agent and fourteen skills shipped in
   the same zip; a transport layer between them would add a dependency and
   remove nothing.
 
