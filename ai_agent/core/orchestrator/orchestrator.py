@@ -312,7 +312,8 @@ class CoreOrchestrator(ProjectLifecycleMixin):
         if not results or self.agent.is_running or not get_verify_after_apply():
             return
         loaded = list(getattr(self.agent, "loaded_skills", None) or [])
-        start = plan_verification(results, self.agent.verification_round, self._last_request, loaded)
+        overrides = getattr(self.agent, "overrides", None)
+        start = plan_verification(results, self.agent.verification_round, self._last_request, loaded, overrides)
         if start is None:
             return
         self.dock_widget.add_system_message(VERIFYING)

@@ -12,6 +12,8 @@ Runs inside `real_qgis_workflows.py` against the extracted plugin ZIP.
 from e2e_harness import PluginCase, pump
 from e2e_model import ScriptedModel, call, calls, fail, say, think
 
+from ai_agent.core.settings import set_supports_images
+
 MODEL = "scripted-model"
 
 
@@ -61,6 +63,30 @@ class StyleScenario(ScenarioCase):
         self.assertIn("Message from the plugin", self.model.sent_text(4))
         self.assertEqual(self.answers()[-1], "Checked: districts is coloured in 5 classes.")
         self.shot("style_apply_verification")
+
+
+class TextOnlyScenario(ScenarioCase):
+    def test_a_model_known_to_reject_images_verifies_by_reading(self) -> None:
+        set_supports_images(self.api_url, False, MODEL, "openai")
+        self.model.script(
+            call("load_skill", names=["style"]),
+            call("set_opacity", layer_name="districts", opacity=0.5),
+            say("I suggest making districts half transparent."),
+            call("describe_style", layer_name="districts"),
+            say("Checked: districts is half transparent."),
+        )
+        self.ask("Make districts half transparent")
+        self.apply()
+        self.assertAlmostEqual(self.layer("districts").opacity(), 0.5)
+
+        for index in range(len(self.model.requests)):
+            offered = self.model.tool_names(index)
+            self.assertNotIn("render_map", offered, "an image tool was offered to a text-only model")
+            self.assertNotIn("render_layout", offered, "an image tool was offered to a text-only model")
+        verification = self.model.sent_text(3)
+        self.assertIn("cannot see images", verification)
+        self.assertNotIn("call render_map", verification)
+        self.assertEqual(self.answers()[-1], "Checked: districts is half transparent.")
 
 
 class StopScenario(ScenarioCase):

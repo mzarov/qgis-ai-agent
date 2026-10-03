@@ -28,6 +28,7 @@ class RenderMapTool(BaseTool):
     external_effect = False
     network_access = False
     egress = EGRESS_IMAGE
+    returns_image = True
     constraints = ["Needs the QGIS window; unavailable in headless runs"]
     examples = ["Show me what the map looks like now", "Check that the rivers really turned blue"]
     params_schema = [

@@ -24,7 +24,7 @@ class ConfigureLayoutItemTool(BaseTool):
     description = (
         "Move, resize or retitle an existing layout item found by its id: new "
         "position and size in millimetres, new text for a label, new title for "
-        "a legend. Use it to fix what render_layout showed."
+        "a legend. Use it to fix what the verification found."
     )
     skill = "layout"
     safety = SAFETY_WRITE

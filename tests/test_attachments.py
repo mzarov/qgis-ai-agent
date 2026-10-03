@@ -113,7 +113,7 @@ class AttachingTest(unittest.TestCase):
     def test_pictures_are_encoded_and_named_in_the_chat(self):
         dock = Dock(["/tmp/map.png"])
         with (
-            mock.patch.object(attaching, "_known_blind", return_value=False),
+            mock.patch.object(attaching, "detect_images_unsupported", return_value=False),
             mock.patch.object(attaching, "encode_picture", return_value="QUJD"),
         ):
             pictures = attaching.take_pictures(dock)
@@ -123,7 +123,7 @@ class AttachingTest(unittest.TestCase):
 
     def test_a_blind_model_gets_no_pictures_and_the_user_is_told(self):
         dock = Dock(["/tmp/map.png"])
-        with mock.patch.object(attaching, "_known_blind", return_value=True):
+        with mock.patch.object(attaching, "detect_images_unsupported", return_value=True):
             pictures = attaching.take_pictures(dock)
         self.assertEqual(pictures.encoded, [])
         self.assertIn("map.png", dock.system[0])

@@ -128,12 +128,7 @@ VERIFICATION_PROMPT = (
     "The queued changes have just been applied. Results per step:\n{outcomes}\n"
     "Verify that the project now matches what the user originally asked for: "
     "re-read the affected state with read tools (describe_style, query_layer, "
-    "list_layers), and if the change is visual, call render_map and look at the "
-    "image — pass the layer_name of the layer you changed so the image frames it: "
-    "the current canvas may be looking somewhere else entirely, and a wide shot "
-    "hides exactly the details you are checking. Verify in the domain you changed: "
-    "for a print layout look at the page itself — describe_layout for the geometry "
-    "and render_layout for the image; render_map shows the canvas, not the layout. "
+    "list_layers){visual_check}"
     "Reply with a short verdict for the user. If a step failed or the "
     "result is wrong, queue the corrected calls now instead of only reporting.\n"
     "Then leave the project tidy — a finished task, not a workbench:\n"
@@ -149,6 +144,19 @@ VERIFICATION_PROMPT = (
     "actually wrong: every queued call means another apply and another check. "
     "If everything is right, queue nothing."
 )
+VISUAL_CHECK_BY_IMAGE = (
+    ", and if the change is visual, call render_map and look at the "
+    "image — pass the layer_name of the layer you changed so the image frames it: "
+    "the current canvas may be looking somewhere else entirely, and a wide shot "
+    "hides exactly the details you are checking. Verify in the domain you changed: "
+    "for a print layout look at the page itself — describe_layout for the geometry "
+    "and render_layout for the image; render_map shows the canvas, not the layout. "
+)
+VISUAL_CHECK_BY_READING = (
+    ". This model cannot see images, so verify visual changes only through the "
+    "read tools of the skills you used. Do not ask for a rendered image and do "
+    "not tell the user an image is missing. "
+)
 OUTCOME_LINE = "- {tool}: {status}"
 REQUEST_LINE = "The user's request was: {request}\n"
 REQUEST_LIMIT = 600
@@ -156,7 +164,8 @@ OUTCOME_OK = "ok"
 OUTCOME_FAILED = "FAILED — {error}"
 
 
-def build_verification_prompt(outcomes: list[dict[str, Any]], request: str = "") -> str:
+def build_verification_prompt(outcomes: list[dict[str, Any]], request: str = "", images: bool = True) -> str:
+    """The check after Apply; `images=False` swaps the rendered-image check for read tools only."""
     lines = []
     for outcome in outcomes:
         status = OUTCOME_OK if outcome.get("ok") else OUTCOME_FAILED.format(error=outcome.get("error", ""))
@@ -167,6 +176,7 @@ def build_verification_prompt(outcomes: list[dict[str, Any]], request: str = "")
     return VERIFICATION_PROMPT.format(
         outcomes="\n".join(lines) or "- (nothing ran)",
         request=REQUEST_LINE.format(request=asked) if asked else "",
+        visual_check=VISUAL_CHECK_BY_IMAGE if images else VISUAL_CHECK_BY_READING,
     )
 
 
