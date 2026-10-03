@@ -23,9 +23,7 @@ import token_ceilings
 from e2e_harness import ARTIFACTS, PluginCase, pump
 from e2e_model import USAGE, ScriptedModel, call, calls, fail, say, think
 
-from ai_agent.core.settings import set_supports_images
-
-from ai_agent.core.settings import set_reasoning_enabled
+from ai_agent.core.settings import set_reasoning_enabled, set_supports_images
 
 MODEL = "scripted-model"
 SIZES_FILE = "request_sizes.json"
