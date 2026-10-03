@@ -33,6 +33,7 @@ from ai_agent.core.settings import (
     set_dialect,
     set_geocoder_provider,
     set_model,
+    set_reasoning_enabled,
     set_thinking_budget,
     set_token_budget,
     set_verify_after_apply,
@@ -183,6 +184,7 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
             4: [
                 self.verify_apply_cb.toggled,
                 self.budget_edit.textChanged,
+                self.reasoning_cb.toggled,
                 self.thinking_edit.textEdited,
                 self.dialect_combo.currentTextChanged,
                 self.auth_type_combo.currentTextChanged,
@@ -309,6 +311,7 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         set_write_run_journal(self.journal_cb.isChecked())
         set_token_budget(token_budget)
         set_thinking_budget(thinking_budget)
+        set_reasoning_enabled(self.reasoning_cb.isChecked())
         set_geocoder_provider(geocoder_provider)
         if geocoder_provider == GEOCODER_NOMINATIM:
             set_custom_nominatim_url(geocoder_url)

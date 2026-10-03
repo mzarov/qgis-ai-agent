@@ -29,6 +29,7 @@ from ai_agent.core.settings import (
     set_api_url,
     set_dialect,
     set_model,
+    set_reasoning_enabled,
     set_verify_after_apply,
 )
 from ai_agent.plugin import QgisAiAgentPlugin
@@ -102,6 +103,7 @@ class PluginCase(unittest.TestCase):
         set_model(self.model_name)
         set_dialect("openai")
         set_verify_after_apply(True)
+        set_reasoning_enabled(False)
         reset_capabilities(self.api_url, self.model_name, "openai")
         self.folder = tempfile.mkdtemp(prefix="ai-agent-e2e-")
         build_project(self.folder)

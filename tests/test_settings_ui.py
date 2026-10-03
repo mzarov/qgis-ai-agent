@@ -172,6 +172,17 @@ class SidebarSettingsTest(unittest.TestCase):
         body = SETTINGS_SOURCE.split("def get_write_run_journal(")[1].split("\ndef ")[0]
         self.assertIn("False if stored is None", body)
 
+    def test_reasoning_is_off_until_asked_for(self):
+        body = SETTINGS_SOURCE.split("def get_reasoning_enabled(")[1].split("\ndef ")[0]
+        self.assertIn("False if stored is None", body)
+        self.assertIn("_as_opt_in_bool", body)
+
+    def test_the_reasoning_switch_sits_on_the_advanced_page_and_is_saved(self):
+        advanced = ADVANCED_SOURCE.split("def build_advanced(")[1].split("\ndef ")[0]
+        self.assertIn("fields.switch_row(REASONING_LABEL, owner.reasoning_cb", advanced)
+        self.assertIn("self.reasoning_cb.toggled", DIALOG_SOURCE)
+        self.assertIn("set_reasoning_enabled(self.reasoning_cb.isChecked())", DIALOG_SOURCE)
+
     def test_budgets_stay_out_of_the_privacy_page(self):
         privacy = ADVANCED_SOURCE.split("def build_privacy(")[1].split("\ndef ")[0]
         self.assertNotIn("budget_edit", privacy)
@@ -185,6 +196,7 @@ class SidebarSettingsTest(unittest.TestCase):
             "verify_ssl_cb",
             "verify_apply_cb",
             "journal_cb",
+            "reasoning_cb",
             "budget_edit",
             "thinking_edit",
             "model_edit",
