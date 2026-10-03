@@ -9,6 +9,7 @@ from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPlainTextEdit, QToolButton
 
 from ai_agent.i18n import tr
 from ai_agent.ui import controls, style
+from ai_agent.ui.attachments import local_files
 
 SKILL_TOKEN = re.compile(r"^/\S+")
 LAYER_TOKEN = re.compile(r'(?:(?<=\s)|^)@(?:"[^"]*"?|\S+)')
@@ -17,7 +18,8 @@ MENTION = "@"
 QUOTE = '"'
 PLUS = "+"
 ATTACH = tr("Attach")
-ATTACH_SOON = tr("Attaching files is coming soon")
+ADD_DATA = tr("Add data files…")
+ATTACH_PICTURE = tr("Attach a picture…")
 NO_MODEL = tr("No model")
 
 
@@ -57,10 +59,32 @@ class PromptEdit(QPlainTextEdit):
     dismissed = pyqtSignal()
     escaped = pyqtSignal()
     focus_changed = pyqtSignal(bool)
+    files_dropped = pyqtSignal(list)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.popup_open = False
+
+    def dragEnterEvent(self, event: Any) -> None:
+        if local_files(event.mimeData()):
+            event.acceptProposedAction()
+            return
+        super().dragEnterEvent(event)
+
+    def dragMoveEvent(self, event: Any) -> None:
+        if local_files(event.mimeData()):
+            event.acceptProposedAction()
+            return
+        super().dragMoveEvent(event)
+
+    def dropEvent(self, event: Any) -> None:
+        # Files are attached, not pasted as paths; any other drop is ordinary text.
+        paths = local_files(event.mimeData())
+        if not paths:
+            super().dropEvent(event)
+            return
+        event.acceptProposedAction()
+        self.files_dropped.emit(paths)
 
     def pad_vertically(self, pixels: int) -> None:
         """Split spare height evenly above and below the text, so one line sits centred."""
@@ -132,6 +156,9 @@ def _token_format(palette: Any, colour: Any) -> QTextCharFormat:
 class ComposerToolbar(QWidget):
     """The row under the composer: + on the left, the model's name on the right."""
 
+    data_requested = pyqtSignal()
+    picture_requested = pyqtSignal()
+
     def __init__(self, palette: Any, parent: QWidget | None = None):
         super().__init__(parent)
         self._palette = palette
@@ -151,8 +178,8 @@ class ComposerToolbar(QWidget):
             f"color: {style.css_color(style.text(palette))}; }}"
         )
         self.menu = controls.menu(self.attach, palette)
-        soon = self.menu.addAction(ATTACH_SOON)
-        soon.setEnabled(False)
+        self.menu.addAction(ADD_DATA).triggered.connect(self.data_requested.emit)
+        self.menu.addAction(ATTACH_PICTURE).triggered.connect(self.picture_requested.emit)
         self.attach.clicked.connect(self._open_menu)
         line.addWidget(self.attach)
         line.addStretch(1)

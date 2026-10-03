@@ -151,6 +151,51 @@ class ReasoningScenario(ScenarioCase):
         self.shot("reasoning_folded")
 
 
+class AttachScenario(ScenarioCase):
+    def test_data_becomes_a_mentioned_layer_and_a_picture_reaches_the_model(self) -> None:
+        import json
+        import os
+        import tempfile
+
+        from qgis.PyQt.QtGui import QColor, QImage
+
+        folder = tempfile.mkdtemp()
+        data = os.path.join(folder, "cafes.geojson")
+        with open(data, "w", encoding="utf-8") as handle:
+            json.dump(
+                {
+                    "type": "FeatureCollection",
+                    "features": [
+                        {
+                            "type": "Feature",
+                            "properties": {"name": "Le Dôme"},
+                            "geometry": {"type": "Point", "coordinates": [2.33, 48.84]},
+                        }
+                    ],
+                },
+                handle,
+            )
+        picture = os.path.join(folder, "sketch.png")
+        image = QImage(64, 48, QImage.Format.Format_RGB32)
+        image.fill(QColor("orange"))
+        self.assertTrue(image.save(picture))
+
+        self.dock.files_attached.emit([data, picture])
+        pump(0.1)
+        self.assertEqual(self.layer("cafes").featureCount(), 1)
+        self.assertIn("@cafes", self.dock.composer._edit.toPlainText())
+        self.assertEqual(self.dock.composer.attachments.paths, [picture])
+        self.shot("attachments_waiting")
+
+        self.model.script(say("An orange rectangle."))
+        self.ask("What is on the picture?")
+        request = [m for m in self.model.requests[0]["messages"] if m.get("role") == "user"][-1]["content"]
+        self.assertEqual(request[0]["text"], "What is on the picture?")
+        self.assertTrue(request[1]["image_url"]["url"].startswith("data:image/png;base64,"))
+        self.assertEqual(self.dock.composer.attachments.paths, [], "a sent picture must leave the composer")
+        self.assertIn("sketch.png", self.orchestrator.conversation.messages[-2]["content"])
+
+
 class FailureScenario(ScenarioCase):
     def test_a_failed_run_still_offers_the_prepared_steps(self) -> None:
         self.model.script(

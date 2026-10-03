@@ -439,6 +439,7 @@ _mod(
         "QBrush",
         "QIcon",
         "QPixmap",
+        "QImage",
         "QPainterPath",
         "QDesktopServices",
         "QTextCursor",
@@ -478,6 +479,7 @@ _mod(
         "QStackedWidget",
         "QButtonGroup",
         "QGridLayout",
+        "QFileDialog",
     ],
 )
 _qtcore.pyqtSignal = pyqtSignal

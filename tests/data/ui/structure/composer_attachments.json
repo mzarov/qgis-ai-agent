@@ -1,0 +1,164 @@
+[
+ {
+  "depth": 0,
+  "type": "AgentDockWidget"
+ },
+ {
+  "depth": 1,
+  "type": "QAbstractButton"
+ },
+ {
+  "depth": 1,
+  "type": "QAbstractButton"
+ },
+ {
+  "depth": 1,
+  "type": "QWidget",
+  "name": "agentBody"
+ },
+ {
+  "depth": 2,
+  "type": "QWidget"
+ },
+ {
+  "depth": 3,
+  "type": "QLabel"
+ },
+ {
+  "depth": 3,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 3,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 3,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 2,
+  "type": "ConversationView"
+ },
+ {
+  "depth": 3,
+  "type": "QWidget",
+  "name": "feed"
+ },
+ {
+  "depth": 4,
+  "type": "WelcomeCard"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Ask in plain language"
+ },
+ {
+  "depth": 5,
+  "type": "Suggestion",
+  "name": "suggestion"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "What layers do I have and what is in them?"
+ },
+ {
+  "depth": 5,
+  "type": "Suggestion",
+  "name": "suggestion"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Colour the layer by category and add labels"
+ },
+ {
+  "depth": 5,
+  "type": "Suggestion",
+  "name": "suggestion"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Download cafés in Paris from OpenStreetMap"
+ },
+ {
+  "depth": 2,
+  "type": "QWidget"
+ },
+ {
+  "depth": 3,
+  "type": "Composer"
+ },
+ {
+  "depth": 4,
+  "type": "RoundedFrame",
+  "name": "composerFrame"
+ },
+ {
+  "depth": 5,
+  "type": "AttachmentChips"
+ },
+ {
+  "depth": 6,
+  "type": "AttachmentChip"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "sketch.png"
+ },
+ {
+  "depth": 7,
+  "type": "QToolButton",
+  "text": "×"
+ },
+ {
+  "depth": 6,
+  "type": "AttachmentChip"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "a photo of the paper map from the archive.jpg"
+ },
+ {
+  "depth": 7,
+  "type": "QToolButton",
+  "text": "×"
+ },
+ {
+  "depth": 5,
+  "type": "PromptEdit",
+  "text": "What is on these pictures?"
+ },
+ {
+  "depth": 5,
+  "type": "QPushButton",
+  "text": "↵"
+ },
+ {
+  "depth": 4,
+  "type": "ComposerToolbar"
+ },
+ {
+  "depth": 5,
+  "type": "QToolButton",
+  "text": "+"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "qwen3"
+ }
+]
