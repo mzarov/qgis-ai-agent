@@ -20,7 +20,6 @@ from ai_agent.i18n import tr
 from ai_agent.ui import controls, icons, style
 from ai_agent.ui.composer import Composer
 from ai_agent.ui.conversation import ConversationView
-from ai_agent.ui.progress import ProgressLine
 
 TITLE = "AI Agent"
 NO_SESSIONS_LABEL = tr("No past conversations")
@@ -111,6 +110,7 @@ class AgentDockWidget(QDockWidget):
 
     def _build_conversation(self) -> QWidget:
         self.conversation = ConversationView()
+        self.progress = self.conversation.progress
         self.conversation.confirm_requested.connect(self.confirm_plan_clicked.emit)
         self.conversation.cancel_requested.connect(self.cancel_plan_clicked.emit)
         self.conversation.suggestion_chosen.connect(self._on_suggestion)
@@ -121,8 +121,6 @@ class AgentDockWidget(QDockWidget):
         holder = QWidget()
         layout = QVBoxLayout(holder)
         layout.setContentsMargins(*BODY_MARGINS)
-        self.progress = ProgressLine(self.palette())
-        layout.addWidget(self.progress)
         self.composer = Composer()
         self.composer.submitted.connect(self.prompt_submitted.emit)
         self.composer.stopped.connect(self.stop_clicked.emit)

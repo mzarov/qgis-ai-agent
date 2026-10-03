@@ -37,7 +37,7 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `plan.py`         | the plan card with its buttons inside |
 | `composer.py`     | the input box as in Claude Code: text and the send/stop button inside, the toolbar under it; Enter sends, Esc stops a run; `/` and `@` open the popup |
 | `composer_parts.py` | the editor, `/skill` and `@layer` parsing, token highlighting, the painted frame, the toolbar (+, skill picker, model) |
-| `progress.py`     | the line above the composer while a run works: pulsing dot, current step, step count |
+| `progress.py`     | the working line as in Claude Code: walking dots, the current step, the elapsed time; the feed's last row, under the newest message |
 | `controls.py`     | custom controls: `Segmented` and `RadioCards` keep the combo-box API, `Chips`, badges, keycaps, `ElidedLabel` |
 | `connection_widgets.py` | provider tiles and the connection status card |
 | `logos.py`        | provider logos from `ui/logos/*.svg`, tinted to the theme's text colour |
@@ -261,7 +261,7 @@ container cascades to every descendant. The composer once changed its frame's
 style sheet in the editor's `focusOutEvent`; Qt swapped the editor's style
 mid-event and QGIS segfaulted in event processing, intermittently and only in
 a full test run. Container backgrounds go through `style.fill` (the palette),
-focus and state looks are painted (`ComposerFrame`, `PulseDot`), and a style
+focus and state looks are painted (`ComposerFrame`, `WorkingDots`, `PaintedDot`), and a style
 sheet is set only when its text actually changed.
 
 **Nothing that cannot shrink may sit in a grid.** A pill badge or an unelided
@@ -344,5 +344,6 @@ distinguishable in either theme.
 ## When a run stops
 
 Stop and errors keep the half-streamed answer (`keep_draft`) instead of
-dropping it, and the orchestrator puts the request back into an empty composer
-(`restore`) — the user retries with one key instead of retyping.
+dropping it. After an error the orchestrator puts the request back into an
+empty composer (`restore`) so a retry is one key; after a stop it does not —
+stopping is deliberate, and the request stays visible in the chat.

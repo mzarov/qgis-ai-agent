@@ -104,8 +104,8 @@ class CoreOrchestrator(ProjectLifecycleMixin):
                 self.dock_widget.mark_plan_cancelled(self._plan_message_id)
         self._plan_message_id = None
         self._keep_partial_answer()
+        # A stop is deliberate: the request stays in the chat but not back in the box (the user's call).
         self.dock_widget.add_system_message(APPLY_STOPPED if applying else RUN_STOPPED)
-        self._offer_request_again()
 
     def on_new_session(self) -> None:
         if self._busy_with_current():

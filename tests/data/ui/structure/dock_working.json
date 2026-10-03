@@ -47,6 +47,24 @@
  },
  {
   "depth": 4,
+  "type": "ProgressLine"
+ },
+ {
+  "depth": 5,
+  "type": "WorkingDots"
+ },
+ {
+  "depth": 5,
+  "type": "ElidedLabel",
+  "text": "Reading layer 'districts'"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "<duration>"
+ },
+ {
+  "depth": 4,
   "type": "UserMessage"
  },
  {
@@ -86,24 +104,6 @@
  {
   "depth": 2,
   "type": "QWidget"
- },
- {
-  "depth": 3,
-  "type": "ProgressLine"
- },
- {
-  "depth": 4,
-  "type": "PulseDot"
- },
- {
-  "depth": 4,
-  "type": "QLabel",
-  "text": "Reading layer 'districts'"
- },
- {
-  "depth": 4,
-  "type": "QLabel",
-  "text": "1 step(s)"
  },
  {
   "depth": 3,

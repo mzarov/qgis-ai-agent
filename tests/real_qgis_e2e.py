@@ -64,7 +64,7 @@ class StyleScenario(ScenarioCase):
 
 
 class StopScenario(ScenarioCase):
-    def test_stop_keeps_the_partial_answer_and_the_request(self) -> None:
+    def test_stop_keeps_the_partial_answer_and_clears_the_box(self) -> None:
         self.model.script(say("A map projection flattens the surface of the Earth onto a plane. " * 20, 0.05))
         self.orchestrator.on_prompt("Tell me about projections")
         pump(1.5)
@@ -75,7 +75,7 @@ class StopScenario(ScenarioCase):
         kept = self.answers()
         self.assertEqual(len(kept), 1)
         self.assertTrue(kept[0].startswith("A map projection"))
-        self.assertEqual(self.dock.composer._edit.toPlainText(), "Tell me about projections")
+        self.assertEqual(self.dock.composer._edit.toPlainText(), "", "a stop must not put the request back")
         self.shot("stop_keeps_partial")
 
 

@@ -4,14 +4,14 @@
 <context>
     <name>QgisAiAgent</name>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="307"/>
-        <location filename="ai_agent/ui/dock_widget.py" line="286"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="305"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="284"/>
         <source>&#10;&#10;Apply them?</source>
         <translation>&#10;&#10;Применить их?</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="306"/>
-        <location filename="ai_agent/ui/dock_widget.py" line="278"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="304"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="276"/>
         <source>&#10;&#10;Exact code to be executed:&#10;&#10;{0}</source>
         <translation>&#10;&#10;Точный код, который будет выполнен:&#10;&#10;{0}</translation>
     </message>
@@ -32,15 +32,6 @@
             <numerusform>%n действие</numerusform>
             <numerusform>%n действия</numerusform>
             <numerusform>%n действий</numerusform>
-        </translation>
-    </message>
-    <message numerus="yes">
-        <location filename="ai_agent/ui/progress.py" line="79"/>
-        <source>%n step(s)</source>
-        <translation>
-            <numerusform>%n шаг</numerusform>
-            <numerusform>%n шага</numerusform>
-            <numerusform>%n шагов</numerusform>
         </translation>
     </message>
     <message>
@@ -340,12 +331,12 @@
         <translation>Диалог не найден.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="72"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="71"/>
         <source>Conversations</source>
         <translation>Диалоги</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/conversation.py" line="230"/>
+        <location filename="ai_agent/ui/conversation.py" line="234"/>
         <source>Copy the whole conversation</source>
         <translation>Скопировать весь диалог</translation>
     </message>
@@ -405,8 +396,8 @@
         <translation>Удаляю объектов: {0} — из «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="271"/>
-        <location filename="ai_agent/ui/dock_widget.py" line="214"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="269"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="212"/>
         <source>Destructive steps</source>
         <translation>Необратимые шаги</translation>
     </message>
@@ -593,7 +584,7 @@
         <translation>Модель ответила: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="74"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="73"/>
         <source>New conversation</source>
         <translation>Новый диалог</translation>
     </message>
@@ -638,7 +629,7 @@
         <translation>Параметров нет.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="26"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="25"/>
         <source>No past conversations</source>
         <translation>Прошлых диалогов нет</translation>
     </message>
@@ -948,7 +939,7 @@
         <translation>Делаю снимок карты.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer.py" line="81"/>
+        <location filename="ai_agent/ui/composer.py" line="82"/>
         <source>Request</source>
         <translation>Запрос</translation>
     </message>
@@ -1038,15 +1029,14 @@
         <translation>Выделяю объекты в «{0}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer.py" line="104"/>
         <location filename="ai_agent/ui/composer.py" line="105"/>
+        <location filename="ai_agent/ui/composer.py" line="106"/>
         <location filename="ai_agent/ui/composer.py" line="131"/>
-        <location filename="ai_agent/ui/composer.py" line="133"/>
         <source>Send</source>
         <translation>Отправить</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="227"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="225"/>
         <source>Send the request to {0}?&#10;&#10;The provider receives your prompt and everything the agent reads to answer it: layer and field names, feature values, extents, layer sources and rendered map images. For data that must stay on this computer, use a local model server.</source>
         <translation>Отправить запрос в {0}?&#10;&#10;Провайдер получит ваш запрос и всё, что агент прочитает для ответа: имена слоёв и полей, значения объектов, границы, источники слоёв и изображения карты. Если данные не должны покидать компьютер, используйте локальный сервер модели.</translation>
     </message>
@@ -1076,7 +1066,7 @@
         <translation>Настраиваю подписи «{0}»: {1}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="75"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="74"/>
         <location filename="ai_agent/ui/settings_layout.py" line="12"/>
         <source>Settings</source>
         <translation>Настройки</translation>
@@ -1087,7 +1077,7 @@
         <translation>Настройки — AI Agent</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="224"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="222"/>
         <source>Share project data?</source>
         <translation>Передать данные проекта?</translation>
     </message>
@@ -1107,7 +1097,7 @@
         <translation>Часть шагов не выполнилась: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer.py" line="129"/>
+        <location filename="ai_agent/ui/composer.py" line="131"/>
         <source>Stop</source>
         <translation>Стоп</translation>
     </message>
@@ -1249,7 +1239,7 @@
         <translation>Применять нечего.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="299"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="297"/>
         <source>These steps change or delete data and cannot be undone:&#10;&#10;{0}</source>
         <translation>Эти шаги изменяют или удаляют данные, и их нельзя отменить:&#10;&#10;{0}</translation>
     </message>
@@ -1359,7 +1349,7 @@
         <translation>Без /chat/completions.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/progress.py" line="14"/>
+        <location filename="ai_agent/ui/progress.py" line="21"/>
         <source>Working…</source>
         <translation>Работаю…</translation>
     </message>
@@ -1511,6 +1501,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/activity.py" line="198"/>
+        <location filename="ai_agent/ui/progress.py" line="23"/>
         <location filename="ai_agent/ui/thinking.py" line="145"/>
         <source>{0} min {1} s</source>
         <translation>{0} мин {1} с</translation>
@@ -1522,6 +1513,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/activity.py" line="197"/>
+        <location filename="ai_agent/ui/progress.py" line="22"/>
         <location filename="ai_agent/ui/settings_dialog.py" line="60"/>
         <location filename="ai_agent/ui/thinking.py" line="144"/>
         <source>{0} s</source>
