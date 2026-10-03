@@ -193,12 +193,12 @@
         <translation>Подойдёт любой OpenAI-совместимый сервер.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/plan.py" line="129"/>
+        <location filename="ai_agent/ui/plan.py" line="136"/>
         <source>Applied</source>
         <translation>Применено</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/plan.py" line="135"/>
+        <location filename="ai_agent/ui/plan.py" line="142"/>
         <source>Applied with errors</source>
         <translation>Применено с ошибками</translation>
     </message>
@@ -208,12 +208,12 @@
         <translation>Применяет сам; удаление всё равно спросит</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/plan.py" line="114"/>
+        <location filename="ai_agent/ui/plan.py" line="121"/>
         <source>Apply</source>
         <translation>Применить</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/plan.py" line="211"/>
+        <location filename="ai_agent/ui/plan.py" line="234"/>
         <source>Applying by itself — %n action(s)</source>
         <translation>
             <numerusform>Применяется само — %n действие</numerusform>
@@ -308,7 +308,7 @@
         <translation>Встроенные</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/plan.py" line="121"/>
+        <location filename="ai_agent/ui/plan.py" line="128"/>
         <location filename="ai_agent/ui/settings_dialog.py" line="162"/>
         <source>Cancel</source>
         <translation>Отменить</translation>
@@ -319,7 +319,7 @@
         <translation>Отменить проверку</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/plan.py" line="132"/>
+        <location filename="ai_agent/ui/plan.py" line="139"/>
         <source>Cancelled</source>
         <translation>Отменено</translation>
     </message>
@@ -337,6 +337,11 @@
         <location filename="ai_agent/core/orchestrator/plans.py" line="115"/>
         <source>Changes applied.</source>
         <translation>Изменения применены.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/plan.py" line="26"/>
+        <source>Changes apply by themselves; deleting still asks</source>
+        <translation>Изменения применяются сами; удаление всё равно спросит</translation>
     </message>
     <message>
         <location filename="ai_agent/core/orchestrator/notices.py" line="11"/>
@@ -616,6 +621,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/composer_parts.py" line="30"/>
+        <location filename="ai_agent/ui/plan.py" line="28"/>
         <source>Every change waits for Apply</source>
         <translation>Каждое изменение ждёт «Применить»</translation>
     </message>
@@ -919,6 +925,11 @@
         <translation>Открываю 3D-вид «{0}».</translation>
     </message>
     <message>
+        <location filename="ai_agent/ui/plan.py" line="29"/>
+        <source>Or reply to change the plan.</source>
+        <translation>Или ответьте, чтобы поправить план.</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/project/save_project.py" line="68"/>
         <source>Overwriting '{0}' with the current project.</source>
         <translation>Перезаписываю «{0}» текущим проектом.</translation>
@@ -1125,7 +1136,7 @@
         <translation>Читаю {0}.</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/plan.py" line="207"/>
+        <location filename="ai_agent/ui/plan.py" line="230"/>
         <source>Ready to run — %n action(s)</source>
         <translation>
             <numerusform>Готово к запуску — %n действие</numerusform>
@@ -1224,7 +1235,7 @@
         <translation>Откатываю проект к состоянию до последнего применения.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/plan.py" line="23"/>
+        <location filename="ai_agent/ui/plan.py" line="25"/>
         <source>Run automatically</source>
         <translation>Выполнить автоматически</translation>
     </message>
@@ -1244,12 +1255,12 @@
         <translation>Запуск остановлен. Ожидающие действия отменены.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/plan.py" line="21"/>
+        <location filename="ai_agent/ui/plan.py" line="24"/>
         <source>Run this plan?</source>
         <translation>Выполнить этот план?</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/plan.py" line="22"/>
+        <location filename="ai_agent/ui/plan.py" line="27"/>
         <source>Run with approval</source>
         <translation>Выполнить с подтверждением</translation>
     </message>
@@ -1269,9 +1280,14 @@
         <translation>Выполняю запрос Overpass для «{0}»: {1}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/plan.py" line="24"/>
-        <source>Running the plan</source>
-        <translation>Выполняю план</translation>
+        <location filename="ai_agent/ui/plan.py" line="30"/>
+        <source>Running the plan automatically</source>
+        <translation>Выполняю план автоматически</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/plan.py" line="31"/>
+        <source>Running the plan with approval</source>
+        <translation>Выполняю план с подтверждением</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/settings_dialog.py" line="166"/>

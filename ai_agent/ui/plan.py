@@ -1,3 +1,5 @@
+from typing import Any
+
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import (
     QFrame,
@@ -10,7 +12,8 @@ from qgis.PyQt.QtWidgets import (
 
 from ai_agent.core.settings import WORK_MODE_ASK, WORK_MODE_AUTO
 from ai_agent.i18n import tr, tr_n
-from ai_agent.ui import style
+from ai_agent.ui import controls, style
+from ai_agent.ui.choice_popup import Choice, ChoiceRow
 
 STEP_FONT_SCALE = 0.92
 BUTTON_HEIGHT = 26
@@ -19,9 +22,13 @@ APPLIED_MARK = "✓"
 CANCELLED_MARK = "—"
 FAILED_MARK = "✕"
 RUN_PLAN_QUESTION = tr("Run this plan?")
-RUN_ASKING = tr("Run with approval")
 RUN_AUTO = tr("Run automatically")
-PLAN_STARTED = tr("Running the plan")
+RUN_AUTO_NOTE = tr("Changes apply by themselves; deleting still asks")
+RUN_ASKING = tr("Run with approval")
+RUN_ASKING_NOTE = tr("Every change waits for Apply")
+KEEP_PLANNING = tr("Or reply to change the plan.")
+PLAN_STARTED_AUTO = tr("Running the plan automatically")
+PLAN_STARTED_ASKING = tr("Running the plan with approval")
 NUMBER_WIDTH = 16
 
 
@@ -142,45 +149,63 @@ class PlanCard(QFrame):
         self._buttons.setVisible(False)
 
 
-class PlanOffer(QFrame):
-    """Under an answer written in plan mode: run the plan, asking first or by itself, or keep planning.
+class OfferRow(ChoiceRow):
+    """A choice under a plan: lit under the pointer, like a row of the mode menu."""
 
-    Keeping planning needs no button: the user just types the next message.
+    def enterEvent(self, event: Any) -> None:
+        self.set_highlighted(True)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event: Any) -> None:
+        self.set_highlighted(False)
+        super().leaveEvent(event)
+
+
+class PlanOffer(controls.RoundedFrame):
+    """Under an answer written in plan mode, as in Claude Code: run the plan by itself or with Apply.
+
+    A hairline card with two numbered choices; to change the plan the user just replies.
+    Rows wrap and shrink with the dock, so a narrow panel never scrolls sideways.
     """
 
     run_requested = pyqtSignal(str)
 
     def __init__(self, palette, parent=None):
-        super().__init__(parent)
-        self.setStyleSheet("QFrame { background: transparent; border: none; }")
-        row = QHBoxLayout(self)
-        row.setContentsMargins(0, 2, 0, 2)
-        row.setSpacing(8)
+        super().__init__(style.CARD_RADIUS, parent)
+        self.set_look(None, style.hairline(palette).name())
+        column = QVBoxLayout(self)
+        column.setContentsMargins(6, 10, 6, 8)
+        column.setSpacing(2)
         self._question = QLabel(RUN_PLAN_QUESTION)
-        self._question.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
-        row.addWidget(self._question)
-        self._buttons: list[QPushButton] = []
-        for text, mode, look in (
-            (RUN_ASKING, WORK_MODE_ASK, _plain_button(palette)),
-            (RUN_AUTO, WORK_MODE_AUTO, _accent_button(palette)),
+        self._question.setWordWrap(True)
+        self._question.setContentsMargins(10, 0, 10, 4)
+        style.scale_font(self._question, 1.0, bold=True)
+        self._question.setStyleSheet(f"color: {style.css_color(style.text(palette))};")
+        column.addWidget(self._question)
+        self._rows: list[OfferRow] = []
+        for number, choice in enumerate(
+            (Choice(WORK_MODE_AUTO, RUN_AUTO, RUN_AUTO_NOTE), Choice(WORK_MODE_ASK, RUN_ASKING, RUN_ASKING_NOTE)), 1
         ):
-            button = QPushButton(text)
-            button.setMinimumHeight(BUTTON_HEIGHT)
-            button.setCursor(Qt.CursorShape.PointingHandCursor)
-            button.setStyleSheet(look)
-            button.clicked.connect(lambda _checked=False, chosen=mode: self._run(chosen))
-            row.addWidget(button)
-            self._buttons.append(button)
-        row.addStretch(1)
+            row = OfferRow(choice, number, palette, wrap=True)
+            row.check.setVisible(False)
+            # No number keys in the feed, so no numbers: they would promise a shortcut that is not there.
+            row.number.setVisible(False)
+            row.clicked.connect(self._run)
+            column.addWidget(row)
+            self._rows.append(row)
+        self._hint = controls.small(KEEP_PLANNING, palette)
+        self._hint.setContentsMargins(10, 4, 10, 0)
+        column.addWidget(self._hint)
 
     def _run(self, mode: str) -> None:
         self.retire()
-        self._question.setText(PLAN_STARTED)
+        self._question.setText(PLAN_STARTED_AUTO if mode == WORK_MODE_AUTO else PLAN_STARTED_ASKING)
         self.run_requested.emit(mode)
 
     def retire(self) -> None:
-        for button in self._buttons:
-            button.setVisible(False)
+        for row in self._rows:
+            row.setVisible(False)
+        self._hint.setVisible(False)
 
 
 def _accent_button(palette) -> str:
