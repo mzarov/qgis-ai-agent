@@ -1,5 +1,5 @@
 from ai_agent.core.agent.transcript import ToolResult
-from ai_agent.core.llm.transport import ToolCall
+from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.base import BaseTool
 from ai_agent.qgis_tools.registry import ALL_TOOLS
 from ai_agent.skills.registry import LOCAL, SKILL_REGISTRY

@@ -16,7 +16,7 @@ from ai_agent.core.context.project import get_project_context
 from ai_agent.core.llm.anthropic import CACHE_PREFIX_KEY
 from ai_agent.core.llm.client import resolve_endpoint
 from ai_agent.core.llm.live import live_message
-from ai_agent.core.llm.transport import PROTOCOL_JSON, PROTOCOL_NATIVE
+from ai_agent.core.llm.turns import PROTOCOL_JSON, PROTOCOL_NATIVE
 from ai_agent.core.settings import (
     get_api_key,
     get_api_url,

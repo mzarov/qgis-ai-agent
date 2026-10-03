@@ -2,7 +2,7 @@ import pathlib
 import unittest
 
 from ai_agent.core.agent.executor import ToolExecutor
-from ai_agent.core.llm.transport import ToolCall
+from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
 from ai_agent.qgis_tools.python.run_python import (
     MAX_CODE_CHARS,

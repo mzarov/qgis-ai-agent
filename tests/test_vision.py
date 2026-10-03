@@ -10,7 +10,7 @@ from ai_agent.core.agent.transcript import (
 )
 from ai_agent.core.llm import anthropic, transport
 from ai_agent.core.llm.client import ApiResponseError
-from ai_agent.core.llm.transport import ModelTurn, ToolCall
+from ai_agent.core.llm.turns import ModelTurn, ToolCall
 from ai_agent.qgis_tools.base import RESULT_IMAGE_KEY
 from ai_agent.qgis_tools.inspect.render_map import (
     DEFAULT_WIDTH,

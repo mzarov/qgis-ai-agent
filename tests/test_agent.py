@@ -12,7 +12,7 @@ from ai_agent.core.agent.executor import ToolExecutor
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.prompts import APPLY_NOW_TOOL
 from ai_agent.core.agent.transcript import ToolResult
-from ai_agent.core.llm.transport import ModelTurn, ToolCall
+from ai_agent.core.llm.turns import ModelTurn, ToolCall
 from ai_agent.qgis_tools.registry import ALL_TOOLS, get_tool_by_name
 from ai_agent.qgis_tools.web import geocode as geocode_module
 from ai_agent.qgis_tools.web import http as http_module

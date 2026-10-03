@@ -4,7 +4,7 @@ import unittest
 from ai_agent.core.agent import loop as loop_module
 from ai_agent.core.agent import notices
 from ai_agent.core.agent.loop import AgentLoop
-from ai_agent.core.llm import anthropic, retry, transport
+from ai_agent.core.llm import anthropic, retry, transport, turns
 from ai_agent.core.llm.anthropic_stream import StreamedMessage
 from ai_agent.core.llm.client import ApiResponseError, blocking_timeout, scrub_secrets
 from ai_agent.core.llm.parser import parse_model_json
@@ -12,7 +12,7 @@ from ai_agent.core.llm.refusals import may_reject_images, streaming_unsupported,
 from ai_agent.core.llm.stream import SseAccumulator, StreamedCompletion
 from ai_agent.core.llm.stream_runner import STREAM_EVENTS_KEY, _finished_response
 from ai_agent.core.llm.thinking import split_thinking
-from ai_agent.core.llm.transport import ModelTurn, ToolCall
+from ai_agent.core.llm.turns import ModelTurn, ToolCall
 
 OVERFLOW = json.dumps(
     {
@@ -136,17 +136,17 @@ class ParsingTest(unittest.TestCase):
         self.assertEqual(transport.parse_usage({"usage": {"prompt_tokens": 50, "completion_tokens": 5}}), (50, 5))
 
     def test_a_scalar_json_reply_is_an_answer_not_a_crash(self):
-        turn = transport._parse_json_turn({"choices": [{"message": {"content": "3"}}]})
+        turn = turns.parse_json_turn({"choices": [{"message": {"content": "3"}}]})
         self.assertEqual(turn.text, "3")
 
     def test_prose_quoting_json_keeps_the_prose(self):
         content = 'Here is GeoJSON: {"type": "Point", "coordinates": [1, 2]} for you.'
-        turn = transport._parse_json_turn({"choices": [{"message": {"content": content}}]})
+        turn = turns.parse_json_turn({"choices": [{"message": {"content": content}}]})
         self.assertEqual(turn.text, content)
 
     def test_a_single_call_object_is_accepted(self):
         content = json.dumps({"text": "", "tool_calls": {"name": "list_layers", "arguments": {}}})
-        turn = transport._parse_json_turn({"choices": [{"message": {"content": content}}]})
+        turn = turns.parse_json_turn({"choices": [{"message": {"content": content}}]})
         self.assertEqual([call.name for call in turn.tool_calls], ["list_layers"])
 
     def test_parse_model_json_never_returns_a_scalar(self):

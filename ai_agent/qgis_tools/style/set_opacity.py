@@ -2,6 +2,7 @@ from typing import Any
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.layers import find_layer_by_name, layer_reference
 from ai_agent.qgis_tools.style.apply import refresh
 
@@ -25,12 +26,7 @@ class SetOpacityTool(BaseTool):
     constraints = ["A layer with this name must exist in the project"]
     examples = ["Make the basemap half transparent", "Give the layer back its full opacity"]
     params_schema = [
-        {
-            "name": "layer_name",
-            "type": "string",
-            "description": "Layer name exactly as in the project",
-            "required": True,
-        },
+        params.layer_name(),
         {
             "name": "opacity",
             "type": "number",

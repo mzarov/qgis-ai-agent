@@ -4,6 +4,7 @@ from qgis.core import QgsVectorLayerSimpleLabeling
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.layers import layer_reference
 from ai_agent.qgis_tools.common.properties import as_bool, properties_of, shown
 from ai_agent.qgis_tools.common.values import suggest_fields
@@ -44,12 +45,7 @@ class SetLabelsTool(BaseTool):
         "Move the labels 3 mm up",
     ]
     params_schema = [
-        {
-            "name": "layer_name",
-            "type": "string",
-            "description": "Layer name exactly as in the project",
-            "required": True,
-        },
+        params.layer_name(),
         {
             "name": "properties",
             "type": "object",

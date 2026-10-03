@@ -3,11 +3,11 @@ import unittest
 
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.transcript import Transcript
-from ai_agent.core.llm import anthropic, transport
+from ai_agent.core.llm import anthropic, turns
 from ai_agent.core.llm.reasoning import wire_messages
 from ai_agent.core.llm.stream import consume
 from ai_agent.core.llm.thinking import ThinkSplitter, split_thinking
-from ai_agent.core.llm.transport import PROTOCOL_JSON, ModelTurn
+from ai_agent.core.llm.turns import PROTOCOL_JSON, ModelTurn
 
 
 def event(payload: dict) -> bytes:
@@ -112,27 +112,27 @@ class StreamedThinkingTest(unittest.TestCase):
 
 class NativeTurnThinkingTest(unittest.TestCase):
     def test_both_spellings_at_once_are_not_joined_twice(self):
-        turn = transport._parse_native_turn(
+        turn = turns.parse_native_turn(
             {"choices": [{"message": {"content": "answer", "reasoning": "hmm", "reasoning_content": "hmm"}}]}
         )
         self.assertEqual(turn.thinking, "hmm")
 
     def test_a_reasoning_field_lands_on_the_turn(self):
-        turn = transport._parse_native_turn(
+        turn = turns.parse_native_turn(
             {"choices": [{"message": {"content": "answer", "reasoning_content": "pondering"}}]}
         )
         self.assertEqual(turn.text, "answer")
         self.assertEqual(turn.thinking, "pondering")
 
     def test_an_inline_tag_is_stripped_out_of_the_answer(self):
-        turn = transport._parse_native_turn({"choices": [{"message": {"content": "<think>hmm</think>answer"}}]})
+        turn = turns.parse_native_turn({"choices": [{"message": {"content": "<think>hmm</think>answer"}}]})
         self.assertEqual(turn.text, "answer")
         self.assertEqual(turn.thinking, "hmm")
 
     def test_the_json_protocol_reads_past_the_reasoning(self):
         content = '<think>maybe {"tool_calls": [{"name": "wrong"}], "text": "x", "done": true}</think>'
         content += '{"tool_calls": [{"name": "right", "arguments": {}}]}'
-        turn = transport._parse_json_turn({"choices": [{"message": {"content": content}}]})
+        turn = turns.parse_json_turn({"choices": [{"message": {"content": content}}]})
         self.assertEqual([call.name for call in turn.tool_calls], ["right"])
         self.assertEqual(turn.protocol, PROTOCOL_JSON)
         self.assertIn("maybe", turn.thinking)

@@ -4,6 +4,7 @@ from qgis.core import QgsSingleSymbolRenderer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.layers import geometry_type_name, layer_reference
 from ai_agent.qgis_tools.common.properties import properties_of, shown
 from ai_agent.qgis_tools.style.apply import refresh, require_vector_layer
@@ -34,12 +35,7 @@ class SetSymbolTool(BaseTool):
         "Cities as square markers with a white stroke",
     ]
     params_schema = [
-        {
-            "name": "layer_name",
-            "type": "string",
-            "description": "Layer name exactly as in the project",
-            "required": True,
-        },
+        params.layer_name(),
         {
             "name": "properties",
             "type": "object",

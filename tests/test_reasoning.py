@@ -7,7 +7,8 @@ from ai_agent.core.llm import transport
 from ai_agent.core.llm.client import ApiResponseError
 from ai_agent.core.llm.reasoning import REASONING_KEY, request_options, wire_messages
 from ai_agent.core.llm.refusals import thinking_unsupported, tools_unsupported
-from ai_agent.core.llm.transport import ModelTurn, ToolCall, _openai_options
+from ai_agent.core.llm.transport import _openai_options
+from ai_agent.core.llm.turns import ModelTurn, ToolCall
 
 SCHEMAS = [{"type": "function", "function": {"name": "list_layers", "parameters": {}}}]
 DEEPSEEK = "https://api.deepseek.com/v1"
