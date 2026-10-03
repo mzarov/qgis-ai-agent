@@ -23,7 +23,8 @@ import token_ceilings
 from e2e_harness import ARTIFACTS, PluginCase, pump
 from e2e_model import USAGE, ScriptedModel, call, calls, fail, say, think
 
-from ai_agent.core.settings import set_reasoning_enabled, set_supports_images
+from ai_agent.core.settings import get_auto_apply, set_reasoning_enabled, set_supports_images, set_work_mode
+from ai_agent.ui.composer_parts import MODES
 
 MODEL = "scripted-model"
 SIZES_FILE = "request_sizes.json"
@@ -302,6 +303,42 @@ class FailureScenario(ScenarioCase):
         self.apply()
         self.assertAlmostEqual(self.layer("districts").opacity(), 0.5)
         self.shot("failure_keeps_plan")
+
+
+class AutoModeScenario(ScenarioCase):
+    def tearDown(self) -> None:
+        set_work_mode("ask")
+        super().tearDown()
+
+    def test_auto_mode_applies_without_the_button_but_never_a_destructive_step(self) -> None:
+        toolbar = self.dock.composer.toolbar
+        toolbar.mode.click()
+        pump(0.05)
+        self.assertTrue(toolbar.modes.isVisible(), "the mode button opens its menu")
+        self.shot("mode_menu")
+        toolbar.modes.choose("auto")
+        self.assertTrue(get_auto_apply(), "choosing Auto must store the mode")
+        self.assertEqual(toolbar.mode.text(), next(mode.title for mode in MODES if mode.key == "auto"))
+        self.model.script(
+            call("load_skill", names=["style"]),
+            call("set_opacity", layer_name="districts", opacity=0.5),
+            say("Made districts half transparent."),
+            say("Checked: districts is at 50 %."),
+        )
+        self.ask("Make districts half transparent")
+        self.assertAlmostEqual(self.layer("districts").opacity(), 0.5)
+        self.assertFalse(self.agent.has_pending_writes)
+        self.assertEqual(self.destructive, [])
+        self.shot("auto_mode_applied")
+
+        self.model.script(
+            call("load_skill", names=["edit"]),
+            call("delete_features", layer_name="districts", filter='"pop2020" > 0'),
+            say("I suggest deleting the populated districts."),
+        )
+        self.ask("Delete the populated districts")
+        self.assertTrue(self.agent.has_pending_writes, "a destructive step must wait for the button in auto mode")
+        self.orchestrator.on_cancel_plan()
 
 
 class ComposerScenario(ScenarioCase):

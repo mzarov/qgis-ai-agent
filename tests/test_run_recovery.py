@@ -26,7 +26,7 @@ class FailedRunKeepsTheQueueTest(unittest.TestCase):
         self.loop._batch._calls.append(call("set_opacity", layer_name="roads", opacity=0.5))
         self.cards = []
         self.errors = []
-        self.loop.confirm_needed.connect(lambda calls, text: self.cards.append(list(calls)))
+        self.loop.confirm_needed.connect(lambda calls, text, _auto=False: self.cards.append(list(calls)))
         self.loop.failed.connect(self.errors.append)
 
     def test_a_transport_error_still_offers_the_prepared_steps(self):

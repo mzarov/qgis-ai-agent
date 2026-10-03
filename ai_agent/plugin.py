@@ -62,6 +62,7 @@ class QgisAiAgentPlugin:
         self.dock_widget.prompt_submitted.connect(self._orchestrator.on_prompt)
         self.dock_widget.stop_clicked.connect(self._orchestrator.on_stop)
         self.dock_widget.files_attached.connect(self._orchestrator.on_files_attached)
+        self.dock_widget.work_mode_changed.connect(self._orchestrator.on_work_mode)
         self.dock_widget.confirm_plan_clicked.connect(self._orchestrator.on_confirm_plan)
         self.dock_widget.cancel_plan_clicked.connect(self._orchestrator.on_cancel_plan)
         self.dock_widget.new_session_clicked.connect(self._orchestrator.on_new_session)

@@ -17,6 +17,7 @@ from ai_agent.ui import controls, style
 from ai_agent.ui.attachments import DATA, PICTURE, AttachmentChips, choose_files
 from ai_agent.ui.composer_parts import (
     MENTION,
+    MODES,
     SLASH,
     ComposerToolbar,
     PromptEdit,
@@ -46,6 +47,7 @@ class Composer(QWidget):
     submitted = pyqtSignal(str)
     stopped = pyqtSignal()
     files_attached = pyqtSignal(list)
+    mode_changed = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -83,6 +85,7 @@ class Composer(QWidget):
         self.toolbar.set_model("")
         self.toolbar.data_requested.connect(lambda: self._choose(DATA))
         self.toolbar.picture_requested.connect(lambda: self._choose(PICTURE))
+        self.toolbar.mode_chosen.connect(self._on_mode)
         column.addWidget(self.toolbar)
         self._paint()
 
@@ -105,6 +108,7 @@ class Composer(QWidget):
         self._edit.dismissed.connect(self._hide_popup)
         self._edit.escaped.connect(self._on_escape)
         self._edit.files_dropped.connect(self.files_attached.emit)
+        self._edit.mode_cycled.connect(self._next_mode)
         self._edit.focus_changed.connect(self._on_focus)
         self._edit.textChanged.connect(self._on_text_changed)
         self._grow()
@@ -288,6 +292,24 @@ class Composer(QWidget):
         paths = choose_files(self, kind)
         if paths:
             self.files_attached.emit(paths)
+
+    @property
+    def mode(self) -> str:
+        return self.toolbar._mode
+
+    def set_mode(self, mode: str) -> None:
+        """Show the stored mode without reporting it back as a change."""
+        self.toolbar.set_mode(mode)
+
+    def _on_mode(self, mode: str) -> None:
+        if mode != self.mode:
+            self.toolbar.set_mode(mode)
+            self.mode_changed.emit(mode)
+
+    def _next_mode(self) -> None:
+        keys = [choice.key for choice in MODES]
+        position = keys.index(self.mode) if self.mode in keys else 0
+        self._on_mode(keys[(position + 1) % len(keys)])
 
     def add_attachment(self, path: str) -> None:
         self.attachments.add(path)

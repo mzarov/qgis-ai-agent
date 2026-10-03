@@ -35,6 +35,18 @@ drop it:
 - *clip the roads by the city boundary, compute the length and save the
   project* — a whole chain lands in one plan card
 
+### Auto mode
+
+The mode button under the chat box, next to **+**, shows **Ask first** or
+**Auto**; click it for the mode menu (number keys choose) or press Shift+Tab in
+the box to switch. In Auto the plan card applies itself the
+moment it appears — styles, layers, fields, processing, OSM downloads, web
+search and page reading included — and the check after it still runs. A batch
+with a destructive step (deleting features, overwriting a file, Python code)
+waits for **Apply** and its extra confirmation as before, and so does the batch
+left over after a failed run. Every applied batch still takes a project
+snapshot, so *undo the last change* works the same. The mode is remembered.
+
 ## Conversations
 
 Conversations persist across QGIS restarts and are bound to the project: the

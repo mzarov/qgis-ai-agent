@@ -24,7 +24,7 @@ class PlanCard(QFrame):
     confirmed = pyqtSignal()
     cancelled = pyqtSignal()
 
-    def __init__(self, steps: list[str], parent=None):
+    def __init__(self, steps: list[str], applies_itself: bool = False, parent=None):
         super().__init__(parent)
         palette = self.palette()
         self.setStyleSheet(
@@ -39,6 +39,11 @@ class PlanCard(QFrame):
         column.addWidget(self._build_steps(steps, palette))
         self._buttons = self._build_buttons(palette)
         column.addWidget(self._buttons)
+        if applies_itself:
+            # Auto mode: nothing to press, the card only reports what is being applied.
+            self._buttons.setVisible(False)
+            self._heading.setText(_auto_heading(len(steps)))
+            self._mark.setStyleSheet(f"color: {style.css_color(style.accent(palette))};")
 
     def _build_heading(self, count: int, palette) -> QWidget:
         holder = QWidget()
@@ -154,3 +159,7 @@ def _plain_button(palette) -> str:
 
 def _heading(count: int) -> str:
     return tr_n("Ready to run — %n action(s)", count)
+
+
+def _auto_heading(count: int) -> str:
+    return tr_n("Applying by itself — %n action(s)", count)

@@ -143,6 +143,12 @@ class StateScreens(ScreenCase):
         finally:
             self.dock.set_busy(False)
 
+    def test_auto_mode(self) -> None:
+        self.dock.set_work_mode("auto")
+        self.dock.add_user_message(REQUEST)
+        self.dock.add_plan_message(PLAN, True)
+        self.check("dock_auto", self.dock)
+
     def test_no_model_connected(self) -> None:
         self.dock.set_configured(False)
         self.check("dock_offline", self.dock)
@@ -160,6 +166,14 @@ class ComposerScreens(ScreenCase):
     def test_layer_popup(self) -> None:
         self.dock.composer._edit.insertPlainText("colour @")
         self.check("composer_layers", self.dock)
+
+    def test_mode_menu(self) -> None:
+        toolbar = self.dock.composer.toolbar
+        toolbar.modes.open_above(toolbar.mode, "ask")
+        try:
+            self.check("mode_menu", toolbar.modes)
+        finally:
+            toolbar.modes.hide()
 
     def test_attached_pictures(self) -> None:
         import tempfile

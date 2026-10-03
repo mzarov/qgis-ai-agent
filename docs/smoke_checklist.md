@@ -922,3 +922,11 @@ These verify the agent solves everyday tasks without wandering through search.
      tool-using question in the same chat → it also finishes without a 400
      about `reasoning_content` (turns from the first run go back with an empty
      one).
+191. **Auto mode applies by itself.** Click **Ask first** under the box → the
+     Mode menu opens above it, both modes described, a check on the current
+     one; press 2 (or Shift+Tab in the box) → it reads **Auto**; *make the rivers blue* → the card reads
+     "Applying by itself", the rivers turn blue without a click, the check
+     runs after; restart QGIS → the mode is still Auto.
+192. **Auto mode never deletes on its own.** In Auto, *delete the rivers
+     shorter than 1 km* → the card waits with **Apply**, which still asks the
+     extra destructive question.

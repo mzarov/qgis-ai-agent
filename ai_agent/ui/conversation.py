@@ -184,9 +184,9 @@ class ConversationView(QScrollArea):
             self._activity.mark_rejected(label)
         return entry_id
 
-    def add_plan_card(self, steps: list[str]) -> int:
+    def add_plan_card(self, steps: list[str], applies_itself: bool = False) -> int:
         self._close_activity()
-        card = PlanCard(steps)
+        card = PlanCard(steps, applies_itself)
         card.confirmed.connect(self.confirm_requested.emit)
         card.cancelled.connect(self.cancel_requested.emit)
         return self._append(card)
