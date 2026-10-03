@@ -25,6 +25,7 @@ USAGE = {"prompt_tokens": 1000, "completion_tokens": 50, "total_tokens": 1050}
 @dataclass
 class Turn:
     text: str = ""
+    reasoning: str = ""
     calls: list[tuple[str, dict[str, Any]]] = field(default_factory=list)
     status: int = 200
     error: str = ""
@@ -33,6 +34,11 @@ class Turn:
 
 def say(text: str, chunk_delay: float = 0.0) -> Turn:
     return Turn(text=text, chunk_delay=chunk_delay)
+
+
+def think(reasoning: str, text: str) -> Turn:
+    """A turn that streams `reasoning_content` first, as DeepSeek and Kimi do."""
+    return Turn(text=text, reasoning=reasoning)
 
 
 def call(name: str, **arguments: Any) -> Turn:
@@ -141,6 +147,9 @@ def _event(payload: dict[str, Any]) -> bytes:
 
 def _stream_events(turn: Turn) -> list[bytes]:
     events = []
+    for start in range(0, len(turn.reasoning), CHUNK_CHARS):
+        delta = {"reasoning_content": turn.reasoning[start : start + CHUNK_CHARS]}
+        events.append(_event({"choices": [{"index": 0, "delta": delta}]}))
     for start in range(0, len(turn.text), CHUNK_CHARS):
         events.append(_event({"choices": [{"index": 0, "delta": {"content": turn.text[start : start + CHUNK_CHARS]}}]}))
     for index, (name, arguments) in enumerate(turn.calls):
@@ -164,6 +173,8 @@ def _stream_events(turn: Turn) -> list[bytes]:
 
 def _completion(turn: Turn) -> dict[str, Any]:
     message: dict[str, Any] = {"role": "assistant", "content": turn.text or None}
+    if turn.reasoning:
+        message["reasoning_content"] = turn.reasoning
     if turn.calls:
         message["tool_calls"] = [
             {

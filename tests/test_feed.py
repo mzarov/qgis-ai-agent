@@ -199,11 +199,19 @@ class ThinkingBlockTest(unittest.TestCase):
         self.assertTrue(ThinkingBlock()._toggle.isChecked())
 
     def test_reasoning_watched_live_reports_how_long_it_took(self):
+        with mock.patch("ai_agent.ui.thinking.time.monotonic", side_effect=[100.0, 103.0, 103.0, 103.0]):
+            block = ThinkingBlock()
+            block.append("one")
+            block.append("two")
+            block.finish()
+        self.assertTrue(block._elapsed.text())
+
+    def test_a_burst_too_short_to_measure_claims_no_duration(self):
         block = ThinkingBlock()
         block.append("one")
         block.append("two")
         block.finish()
-        self.assertTrue(block._elapsed.text())
+        self.assertEqual(block._elapsed.text(), "")
 
     def test_reasoning_that_arrived_whole_claims_no_duration(self):
         block = ThinkingBlock()

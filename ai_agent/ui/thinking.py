@@ -9,6 +9,7 @@ from ai_agent.ui.disclosure import Disclosure
 
 TEXT_FONT_SCALE = 0.9
 REPAINT_INTERVAL_MS = 80
+SHORTEST_SHOWN = 0.1
 THINKING_TITLE = tr("Thinking…")
 THOUGHT_TITLE = tr("Thought")
 
@@ -89,8 +90,10 @@ class ThinkingBlock(QFrame):
 
     def _refresh(self) -> None:
         self._title.setText(THOUGHT_TITLE if self._finished else THINKING_TITLE)
-        if self._finished and self._watched_live:
-            self._header.set_detail(format_seconds(time.monotonic() - self._started))
+        took = time.monotonic() - self._started
+        # "0.0 s" claims a measurement that did not happen: reasoning that arrived in one burst.
+        if self._finished and self._watched_live and took >= SHORTEST_SHOWN:
+            self._header.set_detail(format_seconds(took))
         else:
             self._header.set_detail("")
 

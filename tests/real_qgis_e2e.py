@@ -10,7 +10,7 @@ Runs inside `real_qgis_workflows.py` against the extracted plugin ZIP.
 """
 
 from e2e_harness import PluginCase, pump
-from e2e_model import ScriptedModel, call, calls, fail, say
+from e2e_model import ScriptedModel, call, calls, fail, say, think
 
 MODEL = "scripted-model"
 
@@ -134,6 +134,21 @@ class UndoScenario(ScenarioCase):
         self.assertEqual(restored.featureCount(), 1, "undo emptied a scratch layer")
         self.assertEqual(restored.renderer().symbol().color().name(), before)
         self.shot("buffer_recolour_undo")
+
+
+class ReasoningScenario(ScenarioCase):
+    def test_streamed_reasoning_folds_into_the_turn(self) -> None:
+        from ai_agent.ui.thinking import ThinkingBlock
+
+        reasoning = "The project has three layers, so a listing answers the question."
+        self.model.script(think(reasoning, "There are three layers."))
+        self.ask("What layers do I have?")
+        blocks = self.dock.conversation.findChildren(ThinkingBlock)
+        self.assertEqual(len(blocks), 1, "the reasoning never reached the feed")
+        self.assertEqual(blocks[0]._text, reasoning)
+        self.assertTrue(blocks[0].isVisibleTo(self.dock.conversation), "a reasoning-only turn must stay in the feed")
+        self.assertEqual(self.answers()[-1], "There are three layers.")
+        self.shot("reasoning_folded")
 
 
 class FailureScenario(ScenarioCase):
