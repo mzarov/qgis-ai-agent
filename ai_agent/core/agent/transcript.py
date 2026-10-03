@@ -4,7 +4,7 @@ from typing import Any
 
 from ai_agent.core.llm.anthropic import THINKING_KEY
 from ai_agent.core.llm.reasoning import REASONING_KEY
-from ai_agent.core.llm.transport import PROTOCOL_NATIVE, ModelTurn, ToolCall
+from ai_agent.core.llm.turns import PROTOCOL_NATIVE, ModelTurn, ToolCall
 
 MAX_RESULT_CHARS = 4000
 COMPACT_RESULT_CHARS = 500

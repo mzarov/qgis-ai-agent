@@ -2,6 +2,7 @@ import shutil
 import tempfile
 import unittest
 
+from ai_agent.core.orchestrator import notices
 from ai_agent.core.orchestrator import orchestrator as orchestrator_module
 from ai_agent.core.orchestrator.orchestrator import CoreOrchestrator
 from ai_agent.core.state import conversation as conversation_module
@@ -58,9 +59,20 @@ class Agent:
         self.is_applying = False
         self.active_apply_tool = ""
 
-    def start(self, prompt, history, verification=False, verification_round=0, skills=None, preload=None, images=None):
+    def start(
+        self,
+        prompt,
+        history,
+        verification=False,
+        verification_round=0,
+        skills=None,
+        preload=None,
+        images=None,
+        planning=False,
+    ):
         self.skills = skills
         self.images = images
+        self.planning = planning
         self.preload = preload
         if verification:
             self.verification_round = verification_round
@@ -221,7 +233,7 @@ class OrchestratorSessionTest(unittest.TestCase):
         self._ask("вопрос")
         self.orchestrator.agent.is_applying = True
         self.orchestrator.on_new_session()
-        self.assertIn(orchestrator_module.SWITCH_WHILE_APPLYING, self.dock.system)
+        self.assertIn(notices.SWITCH_WHILE_APPLYING, self.dock.system)
         self.assertIsNone(self.dock.replayed)
 
     def test_project_change_aborts_old_run_and_starts_project_scoped_session(self):
@@ -236,7 +248,7 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.assertEqual(self.orchestrator.agent.aborts, 1)
         self.assertEqual(self.orchestrator.conversation.project_key, "/new/project.qgz")
         self.assertEqual(self.dock.replayed, [])
-        self.assertIn(orchestrator_module.PROJECT_CHANGED, self.dock.system)
+        self.assertIn(notices.PROJECT_CHANGED, self.dock.system)
 
     def test_interrupted_apply_from_old_project_never_pollutes_the_new_session(self):
         self._ask("work in the old project")
@@ -260,7 +272,7 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.assertEqual(drawn, [])
         old_session = self.store.load(old_identifier)
         self.assertTrue(any("Stopped after 1 completed step" in item["content"] for item in old_session.messages))
-        self.assertIn(orchestrator_module.PREVIOUS_APPLY_INTERRUPTED, self.dock.system)
+        self.assertIn(notices.PREVIOUS_APPLY_INTERRUPTED, self.dock.system)
         self.assertIsNone(self.orchestrator._apply_scope)
 
     def test_transient_filename_signal_does_not_restart_the_conversation(self):
@@ -301,7 +313,7 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.assertTrue(self.orchestrator.on_project_cleared())
         self.orchestrator.on_apply_interrupted([Result(ok=True, name="set_symbol")])
         self.assertEqual(drawn, [])
-        self.assertNotIn(orchestrator_module.PREVIOUS_APPLY_INTERRUPTED, self.dock.system)
+        self.assertNotIn(notices.PREVIOUS_APPLY_INTERRUPTED, self.dock.system)
 
         saved = conversation_module.current_project_key
         conversation_module.current_project_key = lambda: self.orchestrator.conversation.project_key
@@ -311,7 +323,7 @@ class OrchestratorSessionTest(unittest.TestCase):
             conversation_module.current_project_key = saved
 
         self.assertEqual(self.orchestrator.conversation.messages, [])
-        self.assertIn(orchestrator_module.PREVIOUS_APPLY_INTERRUPTED, self.dock.system)
+        self.assertIn(notices.PREVIOUS_APPLY_INTERRUPTED, self.dock.system)
         self.assertTrue(any("Stopped after 1 completed step" in message for message in self.dock.system))
         old_session = self.store.load(old_identifier)
         self.assertTrue(any("Stopped after 1 completed step" in item["content"] for item in old_session.messages))
@@ -385,7 +397,7 @@ class OrchestratorSessionTest(unittest.TestCase):
         remembered = self._with_remote_endpoint(consent=False, answer=False)
         self.assertIsNone(self.orchestrator.agent.started)
         self.assertEqual(remembered, [])
-        self.assertIn(orchestrator_module.DATA_SHARING_DECLINED, self.dock.system)
+        self.assertIn(notices.DATA_SHARING_DECLINED, self.dock.system)
 
     def test_a_remembered_endpoint_is_not_asked_again(self):
         asked = []
@@ -515,7 +527,7 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.assertEqual(self.orchestrator.agent.verification_round, 2)
 
     def test_verification_respects_the_setting(self):
-        from ai_agent.core.orchestrator import orchestrator as module
+        from ai_agent.core.orchestrator import plans as module
 
         saved = module.get_verify_after_apply
         module.get_verify_after_apply = lambda: False
@@ -546,7 +558,7 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.assertIsNone(self.orchestrator.agent.started)
         self.assertFalse(getattr(self.orchestrator.agent, "cancelled", False))
         self.assertEqual(self.orchestrator.conversation.messages, [])
-        self.assertIn(orchestrator_module.SWITCH_WHILE_RUNNING, self.dock.system)
+        self.assertIn(notices.SWITCH_WHILE_RUNNING, self.dock.system)
 
     def test_aborted_run_is_reported_and_unblocks_switching(self):
         self.orchestrator.on_prompt("долгая задача")
@@ -568,7 +580,7 @@ class OrchestratorSessionTest(unittest.TestCase):
 
         self.orchestrator.on_aborted()
 
-        self.assertIn(orchestrator_module.APPLY_STOPPED, self.dock.system)
+        self.assertIn(notices.APPLY_STOPPED, self.dock.system)
         self.assertNotIn("were dropped", self.dock.system[-1])
 
     def test_question_asked_before_stop_stays_in_the_session(self):
@@ -613,7 +625,7 @@ class PendingPlanTest(unittest.TestCase):
     def test_the_user_is_told_the_plan_was_dropped(self):
         self._pending()
         self.orchestrator.on_prompt("ты же уже снял?")
-        self.assertIn(orchestrator_module.PLAN_DROPPED, self.dock.system)
+        self.assertIn(notices.PLAN_DROPPED, self.dock.system)
 
     def test_the_new_run_still_starts(self):
         self._pending()
@@ -670,7 +682,7 @@ class AskUserFlowTest(unittest.TestCase):
 
     def test_the_question_lands_in_the_chat_with_a_hint(self):
         self.orchestrator.on_question_asked("Какой из двух слоёв дорог брать?")
-        self.assertIn(orchestrator_module.AWAITING_ANSWER, self.dock.system)
+        self.assertIn(notices.AWAITING_ANSWER, self.dock.system)
         self.assertEqual(self.orchestrator.conversation.messages[-1]["content"], "Какой из двух слоёв дорог брать?")
 
     def test_the_next_message_is_routed_as_the_answer(self):

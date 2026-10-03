@@ -11,7 +11,7 @@ from ai_agent.core.agent import run_journal as run_journal_module
 from ai_agent.core.agent.journal import render_journal, write_journal
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.transcript import ToolResult, Transcript
-from ai_agent.core.llm.transport import ModelTurn, ToolCall
+from ai_agent.core.llm.turns import ModelTurn, ToolCall
 
 
 def entries():

@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from ai_agent.core.agent.loop import AgentLoop
-from ai_agent.core.llm.transport import ToolCall
+from ai_agent.core.llm.turns import ToolCall
 from ai_agent.core.orchestrator.planning import EFFECT_NETWORK, plan_line
 from ai_agent.qgis_tools.base import (
     EGRESS_FEATURE_VALUES,

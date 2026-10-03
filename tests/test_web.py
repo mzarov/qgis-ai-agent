@@ -6,7 +6,7 @@ import unittest
 from unittest import mock
 
 from ai_agent.core.agent.transcript import ToolResult, Transcript
-from ai_agent.core.llm.transport import ToolCall
+from ai_agent.core.llm.turns import ToolCall
 from ai_agent.core.settings import GEOCODER_NOMINATIM, GEOCODER_PHOTON
 from ai_agent.qgis_tools.web import geocode as geocode_module
 from ai_agent.qgis_tools.web import http as http_module

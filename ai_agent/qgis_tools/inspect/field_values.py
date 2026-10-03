@@ -5,6 +5,7 @@ from qgis.core import QgsVectorLayer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
+from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.layers import field_type_name, find_layer_by_name, layer_reference
 from ai_agent.qgis_tools.common.values import clamp_limit, plain_value, suggest_fields
 
@@ -28,12 +29,7 @@ class GetFieldValuesTool(BaseTool):
     constraints = ["The layer and the field must exist", "The layer must be a vector layer"]
     examples = ["Which values does the type field hold?", "What is the range of city population?"]
     params_schema = [
-        {
-            "name": "layer_name",
-            "type": "string",
-            "description": "Layer name exactly as in the project",
-            "required": True,
-        },
+        params.layer_name(),
         {
             "name": "field_name",
             "type": "string",

@@ -4,6 +4,7 @@ from qgis.core import QgsRasterLayer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.layers import find_layer_by_name, layer_reference
 from ai_agent.qgis_tools.style.apply import refresh
 from ai_agent.qgis_tools.style.raster import (
@@ -50,12 +51,7 @@ class SetRasterStyleTool(BaseTool):
         "Hide the -9999 values on the raster",
     ]
     params_schema = [
-        {
-            "name": "layer_name",
-            "type": "string",
-            "description": "Layer name exactly as in the project",
-            "required": True,
-        },
+        params.layer_name(),
         {
             "name": "mode",
             "type": "string",

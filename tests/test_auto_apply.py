@@ -66,11 +66,12 @@ class LoopOfferTest(unittest.TestCase):
 class OrchestratorPressTest(unittest.TestCase):
     def test_an_auto_batch_is_pressed_for_the_user_once_the_card_is_drawn(self):
         from ai_agent.core.orchestrator import orchestrator as orchestrator_module
+        from ai_agent.core.orchestrator import plans as plans_module
         from tests.test_orchestrator import Iface, PlanDock
 
         dock = PlanDock()
         core = orchestrator_module.CoreOrchestrator(Iface(), dock)
-        with mock.patch.object(orchestrator_module, "QTimer") as timer:
+        with mock.patch.object(plans_module, "QTimer") as timer:
             core.on_confirm_needed(calls("set_opacity"), "", True)
             core.on_confirm_needed(calls("set_opacity"), "", False)
         self.assertEqual(timer.singleShot.call_count, 1)
@@ -88,7 +89,9 @@ class ComposerModeTest(unittest.TestCase):
         composer.set_mode("auto")
         self.assertEqual((seen, composer.mode, composer.toolbar.mode.text()), ([], "auto", "Auto"))
         composer._edit.mode_cycled.emit()
-        self.assertEqual((seen, composer.toolbar.mode.text()), (["ask"], "Ask first"))
+        self.assertEqual((seen, composer.toolbar.mode.text()), (["plan"], "Plan"))
+        composer._edit.mode_cycled.emit()
+        self.assertEqual(seen, ["plan", "ask"])
 
     def test_choosing_in_the_menu_reports_only_a_change(self):
         from ai_agent.ui.composer import Composer

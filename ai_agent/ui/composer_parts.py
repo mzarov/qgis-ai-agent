@@ -7,7 +7,7 @@ from qgis.PyQt.QtCore import QPoint, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QFont, QSyntaxHighlighter, QTextCharFormat
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPlainTextEdit, QToolButton, QWidget
 
-from ai_agent.core.settings import WORK_MODE_ASK, WORK_MODE_AUTO
+from ai_agent.core.settings import WORK_MODE_ASK, WORK_MODE_AUTO, WORK_MODE_PLAN
 from ai_agent.i18n import tr
 from ai_agent.ui import controls, style
 from ai_agent.ui.attachments import local_files
@@ -29,6 +29,7 @@ MODE_HINT = tr("How changes are applied. Shift+Tab switches.")
 MODES = (
     Choice(WORK_MODE_ASK, tr("Ask first"), tr("Every change waits for Apply"), tr("Default")),
     Choice(WORK_MODE_AUTO, tr("Auto"), tr("Applies changes itself; deleting still asks")),
+    Choice(WORK_MODE_PLAN, tr("Plan"), tr("Looks around and proposes a plan; your data stays as it is")),
 )
 ADD_DATA = tr("Add data files…")
 ATTACH_PICTURE = tr("Attach a picture…")

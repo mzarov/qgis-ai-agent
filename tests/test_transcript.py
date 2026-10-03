@@ -2,7 +2,7 @@ import json
 import unittest
 
 from ai_agent.core.agent.transcript import ToolResult, Transcript
-from ai_agent.core.llm.transport import ModelTurn, ToolCall
+from ai_agent.core.llm.turns import ModelTurn, ToolCall
 
 
 def call(name="list_layers"):

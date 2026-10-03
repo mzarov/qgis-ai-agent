@@ -2,6 +2,7 @@ from typing import Any
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
+from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.layers import extent_dict, safe_extent
 from ai_agent.qgis_tools.project.tree import find_layer
 
@@ -20,12 +21,7 @@ class ZoomToLayerTool(BaseTool):
     constraints = ["A layer with this name must exist in the project"]
     examples = ["Show me the cities layer", "Zoom to the roads"]
     params_schema = [
-        {
-            "name": "layer_name",
-            "type": "string",
-            "description": "Layer name exactly as in the project",
-            "required": True,
-        },
+        params.layer_name(),
     ]
 
     def summarize_call(self, params: dict[str, Any]) -> str:

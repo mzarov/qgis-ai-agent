@@ -4,7 +4,7 @@ from ai_agent.core.agent.transcript import ToolResult, Transcript
 from ai_agent.core.llm import anthropic
 from ai_agent.core.llm.client import build_request
 from ai_agent.core.llm.dialects import ANTHROPIC, OPENAI, detect, headers_for, resolve
-from ai_agent.core.llm.transport import PROTOCOL_NATIVE, ModelTurn, ToolCall
+from ai_agent.core.llm.turns import PROTOCOL_NATIVE, ModelTurn, ToolCall
 
 TOOL_SCHEMA = {
     "type": "function",

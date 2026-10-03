@@ -16,7 +16,7 @@ from ai_agent.core.context.project import get_project_context
 from ai_agent.core.llm.anthropic import CACHE_PREFIX_KEY
 from ai_agent.core.llm.client import resolve_endpoint
 from ai_agent.core.llm.live import live_message
-from ai_agent.core.llm.transport import PROTOCOL_JSON, PROTOCOL_NATIVE
+from ai_agent.core.llm.turns import PROTOCOL_JSON, PROTOCOL_NATIVE
 from ai_agent.core.settings import (
     get_api_key,
     get_api_url,
@@ -49,11 +49,12 @@ def build_step_request(
     task_plan: str = "",
     queued_steps: str = "",
     invoked_skills: list[str] | tuple[str, ...] = (),
+    planning: bool = False,
 ) -> StepRequest:
     effective_overrides = dict(overrides) if overrides is not None else build_overrides()
     endpoint = str(effective_overrides.get("url_override") or get_api_url() or "")
     images = not detect_images_unsupported(effective_overrides)
-    schemas = build_tool_schemas_for(loaded_skills, endpoint, images)
+    schemas = build_tool_schemas_for(loaded_skills, endpoint, images, planning)
     json_protocol = detect_json_protocol(effective_overrides)
     static_prompt, live_prompt = build_system_parts(
         project_context=get_project_context(),
@@ -64,6 +65,7 @@ def build_step_request(
         queued_steps=queued_steps,
         project_notes=_project_notes(),
         invoked_skills=invoked_skills,
+        planning=planning,
     )
     system_prompt = static_prompt
     if json_protocol:
@@ -94,12 +96,14 @@ def _project_notes() -> str:
 
 
 def build_tool_schemas_for(
-    loaded_skills: list[str], endpoint: str | None = None, images: bool = True
+    loaded_skills: list[str], endpoint: str | None = None, images: bool = True, planning: bool = False
 ) -> list[dict[str, Any]]:
-    """Tool schemas for one turn; `images=False` leaves out tools whose result is only a picture."""
-    tools = tools_for_skills(loaded_skills, images)
+    """Tool schemas for one turn; `images=False` leaves out tools whose result is only a picture,
+    `planning` every tool that would change something."""
+    tools = tools_for_skills(loaded_skills, images, writes=not planning)
     schemas = build_tool_schemas(tools)
-    schemas.insert(0, build_apply_now_schema())
+    if not planning:
+        schemas.insert(0, build_apply_now_schema())
     schemas.insert(0, build_ask_user_schema())
     schemas.insert(0, build_update_plan_schema())
     remaining = [name for name in SKILL_REGISTRY.names() if name not in loaded_skills]

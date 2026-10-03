@@ -1,7 +1,7 @@
 import unittest
 
 from ai_agent.core.llm.parser import parse_model_json, parse_tool_arguments
-from ai_agent.core.llm.transport import _parse_json_turn, _parse_native_turn
+from ai_agent.core.llm.turns import parse_json_turn, parse_native_turn
 
 
 def native(content, calls):
@@ -14,7 +14,7 @@ def json_reply(content):
 
 class NativeTurnTest(unittest.TestCase):
     def test_call_name_and_arguments(self):
-        turn = _parse_native_turn(
+        turn = parse_native_turn(
             native(
                 None,
                 [
@@ -31,7 +31,7 @@ class NativeTurnTest(unittest.TestCase):
         self.assertEqual(turn.protocol, "native")
 
     def test_several_calls_keep_order(self):
-        turn = _parse_native_turn(
+        turn = parse_native_turn(
             native(
                 None,
                 [
@@ -43,36 +43,36 @@ class NativeTurnTest(unittest.TestCase):
         self.assertEqual([call.name for call in turn.tool_calls], ["list_layers", "get_qgis_info"])
 
     def test_nameless_call_is_dropped(self):
-        turn = _parse_native_turn(native(None, [{"id": "a", "function": {"arguments": "{}"}}]))
+        turn = parse_native_turn(native(None, [{"id": "a", "function": {"arguments": "{}"}}]))
         self.assertEqual(turn.tool_calls, [])
 
     def test_plain_answer_has_no_calls(self):
-        turn = _parse_native_turn(json_reply("готово"))
+        turn = parse_native_turn(json_reply("готово"))
         self.assertEqual(turn.text, "готово")
         self.assertEqual(turn.tool_calls, [])
 
     def test_empty_choices_raise(self):
         with self.assertRaises(ValueError):
-            _parse_native_turn({"choices": []})
+            parse_native_turn({"choices": []})
 
 
 class JsonTurnTest(unittest.TestCase):
     def test_bare_object(self):
-        turn = _parse_json_turn(json_reply('{"text":"t","tool_calls":[{"name":"list_layers","arguments":{}}]}'))
+        turn = parse_json_turn(json_reply('{"text":"t","tool_calls":[{"name":"list_layers","arguments":{}}]}'))
         self.assertEqual(turn.tool_calls[0].name, "list_layers")
         self.assertEqual(turn.protocol, "json")
 
     def test_markdown_fence_is_stripped(self):
-        turn = _parse_json_turn(json_reply('```json\n{"text":"t","tool_calls":[]}\n```'))
+        turn = parse_json_turn(json_reply('```json\n{"text":"t","tool_calls":[]}\n```'))
         self.assertEqual(turn.text, "t")
 
     def test_prose_is_treated_as_final_answer(self):
-        turn = _parse_json_turn(json_reply("просто текст"))
+        turn = parse_json_turn(json_reply("просто текст"))
         self.assertEqual(turn.text, "просто текст")
         self.assertEqual(turn.tool_calls, [])
 
     def test_params_key_is_accepted(self):
-        turn = _parse_json_turn(json_reply('{"tool_calls":[{"tool":"list_layers","params":{"a":1}}]}'))
+        turn = parse_json_turn(json_reply('{"tool_calls":[{"tool":"list_layers","params":{"a":1}}]}'))
         self.assertEqual(turn.tool_calls[0].arguments, {"a": 1})
 
 

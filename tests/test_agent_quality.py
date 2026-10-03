@@ -4,7 +4,7 @@ from ai_agent.core.agent import loop as loop_module
 from ai_agent.core.agent import notices
 from ai_agent.core.agent.batch import MODEL_LINE_LIMIT, _model_line
 from ai_agent.core.agent.loop import AgentLoop
-from ai_agent.core.llm.transport import ModelTurn, ToolCall
+from ai_agent.core.llm.turns import ModelTurn, ToolCall
 from ai_agent.skills.registry import SKILL_REGISTRY
 
 

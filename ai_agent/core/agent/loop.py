@@ -15,7 +15,7 @@ from ai_agent.core.agent.run_journal import RunJournal
 from ai_agent.core.agent.skills import extend_loaded
 from ai_agent.core.agent.transcript import ToolResult, Transcript
 from ai_agent.core.agent.turn_thread import TurnThreadOwner
-from ai_agent.core.llm.transport import PROTOCOL_JSON, PROTOCOL_NATIVE, ModelTurn, ToolCall
+from ai_agent.core.llm.turns import PROTOCOL_JSON, PROTOCOL_NATIVE, ModelTurn, ToolCall
 from ai_agent.core.settings import get_token_budget
 from ai_agent.qgis_tools.web.http import cancel_active_requests
 from ai_agent.skills.registry import SKILL_REGISTRY
@@ -70,6 +70,8 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._is_verification = False
         self._budget = TokenBudget()
         self._request_estimate = 0
+        self._planning = False
+        self.ended_on_limit = False
         self._plan_steps: list[str] = []
         self._plan_done = 0
         self._staged = False
@@ -101,6 +103,10 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         return bool(self._question)
 
     @property
+    def is_planning(self) -> bool:
+        return self._planning
+
+    @property
     def is_verification(self) -> bool:
         return self._is_verification
 
@@ -127,12 +133,16 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         skills: list[str] | None = None,
         preload: list[str] | None = None,
         images: list[str] | None = None,
+        planning: bool = False,
     ) -> bool:
         if self.is_running or self._batch.is_applying:
             return False
         self._generation += 1
         self._transcript = Transcript()
         self._transcript.add_user(prompt, images)
+        self._planning = planning
+        # Set when the turn or token limit, not the model, ended the run: its last words are no plan.
+        self.ended_on_limit = False
         self._journal.begin(prompt)
         self._history = list(history or [])
         self._is_verification = verification
@@ -233,6 +243,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
                 render_task_plan(self._plan_steps, self._plan_done),
                 self._queued_summaries(),
                 invoked_skills=self._invoked_skills,
+                planning=self._planning,
             )
         except Exception as err:
             self._fail(str(err), generation)
@@ -388,10 +399,12 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self.turn_counted.emit(prompt, max(0, int(turn.output_tokens)), self._budget.requests == 1)
 
     def _finish_on_limit(self, generation: int | None = None) -> None:
+        self.ended_on_limit = True
         QgsMessageLog.logMessage(f"Reached the limit of {MAX_ITERATIONS} turns.", LOG_TAG, Qgis.MessageLevel.Warning)
         self._complete(notices.LIMIT_REACHED_MESSAGE, generation)
 
     def _finish_on_budget(self, generation: int | None = None) -> None:
+        self.ended_on_limit = True
         QgsMessageLog.logMessage(
             f"Token budget hit: {self._budget.spent} of {self._budget.limit}.", LOG_TAG, Qgis.MessageLevel.Warning
         )

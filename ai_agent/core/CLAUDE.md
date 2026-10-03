@@ -230,12 +230,14 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `agent/budget.py`        | run tokens vs the Settings budget, usage split      |
 | `agent/verification.py`  | what the check after Apply starts with, and the round cap |
 | `agent/auto_apply.py`    | Auto mode: which batches apply without the button   |
+| `agent/skills.py` (plan) | plan mode: `tools_for_skills(writes=False)`; `PLAN_MODE_NOTE` in the live state; refusal in `dispatch.py` |
 | `agent/compaction.py`    | compacting a conversation: one tool-less summary request |
 | `agent/request.py`       | messages, tool schemas and transport settings       |
 | `agent/executor.py`      | tool-call execution with error capture              |
 | `agent/transcript.py`    | the run transcript and rendering for both protocols |
 | `agent/prompts.py`       | the system prompt core, the `load_skill` meta-tool  |
-| `llm/transport.py`       | dialect choice, feature detect, ModelTurn normalising |
+| `llm/transport.py`       | dialect choice, feature detect, the request itself  |
+| `llm/turns.py`           | `ModelTurn`, `ToolCall`, usage and response parsing |
 | `llm/stream.py`          | SSE framing, openai delta folding, pure Python       |
 | `llm/anthropic_stream.py`| anthropic event folding and its streaming exchange   |
 | `llm/stream_runner.py`   | the streaming request itself: NAM, nested event loop |
@@ -257,7 +259,12 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `orchestrator/compacting.py` | the context meter and compaction before a request or by hand |
 | `orchestrator/attaching.py` | attachments in the chat: mentions, waiting pictures, a blind model told so |
 | `orchestrator/slash.py`  | `/skill` parsing and the skill list for the composer |
-| `orchestrator/`          | UI-to-loop wiring, the DockWidget contract          |
+| `orchestrator/orchestrator.py` | UI-to-loop wiring: prompts, stop, interjections; the mixins below |
+| `orchestrator/sessions.py` | new conversation, a past one, what a switch cancels |
+| `orchestrator/plans.py`  | the plan card, Apply and Cancel, apply outcomes, verification |
+| `orchestrator/run_events.py` | tool steps, answers, failures and stops drawn into the chat |
+| `orchestrator/notices.py` | every chat and message-bar text of the orchestrator |
+| `orchestrator/contracts.py` | the DockWidget contract                          |
 | `state/conversation.py`  | the model window and the current dialogue, one entry point |
 | `state/session.py`       | the conversation model: title, messages, serialising |
 | `state/store.py`         | conversations on disk, filtered by the open project |

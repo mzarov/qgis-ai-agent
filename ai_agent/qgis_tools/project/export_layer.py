@@ -12,6 +12,7 @@ from qgis.core import (
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.layers import (
     bind_layer_reference,
     find_layer_by_id,
@@ -51,12 +52,7 @@ class ExportLayerTool(BaseTool):
     ]
     examples = ["Save the roads layer to /data/roads.gpkg", "Export what I selected to GeoJSON"]
     params_schema = [
-        {
-            "name": "layer_name",
-            "type": "string",
-            "description": "Layer name exactly as in the project",
-            "required": True,
-        },
+        params.layer_name(),
         {
             "name": "layer_id",
             "type": "string",

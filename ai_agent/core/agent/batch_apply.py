@@ -2,7 +2,7 @@ from qgis.core import Qgis, QgsMessageLog, QgsProject
 
 from ai_agent.core.agent import notices
 from ai_agent.core.agent.transcript import ToolResult
-from ai_agent.core.llm.transport import ToolCall
+from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.base import SAFETY_READ
 from ai_agent.qgis_tools.common.project_identity import project_identity
 from ai_agent.qgis_tools.project.snapshots import snapshot_error, take_snapshot

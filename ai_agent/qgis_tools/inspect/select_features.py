@@ -4,6 +4,7 @@ from qgis.core import QgsVectorLayer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, BaseTool
+from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.expressions import compile_expression
 from ai_agent.qgis_tools.common.layers import find_layer_by_name, layer_reference
 
@@ -34,12 +35,7 @@ class SelectFeaturesTool(BaseTool):
     constraints = ["The layer must exist and be a vector layer"]
     examples = ["Show me the motorways", "Highlight the districts with no population data"]
     params_schema = [
-        {
-            "name": "layer_name",
-            "type": "string",
-            "description": "Layer name exactly as in the project",
-            "required": True,
-        },
+        params.layer_name(),
         {
             "name": "filter",
             "type": "string",

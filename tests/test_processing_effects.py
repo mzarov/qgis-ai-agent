@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from ai_agent.core.llm.transport import ToolCall
+from ai_agent.core.llm.turns import ToolCall
 from ai_agent.core.orchestrator.planning import EFFECT_EXTERNAL, EFFECT_NETWORK, destructive_lines, plan_line
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE, SAFETY_WRITE
 from ai_agent.qgis_tools.processing.effects import writes_external_data

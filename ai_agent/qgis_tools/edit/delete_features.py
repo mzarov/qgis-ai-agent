@@ -4,6 +4,7 @@ from qgis.core import QgsFeatureRequest, QgsVectorLayer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_DESTRUCTIVE, BaseTool
+from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.editing import edit_session
 from ai_agent.qgis_tools.common.expressions import build_request
 from ai_agent.qgis_tools.common.layers import bind_layer_reference, find_layer_by_id, find_layer_by_name
@@ -31,18 +32,8 @@ class DeleteFeaturesTool(BaseTool):
     ]
     examples = ["Delete the features with an empty name", "Remove the duplicates I selected"]
     params_schema = [
-        {
-            "name": "layer_name",
-            "type": "string",
-            "description": "Layer name exactly as in the project",
-            "required": True,
-        },
-        {
-            "name": "layer_id",
-            "type": "string",
-            "description": "Stable layer id from list_layers; required when names are duplicated",
-            "required": False,
-        },
+        params.layer_name(),
+        params.layer_id(),
         {
             "name": "filter",
             "type": "string",

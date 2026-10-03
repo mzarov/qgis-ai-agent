@@ -1,56 +1,43 @@
 from typing import Any
 
-from qgis.core import Qgis, QgsMessageLog
-from qgis.PyQt.QtCore import QTimer
+from qgis.core import Qgis
 
 from ai_agent.core.agent.loop import AgentLoop
-from ai_agent.core.agent.verification import plan_verification
 from ai_agent.core.context.project import layer_choices
 from ai_agent.core.llm.client import is_local
 from ai_agent.core.orchestrator import attaching
 from ai_agent.core.orchestrator.compacting import SessionCompaction
 from ai_agent.core.orchestrator.contracts import DockWidgetContract
-from ai_agent.core.orchestrator.planning import destructive_lines, plan_line
-from ai_agent.core.orchestrator.presentation import is_configured, where_to_look
-from ai_agent.core.orchestrator.project_lifecycle import (
-    PREVIOUS_APPLY_INTERRUPTED,
-    PROJECT_CHANGED,
-    ProjectLifecycleMixin,
+from ai_agent.core.orchestrator.notices import (
+    DATA_SHARING_DECLINED,
+    INTERJECTED,
+    MESSAGE_DURATION_SEC,
+    RUN_STOPPED,
+    SWITCH_WHILE_RUNNING,
+    UNKNOWN_SKILL,
 )
-from ai_agent.core.orchestrator.scope import conversation_scope
+from ai_agent.core.orchestrator.plans import PlanMixin
+from ai_agent.core.orchestrator.presentation import is_configured
+from ai_agent.core.orchestrator.project_lifecycle import ProjectLifecycleMixin
+from ai_agent.core.orchestrator.run_events import RunEventsMixin
+from ai_agent.core.orchestrator.sessions import SessionsMixin
 from ai_agent.core.orchestrator.slash import available_names, choices, is_known_skill, parse_slash, prompt_for
 from ai_agent.core.privacy import endpoint_label
 from ai_agent.core.settings import (
     get_api_url,
     get_data_sharing_consent,
     get_model,
-    get_verify_after_apply,
+    get_planning,
     get_work_mode,
     set_data_sharing_consent,
-    set_work_mode,
 )
 from ai_agent.core.state.conversation import ConversationState
-from ai_agent.i18n import tr, tr_n
-from ai_agent.qgis_tools.call_summary import CallSummary
-
-LOG_TAG = "AI Agent"
-MESSAGE_DURATION_SEC = 8
-SESSION_MISSING = tr("Conversation not found.")
-RUN_STOPPED = tr("Run stopped. Pending work was cancelled.")
-APPLY_STOPPED = tr("Run stopped during apply. Pending steps were cancelled; any completed changes remain.")
-SWITCH_WHILE_RUNNING = tr("Wait for the current task to finish.")
-SWITCH_WHILE_APPLYING = tr("Changes are being applied — wait for that to finish.")
-VERIFYING = tr("Checking the applied changes…")
-DESTRUCTIVE_DECLINED = tr("Kept everything as it was — the destructive steps were not applied.")
-INTERJECTED = tr("Passed to the agent — it will take this into account on its next step.")
-PLAN_DROPPED = tr("The planned changes were dropped — they were not applied. Starting over from your message.")
-AWAITING_ANSWER = tr("Waiting for your answer — the run continues from it.")
-DATA_SHARING_DECLINED = tr("Request not sent.")
-UNKNOWN_SKILL = tr("No skill named /{0}. Available: {1}.")
-__all__ = ("CoreOrchestrator", "PREVIOUS_APPLY_INTERRUPTED", "PROJECT_CHANGED")
+from ai_agent.i18n import tr
 
 
-class CoreOrchestrator(ProjectLifecycleMixin):
+class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycleMixin):
+    """Wires the dock to the agent loop. The mixins hold the rest: sessions, plans, run events, projects."""
+
     def __init__(self, iface: Any, dock_widget: DockWidgetContract):
         self.iface = iface
         self.dock_widget = dock_widget
@@ -104,51 +91,6 @@ class CoreOrchestrator(ProjectLifecycleMixin):
             return
         self.agent.abort()
 
-    def on_aborted(self) -> None:
-        applying = bool(getattr(self.agent, "is_applying", False))
-        if self._active_tool_message_id is not None and not applying:
-            self.dock_widget.mark_tool_done(self._active_tool_message_id, False)
-            self._active_tool_message_id = None
-        if self._plan_message_id is not None:
-            if applying:
-                self.dock_widget.mark_plan_failed(self._plan_message_id)
-            else:
-                self.dock_widget.mark_plan_cancelled(self._plan_message_id)
-        self._plan_message_id = None
-        self._keep_partial_answer()
-        # A stop is deliberate: the request stays in the chat but not back in the box (the user's call).
-        self.dock_widget.add_system_message(APPLY_STOPPED if applying else RUN_STOPPED)
-
-    def on_new_session(self) -> None:
-        if self._busy_with_current():
-            return
-        self.conversation.start_new()
-        self._replay()
-
-    def on_session_chosen(self, identifier: str) -> None:
-        if self._busy_with_current():
-            return
-        if not self.conversation.restore(identifier):
-            self.dock_widget.add_system_message(SESSION_MISSING)
-            return
-        self._replay()
-
-    def _busy_with_current(self) -> bool:
-        self.compaction.cancel()
-        if bool(getattr(self.agent, "is_applying", False)):
-            self.dock_widget.add_system_message(SWITCH_WHILE_APPLYING)
-            return True
-        if self.agent.is_running or self.agent.is_awaiting_answer or self.agent.has_pending_writes:
-            self.agent.abort()
-            self._plan_message_id = None
-        return False
-
-    def _replay(self) -> None:
-        self._plan_message_id = None
-        self._active_tool_message_id = None
-        self.dock_widget.replay(self.conversation.messages)
-        self.compaction.refresh()
-
     def on_prompt(self, prompt: str) -> None:
         text = (prompt or "").strip()
         if not text:
@@ -173,17 +115,33 @@ class CoreOrchestrator(ProjectLifecycleMixin):
         if not self._confirm_first_send():
             return
         pictures = attaching.take_pictures(self.dock_widget)
-        shown = attaching.with_names(text, pictures)
-        self.dock_widget.add_user_message(shown)
         self.dock_widget.clear_prompt()
+        self._start_run(
+            attaching.with_names(text, pictures),
+            prompt_for(skill, rest) if skill else text,
+            text,
+            skills=[skill] if skill else None,
+            images=pictures.encoded,
+        )
+
+    def _start_run(
+        self,
+        shown: str,
+        prompt: str,
+        request: str,
+        skills: list[str] | None = None,
+        images: list[str] | None = None,
+    ) -> None:
+        """Show `shown`, then run `prompt`; `request` is what the user asked, for the check after Apply."""
+        self.dock_widget.add_user_message(shown)
         self._drop_pending_plan()
-        prompt = prompt_for(skill, rest) if skill else text
+        planning = get_planning()
 
         def begin() -> None:
             history = self.conversation.window()
             self.conversation.add("user", shown)
-            self._last_request = text
-            self.agent.start(prompt, history, skills=[skill] if skill else None, images=pictures.encoded)
+            self._last_request = request
+            self.agent.start(prompt, history, skills=skills, images=images, planning=planning)
 
         # The new request is not part of what gets compacted: it rides on the summary.
         def stopped() -> None:
@@ -223,23 +181,6 @@ class CoreOrchestrator(ProjectLifecycleMixin):
         set_data_sharing_consent(True, url)
         return True
 
-    def _drop_pending_plan(self) -> None:
-        pending = self.agent.has_pending_writes
-        if pending:
-            self.agent.cancel_pending()
-            if self._plan_message_id is not None:
-                self.dock_widget.mark_plan_cancelled(self._plan_message_id)
-            self.dock_widget.add_system_message(PLAN_DROPPED)
-        self._plan_message_id = None
-
-    def on_preamble(self, text: str) -> None:
-        self._render_answer(text)
-
-    def on_question_asked(self, question: str) -> None:
-        self.dock_widget.add_result_message(question)
-        self.conversation.add("assistant", question)
-        self.dock_widget.add_system_message(AWAITING_ANSWER)
-
     def _answer(self, text: str) -> None:
         if not self._confirm_first_send(getattr(self.agent, "endpoint", None)):
             return
@@ -256,148 +197,6 @@ class CoreOrchestrator(ProjectLifecycleMixin):
         self.dock_widget.clear_prompt()
         self.dock_widget.add_system_message(INTERJECTED)
         self.conversation.add("user", text)
-
-    def on_tool_started(self, summary: str) -> None:
-        self._active_tool_message_id = self.dock_widget.add_tool_message(summary)
-
-    def on_tool_finished(self, tool_name: str, ok: bool) -> None:
-        if self._active_tool_message_id is not None:
-            self.dock_widget.mark_tool_done(self._active_tool_message_id, ok)
-            self._active_tool_message_id = None
-        if not ok:
-            QgsMessageLog.logMessage(f"Tool {tool_name} failed.", LOG_TAG, Qgis.MessageLevel.Warning)
-
-    def on_tool_queued(self, _summary: str) -> None:
-        QgsMessageLog.logMessage("A validated step was added to the plan.", LOG_TAG, Qgis.MessageLevel.Info)
-
-    def on_tool_rejected(self, summary: str) -> None:
-        self.dock_widget.add_rejected_message(CallSummary.of(tr("Rejected: {0}"), summary))
-
-    def on_plan_changed(self, steps: list, done: int) -> None:
-        shown = " · ".join(f"✓ {step}" if index < done else step for index, step in enumerate(steps))
-        self.dock_widget.add_tool_message(tr("Plan {0}/{1}: {2}").format(done, len(steps), shown))
-
-    def on_skill_loaded(self, name: str) -> None:
-        self.dock_widget.add_tool_message(CallSummary.of(tr("Loading knowledge: {0}"), name))
-
-    def on_confirm_needed(self, calls: list, final_text: str, applies_itself: bool = False) -> None:
-        if final_text:
-            self._render_answer(final_text)
-        lines = [self._plan_line(call) for call in calls]
-        self._plan_message_id = self.dock_widget.add_plan_message(lines, applies_itself)
-        if applies_itself:
-            # Pressed for the user once the card is on screen; the same path as the button.
-            QTimer.singleShot(0, self.on_confirm_plan)
-
-    def on_work_mode(self, mode: str) -> None:
-        set_work_mode(mode)
-
-    @staticmethod
-    def _plan_line(call) -> str:
-        return plan_line(call)
-
-    def on_confirm_plan(self) -> None:
-        if self.compaction.is_running:
-            self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
-            return
-        if not self.agent.has_pending_writes:
-            self.dock_widget.add_system_message(tr("There are no changes to apply."))
-            return
-        destructive, details = self._destructive_lines()
-        if destructive and not self.dock_widget.confirm_destructive(destructive, details):
-            self.dock_widget.add_system_message(DESTRUCTIVE_DECLINED)
-            return
-        self._apply_scope = conversation_scope(self.conversation)
-        self.agent.confirm_pending()
-
-    def _destructive_lines(self) -> tuple[list[str], str]:
-        return destructive_lines(self.agent.pending_writes())
-
-    def on_cancel_plan(self) -> None:
-        self.agent.cancel_pending()
-        if self._plan_message_id is not None:
-            self.dock_widget.mark_plan_cancelled(self._plan_message_id)
-        self._plan_message_id = None
-
-    def on_journal_written(self, path: str) -> None:
-        self.dock_widget.add_system_message(tr("Run journal: {0}").format(path))
-
-    def on_stage_applied(self, results: list) -> None:
-        self._apply_scope = None
-        if self._plan_message_id is not None:
-            if any(not result.ok for result in results):
-                self.dock_widget.mark_plan_failed(self._plan_message_id)
-            else:
-                self.dock_widget.mark_plan_completed(self._plan_message_id)
-        self._plan_message_id = None
-
-    def on_applied(self, results: list) -> None:
-        self._apply_scope = None
-        failed = [result for result in results if not result.ok]
-        if self._plan_message_id is not None:
-            if failed:
-                self.dock_widget.mark_plan_failed(self._plan_message_id)
-            else:
-                self.dock_widget.mark_plan_completed(self._plan_message_id)
-        self._plan_message_id = None
-        if failed:
-            details = "; ".join(str(result.payload.get("error", "")) for result in failed)
-            outcome = tr("Some steps did not run: {0}").format(details)
-            self.dock_widget.add_system_message(outcome)
-            self.conversation.add("assistant", outcome)
-            self._push_message(tr("Not all changes were applied."), Qgis.MessageLevel.Warning)
-        else:
-            outcome = tr_n("Done: %n step(s) applied.{0}", len(results)).format(where_to_look(results))
-            self.dock_widget.add_result_message(outcome)
-            self.conversation.add("assistant", outcome)
-            self._push_message(tr("Changes applied."), Qgis.MessageLevel.Success)
-        self._maybe_verify(results)
-
-    def _maybe_verify(self, results: list) -> None:
-        if not results or self.agent.is_running or not get_verify_after_apply():
-            return
-        loaded = list(getattr(self.agent, "loaded_skills", None) or [])
-        overrides = getattr(self.agent, "overrides", None)
-        start = plan_verification(results, self.agent.verification_round, self._last_request, loaded, overrides)
-        if start is None:
-            return
-        self.dock_widget.add_system_message(VERIFYING)
-        self.agent.start(
-            start.prompt,
-            self.conversation.window(),
-            verification=True,
-            verification_round=start.round,
-            preload=start.preload,
-        )
-
-    def on_finished(self, text: str) -> None:
-        message = (text or "").strip()
-        if not message:
-            self.dock_widget.add_system_message(tr("The model returned nothing. Try rephrasing."))
-            return
-        self._render_answer(message)
-
-    def _render_answer(self, message: str) -> None:
-        if not self.dock_widget.finish_stream(message):
-            self.dock_widget.add_result_message(message)
-        self.conversation.add("assistant", message)
-
-    def on_failed(self, message: str) -> None:
-        self._active_tool_message_id = None
-        self._plan_message_id = None
-        self._keep_partial_answer()
-        self.dock_widget.add_system_message(tr("Error: {0}").format(message))
-        self._push_message(message, Qgis.MessageLevel.Critical)
-        self._offer_request_again()
-
-    def _keep_partial_answer(self) -> None:
-        partial = self.dock_widget.keep_stream()
-        if isinstance(partial, str) and partial:
-            self.conversation.add("assistant", partial)
-
-    def _offer_request_again(self) -> None:
-        if self._last_request and not getattr(self.agent, "is_verification", False):
-            self.dock_widget.restore_prompt(self._last_request)
 
     def shutdown(self) -> None:
         self.conversation.save()
