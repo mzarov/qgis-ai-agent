@@ -79,7 +79,7 @@
  {
   "depth": 6,
   "type": "QLabel",
-  "text": "Ready to run — 2 action(s)"
+  "text": "Ready to run — 2 actions"
  },
  {
   "depth": 5,
@@ -143,7 +143,7 @@
  {
   "depth": 5,
   "type": "QTextBrowser",
-  "text": "Done: 2 step(s) applied."
+  "text": "Done: 2 steps applied."
  },
  {
   "depth": 2,

@@ -113,7 +113,7 @@ class ConversationView(QScrollArea):
             if self._activity is None:
                 self._activity = ActivityGroup()
                 self._append(self._activity)
-            block = ThinkingBlock(framed=False)
+            block = ThinkingBlock()
             self._activity.add_widget(block)
             self._activity.reveal()
             self._thinking = block

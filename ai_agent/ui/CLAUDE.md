@@ -34,6 +34,7 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `conversation.py` | a `QScrollArea` with one widget per message, autoscroll, action grouping |
 | `messages.py`     | the user message, the agent reply, the service message |
 | `activity.py`     | the collapsible group of tool calls |
+| `disclosure.py`   | the fold line: title, detail, chevron after them |
 | `plan.py`         | the plan card with its buttons inside |
 | `composer.py`     | the input box as in Claude Code: text and the send/stop button inside, the toolbar under it; Enter sends, Esc stops a run; `/` and `@` open the popup |
 | `composer_parts.py` | the editor, `/skill` and `@layer` parsing, token highlighting, the painted frame, the toolbar (+, skill picker, model) |
@@ -104,7 +105,7 @@ that bypasses it — `add_activity_step` with a group already open — repeats
 both calls explicitly.
 
 A thinking block does not break the group: it is added **inside** the
-activity group as a frameless row, so a whole think–act–think–act chain folds
+activity group as a row of its own, so a whole think–act–think–act chain folds
 into one box. The group opens itself while reasoning streams and `_close_activity`
 rests it when a message arrives — the feed stays compact without hiding anything:
 one click reopens the turn.
@@ -136,14 +137,20 @@ pair of methods so the two states cannot drift apart.
 
 ## The feed is flat lines, frames mean a decision
 
-The design language follows Claude Code's own feed: transient rows — the
-activity group and the thinking block inside it — are **plain muted text with a
-chevron**, no background and no border. Boxing every turn made the feed read as
-a wall of cards; the frames carried no meaning. A frame is reserved for the one
-thing that asks the user to act: the plan card keeps its hairline border (and
-nothing else — its fill is transparent too). If a new element wants a frame,
-the question to ask is "does it hold buttons?" — if not, it is a line, not a
-box.
+The design language follows Claude Code's own feed. A finished turn's activity
+is **one muted fold line** — "4 actions ›", the chevron after the text, the whole
+line clickable (`Disclosure`). Opened, the calls sit in a hairline list, one row
+per call with the reasoning as a row of its own; the list is painted
+(`ActivityList`), so it never restyles its subtree. Success is the default and
+carries no mark — only a failed or rejected call shows one, and the fold line
+counts failures in the danger colour. A reasoning-only turn stays a bare fold
+line: a box around a single row frames nothing. Elapsed time lives in the
+working line while a turn runs, not on the group.
+
+Boxing every turn made the feed read as a wall of cards. A frame with a fill is
+reserved for the one thing that asks the user to act: the plan card. If a new
+element wants a frame, the question to ask is "does it hold buttons?" — if not,
+it is a line, or at most a hairline list the user opened on purpose.
 
 ## Action grouping
 

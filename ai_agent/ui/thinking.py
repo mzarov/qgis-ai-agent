@@ -1,22 +1,12 @@
 import time
 
 from qgis.PyQt.QtCore import Qt, QTimer
-from qgis.PyQt.QtWidgets import (
-    QFrame,
-    QHBoxLayout,
-    QLabel,
-    QToolButton,
-    QVBoxLayout,
-    QWidget,
-)
+from qgis.PyQt.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget
 
 from ai_agent.i18n import tr
 from ai_agent.ui import style
+from ai_agent.ui.disclosure import Disclosure
 
-COLLAPSED = "›"
-EXPANDED = "⌄"
-MARKER_WIDTH = 16
-BODY_INDENT = 22
 TEXT_FONT_SCALE = 0.9
 REPAINT_INTERVAL_MS = 80
 THINKING_TITLE = tr("Thinking…")
@@ -24,22 +14,21 @@ THOUGHT_TITLE = tr("Thought")
 
 
 class ThinkingBlock(QFrame):
-    def __init__(self, parent=None, framed: bool = True):
+    """One row of an activity group: the model's reasoning under a fold line."""
+
+    def __init__(self, parent=None):
         super().__init__(parent)
         palette = self.palette()
-        if framed:
-            self.setStyleSheet(
-                f"QFrame {{ background: {style.css_color(style.card(palette))};"
-                f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
-                f"border-radius: {style.CARD_RADIUS}px; }}"
-            )
-        else:
-            self.setStyleSheet("QFrame { background: transparent; border: none; }")
-        self._header_margins = (8, 6, 11, 6) if framed else (0, 1, 2, 1)
+        self.setStyleSheet("QFrame { background: transparent; border: none; }")
         column = QVBoxLayout(self)
-        column.setContentsMargins(0, 3, 0, 3)
-        column.setSpacing(3)
-        column.addWidget(self._build_header(palette))
+        column.setContentsMargins(0, 0, 0, 0)
+        column.setSpacing(6)
+        self._header = Disclosure(palette)
+        self._toggle = self._header.toggle
+        self._title = self._header.title
+        self._elapsed = self._header.detail
+        self._header.toggled.connect(self._on_toggled)
+        column.addWidget(self._header)
         column.addWidget(self._build_body(palette))
         self._text = ""
         self._started = time.monotonic()
@@ -52,40 +41,11 @@ class ThinkingBlock(QFrame):
         self._toggle.setChecked(True)
         self._refresh()
 
-    def _build_header(self, palette) -> QWidget:
-        header = QWidget()
-        header.setStyleSheet("border: none;")
-        row = QHBoxLayout(header)
-        row.setContentsMargins(*self._header_margins)
-        row.setSpacing(8)
-
-        self._toggle = QToolButton()
-        self._toggle.setAutoRaise(True)
-        self._toggle.setCheckable(True)
-        self._toggle.setFixedWidth(MARKER_WIDTH)
-        self._toggle.setStyleSheet(
-            f"QToolButton {{ border: none; background: transparent;"
-            f"color: {style.css_color(style.muted(palette))}; font-size: 12px; padding: 0; }}"
-        )
-        self._toggle.setFixedHeight(MARKER_WIDTH + 2)
-        self._toggle.toggled.connect(self._on_toggled)
-        row.addWidget(self._toggle, 0, Qt.AlignmentFlag.AlignVCenter)
-
-        self._title = QLabel()
-        self._title.setStyleSheet(f"color: {style.css_color(style.muted(palette))}; border: none;")
-        row.addWidget(self._title, 1, Qt.AlignmentFlag.AlignVCenter)
-
-        self._elapsed = QLabel()
-        self._elapsed.setStyleSheet(f"color: {style.css_color(style.muted(palette))}; border: none;")
-        _shrink(self._elapsed)
-        row.addWidget(self._elapsed, 0, Qt.AlignmentFlag.AlignVCenter)
-        return header
-
     def _build_body(self, palette) -> QWidget:
         self._body_holder = QWidget()
         self._body_holder.setStyleSheet("border: none;")
         layout = QVBoxLayout(self._body_holder)
-        layout.setContentsMargins(BODY_INDENT, 4, 11, 7)
+        layout.setContentsMargins(0, 0, 0, 2)
         self._body = QLabel()
         self._body.setTextFormat(Qt.TextFormat.PlainText)
         self._body.setWordWrap(True)
@@ -93,7 +53,7 @@ class ThinkingBlock(QFrame):
         self._body.setStyleSheet(
             f"color: {style.css_color(style.muted(palette))};"
             f"border-left: 2px solid {style.css_color(style.hairline(palette))};"
-            "border-radius: 0; padding: 1px 0 1px 9px;"
+            "border-radius: 0; padding: 1px 0 1px 10px;"
         )
         font = self._body.font()
         font.setItalic(True)
@@ -130,12 +90,11 @@ class ThinkingBlock(QFrame):
     def _refresh(self) -> None:
         self._title.setText(THOUGHT_TITLE if self._finished else THINKING_TITLE)
         if self._finished and self._watched_live:
-            self._elapsed.setText(format_seconds(time.monotonic() - self._started))
+            self._header.set_detail(format_seconds(time.monotonic() - self._started))
         else:
-            self._elapsed.setText("")
+            self._header.set_detail("")
 
     def _on_toggled(self, expanded: bool) -> None:
-        self._toggle.setText(EXPANDED if expanded else COLLAPSED)
         self._body_holder.setVisible(expanded)
 
 

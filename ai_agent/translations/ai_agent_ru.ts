@@ -26,12 +26,21 @@
         <translation> при условии {0}</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/activity.py" line="133"/>
+        <location filename="ai_agent/ui/activity.py" line="151"/>
         <source>%n action(s)</source>
         <translation>
             <numerusform>%n действие</numerusform>
             <numerusform>%n действия</numerusform>
             <numerusform>%n действий</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="ai_agent/ui/activity.py" line="155"/>
+        <source>%n failed</source>
+        <translation>
+            <numerusform>%n ошибка</numerusform>
+            <numerusform>%n ошибки</numerusform>
+            <numerusform>%n ошибок</numerusform>
         </translation>
     </message>
     <message>
@@ -1249,7 +1258,7 @@
         <translation>Эти временные слои вернутся пустыми: {0}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/thinking.py" line="22"/>
+        <location filename="ai_agent/ui/thinking.py" line="12"/>
         <source>Thinking…</source>
         <translation>Размышляет…</translation>
     </message>
@@ -1264,7 +1273,7 @@
         <translation>Задача заняла больше ходов, чем мне разрешено, поэтому я остановился на достигнутом. Сузьте запрос или разбейте его на шаги.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/thinking.py" line="23"/>
+        <location filename="ai_agent/ui/thinking.py" line="13"/>
         <source>Thought</source>
         <translation>Рассуждение</translation>
     </message>
@@ -1349,7 +1358,7 @@
         <translation>Без /chat/completions.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/progress.py" line="21"/>
+        <location filename="ai_agent/ui/progress.py" line="26"/>
         <source>Working…</source>
         <translation>Работаю…</translation>
     </message>
@@ -1500,22 +1509,15 @@
         <translation>{0} и ещё {1}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/activity.py" line="198"/>
-        <location filename="ai_agent/ui/progress.py" line="23"/>
-        <location filename="ai_agent/ui/thinking.py" line="145"/>
+        <location filename="ai_agent/ui/progress.py" line="28"/>
+        <location filename="ai_agent/ui/thinking.py" line="104"/>
         <source>{0} min {1} s</source>
         <translation>{0} мин {1} с</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/activity.py" line="195"/>
-        <source>{0} ms</source>
-        <translation>{0} мс</translation>
-    </message>
-    <message>
-        <location filename="ai_agent/ui/activity.py" line="197"/>
-        <location filename="ai_agent/ui/progress.py" line="22"/>
+        <location filename="ai_agent/ui/progress.py" line="27"/>
         <location filename="ai_agent/ui/settings_dialog.py" line="60"/>
-        <location filename="ai_agent/ui/thinking.py" line="144"/>
+        <location filename="ai_agent/ui/thinking.py" line="103"/>
         <source>{0} s</source>
         <translation>{0} с</translation>
     </message>

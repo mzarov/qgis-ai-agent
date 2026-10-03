@@ -78,28 +78,17 @@
  },
  {
   "depth": 5,
-  "type": "QWidget"
+  "type": "Disclosure"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "1 action"
  },
  {
   "depth": 6,
   "type": "QToolButton",
-  "text": "›",
   "checked": false
- },
- {
-  "depth": 6,
-  "type": "QLabel",
-  "text": "1 action(s)"
- },
- {
-  "depth": 6,
-  "type": "QLabel",
-  "text": "<duration>"
- },
- {
-  "depth": 6,
-  "type": "QLabel",
-  "text": "●"
  },
  {
   "depth": 2,

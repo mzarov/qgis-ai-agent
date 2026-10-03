@@ -22,6 +22,8 @@ NAMES = {
     "geocoding": "map-pin",
     "advanced": "sliders-horizontal",
     "layer": "layers",
+    "collapsed": "chevron-right",
+    "expanded": "chevron-down",
 }
 
 
@@ -64,3 +66,7 @@ def advanced(colour: Any, size: int) -> QIcon:
 
 def layer(colour: Any, size: int) -> QIcon:
     return glyph("layer", colour, size)
+
+
+def chevron(expanded: bool, colour: Any, size: int) -> QIcon:
+    return glyph("expanded" if expanded else "collapsed", colour, size)

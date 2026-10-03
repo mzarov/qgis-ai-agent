@@ -265,7 +265,7 @@ class ActivityTitleTest(unittest.TestCase):
         self.assertFalse(group._steps_holder.isHidden())
 
     def test_reasoning_deltas_are_painted_in_batches(self):
-        block = ThinkingBlock(framed=False)
+        block = ThinkingBlock()
         for delta in ("a", "b", "c"):
             block.append(delta)
         self.assertEqual(block._body.text(), "a")
@@ -291,7 +291,14 @@ class ActivityTitleTest(unittest.TestCase):
         entry_id = view.add_activity_step("Reading the project.")
         self.assertEqual(view._activity._status.text(), "●")
         view.mark_activity_step(entry_id, True)
-        self.assertEqual(view._activity._status.text(), "✓")
+        self.assertEqual(view._activity._status.text(), "")
+
+    def test_only_failures_are_marked_and_they_are_counted(self):
+        view = ConversationView()
+        for text in ("Reading the project.", "Labels", "Buffer"):
+            view.mark_activity_step(view.add_activity_step(text), text == "Reading the project.")
+        self.assertIn("2", view._activity._status.text())
+        self.assertFalse(view._activity._status.isHidden())
 
     def test_a_rejected_attempt_is_shown_as_recovered_not_failed(self):
         view = ConversationView()
@@ -336,3 +343,48 @@ class FailedPlanCardTest(unittest.TestCase):
                 QWidget().palette(),
             )
         self.assertEqual(labels[-1].textFormat(), Qt.TextFormat.PlainText)
+
+
+class DisclosureTest(unittest.TestCase):
+    def test_a_click_anywhere_on_the_line_folds_and_unfolds(self):
+        from types import SimpleNamespace
+
+        from qgis.PyQt.QtCore import Qt
+
+        from ai_agent.ui.disclosure import Disclosure
+
+        line = Disclosure(ConversationView().palette())
+        seen: list[bool] = []
+        line.toggled.connect(seen.append)
+        click = SimpleNamespace(button=lambda: Qt.MouseButton.LeftButton)
+        line.mouseReleaseEvent(click)
+        line.mouseReleaseEvent(click)
+        self.assertEqual(seen, [True, False])
+
+    def test_an_empty_detail_takes_no_room(self):
+        from ai_agent.ui.disclosure import Disclosure
+
+        line = Disclosure(ConversationView().palette())
+        self.assertTrue(line.detail.isHidden())
+        line.set_detail("3.0 s")
+        self.assertFalse(line.detail.isHidden())
+        line.set_detail("")
+        self.assertTrue(line.detail.isHidden())
+
+
+class ActivityListTest(unittest.TestCase):
+    def test_reasoning_alone_is_a_bare_line_and_a_call_frames_the_list(self):
+        view = ConversationView()
+        view.append_thinking("hmm")
+        self.assertFalse(view._activity._steps_holder.framed)
+        view.add_activity_step("Reading the project.")
+        self.assertTrue(view._activity._steps_holder.framed)
+
+    def test_rows_are_separated_by_hairlines(self):
+        from ai_agent.ui.activity import Separator
+
+        view = ConversationView()
+        for text in ("one", "two", "three"):
+            view.add_activity_step(text)
+        kinds = [isinstance(item, Separator) for item in view._activity._steps_holder.items]
+        self.assertEqual(kinds, [False, True, False, True, False])
