@@ -5,10 +5,10 @@ from typing import Any
 
 from qgis.PyQt.QtCore import QPoint, QRectF, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QFont, QPainter, QPen, QSyntaxHighlighter, QTextCharFormat
-from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QMenu, QPlainTextEdit, QToolButton, QWidget
+from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QPlainTextEdit, QToolButton, QWidget
 
 from ai_agent.i18n import tr
-from ai_agent.ui import style
+from ai_agent.ui import controls, style
 
 SKILL_TOKEN = re.compile(r"^/\S+")
 LAYER_TOKEN = re.compile(r'(?:(?<=\s)|^)@(?:"[^"]*"?|\S+)')
@@ -151,7 +151,7 @@ class ComposerToolbar(QWidget):
             f"QToolButton:hover {{ background: {style.css_color(style.card(palette))};"
             f"color: {style.css_color(style.text(palette))}; }}"
         )
-        self.menu = QMenu(self.attach)
+        self.menu = controls.menu(self.attach, palette)
         soon = self.menu.addAction(ATTACH_SOON)
         soon.setEnabled(False)
         self.attach.clicked.connect(self._open_menu)

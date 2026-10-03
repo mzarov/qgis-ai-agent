@@ -4,14 +4,14 @@
 <context>
     <name>QgisAiAgent</name>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="314"/>
-        <location filename="ai_agent/ui/dock_widget.py" line="293"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="307"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="286"/>
         <source>&#10;&#10;Apply them?</source>
         <translation>&#10;&#10;Применить их?</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="313"/>
-        <location filename="ai_agent/ui/dock_widget.py" line="285"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="306"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="278"/>
         <source>&#10;&#10;Exact code to be executed:&#10;&#10;{0}</source>
         <translation>&#10;&#10;Точный код, который будет выполнен:&#10;&#10;{0}</translation>
     </message>
@@ -189,7 +189,7 @@
         <translation>Спросите о проекте…</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/welcome.py" line="23"/>
+        <location filename="ai_agent/ui/welcome.py" line="24"/>
         <source>Ask in plain language</source>
         <translation>Спрашивайте обычными словами</translation>
     </message>
@@ -290,9 +290,9 @@
         <translation>Проверяю применённые изменения…</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/welcome.py" line="27"/>
-        <source>Colour the layer by its type and label the features</source>
-        <translation>Раскрась слой по типу и подпиши объекты</translation>
+        <location filename="ai_agent/ui/welcome.py" line="29"/>
+        <source>Colour the layer by category and add labels</source>
+        <translation>Раскрась слой по категориям и подпиши объекты</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/style/set_categories.py" line="108"/>
@@ -340,12 +340,12 @@
         <translation>Диалог не найден.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="78"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="72"/>
         <source>Conversations</source>
         <translation>Диалоги</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/conversation.py" line="231"/>
+        <location filename="ai_agent/ui/conversation.py" line="230"/>
         <source>Copy the whole conversation</source>
         <translation>Скопировать весь диалог</translation>
     </message>
@@ -405,8 +405,8 @@
         <translation>Удаляю объектов: {0} — из «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="278"/>
-        <location filename="ai_agent/ui/dock_widget.py" line="221"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="271"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="214"/>
         <source>Destructive steps</source>
         <translation>Необратимые шаги</translation>
     </message>
@@ -425,9 +425,9 @@
         </translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/welcome.py" line="28"/>
-        <source>Download the cafes in Tver from OpenStreetMap</source>
-        <translation>Скачай кафе в Твери из OpenStreetMap</translation>
+        <location filename="ai_agent/ui/welcome.py" line="30"/>
+        <source>Download cafés in Paris from OpenStreetMap</source>
+        <translation>Скачай кафе в Париже из OpenStreetMap</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/osm/download_osm.py" line="129"/>
@@ -593,8 +593,7 @@
         <translation>Модель ответила: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="27"/>
-        <location filename="ai_agent/ui/dock_widget.py" line="80"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="74"/>
         <source>New conversation</source>
         <translation>Новый диалог</translation>
     </message>
@@ -639,7 +638,7 @@
         <translation>Параметров нет.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="28"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="26"/>
         <source>No past conversations</source>
         <translation>Прошлых диалогов нет</translation>
     </message>
@@ -674,7 +673,7 @@
         <translation>Выкл</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/welcome.py" line="17"/>
+        <location filename="ai_agent/ui/welcome.py" line="18"/>
         <source>One step before we start</source>
         <translation>Один шаг до начала</translation>
     </message>
@@ -689,7 +688,7 @@
         <translation>Открыть</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/welcome.py" line="22"/>
+        <location filename="ai_agent/ui/welcome.py" line="23"/>
         <source>Open settings</source>
         <translation>Открыть настройки</translation>
     </message>
@@ -1047,7 +1046,7 @@
         <translation>Отправить</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="234"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="227"/>
         <source>Send the request to {0}?&#10;&#10;The provider receives your prompt and everything the agent reads to answer it: layer and field names, feature values, extents, layer sources and rendered map images. For data that must stay on this computer, use a local model server.</source>
         <translation>Отправить запрос в {0}?&#10;&#10;Провайдер получит ваш запрос и всё, что агент прочитает для ответа: имена слоёв и полей, значения объектов, границы, источники слоёв и изображения карты. Если данные не должны покидать компьютер, используйте локальный сервер модели.</translation>
     </message>
@@ -1077,7 +1076,7 @@
         <translation>Настраиваю подписи «{0}»: {1}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="81"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="75"/>
         <location filename="ai_agent/ui/settings_layout.py" line="12"/>
         <source>Settings</source>
         <translation>Настройки</translation>
@@ -1088,7 +1087,7 @@
         <translation>Настройки — AI Agent</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="231"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="224"/>
         <source>Share project data?</source>
         <translation>Передать данные проекта?</translation>
     </message>
@@ -1210,12 +1209,7 @@
         <translation>Агент перечитает проект и подтвердит изменения.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/welcome.py" line="24"/>
-        <source>The agent reads the project itself. Nothing changes until you press Apply.</source>
-        <translation>Агент сам прочитает проект. Ничего не изменится, пока вы не нажмёте «Применить».</translation>
-    </message>
-    <message>
-        <location filename="ai_agent/ui/welcome.py" line="18"/>
+        <location filename="ai_agent/ui/welcome.py" line="19"/>
         <source>The agent talks to a language model of your choice, so it needs an address and a key — or nothing at all if you run a local model on localhost.</source>
         <translation>Агент обращается к языковой модели на ваш выбор, поэтому ему нужен адрес и ключ — либо вообще ничего, если модель работает локально на localhost.</translation>
     </message>
@@ -1255,7 +1249,7 @@
         <translation>Применять нечего.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="306"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="299"/>
         <source>These steps change or delete data and cannot be undone:&#10;&#10;{0}</source>
         <translation>Эти шаги изменяют или удаляют данные, и их нельзя отменить:&#10;&#10;{0}</translation>
     </message>
@@ -1355,7 +1349,7 @@
         <translation>Жду вашего ответа — прогон продолжится с него.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/welcome.py" line="26"/>
+        <location filename="ai_agent/ui/welcome.py" line="28"/>
         <source>What layers do I have and what is in them?</source>
         <translation>Какие у меня слои и что в них?</translation>
     </message>

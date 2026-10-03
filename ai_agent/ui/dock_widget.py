@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from typing import Any
 
-from qgis.PyQt.QtCore import QSize, Qt, pyqtSignal
+from qgis.PyQt.QtCore import QPoint, QSize, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QFontDatabase, QIcon
 from qgis.PyQt.QtWidgets import (
     QDialog,
@@ -9,7 +9,6 @@ from qgis.PyQt.QtWidgets import (
     QDockWidget,
     QHBoxLayout,
     QLabel,
-    QMenu,
     QMessageBox,
     QPlainTextEdit,
     QToolButton,
@@ -18,19 +17,19 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from ai_agent.i18n import tr
-from ai_agent.ui import icons, style
+from ai_agent.ui import controls, icons, style
 from ai_agent.ui.composer import Composer
 from ai_agent.ui.conversation import ConversationView
 from ai_agent.ui.progress import ProgressLine
 
 TITLE = "AI Agent"
-NEW_SESSION_LABEL = tr("New conversation")
 NO_SESSIONS_LABEL = tr("No past conversations")
 HEADER_MARGINS = (11, 8, 9, 8)
 HEADER_ICON = 15
 HEADER_BUTTON = 24
 BODY_MARGINS = (9, 0, 9, 9)
 BODY_NAME = "agentBody"
+MENU_GAP = 4
 
 
 class AgentDockWidget(QDockWidget):
@@ -66,15 +65,10 @@ class AgentDockWidget(QDockWidget):
         row.setContentsMargins(*HEADER_MARGINS)
         row.setSpacing(4)
 
-        title = QLabel(TITLE)
-        font = title.font()
-        font.setBold(True)
-        title.setFont(font)
-        title.setStyleSheet("border: none;")
-        row.addWidget(title, 1)
+        # No title here: the dock's own title bar already says AI Agent.
         self._usage_label = QLabel("")
         self._usage_label.setStyleSheet(f"border: none; color: {style.css_color(style.muted(palette))};")
-        row.addWidget(self._usage_label)
+        row.addWidget(self._usage_label, 1)
         self._sessions_button = self._build_action(icons.sessions, "⟲", tr("Conversations"), self._show_sessions)
         row.addWidget(self._sessions_button)
         row.addWidget(self._build_action(icons.clear, "+", tr("New conversation"), self.new_session_clicked.emit))
@@ -158,20 +152,19 @@ class AgentDockWidget(QDockWidget):
         self.composer.focus()
 
     def _show_sessions(self) -> None:
-        menu = QMenu(self)
-        fresh = menu.addAction(NEW_SESSION_LABEL)
-        menu.addSeparator()
+        # Past conversations only: starting a new one is the button right next to this one.
+        menu = controls.menu(self, self.palette())
         actions: dict[object, str] = {}
         for identifier, title in self._sessions_provider():
             actions[menu.addAction(title)] = identifier
         if not actions:
             menu.addAction(NO_SESSIONS_LABEL).setEnabled(False)
         button = self._sessions_button
-        chosen = menu.exec(button.mapToGlobal(button.rect().bottomLeft()))
+        # The button sits at the dock's right edge: align the menu's right edge with it.
+        corner = button.mapToGlobal(button.rect().bottomRight())
+        chosen = menu.exec(QPoint(corner.x() - menu.sizeHint().width(), corner.y() + MENU_GAP))
         menu.deleteLater()
-        if chosen is fresh:
-            self.new_session_clicked.emit()
-        elif chosen in actions:
+        if chosen in actions:
             self.session_chosen.emit(actions[chosen])
 
     def replay(self, messages: list[dict[str, str]]) -> None:

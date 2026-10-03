@@ -4,14 +4,13 @@ from qgis.PyQt.QtCore import Qt, QTimer, pyqtSignal
 from qgis.PyQt.QtGui import QGuiApplication
 from qgis.PyQt.QtWidgets import (
     QFrame,
-    QMenu,
     QScrollArea,
     QVBoxLayout,
     QWidget,
 )
 
 from ai_agent.i18n import tr
-from ai_agent.ui import style
+from ai_agent.ui import controls, style
 from ai_agent.ui.activity import ActivityGroup
 from ai_agent.ui.messages import AssistantMessage, SystemMessage, UserMessage
 from ai_agent.ui.plan import PlanCard
@@ -227,7 +226,7 @@ class ConversationView(QScrollArea):
             QGuiApplication.clipboard().setText(text)
 
     def contextMenuEvent(self, event: Any) -> None:
-        menu = QMenu(self)
+        menu = controls.menu(self, self.palette())
         copy_action = menu.addAction(tr("Copy the whole conversation"))
         if menu.exec(event.globalPos()) == copy_action:
             self.copy_all()

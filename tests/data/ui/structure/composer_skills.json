@@ -22,11 +22,6 @@
  },
  {
   "depth": 3,
-  "type": "QLabel",
-  "text": "AI Agent"
- },
- {
-  "depth": 3,
   "type": "QLabel"
  },
  {
@@ -61,23 +56,33 @@
  },
  {
   "depth": 5,
-  "type": "QLabel",
-  "text": "The agent reads the project itself. Nothing changes until you press Apply."
+  "type": "Suggestion",
+  "name": "suggestion"
  },
  {
-  "depth": 5,
-  "type": "QPushButton",
+  "depth": 6,
+  "type": "QLabel",
   "text": "What layers do I have and what is in them?"
  },
  {
   "depth": 5,
-  "type": "QPushButton",
-  "text": "Colour the layer by its type and label the features"
+  "type": "Suggestion",
+  "name": "suggestion"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Colour the layer by category and add labels"
  },
  {
   "depth": 5,
-  "type": "QPushButton",
-  "text": "Download the cafes in Tver from OpenStreetMap"
+  "type": "Suggestion",
+  "name": "suggestion"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Download cafés in Paris from OpenStreetMap"
  },
  {
   "depth": 2,

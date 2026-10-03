@@ -22,11 +22,6 @@
  },
  {
   "depth": 3,
-  "type": "QLabel",
-  "text": "AI Agent"
- },
- {
-  "depth": 3,
   "type": "QLabel"
  },
  {

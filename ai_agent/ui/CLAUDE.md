@@ -52,35 +52,33 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `settings_advanced.py` | the Privacy and Advanced pages |
 | `geocoder_settings.py` | the Geocoding page |
 
-## Header icons
+## Icons
 
-The three icons — a clock for conversations, a bin for clearing, a gear for
-settings — are drawn with `QPainter` on a 16×16 canvas with a single pen of
-width 1.45 in the `style.muted` colour. Hence the consistency: one stroke
-weight, one colour, one optical density. The whole set is outline-only; no
-shape carries a fill.
+Interface icons are Lucide outlines (ISC; the licence notice stays inside
+every file in `ui/glyphs/`, as the licence requires) and provider logos are
+Simple Icons (CC0) in `ui/logos/`. Both are plain black SVGs recoloured at
+runtime by `svg_art.tinted` with `CompositionMode_SourceIn`, so one set
+follows both themes. One family, one stroke (1.75 on the 24 grid). The
+device ratio sizes the pixmap, never the drawing. A null icon falls back to
+a text glyph in the header. Add an icon by adding its Lucide file with the
+notice and a role in `icons.NAMES`; `tests/test_icons.py` checks the set.
 
-The gear teeth are computed with trigonometry rather than written out as
-coordinates, so they are also verified with arithmetic: every vertex inside the
-canvas, the hub inside the ring, and the distance between vertices above three
-pixels at icon size 15 — otherwise the teeth merge into a blob.
+The dock header carries no title — the dock's title bar already says AI
+Agent — only the token count and the three icon buttons.
 
-The pixmap is created with the screen's `devicePixelRatio`, otherwise the icons
-blur on retina. The ratio is sanity-checked: outside 1…4 it falls back to one.
+## Menus and suggestion cards
 
-**The screen multiplier participates only in the pixmap size, never in the
-transform.** A `QPainter` on a pixmap with a set `devicePixelRatio` already
-works in logical coordinates — Qt applies the multiplier itself. Multiplying by
-it again in `painter.scale` draws twice as large and crops to the top-left
-corner; invisible on a normal screen, obvious on retina. Hence
-`scale_for(size) = size / CANVAS` with no ratio at all, and an invariant test:
-the canvas must map onto the icon exactly.
+Every popup menu comes from `controls.menu`: frameless and translucent (so
+the rounded corners are not drawn over a square system frame), a soft edge,
+roomy rows and a quiet highlight. Menus open where there is room: the history
+menu right-aligned under its button, the composer's + menu upwards. The
+history menu lists past conversations only; starting a new one is the button
+beside it.
 
-If painting fails for any reason, the button shows a text glyph — the same
-fallback that existed with theme icons. Geometry is guarded by
-`tests/test_icons.py`: every point must lie inside the canvas, the set carries
-one pen weight, and the brush returns to `NoBrush` after the filled slider,
-otherwise the next shape gets flooded.
+Welcome suggestions are `Suggestion` frames with a wrapping label, not
+buttons: button text never wraps, and a long example was cut off in a narrow
+dock. Examples name no local place; the one city named is Paris, which every
+user knows.
 
 ## The agent reply is markdown
 

@@ -1,7 +1,7 @@
 from typing import Any
 
 from qgis.PyQt.QtCore import Qt, pyqtSignal
-from qgis.PyQt.QtWidgets import QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import QFrame, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
 from ai_agent.i18n import tr
 from ai_agent.ui import settings_fields as fields
@@ -13,6 +13,7 @@ BLOCK_SPACING = 8
 BLOCK_PADDING = 13
 BLOCK_SIDE_PADDING = 15
 TITLE_SCALE = 1.15
+SUGGESTION_NAME = "suggestion"
 SIDE_INSET = 4
 NEEDS_KEY_TITLE = tr("One step before we start")
 NEEDS_KEY_BODY = tr(
@@ -21,11 +22,12 @@ NEEDS_KEY_BODY = tr(
 )
 OPEN_SETTINGS = tr("Open settings")
 READY_TITLE = tr("Ask in plain language")
-READY_BODY = tr("The agent reads the project itself. Nothing changes until you press Apply.")
+READY_BODY = ""
+# Users are everywhere: the one place named is one everybody knows.
 SUGGESTIONS = (
     tr("What layers do I have and what is in them?"),
-    tr("Colour the layer by its type and label the features"),
-    tr("Download the cafes in Tver from OpenStreetMap"),
+    tr("Colour the layer by category and add labels"),
+    tr("Download cafés in Paris from OpenStreetMap"),
 )
 
 
@@ -33,6 +35,36 @@ def welcome_content(configured: bool) -> tuple[str, str, tuple[str, ...]]:
     if configured:
         return READY_TITLE, READY_BODY, SUGGESTIONS
     return NEEDS_KEY_TITLE, NEEDS_KEY_BODY, ()
+
+
+class Suggestion(QFrame):
+    """A clickable example request. A frame with a wrapping label, not a button: button text never
+    wraps, so a long example was cut off in a narrow dock."""
+
+    chosen = pyqtSignal(str)
+
+    def __init__(self, text: str, palette: Any):
+        super().__init__()
+        self.text = text
+        self.setObjectName(SUGGESTION_NAME)
+        self.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setStyleSheet(
+            f"QFrame#{SUGGESTION_NAME} {{ border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
+            f" border-radius: {style.CARD_RADIUS}px; background: {style.css_color(style.card(palette))}; }}"
+            f"QFrame#{SUGGESTION_NAME}:hover {{ border-color: {style.css_color(style.border_strong(palette))};"
+            f" background: {style.css_color(style.elevated(palette))}; }}"
+        )
+        line = QVBoxLayout(self)
+        line.setContentsMargins(BLOCK_SIDE_PADDING, BLOCK_PADDING, BLOCK_SIDE_PADDING, BLOCK_PADDING)
+        label = QLabel(text)
+        label.setWordWrap(True)
+        label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        label.setStyleSheet(f"color: {style.css_color(style.text(palette))}; background: transparent;")
+        line.addWidget(label)
+
+    def mousePressEvent(self, _event: Any) -> None:
+        self.chosen.emit(self.text)
 
 
 class WelcomeCard(QWidget):
@@ -49,7 +81,8 @@ class WelcomeCard(QWidget):
         column.setSpacing(HEADING_SPACING)
         column.addStretch(1)
         column.addWidget(_title(title, palette))
-        column.addWidget(_body(body, palette))
+        if body:
+            column.addWidget(_body(body, palette))
         column.addSpacing(GROUP_SPACING)
         for index, text in enumerate(suggestions):
             if index:
@@ -59,23 +92,10 @@ class WelcomeCard(QWidget):
             column.addWidget(self._settings_button(palette))
         column.addStretch(1)
 
-    def _suggestion(self, text: str, palette: Any) -> QPushButton:
-        button = QPushButton(text)
-        button.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
-        button.setMinimumWidth(0)
-        button.setCursor(Qt.CursorShape.PointingHandCursor)
-        button.setStyleSheet(
-            f"QPushButton {{ text-align: left;"
-            f" padding: {BLOCK_PADDING}px {BLOCK_SIDE_PADDING}px;"
-            f" border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
-            f" border-radius: {style.CARD_RADIUS}px;"
-            f" background: {style.css_color(style.card(palette))};"
-            f" color: {style.css_color(style.text(palette))}; }}"
-            f"QPushButton:hover {{ border-color: {style.css_color(style.accent(palette))};"
-            f" background: {style.css_color(style.elevated(palette))}; }}"
-        )
-        button.clicked.connect(lambda: self.suggestion_chosen.emit(text))
-        return button
+    def _suggestion(self, text: str, palette: Any) -> QFrame:
+        card = Suggestion(text, palette)
+        card.chosen.connect(self.suggestion_chosen.emit)
+        return card
 
     def _settings_button(self, palette: Any) -> QPushButton:
         button = QPushButton(OPEN_SETTINGS)

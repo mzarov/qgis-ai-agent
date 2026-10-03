@@ -17,6 +17,7 @@ from qgis.PyQt.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMenu,
     QPushButton,
     QSizePolicy,
     QVBoxLayout,
@@ -33,6 +34,8 @@ CHIP_HEIGHT = 26
 CHIP_RADIUS = CHIP_HEIGHT // 2
 BADGE_RADIUS = 8
 KEY_RADIUS = 4
+MENU_RADIUS = 10
+MENU_ITEM_RADIUS = 6
 KEY_SCALE = 0.8
 KEY_PADDING = 5
 KEY_MIN_WIDTH = 18
@@ -324,6 +327,33 @@ class PaintedDot(QWidget):
         painter.setBrush(QColor(self.colour))
         painter.drawEllipse(QRectF(0, 0, self._size, self._size))
         painter.end()
+
+
+def menu(parent: QWidget, palette: Any) -> QMenu:
+    """A popup menu in the panel's own look: rounded, soft edge, roomy rows, quiet highlight.
+
+    Frameless and translucent so the rounded corners are not drawn over a square system frame.
+    """
+    popup = QMenu(parent)
+    try:
+        flags = popup.windowFlags() | Qt.WindowType.FramelessWindowHint | Qt.WindowType.NoDropShadowWindowHint
+    except TypeError:
+        flags = None
+    if flags is not None:
+        popup.setWindowFlags(flags)
+    popup.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+    popup.setStyleSheet(
+        f"QMenu {{ background: {style.css_color(style.surface(palette))};"
+        f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
+        f"border-radius: {MENU_RADIUS}px; padding: 5px; }}"
+        f"QMenu::item {{ padding: 7px 16px 7px 12px; border-radius: {MENU_ITEM_RADIUS}px;"
+        f"color: {style.css_color(style.text(palette))}; background: transparent; }}"
+        f"QMenu::item:selected {{ background: {style.css_color(style.card(palette))}; }}"
+        f"QMenu::item:disabled {{ color: {style.css_color(style.faint(palette))}; }}"
+        f"QMenu::separator {{ height: {style.HAIRLINE}px; margin: 5px 8px;"
+        f"background: {style.css_color(style.hairline(palette))}; }}"
+    )
+    return popup
 
 
 def small(text: str, palette: Any) -> QLabel:
