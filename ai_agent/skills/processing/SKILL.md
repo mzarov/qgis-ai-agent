@@ -59,7 +59,7 @@ algorithms at all. Start from this table, then confirm with `describe_processing
 | Task | id |
 |---|---|
 | add or recompute a field | `native:fieldcalculator` |
-| join a table on a shared field | `native:joinattributestable` |
+| join a table on a shared field into a new layer (a live join: `tables` skill) | `native:joinattributestable` |
 | join by location | `native:joinattributesbylocation` |
 | join the nearest feature | `native:joinbynearest` |
 | keep or rename fields | `native:refactorfields` |

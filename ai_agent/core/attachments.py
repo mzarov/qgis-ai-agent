@@ -22,6 +22,10 @@ IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp")
 GEOREFERENCE_SUFFIXES = (".pgw", ".jgw", ".wld", ".tfw", ".png.aux.xml", ".jpg.aux.xml")
 MAX_IMAGE_SIDE = 1568
 ADD_LAYER = "add_layer"
+LOAD_TABLE = "load_table"
+# A delimited table goes through load_table, which turns lon/lat columns into
+# points; add_layer stays the fallback for anything load_table refuses.
+TABLE_SUFFIXES = (".csv", ".tsv", ".txt")
 DUPLICATE_NAME = "{0} ({1})"
 
 
@@ -70,18 +74,28 @@ def encode_picture(path: str) -> str:
 
 
 def _add_layer(path: str, outcome: Outcome) -> None:
-    tool = get_tool_by_name(ADD_LAYER)
-    if tool is None:
-        outcome.failed.append((path, "the add_layer tool is missing"))
-        return
     name = _free_name(os.path.splitext(os.path.basename(path))[0] or path)
-    try:
-        tool.execute(tool.prepare({"source": path, "name": name}))
-    except Exception as error:
-        QgsMessageLog.logMessage(f"Attaching {path} failed: {error}", LOG_TAG, Qgis.MessageLevel.Warning)
-        outcome.failed.append((path, str(error)))
+    error: Exception = ValueError("the add_layer tool is missing")
+    for tool_name, params in _attempts(path, name):
+        tool = get_tool_by_name(tool_name)
+        if tool is None:
+            continue
+        try:
+            tool.execute(tool.prepare(params))
+        except Exception as failure:
+            QgsMessageLog.logMessage(f"Attaching {path} failed: {failure}", LOG_TAG, Qgis.MessageLevel.Warning)
+            error = failure
+            continue
+        outcome.added.append(name)
         return
-    outcome.added.append(name)
+    outcome.failed.append((path, str(error)))
+
+
+def _attempts(path: str, name: str) -> list[tuple[str, dict[str, str]]]:
+    plain = (ADD_LAYER, {"source": path, "name": name})
+    if path.lower().endswith(TABLE_SUFFIXES):
+        return [(LOAD_TABLE, {"path": path, "name": name}), plain]
+    return [plain]
 
 
 def _free_name(wanted: str) -> str:

@@ -98,7 +98,7 @@ connect.
 The plugin treats these addresses as local, but that does not guarantee the
 server keeps data on this device. Review whether it stores or forwards requests.
 
-Mind the size: the agent runs a loop over 65 tools, and a small 7–8B
+Mind the size: the agent runs a loop over 70 tools, and a small 7–8B
 model will get lost in the calls. The sensible minimum is a ~30B-class model
 with function calling support.
 

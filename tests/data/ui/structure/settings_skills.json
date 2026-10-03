@@ -125,7 +125,7 @@
  {
   "depth": 6,
   "type": "QLabel",
-  "text": "12"
+  "text": "13"
  },
  {
   "depth": 5,
@@ -355,6 +355,29 @@
   "depth": 7,
   "type": "ElidedLabel",
   "text": "Change or inspect how a layer looks — single symbol, colours by category or graduated classes, feature labels, opacity, "
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "tables"
+ },
+ {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "Tabular data — preview a CSV, load it as a table or as points from lon/lat (x/y, WKT) columns, attach a table to a layer"
  },
  {
   "depth": 6,

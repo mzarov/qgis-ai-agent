@@ -13,7 +13,7 @@ confirms them.
 **Documentation:** <https://mzarov.github.io/qgis-ai-agent/> ·
 по-русски: <https://mzarov.github.io/qgis-ai-agent/ru/>
 
-**What it does** — twelve domains, 65 tools:
+**What it does** — thirteen domains, 70 tools:
 
 | Domain | Example requests |
 | --- | --- |
@@ -29,6 +29,7 @@ confirms them.
 | `web` | “find the EPSG code”, “read this documentation page”, “geocode this place” |
 | `annotations` | “mark this place”, “add a note to the map”, “remove that annotation” |
 | `three_d` | “open a 3D view of this project” |
+| `tables` | “join this CSV to the districts by code”, “make points from this CSV with lon/lat” |
 
 The agent can **see**: on a vision model it renders the map or the layout and
 judges the result by eye. After you press Apply it runs a **verification pass**

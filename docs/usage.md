@@ -98,7 +98,7 @@ plugin. It is not encrypted. See
 
 A skill is a knowledge package the agent loads when a task enters its domain:
 one `SKILL.md` with a name, a one-line description and the rules in Markdown.
-The twelve built-in skills cover the QGIS domains; you can add your own.
+The thirteen built-in skills cover the QGIS domains; you can add your own.
 
 Type `/` in the chat to see the list. Pick a skill with the arrows and Tab, then
 write the request: `/osm cafes in Kazan` loads the OSM rules before the first
@@ -132,11 +132,35 @@ The **+** under the chat box, or dropping files onto it, attaches them.
   like) is added to the project straight away — attaching is your own action,
   like dropping a file onto the map — and the new layer is mentioned in the
   request as `@name`. A name already taken gets a number: `roads (2)`.
+  A CSV whose columns are named like lon/lat or x/y and hold degrees becomes
+  points in EPSG:4326; any other CSV is added as a table.
 - **Pictures** (PNG, JPEG, WebP, GIF, BMP) — a screenshot, a photo of a paper
   map, a sketch — wait above the text and go to the model with your next
   request, their longer side scaled down to 1568 pixels. A picture with a world
   file (`.pgw`, `.jgw`, `.wld`) is georeferenced and is added as a layer
   instead. A model that has already refused images gets none; the chat says so.
+
+## Tables and joins
+
+The `tables` skill handles CSV files and attribute joins:
+
+- “What is in /data/population.csv?” — the agent previews the file: delimiter,
+  encoding, columns with the types QGIS will detect, the first rows and the
+  columns that look like coordinates.
+- “Make points from cafes.csv with lon/lat” — the file is added as a points
+  layer linked to the CSV. Degrees get EPSG:4326; projected numbers (UTM, a
+  national grid) need the CRS named, and the agent asks rather than guesses.
+  Swapped longitude and latitude are refused before anything is added.
+- “Attach population.csv to the districts by code” — a live QGIS join: the
+  districts gain the table's fields, nothing is copied, and the join is undone
+  by asking to remove it. A CSV that is not loaded yet is loaded as a table in
+  the same step. Codes with leading zeros (`007`) stay text, and a join where
+  no key matches is refused with the reason — text against numbers, leading
+  zeros, spaces or letter case. A partial match is reported with the keys that
+  found no row.
+
+When the joined fields must become a separate layer or file, ask for that: the
+agent then uses the Processing algorithm `native:joinattributestable` instead.
 
 ## When a run stops or fails
 

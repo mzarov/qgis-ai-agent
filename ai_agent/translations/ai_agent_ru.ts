@@ -677,6 +677,11 @@
         <translation>Как работает агент</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/tables/join_table.py" line="77"/>
+        <source>Joining {0} to '{1}' by {2} = {3}.</source>
+        <translation>Присоединяю {0} к «{1}» по {2} = {3}.</translation>
+    </message>
+    <message>
         <location filename="ai_agent/core/orchestrator/orchestrator.py" line="44"/>
         <source>Kept everything as it was — the destructive steps were not applied.</source>
         <translation>Всё осталось как было — необратимые шаги не применялись.</translation>
@@ -698,9 +703,24 @@
         <translation>Слой: {0}</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/tables/load_table.py" line="70"/>
+        <source>Loading geometries from {0} ({1}).</source>
+        <translation>Загружаю геометрии из {0} ({1}).</translation>
+    </message>
+    <message>
         <location filename="ai_agent/core/orchestrator/orchestrator.py" line="281"/>
         <source>Loading knowledge: {0}</source>
         <translation>Загружаю знания: {0}</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/tables/load_table.py" line="68"/>
+        <source>Loading points from {0} ({1}, {2}).</source>
+        <translation>Загружаю точки из {0} ({1}, {2}).</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/tables/load_table.py" line="71"/>
+        <source>Loading table {0}.</source>
+        <translation>Загружаю таблицу {0}.</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/project/add_db_layer.py" line="70"/>
@@ -924,6 +944,11 @@
         <translation>Смотрю записи слоя «{0}».</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/tables/preview_table.py" line="51"/>
+        <source>Reading table file {0}.</source>
+        <translation>Смотрю файл таблицы {0}.</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/inspect/qgis_info.py" line="27"/>
         <source>Reading the QGIS version and environment.</source>
         <translation>Смотрю версию и окружение QGIS.</translation>
@@ -952,6 +977,11 @@
         <location filename="ai_agent/qgis_tools/inspect/get_selection.py" line="35"/>
         <source>Reading the current selection.</source>
         <translation>Смотрю текущее выделение.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/tables/list_joins.py" line="37"/>
+        <source>Reading the joins of '{0}'.</source>
+        <translation>Смотрю связи слоя «{0}».</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/style/describe_style.py" line="41"/>
@@ -1002,6 +1032,11 @@
         <location filename="ai_agent/qgis_tools/style/describe_style.py" line="42"/>
         <source>Reading the styling of layer '{0}'.</source>
         <translation>Смотрю оформление слоя «{0}».</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/tables/list_joins.py" line="38"/>
+        <source>Reading the table joins.</source>
+        <translation>Смотрю связи таблиц.</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/project/list_db_tables.py" line="35"/>
@@ -1076,6 +1111,11 @@
         <location filename="ai_agent/qgis_tools/project/remove_layer.py" line="46"/>
         <source>Removing layer '{0}' from the project.</source>
         <translation>Убираю слой «{0}» из проекта.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/tables/remove_join.py" line="40"/>
+        <source>Removing the join of {0} from '{1}'.</source>
+        <translation>Убираю связь {0} со слоем «{1}».</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/style/set_labels.py" line="88"/>

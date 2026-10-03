@@ -385,6 +385,7 @@ core = _mod(
         "QgsAnnotationPointTextItem",
         "QgsPoint",
         "QgsAggregateCalculator",
+        "QgsVectorLayerJoinInfo",
     ],
 )
 pyqt = _mod("qgis.PyQt")
@@ -407,6 +408,7 @@ _qtcore = _mod(
         "QIODevice",
         "QEventLoop",
         "QUrl",
+        "QUrlQuery",
         "QPointF",
         "QRectF",
         "QTranslator",

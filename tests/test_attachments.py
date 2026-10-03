@@ -47,6 +47,22 @@ class AttachTest(unittest.TestCase):
         self.assertEqual(outcome.images, [photo])
         self.assertEqual([reason for _path, reason in outcome.failed], ["not a file"])
 
+    def test_a_csv_goes_through_load_table_and_falls_back_to_add_layer(self):
+        loader, plain = FakeTool(), FakeTool()
+        tools = {"load_table": loader, "add_layer": plain}
+        stats = self.file("stats.csv")
+        with (
+            mock.patch.object(attachments, "get_tool_by_name", side_effect=tools.get),
+            mock.patch.object(attachments, "layer_names", return_value=[]),
+        ):
+            outcome = attachments.attach([stats])
+            self.assertEqual(loader.sources, [{"path": stats, "name": "stats"}])
+            self.assertEqual(plain.sources, [])
+            tools["load_table"] = FakeTool(fail=True)
+            outcome = attachments.attach([stats])
+        self.assertEqual(outcome.added, ["stats"])
+        self.assertEqual(plain.sources, [{"source": stats, "name": "stats"}])
+
     def test_a_picture_with_a_world_file_is_data(self):
         scan = self.file("scan.png")
         self.file("scan.pgw")
