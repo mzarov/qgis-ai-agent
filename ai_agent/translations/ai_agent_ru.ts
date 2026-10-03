@@ -133,9 +133,29 @@
         <translation>Добавляю виртуальное поле «{0}» в «{1}».</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="261"/>
+        <source>Adding {0} feature(s) to '{1}'.</source>
+        <translation>Добавляю объекты ({0}) в «{1}».</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/project/add_service_layer.py" line="91"/>
         <source>Adding {0} layer '{1}'.</source>
         <translation>Добавляю слой {0} «{1}».</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="258"/>
+        <source>Adding {0} line(s) to '{1}'.</source>
+        <translation>Добавляю линии ({0}) в «{1}».</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="256"/>
+        <source>Adding {0} point(s) to '{1}'.</source>
+        <translation>Добавляю точки ({0}) в «{1}».</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="260"/>
+        <source>Adding {0} polygon(s) to '{1}'.</source>
+        <translation>Добавляю полигоны ({0}) в «{1}».</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/settings_layout.py" line="33"/>
@@ -535,6 +555,26 @@
         <translation>Скачиваю из OSM «{0}» ({1}) в {2}.</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="251"/>
+        <source>Drawing {0} feature(s) in new scratch layer '{1}'.</source>
+        <translation>Рисую объекты ({0}) в новом временном слое «{1}».</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="248"/>
+        <source>Drawing {0} line(s) in new scratch layer '{1}'.</source>
+        <translation>Рисую линии ({0}) в новом временном слое «{1}».</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="246"/>
+        <source>Drawing {0} point(s) in new scratch layer '{1}'.</source>
+        <translation>Рисую точки ({0}) в новом временном слое «{1}».</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="250"/>
+        <source>Drawing {0} polygon(s) in new scratch layer '{1}'.</source>
+        <translation>Рисую полигоны ({0}) в новом временном слое «{1}».</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="59"/>
         <source>Each applied run leaves an unencrypted Markdown file in the QGIS profile with the request, the tool names and the outcome. Off by default; the files stay until you delete them.</source>
         <translation>Каждый применённый прогон оставляет незашифрованный Markdown-файл в профиле QGIS с запросом, именами инструментов и итогом. По умолчанию выключено; файлы остаются, пока вы их не удалите.</translation>
@@ -593,6 +633,11 @@
         <location filename="ai_agent/ui/settings_advanced.py" line="43"/>
         <source>Extended thinking budget</source>
         <translation>Бюджет расширенного рассуждения</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="180"/>
+        <source>Features to add: {0}</source>
+        <translation>Будет добавлено объектов: {0}</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="80"/>
@@ -692,6 +737,7 @@
         <translation>Слой «{0}»: {1}{2}.</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="179"/>
         <location filename="ai_agent/qgis_tools/edit/delete_features.py" line="64"/>
         <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="75"/>
         <source>Layer: {0}</source>
@@ -1419,6 +1465,11 @@
         <location filename="ai_agent/qgis_tools/project/undo_last_apply.py" line="67"/>
         <source>These temporary layers will come back empty: {0}.</source>
         <translation>Эти временные слои вернутся пустыми: {0}.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="181"/>
+        <source>They are committed to the layer's data source; Undo does not remove them.</source>
+        <translation>Они записываются в источник данных слоя; отмена их не удалит.</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/thinking.py" line="14"/>
