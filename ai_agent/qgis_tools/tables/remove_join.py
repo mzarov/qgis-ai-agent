@@ -2,8 +2,9 @@ from typing import Any
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.layers import bind_layer_reference
-from ai_agent.qgis_tools.tables.join_plan import target_layer
+from ai_agent.qgis_tools.tables.join_plan import TABLE_ID, target_layer
 from ai_agent.qgis_tools.tables.joins import find_join, joined_field_names
 
 
@@ -21,20 +22,18 @@ class RemoveJoinTool(BaseTool):
     constraints = ["The layer must have a join with that table"]
     examples = ["Detach the population table from districts"]
     params_schema = [
-        {"name": "layer_name", "type": "string", "description": "Layer that has the join", "required": True},
-        {
-            "name": "layer_id",
-            "type": "string",
-            "description": "Stable layer id from list_layers; required when names are duplicated",
-            "required": False,
-        },
+        params.layer_name("Layer that has the join"),
+        params.layer_id(),
         {"name": "table", "type": "string", "description": "Joined table name or id", "required": True},
+        TABLE_ID,
     ]
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = target_layer(params)
-        find_join(layer, params.get("table") or "")
-        return bind_layer_reference(params, layer)
+        join = find_join(layer, params.get("table") or "", params.get("table_id") or "")
+        prepared = bind_layer_reference(params, layer)
+        prepared["table_id"] = join.joinLayerId()
+        return prepared
 
     def summarize_call(self, params: dict[str, Any]) -> str:
         return tr("Removing the join of {0} from '{1}'.").format(
@@ -43,7 +42,7 @@ class RemoveJoinTool(BaseTool):
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = target_layer(params)
-        join = find_join(layer, params.get("table") or "")
+        join = find_join(layer, params.get("table") or "", params.get("table_id") or "")
         table = join.joinLayer()
         removed = joined_field_names(join, table) if table is not None else []
         if not layer.removeJoin(join.joinLayerId()):

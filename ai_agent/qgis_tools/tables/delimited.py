@@ -12,6 +12,8 @@ import io
 import os
 import re
 from dataclasses import dataclass
+from urllib.parse import urlparse
+from urllib.request import url2pathname
 
 TABLE_SUFFIXES = (".csv", ".tsv", ".txt")
 DELIMITERS = (",", ";", "\t", "|")
@@ -20,6 +22,8 @@ SAMPLE_BYTES = 256 * 1024
 SCAN_BYTES = 20 * 1024 * 1024
 SNIFF_LINES = 20
 UTF8 = "UTF-8"
+UTF16 = "UTF-16"
+UTF16_BOMS = (codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE)
 CYRILLIC_ENCODING = "windows-1251"
 WESTERN_ENCODING = "windows-1252"
 # A text that is mostly Cyrillic letters once decoded as windows-1251 was
@@ -49,6 +53,9 @@ class DelimitedTable:
     header: list[str]
     rows: list[list[str]]
     complete: bool
+    # Whether numbers are written as 37,5 — the provider needs decimalPoint=, then.
+    # A field, not a property: number() runs once per coordinate value.
+    decimal_comma: bool = False
 
     @property
     def delimiter_name(self) -> str:
@@ -63,16 +70,6 @@ class DelimitedTable:
         index = self.header.index(column)
         found = [row[index] for row in self.rows if index < len(row) and row[index].strip()]
         return [value.strip() for value in found] if strip else found
-
-    @property
-    def decimal_comma(self) -> bool:
-        """Whether numbers are written as 37,5 — the provider needs decimalPoint=, then."""
-        for column in self.header:
-            values = self.values(column)
-            commas = [value for value in values if COMMA_REAL_PATTERN.fullmatch(value)]
-            if commas and all(COMMA_REAL_PATTERN.fullmatch(v) or INTEGER_PATTERN.fullmatch(v) for v in values):
-                return True
-        return False
 
     def column_type(self, column: str) -> str:
         """The type QGIS will detect, except that codes with leading zeros stay text."""
@@ -103,11 +100,21 @@ def read_table(path: str, delimiter: str = "", limit: int = SAMPLE_BYTES) -> Del
     text, encoding = _decode(raw[:limit], complete)
     if not complete:
         text = text[: text.rfind("\n") + 1] or text
-    chosen = _wanted_delimiter(delimiter) or _sniff(text)
-    rows = [row for row in csv.reader(io.StringIO(text), delimiter=chosen) if any(cell.strip() for cell in row)]
+    if "\0" in text:
+        raise ValueError(f"'{clean}' is a binary file, not delimited text. Export it from its program as CSV.")
+    chosen = _wanted_delimiter(delimiter)
+    try:
+        chosen = chosen or _sniff(text)
+        rows = [row for row in csv.reader(io.StringIO(text), delimiter=chosen) if any(cell.strip() for cell in row)]
+    except csv.Error as error:
+        raise ValueError(
+            f"'{clean}' could not be split into columns ({error}). An unclosed quote or a wrong delimiter "
+            "makes one huge cell; check the file or pass delimiter."
+        ) from None
     if not rows:
         raise ValueError(f"'{clean}' is empty: there is no header row.")
-    return DelimitedTable(clean, chosen, encoding, field_names(rows[0]), rows[1:], complete)
+    header = field_names(rows[0])
+    return DelimitedTable(clean, chosen, encoding, header, rows[1:], complete, _decimal_comma(header, rows[1:]))
 
 
 def field_names(cells: list[str]) -> list[str]:
@@ -125,8 +132,8 @@ def field_names(cells: list[str]) -> list[str]:
 
 def checked_path(path: str) -> str:
     clean = os.path.expanduser(str(path or "").strip())
-    if clean.lower().startswith("file://"):
-        clean = clean[len("file://") :]
+    if clean.lower().startswith("file:"):
+        clean = url2pathname(urlparse(clean).path)
     if not clean:
         raise ValueError("No file path was given.")
     if not clean.lower().endswith(TABLE_SUFFIXES):
@@ -214,7 +221,19 @@ def _sniff(text: str) -> str:
     return best
 
 
+def _decimal_comma(header: list[str], rows: list[list[str]]) -> bool:
+    for index in range(len(header)):
+        values = [row[index].strip() for row in rows if index < len(row) and row[index].strip()]
+        commas = any(COMMA_REAL_PATTERN.fullmatch(value) for value in values)
+        if commas and all(COMMA_REAL_PATTERN.fullmatch(v) or INTEGER_PATTERN.fullmatch(v) for v in values):
+            return True
+    return False
+
+
 def _decode(raw: bytes, complete: bool) -> tuple[str, str]:
+    if raw.startswith(UTF16_BOMS):
+        # Excel's "Unicode text" export; the provider reads it as UTF-16 once told so.
+        return codecs.getincrementaldecoder("utf-16")(errors="replace").decode(raw, final=complete), UTF16
     try:
         # Incremental, so a sample cut inside a multi-byte letter is not mistaken for another encoding.
         return codecs.getincrementaldecoder("utf-8-sig")().decode(raw, final=complete), UTF8

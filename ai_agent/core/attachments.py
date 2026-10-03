@@ -34,6 +34,8 @@ class Outcome:
     added: list[str] = field(default_factory=list)
     images: list[str] = field(default_factory=list)
     failed: list[tuple[str, str]] = field(default_factory=list)
+    # Tables added without geometry because load_table refused them, with its reason.
+    plain_tables: list[tuple[str, str]] = field(default_factory=list)
 
 
 def is_picture(path: str) -> bool:
@@ -76,6 +78,7 @@ def encode_picture(path: str) -> str:
 def _add_layer(path: str, outcome: Outcome) -> None:
     name = _free_name(os.path.splitext(os.path.basename(path))[0] or path)
     error: Exception = ValueError("the add_layer tool is missing")
+    refused = ""
     for tool_name, params in _attempts(path, name):
         tool = get_tool_by_name(tool_name)
         if tool is None:
@@ -85,8 +88,11 @@ def _add_layer(path: str, outcome: Outcome) -> None:
         except Exception as failure:
             QgsMessageLog.logMessage(f"Attaching {path} failed: {failure}", LOG_TAG, Qgis.MessageLevel.Warning)
             error = failure
+            refused = refused or (str(failure) if tool_name == LOAD_TABLE else "")
             continue
         outcome.added.append(name)
+        if refused:
+            outcome.plain_tables.append((path, refused))
         return
     outcome.failed.append((path, str(error)))
 

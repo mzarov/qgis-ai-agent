@@ -62,6 +62,7 @@ class AttachTest(unittest.TestCase):
             outcome = attachments.attach([stats])
         self.assertEqual(outcome.added, ["stats"])
         self.assertEqual(plain.sources, [{"source": stats, "name": "stats"}])
+        self.assertEqual(outcome.plain_tables, [(stats, "QGIS could not open it")])
 
     def test_a_picture_with_a_world_file_is_data(self):
         scan = self.file("scan.png")
@@ -120,11 +121,18 @@ class Dock:
 class AttachingTest(unittest.TestCase):
     def test_files_split_into_mentions_waiting_pictures_and_messages(self):
         dock = Dock()
-        outcome = attachments.Outcome(added=["roads"], images=["/tmp/a.png"], failed=[("/tmp/x.shp", "broken")])
+        outcome = attachments.Outcome(
+            added=["roads", "grid"],
+            images=["/tmp/a.png"],
+            failed=[("/tmp/x.shp", "broken")],
+            plain_tables=[("/tmp/grid.csv", "Pass crs")],
+        )
         with mock.patch.object(attaching, "attach", return_value=outcome):
             attaching.files_attached(dock, ["whatever"])
-        self.assertEqual((dock.mentioned, dock.waiting), (["roads"], ["/tmp/a.png"]))
+        self.assertEqual((dock.mentioned, dock.waiting), (["roads", "grid"], ["/tmp/a.png"]))
         self.assertIn("x.shp", dock.system[0])
+        self.assertIn("grid.csv", dock.system[1])
+        self.assertIn("Pass crs", dock.system[1])
 
     def test_pictures_are_encoded_and_named_in_the_chat(self):
         dock = Dock(["/tmp/map.png"])

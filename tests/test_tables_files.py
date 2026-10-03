@@ -1,8 +1,11 @@
+import json
 import os
 import tempfile
+import time
 import unittest
 from unittest import mock
 
+from ai_agent.core.agent.transcript import MAX_RESULT_CHARS
 from ai_agent.qgis_tools.common import layers as layers_module
 from ai_agent.qgis_tools.tables import load_table as load_module
 from ai_agent.qgis_tools.tables import source as source_module
@@ -17,8 +20,10 @@ from ai_agent.qgis_tools.tables.delimited import (
     CYRILLIC_ENCODING,
     DOUBLE,
     INTEGER,
+    SCAN_BYTES,
     TEXT,
     UTF8,
+    UTF16,
     field_names,
     looks_like_file,
     read_table,
@@ -56,6 +61,26 @@ def project_patch(project):
     return [mock.patch.object(module, "QgsProject", holder) for module in (source_module, load_module, layers_module)]
 
 
+class Crs:
+    """EPSG:326xx is projected, anything else with an authority id is in degrees."""
+
+    def __init__(self, text=""):
+        self.text = text if ":" in text or text == "" else ("EPSG:4326" if text == "WGS84" else "")
+
+    def isValid(self):
+        return bool(self.text)
+
+    def createFromUserInput(self, text):
+        self.__init__(text)
+        return self.isValid()
+
+    def authid(self):
+        return self.text
+
+    def isGeographic(self):
+        return not self.text.startswith("EPSG:326")
+
+
 class FileCase(unittest.TestCase):
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory()
@@ -84,6 +109,38 @@ class ReadTableTest(FileCase):
         self.assertEqual(field_names([" a ", "a", "", "a"]), ["a", "a_1", "field_3", "a_2"])
         table = read_table(self.write("flags.csv", "paved,lit,id\nyes,1,1\nNo,0,2\n"))
         self.assertEqual([table.column_type(column) for column in table.header], [BOOLEAN, BOOLEAN, INTEGER])
+
+    def test_utf16_binary_and_broken_quotes(self):
+        path = os.path.join(self.folder.name, "excel.txt")
+        with open(path, "wb") as handle:
+            handle.write("code\tname\n001\tМосква\n".encode("utf-16"))
+        table = read_table(path)
+        self.assertEqual((table.encoding, table.delimiter_name, table.header), (UTF16, "tab", ["code", "name"]))
+        binary = os.path.join(self.folder.name, "data.csv")
+        with open(binary, "wb") as handle:
+            handle.write(b"PK\x03\x04\x00\x00binary")
+        with self.assertRaisesRegex(ValueError, "binary file"):
+            read_table(binary)
+        huge = self.write("quote.csv", 'a,b\n1,"' + "x" * 200_000 + "\n")
+        with self.assertRaisesRegex(ValueError, "could not be split into columns.*unclosed quote"):
+            read_table(huge, limit=SCAN_BYTES)
+
+    def test_file_urls_are_paths(self):
+        path = self.write("my stats.csv", "a\n1\n")
+        url = "file://" + path.replace(" ", "%20")
+        self.assertEqual(read_table(url).path, os.path.abspath(path))
+
+    def test_a_large_lon_lat_file_is_checked_quickly(self):
+        lines = "".join(
+            f"{index},cafe {index},{37 + index % 1000 / 1000},{55 + index % 900 / 1000}\n" for index in range(200_000)
+        )
+        path = self.write("big.csv", "id,name,lon,lat\n" + lines)
+        started = time.monotonic()
+        table = read_table(path, limit=SCAN_BYTES)
+        guess = guess_coordinates(table)
+        checked_xy_crs(table, guess.x_field, guess.y_field, "")
+        self.assertGreater(os.path.getsize(path), 5_000_000)
+        self.assertLess(time.monotonic() - started, 5, "coordinate checks must stay linear in the file size")
 
     def test_tabs_pipes_and_a_forced_delimiter(self):
         self.assertEqual(read_table(self.write("a.tsv", "a\tb\n1\t2\n")).delimiter_name, "tab")
@@ -141,7 +198,7 @@ class CoordinatesTest(FileCase):
             checked_xy_crs(table, "X", "Y", "")
         self.assertEqual(checked_xy_crs(table, "X", "Y", "EPSG:32637"), "EPSG:32637")
         with self.assertRaisesRegex(ValueError, "outside longitude/latitude"):
-            checked_xy_crs(table, "X", "Y", "EPSG:4326")
+            checked_xy_crs(table, "X", "Y", "EPSG:4326", geographic=True)
 
     def test_swapped_columns_are_refused(self):
         table = read_table(self.write("cafes.csv", "name,lat,lon\nA,55.7,120.5\n"))
@@ -152,6 +209,16 @@ class CoordinatesTest(FileCase):
         table = read_table(self.write("c.csv", "x,y\n1,2\nn/a,3\n"))
         with self.assertRaisesRegex(ValueError, "'x' is not numeric \\('n/a'\\)"):
             checked_xy_crs(table, "x", "y", "")
+
+    def test_wkt_with_z_and_m(self):
+        table = read_table(
+            self.write(
+                "z.csv",
+                "id;wkt\n1;POINT Z (37.5 55.7 120)\n2;POINTZ(37.6 55.8 130)\n3;LINESTRING M (37 55 1, 38 56 2)\n",
+            )
+        )
+        self.assertEqual(guess_coordinates(table).wkt_field, "wkt")
+        self.assertEqual(checked_wkt_crs(table, "wkt", ""), WGS84)
 
     def test_wkt(self):
         table = read_table(self.write("w.csv", 'id,geom\n1,"POINT (37.5 55.7)"\n2,"LINESTRING (37 55, 38 56)"\n'))
@@ -204,12 +271,24 @@ class PreviewTableTest(FileCase):
         cafes = tool.execute({"path": self.write("cafes.csv", CAFES)})
         self.assertEqual(cafes["coordinates"], {"x_field": "lon", "y_field": "lat", "crs": WGS84})
 
+    def test_a_wide_file_keeps_its_findings_within_the_result_cap(self):
+        header = ",".join(["lon", "lat"] + [f"column_{index}" for index in range(120)])
+        row = ",".join(["37.6", "55.7"] + ["some longer text value"] * 120)
+        result = PreviewTableTool().execute(
+            {"path": self.write("wide.csv", f"{header}\n" + f"{row}\n" * 20), "rows": 20}
+        )
+        text = json.dumps(result, ensure_ascii=False)
+        self.assertLess(len(text), MAX_RESULT_CHARS)
+        self.assertEqual(list(result)[:4], ["path", "delimiter", "encoding", "coordinates"])
+        self.assertEqual(result["columns_omitted"], 82)
+        self.assertGreaterEqual(len(result["rows"]), 1)
+
 
 class LoadTablePrepareTest(FileCase):
     def setUp(self):
         super().setUp()
         self.tool = LoadTableTool()
-        patches = project_patch(FakeProject())
+        patches = [*project_patch(FakeProject()), mock.patch.object(load_module, "QgsCoordinateReferenceSystem", Crs)]
         for patch in patches:
             patch.start()
             self.addCleanup(patch.stop)
@@ -243,6 +322,17 @@ class LoadTablePrepareTest(FileCase):
         with self.assertRaisesRegex(ValueError, "x/y look like coordinates.*table_only"):
             self.tool.prepare({"path": path})
         self.assertEqual(self.tool.prepare({"path": path, "crs": "EPSG:32637"})["crs"], "EPSG:32637")
+
+    def test_crs_spellings_are_normalised_and_checked(self):
+        cafes = self.write("cafes.csv", "name,lat,lon\nA,55.7,120.5\n")
+        with self.assertRaisesRegex(ValueError, "look swapped"):
+            self.tool.prepare({"path": cafes, "x_field": "lat", "y_field": "lon", "crs": "4326"})
+        with self.assertRaisesRegex(ValueError, "look swapped"):
+            self.tool.prepare({"path": cafes, "x_field": "lat", "y_field": "lon", "crs": "WGS84"})
+        prepared = self.tool.prepare({"path": cafes, "x_field": "lon", "y_field": "lat", "crs": "4326"})
+        self.assertEqual(prepared["crs"], "EPSG:4326")
+        with self.assertRaisesRegex(ValueError, "not a coordinate system"):
+            self.tool.prepare({"path": cafes, "crs": "nonsense"})
 
     def test_a_taken_name_is_refused(self):
         taken = type("Layer", (), {"name": lambda self: "cafes", "id": lambda self: "cafes_1"})()

@@ -4,8 +4,9 @@ from qgis.core import Qgis, QgsMessageLog, QgsProject
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.layers import bind_layer_reference, layer_identifier
-from ai_agent.qgis_tools.tables.join_plan import JoinPlan, plan_join
+from ai_agent.qgis_tools.tables.join_plan import TABLE_ID, JoinPlan, plan_join
 from ai_agent.qgis_tools.tables.source import free_layer_name, open_delimited
 
 LOG_TAG = "AI Agent"
@@ -31,15 +32,11 @@ class JoinTableTool(BaseTool):
     ]
     examples = ["Attach population.csv to districts by code"]
     params_schema = [
-        {"name": "layer_name", "type": "string", "description": "Layer that receives the fields", "required": True},
-        {
-            "name": "layer_id",
-            "type": "string",
-            "description": "Stable layer id from list_layers; required when names are duplicated",
-            "required": False,
-        },
+        params.layer_name("Layer that receives the fields"),
+        params.layer_id(),
         {"name": "layer_field", "type": "string", "description": "Key field of the layer", "required": True},
         {"name": "table", "type": "string", "description": "Project layer name, or a file path", "required": True},
+        TABLE_ID,
         {"name": "table_field", "type": "string", "description": "Key field of the table", "required": True},
         {
             "name": "fields",
@@ -67,6 +64,8 @@ class JoinTableTool(BaseTool):
             )
         prepared = bind_layer_reference(params, plan.target)
         prepared.update({"layer_field": plan.layer_field, "table_field": plan.table_field, "prefix": plan.prefix})
+        if plan.table_layer is not None:
+            prepared["table_id"] = layer_identifier(plan.table_layer)
         if plan.subset:
             prepared["fields"] = plan.subset
         else:

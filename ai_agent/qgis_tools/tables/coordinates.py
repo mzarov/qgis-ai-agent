@@ -14,9 +14,13 @@ WGS84 = "EPSG:4326"
 X_NAMES = frozenset({"lon", "lng", "long", "longitude", "x", "xcoord", "coordx", "pointx", "easting", "east"})
 Y_NAMES = frozenset({"lat", "latitude", "y", "ycoord", "coordy", "pointy", "northing", "north"})
 WKT_NAMES = frozenset({"wkt", "geom", "geometry", "thegeom", "shape", "wktgeom"})
+# The dimension tag may be glued on (POINTZ) or apart (POINT Z); either way
+# the geometry opens a bracket or is EMPTY.
 WKT_PREFIX = re.compile(
-    r"\s*(SRID=\d+;\s*)?(MULTI)?(POINT|LINESTRING|POLYGON|CURVEPOLYGON|GEOMETRYCOLLECTION)\b", re.IGNORECASE
+    r"\s*(SRID=\d+;\s*)?(MULTI)?(POINT|LINESTRING|POLYGON|CURVEPOLYGON|GEOMETRYCOLLECTION)\s*(ZM|Z|M)?\s*(?=\(|EMPTY)",
+    re.IGNORECASE,
 )
+WKT_SEPARATORS = re.compile(r"[(),]")
 WKT_NUMBER = re.compile(r"[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?")
 MAX_LONGITUDE = 180.0
 MAX_LATITUDE = 90.0
@@ -52,15 +56,18 @@ def guess_coordinates(table: DelimitedTable) -> Coordinates:
     return Coordinates()
 
 
-def checked_xy_crs(table: DelimitedTable, x_field: str, y_field: str, crs: str) -> str:
-    """The CRS for an x/y points layer; raises when the numbers cannot be what is claimed."""
+def checked_xy_crs(table: DelimitedTable, x_field: str, y_field: str, crs: str, geographic: bool = False) -> str:
+    """The CRS for an x/y points layer; raises when the numbers cannot be what is claimed.
+
+    `crs` is a normalised authority id or empty; `geographic` says whether it is in degrees.
+    """
     table.require_columns([x_field, y_field])
     xs = _require_numbers(table, x_field)
     ys = _require_numbers(table, y_field)
-    return _checked_crs(xs, ys, crs, f"columns '{x_field}'/'{y_field}'")
+    return _checked_crs(xs, ys, crs, geographic, f"columns '{x_field}'/'{y_field}'")
 
 
-def checked_wkt_crs(table: DelimitedTable, wkt_field: str, crs: str) -> str:
+def checked_wkt_crs(table: DelimitedTable, wkt_field: str, crs: str, geographic: bool = False) -> str:
     table.require_columns([wkt_field])
     values = table.values(wkt_field)
     bad = [value for value in values if not WKT_PREFIX.match(value)]
@@ -68,7 +75,7 @@ def checked_wkt_crs(table: DelimitedTable, wkt_field: str, crs: str) -> str:
         shown = ", ".join(repr(value[:40]) for value in bad[:SHOWN_BAD_VALUES]) or "no values"
         raise ValueError(f"Column '{wkt_field}' does not hold WKT geometries ({shown}).")
     xs, ys = wkt_pairs(values)
-    return _checked_crs(xs, ys, crs, f"the WKT in '{wkt_field}'")
+    return _checked_crs(xs, ys, crs, geographic, f"the WKT in '{wkt_field}'")
 
 
 def fits_degrees(xs: list[float], ys: list[float]) -> bool:
@@ -76,27 +83,31 @@ def fits_degrees(xs: list[float], ys: list[float]) -> bool:
 
 
 def wkt_pairs(values: list[str]) -> tuple[list[float], list[float]]:
+    """x and y of every vertex: the first two numbers of each coordinate tuple, whatever Z or M follows."""
     xs: list[float] = []
     ys: list[float] = []
     for value in values:
-        numbers = [float(number) for number in WKT_NUMBER.findall(WKT_PREFIX.sub("", value, count=1))]
-        xs.extend(numbers[0::2])
-        ys.extend(numbers[1::2])
+        body = WKT_PREFIX.sub("", value, count=1)
+        for vertex in WKT_SEPARATORS.split(body):
+            numbers = WKT_NUMBER.findall(vertex)
+            if len(numbers) >= 2:
+                xs.append(float(numbers[0]))
+                ys.append(float(numbers[1]))
     return xs, ys
 
 
-def _checked_crs(xs: list[float], ys: list[float], crs: str, where: str) -> str:
+def _checked_crs(xs: list[float], ys: list[float], crs: str, geographic: bool, where: str) -> str:
     wanted = crs.strip()
-    if xs and ys and _swapped(xs, ys) and (not wanted or wanted.upper() == WGS84):
+    if xs and ys and _swapped(xs, ys) and (not wanted or geographic):
         raise ValueError(
             f"The values of {where} look swapped: the x values fit latitude and the y values only fit "
             "longitude. Pass the longitude column as x_field and the latitude column as y_field."
         )
     if wanted:
-        if wanted.upper() == WGS84 and xs and not fits_degrees(xs, ys):
+        if geographic and xs and not fits_degrees(xs, ys):
             raise ValueError(
                 f"The values of {where} (e.g. {xs[0]:g}, {ys[0]:g}) are outside longitude/latitude, so they "
-                f"are not {WGS84}. Pass the projected CRS they were written in."
+                f"are not {wanted}. Pass the projected CRS they were written in."
             )
         return wanted
     if xs and fits_degrees(xs, ys):

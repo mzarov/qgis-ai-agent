@@ -36,18 +36,28 @@ def joined_field_names(join: Any, table: Any) -> list[str]:
     ]
 
 
-def find_join(target: Any, reference: str) -> Any:
-    """The join of `target` whose table has this name or id; the error lists the joined tables."""
+def find_join(target: Any, reference: str, table_id: str = "") -> Any:
+    """The join of `target` with this table, by id first; a name shared by two joined tables is refused."""
     wanted = str(reference or "").strip()
+    pinned = str(table_id or "").strip()
     joins = list(target.vectorJoins())
-    for join in joins:
-        table = join.joinLayer()
-        if wanted in (join.joinLayerId(), table.name() if table is not None else ""):
-            return join
+    if pinned:
+        matches = [join for join in joins if join.joinLayerId() == pinned]
+    else:
+        matches = [join for join in joins if join.joinLayerId() == wanted] or [
+            join for join in joins if join.joinLayer() is not None and join.joinLayer().name() == wanted
+        ]
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        choices = ", ".join(f"[id={join.joinLayerId()}]" for join in matches)
+        raise ValueError(f"Several tables named '{wanted}' are joined to '{target.name()}' ({choices}). Pass table_id.")
     joined = ", ".join(_table_label(join) for join in joins) or "none"
-    raise ValueError(f"'{target.name()}' has no join with '{wanted}'. Joined tables: {joined}.")
+    raise ValueError(f"'{target.name()}' has no join with '{pinned or wanted}'. Joined tables: {joined}.")
 
 
 def _table_label(join: Any) -> str:
     table = join.joinLayer()
-    return f"'{table.name()}'" if table is not None else f"[id={join.joinLayerId()}]"
+    if table is None:
+        return f"[id={join.joinLayerId()}]"
+    return f"'{table.name()}' [id={join.joinLayerId()}]"

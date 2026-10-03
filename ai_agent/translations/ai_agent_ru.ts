@@ -253,6 +253,11 @@
     </message>
     <message>
         <location filename="ai_agent/core/orchestrator/attaching.py" line="12"/>
+        <source>Attached {0} as a table without geometry: {1}</source>
+        <translation>{0} приложен таблицей без геометрии: {1}</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/orchestrator/attaching.py" line="13"/>
         <source>Attached: {0}</source>
         <translation>Приложено: {0}</translation>
     </message>
@@ -682,7 +687,7 @@
         <translation>Как работает агент</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/tables/join_table.py" line="77"/>
+        <location filename="ai_agent/qgis_tools/tables/join_table.py" line="76"/>
         <source>Joining {0} to '{1}' by {2} = {3}.</source>
         <translation>Присоединяю {0} к «{1}» по {2} = {3}.</translation>
     </message>
@@ -959,7 +964,7 @@
         <translation>Смотрю записи слоя «{0}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/tables/preview_table.py" line="51"/>
+        <location filename="ai_agent/qgis_tools/tables/preview_table.py" line="55"/>
         <source>Reading table file {0}.</source>
         <translation>Смотрю файл таблицы {0}.</translation>
     </message>
@@ -994,7 +999,7 @@
         <translation>Смотрю текущее выделение.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/tables/list_joins.py" line="37"/>
+        <location filename="ai_agent/qgis_tools/tables/list_joins.py" line="30"/>
         <source>Reading the joins of '{0}'.</source>
         <translation>Смотрю связи слоя «{0}».</translation>
     </message>
@@ -1049,7 +1054,7 @@
         <translation>Смотрю оформление слоя «{0}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/tables/list_joins.py" line="38"/>
+        <location filename="ai_agent/qgis_tools/tables/list_joins.py" line="31"/>
         <source>Reading the table joins.</source>
         <translation>Смотрю связи таблиц.</translation>
     </message>
@@ -1128,7 +1133,7 @@
         <translation>Убираю слой «{0}» из проекта.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/tables/remove_join.py" line="40"/>
+        <location filename="ai_agent/qgis_tools/tables/remove_join.py" line="39"/>
         <source>Removing the join of {0} from '{1}'.</source>
         <translation>Убираю связь {0} со слоем «{1}».</translation>
     </message>
@@ -1506,7 +1511,7 @@
         <translation>Размышляет…</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/attaching.py" line="13"/>
+        <location filename="ai_agent/core/orchestrator/attaching.py" line="14"/>
         <source>This model does not accept pictures, so {0} was not sent.</source>
         <translation>Эта модель не принимает картинки, поэтому {0} не отправлено.</translation>
     </message>

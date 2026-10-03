@@ -21,6 +21,13 @@ from ai_agent.qgis_tools.tables.source import (
     require_vector_layer,
 )
 
+TABLE_ID = {
+    "name": "table_id",
+    "type": "string",
+    "description": "Stable id of the table layer from list_layers; required when table names are duplicated",
+    "required": False,
+}
+
 
 @dataclass
 class JoinPlan:
@@ -71,7 +78,7 @@ def plan_join(params: dict[str, Any]) -> JoinPlan:
     reference = str(params.get("table") or "").strip()
     if not reference:
         raise ValueError("No table was given: name a project layer or a path to a CSV file.")
-    source = _table_source(reference)
+    source = _table_source(reference, str(params.get("table_id") or "").strip())
     table_layer = source if isinstance(source, QgsVectorLayer) else None
     table_file = source if isinstance(source, DelimitedTable) else None
     if table_layer is not None:
@@ -109,8 +116,17 @@ def target_layer(params: dict[str, Any]) -> QgsVectorLayer:
     return layer
 
 
-def _table_source(reference: str) -> QgsVectorLayer | DelimitedTable:
-    """A project layer, or a file not loaded yet; a file already in the project is its layer."""
+def _table_source(reference: str, table_id: str) -> QgsVectorLayer | DelimitedTable:
+    """A project layer, or a file not loaded yet; a file already in the project is its layer.
+
+    A pinned id wins, so a join planned against one layer never lands on a namesake at apply time.
+    """
+    if table_id:
+        layer = find_layer_by_id(table_id)
+        named = looks_like_file(reference) or (layer.name() or "").strip().casefold() == reference.casefold()
+        if not isinstance(layer, QgsVectorLayer) or not named:
+            raise ValueError(f"table '{reference}' and table_id '{table_id}' identify different layers.")
+        return layer
     if not looks_like_file(reference):
         return require_vector_layer(reference, "table")
     path = checked_path(reference)

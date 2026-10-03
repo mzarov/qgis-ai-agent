@@ -4,6 +4,7 @@ from qgis.core import QgsProject, QgsVectorLayer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
+from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.tables.join_plan import target_layer
 from ai_agent.qgis_tools.tables.joins import describe_join
 
@@ -21,15 +22,7 @@ class ListJoinsTool(BaseTool):
     network_access = False
     constraints = ["Key matches are counted for local sources only"]
     examples = ["Did every district get its population?"]
-    params_schema = [
-        {"name": "layer_name", "type": "string", "description": "Layer; all layers when omitted", "required": False},
-        {
-            "name": "layer_id",
-            "type": "string",
-            "description": "Stable layer id from list_layers; required when names are duplicated",
-            "required": False,
-        },
-    ]
+    params_schema = [params.layer_name("Layer; all layers when omitted", required=False), params.layer_id()]
 
     def summarize_call(self, params: dict[str, Any]) -> str:
         name = str(params.get("layer_name") or "").strip()

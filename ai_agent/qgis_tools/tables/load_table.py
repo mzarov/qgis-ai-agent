@@ -100,7 +100,7 @@ def _geometry(params: dict[str, Any], table: DelimitedTable) -> dict[str, str]:
     x_field = str(params.get("x_field") or "").strip()
     y_field = str(params.get("y_field") or "").strip()
     wkt_field = str(params.get("wkt_field") or "").strip()
-    crs = str(params.get("crs") or "").strip()
+    crs, geographic = normalised_crs(params.get("crs"))
     if wkt_field and (x_field or y_field):
         raise ValueError("Give either wkt_field or x_field with y_field, not both.")
     if bool(x_field) != bool(y_field):
@@ -119,17 +119,29 @@ def _geometry(params: dict[str, Any], table: DelimitedTable) -> dict[str, str]:
                 f"Columns {shown} look like coordinates but are not longitude/latitude degrees. "
                 "Pass crs with the projected system they were written in, or table_only=true."
             )
-        x_field, y_field, wkt_field, crs = guess.x_field, guess.y_field, guess.wkt_field, crs or guess.crs
+        x_field, y_field, wkt_field = guess.x_field, guess.y_field, guess.wkt_field
+        if not crs:
+            crs, geographic = normalised_crs(guess.crs)
     if wkt_field:
-        return {"wkt_field": wkt_field, "crs": _valid_crs(checked_wkt_crs(table, wkt_field, crs))}
-    return {"x_field": x_field, "y_field": y_field, "crs": _valid_crs(checked_xy_crs(table, x_field, y_field, crs))}
+        return {"wkt_field": wkt_field, "crs": checked_wkt_crs(table, wkt_field, crs, geographic)}
+    return {"x_field": x_field, "y_field": y_field, "crs": checked_xy_crs(table, x_field, y_field, crs, geographic)}
 
 
-def _valid_crs(text: str) -> str:
+def normalised_crs(raw: Any) -> tuple[str, bool]:
+    """The authority id of a CRS given as EPSG:4326, 4326, WGS84 or PROJ, and whether it is in degrees."""
+    text = str(raw or "").strip()
+    if not text:
+        return "", False
+    if text.isdigit():
+        text = f"EPSG:{text}"
     crs = QgsCoordinateReferenceSystem(text)
     if not crs.isValid():
+        crs = QgsCoordinateReferenceSystem()
+        crs.createFromUserInput(text)
+    if not crs.isValid():
         raise ValueError(f"'{text}' is not a coordinate system. Use an identifier such as EPSG:4326.")
-    return text
+    authid = crs.authid()
+    return (authid if isinstance(authid, str) and authid else text), bool(crs.isGeographic())
 
 
 def _columns(table: DelimitedTable) -> str:

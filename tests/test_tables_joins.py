@@ -62,8 +62,9 @@ class Join:
 
 
 class Layer(QgsVectorLayer):
-    def __init__(self, name, columns, provider="ogr", source=""):
+    def __init__(self, name, columns, provider="ogr", source="", layer_id=""):
         self._name, self._provider, self._source = name, provider, source
+        self._id = layer_id or f"{name}_id"
         self._fields = Fields(columns)
         self.values = {column: [] for column in columns}
         self.joins = []
@@ -74,7 +75,7 @@ class Layer(QgsVectorLayer):
         return self._name
 
     def id(self):
-        return f"{self._name}_id"
+        return self._id
 
     def fields(self):
         return self._fields
@@ -159,6 +160,12 @@ class JoinTableTest(JoinCase):
         self.assertEqual(prepared["prefix"], "population_")
         self.assertEqual(prepared["fields"], ["pop"])
         self.assertEqual(self.tool.prepare(self.call(prefix="", fields=["pop"]))["prefix"], "")
+
+    def test_the_table_is_pinned_by_id(self):
+        prepared = self.tool.prepare(self.call(fields=["pop"]))
+        self.assertEqual(prepared["table_id"], "population_id")
+        with self.assertRaisesRegex(ValueError, "identify different layers"):
+            self.tool.execute({**prepared, "table_id": "districts_id"})
 
     def test_no_shared_key_is_refused_with_the_reason(self):
         self.population.values["code"] = [1, 2]
@@ -255,12 +262,23 @@ class ListAndRemoveJoinsTest(JoinCase):
         self.assertEqual(join["table"], "gone_id")
         self.assertIn("no longer", join["note"])
 
+    def test_namesakes_need_the_pinned_id(self):
+        twin = Layer("population", ["code", "pop"], layer_id="population_2")
+        self.project.layers[twin.id()] = twin
+        self.districts.joins.append(Join(twin, "code", "code", prefix="b_"))
+        tool = RemoveJoinTool()
+        with self.assertRaisesRegex(ValueError, "Several tables named 'population'.*population_id.*population_2"):
+            tool.prepare({"layer_name": "districts", "table": "population"})
+        prepared = tool.prepare({"layer_name": "districts", "table": "population", "table_id": "population_2"})
+        self.assertEqual(tool.execute(prepared)["removed_fields"], ["b_pop"])
+        self.assertEqual([join.joinLayerId() for join in self.districts.joins], ["population_id"])
+
     def test_remove(self):
         tool = RemoveJoinTool()
-        with self.assertRaisesRegex(ValueError, "no join with 'census'. Joined tables: 'population'"):
+        with self.assertRaisesRegex(ValueError, "no join with 'census'. Joined tables: 'population' \\[id="):
             tool.prepare({"layer_name": "districts", "table": "census"})
         prepared = tool.prepare({"layer_name": "districts", "table": "population"})
-        self.assertEqual(prepared["layer_id"], "districts_id")
+        self.assertEqual((prepared["layer_id"], prepared["table_id"]), ("districts_id", "population_id"))
         result = tool.execute(prepared)
         self.assertEqual(result["removed_fields"], ["population_pop"])
         self.assertEqual(self.districts.joins, [])

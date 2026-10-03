@@ -9,6 +9,7 @@ from ai_agent.core.orchestrator.contracts import DockWidgetContract
 from ai_agent.i18n import tr
 
 NOT_ATTACHED = tr("Could not attach {0}: {1}")
+PLAIN_TABLE = tr("Attached {0} as a table without geometry: {1}")
 ATTACHED = tr("Attached: {0}")
 NO_EYES = tr("This model does not accept pictures, so {0} was not sent.")
 NAME_SEPARATOR = ", "
@@ -29,6 +30,8 @@ def files_attached(dock: DockWidgetContract, paths: list[str]) -> None:
         dock.add_attachment(path)
     for path, reason in outcome.failed:
         dock.add_system_message(NOT_ATTACHED.format(os.path.basename(path), reason))
+    for path, reason in outcome.plain_tables:
+        dock.add_system_message(PLAIN_TABLE.format(os.path.basename(path), reason))
 
 
 def take_pictures(dock: DockWidgetContract) -> Pictures:
