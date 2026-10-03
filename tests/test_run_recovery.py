@@ -5,7 +5,7 @@ from qgis.PyQt.QtWidgets import QWidget
 
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.skills import load_skill, requested_skills
-from ai_agent.core.llm.transport import ToolCall
+from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.processing import utils as processing_utils
 from ai_agent.ui import settings_fields
 from ai_agent.ui.composer import MENTION, Composer, mention_query, mention_text

@@ -6,7 +6,7 @@ from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.prompts import TOOLS_BLOCK_HEADER, build_verification_prompt
 from ai_agent.core.agent.skills import load_skill, tools_for_skills
 from ai_agent.core.agent.transcript import Transcript
-from ai_agent.core.llm.transport import ToolCall
+from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.registry import ALL_TOOLS, get_tool_by_name
 
 IMAGE_TOOLS = {"render_map", "render_layout"}

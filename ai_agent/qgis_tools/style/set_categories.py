@@ -4,6 +4,7 @@ from qgis.core import QgsCategorizedSymbolRenderer, QgsRendererCategory
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.colors import parse_color
 from ai_agent.qgis_tools.common.layers import layer_reference
 from ai_agent.qgis_tools.common.values import plain_value
@@ -36,12 +37,7 @@ class SetCategoriesTool(BaseTool):
     ]
     examples = ["Colour the roads by type", "Cities by region, Set2 ramp"]
     params_schema = [
-        {
-            "name": "layer_name",
-            "type": "string",
-            "description": "Layer name exactly as in the project",
-            "required": True,
-        },
+        params.layer_name(),
         {
             "name": "field",
             "type": "string",

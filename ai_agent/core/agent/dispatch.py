@@ -11,7 +11,7 @@ from ai_agent.core.agent.prompts import (
 from ai_agent.core.agent.request import detect_images_unsupported
 from ai_agent.core.agent.skills import load_skill
 from ai_agent.core.agent.transcript import ToolResult
-from ai_agent.core.llm.transport import ToolCall
+from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.base import SAFETY_READ
 from ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call, validate_tool_arguments
 

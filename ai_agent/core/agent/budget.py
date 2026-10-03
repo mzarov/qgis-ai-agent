@@ -1,4 +1,4 @@
-from ai_agent.core.llm.transport import ModelTurn
+from ai_agent.core.llm.turns import ModelTurn
 
 
 class TokenBudget:

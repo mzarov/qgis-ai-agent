@@ -83,7 +83,9 @@ the schema by hand. Supported `type`s: `string`, `number`, `integer`, `boolean`,
 6. **Shared code lives in `common/`, not in a neighbouring domain.** There:
    `layers.py` — layer lookup, CRS, extents; `values.py` — value coercion,
    limits, name hints; `layer_meta.py` — source, validity, opacity;
-   `renderers.py` — renderer type and one-line summary. Domains never import
+   `renderers.py` — renderer type and one-line summary; `params.py` — parameter
+   specs many tools share (`params.layer_name()`, `params.layer_id()`), so every
+   schema words them the same. Domains never import
    each other: the urge to import from a sibling domain means the shared place
    for that code is `common/`.
 7. **Results must serialise to JSON.** Return PyQGIS objects as names or

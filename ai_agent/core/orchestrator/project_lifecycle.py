@@ -1,11 +1,8 @@
+from ai_agent.core.orchestrator.notices import PREVIOUS_APPLY_INTERRUPTED, PROJECT_CHANGED
 from ai_agent.core.orchestrator.presentation import interrupted_outcome
 from ai_agent.core.orchestrator.scope import conversation_scope
-from ai_agent.i18n import tr
 
-PROJECT_CHANGED = tr("The QGIS project changed. A new project-scoped conversation was started.")
-PREVIOUS_APPLY_INTERRUPTED = tr("An interrupted run completed work in the previous project; see its conversation.")
 UNDO_TOOL = "undo_last_apply"
-__all__ = ("PREVIOUS_APPLY_INTERRUPTED", "PROJECT_CHANGED", "ProjectLifecycleMixin")
 
 
 class ProjectLifecycleMixin:

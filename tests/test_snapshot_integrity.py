@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from ai_agent.core.agent.loop import AgentLoop
-from ai_agent.core.llm.transport import ToolCall
+from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.common.project_identity import project_identity
 from ai_agent.qgis_tools.project import scratch_copies, snapshots
 from ai_agent.qgis_tools.project import undo_last_apply as undo_module

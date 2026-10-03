@@ -2,6 +2,7 @@ from typing import Any
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.project.scratch_copies import is_memory_layer, scratch_layers_over_budget
 from ai_agent.qgis_tools.project.tree import find_layer, project
 
@@ -19,12 +20,7 @@ class RemoveLayerTool(BaseTool):
     constraints = ["A layer with this name must exist in the project"]
     examples = ["Drop the temporary buffer layer", "Remove the spare layer from the project"]
     params_schema = [
-        {
-            "name": "layer_name",
-            "type": "string",
-            "description": "Layer name exactly as in the project",
-            "required": True,
-        },
+        params.layer_name(),
     ]
 
     def has_external_effect(self, params: dict[str, Any]) -> bool:

@@ -8,7 +8,7 @@ from qgis.PyQt.QtWidgets import QApplication
 
 from ai_agent.core.agent.executor import ToolExecutor
 from ai_agent.core.agent.transcript import ToolResult
-from ai_agent.core.llm.transport import ToolCall
+from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.common.layers import (
     layer_pin_error,
     pin_layer_references,

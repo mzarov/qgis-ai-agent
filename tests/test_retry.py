@@ -2,7 +2,7 @@ import unittest
 
 from ai_agent.core.llm import retry, transport
 from ai_agent.core.llm.client import ApiResponseError
-from ai_agent.core.llm.transport import ModelTurn
+from ai_agent.core.llm.turns import ModelTurn
 
 
 class Feedback:

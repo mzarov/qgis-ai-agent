@@ -6,7 +6,7 @@ from qgis.core import QgsVectorLayer
 
 from ai_agent.core.agent.batch import WriteBatch
 from ai_agent.core.agent.executor import ToolExecutor
-from ai_agent.core.llm.transport import ToolCall
+from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.common import layers as layers_module
 from ai_agent.qgis_tools.edit import delete_features as delete_module
 from ai_agent.qgis_tools.edit import update_attributes as update_module

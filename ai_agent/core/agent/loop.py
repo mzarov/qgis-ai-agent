@@ -15,7 +15,7 @@ from ai_agent.core.agent.run_journal import RunJournal
 from ai_agent.core.agent.skills import extend_loaded
 from ai_agent.core.agent.transcript import ToolResult, Transcript
 from ai_agent.core.agent.turn_thread import TurnThreadOwner
-from ai_agent.core.llm.transport import PROTOCOL_JSON, PROTOCOL_NATIVE, ModelTurn, ToolCall
+from ai_agent.core.llm.turns import PROTOCOL_JSON, PROTOCOL_NATIVE, ModelTurn, ToolCall
 from ai_agent.core.settings import get_token_budget
 from ai_agent.qgis_tools.web.http import cancel_active_requests
 from ai_agent.skills.registry import SKILL_REGISTRY

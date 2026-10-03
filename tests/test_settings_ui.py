@@ -122,9 +122,6 @@ class StyleSheetTest(unittest.TestCase):
         self.assertEqual(offenders, [])
 
 
-SETTINGS_SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "core" / "settings.py").read_text(
-    encoding="utf-8"
-)
 ADVANCED_SOURCE = (
     pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "settings_advanced.py"
 ).read_text(encoding="utf-8")
@@ -178,8 +175,15 @@ class SidebarSettingsTest(unittest.TestCase):
         self.assertNotIn("QCheckBox(", ADVANCED_SOURCE)
 
     def test_the_run_journal_is_off_until_asked_for(self):
-        body = SETTINGS_SOURCE.split("def get_write_run_journal(")[1].split("\ndef ")[0]
-        self.assertIn("False if stored is None", body)
+        from unittest import mock
+
+        from ai_agent.core import settings
+
+        with mock.patch.object(settings, "QgsSettings") as stored:
+            stored.return_value.value.return_value = None
+            self.assertFalse(settings.get_write_run_journal())
+            stored.return_value.value.return_value = "true"
+            self.assertTrue(settings.get_write_run_journal())
 
     def test_budgets_stay_out_of_the_privacy_page(self):
         privacy = ADVANCED_SOURCE.split("def build_privacy(")[1].split("\ndef ")[0]
