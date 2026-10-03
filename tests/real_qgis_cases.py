@@ -15,6 +15,7 @@ from ai_agent.core.llm.turns import ToolCall
 from ai_agent.plugin import QgisAiAgentPlugin
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
 from ai_agent.qgis_tools.common.editing import edit_session
+from ai_agent.qgis_tools.draw.draw_features import DrawFeaturesTool
 from ai_agent.qgis_tools.processing.run_processing import RunProcessingTool
 from ai_agent.qgis_tools.project.snapshots import take_snapshot
 from ai_agent.ui.dock_widget import AgentDockWidget
@@ -148,6 +149,74 @@ class GisWorkflowsTest(unittest.TestCase):
                 "Point (100 0)",
             ],
         )
+
+    def test_a_drawn_utm_point_and_its_buffer_chain_in_one_batch(self):
+        batch = WriteBatch(ToolExecutor())
+        point = {
+            "new_layer_name": "Town hall",
+            "geometry": "point",
+            "layer_crs": "utm",
+            "features": [{"coordinates": [[49.11, 55.79]], "attributes": {"name": "Town hall"}}],
+        }
+        batch.add(ToolCall("draw", "draw_features", point))
+        buffer = {
+            "algorithm_id": "native:buffer",
+            "parameters": {"INPUT": "Town hall", "DISTANCE": 500},
+            "output_name": "Town hall 500 m",
+        }
+        batch.add(ToolCall("buffer", "run_processing", buffer))
+        results = batch.apply(lambda call: None, lambda call, result: None)
+        self.assertTrue(all(result.ok for result in results), [result.payload for result in results])
+        drawn = self.project.mapLayersByName("Town hall")[0]
+        self.assertEqual((drawn.providerType(), drawn.crs().authid()), ("memory", "EPSG:32639"))
+        self.assertEqual(next(drawn.getFeatures())["name"], "Town hall")
+        zone = next(self.project.mapLayersByName("Town hall 500 m")[0].getFeatures())
+        self.assertAlmostEqual(zone.geometry().boundingBox().width(), 1000, delta=1)
+
+    def test_drawing_into_a_file_layer_commits_in_its_crs_and_asks_twice(self):
+        path = self.root / "points.gpkg"
+        self._run("export_layer", layer_name=self.layer.name(), path=str(path))
+        persisted = QgsVectorLayer(str(path), "persisted", "ogr")
+        self.assertTrue(persisted.isValid())
+        self.project.addMapLayer(persisted)
+        arguments = {
+            "layer_name": "persisted",
+            "geometry": "point",
+            "features": [{"coordinates": [[37.62, 55.75]], "attributes": {"name": "Kremlin", "count": 7}}],
+        }
+        tool = DrawFeaturesTool()
+        self.assertEqual(tool.safety_for(tool.prepare(arguments)), SAFETY_DESTRUCTIVE)
+        self._run("draw_features", **arguments)
+        self.assertFalse(persisted.isEditable())
+        reread = QgsVectorLayer(str(path), "reread", "ogr")
+        self.assertEqual(reread.featureCount(), 3)
+        added = [feature for feature in reread.getFeatures() if feature["name"] == "Kremlin"][0]
+        self.assertEqual(added["count"], 7)
+        self.assertAlmostEqual(added.geometry().asPoint().x(), 4187839.69, delta=1)
+
+    def test_an_open_ring_closes_and_a_crossing_ring_never_queues(self):
+        ring = [[0.0, 0.0], [10.0, 0.0], [10.0, 10.0]]
+        self._run("draw_features", new_layer_name="Zone", geometry="polygon", features=[{"coordinates": ring}])
+        polygon = next(self.project.mapLayersByName("Zone")[0].getFeatures()).geometry()
+        self.assertTrue(polygon.isGeosValid())
+        vertices = polygon.asPolygon()[0]
+        self.assertEqual(len(vertices), 4)
+        self.assertEqual(vertices[0], vertices[-1])
+        self.assertAlmostEqual(polygon.area(), 50.0)
+        bow_tie = [[0.0, 0.0], [10.0, 10.0], [10.0, 0.0], [0.0, 10.0]]
+        batch = WriteBatch(ToolExecutor())
+        crossing = {"new_layer_name": "Bow tie", "geometry": "polygon", "features": [{"coordinates": bow_tie}]}
+        with self.assertRaisesRegex(ValueError, "crosses itself"):
+            batch.add(ToolCall("crossing", "draw_features", crossing))
+        self.assertEqual(batch.pending(), [])
+
+    def test_undo_removes_a_drawn_scratch_layer(self):
+        self.assertTrue(take_snapshot())
+        line = {"new_layer_name": "Route", "geometry": "line", "features": [{"coordinates": [[0, 0], [1, 1]]}]}
+        self._run("draw_features", **line)
+        self.assertEqual(len(self.project.mapLayersByName("Route")), 1)
+        self._run("undo_last_apply")
+        self.assertEqual(self.project.mapLayersByName("Route"), [])
 
     def test_a_text_virtual_field_shows_values_not_null(self):
         queued, result = self._run("add_field", layer_name=self.layer.name(), name="label", expression="upper(name)")

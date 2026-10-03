@@ -213,6 +213,51 @@ class UndoScenario(ScenarioCase):
         self.shot("buffer_recolour_undo")
 
 
+class DrawScenario(ScenarioCase):
+    def test_a_point_and_a_line_land_in_scratch_layers(self) -> None:
+        moscow, kazan = [37.62, 55.75], [49.11, 55.79]
+        self.model.script(
+            call("load_skill", names=["draw"]),
+            calls(
+                (
+                    "draw_features",
+                    {
+                        "new_layer_name": "Pins",
+                        "geometry": "point",
+                        "features": [{"coordinates": [moscow], "attributes": {"name": "Kremlin"}}],
+                    },
+                ),
+                (
+                    "draw_features",
+                    {
+                        "new_layer_name": "Route",
+                        "geometry": "line",
+                        "features": [{"coordinates": [moscow, kazan], "attributes": {"name": "M7"}}],
+                    },
+                ),
+            ),
+            say("I suggest a point at the Kremlin and a line from Moscow to Kazan."),
+            say("Both layers are on the map."),
+        )
+        self.ask("Put a point at 55.75, 37.62 and draw a line from there to Kazan")
+        self.assertIn("draw_features", self.model.tool_names(1))
+        self.apply()
+
+        pins, route = self.layer("Pins"), self.layer("Route")
+        self.assertEqual((pins.providerType(), route.providerType()), ("memory", "memory"))
+        self.assertEqual(pins.crs().authid(), "EPSG:4326")
+        [point] = list(pins.getFeatures())
+        self.assertEqual(point["name"], "Kremlin")
+        self.assertAlmostEqual(point.geometry().asPoint().x(), 37.62)
+        self.assertAlmostEqual(point.geometry().asPoint().y(), 55.75)
+        [line] = list(route.getFeatures())
+        self.assertEqual(line["name"], "M7")
+        self.assertEqual(
+            [(round(v.x(), 6), round(v.y(), 6)) for v in line.geometry().asPolyline()], [(37.62, 55.75), (49.11, 55.79)]
+        )
+        self.shot("draw_point_and_line")
+
+
 class ReasoningScenario(ScenarioCase):
     def test_streamed_reasoning_folds_into_the_turn(self) -> None:
         from ai_agent.ui.thinking import ThinkingBlock

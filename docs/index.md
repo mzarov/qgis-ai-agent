@@ -7,7 +7,7 @@ confirm them.
 
 ## What it does
 
-Twelve domains, 65 tools:
+Thirteen domains, 66 tools:
 
 | Domain | Example requests |
 | --- | --- |
@@ -16,6 +16,7 @@ Twelve domains, 65 tools:
 | `style` | “make the rivers blue”, “colour by population”, “label with names” |
 | `processing` | “build a 500 m buffer”, “clip by the district boundary”, “compute NDVI” |
 | `osm` | “download the cafes in Tver”, “roads except unpaved ones from OSM” |
+| `draw` | “put a point at 55.75, 37.62”, “draw a line between these towns” |
 | `edit` | “fix the misspelled name”, “delete the features I selected” |
 | `fields` | “add a virtual field with the area in hectares”, “rename nm to name” |
 | `layout` | “make an A4 map sheet with a legend and export it to PDF” |
