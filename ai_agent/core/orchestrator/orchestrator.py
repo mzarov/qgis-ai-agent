@@ -6,6 +6,7 @@ from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.verification import plan_verification
 from ai_agent.core.context.project import layer_choices
 from ai_agent.core.llm.client import is_local
+from ai_agent.core.orchestrator import attaching
 from ai_agent.core.orchestrator.contracts import DockWidgetContract
 from ai_agent.core.orchestrator.planning import destructive_lines, plan_line
 from ai_agent.core.orchestrator.presentation import compact_number, is_configured, where_to_look
@@ -156,15 +157,20 @@ class CoreOrchestrator(ProjectLifecycleMixin):
             return
         if not self._confirm_first_send():
             return
-        self.dock_widget.add_user_message(text)
+        pictures = attaching.take_pictures(self.dock_widget)
+        shown = attaching.with_names(text, pictures)
+        self.dock_widget.add_user_message(shown)
         self.dock_widget.clear_prompt()
         self._drop_pending_plan()
         self.dock_widget.set_usage("")
         history = self.conversation.window()
-        self.conversation.add("user", text)
+        self.conversation.add("user", shown)
         self._last_request = text
         prompt = prompt_for(skill, rest) if skill else text
-        self.agent.start(prompt, history, skills=[skill] if skill else None)
+        self.agent.start(prompt, history, skills=[skill] if skill else None, images=pictures.encoded)
+
+    def on_files_attached(self, paths: list[str]) -> None:
+        attaching.files_attached(self.dock_widget, paths)
 
     def _confirm_first_send(self, endpoint: str | None = None) -> bool:
         if not _is_configured():

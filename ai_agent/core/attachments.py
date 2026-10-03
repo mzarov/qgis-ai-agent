@@ -1,0 +1,94 @@
+"""Files the user hands to the chat: GIS data becomes layers, pictures go to the model.
+
+Attaching is the user's own action, like dropping a file onto the QGIS canvas,
+so data files are added straight away rather than queued for Apply; the model
+then hears about the new layer through the @mention put into the request.
+"""
+
+import os
+from dataclasses import dataclass, field
+
+from qgis.core import Qgis, QgsMessageLog
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QImage
+
+from ai_agent.qgis_tools.common.images import encoded_png
+from ai_agent.qgis_tools.project.tree import layer_names
+from ai_agent.qgis_tools.registry import get_tool_by_name
+
+LOG_TAG = "AI Agent"
+IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp")
+# A georeferenced picture is data: its world file or aux file says where it lies.
+GEOREFERENCE_SUFFIXES = (".pgw", ".jgw", ".wld", ".tfw", ".png.aux.xml", ".jpg.aux.xml")
+MAX_IMAGE_SIDE = 1568
+ADD_LAYER = "add_layer"
+DUPLICATE_NAME = "{0} ({1})"
+
+
+@dataclass
+class Outcome:
+    added: list[str] = field(default_factory=list)
+    images: list[str] = field(default_factory=list)
+    failed: list[tuple[str, str]] = field(default_factory=list)
+
+
+def is_picture(path: str) -> bool:
+    """A plain picture for the model's eyes, not a raster that knows where it lies."""
+    lower = path.lower()
+    if not lower.endswith(IMAGE_SUFFIXES):
+        return False
+    stem = os.path.splitext(path)[0]
+    return not any(os.path.exists(stem + suffix) or os.path.exists(path + suffix) for suffix in GEOREFERENCE_SUFFIXES)
+
+
+def attach(paths: list[str]) -> Outcome:
+    """Add every data file as a layer and set the pictures aside; nothing here raises."""
+    outcome = Outcome()
+    for path in paths:
+        if not os.path.isfile(path):
+            outcome.failed.append((path, "not a file"))
+        elif is_picture(path):
+            outcome.images.append(path)
+        else:
+            _add_layer(path, outcome)
+    return outcome
+
+
+def encode_picture(path: str) -> str:
+    """The picture as base64 PNG, its longer side capped so a phone photo does not cost a fortune."""
+    image = QImage(path)
+    if image.isNull():
+        raise ValueError("QGIS could not read the picture.")
+    if max(image.width(), image.height()) > MAX_IMAGE_SIDE:
+        image = image.scaled(
+            MAX_IMAGE_SIDE,
+            MAX_IMAGE_SIDE,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+    return encoded_png(image)
+
+
+def _add_layer(path: str, outcome: Outcome) -> None:
+    tool = get_tool_by_name(ADD_LAYER)
+    if tool is None:
+        outcome.failed.append((path, "the add_layer tool is missing"))
+        return
+    name = _free_name(os.path.splitext(os.path.basename(path))[0] or path)
+    try:
+        tool.execute(tool.prepare({"source": path, "name": name}))
+    except Exception as error:
+        QgsMessageLog.logMessage(f"Attaching {path} failed: {error}", LOG_TAG, Qgis.MessageLevel.Warning)
+        outcome.failed.append((path, str(error)))
+        return
+    outcome.added.append(name)
+
+
+def _free_name(wanted: str) -> str:
+    taken = set(layer_names())
+    if wanted not in taken:
+        return wanted
+    number = 2
+    while DUPLICATE_NAME.format(wanted, number) in taken:
+        number += 1
+    return DUPLICATE_NAME.format(wanted, number)
