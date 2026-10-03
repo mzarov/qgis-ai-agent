@@ -1,6 +1,6 @@
 from collections.abc import Callable
 
-from qgis.PyQt.QtCore import QPoint, QSize, pyqtSignal
+from qgis.PyQt.QtCore import QSize, pyqtSignal
 from qgis.PyQt.QtWidgets import (
     QDockWidget,
     QHBoxLayout,
@@ -10,12 +10,12 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from ai_agent.i18n import tr
-from ai_agent.ui import confirmations, controls, icons, style
+from ai_agent.ui import confirmations, icons, style
 from ai_agent.ui.composer import Composer
 from ai_agent.ui.conversation import ConversationView
+from ai_agent.ui.sessions_popup import SessionsPopup
 
 TITLE = "AI Agent"
-NO_SESSIONS_LABEL = tr("No past conversations")
 HEADER_MARGINS = (11, 8, 9, 8)
 HEADER_ICON = 15
 HEADER_BUTTON = 24
@@ -27,6 +27,8 @@ class AgentDockWidget(QDockWidget):
     open_settings_clicked = pyqtSignal()
     new_session_clicked = pyqtSignal()
     session_chosen = pyqtSignal(str)
+    session_renamed = pyqtSignal(str, str)
+    session_deleted = pyqtSignal(str)
     prompt_submitted = pyqtSignal(str)
     stop_clicked = pyqtSignal()
     confirm_plan_clicked = pyqtSignal()
@@ -40,6 +42,10 @@ class AgentDockWidget(QDockWidget):
         super().__init__(parent)
         self.setWindowTitle(TITLE)
         self._sessions_provider: Callable[[], list[tuple[str, str]]] = list
+        self._sessions_popup = SessionsPopup(self.palette())
+        self._sessions_popup.chosen.connect(self.session_chosen.emit)
+        self._sessions_popup.renamed.connect(self.session_renamed.emit)
+        self._sessions_popup.delete_requested.connect(self._confirm_delete)
         body = QWidget()
         body.setObjectName(BODY_NAME)
         style.fill(body, style.background(self.palette()))
@@ -158,19 +164,11 @@ class AgentDockWidget(QDockWidget):
 
     def _show_sessions(self) -> None:
         # Past conversations only: starting a new one is the button right next to this one.
-        menu = controls.menu(self, self.palette())
-        actions: dict[object, str] = {}
-        for identifier, title in self._sessions_provider():
-            actions[menu.addAction(title)] = identifier
-        if not actions:
-            menu.addAction(NO_SESSIONS_LABEL).setEnabled(False)
-        button = self._sessions_button
-        # The button sits at the dock's right edge: align the menu's right edge with it.
-        corner = button.mapToGlobal(button.rect().bottomRight())
-        chosen = menu.exec(QPoint(corner.x() - menu.sizeHint().width(), corner.y() + controls.MENU_GAP))
-        menu.deleteLater()
-        if chosen in actions:
-            self.session_chosen.emit(actions[chosen])
+        self._sessions_popup.show_sessions(self._sessions_provider(), self._sessions_button)
+
+    def _confirm_delete(self, identifier: str, title: str) -> None:
+        if confirmations.confirm_delete_conversation(self, title):
+            self.session_deleted.emit(identifier)
 
     def replay(self, messages: list[dict[str, str]]) -> None:
         self.conversation.clear()

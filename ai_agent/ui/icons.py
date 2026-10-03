@@ -24,6 +24,8 @@ NAMES = {
     "layer": "layers",
     "collapsed": "chevron-right",
     "expanded": "chevron-down",
+    "rename": "pencil",
+    "delete": "trash-2",
 }
 
 

@@ -97,6 +97,37 @@ class ConversationState:
         self._store.save(session)
         return True
 
+    @property
+    def named(self) -> bool:
+        return self._session.named
+
+    def rename(self, identifier: str, title: str) -> bool:
+        """Rename a conversation of this project, the open one or a past one."""
+        if identifier == self.session_identifier:
+            session = self._session
+        else:
+            session = self._store.load(identifier)
+            if session is None or session.project != self.project_key:
+                return False
+        if not session.rename(title):
+            return False
+        self._store.save(session)
+        return True
+
+    def delete(self, identifier: str) -> bool:
+        """Delete a conversation of this project for good; the open one gives way to a fresh one.
+
+        Returns whether the open conversation was the one deleted.
+        """
+        if identifier == self.session_identifier:
+            self._store.delete(identifier)
+            self._adopt(Session.create(self.project_key))
+            return True
+        session = self._store.load(identifier)
+        if session is not None and session.project == self.project_key:
+            self._store.delete(identifier)
+        return False
+
     def save(self) -> None:
         self._store.save(self._session)
 

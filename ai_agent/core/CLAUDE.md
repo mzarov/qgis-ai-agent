@@ -260,7 +260,9 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `orchestrator/attaching.py` | attachments in the chat: mentions, waiting pictures, a blind model told so |
 | `orchestrator/slash.py`  | `/skill` parsing and the skill list for the composer |
 | `orchestrator/orchestrator.py` | UI-to-loop wiring: prompts, stop, interjections; the mixins below |
-| `orchestrator/sessions.py` | new conversation, a past one, what a switch cancels |
+| `orchestrator/sessions.py` | new conversation, a past one, rename, delete, what a switch cancels |
+| `orchestrator/naming.py` | the model names a conversation once, after its first answer |
+| `agent/titling.py`       | the naming request: tool-less, a few words back      |
 | `orchestrator/plans.py`  | the plan card, Apply and Cancel, apply outcomes, verification |
 | `orchestrator/run_events.py` | tool steps, answers, failures and stops drawn into the chat |
 | `orchestrator/notices.py` | every chat and message-bar text of the orchestrator |

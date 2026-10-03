@@ -1,0 +1,46 @@
+[
+ {
+  "depth": 0,
+  "type": "SessionsPopup"
+ },
+ {
+  "depth": 1,
+  "type": "QLabel",
+  "text": "Conversations"
+ },
+ {
+  "depth": 1,
+  "type": "QScrollArea"
+ },
+ {
+  "depth": 2,
+  "type": "QWidget"
+ },
+ {
+  "depth": 3,
+  "type": "SessionRow"
+ },
+ {
+  "depth": 4,
+  "type": "ElidedLabel",
+  "text": "Town layers and what is in them"
+ },
+ {
+  "depth": 3,
+  "type": "SessionRow"
+ },
+ {
+  "depth": 4,
+  "type": "ElidedLabel",
+  "text": "Roads coloured by type, cafés labelled"
+ },
+ {
+  "depth": 3,
+  "type": "SessionRow"
+ },
+ {
+  "depth": 4,
+  "type": "ElidedLabel",
+  "text": "A very long conversation title that has to be cut short in the menu"
+ }
+]

@@ -20,6 +20,18 @@ def confirm_destructive(parent: QWidget, lines: list[str], details: str = "") ->
     return box.exec() == QMessageBox.StandardButton.Yes
 
 
+def confirm_delete_conversation(parent: QWidget, title: str) -> bool:
+    box = QMessageBox(parent)
+    box.setIcon(QMessageBox.Icon.Warning)
+    box.setWindowTitle(tr("Delete the conversation?"))
+    box.setTextFormat(Qt.TextFormat.PlainText)
+    box.setText(tr("“{0}” will be deleted for good: it cannot be restored.").format(title))
+    box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+    box.setDefaultButton(QMessageBox.StandardButton.No)
+    box.button(QMessageBox.StandardButton.Yes).setText(tr("Delete"))
+    return box.exec() == QMessageBox.StandardButton.Yes
+
+
 def confirm_data_sharing(parent: QWidget, endpoint: str) -> bool:
     box = QMessageBox(parent)
     box.setIcon(QMessageBox.Icon.Question)

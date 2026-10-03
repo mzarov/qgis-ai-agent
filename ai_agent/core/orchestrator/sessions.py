@@ -18,6 +18,15 @@ class SessionsMixin:
             return
         self._replay()
 
+    def on_session_renamed(self, identifier: str, title: str) -> None:
+        self.conversation.rename(identifier, title)
+
+    def on_session_deleted(self, identifier: str) -> None:
+        if identifier == self.conversation.session_identifier and self._busy_with_current():
+            return
+        if self.conversation.delete(identifier):
+            self._replay()
+
     def _busy_with_current(self) -> bool:
         self.compaction.cancel()
         if bool(getattr(self.agent, "is_applying", False)):

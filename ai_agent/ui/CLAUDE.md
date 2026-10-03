@@ -40,6 +40,7 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `durations.py`    | `3.4 s`, `2 min 5 s` — one formatter for the feed and the settings |
 | `composer.py`     | the input box as in Claude Code: text and the send/stop button inside, the toolbar under it; Enter sends, Esc stops a run; `/` and `@` open the popup |
 | `composer_parts.py` | the editor, `/skill` and `@layer` parsing, token highlighting, the toolbar (+, model) |
+| `sessions_popup.py` | the conversations menu: pick, rename in place, delete after the dock confirms |
 | `context_meter.py` | the ring under the composer and its popup: window, auto-compact, Compact, spent |
 | `choice_popup.py` | the mode menu as in Claude Code: caption, rows with a note, check and number key |
 | `attachments.py`  | the + file pickers, drag-and-drop paths, the picture chips waiting in the composer |
