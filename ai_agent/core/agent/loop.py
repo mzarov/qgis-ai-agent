@@ -70,6 +70,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._is_verification = False
         self._budget = TokenBudget()
         self._request_estimate = 0
+        self._planning = False
         self._plan_steps: list[str] = []
         self._plan_done = 0
         self._staged = False
@@ -101,6 +102,10 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         return bool(self._question)
 
     @property
+    def is_planning(self) -> bool:
+        return self._planning
+
+    @property
     def is_verification(self) -> bool:
         return self._is_verification
 
@@ -127,12 +132,14 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         skills: list[str] | None = None,
         preload: list[str] | None = None,
         images: list[str] | None = None,
+        planning: bool = False,
     ) -> bool:
         if self.is_running or self._batch.is_applying:
             return False
         self._generation += 1
         self._transcript = Transcript()
         self._transcript.add_user(prompt, images)
+        self._planning = planning
         self._journal.begin(prompt)
         self._history = list(history or [])
         self._is_verification = verification
@@ -233,6 +240,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
                 render_task_plan(self._plan_steps, self._plan_done),
                 self._queued_summaries(),
                 invoked_skills=self._invoked_skills,
+                planning=self._planning,
             )
         except Exception as err:
             self._fail(str(err), generation)

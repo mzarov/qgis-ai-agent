@@ -143,6 +143,13 @@ class StateScreens(ScreenCase):
         finally:
             self.dock.set_busy(False)
 
+    def test_plan_offer(self) -> None:
+        self.dock.set_work_mode("plan")
+        self.dock.add_user_message(REQUEST)
+        self.dock.conversation.add_assistant_message(ANSWER)
+        self.dock.offer_plan()
+        self.check("dock_plan", self.dock)
+
     def test_auto_mode(self) -> None:
         self.dock.set_work_mode("auto")
         self.dock.add_user_message(REQUEST)

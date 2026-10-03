@@ -55,5 +55,24 @@
   "depth": 2,
   "type": "QLabel",
   "text": "2"
+ },
+ {
+  "depth": 1,
+  "type": "ChoiceRow"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Plan"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Looks around and proposes a plan; changes nothing"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "3"
  }
 ]

@@ -59,9 +59,20 @@ class Agent:
         self.is_applying = False
         self.active_apply_tool = ""
 
-    def start(self, prompt, history, verification=False, verification_round=0, skills=None, preload=None, images=None):
+    def start(
+        self,
+        prompt,
+        history,
+        verification=False,
+        verification_round=0,
+        skills=None,
+        preload=None,
+        images=None,
+        planning=False,
+    ):
         self.skills = skills
         self.images = images
+        self.planning = planning
         self.preload = preload
         if verification:
             self.verification_round = verification_round

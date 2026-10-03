@@ -13,7 +13,7 @@ from ai_agent.i18n import tr
 from ai_agent.ui import controls, style
 from ai_agent.ui.activity import ActivityGroup
 from ai_agent.ui.messages import AssistantMessage, SystemMessage, UserMessage
-from ai_agent.ui.plan import PlanCard
+from ai_agent.ui.plan import PlanCard, PlanOffer
 from ai_agent.ui.progress import ProgressLine
 from ai_agent.ui.thinking import ThinkingBlock
 from ai_agent.ui.welcome import WelcomeCard
@@ -31,6 +31,7 @@ FEED_NAME = "feed"
 class ConversationView(QScrollArea):
     confirm_requested = pyqtSignal()
     cancel_requested = pyqtSignal()
+    plan_run_requested = pyqtSignal(str)
     suggestion_chosen = pyqtSignal(str)
     settings_requested = pyqtSignal()
 
@@ -190,6 +191,11 @@ class ConversationView(QScrollArea):
         card.confirmed.connect(self.confirm_requested.emit)
         card.cancelled.connect(self.cancel_requested.emit)
         return self._append(card)
+
+    def add_plan_offer(self) -> int:
+        offer = PlanOffer(self.palette())
+        offer.run_requested.connect(self.plan_run_requested.emit)
+        return self._append(offer)
 
     def mark_plan_applied(self, entry_id: int) -> None:
         card = self._entries.get(entry_id)

@@ -47,6 +47,15 @@ waits for **Apply** and its extra confirmation as before, and so does the batch
 left over after a failed run. Every applied batch still takes a project
 snapshot, so *undo the last change* works the same. The mode is remembered.
 
+### Plan mode
+
+The third mode, **Plan**, changes nothing: the agent may only read — layers,
+fields, values, the web — and answers with a numbered plan of the changes it
+would make, with exact names and the order. Under the plan two buttons run it:
+**Run with approval** (switches to Ask first) or **Run automatically**
+(switches to Auto); to change the plan, just reply to it. A step the model tries
+to run anyway is refused, not queued.
+
 ## Conversations
 
 Conversations persist across QGIS restarts and are bound to the project: the

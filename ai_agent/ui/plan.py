@@ -8,6 +8,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ai_agent.core.settings import WORK_MODE_ASK, WORK_MODE_AUTO
 from ai_agent.i18n import tr, tr_n
 from ai_agent.ui import style
 
@@ -17,6 +18,10 @@ PENDING_MARK = "◆"
 APPLIED_MARK = "✓"
 CANCELLED_MARK = "—"
 FAILED_MARK = "✕"
+RUN_PLAN_QUESTION = tr("Run this plan?")
+RUN_ASKING = tr("Run with approval")
+RUN_AUTO = tr("Run automatically")
+PLAN_STARTED = tr("Running the plan")
 NUMBER_WIDTH = 16
 
 
@@ -135,6 +140,44 @@ class PlanCard(QFrame):
         self._heading.setText(heading)
         self._heading.setStyleSheet(f"color: {style.css_color(colour)}; border: none;")
         self._buttons.setVisible(False)
+
+
+class PlanOffer(QFrame):
+    """Under an answer written in plan mode: run the plan, asking first or by itself, or keep planning.
+
+    Keeping planning needs no button: the user just types the next message.
+    """
+
+    run_requested = pyqtSignal(str)
+
+    def __init__(self, palette, parent=None):
+        super().__init__(parent)
+        self.setStyleSheet("QFrame { background: transparent; border: none; }")
+        row = QHBoxLayout(self)
+        row.setContentsMargins(0, 2, 0, 2)
+        row.setSpacing(8)
+        self._question = QLabel(RUN_PLAN_QUESTION)
+        self._question.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
+        row.addWidget(self._question)
+        self._buttons: list[QPushButton] = []
+        for text, mode, look in (
+            (RUN_ASKING, WORK_MODE_ASK, _plain_button(palette)),
+            (RUN_AUTO, WORK_MODE_AUTO, _accent_button(palette)),
+        ):
+            button = QPushButton(text)
+            button.setMinimumHeight(BUTTON_HEIGHT)
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
+            button.setStyleSheet(look)
+            button.clicked.connect(lambda _checked=False, chosen=mode: self._run(chosen))
+            row.addWidget(button)
+            self._buttons.append(button)
+        row.addStretch(1)
+
+    def _run(self, mode: str) -> None:
+        for button in self._buttons:
+            button.setVisible(False)
+        self._question.setText(PLAN_STARTED)
+        self.run_requested.emit(mode)
 
 
 def _accent_button(palette) -> str:

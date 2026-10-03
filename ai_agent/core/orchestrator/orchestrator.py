@@ -27,6 +27,7 @@ from ai_agent.core.settings import (
     get_api_url,
     get_data_sharing_consent,
     get_model,
+    get_planning,
     get_work_mode,
     set_data_sharing_consent,
 )
@@ -124,7 +125,13 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
             history = self.conversation.window()
             self.conversation.add("user", shown)
             self._last_request = text
-            self.agent.start(prompt, history, skills=[skill] if skill else None, images=pictures.encoded)
+            self.agent.start(
+                prompt,
+                history,
+                skills=[skill] if skill else None,
+                images=pictures.encoded,
+                planning=get_planning(),
+            )
 
         # The new request is not part of what gets compacted: it rides on the summary.
         def stopped() -> None:

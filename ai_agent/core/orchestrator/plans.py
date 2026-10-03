@@ -4,7 +4,13 @@ from qgis.core import Qgis
 from qgis.PyQt.QtCore import QTimer
 
 from ai_agent.core.agent.verification import plan_verification
-from ai_agent.core.orchestrator.notices import DESTRUCTIVE_DECLINED, PLAN_DROPPED, SWITCH_WHILE_RUNNING, VERIFYING
+from ai_agent.core.orchestrator.notices import (
+    DESTRUCTIVE_DECLINED,
+    PLAN_DROPPED,
+    RUN_THE_PLAN,
+    SWITCH_WHILE_RUNNING,
+    VERIFYING,
+)
 from ai_agent.core.orchestrator.planning import destructive_lines, plan_line
 from ai_agent.core.orchestrator.presentation import where_to_look
 from ai_agent.core.orchestrator.scope import conversation_scope
@@ -21,6 +27,12 @@ class PlanMixin:
         if applies_itself:
             # Pressed for the user once the card is on screen; the same path as the button.
             QTimer.singleShot(0, self.on_confirm_plan)
+
+    def on_run_plan(self, mode: str) -> None:
+        """Leave plan mode for `mode` and ask the agent to carry out the plan it just wrote."""
+        set_work_mode(mode)
+        self.dock_widget.set_work_mode(mode)
+        self.on_prompt(RUN_THE_PLAN)
 
     def on_work_mode(self, mode: str) -> None:
         set_work_mode(mode)
