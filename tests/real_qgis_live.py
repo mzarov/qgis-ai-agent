@@ -25,6 +25,7 @@ Configuration comes from the environment; without a key the module skips:
     LIVE_TOTAL_TOKENS   suite-wide cap (default 1 500 000)
     LIVE_RUN_TOKENS     per-run cap (default 150 000)
     LIVE_ONLY           comma-separated scenario names to run, e.g. LiveBufferScenario
+    LIVE_REQUIRE_CEILINGS  1 fails a scenario that has no ceiling for this model (CI sets it)
 
 Run: `python3 tests/real_qgis_workflows.py real_qgis_live`.
 """
@@ -51,6 +52,7 @@ POPULATION_THRESHOLD = 50000
 USAGE_FILE = "live_usage.json"
 LOG_TAG = "AI Agent"
 ONLY = [name.strip() for name in os.environ.get("LIVE_ONLY", "").split(",") if name.strip()]
+REQUIRE_CEILINGS = os.environ.get("LIVE_REQUIRE_CEILINGS", "").strip() == "1"
 
 CEILINGS = token_ceilings.load()
 
@@ -66,7 +68,8 @@ def _write_usage() -> None:
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
     report = {
         "kind": token_ceilings.LIVE_KIND,
-        "model": LIVE_MODEL,
+        # The bare model id: a provider URI carries the cloud folder, and artifacts are public.
+        "model": token_ceilings.model_name(LIVE_MODEL),
         "total_tokens": _spent(),
         "cap": TOTAL_TOKENS,
         "scenarios": USAGE,
@@ -101,9 +104,18 @@ class LiveCase(PluginCase):
         self.usage = USAGE[self.scenario] = dict.fromkeys(token_ceilings.LIVE_METRICS, 0)
         self.usage["runs"] = []
         QgsApplication.messageLog().messageReceived.connect(self._logged)
-        # Instrumentation only: record each run start, then hand over unchanged.
+        # Instrumentation only: record each run that really starts, then hand over unchanged.
         start = self.agent.start
-        self.agent.start = lambda *args, **kwargs: (self._run_started(kwargs), start(*args, **kwargs))[1]
+
+        def counted_start(*args: object, **kwargs: object) -> bool:
+            previous = dict(self.agent.usage)
+            started = start(*args, **kwargs)
+            if started:
+                self._close_run(previous)
+                self.runs.append("verification" if kwargs.get("verification") else "request")
+            return started
+
+        self.agent.start = counted_start
 
     def tearDown(self) -> None:
         QgsApplication.messageLog().messageReceived.disconnect(self._logged)
@@ -123,21 +135,20 @@ class LiveCase(PluginCase):
         (ARTIFACTS / f"{name}.json").write_text(json.dumps(transcript, indent=2, default=str), encoding="utf-8")
         totals = ", ".join(f"{metric} {self.usage[metric]}" for metric in token_ceilings.LIVE_METRICS)
         print(f"  {totals} (suite {_spent()} of {TOTAL_TOKENS}), runs: {self.runs}", flush=True)
+        missing = f"no token ceiling for {self.scenario} on {token_ceilings.model_name(LIVE_MODEL)}"
         if not ceiling:
-            print(f"  no token ceiling for {self.scenario} on {token_ceilings.model_name(LIVE_MODEL)}", flush=True)
+            print(f"  {missing}", flush=True)
         super().tearDown()
         if over:
             self.fail(f"{self.scenario} spent over its token ceiling: {'; '.join(over)}")
+        if REQUIRE_CEILINGS and not ceiling:
+            self.fail(f"{missing}; refresh tests/data/token_ceilings.json (docs/smoke_checklist.md)")
 
-    def _run_started(self, options: dict) -> None:
-        self._close_run()
-        self.runs.append("verification" if options.get("verification") else "request")
-
-    def _close_run(self) -> None:
-        """Fold the finished run's usage in; the next start resets the agent's counters."""
+    def _close_run(self, usage: dict[str, int] | None = None) -> None:
+        """Fold the last run's usage in, read before the next start resets the agent's counters."""
         if len(self.usage["runs"]) == len(self.runs):
             return
-        run = dict(self.agent.usage)
+        run = dict(self.agent.usage if usage is None else usage)
         run["total_tokens"] = run["prompt_tokens"] + run["completion_tokens"]
         for metric in token_ceilings.LIVE_METRICS:
             self.usage[metric] += run[metric]

@@ -34,6 +34,7 @@ class TokenBudget:
         return True
 
     def snapshot(self) -> dict[str, int]:
+        """Prompt tokens, completion tokens and answered requests counted since the last reset."""
         return {"prompt_tokens": self.prompt, "completion_tokens": self.completion, "requests": self.requests}
 
     @property

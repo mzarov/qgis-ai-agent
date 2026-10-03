@@ -127,10 +127,15 @@ about 0.7M tokens. Two checks keep it from creeping back, both against
   them to `live_usage.json` (also uploaded alone as the `live-token-usage`
   artifact). A scenario fails when any metric goes over its ceiling in the
   `live` section. The ceilings belong to the model they were measured on;
-  with another model, for example a local one, the run only reports.
+  with another model, for example a local one, the run only reports. The
+  workflow sets `LIVE_REQUIRE_CEILINGS=1`, so there a scenario without a
+  ceiling for `YANDEX_MODEL` fails instead: a changed model must not turn the
+  guard off silently.
 
 Both are meant to fail on a regression, not on noise: live ceilings carry
-30 % headroom over the largest measured value, scripted ones 10 %.
+30 % headroom over the largest measured value (requests at least two more),
+scripted ones 10 %. A scenario that got no answer and a metric a report did
+not measure set no ceiling.
 
 **Refreshing.** Do it when the spending changed on purpose — a new scenario,
 a new skill a scenario loads, a cheaper prompt, another `YANDEX_MODEL` — and

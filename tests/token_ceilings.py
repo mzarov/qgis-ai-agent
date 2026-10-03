@@ -19,7 +19,9 @@ Refresh from reports the runs produced (see docs/smoke_checklist.md):
 
 Several live reports are merged by taking the largest value per metric, so a
 ceiling built from a few runs absorbs the model's run-to-run spread; scenarios
-absent from the reports keep their current ceilings. Pure standard library.
+absent from the reports keep their current ceilings. A scenario that never got
+an answer (no requests) and a metric a report did not measure are left out
+rather than turned into a ceiling of 0. Pure standard library.
 """
 
 import json
@@ -33,6 +35,8 @@ CEILINGS_FILE = pathlib.Path(__file__).resolve().parent / "data" / "token_ceilin
 LIVE_HEADROOM = 1.3
 SCRIPTED_HEADROOM = 1.1
 TOKEN_ROUNDING = 1000
+# A request or two more is a model choosing another route, not a regression.
+MIN_REQUEST_SLACK = 2
 CHAR_ROUNDING = 100
 LIVE_METRICS = ("prompt_tokens", "completion_tokens", "total_tokens", "requests")
 SCRIPTED_METRICS = ("system_chars", "tools_chars", "base_chars")
@@ -82,17 +86,22 @@ def refreshed_live(current: dict[str, Any], reports: list[dict[str, Any]]) -> di
     peaks: dict[str, dict[str, int]] = {}
     for report in reports:
         for scenario, usage in (report.get("scenarios") or {}).items():
+            if not isinstance(usage, dict) or int(usage.get("requests") or 0) <= 0:
+                continue
             peak = peaks.setdefault(scenario, {})
             for metric in LIVE_METRICS:
-                peak[metric] = max(peak.get(metric, 0), int(usage.get(metric, 0)))
+                value = int(usage.get(metric) or 0)
+                if value > 0:
+                    peak[metric] = max(peak.get(metric, 0), value)
     for scenario, peak in peaks.items():
-        scenarios[scenario] = {
-            metric: math.ceil(value * LIVE_HEADROOM)
-            if metric == "requests"
-            else _round_up(value * LIVE_HEADROOM, TOKEN_ROUNDING)
-            for metric, value in peak.items()
-        }
-    return {"model": model, "headroom": LIVE_HEADROOM, "scenarios": dict(sorted(scenarios.items()))}
+        scenarios[scenario] = {metric: _live_limit(metric, value) for metric, value in peak.items()}
+    return {"model": model, "scenarios": dict(sorted(scenarios.items()))}
+
+
+def _live_limit(metric: str, peak: int) -> int:
+    if metric == "requests":
+        return max(math.ceil(peak * LIVE_HEADROOM), peak + MIN_REQUEST_SLACK)
+    return _round_up(peak * LIVE_HEADROOM, TOKEN_ROUNDING)
 
 
 def refreshed_scripted(report: dict[str, Any]) -> dict[str, int]:

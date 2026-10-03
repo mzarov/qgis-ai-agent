@@ -78,6 +78,23 @@ class RefreshTest(unittest.TestCase):
         self.assertEqual(result["live"]["model"], "qwen3")
         self.assertNotIn("LiveOldScenario", result["live"]["scenarios"])
 
+    def test_requests_get_at_least_a_fixed_slack(self):
+        result = self.refresh(_live_report(LiveStyleScenario={"requests": 3}))
+        self.assertEqual(result["live"]["scenarios"]["LiveStyleScenario"], {"requests": 5})
+
+    def test_unanswered_scenarios_and_unmeasured_metrics_set_no_ceiling(self):
+        usage = {"total_tokens": 1_000, "requests": 1}
+        result = self.refresh(_live_report(LiveStyleScenario=usage, LiveFailedScenario={"requests": 0}))
+        scenarios = result["live"]["scenarios"]
+        self.assertEqual(scenarios["LiveStyleScenario"], {"total_tokens": 2_000, "requests": 3})
+        self.assertNotIn("LiveFailedScenario", scenarios)
+
+    def test_an_old_report_without_the_split_is_ignored(self):
+        report = _live_report()
+        report["scenarios"] = {"LiveStyleScenario": 48_000}
+        result = self.refresh(report)
+        self.assertNotIn("LiveStyleScenario", result["live"]["scenarios"])
+
     def test_reports_of_different_models_are_refused(self):
         with self.assertRaises(ValueError):
             self.refresh(_live_report("qwen3"), _live_report(YANDEX_URI))

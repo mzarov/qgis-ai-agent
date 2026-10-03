@@ -49,6 +49,8 @@ jobs:
       LIVE_TOTAL_TOKENS: "1500000"
       LIVE_RUN_TOKENS: "150000"
       LIVE_ONLY: ${{ inputs.only }}
+      # A scenario without a ceiling for YANDEX_MODEL fails instead of only reporting.
+      LIVE_REQUIRE_CEILINGS: "1"
     steps:
       - uses: actions/checkout@v4
       - name: Check the configuration

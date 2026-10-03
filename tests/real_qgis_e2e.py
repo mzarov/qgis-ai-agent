@@ -39,12 +39,14 @@ def request_sizes(body: dict[str, Any]) -> dict[str, int]:
     }
 
 
-def _record_peaks(scenario: str, requests: list[dict[str, Any]]) -> dict[str, int]:
+def _record_peaks(scenario: str, requests: list[dict[str, Any]], skill_free_start: bool) -> dict[str, int]:
     sizes = [request_sizes(body) for body in requests]
     if not sizes:
         return {}
     measured = {metric: max(size[metric] for size in sizes) for metric in ("system_chars", "tools_chars")}
-    measured["base_chars"] = min(size["system_chars"] + size["tools_chars"] for size in sizes)
+    if skill_free_start:
+        # The smallest request is the first one of a run that loaded no skill yet.
+        measured["base_chars"] = min(size["system_chars"] + size["tools_chars"] for size in sizes)
     for metric, value in measured.items():
         if value > PEAKS.get(metric, 0):
             PEAKS[metric] = value
@@ -56,6 +58,9 @@ def _record_peaks(scenario: str, requests: list[dict[str, Any]]) -> dict[str, in
 
 class ScenarioCase(PluginCase):
     model_name = MODEL
+    # False for a scenario whose every request already carries a skill (a slash
+    # command, a preload): it has no skill-free request to measure `base_chars` on.
+    skill_free_start = True
 
     def setUp(self) -> None:
         self.model = ScriptedModel().start()
@@ -67,7 +72,7 @@ class ScenarioCase(PluginCase):
         self.model.stop()
         self.assertEqual(self.model.unexpected, [], "the plugin sent requests no scenario turn answered")
         self.assertEqual(list(self.model.turns), [], "scripted turns were left unused")
-        measured = _record_peaks(type(self).__name__, self.model.requests)
+        measured = _record_peaks(type(self).__name__, self.model.requests, self.skill_free_start)
         over = token_ceilings.exceeded(measured, SCRIPTED_CEILINGS)
         self.assertEqual(over, [], "the per-request prompt grew past its ceiling; see docs/smoke_checklist.md")
 
