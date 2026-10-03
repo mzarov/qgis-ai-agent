@@ -63,7 +63,7 @@ class RunEventsMixin:
             self.dock_widget.add_system_message(tr("The model returned nothing. Try rephrasing."))
             return
         self._render_answer(message)
-        if getattr(self.agent, "is_planning", False):
+        if getattr(self.agent, "is_planning", False) and not getattr(self.agent, "ended_on_limit", False):
             # Plan mode ends on a plan: offer to run it, as Claude Code does.
             self.dock_widget.offer_plan()
 

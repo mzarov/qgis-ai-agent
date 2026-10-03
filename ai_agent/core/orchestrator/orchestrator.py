@@ -115,23 +115,33 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         if not self._confirm_first_send():
             return
         pictures = attaching.take_pictures(self.dock_widget)
-        shown = attaching.with_names(text, pictures)
-        self.dock_widget.add_user_message(shown)
         self.dock_widget.clear_prompt()
+        self._start_run(
+            attaching.with_names(text, pictures),
+            prompt_for(skill, rest) if skill else text,
+            text,
+            skills=[skill] if skill else None,
+            images=pictures.encoded,
+        )
+
+    def _start_run(
+        self,
+        shown: str,
+        prompt: str,
+        request: str,
+        skills: list[str] | None = None,
+        images: list[str] | None = None,
+    ) -> None:
+        """Show `shown`, then run `prompt`; `request` is what the user asked, for the check after Apply."""
+        self.dock_widget.add_user_message(shown)
         self._drop_pending_plan()
-        prompt = prompt_for(skill, rest) if skill else text
+        planning = get_planning()
 
         def begin() -> None:
             history = self.conversation.window()
             self.conversation.add("user", shown)
-            self._last_request = text
-            self.agent.start(
-                prompt,
-                history,
-                skills=[skill] if skill else None,
-                images=pictures.encoded,
-                planning=get_planning(),
-            )
+            self._last_request = request
+            self.agent.start(prompt, history, skills=skills, images=images, planning=planning)
 
         # The new request is not part of what gets compacted: it rides on the summary.
         def stopped() -> None:

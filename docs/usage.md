@@ -54,7 +54,11 @@ fields, values, the web — and answers with a numbered plan of the changes it
 would make, with exact names and the order. Under the plan two buttons run it:
 **Run with approval** (switches to Ask first) or **Run automatically**
 (switches to Auto); to change the plan, just reply to it. A step the model tries
-to run anyway is refused, not queued.
+to run anyway is refused, not queued. Web search and page reading still ask
+for consent per call. Processing algorithms count as changes, even the ones
+that only compute statistics, so a plan names them instead of running them;
+selecting features or zooming to a layer is allowed, as it leaves the data as
+it is.
 
 ## Conversations
 

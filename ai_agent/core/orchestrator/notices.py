@@ -18,5 +18,8 @@ DATA_SHARING_DECLINED = tr("Request not sent.")
 UNKNOWN_SKILL = tr("No skill named /{0}. Available: {1}.")
 PROJECT_CHANGED = tr("The QGIS project changed. A new project-scoped conversation was started.")
 PREVIOUS_APPLY_INTERRUPTED = tr("An interrupted run completed work in the previous project; see its conversation.")
-# Sent as the user's own message when they run a plan: it reads naturally in the chat and to the model.
+# Shown as the user's message when they run a plan; the model gets the English one with the request.
 RUN_THE_PLAN = tr("Carry out the plan.")
+RUN_THE_PLAN_MODEL = "Carry out the plan above."
+RUN_THE_PLAN_FOR = "Carry out the plan above for my request: {0}"
+MODE_NEXT_REQUEST = tr("The new mode applies from the next request.")

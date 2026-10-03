@@ -62,6 +62,12 @@ snapshot, the destructive check and the verification run are unchanged — the
 invariant becomes "writes run after the user's consent", given once for the
 mode instead of per batch, and never for destructive steps.
 
+Plan mode removes the button altogether: a planning run offers only read
+tools, carries a note asking for a numbered plan in the live state, and the
+dispatcher refuses any other call. The run ends on an offer to carry the plan
+out, which switches to Ask first or Auto and starts the next run with the
+original request.
+
 Network access is a capability separate from mutation safety. A read tool with
 `network_access = True` is queued and automatically pauses the run for explicit
 per-call confirmation. After approval its result enters the same transcript and

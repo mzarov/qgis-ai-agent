@@ -85,10 +85,56 @@ class PlanOrchestrationTest(unittest.TestCase):
             self.core.on_run_plan("auto")
         stored.assert_called_once_with("auto")
         self.assertEqual(self.modes, ["auto"])
-        self.assertEqual(self.core.agent.started[0], plans.RUN_THE_PLAN)
+        self.assertEqual(self.core.agent.started[0], plans.RUN_THE_PLAN_MODEL)
+
+    def test_the_plan_runs_with_the_request_it_was_made_for(self):
+        from ai_agent.core.orchestrator import plans
+
+        with mock.patch.object(self.module, "get_planning", return_value=True):
+            self.core.on_prompt("раскрась районы")
+        with mock.patch.object(plans, "set_work_mode"):
+            self.core.on_run_plan("ask")
+        self.assertEqual(self.core.agent.started[0], plans.RUN_THE_PLAN_FOR.format("раскрась районы"))
+        self.assertEqual(self.core._last_request, "раскрась районы", "the check after Apply needs the real request")
+
+    def test_an_offer_pressed_while_the_agent_works_changes_nothing(self):
+        from ai_agent.core.orchestrator import plans
+
+        self.core.agent.is_running = True
+        self.modes.clear()
+        with mock.patch.object(plans, "set_work_mode") as stored:
+            self.core.on_run_plan("auto")
+        stored.assert_not_called()
+        self.assertEqual(self.modes, [])
+        self.assertIsNone(self.core.agent.started)
+
+    def test_no_offer_when_a_limit_ended_the_run(self):
+        self.core.agent.is_planning = True
+        self.core.agent.ended_on_limit = True
+        self.core.on_finished("Reached the limit of turns.")
+        self.assertEqual(self.offers, [])
+
+
+class PlanLoadSkillTest(unittest.TestCase):
+    def test_a_skill_loaded_while_planning_lists_no_writing_tool(self):
+        from ai_agent.core.agent.skills import load_skill
+
+        call = ToolCall(id="1", name="load_skill", arguments={"names": ["style"]})
+        result, _loaded = load_skill(call, [], writes=False)
+        self.assertNotIn("set_graduated", result.payload["tools"])
+        self.assertIn("describe_style", result.payload["tools"])
 
 
 class PlanOfferWidgetTest(unittest.TestCase):
+    def test_a_new_message_retires_earlier_offers(self):
+        from ai_agent.ui.conversation import ConversationView
+
+        view = ConversationView()
+        view.add_plan_offer()
+        first = view._plan_offers[0]
+        view.add_user_message("поменяй план")
+        self.assertTrue(all(button.isHidden() for button in first._buttons))
+
     def test_a_choice_reports_its_mode_and_the_buttons_go(self):
         from qgis.PyQt.QtWidgets import QWidget
 

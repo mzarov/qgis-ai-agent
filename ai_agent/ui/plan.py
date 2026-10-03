@@ -174,10 +174,13 @@ class PlanOffer(QFrame):
         row.addStretch(1)
 
     def _run(self, mode: str) -> None:
-        for button in self._buttons:
-            button.setVisible(False)
+        self.retire()
         self._question.setText(PLAN_STARTED)
         self.run_requested.emit(mode)
+
+    def retire(self) -> None:
+        for button in self._buttons:
+            button.setVisible(False)
 
 
 def _accent_button(palette) -> str:

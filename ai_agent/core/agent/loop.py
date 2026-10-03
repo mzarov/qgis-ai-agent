@@ -71,6 +71,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._budget = TokenBudget()
         self._request_estimate = 0
         self._planning = False
+        self.ended_on_limit = False
         self._plan_steps: list[str] = []
         self._plan_done = 0
         self._staged = False
@@ -140,6 +141,8 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._transcript = Transcript()
         self._transcript.add_user(prompt, images)
         self._planning = planning
+        # Set when the turn or token limit, not the model, ended the run: its last words are no plan.
+        self.ended_on_limit = False
         self._journal.begin(prompt)
         self._history = list(history or [])
         self._is_verification = verification
@@ -396,10 +399,12 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self.turn_counted.emit(prompt, max(0, int(turn.output_tokens)), self._budget.requests == 1)
 
     def _finish_on_limit(self, generation: int | None = None) -> None:
+        self.ended_on_limit = True
         QgsMessageLog.logMessage(f"Reached the limit of {MAX_ITERATIONS} turns.", LOG_TAG, Qgis.MessageLevel.Warning)
         self._complete(notices.LIMIT_REACHED_MESSAGE, generation)
 
     def _finish_on_budget(self, generation: int | None = None) -> None:
+        self.ended_on_limit = True
         QgsMessageLog.logMessage(
             f"Token budget hit: {self._budget.spent} of {self._budget.limit}.", LOG_TAG, Qgis.MessageLevel.Warning
         )

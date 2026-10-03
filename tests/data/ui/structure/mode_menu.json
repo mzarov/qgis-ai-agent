@@ -68,7 +68,7 @@
  {
   "depth": 2,
   "type": "QLabel",
-  "text": "Looks around and proposes a plan; changes nothing"
+  "text": "Looks around and proposes a plan; your data stays as it is"
  },
  {
   "depth": 2,

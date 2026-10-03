@@ -29,7 +29,7 @@ MODE_HINT = tr("How changes are applied. Shift+Tab switches.")
 MODES = (
     Choice(WORK_MODE_ASK, tr("Ask first"), tr("Every change waits for Apply"), tr("Default")),
     Choice(WORK_MODE_AUTO, tr("Auto"), tr("Applies changes itself; deleting still asks")),
-    Choice(WORK_MODE_PLAN, tr("Plan"), tr("Looks around and proposes a plan; changes nothing")),
+    Choice(WORK_MODE_PLAN, tr("Plan"), tr("Looks around and proposes a plan; your data stays as it is")),
 )
 ADD_DATA = tr("Add data files…")
 ATTACH_PICTURE = tr("Attach a picture…")

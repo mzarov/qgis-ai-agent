@@ -193,7 +193,7 @@
         <translation>Применить</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/plan.py" line="208"/>
+        <location filename="ai_agent/ui/plan.py" line="211"/>
         <source>Applying by itself — %n action(s)</source>
         <translation>
             <numerusform>Применяется само — %n действие</numerusform>
@@ -309,7 +309,7 @@
         <translation>Выполни план.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/plans.py" line="95"/>
+        <location filename="ai_agent/core/orchestrator/plans.py" line="115"/>
         <source>Changes applied.</source>
         <translation>Изменения применены.</translation>
     </message>
@@ -435,7 +435,7 @@
         <translation>Диалоги</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/conversation.py" line="240"/>
+        <location filename="ai_agent/ui/conversation.py" line="251"/>
         <source>Copy the whole conversation</source>
         <translation>Скопировать весь диалог</translation>
     </message>
@@ -521,7 +521,7 @@
         <translation>Не добавляйте учётные данные в URL API. Сохраните секрет провайдера в поле API-ключа.</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/core/orchestrator/plans.py" line="92"/>
+        <location filename="ai_agent/core/orchestrator/plans.py" line="112"/>
         <source>Done: %n step(s) applied.{0}</source>
         <translation>
             <numerusform>Применён %n шаг.{0}</numerusform>
@@ -719,8 +719,8 @@
     </message>
     <message>
         <location filename="ai_agent/ui/composer_parts.py" line="32"/>
-        <source>Looks around and proposes a plan; changes nothing</source>
-        <translation>Изучает и предлагает план; ничего не меняет</translation>
+        <source>Looks around and proposes a plan; your data stays as it is</source>
+        <translation>Изучает и предлагает план; данные не меняются</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/composer_parts.py" line="27"/>
@@ -798,7 +798,7 @@
         <translation>Своих скиллов пока нет.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/plans.py" line="90"/>
+        <location filename="ai_agent/core/orchestrator/plans.py" line="110"/>
         <source>Not all changes were applied.</source>
         <translation>Применились не все изменения.</translation>
     </message>
@@ -1039,7 +1039,7 @@
         <translation>Читаю {0}.</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/plan.py" line="204"/>
+        <location filename="ai_agent/ui/plan.py" line="207"/>
         <source>Ready to run — %n action(s)</source>
         <translation>
             <numerusform>Готово к запуску — %n действие</numerusform>
@@ -1289,7 +1289,7 @@
         <translation>Скиллы</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/plans.py" line="87"/>
+        <location filename="ai_agent/core/orchestrator/plans.py" line="107"/>
         <source>Some steps did not run: {0}</source>
         <translation>Часть шагов не выполнилась: {0}</translation>
     </message>
@@ -1416,6 +1416,11 @@
         <translation>Модель ничего не вернула. Попробуйте переформулировать.</translation>
     </message>
     <message>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="25"/>
+        <source>The new mode applies from the next request.</source>
+        <translation>Новый режим действует со следующего запроса.</translation>
+    </message>
+    <message>
         <location filename="ai_agent/core/orchestrator/notices.py" line="15"/>
         <source>The planned changes were dropped — they were not applied. Starting over from your message.</source>
         <translation>Запланированные изменения сняты — они не применялись. Начинаю заново с вашего сообщения.</translation>
@@ -1436,7 +1441,7 @@
         <translation>Сохранённый ключ для этого адреса удалён.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/plans.py" line="49"/>
+        <location filename="ai_agent/core/orchestrator/plans.py" line="69"/>
         <source>There are no changes to apply.</source>
         <translation>Применять нечего.</translation>
     </message>
