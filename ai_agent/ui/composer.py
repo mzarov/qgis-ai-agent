@@ -14,6 +14,7 @@ from qgis.PyQt.QtWidgets import (
 
 from ai_agent.i18n import tr
 from ai_agent.ui import controls, style
+from ai_agent.ui.attachments import DATA, PICTURE, AttachmentChips, choose_files
 from ai_agent.ui.composer_parts import (
     MENTION,
     SLASH,
@@ -44,6 +45,7 @@ MODE_LAYER = "layer"
 class Composer(QWidget):
     submitted = pyqtSignal(str)
     stopped = pyqtSignal()
+    files_attached = pyqtSignal(list)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -63,15 +65,24 @@ class Composer(QWidget):
         self._frame = controls.RoundedFrame(FRAME_RADIUS)
         self._frame.setObjectName(FRAME_NAME)
         self._send_look = ""
+        framed = QVBoxLayout(self._frame)
+        framed.setContentsMargins(0, 0, 0, 0)
+        framed.setSpacing(0)
+        self.attachments = AttachmentChips(palette)
+        self.attachments.setContentsMargins(8, 6, 8, 0)
+        framed.addWidget(self.attachments)
         # One row like Claude Code: the text grows line by line, the button stays at the bottom right.
-        inner = QHBoxLayout(self._frame)
+        inner = QHBoxLayout()
         inner.setContentsMargins(12, 6, 6, 6)
         inner.setSpacing(8)
         inner.addWidget(self._build_edit(), 1, Qt.AlignmentFlag.AlignVCenter)
         inner.addWidget(self._build_send(), 0, Qt.AlignmentFlag.AlignBottom)
+        framed.addLayout(inner)
         column.addWidget(self._frame)
         self.toolbar = ComposerToolbar(palette)
         self.toolbar.set_model("")
+        self.toolbar.data_requested.connect(lambda: self._choose(DATA))
+        self.toolbar.picture_requested.connect(lambda: self._choose(PICTURE))
         column.addWidget(self.toolbar)
         self._paint()
 
@@ -93,6 +104,7 @@ class Composer(QWidget):
         self._edit.completed.connect(self._on_complete)
         self._edit.dismissed.connect(self._hide_popup)
         self._edit.escaped.connect(self._on_escape)
+        self._edit.files_dropped.connect(self.files_attached.emit)
         self._edit.focus_changed.connect(self._on_focus)
         self._edit.textChanged.connect(self._on_text_changed)
         self._grow()
@@ -270,6 +282,25 @@ class Composer(QWidget):
         self._edit.setFocus()
 
     def focus(self) -> None:
+        self._edit.setFocus()
+
+    def _choose(self, kind: str) -> None:
+        paths = choose_files(self, kind)
+        if paths:
+            self.files_attached.emit(paths)
+
+    def add_attachment(self, path: str) -> None:
+        self.attachments.add(path)
+
+    def take_attachments(self) -> list[str]:
+        return self.attachments.take()
+
+    def mention_layers(self, names: list[str]) -> None:
+        """Put @mentions of freshly added layers at the cursor, so the request names them."""
+        cursor = self._edit.textCursor()
+        before = self._edit.toPlainText()[: cursor.position()]
+        lead = "" if not before or before[-1].isspace() else " "
+        cursor.insertText(lead + " ".join(mention_text(name) for name in names) + " ")
         self._edit.setFocus()
 
     def set_busy(self, busy: bool) -> None:

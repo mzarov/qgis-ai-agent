@@ -32,6 +32,7 @@ class AgentDockWidget(QDockWidget):
     stop_clicked = pyqtSignal()
     confirm_plan_clicked = pyqtSignal()
     cancel_plan_clicked = pyqtSignal()
+    files_attached = pyqtSignal(list)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -117,6 +118,7 @@ class AgentDockWidget(QDockWidget):
         self.composer = Composer()
         self.composer.submitted.connect(self.prompt_submitted.emit)
         self.composer.stopped.connect(self.stop_clicked.emit)
+        self.composer.files_attached.connect(self.files_attached.emit)
         layout.addWidget(self.composer)
         return holder
 
@@ -137,6 +139,15 @@ class AgentDockWidget(QDockWidget):
 
     def keep_stream(self) -> str:
         return self.conversation.keep_draft()
+
+    def mention_layers(self, names: list[str]) -> None:
+        self.composer.mention_layers(names)
+
+    def add_attachment(self, path: str) -> None:
+        self.composer.add_attachment(path)
+
+    def take_attachments(self) -> list[str]:
+        return self.composer.take_attachments()
 
     def _on_suggestion(self, text: str) -> None:
         self.prompt_submitted.emit(text)

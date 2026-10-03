@@ -78,7 +78,8 @@ step. Tool results can include:
 - layer filters and source descriptions;
 - style categories;
 - Processing and Python results, including output paths or error details;
-- a PNG rendering of the map canvas or print layout when image input is enabled.
+- a PNG rendering of the map canvas or print layout when image input is enabled;
+- pictures you attach to a request yourself.
 
 Tool results are capped or compacted for model context, but truncation is not a
 privacy boundary. Do not assume that a sensitive value will be removed.

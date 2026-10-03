@@ -90,6 +90,20 @@ type, ↑↓ or the mouse choose, Tab or Enter insert. The layer name goes into 
 request exactly as QGIS knows it — `@rivers`, or `@"Main roads"` when the name
 has spaces — so the agent does not have to guess which layer you meant.
 
+## Attaching files
+
+The **+** under the chat box, or dropping files onto it, attaches them.
+
+- **GIS data** (GeoPackage, shapefile, GeoJSON, KML, GPX, CSV, GeoTIFF and the
+  like) is added to the project straight away — attaching is your own action,
+  like dropping a file onto the map — and the new layer is mentioned in the
+  request as `@name`. A name already taken gets a number: `roads (2)`.
+- **Pictures** (PNG, JPEG, WebP, GIF, BMP) — a screenshot, a photo of a paper
+  map, a sketch — wait above the text and go to the model with your next
+  request, their longer side scaled down to 1568 pixels. A picture with a world
+  file (`.pgw`, `.jgw`, `.wld`) is georeferenced and is added as a layer
+  instead. A model that has already refused images gets none; the chat says so.
+
 ## When a run stops or fails
 
 Stop or an error keeps whatever the agent had already written, puts your
