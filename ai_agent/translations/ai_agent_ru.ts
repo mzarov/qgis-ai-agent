@@ -4,14 +4,14 @@
 <context>
     <name>QgisAiAgent</name>
     <message>
-        <location filename="ai_agent/ui/confirmations.py" line="79"/>
-        <location filename="ai_agent/ui/confirmations.py" line="58"/>
+        <location filename="ai_agent/ui/confirmations.py" line="91"/>
+        <location filename="ai_agent/ui/confirmations.py" line="70"/>
         <source>&#10;&#10;Apply them?</source>
         <translation>&#10;&#10;Применить их?</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/confirmations.py" line="78"/>
-        <location filename="ai_agent/ui/confirmations.py" line="50"/>
+        <location filename="ai_agent/ui/confirmations.py" line="90"/>
+        <location filename="ai_agent/ui/confirmations.py" line="62"/>
         <source>&#10;&#10;Exact code to be executed:&#10;&#10;{0}</source>
         <translation>&#10;&#10;Точный код, который будет выполнен:&#10;&#10;{0}</translation>
     </message>
@@ -213,7 +213,7 @@
         <translation>Применить</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/plan.py" line="234"/>
+        <location filename="ai_agent/ui/plan.py" line="236"/>
         <source>Applying by itself — %n action(s)</source>
         <translation>
             <numerusform>Применяется само — %n действие</numerusform>
@@ -460,7 +460,8 @@
         <translation>Диалог не найден.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="65"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="71"/>
+        <location filename="ai_agent/ui/sessions_popup.py" line="27"/>
         <source>Conversations</source>
         <translation>Диалоги</translation>
     </message>
@@ -525,6 +526,17 @@
         <translation>По умолчанию</translation>
     </message>
     <message>
+        <location filename="ai_agent/ui/confirmations.py" line="31"/>
+        <location filename="ai_agent/ui/sessions_popup.py" line="25"/>
+        <source>Delete</source>
+        <translation>Удалить</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/confirmations.py" line="26"/>
+        <source>Delete the conversation?</source>
+        <translation>Удалить разговор?</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/edit/delete_features.py" line="70"/>
         <source>Deleting features from '{0}'.</source>
         <translation>Удаляю объекты из «{0}».</translation>
@@ -541,7 +553,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/confirmations.py" line="15"/>
-        <location filename="ai_agent/ui/confirmations.py" line="43"/>
+        <location filename="ai_agent/ui/confirmations.py" line="55"/>
         <source>Destructive steps</source>
         <translation>Необратимые шаги</translation>
     </message>
@@ -615,7 +627,7 @@
         <translation>Введите название модели, доступной у провайдера.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="79"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="80"/>
         <source>Error: {0}</source>
         <translation>Ошибка: {0}</translation>
     </message>
@@ -815,7 +827,7 @@
         <translation>Модель ответила: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="67"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="73"/>
         <source>New conversation</source>
         <translation>Новый диалог</translation>
     </message>
@@ -860,7 +872,7 @@
         <translation>Параметров нет.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="18"/>
+        <location filename="ai_agent/ui/sessions_popup.py" line="26"/>
         <source>No past conversations</source>
         <translation>Прошлых диалогов нет</translation>
     </message>
@@ -1136,7 +1148,7 @@
         <translation>Читаю {0}.</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/plan.py" line="230"/>
+        <location filename="ai_agent/ui/plan.py" line="232"/>
         <source>Ready to run — %n action(s)</source>
         <translation>
             <numerusform>Готово к запуску — %n действие</numerusform>
@@ -1198,6 +1210,11 @@
         <location filename="ai_agent/qgis_tools/style/set_labels.py" line="84"/>
         <source>Removing the labels from layer '{0}'.</source>
         <translation>Убираю подписи со слоя «{0}».</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/sessions_popup.py" line="24"/>
+        <source>Rename</source>
+        <translation>Переименовать</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/fields/manage_fields.py" line="133"/>
@@ -1340,7 +1357,7 @@
         <translation>Отправить</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/confirmations.py" line="29"/>
+        <location filename="ai_agent/ui/confirmations.py" line="41"/>
         <source>Send the request to {0}?&#10;&#10;The provider receives your prompt and everything the agent reads to answer it: layer and field names, feature values, extents, layer sources and rendered map images. For data that must stay on this computer, use a local model server.</source>
         <translation>Отправить запрос в {0}?&#10;&#10;Провайдер получит ваш запрос и всё, что агент прочитает для ответа: имена слоёв и полей, значения объектов, границы, источники слоёв и изображения карты. Если данные не должны покидать компьютер, используйте локальный сервер модели.</translation>
     </message>
@@ -1370,7 +1387,7 @@
         <translation>Настраиваю подписи «{0}»: {1}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="68"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="74"/>
         <location filename="ai_agent/ui/settings_layout.py" line="12"/>
         <source>Settings</source>
         <translation>Настройки</translation>
@@ -1381,7 +1398,7 @@
         <translation>Настройки — AI Agent</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/confirmations.py" line="26"/>
+        <location filename="ai_agent/ui/confirmations.py" line="38"/>
         <source>Share project data?</source>
         <translation>Передать данные проекта?</translation>
     </message>
@@ -1558,7 +1575,7 @@
         <translation>Сжимать пока нечего.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/confirmations.py" line="71"/>
+        <location filename="ai_agent/ui/confirmations.py" line="83"/>
         <source>These steps change or delete data and cannot be undone:&#10;&#10;{0}</source>
         <translation>Эти шаги изменяют или удаляют данные, и их нельзя отменить:&#10;&#10;{0}</translation>
     </message>
@@ -1618,7 +1635,7 @@
         <translation>Превращает названия мест в координаты для загрузки OpenStreetMap.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="97"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="99"/>
         <source>Type a request.</source>
         <translation>Введите запрос.</translation>
     </message>
@@ -1852,6 +1869,11 @@
         <location filename="ai_agent/core/llm/client.py" line="35"/>
         <source>{endpoint} did not answer within {seconds} s. The model may still be working on it; try again, or use a faster model.</source>
         <translation>{endpoint} не ответил за {seconds} с. Возможно, модель ещё работает; попробуйте снова или выберите модель побыстрее.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/confirmations.py" line="28"/>
+        <source>“{0}” will be deleted for good: it cannot be restored.</source>
+        <translation>«{0}» будет удалён насовсем: восстановить его нельзя.</translation>
     </message>
 </context>
 </TS>

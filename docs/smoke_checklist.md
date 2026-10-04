@@ -946,3 +946,8 @@ These verify the agent solves everyday tasks without wandering through search.
 197. **A plan runs.** Press **Run automatically** → the mode becomes Auto and
      the plan is applied; with **Run with approval** the plan card waits for
      Apply instead.
+198. **Conversations get names.** Ask a first question → after the answer the
+     conversations menu shows a short title, not the start of the question.
+199. **Rename and delete.** Hover a conversation → pencil and bin appear; rename
+     it (Enter) → the new title stays and is not replaced later; delete one →
+     a confirmation, then it is gone; delete the open one → a fresh chat.

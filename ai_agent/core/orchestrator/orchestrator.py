@@ -8,6 +8,7 @@ from ai_agent.core.llm.client import is_local
 from ai_agent.core.orchestrator import attaching
 from ai_agent.core.orchestrator.compacting import SessionCompaction
 from ai_agent.core.orchestrator.contracts import DockWidgetContract
+from ai_agent.core.orchestrator.naming import SessionNaming
 from ai_agent.core.orchestrator.notices import (
     DATA_SHARING_DECLINED,
     INTERJECTED,
@@ -50,6 +51,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self._deferred_interrupted_outcome = ""
         self._last_request = ""
         self.compaction = SessionCompaction(self.dock_widget, lambda: self.conversation)
+        self.naming = SessionNaming(lambda: self.conversation)
         self._connect_agent()
         self.dock_widget.set_session_source(self.conversation.recent)
         self.refresh_configured()
@@ -202,6 +204,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.conversation.save()
         self.agent.stop()
         self.compaction.stop()
+        self.naming.stop()
 
     def _push_message(self, text: str, level) -> None:
         self.iface.messageBar().pushMessage("AI Agent", text, level=level, duration=MESSAGE_DURATION_SEC)
