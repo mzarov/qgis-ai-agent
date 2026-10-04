@@ -64,8 +64,17 @@ def post_stream(
     watchdog.timeout.connect(loop.quit)
     cancellation = _StreamCancellation(reply, loop)
 
+    closed = False
+
     def drain() -> None:
-        raw = bytes(reply.readAll())
+        # A readyRead can still arrive while Qt tears the reply down after deleteLater;
+        # reading a deleted reply raises inside a slot and aborts QGIS.
+        if closed:
+            return
+        try:
+            raw = bytes(reply.readAll())
+        except RuntimeError:
+            return
         if not raw:
             return
         if _status_of(reply) >= 400:
@@ -98,6 +107,9 @@ def post_stream(
     status = _status_of(reply)
     failure = _failure_of(reply)
     retry_after = retry_after_of(reply)
+    closed = True
+    _disconnect(reply.readyRead)
+    _disconnect(reply.finished)
     reply.deleteLater()
 
     if cancellation.cancelled:
@@ -134,6 +146,13 @@ def _finished_response(completion: Any, accumulator: SseAccumulator, endpoint: s
     if not getattr(completion, "finished", True):
         raise ConnectionError(STREAM_INCOMPLETE.format(endpoint=safe_endpoint_label(endpoint)))
     return {**completion.response(), STREAM_EVENTS_KEY: accumulator.event_count}
+
+
+def _disconnect(signal: Any) -> None:
+    try:
+        signal.disconnect()
+    except (RuntimeError, TypeError):
+        pass
 
 
 def _status_of(reply: Any) -> int:
