@@ -64,10 +64,13 @@ confirmation is independent of the model endpoint.
 
 ## What reaches the model endpoint
 
-Every model turn includes the current prompt, a
-recent window of the conversation, a short project context, the loaded skill
-instructions and tool schemas. Project notes created with `remember` are
-included as well.
+Every model turn includes the current prompt, the whole conversation (or,
+once it has been compacted, the model's summary of the older part plus the
+newer messages), a short project context, the loaded skill instructions and
+tool schemas. Project notes created with `remember` are included as well.
+Compacting sends the conversation to the same model to write that summary, and
+after the first answer the first request and answer are sent once more so the
+model can give the conversation a short title.
 
 After a tool runs, its result is returned to the model so it can decide the next
 step. Tool results can include:
