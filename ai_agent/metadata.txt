@@ -28,6 +28,7 @@ changelog=0.2.0
     - New skills: draw (features from coordinates) and tables (CSV preview, points from lon/lat, live table joins)
     - Each turn folds into one line in the feed; a reasoning switch for OpenAI-compatible endpoints
     - Text-only models verify their changes by reading instead of looking at images
+    - Fixed a rare QGIS crash when a streamed answer ended or was stopped
     0.1.1
     - Much cheaper runs: a stable prompt prefix that provider caching can reuse, stepped compaction, a shorter base prompt
     - Out of the box the agent can read your data and run Processing: the sensitive-data switch is gone (see Data and privacy)
