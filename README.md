@@ -72,8 +72,8 @@ text JSON protocol that switches on by itself.
 on the device. The first agent run against a remote endpoint requires explicit,
 per-endpoint consent. The separate **Test connection** action sends one short
 diagnostic request when you click it, independently of agent-run consent.
-Everything the agent reads goes to the configured model: the prompt, recent chat,
-project notes, layer and field metadata, and whatever tools read — attribute
+Everything the agent reads goes to the configured model: the prompt, the conversation,
+attached pictures, project notes, layer and field metadata, and whatever tools read — attribute
 values, extents, layer filters and sources, style categories, Processing and
 Python results, rendered map or layout images. If you install an AI agent, expect
 your project data to reach the model; use a local model server for projects that

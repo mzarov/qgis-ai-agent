@@ -58,7 +58,7 @@ plan instead of producing garbage.
   OpenAI-compatible endpoint or Anthropic. Local servers (Ollama, LM Studio)
   need no key at all.
 - Everything the agent reads goes to the model you configure: your prompt,
-  recent chat, project notes, layer metadata and whatever tools read —
+  the conversation, attached pictures, project notes, layer metadata and whatever tools read —
   attribute values, extents, styles, Processing results, rendered maps. Use a
   local model server for projects that must stay on your computer. Read
   [Data and privacy](privacy.md) first.
