@@ -3,16 +3,16 @@
     "model": "deepseek-v4.1-flash",
     "scenarios": {
       "LiveBufferScenario": {
-        "total_tokens": 166000
+        "total_tokens": 143000
       },
       "LiveLabelScenario": {
-        "total_tokens": 73000
+        "total_tokens": 87000
       },
       "LiveQuestionScenario": {
         "total_tokens": 24000
       },
       "LiveStyleScenario": {
-        "total_tokens": 63000
+        "total_tokens": 92000
       }
     }
   },
