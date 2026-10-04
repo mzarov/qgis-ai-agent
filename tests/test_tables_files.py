@@ -32,6 +32,9 @@ from ai_agent.qgis_tools.tables.keys import file_key_texts, key_text, match_repo
 from ai_agent.qgis_tools.tables.load_table import LoadTableTool
 from ai_agent.qgis_tools.tables.preview_table import PreviewTableTool
 
+# The quadratic version took 57 s on this file; a slow shared CI runner takes about 5 s for the linear one.
+LINEAR_CHECK_SECONDS = 20
+
 DISTRICT_STATS = "code;name;pop;share\n001;Alpha;1200;0,5\n002;Beta;3400;1,25\n010;Gamma;;2\n"
 CAFES = "name,lon,lat\nDome,2.33,48.84\nFlore,2.332,48.854\n"
 
@@ -140,7 +143,8 @@ class ReadTableTest(FileCase):
         guess = guess_coordinates(table)
         checked_xy_crs(table, guess.x_field, guess.y_field, "")
         self.assertGreater(os.path.getsize(path), 5_000_000)
-        self.assertLess(time.monotonic() - started, 5, "coordinate checks must stay linear in the file size")
+        elapsed = time.monotonic() - started
+        self.assertLess(elapsed, LINEAR_CHECK_SECONDS, "coordinate checks must stay linear in the file size")
 
     def test_tabs_pipes_and_a_forced_delimiter(self):
         self.assertEqual(read_table(self.write("a.tsv", "a\tb\n1\t2\n")).delimiter_name, "tab")
