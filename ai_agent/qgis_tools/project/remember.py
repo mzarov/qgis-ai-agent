@@ -53,6 +53,9 @@ class RememberTool(BaseTool):
         notes = NoteStore().remember(str(params.get("note") or ""))
         return {"remembered": params.get("note"), "notes_kept": len(notes), "note": SCOPE_NOTE}
 
+    def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
+        return str(params.get("note") or "").strip() in NoteStore().notes()
+
 
 class ListNotesTool(BaseTool):
     name = "list_notes"
@@ -108,3 +111,6 @@ class ForgetTool(BaseTool):
         if not removed:
             raise ValueError(NOTHING_FORGOTTEN)
         return {"forgotten": params.get("note"), "notes_kept": len(NoteStore().notes())}
+
+    def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
+        return str(params.get("note") or "").strip() not in NoteStore().notes()

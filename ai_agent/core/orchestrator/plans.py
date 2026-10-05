@@ -3,8 +3,10 @@
 from qgis.core import Qgis
 from qgis.PyQt.QtCore import QTimer
 
+from ai_agent.core.agent.quick_check import confirmed_by_reading
 from ai_agent.core.agent.verification import plan_verification
 from ai_agent.core.orchestrator.notices import (
+    CHECKED_BY_READING,
     DESTRUCTIVE_DECLINED,
     MODE_NEXT_REQUEST,
     PLAN_DROPPED,
@@ -117,6 +119,9 @@ class PlanMixin:
 
     def _maybe_verify(self, results: list) -> None:
         if not results or self.agent.is_running or not get_verify_after_apply():
+            return
+        if confirmed_by_reading(results):
+            self.dock_widget.add_system_message(CHECKED_BY_READING)
             return
         loaded = list(getattr(self.agent, "loaded_skills", None) or [])
         overrides = getattr(self.agent, "overrides", None)

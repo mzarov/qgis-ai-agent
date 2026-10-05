@@ -951,3 +951,7 @@ These verify the agent solves everyday tasks without wandering through search.
 199. **Rename and delete.** Hover a conversation → pencil and bin appear; rename
      it (Enter) → the new title stays and is not replaced later; delete one →
      a confirmation, then it is gone; delete the open one → a fresh chat.
+200. **A simple step is checked by reading.** *Rename districts to "Districts
+     2020" and hide it* → Apply → the feed says *Checked: every step is in
+     place.* and no second model run starts. *Colour districts by population*
+     → Apply → the usual *Checking the applied changes…* run follows.

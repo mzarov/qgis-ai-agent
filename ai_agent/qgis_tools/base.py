@@ -119,6 +119,16 @@ class BaseTool(ABC):
         shown = ", ".join(f"{key}={value}" for key, value in params.items())
         return f"{self.description or self.name}: {shown}"
 
+    def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
+        """Read back whether an applied step took effect, so the model need not check it.
+
+        `params` are the prepared arguments and `payload` what execute returned.
+        True: the project shows the step. False: it does not. None (the default):
+        this step needs the model's eye — visual results, new data, anything a
+        single read cannot judge. Runs on the main thread after the whole batch.
+        """
+        return None
+
     @abstractmethod
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         """Execute on the Qt main thread and return JSON-compatible results.

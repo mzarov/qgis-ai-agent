@@ -3,7 +3,7 @@ from typing import Any
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common import params
-from ai_agent.qgis_tools.common.layers import bind_layer_reference
+from ai_agent.qgis_tools.common.layers import bind_layer_reference, pinned_layer
 from ai_agent.qgis_tools.tables.join_plan import TABLE_ID, target_layer
 from ai_agent.qgis_tools.tables.joins import find_join, joined_field_names
 
@@ -48,3 +48,10 @@ class RemoveJoinTool(BaseTool):
         if not layer.removeJoin(join.joinLayerId()):
             raise ValueError(f"QGIS refused to remove the join of '{params.get('table')}'.")
         return {"layer": layer.name(), "table": params.get("table"), "removed_fields": removed}
+
+    def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
+        layer = pinned_layer(params)
+        if layer is None:
+            return False
+        table_id = str(params.get("table_id") or "")
+        return all(join.joinLayerId() != table_id for join in layer.vectorJoins())

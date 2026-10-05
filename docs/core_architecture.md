@@ -68,6 +68,21 @@ dispatcher refuses any other call. The run ends on an offer to carry the plan
 out, which switches to Ask first or Auto and starts the next run with the
 original request.
 
+After Apply the orchestrator checks the result. A full check is a model run:
+the agent re-reads what changed, looks at a render for visual changes, and
+queues fixes and tidy-up. That run costs several requests, each carrying the
+whole prompt and tool schemas, and for a rename or a new bookmark it cost more
+than the work itself. So a batch is checked by reading first
+(`agent/quick_check.py`): every write tool may answer `confirm_applied` with the
+one read that proves its own step — the layer has the new name, the field is
+there, the join is gone. When every step of a successful batch reads back as
+done, the chat says so and no model run starts. Anything else goes to the
+model as before: a failed step, a tool that returns `None` (styles, labels,
+Processing, new layers, virtual fields — results judged by eye or by their
+values), a step that does not read back, or a check that raises. A false
+"done" is the one failure this must not have, so a tool that cannot be sure
+returns `None`.
+
 Network access is a capability separate from mutation safety. A read tool with
 `network_access = True` is queued and automatically pauses the run for explicit
 per-call confirmation. After approval its result enters the same transcript and

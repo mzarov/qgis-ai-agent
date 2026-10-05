@@ -1,3 +1,4 @@
+import os
 from typing import Any
 
 from ai_agent.i18n import tr
@@ -77,6 +78,9 @@ class SaveProjectTool(BaseTool):
         if not project().write(target):
             raise ValueError(f"QGIS could not write the project to '{target}'.")
         return {"saved": target}
+
+    def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
+        return os.path.isfile(str(payload.get("saved") or ""))
 
 
 def _current_path() -> str:

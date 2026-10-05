@@ -88,6 +88,9 @@ class SaveBookmarkTool(BaseTool):
         bookmark_manager().addBookmark(bookmark)
         return {"bookmark": name, "extent": extent_dict(extent)}
 
+    def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
+        return str(params.get("name") or "").strip() in _bookmark_names()
+
 
 class SaveMapThemeTool(BaseTool):
     name = "save_map_theme"
@@ -129,6 +132,9 @@ class SaveMapThemeTool(BaseTool):
         record = QgsMapThemeCollection.createThemeFromCurrentState(root, model)
         instance.mapThemeCollection().insert(name, record)
         return {"map_theme": name, "themes": sorted(project_themes())}
+
+    def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
+        return str(params.get("name") or "").strip() in project_themes()
 
 
 def _bookmark_names() -> list[str]:

@@ -173,7 +173,7 @@
         <translation>Все изменения сохранены</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="20"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="21"/>
         <source>An interrupted run completed work in the previous project; see its conversation.</source>
         <translation>Прерванный запуск успел выполнить действия в предыдущем проекте; подробности сохранены в его переписке.</translation>
     </message>
@@ -222,12 +222,12 @@
         </translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/reorder_layers.py" line="54"/>
+        <location filename="ai_agent/qgis_tools/project/reorder_layers.py" line="55"/>
         <source>Arranging the layer order.</source>
         <translation>Выстраиваю порядок слоёв.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/reorder_layers.py" line="58"/>
+        <location filename="ai_agent/qgis_tools/project/reorder_layers.py" line="59"/>
         <source>Arranging the layers, top to bottom: {0}.</source>
         <translation>Выстраиваю слои сверху вниз: {0}.</translation>
     </message>
@@ -329,12 +329,12 @@
         <translation>Отменяю проверку подключения…</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="22"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="23"/>
         <source>Carry out the plan.</source>
         <translation>Выполни план.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/plans.py" line="115"/>
+        <location filename="ai_agent/core/orchestrator/plans.py" line="117"/>
         <source>Changes applied.</source>
         <translation>Изменения применены.</translation>
     </message>
@@ -354,12 +354,12 @@
         <translation>Меняю элемент «{0}» макета «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/configure_layer.py" line="68"/>
+        <location filename="ai_agent/qgis_tools/project/configure_layer.py" line="70"/>
         <source>Changing layer '{0}'.</source>
         <translation>Меняю слой «{0}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/configure_layer.py" line="69"/>
+        <location filename="ai_agent/qgis_tools/project/configure_layer.py" line="71"/>
         <source>Changing layer '{0}': {1}.</source>
         <translation>Меняю слой «{0}»: {1}.</translation>
     </message>
@@ -377,6 +377,11 @@
         <location filename="ai_agent/ui/settings_advanced.py" line="25"/>
         <source>Check the result after Apply</source>
         <translation>Проверять результат после применения</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="13"/>
+        <source>Checked: every step is in place.</source>
+        <translation>Проверено: все шаги на месте.</translation>
     </message>
     <message>
         <location filename="ai_agent/core/orchestrator/notices.py" line="12"/>
@@ -542,7 +547,7 @@
         <translation>Удаляю объекты из «{0}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/fields/manage_fields.py" line="174"/>
+        <location filename="ai_agent/qgis_tools/fields/manage_fields.py" line="182"/>
         <source>Deleting field '{0}' from '{1}'.</source>
         <translation>Удаляю поле «{0}» из «{1}».</translation>
     </message>
@@ -563,7 +568,7 @@
         <translation>Не добавляйте учётные данные в URL API. Сохраните секрет провайдера в поле API-ключа.</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/core/orchestrator/plans.py" line="112"/>
+        <location filename="ai_agent/core/orchestrator/plans.py" line="114"/>
         <source>Done: %n step(s) applied.{0}</source>
         <translation>
             <numerusform>Применён %n шаг.{0}</numerusform>
@@ -709,7 +714,7 @@
         <translation>Папки с SKILL.md. Наберите / в чате, чтобы вызвать.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/remember.py" line="104"/>
+        <location filename="ai_agent/qgis_tools/project/remember.py" line="107"/>
         <source>Forgetting: {0}</source>
         <translation>Забываю: {0}</translation>
     </message>
@@ -755,7 +760,7 @@
         <translation>Присоединяю {0} к «{1}» по {2} = {3}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="13"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="14"/>
         <source>Kept everything as it was — the destructive steps were not applied.</source>
         <translation>Всё осталось как было — необратимые шаги не применялись.</translation>
     </message>
@@ -877,7 +882,7 @@
         <translation>Прошлых диалогов нет</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="18"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="19"/>
         <source>No skill named /{0}. Available: {1}.</source>
         <translation>Скилла /{0} нет. Доступны: {1}.</translation>
     </message>
@@ -887,7 +892,7 @@
         <translation>Своих скиллов пока нет.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/plans.py" line="110"/>
+        <location filename="ai_agent/core/orchestrator/plans.py" line="112"/>
         <source>Not all changes were applied.</source>
         <translation>Применились не все изменения.</translation>
     </message>
@@ -942,7 +947,7 @@
         <translation>Или ответьте, чтобы поправить план.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/save_project.py" line="68"/>
+        <location filename="ai_agent/qgis_tools/project/save_project.py" line="69"/>
         <source>Overwriting '{0}' with the current project.</source>
         <translation>Перезаписываю «{0}» текущим проектом.</translation>
     </message>
@@ -962,7 +967,7 @@
         <translation>Параметры:</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="14"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="15"/>
         <source>Passed to the agent — it will take this into account on its next step.</source>
         <translation>Передано агенту — он учтёт это на следующем шаге.</translation>
     </message>
@@ -1138,7 +1143,7 @@
         <translation>Смотрю значения поля «{0}» в слое «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/remember.py" line="69"/>
+        <location filename="ai_agent/qgis_tools/project/remember.py" line="72"/>
         <source>Reading what is remembered about this project.</source>
         <translation>Смотрю, что запомнено об этом проекте.</translation>
     </message>
@@ -1197,7 +1202,7 @@
         <translation>Убираю элемент «{0}» из макета «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/remove_layer.py" line="42"/>
+        <location filename="ai_agent/qgis_tools/project/remove_layer.py" line="43"/>
         <source>Removing layer '{0}' from the project.</source>
         <translation>Убираю слой «{0}» из проекта.</translation>
     </message>
@@ -1217,7 +1222,7 @@
         <translation>Переименовать</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/fields/manage_fields.py" line="133"/>
+        <location filename="ai_agent/qgis_tools/fields/manage_fields.py" line="138"/>
         <source>Renaming field '{0}' to '{1}'.</source>
         <translation>Переименовываю поле «{0}» в «{1}».</translation>
     </message>
@@ -1242,7 +1247,7 @@
         <translation>Запрос</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="17"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="18"/>
         <source>Request not sent.</source>
         <translation>Запрос не отправлен.</translation>
     </message>
@@ -1312,7 +1317,7 @@
         <translation>Сохранить</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/views.py" line="120"/>
+        <location filename="ai_agent/qgis_tools/project/views.py" line="123"/>
         <source>Saving the current look as map theme '{0}'.</source>
         <translation>Сохраняю текущий вид как тему карты «{0}».</translation>
     </message>
@@ -1322,12 +1327,12 @@
         <translation>Сохраняю текущий охват как закладку «{0}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/save_project.py" line="69"/>
+        <location filename="ai_agent/qgis_tools/project/save_project.py" line="70"/>
         <source>Saving the project as '{0}'.</source>
         <translation>Сохраняю проект как «{0}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/save_project.py" line="66"/>
+        <location filename="ai_agent/qgis_tools/project/save_project.py" line="67"/>
         <source>Saving the project.</source>
         <translation>Сохраняю проект.</translation>
     </message>
@@ -1413,7 +1418,7 @@
         <translation>Скиллы</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/plans.py" line="107"/>
+        <location filename="ai_agent/core/orchestrator/plans.py" line="109"/>
         <source>Some steps did not run: {0}</source>
         <translation>Часть шагов не выполнилась: {0}</translation>
     </message>
@@ -1515,7 +1520,7 @@
         <translation>Мастер-пароль QGIS не введён, поэтому ключ остаётся закрытым.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="19"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="20"/>
         <source>The QGIS project changed. A new project-scoped conversation was started.</source>
         <translation>Проект QGIS изменился. Начат новый диалог, привязанный к этому проекту.</translation>
     </message>
@@ -1540,12 +1545,12 @@
         <translation>Модель ничего не вернула. Попробуйте переформулировать.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="25"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="26"/>
         <source>The new mode applies from the next request.</source>
         <translation>Новый режим действует со следующего запроса.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="15"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="16"/>
         <source>The planned changes were dropped — they were not applied. Starting over from your message.</source>
         <translation>Запланированные изменения сняты — они не применялись. Начинаю заново с вашего сообщения.</translation>
     </message>
@@ -1565,7 +1570,7 @@
         <translation>Сохранённый ключ для этого адреса удалён.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/plans.py" line="69"/>
+        <location filename="ai_agent/core/orchestrator/plans.py" line="71"/>
         <source>There are no changes to apply.</source>
         <translation>Применять нечего.</translation>
     </message>
@@ -1680,7 +1685,7 @@
         <translation>Дождитесь окончания текущей задачи.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="16"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="17"/>
         <source>Waiting for your answer — the run continues from it.</source>
         <translation>Жду вашего ответа — прогон продолжится с него.</translation>
     </message>

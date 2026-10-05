@@ -3,9 +3,11 @@ from typing import Any
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common import params
+from ai_agent.qgis_tools.common.layers import pinned_layer
 from ai_agent.qgis_tools.common.properties import properties_of, shown
 from ai_agent.qgis_tools.project.catalogues import LAYER_PROPERTIES
 from ai_agent.qgis_tools.project.tree import (
+    ROOT_GROUP,
     ensure_group,
     find_layer,
     group_title,
@@ -85,6 +87,23 @@ class ConfigureLayerTool(BaseTool):
             "applied": sorted(properties),
         }
 
+    def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
+        layer = pinned_layer(params)
+        if layer is None:
+            return False
+        properties = params.get("properties") or {}
+        try:
+            node = tree_node(layer)
+        except ValueError:
+            return False
+        if "name" in properties and layer.name() != properties["name"]:
+            return False
+        if "visible" in properties and _visible(node) != bool(properties["visible"]):
+            return False
+        if "group" in properties and group_title(node) != (str(properties["group"]).strip() or ROOT_GROUP):
+            return False
+        return "position" not in properties or _at_position(node, properties["position"])
+
 
 def _move(layer: Any, node: Any, properties: dict[str, Any]) -> Any:
     source = parent_of(node)
@@ -102,6 +121,12 @@ def _insertion_index(node: Any, source: Any, target: Any, properties: dict[str, 
     if target is source and node in siblings and siblings.index(node) < index:
         index += 1
     return min(index, len(siblings))
+
+
+def _at_position(node: Any, position: Any) -> bool:
+    siblings = list(parent_of(node).children())
+    wanted = min(max(0, int(position)), len(siblings) - 1)
+    return node in siblings and siblings.index(node) == wanted
 
 
 def _visible(node: Any) -> bool:
