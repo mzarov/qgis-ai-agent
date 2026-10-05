@@ -229,6 +229,7 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `agent/run_journal.py`   | the optional Markdown record of one run             |
 | `agent/budget.py`        | run tokens vs the Settings budget, usage split      |
 | `agent/verification.py`  | what the check after Apply starts with, and the round cap |
+| `agent/quick_check.py`   | the check by reading: a batch whose steps all confirm themselves skips the model |
 | `agent/auto_apply.py`    | Auto mode: which batches apply without the button   |
 | `agent/skills.py` (plan) | plan mode: `tools_for_skills(writes=False)`; `PLAN_MODE_NOTE` in the live state; refusal in `dispatch.py` |
 | `agent/compaction.py`    | compacting a conversation: one tool-less summary request |

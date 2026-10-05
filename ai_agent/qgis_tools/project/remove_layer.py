@@ -3,6 +3,7 @@ from typing import Any
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common import params
+from ai_agent.qgis_tools.common.layers import pinned_ids
 from ai_agent.qgis_tools.project.scratch_copies import is_memory_layer, scratch_layers_over_budget
 from ai_agent.qgis_tools.project.tree import find_layer, project
 
@@ -49,3 +50,9 @@ class RemoveLayerTool(BaseTool):
         if scratch:
             return {"removed": name, "note": "This was a temporary (memory) layer; its features lived only in QGIS."}
         return {"removed": name, "note": "The file on disk stayed where it was."}
+
+    def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
+        identifiers = pinned_ids(params)
+        if not identifiers:
+            return None
+        return project().mapLayer(identifiers[0]) is None

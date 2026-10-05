@@ -7,7 +7,7 @@ from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_DESTRUCTIVE, SAFETY
 from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.editing import edit_session
 from ai_agent.qgis_tools.common.expressions import compile_expression
-from ai_agent.qgis_tools.common.layers import bind_layer_reference, find_layer_by_id
+from ai_agent.qgis_tools.common.layers import bind_layer_reference, find_layer_by_id, pinned_layer
 from ai_agent.qgis_tools.fields.schema import (
     FIELD_TYPES,
     build_field,
@@ -105,6 +105,11 @@ class AddFieldTool(BaseTool):
                 raise ValueError(f"QGIS refused to add field '{name}'.")
         return {"layer": layer.name(), "field": name, "virtual": False}
 
+    def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
+        if str(params.get("expression") or "").strip():
+            return None  # A virtual field is judged by its values, which only the model can weigh.
+        return _has_field(params, params.get("name"))
+
 
 class RenameFieldTool(BaseTool):
     name = "rename_field"
@@ -142,6 +147,9 @@ class RenameFieldTool(BaseTool):
             if not layer.renameAttribute(index, new_name):
                 raise ValueError(f"QGIS refused to rename field '{params.get('name')}'.")
         return {"layer": layer.name(), "renamed": params.get("name"), "to": new_name}
+
+    def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
+        return _has_field(params, params.get("new_name")) and not _has_field(params, params.get("name"))
 
 
 class DeleteFieldTool(BaseTool):
@@ -184,6 +192,16 @@ class DeleteFieldTool(BaseTool):
             if not layer.deleteAttribute(index):
                 raise ValueError(f"QGIS refused to delete field '{params.get('name')}'.")
         return {"layer": layer.name(), "deleted": params.get("name")}
+
+    def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
+        layer = pinned_layer(params)
+        return layer is not None and not _has_field(params, params.get("name"))
+
+
+def _has_field(params: dict[str, Any], name: Any) -> bool:
+    layer = pinned_layer(params)
+    wanted = str(name or "").strip()
+    return layer is not None and bool(wanted) and wanted in field_names(layer)
 
 
 def _field_target(params: dict[str, Any]) -> QgsVectorLayer:

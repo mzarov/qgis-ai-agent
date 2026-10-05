@@ -334,6 +334,25 @@ def layer_pin_error(params: dict[str, Any]) -> str:
     return ""
 
 
+def pinned_ids(params: dict[str, Any]) -> list[str]:
+    """The layer ids a queued call was pinned to, in order; the named target comes first."""
+    raw_pins = params.get(LAYER_PINS_KEY)
+    if not isinstance(raw_pins, list):
+        return []
+    return [str(pin.get("id") or "") for pin in raw_pins if isinstance(pin, dict)]
+
+
+def pinned_layer(params: dict[str, Any]) -> QgsMapLayer | None:
+    """The layer a queued call targets, by its pinned id: renames cannot fool it. None once it is gone."""
+    identifiers = pinned_ids(params)
+    if not identifiers or not identifiers[0]:
+        return None
+    try:
+        return QgsProject.instance().mapLayer(identifiers[0])
+    except Exception:
+        return None
+
+
 def _resolve_layer_reference(layer_name: str, layer_id: str) -> QgsMapLayer:
     if layer_id:
         layer = find_layer_by_id(layer_id)

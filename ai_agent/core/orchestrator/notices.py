@@ -10,6 +10,7 @@ APPLY_STOPPED = tr("Run stopped during apply. Pending steps were cancelled; any 
 SWITCH_WHILE_RUNNING = tr("Wait for the current task to finish.")
 SWITCH_WHILE_APPLYING = tr("Changes are being applied — wait for that to finish.")
 VERIFYING = tr("Checking the applied changes…")
+CHECKED_BY_READING = tr("Checked: every step is in place.")
 DESTRUCTIVE_DECLINED = tr("Kept everything as it was — the destructive steps were not applied.")
 INTERJECTED = tr("Passed to the agent — it will take this into account on its next step.")
 PLAN_DROPPED = tr("The planned changes were dropped — they were not applied. Starting over from your message.")

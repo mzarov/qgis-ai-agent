@@ -538,6 +538,20 @@ class OrchestratorSessionTest(unittest.TestCase):
             module.get_verify_after_apply = saved
         self.assertIsNone(self.orchestrator.agent.verification_started)
 
+    def test_steps_that_read_back_as_done_skip_the_model_check(self):
+        from ai_agent.core.orchestrator import plans as module
+        from ai_agent.core.orchestrator.notices import CHECKED_BY_READING
+
+        saved = module.confirmed_by_reading
+        module.confirmed_by_reading = lambda results: True
+        try:
+            self.orchestrator.on_prompt("переименуй слой")
+            self.orchestrator.on_applied([Result(name="configure_layer")])
+        finally:
+            module.confirmed_by_reading = saved
+        self.assertIsNone(self.orchestrator.agent.verification_started)
+        self.assertIn(CHECKED_BY_READING, self.dock.system)
+
     def test_empty_apply_verifies_nothing(self):
         self.orchestrator.on_prompt("вопрос")
         self.orchestrator.on_applied([])

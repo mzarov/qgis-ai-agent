@@ -20,7 +20,8 @@ reasoning is in [docs/core_architecture.md](docs/core_architecture.md)), and
 After
 the user applies a batch, the orchestrator starts a verification run: the agent
 re-reads the result with read tools and, for visual changes, looks at a
-rendered image.
+rendered image. A batch whose every step reads back as done through its tool's
+`confirm_applied` skips that run.
 
 Architecture and prompt design belong to the user; implementation belongs to the
 agent. Do not ask permission for routine decisions — write the code.

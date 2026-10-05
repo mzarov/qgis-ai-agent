@@ -22,9 +22,12 @@ from typing import Any
 import token_ceilings
 from e2e_harness import ARTIFACTS, PluginCase, pump
 from e2e_model import USAGE, ScriptedModel, call, calls, fail, say, think
+from qgis.core import QgsProject
 
+from ai_agent.core.orchestrator.notices import CHECKED_BY_READING
 from ai_agent.core.settings import get_auto_apply, set_reasoning_enabled, set_supports_images, set_work_mode
 from ai_agent.ui.composer_parts import MODES
+from ai_agent.ui.messages import SystemMessage
 
 MODEL = "scripted-model"
 SIZES_FILE = "request_sizes.json"
@@ -118,6 +121,45 @@ class StyleScenario(ScenarioCase):
         expected = {"prompt_tokens": 2 * USAGE["prompt_tokens"], "completion_tokens": 2 * USAGE["completion_tokens"]}
         self.assertEqual(self.agent.usage, {**expected, "requests": 2})
         self.shot("style_apply_verification")
+
+
+class ShortCheckScenario(ScenarioCase):
+    """A step that reads back as done is checked by the plugin; anything visual still goes to the model."""
+
+    def system_lines(self) -> list[str]:
+        return [message.plain_text() for message in self.dock.conversation.findChildren(SystemMessage)]
+
+    def test_a_rename_is_checked_without_asking_the_model(self) -> None:
+        self.model.script(
+            call("load_skill", names=["project"]),
+            call("configure_layer", layer_name="districts", properties={"name": "Districts 2020", "visible": False}),
+            say("I suggest renaming districts and hiding it."),
+        )
+        self.ask("Rename districts to 'Districts 2020' and hide it")
+        sent = len(self.model.requests)
+        self.apply()
+        layer = self.layer("Districts 2020")
+        self.assertFalse(QgsProject.instance().layerTreeRoot().findLayer(layer.id()).itemVisibilityChecked())
+        self.assertEqual(len(self.model.requests), sent, "a step that reads back as done still started a model check")
+        self.assertIn(CHECKED_BY_READING, self.system_lines())
+        self.shot("short_check")
+
+    def test_a_step_judged_by_its_values_still_goes_to_the_model(self) -> None:
+        self.model.script(
+            call("load_skill", names=["fields"]),
+            calls(
+                ("add_field", {"layer_name": "districts", "name": "code", "type": "text"}),
+                ("add_field", {"layer_name": "districts", "name": "people_k", "expression": '"pop2020" / 1000'}),
+            ),
+            say("I suggest adding a code field and a virtual population field in thousands."),
+            call("list_layers"),
+            say("Checked: both fields are on districts."),
+        )
+        self.ask("Add a text field 'code' and a virtual field with population in thousands to districts")
+        self.apply()
+        self.assertIn("people_k", self.layer("districts").fields().names())
+        self.assertNotIn(CHECKED_BY_READING, self.system_lines())
+        self.assertEqual(self.last(), "Checked: both fields are on districts.")
 
 
 class TextOnlyScenario(ScenarioCase):

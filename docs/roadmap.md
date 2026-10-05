@@ -71,9 +71,10 @@ the agent works:
    Record real transcripts (tool calls with their results) and replay them
    against the loop with a scripted model — a regression suite for the agent's
    behaviour, and the biggest single lever for "it must work well".
-6. **Verification always runs the full round.** A trivial single-step
-   non-visual change still costs a 3–4-turn verification; skip or shorten it
-   when the batch had one step that a single read can confirm.
+6. **Done 2026-10-05 — verification always ran the full round.** A trivial
+   non-visual change cost a 3–4-turn verification. Write tools now confirm
+   their own step by one read (`confirm_applied`); a batch whose every step
+   reads back as done skips the model run.
 7. **Compaction drops, never summarises.** After `KEEP_FULL_RESULTS` older
    results shrink to one-line notes; a summary of the dropped span would keep
    forty-turn runs coherent.

@@ -58,6 +58,13 @@ class ConfigureProjectTool(BaseTool):
             instance.setCrs(_require_crs(properties["crs"]))
         return {"applied": sorted(properties), "crs": _current_crs(instance)}
 
+    def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
+        properties = params.get("properties") or {}
+        instance = project()
+        if "title" in properties and instance.title() != properties["title"]:
+            return False
+        return "crs" not in properties or instance.crs() == _require_crs(properties["crs"])
+
 
 def _require_crs(value: Any) -> QgsCoordinateReferenceSystem:
     text = str(value or "").strip()
