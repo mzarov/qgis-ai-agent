@@ -266,6 +266,7 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `orchestrator/sessions.py` | new conversation, a past one, rename, delete, what a switch cancels |
 | `orchestrator/naming.py` | the model names a conversation once, after its first answer |
 | `agent/titling.py`       | the naming request: tool-less, a few words back      |
+| `orchestrator/rewind.py` | rewind to before a message: checkpoints tag snapshots by user message; conversation, project or both |
 | `orchestrator/plans.py`  | the plan card, Apply and Cancel, apply outcomes, verification |
 | `orchestrator/run_events.py` | tool steps, answers, failures and stops drawn into the chat |
 | `orchestrator/notices.py` | every chat and message-bar text of the orchestrator |

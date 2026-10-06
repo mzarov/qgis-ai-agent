@@ -455,7 +455,7 @@ class SnapshotTest(unittest.TestCase):
         self.assertEqual(UndoLastApplyTool().safety, SAFETY_DESTRUCTIVE)
 
     def test_the_scope_limit_is_stated_to_the_model(self):
-        from ai_agent.qgis_tools.project.undo_last_apply import SCOPE_NOTE
+        from ai_agent.qgis_tools.project.restore import SCOPE_NOTE
 
         self.assertIn("NOT undone", SCOPE_NOTE)
         self.assertIn("cannot undo edits", UndoLastApplyTool().description)

@@ -70,6 +70,16 @@ class Session:
         self.summary_index = start
         self.updated = time.time()
 
+    def truncate(self, index: int) -> None:
+        """Keep only the messages before `index`; a summary of anything later is dropped with them."""
+        self.messages = self.messages[: max(0, index)]
+        if self.summary_index > len(self.messages):
+            self.summary = ""
+            self.summary_index = 0
+        # The measured request size described the longer conversation; the next request measures anew.
+        self.context_tokens = 0
+        self.updated = time.time()
+
     def rename(self, title: str) -> bool:
         """Give the conversation a chosen title; an empty one changes nothing."""
         cleaned = shorten(title)

@@ -99,6 +99,23 @@ for good after a confirmation; deleting the open conversation starts a fresh one
 Restoring a conversation restores the model's context too — a follow-up like
 *and how many are there?* keeps working.
 
+### Rewinding to an earlier message
+
+Hover one of your messages and click the curved arrow beside it to go back to
+before it, as in Claude Code. You choose what goes back:
+
+- **Conversation and project** — the chat ends just before that message, the
+  message returns to the input box to edit or resend, and the project returns
+  to how it was before the changes that message led to;
+- **Conversation only** — the project stays as it is;
+- **Project only** — the chat stays as it is.
+
+The project side uses the snapshots taken before every Apply. They live as long
+as QGIS runs and only the newest ten are kept, so an older message may offer the
+conversation alone. Edits written into data sources (changed attributes,
+deleted features) are not undone; temporary layers too large to copy come back
+empty, and the agent says which.
+
 ### The context window
 
 The ring next to the model name under the chat box fills with the share of the

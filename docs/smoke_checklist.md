@@ -959,3 +959,8 @@ These verify the agent solves everyday tasks without wandering through search.
      the agent asks in a card with the layers as answers and a fourth row;
      click one → the card folds, your answer appears as a message and the run
      continues. Ask again and type your own answer in the fourth row → same.
+205. **Rewind.** *Make the rivers blue* → Apply; *now make them red* → Apply.
+     Hover the second request → the curved arrow; click → three choices.
+     **Conversation and project** → rivers blue again, the chat ends before
+     the second request and it sits in the input box. A message sent before
+     QGIS was restarted offers **Conversation only**.
