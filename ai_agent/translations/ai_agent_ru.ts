@@ -35,7 +35,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/connectors_settings.py" line="85"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="100"/>
         <source>%n dataset(s)</source>
         <translation>
             <numerusform>%n набор данных</numerusform>
@@ -172,7 +172,7 @@
         <translation>Добавляю полигоны ({0}) в «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="29"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="53"/>
         <source>Administrative boundaries of every country</source>
         <translation>Административные границы любой страны</translation>
     </message>
@@ -185,6 +185,11 @@
         <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="120"/>
         <source>Algorithm: {0}</source>
         <translation>Алгоритм: {0}</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/connectors_settings.py" line="26"/>
+        <source>All</source>
+        <translation>Все</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/settings_dialog.py" line="63"/>
@@ -303,7 +308,7 @@
         <translation>Приложено: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="34"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="58"/>
         <source>Australia: topographic base maps</source>
         <translation>Австралия: топографические базовые карты</translation>
     </message>
@@ -423,7 +428,7 @@
         <translation>Проверяю применённые изменения…</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="27"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="51"/>
         <source>Cloud-free satellite mosaic of the world, non-commercial use</source>
         <translation>Безоблачная спутниковая мозаика мира, некоммерческое использование</translation>
     </message>
@@ -483,7 +488,7 @@
         <translation>Проверка подключения отменена.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="16"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="19"/>
         <location filename="ai_agent/ui/settings_layout.py" line="34"/>
         <source>Connectors</source>
         <translation>Коннекторы</translation>
@@ -829,7 +834,7 @@
         <translation>Забываю: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="30"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="54"/>
         <source>France: aerial photos, maps, communes</source>
         <translation>Франция: аэрофото, карты, коммуны</translation>
     </message>
@@ -868,6 +873,11 @@
         <location filename="ai_agent/ui/settings_advanced.py" line="101"/>
         <source>How the agent works</source>
         <translation>Как работает агент</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/connectors_settings.py" line="63"/>
+        <source>Imagery</source>
+        <translation>Снимки</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/personalisation_settings.py" line="13"/>
@@ -976,12 +986,17 @@
         <translation>Модель ответила: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="41"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="66"/>
+        <source>National</source>
+        <translation>Страны</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/connectors_settings.py" line="73"/>
         <source>National mapping</source>
         <translation>Национальные картографические службы</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="31"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="55"/>
         <source>Netherlands: aerial photos, base map, municipalities</source>
         <translation>Нидерланды: аэрофото, базовая карта, муниципалитеты</translation>
     </message>
@@ -1011,7 +1026,7 @@
         <translation>Не задан ключ API. Укажите его в настройках — или подключитесь к локальной модели: адресу на localhost ключ не нужен.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="19"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="25"/>
         <source>No connector matches.</source>
         <translation>Ни один коннектор не подходит.</translation>
     </message>
@@ -1066,7 +1081,7 @@
         <translation>Ещё не проверено.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="28"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="52"/>
         <source>Ocean depths and land heights</source>
         <translation>Глубины океана и высоты суши</translation>
     </message>
@@ -1089,11 +1104,6 @@
         <location filename="ai_agent/ui/skills_settings.py" line="21"/>
         <source>Open</source>
         <translation>Открыть</translation>
-    </message>
-    <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="17"/>
-        <source>Open data sources the agent can fetch from. A source you switch off is hidden from it.</source>
-        <translation>Источники открытых данных, которыми может пользоваться агент. Выключенный источник от него скрыт.</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/welcome.py" line="23"/>
@@ -1151,7 +1161,12 @@
         <translation>Картинки (*.png *.jpg *.jpeg *.webp *.gif *.bmp)</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="40"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="65"/>
+        <source>Places</source>
+        <translation>Места</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/connectors_settings.py" line="72"/>
         <source>Places and boundaries</source>
         <translation>Места и границы</translation>
     </message>
@@ -1451,7 +1466,7 @@
         <translation>Вернуться к моменту до этого сообщения?</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="22"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="46"/>
         <source>Roads, buildings and places by tag, worldwide</source>
         <translation>Дороги, здания и места по тегам, весь мир</translation>
     </message>
@@ -1521,7 +1536,7 @@
         <translation>Выполняю план с подтверждением</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="38"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="70"/>
         <source>Satellites and imagery</source>
         <translation>Спутники и снимки</translation>
     </message>
@@ -1551,7 +1566,7 @@
         <translation>Сохраняю проект.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="18"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="24"/>
         <source>Search connectors</source>
         <translation>Поиск коннекторов</translation>
     </message>
@@ -1591,7 +1606,7 @@
         <translation>Отправить запрос в {0}?&#10;&#10;Провайдер получит ваш запрос и всё, что агент прочитает для ответа: имена слоёв и полей, значения объектов, границы, источники слоёв и изображения карты. Если данные не должны покидать компьютер, используйте локальный сервер модели.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="25"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="49"/>
         <source>Sentinel-2, Landsat, elevation and land cover scenes</source>
         <translation>Снимки Sentinel-2 и Landsat, рельеф и земельный покров</translation>
     </message>
@@ -1652,7 +1667,7 @@
         <translation>Скиллы</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="23"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="47"/>
         <source>Small tidy world layers: countries, rivers, cities</source>
         <translation>Аккуратные слои мира: страны, реки, города</translation>
     </message>
@@ -1696,7 +1711,7 @@
         <translation>Оформляю растр «{0}»: {1}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="32"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="56"/>
         <source>Switzerland: national map and aerial photos</source>
         <translation>Швейцария: национальная карта и аэрофото</translation>
     </message>
@@ -1706,7 +1721,12 @@
         <translation>Связь с провайдером</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="39"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="64"/>
+        <source>Terrain</source>
+        <translation>Рельеф</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/connectors_settings.py" line="71"/>
         <source>Terrain and oceans</source>
         <translation>Рельеф и океаны</translation>
     </message>
@@ -1910,7 +1930,7 @@
         <translation>Инструменты: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="24"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="48"/>
         <source>Topographic world map with contours</source>
         <translation>Топографическая карта мира с горизонталями</translation>
     </message>
@@ -1940,7 +1960,7 @@
         <translation>Напишите, чтобы поправить меня…</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="33"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="57"/>
         <source>United States: aerial imagery and US Topo</source>
         <translation>США: аэрофото и карта US Topo</translation>
     </message>
@@ -1990,6 +2010,11 @@
         <translation>Какие у меня слои и что в них?</translation>
     </message>
     <message>
+        <location filename="ai_agent/ui/connectors_settings.py" line="20"/>
+        <source>Where the agent gets data you do not have: ask for a satellite picture, boundaries or an aerial photo and it loads them from these sources. A source you switch off is hidden from it.</source>
+        <translation>Откуда агент берёт данные, которых у вас нет: попросите спутниковый снимок, границы или аэрофото — и он загрузит их из этих источников. Выключенный источник от него скрыт.</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/settings_dialog.py" line="155"/>
         <source>Without /chat/completions.</source>
         <translation>Без /chat/completions.</translation>
@@ -2000,7 +2025,12 @@
         <translation>Работаю…</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="37"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="62"/>
+        <source>World</source>
+        <translation>Мир</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/connectors_settings.py" line="69"/>
         <source>Worldwide maps</source>
         <translation>Карты мира</translation>
     </message>
@@ -2010,7 +2040,7 @@
         <translation>Писать журнал прогона после применения</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="26"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="50"/>
         <source>Yesterday's Earth from space, night lights, Blue Marble</source>
         <translation>Вчерашняя Земля из космоса, ночные огни, Blue Marble</translation>
     </message>

@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from qgis.PyQt.QtCore import QObject, pyqtSignal
+from qgis.PyQt.QtCore import QObject, Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import QPlainTextEdit
 
 from ai_agent.core.settings import MAX_CUSTOM_INSTRUCTIONS, get_custom_instructions
@@ -16,7 +16,8 @@ PLACEHOLDER = tr(
     "For example: answer briefly. Use metres and EPSG:3857 for web maps. Name new layers in English with underscores."
 )
 COUNTER = "{0} / {1}"
-EDITOR_HEIGHT = 220
+EDITOR_HEIGHT = 132
+EDITOR_GAP = 10
 EDITOR_RADIUS = 8
 
 
@@ -29,7 +30,7 @@ class PersonalisationSettings(QObject):
         fields.section(column, TITLE, palette, INTRO)
         self.editor = QPlainTextEdit(get_custom_instructions())
         self.editor.setPlaceholderText(PLACEHOLDER)
-        self.editor.setMinimumHeight(EDITOR_HEIGHT)
+        self.editor.setFixedHeight(EDITOR_HEIGHT)
         border = style.css_color(style.border_strong(palette))
         self.editor.setStyleSheet(
             f"QPlainTextEdit {{ background: {style.css_color(style.field(palette))};"
@@ -38,8 +39,11 @@ class PersonalisationSettings(QObject):
             f"QPlainTextEdit:focus {{ border: {style.HAIRLINE}px solid {style.css_color(style.accent(palette))}; }}"
         )
         self.editor.textChanged.connect(self._on_text)
+        column.addSpacing(EDITOR_GAP)
         column.addWidget(self.editor)
+        column.addSpacing(EDITOR_GAP)
         self.counter = controls.small("", palette)
+        self.counter.setAlignment(Qt.AlignmentFlag.AlignRight)
         column.addWidget(self.counter)
         column.addStretch(1)
         self._on_text(emit=False)
