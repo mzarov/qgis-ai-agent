@@ -125,7 +125,7 @@
  {
   "depth": 6,
   "type": "QLabel",
-  "text": "15"
+  "text": "16"
  },
  {
   "depth": 5,
@@ -171,6 +171,29 @@
   "depth": 7,
   "type": "ElidedLabel",
   "text": "Draw charts and tables right in the chat — a histogram of a field, values per category as bars or a pie, a line over tim"
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "data"
+ },
+ {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "Find and fetch open data the project lacks — satellite images (Sentinel-2, Landsat), elevation, land cover, surface wate"
  },
  {
   "depth": 6,

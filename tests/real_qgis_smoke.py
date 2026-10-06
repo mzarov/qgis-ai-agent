@@ -15,8 +15,8 @@ from qgis.PyQt.QtNetwork import QNetworkRequest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 MINIMUM_QGIS_VERSION = 40000
-EXPECTED_TOOLS = 74
-EXPECTED_SKILLS = 15
+EXPECTED_TOOLS = 78
+EXPECTED_SKILLS = 16
 
 
 def main() -> int:

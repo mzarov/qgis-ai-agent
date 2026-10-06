@@ -224,6 +224,28 @@ The `tables` skill handles CSV files and attribute joins:
 When the joined fields must become a separate layer or file, ask for that: the
 agent then uses the Processing algorithm `native:joinattributestable` instead.
 
+## Open data and satellite imagery
+
+The `data` skill fetches data the project does not have yet:
+
+- “Find a cloud-free Sentinel-2 image of this area from July” — the agent
+  searches the Microsoft Planetary Computer and lists scenes with their date
+  and cloud cover; “load the clearest one” adds it as a true-colour raster.
+  Landsat (since 1982), the Copernicus 30 m and 90 m elevation models, ESA
+  WorldCover, yearly land use and JRC surface water work the same way. The area
+  is the current view, a layer's extent or coordinates.
+- “Add the regions of Kenya” — administrative boundaries from geoBoundaries,
+  any country, from regions down to districts and further where published.
+- “Add the world's countries and rivers” — Natural Earth layers at 1:110m,
+  1:50m or 1:10m.
+
+Each search and download is listed in the plan and runs after you agree.
+Imagery is read in place over the internet through a signed link that expires
+within a day; ask the agent to export a layer when you want to keep it.
+Vector downloads are saved next to a saved project (in `open_data/`), or in a
+temporary folder for an unsaved one. OpenStreetMap features stay with the `osm`
+skill.
+
 ## Charts and tables
 
 Ask for a picture of the data and it appears in the chat:

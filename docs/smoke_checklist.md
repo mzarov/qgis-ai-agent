@@ -955,6 +955,12 @@ These verify the agent solves everyday tasks without wandering through search.
      2020" and hide it* → Apply → the feed says *Checked: every step is in
      place.* and no second model run starts. *Colour districts by population*
      → Apply → the usual *Checking the applied changes…* run follows.
+201. **Open data loads.** *Find a cloud-free Sentinel-2 image of the current
+     view from this summer* → a consent prompt names the Planetary Computer,
+     the answer lists scenes with dates and cloud cover; *load the clearest* →
+     a true-colour raster appears where expected. *Add the regions of Kenya* →
+     a boundary layer with 47 regions. *Load a DEM here* → a height raster.
+
 202. **Charts and tables.** *Chart the population by district* → a bar chart
      appears in the feed; hover a bar → its value; right click → copy image
      and copy CSV work. *Table of the three largest districts* → a sorted
