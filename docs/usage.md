@@ -35,6 +35,11 @@ drop it:
 - *clip the roads by the city boundary, compute the length and save the
   project* — a whole chain lands in one plan card
 
+When the agent cannot go on without your decision — which of two similar layers,
+which territory — it asks in a card: up to three likely answers to click, and a
+fourth row to type your own and press Enter. Typing in the main box works too.
+The run continues from the same place with your answer.
+
 ### Auto mode
 
 The mode button under the chat box, next to **+**, shows **Ask first** or
@@ -93,6 +98,23 @@ keeps, Esc drops — a name you chose is never replaced) and a bin to delete it
 for good after a confirmation; deleting the open conversation starts a fresh one.
 Restoring a conversation restores the model's context too — a follow-up like
 *and how many are there?* keeps working.
+
+### Rewinding to an earlier message
+
+Hover one of your messages and click the curved arrow beside it to go back to
+before it, as in Claude Code. You choose what goes back:
+
+- **Conversation and project** — the chat ends just before that message, the
+  message returns to the input box to edit or resend, and the project returns
+  to how it was before the changes that message led to;
+- **Conversation only** — the project stays as it is;
+- **Project only** — the chat stays as it is.
+
+The project side uses the snapshots taken before every Apply. They live as long
+as QGIS runs and only the newest ten are kept, so an older message may offer the
+conversation alone. Edits written into data sources (changed attributes,
+deleted features) are not undone; temporary layers too large to copy come back
+empty, and the agent says which.
 
 ### The context window
 
@@ -201,6 +223,46 @@ The `tables` skill handles CSV files and attribute joins:
 
 When the joined fields must become a separate layer or file, ask for that: the
 agent then uses the Processing algorithm `native:joinattributestable` instead.
+
+## Open data and satellite imagery
+
+The `data` skill fetches data the project does not have yet:
+
+- “Find a cloud-free Sentinel-2 image of this area from July” — the agent
+  searches the Microsoft Planetary Computer and lists scenes with their date
+  and cloud cover; “load the clearest one” adds it as a true-colour raster.
+  Landsat (since 1982), the Copernicus 30 m and 90 m elevation models, ESA
+  WorldCover, yearly land use and JRC surface water work the same way. The area
+  is the current view, a layer's extent or coordinates.
+- “Add the regions of Kenya” — administrative boundaries from geoBoundaries,
+  any country, from regions down to districts and further where published.
+- “Add the world's countries and rivers” — Natural Earth layers at 1:110m,
+  1:50m or 1:10m.
+
+Each search and download is listed in the plan and runs after you agree.
+Imagery is read in place over the internet through a signed link that expires
+within a day; ask the agent to export a layer when you want to keep it.
+Vector downloads are saved next to a saved project (in `open_data/`), or in a
+temporary folder for an unsaved one. OpenStreetMap features stay with the `osm`
+skill.
+
+## Charts and tables
+
+Ask for a picture of the data and it appears in the chat:
+
+- “Chart the population by district” — a bar per district, computed in QGIS
+  from the layer; long names lay out as rows.
+- “Show the distribution of parcel areas” — a histogram of a field or an
+  expression such as `$area / 10000`.
+- “Pie of land use by area” — shares of a whole; more than seven parts fold
+  into “Other”.
+- “Table of the ten largest towns with name and population” — a sorted table of
+  chosen fields, up to 50 rows.
+
+Hover a bar, point or slice for its value; right-click to copy the picture or
+the numbers as CSV. Charts and tables stay with the conversation and come back
+when you reopen it. They are drawn for you: the model gets only a short
+confirmation with the numbers, not the picture.
 
 ## Other installed plugins
 

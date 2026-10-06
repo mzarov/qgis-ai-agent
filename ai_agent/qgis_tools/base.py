@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 RESULT_IMAGE_KEY = "image_base64"
+# A chart or table for the person: the feed draws it, the model never receives it.
+RESULT_VISUAL_KEY = "visual_for_user"
 SAFETY_READ = "read"
 SAFETY_WRITE = "write"
 SAFETY_DESTRUCTIVE = "destructive"

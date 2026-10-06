@@ -7,6 +7,7 @@ LOAD_SKILL_TOOL = "load_skill"
 UPDATE_PLAN_TOOL = "update_plan"
 APPLY_NOW_TOOL = "apply_now"
 ASK_USER_TOOL = "ask_user"
+MAX_QUESTION_OPTIONS = 3
 TASK_PLAN_HEADER = "Your current task plan (kept by update_plan):"
 QUEUED_HEADER = "Already queued this run, waiting for the user to apply — do not queue these again:"
 PROJECT_NOTES_HEADER = "What you were told to remember about this project:"
@@ -88,7 +89,8 @@ and continue.
 Ask only when you are genuinely stuck. If the task cannot move without a
 decision that is truly the user's — which of two similarly named layers they
 meant, which territory to take when the request is ambiguous — call ask_user
-with one short, concrete question. The run pauses, the question is shown, and
+with one short, concrete question, and offer the likely answers as options so
+the user can reply with one click. The run pauses, the question is shown, and
 the reply comes back into this same run. Never use it to ask permission to
 proceed or to have a plan approved: queueing the steps IS the proposal. Never
 ask what a read tool can answer.
@@ -227,7 +229,15 @@ def build_ask_user_schema() -> dict[str, Any]:
                     "question": {
                         "type": "string",
                         "description": "One short, concrete question for the user",
-                    }
+                    },
+                    "options": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": (
+                            f"Up to {MAX_QUESTION_OPTIONS} likely answers the user can pick with one "
+                            "click; they can always type their own instead"
+                        ),
+                    },
                 },
                 "required": ["question"],
             },

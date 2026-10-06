@@ -32,6 +32,8 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
     tool_queued = pyqtSignal(str)
     tool_rejected = pyqtSignal(object)
     skill_loaded = pyqtSignal(str)
+    # A chart or table spec (plain JSON) a read tool drew for the person.
+    visual_ready = pyqtSignal(object)
     plan_changed = pyqtSignal(object, int)
     # The flag says the batch applies itself (auto mode, nothing destructive): no button to wait for.
     confirm_needed = pyqtSignal(object, str, bool)
@@ -79,6 +81,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._verification_round = 0
         self._streamed_thinking = False
         self._question = ""
+        self._question_options: list[str] = []
         self._stage_call: ToolCall | None = None
         self._generation = 0
         self._turn_callbacks: tuple | None = None
@@ -101,6 +104,11 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
     @property
     def is_awaiting_answer(self) -> bool:
         return bool(self._question)
+
+    @property
+    def question_options(self) -> list[str]:
+        """The answers offered with the pending question, for the card's buttons."""
+        return list(self._question_options) if self._question else []
 
     @property
     def is_planning(self) -> bool:

@@ -123,7 +123,11 @@ information.
 The plugin contains no telemetry. It contacts the model endpoint you configure
 and the per-call web recipients listed above. When requested, GIS tools can also
 contact services such as Overpass, tile servers, WMS/WFS endpoints or databases
-selected by the user. QGIS and installed providers may make their own network
+selected by the user. The open-data tools contact the Microsoft Planetary
+Computer (scene search sends the search rectangle and dates; loaded imagery is
+read from its Azure storage through a short-lived signed link), GitHub (Natural
+Earth and geoBoundaries files) and the geoBoundaries API (the country code).
+Each such call is listed in the plan and runs only after confirmation. QGIS and installed providers may make their own network
 requests independently of this plugin.
 
 ## Working with sensitive projects

@@ -13,7 +13,7 @@ confirms them.
 **Documentation:** <https://mzarov.github.io/qgis-ai-agent/> ·
 по-русски: <https://mzarov.github.io/qgis-ai-agent/ru/>
 
-**What it does** — fifteen domains, 74 tools:
+**What it does** — seventeen domains, 81 tools:
 
 | Domain | Example requests |
 | --- | --- |
@@ -22,6 +22,7 @@ confirms them.
 | `style` | “make the rivers blue”, “colour by population”, “label with names” |
 | `processing` | “build a 500 m buffer”, “clip by the district boundary”, “compute NDVI” |
 | `osm` | “download the cafes in Tver”, “roads except unpaved ones from OSM” |
+| `data` | “find a cloud-free Sentinel-2 image of this area”, “add the regions of Kenya”, “load a DEM here” |
 | `draw` | “put a point at 55.75, 37.62”, “draw a line between these towns” |
 | `edit` | “fix the misspelled name”, “delete the features with no geometry data” |
 | `fields` | “add a virtual field with the area in hectares”, “rename nm to name” |
@@ -31,6 +32,7 @@ confirms them.
 | `annotations` | “mark this place”, “add a note to the map”, “remove that annotation” |
 | `three_d` | “open a 3D view of this project” |
 | `tables` | “join this CSV to the districts by code”, “make points from this CSV with lon/lat” |
+| `charts` | “chart population by district”, “histogram of the parcel areas”, “table of the ten largest towns” |
 | `plugins` | “which plugin can segment this image?”, “start the qgis2web export”, “use GeoAI on this raster” |
 
 The agent can **see**: on a vision model it renders the map or the layout and

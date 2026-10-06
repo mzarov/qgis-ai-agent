@@ -53,6 +53,33 @@ CHECKING = "Checking the applied changes…"
 STEP = "Reading layer 'districts'"
 TOKENS = "/style colour @districts by pop2020 in 5 classes"
 DONE = "Done: %n step(s) applied.{0}"
+BAR_CHART = {
+    "type": "chart",
+    "kind": "bar",
+    "title": "Population 2020 by district, people",
+    "labels": ["D1", "D2", "D3", "D4", "D5", "D6"],
+    "series": [{"name": "pop2020", "values": [20000, 35000, 50000, 65000, 80000, 95000]}],
+    "x_label": "",
+    "y_label": "",
+    "unit": "people",
+}
+PIE_CHART = {
+    "type": "chart",
+    "kind": "pie",
+    "title": "Land cover by area",
+    "labels": ["Forest", "Cropland", "Built-up", "Water"],
+    "series": [{"name": "area", "values": [52.0, 31.0, 11.0, 6.0]}],
+    "x_label": "",
+    "y_label": "",
+    "unit": "km²",
+}
+TABLE = {
+    "type": "table",
+    "title": "Largest districts",
+    "columns": ["name", "pop2020", "area_km2"],
+    "rows": [["District 6", "95,000", "112.4"], ["District 5", "80,000", "98.1"], ["District 4", "65,000", "87"]],
+    "total": 6,
+}
 
 
 def _profile_root() -> str:
@@ -157,6 +184,31 @@ class StateScreens(ScreenCase):
         self.dock.conversation.add_assistant_message(ANSWER)
         self.dock.offer_plan()
         self.check("dock_plan_narrow", self.dock)
+        self.iface.window.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
+
+    def test_charts_and_a_table(self) -> None:
+        self.dock.add_user_message("Chart the population by district and show the largest ones")
+        self.dock.add_visual(BAR_CHART)
+        self.dock.add_visual(PIE_CHART)
+        self.dock.add_visual(TABLE)
+        self.check("dock_charts", self.dock)
+
+    def test_question_card(self) -> None:
+        self.dock.add_user_message("Colour the roads")
+        self.dock.add_question(
+            "There are two road layers. Which one should I colour?",
+            ["roads_2024 (12 480 features)", "roads_old (9 102 features)", "Both"],
+        )
+        self.check("dock_question", self.dock)
+
+    def test_question_card_in_a_narrow_dock(self) -> None:
+        self.iface.window.resize(NARROW_WIDTH, WINDOW_HEIGHT)
+        self.dock.add_user_message("Colour the roads")
+        self.dock.add_question(
+            "There are two road layers. Which one should I colour?",
+            ["roads_2024 (12 480 features)", "roads_old (9 102 features)", "Both"],
+        )
+        self.check("dock_question_narrow", self.dock)
         self.iface.window.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
 
     def test_auto_mode(self) -> None:

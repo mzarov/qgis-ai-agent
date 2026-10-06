@@ -97,6 +97,11 @@ def last_snapshot() -> str:
     return ""
 
 
+def snapshot_exists(path: str) -> bool:
+    """Whether `path` is a live snapshot: still kept (not trimmed or undone) and still on disk."""
+    return path in _LAST and os.path.isfile(path)
+
+
 def drop_last() -> None:
     if _LAST:
         drop_snapshot(_LAST[-1])
