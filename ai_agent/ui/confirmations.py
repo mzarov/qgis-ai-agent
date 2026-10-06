@@ -7,6 +7,8 @@ from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QLabel, QMessageBox, 
 from ai_agent.core.orchestrator.notices import REWIND_BOTH, REWIND_CONVERSATION, REWIND_PROJECT
 from ai_agent.i18n import tr
 
+REWIND_PROPERTY = "rewindChoice"
+
 
 def confirm_destructive(parent: QWidget, lines: list[str], details: str = "") -> bool:
     if (details or "").strip():
@@ -41,15 +43,18 @@ def choose_rewind(parent: QWidget, project_available: bool) -> str | None:
                 "from that point is kept in this QGIS session."
             )
         )
-    choices = {}
+    options = [(tr("Conversation only"), REWIND_CONVERSATION)]
     if project_available:
-        choices[box.addButton(tr("Conversation and project"), QMessageBox.ButtonRole.AcceptRole)] = REWIND_BOTH
-    choices[box.addButton(tr("Conversation only"), QMessageBox.ButtonRole.AcceptRole)] = REWIND_CONVERSATION
-    if project_available:
-        choices[box.addButton(tr("Project only"), QMessageBox.ButtonRole.AcceptRole)] = REWIND_PROJECT
-    box.addButton(QMessageBox.StandardButton.Cancel)
+        options = [(tr("Conversation and project"), REWIND_BOTH), *options, (tr("Project only"), REWIND_PROJECT)]
+    for text, key in options:
+        # The answer rides on the button: clickedButton() may hand back a different Python wrapper.
+        box.addButton(text, QMessageBox.ButtonRole.AcceptRole).setProperty(REWIND_PROPERTY, key)
+    # A button of our own: the standard Cancel stays English when QGIS ships no Qt translation.
+    box.addButton(tr("Cancel"), QMessageBox.ButtonRole.RejectRole)
     box.exec()
-    return choices.get(box.clickedButton())
+    clicked = box.clickedButton()
+    chosen = clicked.property(REWIND_PROPERTY) if clicked is not None else None
+    return str(chosen) if chosen else None
 
 
 def confirm_delete_conversation(parent: QWidget, title: str) -> bool:

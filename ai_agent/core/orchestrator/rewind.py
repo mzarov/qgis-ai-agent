@@ -67,6 +67,9 @@ class RewindMixin:
             return
         checkpoint = self.checkpoint_for(message)
         choice = self.dock_widget.choose_rewind(checkpoint is not None)
+        if checkpoint is not None and not snapshot_exists(checkpoint.snapshot):
+            # The question is modal, but an undo may still have consumed the snapshot meanwhile.
+            checkpoint = None
         restored = ""
         if choice in (REWIND_BOTH, REWIND_PROJECT) and checkpoint is not None:
             restored = self._rewind_project(checkpoint)
