@@ -1,6 +1,6 @@
 from typing import Any
 
-from qgis.core import Qgis, QgsMessageLog, QgsProject, QgsRasterLayer
+from qgis.core import Qgis, QgsMessageLog, QgsProject, QgsRasterLayer, QgsRasterRange
 
 from ai_agent.i18n import tr_n
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
@@ -67,13 +67,14 @@ class LoadImageryTool(BaseTool):
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         entry = dataset(params.get("collection") or "", KIND_IMAGERY)
         asset = _asset(entry, params.get("asset"))
-        prefix = str(params.get("name") or "").strip() or entry.title
+        given = str(params.get("name") or "").strip()
+        ids = _item_ids(params)
         added: list[dict[str, Any]] = []
         temporary = False
         expiry = ""
-        for item_id in _item_ids(params):
+        for item_id in ids:
             found = item(entry.id, item_id)
-            name = f"{prefix} {scene_date(found.get('properties') or {})}".strip()
+            name = _layer_name(given, entry, found, len(ids))
             if asset == TRUE_COLOR and entry.rgb:
                 source, in_temp, expiry = _stacked(entry, found, name)
                 temporary = temporary or in_temp
@@ -83,12 +84,35 @@ class LoadImageryTool(BaseTool):
             layer = QgsRasterLayer(source, name, "gdal")
             if not layer.isValid():
                 raise ValueError(f"QGIS could not open scene '{item_id}' ({asset}). The service may be busy.")
-            QgsProject.instance().addMapLayer(layer)
+            if entry.nodata is not None:
+                _transparent_nodata(layer, entry.nodata)
+            _add_under_vectors(layer)
             added.append({"layer": layer.name(), "id": layer.id(), "scene": item_id, "asset": asset})
         result: dict[str, Any] = {"added": added, "note": LINK_NOTE.format(expiry=expiry or "within a day")}
         if temporary:
             result["storage_note"] = TEMP_NOTE
         return result
+
+
+def _layer_name(given: str, entry: Dataset, found: dict[str, Any], count: int) -> str:
+    """A given name as is for one scene; otherwise the name or the title, then the scene's date."""
+    if given and count == 1:
+        return given
+    return f"{given or entry.title} {scene_date(found.get('properties') or {})}".strip()
+
+
+def _add_under_vectors(layer: QgsRasterLayer) -> None:
+    """Imagery is a backdrop: it goes to the bottom of the layer tree, so it hides no vector layer."""
+    project = QgsProject.instance()
+    project.addMapLayer(layer, False)
+    root = project.layerTreeRoot()
+    root.insertLayer(len(root.children()), layer)
+
+
+def _transparent_nodata(layer: QgsRasterLayer, value: float) -> None:
+    provider = layer.dataProvider()
+    for band in range(1, layer.bandCount() + 1):
+        provider.setUserNoDataValue(band, [QgsRasterRange(value, value)])
 
 
 def _item_ids(params: dict[str, Any]) -> list[str]:

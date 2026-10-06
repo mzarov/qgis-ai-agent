@@ -4,7 +4,7 @@ import time
 import unittest
 from unittest import mock
 
-from ai_agent.qgis_tools.data import catalogue, load_dataset, load_imagery, region, search_imagery, stac
+from ai_agent.qgis_tools.data import catalogue, coverage, load_dataset, load_imagery, region, search_imagery, stac
 from ai_agent.qgis_tools.registry import get_tool_by_name
 from ai_agent.skills.registry import SKILL_REGISTRY
 
@@ -24,6 +24,14 @@ class Layer:
 
     def featureCount(self):
         return 6
+
+    def bandCount(self):
+        return 3
+
+    def dataProvider(self):
+        if not hasattr(self, "provider_calls"):
+            self.provider_calls = []
+        return mock.Mock(setUserNoDataValue=lambda band, ranges: self.provider_calls.append(band))
 
 
 class CatalogueTest(unittest.TestCase):
@@ -115,6 +123,32 @@ class SearchImageryTest(unittest.TestCase):
             tool.prepare({"collection": "geoboundaries", "bbox": "1,1,2,2"})
 
 
+class CoverageTest(unittest.TestCase):
+    def test_the_share_of_the_area_inside_a_footprint(self):
+        square = {"type": "Polygon", "coordinates": [[[0, 0], [2, 0], [2, 2], [0, 2], [0, 0]]]}
+        self.assertEqual(coverage.covered_share(square, (0, 0, 1, 1)), 100.0)
+        self.assertEqual(coverage.covered_share(square, (1, 1, 3, 3)), 25.0)
+        sliver = {"type": "MultiPolygon", "coordinates": [[[[0, 0], [1, 0], [0, 1], [0, 0]]]]}
+        self.assertEqual(coverage.covered_share(sliver, (0, 0, 1, 1)), 50.0)
+        self.assertIsNone(coverage.covered_share({"type": "Point"}, (0, 0, 1, 1)))
+
+    def test_scenes_that_cover_the_area_come_before_clearer_slivers(self):
+        def scene(name, cloud, ring):
+            return {
+                "id": name,
+                "geometry": {"type": "Polygon", "coordinates": [ring]},
+                "properties": {"eo:cloud_cover": cloud},
+            }
+
+        full = [[0, 0], [3, 0], [3, 3], [0, 3], [0, 0]]
+        edge = [[0, 0], [1.2, 0], [1.2, 3], [0, 3], [0, 0]]
+        answer = {"features": [scene("edge", 0.1, edge), scene("full", 4.0, full)]}
+        with mock.patch.object(stac, "post_json", return_value=answer):
+            found = stac.search("sentinel-2-l2a", (1, 1, 2, 2), "", 20.0, 2, False)
+        self.assertEqual([item["id"] for item in found], ["full", "edge"])
+        self.assertEqual(found[1]["covers_area_percent"], 20.0)
+
+
 class TokenTest(unittest.TestCase):
     def setUp(self):
         stac._tokens.clear()
@@ -156,7 +190,8 @@ class LoadImageryTest(unittest.TestCase):
 
     def test_a_scene_opens_in_place_through_a_signed_link(self):
         added = []
-        project = mock.Mock(addMapLayer=added.append)
+        project = mock.Mock(addMapLayer=lambda layer, show=True: added.append(layer))
+        project.layerTreeRoot.return_value.children.return_value = ["a", "b"]
         with (
             mock.patch.object(load_imagery, "item", return_value=SCENE),
             mock.patch.object(load_imagery, "signed", side_effect=lambda href: (href + "?sig", "2026-10-07T11:00:00Z")),
@@ -166,6 +201,8 @@ class LoadImageryTest(unittest.TestCase):
             result = load_imagery.LoadImageryTool().execute({"collection": "sentinel-2-l2a", "item_ids": ["S2C_X"]})
         self.assertEqual(added[0].source, "/vsicurl/https://blob/visual.tif?sig")
         self.assertEqual(result["added"][0]["layer"], "Sentinel-2 Level-2A 2026-09-10")
+        self.assertEqual(added[0].provider_calls, [1, 2, 3], "the no-data frame must be transparent")
+        project.layerTreeRoot.return_value.insertLayer.assert_called_once_with(2, added[0])
         self.assertIn("2026-10-07T11:00:00Z", result["note"])
 
 

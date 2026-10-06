@@ -29,6 +29,8 @@ class Dataset:
     cloudy: bool = False
     # Assets stacked into one RGB layer for TRUE_COLOR when the collection has no ready-made picture.
     rgb: tuple[str, ...] = ()
+    # The pixel value that means "no data here": drawn transparent instead of a black frame.
+    nodata: float | None = None
     notes: tuple[str, ...] = field(default=())
 
 
@@ -124,6 +126,7 @@ DATASETS: tuple[Dataset, ...] = (
         assets=("visual", "B02", "B03", "B04", "B08", "B11", "B12", "SCL"),
         cloudy=True,
         notes=("visual is the ready true-colour picture; B04 red, B08 near infrared; SCL scene classes",),
+        nodata=0,
     ),
     Dataset(
         id="landsat-c2-l2",
@@ -139,6 +142,7 @@ DATASETS: tuple[Dataset, ...] = (
         cloudy=True,
         rgb=("red", "green", "blue"),
         notes=("true_color stacks red, green and blue into one layer",),
+        nodata=0,
     ),
     Dataset(
         id="cop-dem-glo-30",
@@ -176,6 +180,7 @@ DATASETS: tuple[Dataset, ...] = (
         load_with="search_imagery, then load_imagery",
         default_asset="map",
         assets=("map",),
+        nodata=0,
     ),
     Dataset(
         id="io-lulc-annual-v02",
@@ -188,6 +193,7 @@ DATASETS: tuple[Dataset, ...] = (
         load_with="search_imagery, then load_imagery",
         default_asset="data",
         assets=("data",),
+        nodata=0,
     ),
     Dataset(
         id="jrc-gsw",

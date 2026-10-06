@@ -8,6 +8,7 @@ import time
 from typing import Any
 from urllib.parse import quote, urlparse
 
+from ai_agent.qgis_tools.data.coverage import FULL_COVER, covered_share
 from ai_agent.qgis_tools.data.http import get_json, post_json
 
 STAC_ROOT = "https://planetarycomputer.microsoft.com/api/stac/v1"
@@ -18,6 +19,7 @@ CLOUD = "eo:cloud_cover"
 # A cached token is replaced this long before it expires, so a layer never starts with a dying link.
 TOKEN_MARGIN_S = 15 * 60
 TOKEN_FALLBACK_S = 45 * 60
+MAX_FETCHED = 30
 _tokens: dict[str, tuple[str, float, str]] = {}
 
 
@@ -29,7 +31,8 @@ def search(
     limit: int,
     newest_first: bool,
 ) -> list[dict[str, Any]]:
-    body: dict[str, Any] = {"collections": [collection], "bbox": list(bbox), "limit": limit}
+    # More than asked for: scenes that cover the area go first, so the clearest sliver does not win.
+    body: dict[str, Any] = {"collections": [collection], "bbox": list(bbox), "limit": min(MAX_FETCHED, limit * 3)}
     if dates:
         body["datetime"] = dates
     if max_cloud is not None:
@@ -37,7 +40,9 @@ def search(
     field = "properties.datetime" if newest_first or max_cloud is None else f"properties.{CLOUD}"
     body["sortby"] = [{"field": field, "direction": "desc" if field.endswith("datetime") else "asc"}]
     answer = post_json(f"{STAC_ROOT}/search", body)
-    return [_summary(feature) for feature in (answer.get("features") or [])[:limit]]
+    scenes = [_summary(feature, bbox) for feature in answer.get("features") or []]
+    scenes.sort(key=lambda scene: (scene.get("covers_area_percent") or 0) < FULL_COVER)
+    return scenes[:limit]
 
 
 def item(collection: str, item_id: str) -> dict[str, Any]:
@@ -91,9 +96,12 @@ def scene_date(properties: dict[str, Any]) -> str:
     return str(properties.get("datetime") or properties.get("start_datetime") or "")[:10]
 
 
-def _summary(feature: dict[str, Any]) -> dict[str, Any]:
+def _summary(feature: dict[str, Any], bbox: tuple[float, float, float, float]) -> dict[str, Any]:
     properties = feature.get("properties") or {}
     summary: dict[str, Any] = {"id": feature.get("id"), "date": scene_date(properties)}
+    share = covered_share(feature.get("geometry"), bbox)
+    if share is not None:
+        summary["covers_area_percent"] = share
     if properties.get(CLOUD) is not None:
         summary["cloud_cover"] = round(float(properties[CLOUD]), 1)
     for key, label in (("platform", "platform"), ("s2:mgrs_tile", "tile"), ("landsat:wrs_path", "wrs_path")):

@@ -30,9 +30,11 @@ first when you are not sure which dataset fits; each entry says how to load it.
   `max_cloud` (default 20 %). Give `date_from`/`date_to` for a season; for
   "the latest image" pass `newest_first`.
 - Elevation, WorldCover and surface water are timeless tiles: leave the dates out.
-- A scene or tile covers about 1°×1° (Sentinel-2 about 110 km). An area that
-  straddles tiles needs several: load every tile the search returned for the
-  area, not just the first.
+- A scene or tile covers about 1°×1° (Sentinel-2 about 110 km), and a scene at
+  the edge of a satellite pass holds data in a sliver only. Each scene says
+  `covers_area_percent`; scenes covering the whole area come first. Prefer one
+  near 100 %; when none covers the area, load the tiles that together cover
+  it, not just the first.
 
 ## Loading
 
