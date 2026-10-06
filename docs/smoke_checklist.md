@@ -955,3 +955,7 @@ These verify the agent solves everyday tasks without wandering through search.
      2020" and hide it* → Apply → the feed says *Checked: every step is in
      place.* and no second model run starts. *Colour districts by population*
      → Apply → the usual *Checking the applied changes…* run follows.
+202. **Charts and tables.** *Chart the population by district* → a bar chart
+     appears in the feed; hover a bar → its value; right click → copy image
+     and copy CSV work. *Table of the three largest districts* → a sorted
+     table. Switch to another conversation and back → both are still there.

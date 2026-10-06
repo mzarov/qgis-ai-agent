@@ -4,7 +4,7 @@ from qgis.core import Qgis, QgsMessageLog
 
 from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.core.llm.turns import ToolCall
-from ai_agent.qgis_tools.base import RESULT_IMAGE_KEY
+from ai_agent.qgis_tools.base import RESULT_IMAGE_KEY, RESULT_VISUAL_KEY
 from ai_agent.qgis_tools.registry import execute_tool, get_tool_by_name
 
 LOG_TAG = "AI Agent"
@@ -28,6 +28,7 @@ class ToolExecutor:
             payload = execute_tool(call.name, dict(call.arguments))
             prepared = self._as_dict(payload)
             image = str(prepared.pop(RESULT_IMAGE_KEY, "") or "")
+            visual = prepared.pop(RESULT_VISUAL_KEY, None)
             if image:
                 prepared["image_attached"] = True
             ok = not bool(prepared.get("error"))
@@ -42,7 +43,8 @@ class ToolExecutor:
             QgsMessageLog.logMessage(f"Tool {call.name} finished.", LOG_TAG, Qgis.MessageLevel.Info)
         else:
             QgsMessageLog.logMessage(f"Tool {call.name} reported a failure.", LOG_TAG, Qgis.MessageLevel.Warning)
-        return ToolResult(call=call, ok=ok, payload=prepared, image=image, egress=tool.egress)
+        shown = visual if ok and isinstance(visual, dict) else None
+        return ToolResult(call=call, ok=ok, payload=prepared, image=image, egress=tool.egress, visual=shown)
 
     @staticmethod
     def queued(call: ToolCall) -> ToolResult:

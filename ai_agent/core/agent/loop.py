@@ -32,6 +32,8 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
     tool_queued = pyqtSignal(str)
     tool_rejected = pyqtSignal(object)
     skill_loaded = pyqtSignal(str)
+    # A chart or table spec (plain JSON) a read tool drew for the person.
+    visual_ready = pyqtSignal(object)
     plan_changed = pyqtSignal(object, int)
     # The flag says the batch applies itself (auto mode, nothing destructive): no button to wait for.
     confirm_needed = pyqtSignal(object, str, bool)

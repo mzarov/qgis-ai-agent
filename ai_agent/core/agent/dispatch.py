@@ -66,6 +66,8 @@ class DispatchMixin:
         self.tool_started.emit(summarize_tool_call(call.name, call.arguments))
         result = self._executor.run(call)
         self.tool_finished.emit(call.name, result.ok)
+        if result.visual is not None:
+            self.visual_ready.emit(result.visual)
         return result
 
     def _queue_write(self, call: ToolCall) -> ToolResult:

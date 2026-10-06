@@ -44,6 +44,9 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `context_meter.py` | the ring under the composer and its popup: window, auto-compact, Compact, spent |
 | `choice_popup.py` | the mode menu as in Claude Code: caption, rows with a note, check and number key |
 | `attachments.py`  | the + file pickers, drag-and-drop paths, the picture chips waiting in the composer |
+| `chart.py`        | a chart in the feed: bars, rows, lines, donut, histogram, scatter; painted, hover tips, copy image/CSV |
+| `chart_scale.py`  | axis arithmetic: round ticks, compact numbers, which bar layout fits |
+| `table_card.py`   | a table in the feed: painted rows, natural column widths, elided cells with tips, copy CSV |
 | `progress.py`     | the working line as in Claude Code: walking dots, the current step, the elapsed time; the feed's last row, under the newest message |
 | `controls.py`     | custom controls: `Segmented` keeps the combo-box API, `Chips`, `RoundedFrame` (every state-dependent box), icon tiles, badges, keycaps, `ElidedLabel`, menus |
 | `connection_widgets.py` | provider tiles and the connection status card |

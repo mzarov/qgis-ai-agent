@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from typing import Any
 
 from qgis.PyQt.QtCore import QSize, pyqtSignal
 from qgis.PyQt.QtWidgets import (
@@ -170,11 +171,13 @@ class AgentDockWidget(QDockWidget):
         if confirmations.confirm_delete_conversation(self, title):
             self.session_deleted.emit(identifier)
 
-    def replay(self, messages: list[dict[str, str]]) -> None:
+    def replay(self, messages: list[dict[str, Any]]) -> None:
         self.conversation.clear()
         for message in messages:
             if message.get("role") == "user":
                 self.conversation.add_user_message(message.get("content", ""))
+            elif isinstance(message.get("visual"), dict):
+                self.conversation.add_visual(message["visual"])
             else:
                 self.conversation.add_assistant_message(message.get("content", ""))
 
@@ -186,6 +189,9 @@ class AgentDockWidget(QDockWidget):
 
     def add_result_message(self, text: str) -> int:
         return self.conversation.add_assistant_message(text)
+
+    def add_visual(self, spec: dict[str, Any]) -> int:
+        return self.conversation.add_visual(spec)
 
     def add_stream_chunk(self, text: str) -> None:
         self.conversation.append_draft(text)

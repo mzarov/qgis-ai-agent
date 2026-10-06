@@ -83,6 +83,12 @@ values), a step that does not read back, or a check that raises. A false
 "done" is the one failure this must not have, so a tool that cannot be sure
 returns `None`.
 
+A read tool can also draw for the person: `charts` tools return a chart or
+table spec under `RESULT_VISUAL_KEY`. The executor strips it from the result
+before the model sees it, the loop hands it to the feed, and the conversation
+keeps it as a `visual` message that replays with the chat but is left out of
+the model's window. The model gets a short confirmation with the numbers.
+
 Network access is a capability separate from mutation safety. A read tool with
 `network_access = True` is queued and automatically pauses the run for explicit
 per-call confirmation. After approval its result enters the same transcript and

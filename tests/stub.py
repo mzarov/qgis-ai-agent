@@ -488,6 +488,7 @@ _mod(
         "QButtonGroup",
         "QGridLayout",
         "QFileDialog",
+        "QToolTip",
     ],
 )
 _qtcore.pyqtSignal = pyqtSignal

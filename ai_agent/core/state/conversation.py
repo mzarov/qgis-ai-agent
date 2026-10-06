@@ -1,3 +1,6 @@
+import json
+from typing import Any
+
 from ai_agent.core.state.session import Session
 from ai_agent.core.state.store import SessionStore, current_project_key
 
@@ -6,6 +9,9 @@ from ai_agent.core.state.store import SessionStore, current_project_key
 SUMMARY_INTRO = "Summary of our conversation so far, written when it was compacted to save space:\n"
 SUMMARY_ACK = "Understood. I will continue from this summary."
 KEEP_AFTER_COMPACTION = 2
+# A chart or table the feed drew, kept so a reopened conversation shows it again; the model never gets it.
+VISUAL_ROLE = "visual"
+MODEL_ROLES = frozenset({"user", "assistant"})
 
 
 class ConversationState:
@@ -53,7 +59,26 @@ class ConversationState:
                 {"role": "user", "content": SUMMARY_INTRO + session.summary},
                 {"role": "assistant", "content": SUMMARY_ACK},
             ]
-        return head + [dict(message) for message in session.messages[session.summary_index :]]
+        recent = session.messages[session.summary_index :]
+        return head + [dict(message) for message in recent if message.get("role") in MODEL_ROLES]
+
+    def add_visual(self, spec: dict[str, Any]) -> None:
+        self.add(VISUAL_ROLE, json.dumps(spec, ensure_ascii=False))
+
+    def replayable(self) -> list[dict[str, Any]]:
+        """The messages for the chat, with each saved chart or table decoded back into its spec."""
+        shown: list[dict[str, Any]] = []
+        for message in self._session.messages:
+            if message.get("role") != VISUAL_ROLE:
+                shown.append(dict(message))
+                continue
+            try:
+                spec = json.loads(message.get("content") or "")
+            except ValueError:
+                continue
+            if isinstance(spec, dict):
+                shown.append({"role": VISUAL_ROLE, "visual": spec})
+        return shown
 
     def add(self, role: str, text: str) -> None:
         self._session.add(role, text)

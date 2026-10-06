@@ -26,6 +26,7 @@ from qgis.core import QgsProject
 
 from ai_agent.core.orchestrator.notices import CHECKED_BY_READING
 from ai_agent.core.settings import get_auto_apply, set_reasoning_enabled, set_supports_images, set_work_mode
+from ai_agent.ui.chart import ChartCard
 from ai_agent.ui.composer_parts import MODES
 from ai_agent.ui.messages import SystemMessage
 
@@ -460,6 +461,29 @@ class FailureScenario(ScenarioCase):
         self.apply()
         self.assertAlmostEqual(self.layer("districts").opacity(), 0.5)
         self.shot("failure_keeps_plan")
+
+
+class ChartScenario(ScenarioCase):
+    def test_a_chart_reaches_the_feed_not_the_model_and_comes_back_with_the_conversation(self) -> None:
+        self.model.script(
+            call("load_skill", names=["charts"]),
+            call("chart_layer", layer_name="districts", value="pop2020", group_by="name"),
+            say("District 6 is the most populous."),
+        )
+        self.ask("Chart the population by district")
+        cards = self.dock.conversation.findChildren(ChartCard)
+        self.assertEqual(len(cards), 1, "the chart never reached the feed")
+        self.assertEqual(len(cards[0].labels), 6)
+        after_chart = self.model.sent_text(2)
+        self.assertIn('"shown": "chart"', after_chart.replace('\\"', '"'))
+        self.assertNotIn("visual_for_user", after_chart)
+        self.shot("chart_in_feed")
+        identifier = self.orchestrator.conversation.session_identifier
+        self.orchestrator.on_new_session()
+        self.orchestrator.on_session_chosen(identifier)
+        pump(0.1)
+        self.assertEqual(len(self.dock.conversation.findChildren(ChartCard)), 1, "the chart did not come back")
+        self.assertNotIn("visual", json.dumps([m["role"] for m in self.orchestrator.conversation.window()]))
 
 
 class AutoModeScenario(ScenarioCase):
