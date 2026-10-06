@@ -1,11 +1,11 @@
 """One turn's tool calls and reasoning, listed the way TerraLab lists them.
 
 The header names the first calls and how long the turn took, "Reading layer
-roads, Adding basemap +2 · 9.4 s". The rows sit open in a hairline list, one per
-call with its skill's icon and, under it, what the call found; the reasoning is
-a row of its own. The list stays open after the answer and folds when the next
-request starts. Success is the quiet default and carries no mark; only a failed
-or rejected call does.
+roads, Adding basemap +2 · 9.4 s". While the agent works the rows sit open, one
+per call: a coloured badge with its skill's icon, the wording muted with the
+call's own values bright, and under it what the call found; the reasoning is a
+row of its own. When the answer arrives the list folds to its header line. Success
+is the quiet default and carries no mark; only a failed or rejected call does.
 """
 
 import time
@@ -27,13 +27,43 @@ REJECTED = "⊘"
 RECOVERED = "↺"
 NOTE = "· {0}"
 CLOSING = {"'": "'", '"': '"', "«": "»", "“": "”"}
-STEP_FONT_SCALE = 0.95
 LIST_INDENT = 2
 ROW_PAD = 5
-HEADER_GAP = 6
-ICON = 14
-ICON_GAP = 8
-NOTE_GAP = 2
+HEADER_GAP = 8
+GROUP_BOTTOM = 8
+LEAD = 14
+BADGE = 24
+BADGE_RADIUS = 7
+GLYPH = 14
+# The badge's wash: enough of the skill's hue to tell rows apart, little enough to stay quiet.
+BADGE_WASH = 0.16
+BADGE_GAP = 10
+# One text line sits level with the middle of the badge.
+TEXT_TOP = 3
+NOTE_GAP = 1
+THINKING = "thinking"
+# Each skill keeps one hue from the categorical palette, so a row's kind is readable at a glance.
+HUES = {
+    "inspect": 0,
+    "web": 0,
+    "fields": 0,
+    "data": 1,
+    "python": 1,
+    "plugins": 1,
+    "project": 2,
+    "tables": 2,
+    "draw": 3,
+    "edit": 3,
+    "annotations": 3,
+    "style": 4,
+    "charts": 4,
+    "osm": 5,
+    "processing": 6,
+    "layout": 6,
+    "three_d": 6,
+    "knowledge": 6,
+    THINKING: 6,
+}
 NAMED_CALLS = 2
 # "+2" reads the same in every language, so it is no translation string.
 MORE = "{0} +{1}"
@@ -63,9 +93,14 @@ class ActivityGroup(QFrame):
         palette = self._palette = self.palette()
         self.setStyleSheet("QFrame { background: transparent; border: none; }")
         column = QVBoxLayout(self)
-        column.setContentsMargins(0, 0, 0, 0)
+        column.setContentsMargins(0, 0, 0, GROUP_BOTTOM)
         column.setSpacing(HEADER_GAP)
         self._header = Disclosure(palette)
+        lead = icons.drawn("sparkles", style.accent(palette), LEAD)
+        if lead is not None:
+            mark = QLabel()
+            mark.setPixmap(lead.pixmap(LEAD, LEAD))
+            self._header.add_lead(mark)
         self._toggle = self._header.toggle
         self._title = self._header.title
         self._status = QLabel()
@@ -99,7 +134,15 @@ class ActivityGroup(QFrame):
         return row
 
     def add_widget(self, widget: QWidget) -> None:
-        self._steps_holder.add_row(widget)
+        """A reasoning block, as a row with its own badge so it lines up with the calls."""
+        holder = QWidget()
+        line = QHBoxLayout(holder)
+        line.setContentsMargins(0, 0, 0, 0)
+        line.setSpacing(BADGE_GAP)
+        line.addWidget(badge(THINKING, self._palette), 0, Qt.AlignmentFlag.AlignTop)
+        widget.setContentsMargins(0, TEXT_TOP, 0, 0)
+        line.addWidget(widget, 1)
+        self._steps_holder.add_row(holder)
         self._extras += 1
         self._refresh()
 
@@ -108,19 +151,16 @@ class ActivityGroup(QFrame):
         self._steps_holder.setVisible(True)
 
     def rest(self) -> None:
-        """The turn moved on: the list stays open with the time it took, until the next request folds it."""
+        """The turn moved on: the list folds to its header line, with the time the calls took."""
         self._closed = True
         if not self._count:
             # A reasoning-only turn has no header to reopen it from: its row stays.
             self._steps_holder.setVisible(self._extras > 0)
-        elif self._finished:
-            self._header.set_detail(format_seconds(self._finished - self._started))
-        self._refresh()
-
-    def fold(self) -> None:
-        """Collapse to the header line; an earlier turn makes room for the next one."""
-        if self._count:
+        else:
             self._toggle.setChecked(False)
+            if self._finished:
+                self._header.set_detail(format_seconds(self._finished - self._started))
+        self._refresh()
 
     def mark_step(self, row: "StepRow", ok: bool, note: str = "") -> None:
         self._settle(row, DONE if ok else FAILED)
@@ -174,20 +214,19 @@ class StepRow(QWidget):
         super().__init__(parent)
         self.setStyleSheet("border: none;")
         self._palette = palette
-        column = QVBoxLayout(self)
-        column.setContentsMargins(0, 0, 0, 0)
+        line = QHBoxLayout(self)
+        line.setContentsMargins(0, 0, 0, 0)
+        line.setSpacing(BADGE_GAP)
+        self.icon = badge(str(getattr(text, "skill", "") or ""), palette)
+        line.addWidget(self.icon, 0, Qt.AlignmentFlag.AlignTop)
+        column = QVBoxLayout()
+        column.setContentsMargins(0, TEXT_TOP, 0, 0)
         column.setSpacing(NOTE_GAP)
+        line.addLayout(column, 1)
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(ICON_GAP)
+        row.setSpacing(BADGE_GAP)
         column.addLayout(row)
-        self.icon = QLabel()
-        self.icon.setFixedSize(ICON, ICON)
-        skill = str(getattr(text, "skill", "") or "")
-        glyph = icons.drawn(skill, style.muted(palette), ICON) if skill in icons.NAMES else None
-        if glyph is not None:
-            self.icon.setPixmap(glyph.pixmap(ICON, ICON))
-        row.addWidget(self.icon, 0, Qt.AlignmentFlag.AlignTop)
 
         self.state = PENDING
         self._label = QLabel()
@@ -196,7 +235,6 @@ class StepRow(QWidget):
         self._label.setText(_without_period(str(text)) if markup is None else markup)
         self._label.setWordWrap(True)
         self._label.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
-        style.scale_font(self._label, STEP_FONT_SCALE)
         row.addWidget(self._label, 1)
 
         self._marker = QLabel()
@@ -206,7 +244,6 @@ class StepRow(QWidget):
 
         self.note = controls.small("", palette)
         self.note.setTextFormat(Qt.TextFormat.PlainText)
-        self.note.setContentsMargins(ICON + ICON_GAP, 0, 0, 0)
         self.note.setVisible(False)
         column.addWidget(self.note)
 
@@ -220,6 +257,21 @@ class StepRow(QWidget):
         self._marker.setVisible(bool(marker))
         colour = style.warning(self._palette) if marker == REJECTED else style.danger(self._palette)
         self._marker.setStyleSheet(f"color: {style.css_color(colour)};")
+
+
+def badge(skill: str, palette: Any) -> QLabel:
+    """The skill's icon in its hue on a pale wash of that hue; a neutral blank tile for an unknown kind."""
+    label = QLabel()
+    label.setFixedSize(BADGE, BADGE)
+    label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    hue = style.series(palette, HUES[skill]) if skill in HUES else style.muted(palette)
+    wash = style.blend(style.background(palette), hue, BADGE_WASH)
+    label.setStyleSheet(f"QLabel {{ background: {style.css_color(wash)}; border-radius: {BADGE_RADIUS}px; }}")
+    role = "brain" if skill == THINKING else skill
+    glyph = icons.drawn(role, hue, GLYPH) if role in icons.NAMES else None
+    if glyph is not None:
+        label.setPixmap(glyph.pixmap(GLYPH, GLYPH))
+    return label
 
 
 def step_markup(text: str, palette: Any) -> str | None:

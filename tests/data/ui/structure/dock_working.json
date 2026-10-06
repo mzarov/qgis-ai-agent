@@ -79,7 +79,7 @@
  {
   "depth": 6,
   "type": "ElidedLabel",
-  "text": "Reading layer 'districts'"
+  "text": "Reading layer 'districts', Reading values of field 'pop2020' in layer 'districts' +1"
  },
  {
   "depth": 6,
@@ -87,8 +87,38 @@
   "checked": true
  },
  {
+  "depth": 6,
+  "type": "QLabel"
+ },
+ {
   "depth": 5,
   "type": "ActivityList"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "ThinkingBlock"
+ },
+ {
+  "depth": 8,
+  "type": "Disclosure"
+ },
+ {
+  "depth": 9,
+  "type": "ElidedLabel",
+  "text": "Thought"
+ },
+ {
+  "depth": 9,
+  "type": "QToolButton",
+  "checked": false
  },
  {
   "depth": 6,
@@ -102,6 +132,42 @@
   "depth": 7,
   "type": "QLabel",
   "text": "Reading layer <span style=\"color: rgb(29, 29, 27);\">districts</span>"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "12 features"
+ },
+ {
+  "depth": 6,
+  "type": "StepRow"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Reading values of field <span style=\"color: rgb(29, 29, 27);\">pop2020</span> in layer <span style=\"color: rgb(29, 29, 27"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "12 values"
+ },
+ {
+  "depth": 6,
+  "type": "StepRow"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Layer <span style=\"color: rgb(29, 29, 27);\">districts</span>: computing <span style=\"color: rgb(29, 29, 27);\">max</span>"
  },
  {
   "depth": 2,

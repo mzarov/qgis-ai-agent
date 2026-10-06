@@ -63,6 +63,10 @@ class Disclosure(QWidget):
         self.detail.setText(text)
         self.detail.setVisible(bool(text))
 
+    def add_lead(self, widget: QWidget) -> None:
+        """Put a widget before the title: the activity list's mark."""
+        self._row.insertWidget(0, widget, 0, Qt.AlignmentFlag.AlignVCenter)
+
     def add_note(self, widget: QWidget) -> None:
         """Put a widget after the title and detail, before the chevron."""
         self._row.insertWidget(self._row.indexOf(self.toggle), widget, 0, Qt.AlignmentFlag.AlignVCenter)

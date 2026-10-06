@@ -51,7 +51,7 @@ PLAN = [
     "Labeling 'districts' with 'name'.",
 ]
 CHECKING = "Checking the applied changes…"
-STEP = ("describe_layer", {"layer_name": "districts"})
+STEP = ("query_layer", {"layer_name": "districts", "aggregate": "max", "expression": "pop2020"})
 # The calls before the answer, with what each found: the open activity list as a person sees it.
 READS = (
     ("describe_layer", {"layer_name": "districts"}, {"feature_count": 12}),
@@ -112,6 +112,11 @@ class ScreenCase(PluginCase):
         QApplication.setCursorFlashTime(0)
         self.faults: list[str] = []
 
+    def reads(self) -> None:
+        for name, arguments, payload in READS:
+            entry = self.dock.add_tool_message(summarize_tool_call(name, arguments))
+            self.dock.mark_tool_done(entry, True, summarize_tool_result(name, arguments, payload))
+
     def check(self, name: str, widget: QWidget) -> None:
         name += LOCALE_SUFFIX
         # Focus paints the composer's frame; which widget holds it depends on the tests run before.
@@ -139,9 +144,7 @@ class ScreenCase(PluginCase):
 
     def conversation(self) -> None:
         self.dock.add_user_message(REQUEST)
-        for name, arguments, payload in READS:
-            entry = self.dock.add_tool_message(summarize_tool_call(name, arguments))
-            self.dock.mark_tool_done(entry, True, summarize_tool_result(name, arguments, payload))
+        self.reads()
         self.dock.conversation.add_assistant_message(ANSWER)
         self.dock.add_plan_message(PLAN)
         self.dock.add_system_message(i18n.tr(CHECKING))
@@ -172,6 +175,8 @@ class StateScreens(ScreenCase):
     def test_working(self) -> None:
         self.dock.add_user_message(REQUEST)
         self.dock.set_busy(True)
+        self.dock.conversation.append_thinking("The renderer needs the value range first.")
+        self.reads()
         self.dock.add_tool_message(summarize_tool_call(*STEP))
         self.dock.progress._timer.stop()
         try:

@@ -33,7 +33,7 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `dock_widget.py`  | the shell: header, feed, composer; conversation menu; the orchestrator contract |
 | `conversation.py` | a `QScrollArea` with one widget per message, autoscroll, action grouping |
 | `messages.py`     | the user message, the agent reply, the service message |
-| `activity.py`     | the group of tool calls: named header with the time, rows with skill icons and result lines |
+| `activity.py`     | the group of tool calls: named header with the time, rows with coloured skill badges and result lines |
 | `disclosure.py`   | the fold line: title, detail, chevron after them |
 | `plan.py`         | the plan card with its buttons inside |
 | `confirmations.py` | the modal questions: share data with a provider, run destructive steps |
@@ -118,9 +118,8 @@ both calls explicitly.
 A thinking block does not break the group: it is added **inside** the
 activity group as a row of its own, so a whole think–act–think–act chain folds
 into one list. The group opens with its first call or reasoning; `_close_activity`
-rests it when a message arrives and leaves it open, and `add_user_message` folds
-the earlier groups — the feed stays readable without hiding anything: one click
-reopens a turn.
+rests it when a message arrives, folding it to the header — the feed stays
+readable without hiding anything: one click reopens a turn.
 
 Drop and fold are different on purpose. A draft is normally **finalised**, not
 dropped: before the first tool of a turn reaches the feed, the loop's `preamble`
@@ -152,11 +151,14 @@ pair of methods so the two states cannot drift apart.
 The activity list follows TerraLab's: the header names the first two calls and
 counts the rest, "Reading layer roads, Adding basemap +2", and once the turn
 moves on shows how long it took; the whole line is clickable (`Disclosure`).
-The rows sit **open, without a frame**, one per call: the skill's icon (the
-`CallSummary.skill` the registry sets), the wording muted with the call's own
-values bright, and under it the tool's `summarize_result` line — what the call
-found. The list stays open after the answer; the next user message folds every
-earlier group. Success carries no mark — only a failed or rejected call shows
+While the agent works the rows sit **open, without a frame**, one per call: a
+badge with the skill's icon in that skill's hue on a pale wash of it (`HUES`
+over the categorical chart palette; the skill is the `CallSummary.skill` the
+registry sets), the wording muted with the call's own values bright, and under
+it the tool's `summarize_result` line — what the call found. Reasoning gets a
+badge of its own so it lines up. When the answer arrives the list folds to its
+header. Row text keeps the inherited font: a scaled font set before the row
+joins the feed is computed from the application font and came out smaller. Success carries no mark — only a failed or rejected call shows
 one, and the header counts failures in the danger colour. The working line
 below says "Working…" with the time; it does not repeat the current call, which
 the open list already names.

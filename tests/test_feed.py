@@ -168,28 +168,25 @@ class CompactFeedTest(unittest.TestCase):
         self.view.append_thinking("hmm")
         self.assertTrue(self.view._activity._toggle.isChecked())
 
-    def test_the_answer_closes_the_group_but_leaves_it_open(self):
+    def test_calls_show_open_while_the_agent_works(self):
+        self.view.add_activity_step("Reading the project.")
+        self.assertTrue(self.view._activity._toggle.isChecked())
+        self.assertFalse(self.view._activity._steps_holder.isHidden())
+
+    def test_the_answer_folds_the_group_to_its_header(self):
         self.view.add_activity_step("Reading the project.")
         group = self.view._activity
         self.view.add_assistant_message("done")
-        self.assertTrue(group._toggle.isChecked())
-        self.assertFalse(group._steps_holder.isHidden())
+        self.assertFalse(group._toggle.isChecked())
+        self.assertTrue(group._steps_holder.isHidden())
         self.assertIsNone(self.view._activity)
 
-    def test_the_next_request_folds_every_earlier_group(self):
+    def test_a_finished_answer_folds_it_too(self):
         self.view.add_activity_step("Reading the project.")
-        first = self.view._activity
+        group = self.view._activity
         self.view.append_draft("the answer")
         self.view.finish_draft("the answer")
-        self.view.add_activity_step("Rendering the map.")
-        second = self.view._activity
-        self.view.add_assistant_message("done")
-        self.view.add_user_message("next")
-        self.assertFalse(first._toggle.isChecked())
-        self.assertFalse(second._toggle.isChecked())
-        self.assertTrue(first._steps_holder.isHidden())
-        self.view.add_activity_step("Reading layer 'roads'.")
-        self.assertTrue(self.view._activity._toggle.isChecked())
+        self.assertFalse(group._toggle.isChecked())
 
     def test_a_dropped_draft_leaves_the_group_open_for_the_next_step(self):
         self.view.add_activity_step("first")

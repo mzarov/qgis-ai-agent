@@ -71,47 +71,11 @@
  {
   "depth": 6,
   "type": "QToolButton",
-  "checked": true
- },
- {
-  "depth": 5,
-  "type": "ActivityList"
+  "checked": false
  },
  {
   "depth": 6,
-  "type": "StepRow"
- },
- {
-  "depth": 7,
   "type": "QLabel"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Reading layer <span style=\"color: rgb(29, 29, 27);\">districts</span>"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "12 features"
- },
- {
-  "depth": 6,
-  "type": "StepRow"
- },
- {
-  "depth": 7,
-  "type": "QLabel"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Reading values of field <span style=\"color: rgb(29, 29, 27);\">pop2020</span> in layer <span style=\"color: rgb(29, 29, 27"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "12 values"
  },
  {
   "depth": 4,

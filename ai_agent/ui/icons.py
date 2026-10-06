@@ -46,6 +46,8 @@ NAMES = {
     "charts": "chart-column",
     "plugins": "puzzle",
     "knowledge": "book-open",
+    "brain": "brain",
+    "sparkles": "sparkles",
 }
 
 
