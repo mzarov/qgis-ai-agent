@@ -93,9 +93,20 @@ class ConversationView(QScrollArea):
     def _drop_welcome(self) -> None:
         if self._empty is None:
             return
-        self._empty.deleteLater()
+        self._discard(self._empty)
         self._empty = None
         self._set_tail_stretch(TAIL_STRETCH)
+
+    def _discard(self, widget: QWidget) -> None:
+        """Take a widget out of the feed now; Qt deletes it later.
+
+        deleteLater alone leaves it laid out and painted until the event loop
+        gets round to it — a busy main thread showed the welcome card drawn
+        over a running conversation.
+        """
+        self._column.removeWidget(widget)
+        widget.hide()
+        widget.deleteLater()
 
     def _set_tail_stretch(self, stretch: int) -> None:
         self._column.setStretch(self._column.count() - 1, stretch)
@@ -167,7 +178,7 @@ class ConversationView(QScrollArea):
     def _drop_draft(self) -> None:
         if self._draft is None:
             return
-        self._draft.deleteLater()
+        self._discard(self._draft)
         self._draft = None
 
     def add_activity_step(self, text: str) -> int:
@@ -243,8 +254,7 @@ class ConversationView(QScrollArea):
         for index in reversed(range(self._column.count())):
             widget = self._column.itemAt(index).widget()
             if widget is not None and widget is not self.progress:
-                self._column.takeAt(index)
-                widget.deleteLater()
+                self._discard(widget)
         self._activity = None
         self._draft = None
         self._thinking = None
