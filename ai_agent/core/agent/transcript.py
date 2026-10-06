@@ -27,6 +27,8 @@ class ToolResult:
     ok: bool = True
     image: str = ""
     egress: str = "metadata"
+    # A chart or table for the feed; never part of what the model reads.
+    visual: dict[str, Any] | None = None
 
     @classmethod
     def failure(cls, call: ToolCall, error: str, egress: str = "metadata") -> "ToolResult":

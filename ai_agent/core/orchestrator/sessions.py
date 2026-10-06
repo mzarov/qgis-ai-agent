@@ -40,5 +40,5 @@ class SessionsMixin:
     def _replay(self) -> None:
         self._plan_message_id = None
         self._active_tool_message_id = None
-        self.dock_widget.replay(self.conversation.messages)
+        self.dock_widget.replay(self.conversation.replayable())
         self.compaction.refresh()

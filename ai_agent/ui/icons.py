@@ -26,6 +26,7 @@ NAMES = {
     "expanded": "chevron-down",
     "rename": "pencil",
     "delete": "trash-2",
+    "rewind": "undo-2",
 }
 
 

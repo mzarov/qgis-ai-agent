@@ -1,0 +1,169 @@
+[
+ {
+  "depth": 0,
+  "type": "AgentDockWidget"
+ },
+ {
+  "depth": 1,
+  "type": "QAbstractButton"
+ },
+ {
+  "depth": 1,
+  "type": "QAbstractButton"
+ },
+ {
+  "depth": 1,
+  "type": "QWidget",
+  "name": "agentBody"
+ },
+ {
+  "depth": 2,
+  "type": "QWidget"
+ },
+ {
+  "depth": 3,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 3,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 3,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 2,
+  "type": "ConversationView"
+ },
+ {
+  "depth": 3,
+  "type": "QWidget",
+  "name": "feed"
+ },
+ {
+  "depth": 4,
+  "type": "UserMessage"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Colour the roads"
+ },
+ {
+  "depth": 4,
+  "type": "QuestionCard"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "There are two road layers. Which one should I colour?"
+ },
+ {
+  "depth": 5,
+  "type": "AnswerRow"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "1."
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "roads_2024 (12 480 features)"
+ },
+ {
+  "depth": 5,
+  "type": "AnswerRow"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "2."
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "roads_old (9 102 features)"
+ },
+ {
+  "depth": 5,
+  "type": "AnswerRow"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "3."
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Both"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "4."
+ },
+ {
+  "depth": 6,
+  "type": "QLineEdit",
+  "text": "Type another answer and press Enter"
+ },
+ {
+  "depth": 2,
+  "type": "QWidget"
+ },
+ {
+  "depth": 3,
+  "type": "Composer"
+ },
+ {
+  "depth": 4,
+  "type": "RoundedFrame",
+  "name": "composerFrame"
+ },
+ {
+  "depth": 5,
+  "type": "PromptEdit",
+  "text": "Ask about the project…"
+ },
+ {
+  "depth": 5,
+  "type": "QPushButton",
+  "text": "↵",
+  "enabled": false
+ },
+ {
+  "depth": 4,
+  "type": "ComposerToolbar"
+ },
+ {
+  "depth": 5,
+  "type": "QToolButton",
+  "text": "+"
+ },
+ {
+  "depth": 5,
+  "type": "QToolButton",
+  "text": "Ask first"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "qwen3"
+ },
+ {
+  "depth": 5,
+  "type": "ContextMeter"
+ },
+ {
+  "depth": 6,
+  "type": "ContextRing"
+ }
+]

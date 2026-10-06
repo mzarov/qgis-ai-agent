@@ -17,9 +17,9 @@ The architecture of `ai_agent`: an agent loop with skills.
 - `core/context/` — the short starting summary of the project
 - `core/state/` — the model's history window and the saved conversations
 - `qgis_tools/common/` — shared across domains: layers, CRS, values, renderer summary
-- `qgis_tools/` — tools in fifteen domains: `inspect/`, `project/`, `style/`,
+- `qgis_tools/` — tools in sixteen domains: `inspect/`, `project/`, `style/`,
   `processing/`, `osm/`, `data/`, `draw/`, `edit/`, `fields/`, `layout/`, `python/`, `web/`,
-  `annotations/`, `three_d/`, `tables/`
+  `annotations/`, `three_d/`, `tables/`, `charts/`
 - `skills/` — knowledge packages `<skill>/SKILL.md` and the registry
 
 ## Runtime Flow
@@ -83,6 +83,21 @@ values), a step that does not read back, or a check that raises. A false
 "done" is the one failure this must not have, so a tool that cannot be sure
 returns `None`.
 
+Every applied batch takes a project snapshot first, and the orchestrator tags
+each new snapshot with the user message whose run applied it
+(`orchestrator/rewind.py`). Rewinding to a message restores the earliest
+snapshot tagged with that message or a later one and drops every later
+snapshot; the conversation side truncates the saved conversation before the
+message and puts the message back into the input box. A project read during a
+rewind is the same project, so the lifecycle handlers do not start a new
+conversation for it.
+
+A read tool can also draw for the person: `charts` tools return a chart or
+table spec under `RESULT_VISUAL_KEY`. The executor strips it from the result
+before the model sees it, the loop hands it to the feed, and the conversation
+keeps it as a `visual` message that replays with the chat but is left out of
+the model's window. The model gets a short confirmation with the numbers.
+
 Network access is a capability separate from mutation safety. A read tool with
 `network_access = True` is queued and automatically pauses the run for explicit
 per-call confirmation. After approval its result enters the same transcript and
@@ -135,7 +150,7 @@ Two adjacent 2026 developments were evaluated and consciously not adopted:
   in-plugin loop — which vendor neutrality and the main-thread rule both
   require.
 - **Skills served over MCP.** Useful when one organisation feeds many agents
-  from a central skill registry. We have one agent and fourteen skills shipped in
+  from a central skill registry. We have one agent and sixteen skills shipped in
   the same zip; a transport layer between them would add a dependency and
   remove nothing.
 

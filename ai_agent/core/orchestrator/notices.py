@@ -3,6 +3,10 @@
 from ai_agent.i18n import tr
 
 LOG_TAG = "AI Agent"
+# What the rewind question can answer; the dock returns one of these or None.
+REWIND_BOTH = "both"
+REWIND_CONVERSATION = "conversation"
+REWIND_PROJECT = "project"
 MESSAGE_DURATION_SEC = 8
 SESSION_MISSING = tr("Conversation not found.")
 RUN_STOPPED = tr("Run stopped. Pending work was cancelled.")

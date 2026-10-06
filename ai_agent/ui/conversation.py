@@ -12,9 +12,12 @@ from qgis.PyQt.QtWidgets import (
 from ai_agent.i18n import tr
 from ai_agent.ui import controls, style
 from ai_agent.ui.activity import ActivityGroup
+from ai_agent.ui.chart import ChartCard
 from ai_agent.ui.messages import AssistantMessage, SystemMessage, UserMessage
 from ai_agent.ui.plan import PlanCard, PlanOffer
 from ai_agent.ui.progress import ProgressLine
+from ai_agent.ui.question import QuestionCard
+from ai_agent.ui.table_card import TableCard
 from ai_agent.ui.thinking import ThinkingBlock
 from ai_agent.ui.welcome import WelcomeCard
 
@@ -32,6 +35,8 @@ class ConversationView(QScrollArea):
     confirm_requested = pyqtSignal()
     cancel_requested = pyqtSignal()
     plan_run_requested = pyqtSignal(str)
+    rewind_requested = pyqtSignal(int)
+    question_answered = pyqtSignal(str)
     suggestion_chosen = pyqtSignal(str)
     settings_requested = pyqtSignal()
 
@@ -63,6 +68,7 @@ class ConversationView(QScrollArea):
 
         self._activity: ActivityGroup | None = None
         self._plan_offers: list[PlanOffer] = []
+        self._questions: list[QuestionCard] = []
         self._draft: AssistantMessage | None = None
         self._thinking: ThinkingBlock | None = None
         self._entries: dict[int, object] = {}
@@ -90,18 +96,37 @@ class ConversationView(QScrollArea):
     def _drop_welcome(self) -> None:
         if self._empty is None:
             return
-        self._empty.deleteLater()
+        self._discard(self._empty)
         self._empty = None
         self._set_tail_stretch(TAIL_STRETCH)
+
+    def _discard(self, widget: QWidget) -> None:
+        """Take a widget out of the feed now; Qt deletes it later.
+
+        deleteLater alone leaves it laid out and painted until the event loop
+        gets round to it — a busy main thread showed the welcome card drawn
+        over a running conversation.
+        """
+        self._column.removeWidget(widget)
+        widget.hide()
+        widget.deleteLater()
 
     def _set_tail_stretch(self, stretch: int) -> None:
         self._column.setStretch(self._column.count() - 1, stretch)
 
     def add_user_message(self, text: str) -> int:
-        # Any new message makes an earlier plan offer stale: only the latest plan can be run.
+        # Any new message makes an earlier plan offer or question card stale.
         self._retire_plan_offers()
+        self._retire_questions()
         self._close_activity()
-        return self._append(UserMessage(text))
+        bubble = UserMessage(text)
+        bubble.rewind_requested.connect(self.rewind_requested.emit)
+        return self._append(bubble)
+
+    def mark_rewind_point(self, entry_id: int, message: int) -> None:
+        bubble = self._entries.get(entry_id)
+        if isinstance(bubble, UserMessage):
+            bubble.set_rewind_point(message)
 
     def add_assistant_message(self, markdown: str) -> int:
         self._close_activity()
@@ -110,6 +135,12 @@ class ConversationView(QScrollArea):
     def add_system_message(self, text: str) -> int:
         self._close_activity()
         return self._append(SystemMessage(text))
+
+    def add_visual(self, spec: dict[str, Any]) -> int:
+        """A chart or a table a read tool drew; it closes the activity group like any message."""
+        self._close_activity()
+        card = TableCard(spec) if spec.get("type") == "table" else ChartCard(spec)
+        return self._append(card)
 
     def append_thinking(self, delta: str) -> None:
         if self._thinking is None:
@@ -163,7 +194,7 @@ class ConversationView(QScrollArea):
     def _drop_draft(self) -> None:
         if self._draft is None:
             return
-        self._draft.deleteLater()
+        self._discard(self._draft)
         self._draft = None
 
     def add_activity_step(self, text: str) -> int:
@@ -202,6 +233,19 @@ class ConversationView(QScrollArea):
         offer.run_requested.connect(self.plan_run_requested.emit)
         return self._append(offer)
 
+    def add_question(self, question: str, options: list[str]) -> int:
+        self._retire_questions()
+        self._close_activity()
+        card = QuestionCard(question, options, self.palette())
+        self._questions.append(card)
+        card.answered.connect(self.question_answered.emit)
+        return self._append(card)
+
+    def _retire_questions(self) -> None:
+        for card in self._questions:
+            card.retire()
+        self._questions = []
+
     def _retire_plan_offers(self) -> None:
         for offer in self._plan_offers:
             offer.retire()
@@ -226,12 +270,12 @@ class ConversationView(QScrollArea):
         for index in reversed(range(self._column.count())):
             widget = self._column.itemAt(index).widget()
             if widget is not None and widget is not self.progress:
-                self._column.takeAt(index)
-                widget.deleteLater()
+                self._discard(widget)
         self._activity = None
         self._draft = None
         self._thinking = None
         self._plan_offers = []
+        self._questions = []
         self._entries.clear()
         self._empty = None
         self._show_welcome()

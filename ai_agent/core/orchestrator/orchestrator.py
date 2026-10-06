@@ -20,6 +20,7 @@ from ai_agent.core.orchestrator.notices import (
 from ai_agent.core.orchestrator.plans import PlanMixin
 from ai_agent.core.orchestrator.presentation import is_configured
 from ai_agent.core.orchestrator.project_lifecycle import ProjectLifecycleMixin
+from ai_agent.core.orchestrator.rewind import Checkpoint, RewindMixin
 from ai_agent.core.orchestrator.run_events import RunEventsMixin
 from ai_agent.core.orchestrator.sessions import SessionsMixin
 from ai_agent.core.orchestrator.slash import available_names, choices, is_known_skill, parse_slash, prompt_for
@@ -36,7 +37,7 @@ from ai_agent.core.state.conversation import ConversationState
 from ai_agent.i18n import tr
 
 
-class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycleMixin):
+class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycleMixin, RewindMixin):
     """Wires the dock to the agent loop. The mixins hold the rest: sessions, plans, run events, projects."""
 
     def __init__(self, iface: Any, dock_widget: DockWidgetContract):
@@ -47,6 +48,8 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self._active_tool_message_id: int | None = None
         self._plan_message_id: int | None = None
         self._apply_scope: tuple[str, str] | None = None
+        self._checkpoints: list[Checkpoint] = []
+        self._snapshot_before_apply = ""
         self._invalidated_scope: tuple[str, str] | None = None
         self._deferred_interrupted_outcome = ""
         self._last_request = ""
@@ -70,6 +73,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.agent.tool_queued.connect(self.on_tool_queued)
         self.agent.tool_rejected.connect(self.on_tool_rejected)
         self.agent.skill_loaded.connect(self.on_skill_loaded)
+        self.agent.visual_ready.connect(self.on_visual_ready)
         self.agent.plan_changed.connect(self.on_plan_changed)
         self.agent.confirm_needed.connect(self.on_confirm_needed)
         self.agent.question_asked.connect(self.on_question_asked)
@@ -135,7 +139,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         images: list[str] | None = None,
     ) -> None:
         """Show `shown`, then run `prompt`; `request` is what the user asked, for the check after Apply."""
-        self.dock_widget.add_user_message(shown)
+        self._show_user_message(shown)
         self._drop_pending_plan()
         planning = get_planning()
 
@@ -186,7 +190,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
     def _answer(self, text: str) -> None:
         if not self._confirm_first_send(getattr(self.agent, "endpoint", None)):
             return
-        self.dock_widget.add_user_message(text)
+        self._show_user_message(text)
         self.dock_widget.clear_prompt()
         self.conversation.add("user", text)
         self.agent.answer(text)
@@ -195,10 +199,15 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         if not self.agent.interject(text):
             self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
             return
-        self.dock_widget.add_user_message(text)
+        self._show_user_message(text)
         self.dock_widget.clear_prompt()
         self.dock_widget.add_system_message(INTERJECTED)
         self.conversation.add("user", text)
+
+    def _show_user_message(self, text: str) -> None:
+        """Draw the user's message with the place it takes in the conversation, so it can be rewound to."""
+        entry = self.dock_widget.add_user_message(text)
+        self.dock_widget.mark_rewind_point(entry, self.conversation.message_count)
 
     def shutdown(self) -> None:
         self.conversation.save()

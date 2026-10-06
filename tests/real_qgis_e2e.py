@@ -26,8 +26,10 @@ from qgis.core import QgsProject
 
 from ai_agent.core.orchestrator.notices import CHECKED_BY_READING
 from ai_agent.core.settings import get_auto_apply, set_reasoning_enabled, set_supports_images, set_work_mode
+from ai_agent.ui.chart import ChartCard
 from ai_agent.ui.composer_parts import MODES
 from ai_agent.ui.messages import SystemMessage
+from ai_agent.ui.question import QuestionCard
 
 MODEL = "scripted-model"
 SIZES_FILE = "request_sizes.json"
@@ -460,6 +462,77 @@ class FailureScenario(ScenarioCase):
         self.apply()
         self.assertAlmostEqual(self.layer("districts").opacity(), 0.5)
         self.shot("failure_keeps_plan")
+
+
+class ChartScenario(ScenarioCase):
+    def test_a_chart_reaches_the_feed_not_the_model_and_comes_back_with_the_conversation(self) -> None:
+        self.model.script(
+            call("load_skill", names=["charts"]),
+            call("chart_layer", layer_name="districts", value="pop2020", group_by="name"),
+            say("District 6 is the most populous."),
+        )
+        self.ask("Chart the population by district")
+        cards = self.dock.conversation.findChildren(ChartCard)
+        self.assertEqual(len(cards), 1, "the chart never reached the feed")
+        self.assertEqual(len(cards[0].labels), 6)
+        after_chart = self.model.sent_text(2)
+        self.assertIn('"shown": "chart"', after_chart.replace('\\"', '"'))
+        self.assertNotIn("visual_for_user", after_chart)
+        self.shot("chart_in_feed")
+        identifier = self.orchestrator.conversation.session_identifier
+        self.orchestrator.on_new_session()
+        self.orchestrator.on_session_chosen(identifier)
+        pump(0.1)
+        self.assertEqual(len(self.dock.conversation.findChildren(ChartCard)), 1, "the chart did not come back")
+        self.assertNotIn("visual", json.dumps([m["role"] for m in self.orchestrator.conversation.window()]))
+
+
+class RewindScenario(ScenarioCase):
+    def test_rewinding_restores_the_project_and_the_conversation_to_before_a_message(self) -> None:
+        self.model.script(
+            call("load_skill", names=["project"]),
+            call("configure_layer", layer_name="districts", properties={"name": "Districts A"}),
+            say("Renamed to Districts A."),
+            call("configure_layer", layer_name="Districts A", properties={"name": "Districts B"}),
+            say("Renamed to Districts B."),
+        )
+        self.ask("Rename districts to Districts A")
+        self.apply()
+        self.ask("Now rename it to Districts B")
+        self.apply()
+        self.layer("Districts B")
+        second = next(
+            index
+            for index, message in enumerate(self.orchestrator.conversation.messages)
+            if message["content"] == "Now rename it to Districts B"
+        )
+        self.dock.choose_rewind = lambda project_available: "both" if project_available else None
+        self.orchestrator.on_rewind(second)
+        pump(0.1)
+        self.layer("Districts A")
+        self.assertEqual(len(self.orchestrator.conversation.messages), second)
+        self.assertEqual(self.dock.composer._edit.toPlainText(), "Now rename it to Districts B")
+        notes = [message.plain_text() for message in self.dock.conversation.findChildren(SystemMessage)]
+        self.assertTrue(any("project is back" in note for note in notes), notes)
+        self.shot("rewound")
+
+
+class QuestionScenario(ScenarioCase):
+    def test_a_picked_answer_resumes_the_same_run(self) -> None:
+        self.model.script(
+            call("ask_user", question="Colour by which field?", options=["pop2020", "name"]),
+            say("I will colour by pop2020."),
+        )
+        self.ask("Colour the districts")
+        cards = self.dock.conversation.findChildren(QuestionCard)
+        self.assertEqual(len(cards), 1, "the question card never appeared")
+        self.assertEqual([row.text for row in cards[0].rows], ["pop2020", "name"])
+        self.shot("question_card")
+        cards[0].rows[0].clicked.emit("pop2020")
+        self.wait_idle()
+        self.assertFalse(cards[0].is_open, "an answered card still offers its choices")
+        self.assertIn("pop2020", self.model.sent_text(-1))
+        self.assertEqual(self.last(), "I will colour by pop2020.")
 
 
 class AutoModeScenario(ScenarioCase):

@@ -125,7 +125,7 @@
  {
   "depth": 6,
   "type": "QLabel",
-  "text": "15"
+  "text": "16"
  },
  {
   "depth": 5,
@@ -148,6 +148,29 @@
   "depth": 7,
   "type": "ElidedLabel",
   "text": "One-off notes and markers drawn on top of the map at a coordinate — not attribute labels (those are style). Load this fo"
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "charts"
+ },
+ {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "Draw charts and tables right in the chat — a histogram of a field, values per category as bars or a pie, a line over tim"
  },
  {
   "depth": 6,
