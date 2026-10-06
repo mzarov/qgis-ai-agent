@@ -13,6 +13,7 @@ from ai_agent.qgis_tools.fields import FIELDS_TOOLS
 from ai_agent.qgis_tools.inspect import INSPECT_TOOLS
 from ai_agent.qgis_tools.layout import LAYOUT_TOOLS
 from ai_agent.qgis_tools.osm import OSM_TOOLS
+from ai_agent.qgis_tools.plugins import PLUGINS_TOOLS
 from ai_agent.qgis_tools.processing import PROCESSING_TOOLS
 from ai_agent.qgis_tools.project import PROJECT_TOOLS
 from ai_agent.qgis_tools.python import PYTHON_TOOLS
@@ -38,6 +39,7 @@ ALL_TOOLS: list[BaseTool] = [
     *FIELDS_TOOLS,
     *TABLES_TOOLS,
     *CHARTS_TOOLS,
+    *PLUGINS_TOOLS,
 ]
 
 

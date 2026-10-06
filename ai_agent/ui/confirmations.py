@@ -5,13 +5,14 @@ from qgis.PyQt.QtGui import QFontDatabase
 from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QLabel, QMessageBox, QPlainTextEdit, QVBoxLayout, QWidget
 
 from ai_agent.core.orchestrator.notices import REWIND_BOTH, REWIND_CONVERSATION, REWIND_PROJECT
+from ai_agent.core.orchestrator.planning import CodeDetails
 from ai_agent.i18n import tr
 
 REWIND_PROPERTY = "rewindChoice"
 
 
 def confirm_destructive(parent: QWidget, lines: list[str], details: str = "") -> bool:
-    if (details or "").strip():
+    if isinstance(details, CodeDetails) and details.strip():
         return _confirm_code(parent, lines, details)
     box = QMessageBox(parent)
     box.setIcon(QMessageBox.Icon.Warning)
@@ -20,6 +21,9 @@ def confirm_destructive(parent: QWidget, lines: list[str], details: str = "") ->
     box.setText(destructive_confirmation_text(lines, details))
     box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
     box.setDefaultButton(QMessageBox.StandardButton.No)
+    # Our own words: the standard Yes/No stay English when QGIS ships no Qt translation.
+    box.button(QMessageBox.StandardButton.Yes).setText(tr("Apply"))
+    box.button(QMessageBox.StandardButton.No).setText(tr("Cancel"))
     return box.exec() == QMessageBox.StandardButton.Yes
 
 
@@ -111,6 +115,8 @@ def _confirm_code(parent: QWidget, lines: list[str], details: str) -> bool:
     buttons.accepted.connect(dialog.accept)
     buttons.rejected.connect(dialog.reject)
     buttons.button(QDialogButtonBox.StandardButton.No).setDefault(True)
+    buttons.button(QDialogButtonBox.StandardButton.Yes).setText(tr("Apply"))
+    buttons.button(QDialogButtonBox.StandardButton.No).setText(tr("Cancel"))
     column.addWidget(buttons)
     return dialog.exec() == QDialog.DialogCode.Accepted
 
@@ -123,6 +129,8 @@ def _destructive_steps_text(lines: list[str]) -> str:
 def destructive_confirmation_text(lines: list[str], details: str = "") -> str:
     message = _destructive_steps_text(lines)
     exact = (details or "").strip()
-    if exact:
+    if exact and isinstance(details, CodeDetails):
         message += tr("\n\nExact code to be executed:\n\n{0}").format(exact)
+    elif exact:
+        message += "\n\n" + exact
     return message + tr("\n\nApply them?")

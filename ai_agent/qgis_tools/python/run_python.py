@@ -22,6 +22,7 @@ class RunPythonTool(BaseTool):
     )
     skill = "python"
     safety = SAFETY_DESTRUCTIVE
+    detail_is_code = True
     external_effect = False
     network_access = False
     egress = EGRESS_FEATURE_VALUES

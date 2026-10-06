@@ -44,6 +44,8 @@ class BaseTool(ABC):
     # The result exists only to be looked at: a model known to reject image
     # input is not offered the tool, since it would get an omission note back.
     returns_image: bool = False
+    # detail_call returns code to run (run_python): the confirmation shows it as code, not as prose.
+    detail_is_code: bool = False
 
     @property
     def is_read_only(self) -> bool:

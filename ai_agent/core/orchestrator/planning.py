@@ -27,9 +27,15 @@ def plan_line(call: Any) -> str:
     return f"{summary} · {effect}"
 
 
+class CodeDetails(str):
+    """Confirmation details that are code to run; the dialog shows them in a fixed-font editor."""
+
+
 def destructive_lines(calls: list[Any]) -> tuple[list[str], str]:
+    """The destructive steps' lines and their details, as CodeDetails when any of them is code."""
     lines = []
     details = []
+    code = False
     for call in calls:
         tool = get_tool_by_name(call.name)
         if tool is None or tool.safety_for(call.arguments) != SAFETY_DESTRUCTIVE:
@@ -41,4 +47,6 @@ def destructive_lines(calls: list[Any]) -> tuple[list[str], str]:
             detail = ""
         if detail:
             details.append(detail)
-    return lines, "\n\n".join(details)
+            code = code or bool(getattr(tool, "detail_is_code", False))
+    joined = "\n\n".join(details)
+    return lines, CodeDetails(joined) if code else joined

@@ -264,6 +264,15 @@ the numbers as CSV. Charts and tables stay with the conversation and come back
 when you reopen it. They are drawn for you: the model gets only a short
 confirmation with the numbers, not the picture.
 
+## Other installed plugins
+
+The agent can use plugins you have installed. Ask “which plugin can segment
+this image?” or name one — “use GeoAI on this raster”. Algorithms a plugin
+adds to Processing run like any other step, inside the plan. A plugin's menu
+command (say, qgis2web's export) is started only after a confirmation that it
+runs that plugin's code, which the agent cannot undo; its window then opens for
+you. The agent cannot install or enable plugins.
+
 ## When a run stops or fails
 
 Stop or an error keeps whatever the agent had already written, puts your

@@ -13,7 +13,7 @@ confirms them.
 **Documentation:** <https://mzarov.github.io/qgis-ai-agent/> ·
 по-русски: <https://mzarov.github.io/qgis-ai-agent/ru/>
 
-**What it does** — sixteen domains, 78 tools:
+**What it does** — seventeen domains, 81 tools:
 
 | Domain | Example requests |
 | --- | --- |
@@ -33,6 +33,7 @@ confirms them.
 | `three_d` | “open a 3D view of this project” |
 | `tables` | “join this CSV to the districts by code”, “make points from this CSV with lon/lat” |
 | `charts` | “chart population by district”, “histogram of the parcel areas”, “table of the ten largest towns” |
+| `plugins` | “which plugin can segment this image?”, “start the qgis2web export”, “use GeoAI on this raster” |
 
 The agent can **see**: on a vision model it renders the map or the layout and
 judges the result by eye. After you press Apply it runs a **verification pass**

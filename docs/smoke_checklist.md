@@ -960,7 +960,6 @@ These verify the agent solves everyday tasks without wandering through search.
      the answer lists scenes with dates and cloud cover; *load the clearest* →
      a true-colour raster appears where expected. *Add the regions of Kenya* →
      a boundary layer with 47 regions. *Load a DEM here* → a height raster.
-
 202. **Charts and tables.** *Chart the population by district* → a bar chart
      appears in the feed; hover a bar → its value; right click → copy image
      and copy CSV work. *Table of the three largest districts* → a sorted
@@ -969,6 +968,11 @@ These verify the agent solves everyday tasks without wandering through search.
      the agent asks in a card with the layers as answers and a fourth row;
      click one → the card folds, your answer appears as a message and the run
      continues. Ask again and type your own answer in the fourth row → same.
+204. **Other plugins.** With QuickMapServices or qgis2web installed: *which
+     plugins can make a web map?* → the plugin is named; *start its export* →
+     a destructive confirmation says it runs that plugin's code; agree → the
+     plugin's window opens. A plugin with Processing algorithms (e.g. GeoAI)
+     → its algorithm runs through the plan.
 205. **Rewind.** *Make the rivers blue* → Apply; *now make them red* → Apply.
      Hover the second request → the curved arrow; click → three choices.
      **Conversation and project** → rivers blue again, the chat ends before
