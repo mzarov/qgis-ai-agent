@@ -15,6 +15,7 @@ from ai_agent.ui.activity import ActivityGroup
 from ai_agent.ui.messages import AssistantMessage, SystemMessage, UserMessage
 from ai_agent.ui.plan import PlanCard, PlanOffer
 from ai_agent.ui.progress import ProgressLine
+from ai_agent.ui.question import QuestionCard
 from ai_agent.ui.thinking import ThinkingBlock
 from ai_agent.ui.welcome import WelcomeCard
 
@@ -32,6 +33,7 @@ class ConversationView(QScrollArea):
     confirm_requested = pyqtSignal()
     cancel_requested = pyqtSignal()
     plan_run_requested = pyqtSignal(str)
+    question_answered = pyqtSignal(str)
     suggestion_chosen = pyqtSignal(str)
     settings_requested = pyqtSignal()
 
@@ -63,6 +65,7 @@ class ConversationView(QScrollArea):
 
         self._activity: ActivityGroup | None = None
         self._plan_offers: list[PlanOffer] = []
+        self._questions: list[QuestionCard] = []
         self._draft: AssistantMessage | None = None
         self._thinking: ThinkingBlock | None = None
         self._entries: dict[int, object] = {}
@@ -98,8 +101,9 @@ class ConversationView(QScrollArea):
         self._column.setStretch(self._column.count() - 1, stretch)
 
     def add_user_message(self, text: str) -> int:
-        # Any new message makes an earlier plan offer stale: only the latest plan can be run.
+        # Any new message makes an earlier plan offer or question card stale.
         self._retire_plan_offers()
+        self._retire_questions()
         self._close_activity()
         return self._append(UserMessage(text))
 
@@ -202,6 +206,19 @@ class ConversationView(QScrollArea):
         offer.run_requested.connect(self.plan_run_requested.emit)
         return self._append(offer)
 
+    def add_question(self, question: str, options: list[str]) -> int:
+        self._retire_questions()
+        self._close_activity()
+        card = QuestionCard(question, options, self.palette())
+        self._questions.append(card)
+        card.answered.connect(self.question_answered.emit)
+        return self._append(card)
+
+    def _retire_questions(self) -> None:
+        for card in self._questions:
+            card.retire()
+        self._questions = []
+
     def _retire_plan_offers(self) -> None:
         for offer in self._plan_offers:
             offer.retire()
@@ -232,6 +249,7 @@ class ConversationView(QScrollArea):
         self._draft = None
         self._thinking = None
         self._plan_offers = []
+        self._questions = []
         self._entries.clear()
         self._empty = None
         self._show_welcome()

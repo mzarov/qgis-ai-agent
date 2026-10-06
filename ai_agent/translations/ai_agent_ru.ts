@@ -471,7 +471,7 @@
         <translation>Диалоги</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/conversation.py" line="251"/>
+        <location filename="ai_agent/ui/conversation.py" line="269"/>
         <source>Copy the whole conversation</source>
         <translation>Скопировать весь диалог</translation>
     </message>
@@ -632,7 +632,7 @@
         <translation>Введите название модели, доступной у провайдера.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="80"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="86"/>
         <source>Error: {0}</source>
         <translation>Ошибка: {0}</translation>
     </message>
@@ -787,7 +787,7 @@
         <translation>Загружаю геометрии из {0} ({1}).</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="55"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="61"/>
         <source>Loading knowledge: {0}</source>
         <translation>Загружаю знания: {0}</translation>
     </message>
@@ -992,7 +992,7 @@
         <translation>План</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="52"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="58"/>
         <source>Plan {0}/{1}: {2}</source>
         <translation>План {0}/{1}: {2}</translation>
     </message>
@@ -1172,7 +1172,7 @@
         <translation>Записи</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="48"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="54"/>
         <source>Rejected: {0}</source>
         <translation>Отклонено: {0}</translation>
     </message>
@@ -1262,7 +1262,7 @@
         <translation>Выполнить автоматически</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="58"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="64"/>
         <source>Run journal: {0}</source>
         <translation>Журнал прогона: {0}</translation>
     </message>
@@ -1540,7 +1540,7 @@
         <translation>Подключиться не удалось</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="63"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="69"/>
         <source>The model returned nothing. Try rephrasing.</source>
         <translation>Модель ничего не вернула. Попробуйте переформулировать.</translation>
     </message>
@@ -1643,6 +1643,11 @@
         <location filename="ai_agent/core/orchestrator/orchestrator.py" line="99"/>
         <source>Type a request.</source>
         <translation>Введите запрос.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/question.py" line="20"/>
+        <source>Type another answer and press Enter</source>
+        <translation>Введите свой ответ и нажмите Enter</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/composer.py" line="32"/>

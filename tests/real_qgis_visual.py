@@ -159,6 +159,24 @@ class StateScreens(ScreenCase):
         self.check("dock_plan_narrow", self.dock)
         self.iface.window.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
 
+    def test_question_card(self) -> None:
+        self.dock.add_user_message("Colour the roads")
+        self.dock.add_question(
+            "There are two road layers. Which one should I colour?",
+            ["roads_2024 (12 480 features)", "roads_old (9 102 features)", "Both"],
+        )
+        self.check("dock_question", self.dock)
+
+    def test_question_card_in_a_narrow_dock(self) -> None:
+        self.iface.window.resize(NARROW_WIDTH, WINDOW_HEIGHT)
+        self.dock.add_user_message("Colour the roads")
+        self.dock.add_question(
+            "There are two road layers. Which one should I colour?",
+            ["roads_2024 (12 480 features)", "roads_old (9 102 features)", "Both"],
+        )
+        self.check("dock_question_narrow", self.dock)
+        self.iface.window.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
+
     def test_auto_mode(self) -> None:
         self.dock.set_work_mode("auto")
         self.dock.add_user_message(REQUEST)

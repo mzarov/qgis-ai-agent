@@ -349,6 +349,21 @@ class AskUserTest(unittest.TestCase):
         self.assertEqual(self.steps, 0)
         self.assertTrue(self.loop.is_awaiting_answer)
 
+    def test_offered_answers_are_cleaned_and_cleared_with_the_answer(self):
+        turn = ModelTurn(
+            tool_calls=[
+                ToolCall(
+                    id="q1",
+                    name=prompts.ASK_USER_TOOL,
+                    arguments={"question": "Which?", "options": [" a  b ", "a b", "", "c", "d", "e"]},
+                )
+            ]
+        )
+        self.loop._on_turn(turn)
+        self.assertEqual(self.loop.question_options, ["a b", "c", "d"])
+        self.loop.answer("c")
+        self.assertEqual(self.loop.question_options, [])
+
     def test_the_answer_resumes_the_same_run(self):
         self.loop._on_turn(self._turn_with_question())
         self.assertTrue(self.loop.answer("бери первый"))
