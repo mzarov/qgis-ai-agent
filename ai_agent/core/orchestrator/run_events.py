@@ -6,6 +6,9 @@ from ai_agent.core.orchestrator.notices import APPLY_STOPPED, AWAITING_ANSWER, L
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.call_summary import CallSummary
 
+# The feed's icon for a skill being loaded; tool calls carry their own skill.
+KNOWLEDGE = "knowledge"
+
 
 class RunEventsMixin:
     def on_aborted(self) -> None:
@@ -44,9 +47,9 @@ class RunEventsMixin:
     def on_tool_started(self, summary: str) -> None:
         self._active_tool_message_id = self.dock_widget.add_tool_message(summary)
 
-    def on_tool_finished(self, tool_name: str, ok: bool) -> None:
+    def on_tool_finished(self, tool_name: str, ok: bool, note: str = "") -> None:
         if self._active_tool_message_id is not None:
-            self.dock_widget.mark_tool_done(self._active_tool_message_id, ok)
+            self.dock_widget.mark_tool_done(self._active_tool_message_id, ok, note)
             self._active_tool_message_id = None
         if not ok:
             QgsMessageLog.logMessage(f"Tool {tool_name} failed.", LOG_TAG, Qgis.MessageLevel.Warning)
@@ -62,7 +65,9 @@ class RunEventsMixin:
         self.dock_widget.add_tool_message(tr("Plan {0}/{1}: {2}").format(done, len(steps), shown))
 
     def on_skill_loaded(self, name: str) -> None:
-        self.dock_widget.add_tool_message(CallSummary.of(tr("Loading knowledge: {0}"), name))
+        summary = CallSummary.of(tr("Loading knowledge: {0}"), name)
+        summary.skill = KNOWLEDGE
+        self.dock_widget.add_tool_message(summary)
 
     def on_journal_written(self, path: str) -> None:
         self.dock_widget.add_system_message(tr("Run journal: {0}").format(path))

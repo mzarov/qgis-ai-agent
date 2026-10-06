@@ -57,6 +57,13 @@ class GeocodeTool(BaseTool):
         checked_url(_search_url(service_url, place, provider), resolve=False)
         return {"place": place, "_geocoder_provider": provider, "_geocoder_url": service_url}
 
+    def summarize_result(self, params: dict[str, Any], payload: dict[str, Any]) -> str:
+        matches = payload.get("matches") or []
+        if not matches:
+            return tr("Nothing found")
+        first = str(matches[0].get("name") or "")
+        return first if len(matches) == 1 else f"{first} +{len(matches) - 1}"
+
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         place = bounded_text(params.get("place"), "place name", MAX_PLACE_CHARS)
         provider, service_url = _configuration(params, resolve=True)

@@ -9,7 +9,11 @@ stop button and Esc stops the run too; typing meanwhile corrects the agent.
 
 ## Asking about the project
 
-Reading runs immediately, no confirmation:
+Reading runs immediately, no confirmation. Every call the agent makes is listed
+above its answer: the header names the first calls and how long the turn took,
+each row has its skill's icon, and under it what the call found — *12 features
+matched*, the address a place name resolved to, the clearest satellite scene.
+The list stays open until your next request folds it; a click reopens it.
 
 - *what layers do I have?*
 - *which fields does the roads layer have, and what is in `highway`?*

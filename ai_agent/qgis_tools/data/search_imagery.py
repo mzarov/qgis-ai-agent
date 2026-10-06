@@ -1,6 +1,6 @@
 from typing import Any
 
-from ai_agent.i18n import tr
+from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.data.catalogue import KIND_IMAGERY, dataset
@@ -73,6 +73,16 @@ class SearchImageryTool(BaseTool):
 
     def summarize_call(self, params: dict[str, Any]) -> str:
         return tr("Searching {0} scenes on the Planetary Computer.").format(str(params.get("collection") or ""))
+
+    def summarize_result(self, params: dict[str, Any], payload: dict[str, Any]) -> str:
+        scenes = payload.get("scenes") or []
+        if not scenes:
+            return tr("No scenes")
+        count = tr_n("%n scene(s)", len(scenes))
+        best = scenes[0]
+        if "cloud_cover" in best:
+            return tr("{0} · best {1}, {2}% cloud").format(count, best.get("date") or "", best["cloud_cover"])
+        return tr("{0} · best {1}").format(count, best.get("date") or "")
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         entry = dataset(params.get("collection") or "", KIND_IMAGERY)

@@ -978,3 +978,8 @@ These verify the agent solves everyday tasks without wandering through search.
      **Conversation and project** → rivers blue again, the chat ends before
      the second request and it sits in the input box. A message sent before
      QGIS was restarted offers **Conversation only**.
+206. **Activity list.** *How many roads are there, and where is Rotterdam?* →
+     above the answer an open list: the header names the first calls, a
+     duration after the answer; each row has an icon (eye for reading, globe
+     for the web) and a line under it — *N features matched*, the address.
+     Send another request → the earlier list folds to its header.

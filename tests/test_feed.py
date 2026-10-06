@@ -2,6 +2,7 @@ import pathlib
 import unittest
 from unittest import mock
 
+from ai_agent.qgis_tools.call_summary import CallSummary
 from ai_agent.ui.conversation import ConversationView
 from ai_agent.ui.messages import AssistantMessage
 from ai_agent.ui.thinking import ThinkingBlock
@@ -167,19 +168,28 @@ class CompactFeedTest(unittest.TestCase):
         self.view.append_thinking("hmm")
         self.assertTrue(self.view._activity._toggle.isChecked())
 
-    def test_the_answer_folds_the_whole_group(self):
-        self.view.append_thinking("hmm")
+    def test_the_answer_closes_the_group_but_leaves_it_open(self):
+        self.view.add_activity_step("Reading the project.")
         group = self.view._activity
         self.view.add_assistant_message("done")
-        self.assertFalse(group._toggle.isChecked())
+        self.assertTrue(group._toggle.isChecked())
+        self.assertFalse(group._steps_holder.isHidden())
         self.assertIsNone(self.view._activity)
 
-    def test_a_finished_answer_folds_it_too(self):
-        self.view.append_thinking("hmm")
-        group = self.view._activity
+    def test_the_next_request_folds_every_earlier_group(self):
+        self.view.add_activity_step("Reading the project.")
+        first = self.view._activity
         self.view.append_draft("the answer")
         self.view.finish_draft("the answer")
-        self.assertFalse(group._toggle.isChecked())
+        self.view.add_activity_step("Rendering the map.")
+        second = self.view._activity
+        self.view.add_assistant_message("done")
+        self.view.add_user_message("next")
+        self.assertFalse(first._toggle.isChecked())
+        self.assertFalse(second._toggle.isChecked())
+        self.assertTrue(first._steps_holder.isHidden())
+        self.view.add_activity_step("Reading layer 'roads'.")
+        self.assertTrue(self.view._activity._toggle.isChecked())
 
     def test_a_dropped_draft_leaves_the_group_open_for_the_next_step(self):
         self.view.add_activity_step("first")
@@ -292,10 +302,36 @@ class ActivityTitleTest(unittest.TestCase):
         view.add_activity_step("Reading the project.")
         self.assertTrue(view._activity._header.isVisible())
 
-    def test_a_group_with_actions_counts_them(self):
+    def test_the_header_names_the_first_calls_and_counts_the_rest(self):
         view = ConversationView()
         view.add_activity_step("Reading the project.")
-        self.assertIn("1", view._activity._title.text())
+        self.assertEqual(view._activity._title.text(), "Reading the project")
+        view.add_activity_step("Adding basemap 'Satellite'.")
+        view.add_activity_step("Moving the map.")
+        view.add_activity_step("Rendering the map.")
+        self.assertEqual(view._activity._title.text(), "Reading the project, Adding basemap 'Satellite' +2")
+
+    def test_a_finished_group_shows_how_long_it_took(self):
+        view = ConversationView()
+        group_step = view.add_activity_step("Reading the project.")
+        group = view._activity
+        with mock.patch("ai_agent.ui.activity.time.monotonic", return_value=group._started + 9.4):
+            view.mark_activity_step(group_step, True)
+        view.add_assistant_message("done")
+        self.assertIn("9.4", group._header.detail.text())
+
+    def test_a_row_wears_its_skill_icon_and_shows_what_the_call_found(self):
+        view = ConversationView()
+        summary = CallSummary.marking("Geocoding 'Rotterdam'.", {"query": "Rotterdam"})
+        summary.skill = "web"
+        entry = view.add_activity_step(summary)
+        row = view._entries[entry]
+        view.mark_activity_step(entry, True, "Rotterdam, Zuid-Holland, Nederland")
+        self.assertEqual(row.note.text(), "Rotterdam, Zuid-Holland, Nederland")
+        self.assertFalse(row.note.isHidden())
+        failed = view.add_activity_step("Reading layer 'nope'.")
+        view.mark_activity_step(failed, False, "ignored")
+        self.assertTrue(view._entries[failed].note.isHidden())
 
     def test_a_new_action_is_running_not_already_done(self):
         view = ConversationView()
@@ -384,21 +420,12 @@ class DisclosureTest(unittest.TestCase):
 
 
 class ActivityListTest(unittest.TestCase):
-    def test_reasoning_alone_is_a_bare_line_and_a_call_frames_the_list(self):
+    def test_rows_follow_one_another_without_frame_or_hairlines(self):
         view = ConversationView()
         view.append_thinking("hmm")
-        self.assertFalse(view._activity._steps_holder.framed)
-        view.add_activity_step("Reading the project.")
-        self.assertTrue(view._activity._steps_holder.framed)
-
-    def test_rows_are_separated_by_hairlines(self):
-        from ai_agent.ui.activity import Separator
-
-        view = ConversationView()
         for text in ("one", "two", "three"):
             view.add_activity_step(text)
-        kinds = [isinstance(item, Separator) for item in view._activity._steps_holder.items]
-        self.assertEqual(kinds, [False, True, False, True, False])
+        self.assertEqual(len(view._activity._steps_holder.items), 4)
 
 
 class DurationTest(unittest.TestCase):

@@ -1,6 +1,6 @@
 from typing import Any
 
-from ai_agent.i18n import tr
+from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common.values import clamp_limit
 from ai_agent.qgis_tools.tables.coordinates import guess_coordinates
@@ -53,6 +53,11 @@ class PreviewTableTool(BaseTool):
 
     def summarize_call(self, params: dict[str, Any]) -> str:
         return tr("Reading table file {0}.").format(str(params.get("path") or "").strip())
+
+    def summarize_result(self, params: dict[str, Any], payload: dict[str, Any]) -> str:
+        columns = tr_n("%n column(s)", len(payload.get("columns") or []))
+        rows = payload.get("row_count")
+        return f"{columns} · {tr_n('%n row(s)', rows)}" if isinstance(rows, int) else columns
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         table = read_table(params.get("path") or "", str(params.get("delimiter") or ""))

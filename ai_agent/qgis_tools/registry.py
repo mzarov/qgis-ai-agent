@@ -82,9 +82,22 @@ def summarize_tool_call(tool_name: str, params: dict[str, Any]) -> CallSummary:
     if not tool:
         return CallSummary.marking(f"{tool_name}: {params}", {})
     try:
-        return CallSummary.marking(tool.summarize_call(params), params if isinstance(params, dict) else {})
+        summary = CallSummary.marking(tool.summarize_call(params), params if isinstance(params, dict) else {})
     except Exception:
-        return CallSummary.marking(tool.name, {})
+        summary = CallSummary.marking(tool.name, {})
+    summary.skill = tool.skill
+    return summary
+
+
+def summarize_tool_result(tool_name: str, params: dict[str, Any], payload: dict[str, Any]) -> str:
+    """The user-facing line under a finished call, or "" when the tool has nothing short to say."""
+    tool = get_tool_by_name(tool_name)
+    if not tool:
+        return ""
+    try:
+        return str(tool.summarize_result(params, payload) or "")
+    except Exception:
+        return ""
 
 
 def _require_tool(tool_name: str) -> BaseTool:

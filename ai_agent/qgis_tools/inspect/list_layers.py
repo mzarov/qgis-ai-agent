@@ -2,7 +2,7 @@ from typing import Any
 
 from qgis.core import QgsProject
 
-from ai_agent.i18n import tr
+from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common.layers import describe_layer_brief
 
@@ -23,6 +23,9 @@ class ListLayersTool(BaseTool):
 
     def summarize_call(self, params: dict[str, Any]) -> str:
         return tr("Reading the project layers.")
+
+    def summarize_result(self, params: dict[str, Any], payload: dict[str, Any]) -> str:
+        return tr_n("%n layer(s)", int(payload.get("count") or 0))
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layers = [describe_layer_brief(layer) for layer in QgsProject.instance().mapLayers().values()]

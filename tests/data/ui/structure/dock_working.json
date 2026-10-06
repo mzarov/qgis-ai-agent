@@ -52,7 +52,7 @@
  {
   "depth": 5,
   "type": "ElidedLabel",
-  "text": "Reading layer 'districts'"
+  "text": "Working…"
  },
  {
   "depth": 5,
@@ -78,13 +78,30 @@
  },
  {
   "depth": 6,
-  "type": "QLabel",
-  "text": "1 action"
+  "type": "ElidedLabel",
+  "text": "Reading layer 'districts'"
  },
  {
   "depth": 6,
   "type": "QToolButton",
-  "checked": false
+  "checked": true
+ },
+ {
+  "depth": 5,
+  "type": "ActivityList"
+ },
+ {
+  "depth": 6,
+  "type": "StepRow"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Reading layer <span style=\"color: rgb(29, 29, 27);\">districts</span>"
  },
  {
   "depth": 2,

@@ -1,7 +1,7 @@
 import os
 from typing import Any
 
-from ai_agent.i18n import tr
+from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.osm.args import (
     CANVAS,
@@ -127,6 +127,9 @@ class DownloadOsmTool(BaseTool):
         name = wanted_name(params)
         where = (params.get("area") or "").strip() or tr("the given extent")
         return tr("Downloading '{0}' ({1}) from OSM in {2}.").format(name, _what(params), where)
+
+    def summarize_result(self, params: dict[str, Any], payload: dict[str, Any]) -> str:
+        return tr_n("%n feature(s)", int(payload.get("total_features") or 0))
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         chosen = selectors(params)

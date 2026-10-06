@@ -27,6 +27,25 @@ NAMES = {
     "rename": "pencil",
     "delete": "trash-2",
     "rewind": "undo-2",
+    # A tool call's row wears its skill's icon; "knowledge" is a skill being loaded.
+    "inspect": "eye",
+    "project": "layers",
+    "style": "palette",
+    "processing": "cog",
+    "osm": "map",
+    "data": "database",
+    "draw": "pen-tool",
+    "edit": "pencil",
+    "fields": "columns-3",
+    "layout": "printer",
+    "python": "code",
+    "web": "globe",
+    "annotations": "sticky-note",
+    "three_d": "box",
+    "tables": "table",
+    "charts": "chart-column",
+    "plugins": "puzzle",
+    "knowledge": "book-open",
 }
 
 

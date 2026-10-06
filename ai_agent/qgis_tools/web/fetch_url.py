@@ -53,6 +53,9 @@ class FetchUrlTool(BaseTool):
         prepared["offset"] = _offset(params.get("offset"))
         return prepared
 
+    def summarize_result(self, params: dict[str, Any], payload: dict[str, Any]) -> str:
+        return str(payload.get("url") or "")
+
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         url = checked_url(params.get("url"), resolve=False)
         limit = _limit(params.get("max_chars"))

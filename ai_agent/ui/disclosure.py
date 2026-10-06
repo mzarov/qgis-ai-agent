@@ -8,9 +8,9 @@ hover event would restyle the subtree in the middle of event processing.
 from typing import Any
 
 from qgis.PyQt.QtCore import QSize, Qt, pyqtSignal
-from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QToolButton, QWidget
+from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QToolButton, QWidget
 
-from ai_agent.ui import icons, style
+from ai_agent.ui import controls, icons, style
 
 CHEVRON = 14
 COLLAPSED = "›"
@@ -31,8 +31,9 @@ class Disclosure(QWidget):
         self._row.setContentsMargins(0, 0, 0, 0)
         self._row.setSpacing(6)
 
-        self.title = QLabel()
-        self.title.setTextFormat(Qt.TextFormat.PlainText)
+        # Full width while there is room, an ellipsis when the dock is narrow: a long title must not widen it.
+        self.title = controls.ElidedLabel()
+        self.title.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         style.ink(self.title, self._rest)
         self._row.addWidget(self.title, 0, Qt.AlignmentFlag.AlignVCenter)
 

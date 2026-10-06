@@ -67,6 +67,8 @@ class ConversationView(QScrollArea):
         bar.valueChanged.connect(self._on_value_changed)
 
         self._activity: ActivityGroup | None = None
+        # Groups since the last request: they stay open until the next one folds them.
+        self._activities: list[ActivityGroup] = []
         self._plan_offers: list[PlanOffer] = []
         self._questions: list[QuestionCard] = []
         self._draft: AssistantMessage | None = None
@@ -119,6 +121,7 @@ class ConversationView(QScrollArea):
         self._retire_plan_offers()
         self._retire_questions()
         self._close_activity()
+        self._fold_activities()
         bubble = UserMessage(text)
         bubble.rewind_requested.connect(self.rewind_requested.emit)
         return self._append(bubble)
@@ -146,8 +149,7 @@ class ConversationView(QScrollArea):
         if self._thinking is None:
             self._drop_draft()
             if self._activity is None:
-                self._activity = ActivityGroup()
-                self._append(self._activity)
+                self._new_activity()
             block = ThinkingBlock()
             self._activity.add_widget(block)
             self._activity.reveal()
@@ -200,17 +202,15 @@ class ConversationView(QScrollArea):
     def add_activity_step(self, text: str) -> int:
         self._drop_draft()
         self._close_thinking()
-        if self._activity is None:
-            self._activity = ActivityGroup()
-            self._append(self._activity)
-        step = self._activity.add_step(text)
+        activity = self._activity or self._new_activity()
+        step = activity.add_step(text)
         self._scroll_when_pinned()
         return self._remember(step)
 
-    def mark_activity_step(self, entry_id: int, ok: bool) -> None:
+    def mark_activity_step(self, entry_id: int, ok: bool, note: str = "") -> None:
         label = self._entries.get(entry_id)
         if label is not None and self._activity is not None:
-            self._activity.mark_step(label, ok)
+            self._activity.mark_step(label, ok, note)
 
     def add_rejected_step(self, text: str) -> int:
         entry_id = self.add_activity_step(text)
@@ -272,6 +272,7 @@ class ConversationView(QScrollArea):
             if widget is not None and widget is not self.progress:
                 self._discard(widget)
         self._activity = None
+        self._activities = []
         self._draft = None
         self._thinking = None
         self._plan_offers = []
@@ -312,6 +313,17 @@ class ConversationView(QScrollArea):
         self._next_id += 1
         self._entries[entry_id] = entry
         return entry_id
+
+    def _new_activity(self) -> ActivityGroup:
+        self._activity = ActivityGroup()
+        self._activities.append(self._activity)
+        self._append(self._activity)
+        return self._activity
+
+    def _fold_activities(self) -> None:
+        for group in self._activities:
+            group.fold()
+        self._activities = []
 
     def _close_activity(self) -> None:
         if self._activity is not None:

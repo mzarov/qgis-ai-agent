@@ -217,14 +217,13 @@ class AgentDockWidget(QDockWidget):
         return self.conversation.finish_draft(markdown)
 
     def add_tool_message(self, text: str) -> int:
-        self.progress.step(text)
         return self.conversation.add_activity_step(text)
 
     def add_rejected_message(self, text: str) -> int:
         return self.conversation.add_rejected_step(text)
 
-    def mark_tool_done(self, message_id: int, ok: bool = True) -> None:
-        self.conversation.mark_activity_step(message_id, ok)
+    def mark_tool_done(self, message_id: int, ok: bool = True, note: str = "") -> None:
+        self.conversation.mark_activity_step(message_id, ok, note)
 
     def add_plan_message(self, plan_lines: list[str], applies_itself: bool = False) -> int:
         return self.conversation.add_plan_card(plan_lines, applies_itself)

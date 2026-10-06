@@ -123,6 +123,15 @@ class BaseTool(ABC):
         shown = ", ".join(f"{key}={value}" for key, value in params.items())
         return f"{self.description or self.name}: {shown}"
 
+    def summarize_result(self, params: dict[str, Any], payload: dict[str, Any]) -> str:
+        """A short user-facing line under the finished call: what it found, in tr() text.
+
+        `payload` is what execute returned. "" (the default) shows nothing; the
+        registry swallows exceptions, but the line must never claim more than
+        the payload holds.
+        """
+        return ""
+
     def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
         """Read back whether an applied step took effect, so the model need not check it.
 

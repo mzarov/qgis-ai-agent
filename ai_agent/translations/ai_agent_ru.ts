@@ -26,21 +26,79 @@
         <translation> при условии {0}</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/activity.py" line="144"/>
-        <source>%n action(s)</source>
+        <location filename="ai_agent/qgis_tools/processing/search_processing.py" line="48"/>
+        <source>%n algorithm(s)</source>
         <translation>
-            <numerusform>%n действие</numerusform>
-            <numerusform>%n действия</numerusform>
-            <numerusform>%n действий</numerusform>
+            <numerusform>%n алгоритм</numerusform>
+            <numerusform>%n алгоритма</numerusform>
+            <numerusform>%n алгоритмов</numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/activity.py" line="148"/>
+        <location filename="ai_agent/qgis_tools/tables/preview_table.py" line="58"/>
+        <source>%n column(s)</source>
+        <translation>
+            <numerusform>%n столбец</numerusform>
+            <numerusform>%n столбца</numerusform>
+            <numerusform>%n столбцов</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="ai_agent/ui/activity.py" line="180"/>
         <source>%n failed</source>
         <translation>
             <numerusform>%n ошибка</numerusform>
             <numerusform>%n ошибки</numerusform>
             <numerusform>%n ошибок</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="ai_agent/qgis_tools/inspect/describe_layer.py" line="60"/>
+        <location filename="ai_agent/qgis_tools/inspect/sample_features.py" line="51"/>
+        <location filename="ai_agent/qgis_tools/osm/download_osm.py" line="132"/>
+        <location filename="ai_agent/qgis_tools/osm/run_overpass.py" line="100"/>
+        <source>%n feature(s)</source>
+        <translation>
+            <numerusform>%n объект</numerusform>
+            <numerusform>%n объекта</numerusform>
+            <numerusform>%n объектов</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="ai_agent/qgis_tools/inspect/query_layer.py" line="105"/>
+        <source>%n feature(s) matched</source>
+        <translation>
+            <numerusform>подходит %n объект</numerusform>
+            <numerusform>подходят %n объекта</numerusform>
+            <numerusform>подходят %n объектов</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="ai_agent/qgis_tools/inspect/get_selection.py" line="38"/>
+        <location filename="ai_agent/qgis_tools/inspect/select_features.py" line="58"/>
+        <source>%n feature(s) selected</source>
+        <translation>
+            <numerusform>выбран %n объект</numerusform>
+            <numerusform>выбрано %n объекта</numerusform>
+            <numerusform>выбрано %n объектов</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="ai_agent/qgis_tools/inspect/query_layer.py" line="104"/>
+        <source>%n group(s)</source>
+        <translation>
+            <numerusform>%n группа</numerusform>
+            <numerusform>%n группы</numerusform>
+            <numerusform>%n групп</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="ai_agent/qgis_tools/inspect/list_layers.py" line="28"/>
+        <source>%n layer(s)</source>
+        <translation>
+            <numerusform>%n слой</numerusform>
+            <numerusform>%n слоя</numerusform>
+            <numerusform>%n слоёв</numerusform>
         </translation>
     </message>
     <message numerus="yes">
@@ -50,6 +108,42 @@
             <numerusform>%n запрос</numerusform>
             <numerusform>%n запроса</numerusform>
             <numerusform>%n запросов</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="ai_agent/qgis_tools/web/search_web.py" line="62"/>
+        <source>%n result(s)</source>
+        <translation>
+            <numerusform>%n результат</numerusform>
+            <numerusform>%n результата</numerusform>
+            <numerusform>%n результатов</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="ai_agent/qgis_tools/tables/preview_table.py" line="60"/>
+        <source>%n row(s)</source>
+        <translation>
+            <numerusform>%n строка</numerusform>
+            <numerusform>%n строки</numerusform>
+            <numerusform>%n строк</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="ai_agent/qgis_tools/data/search_imagery.py" line="81"/>
+        <source>%n scene(s)</source>
+        <translation>
+            <numerusform>%n сцена</numerusform>
+            <numerusform>%n сцены</numerusform>
+            <numerusform>%n сцен</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="ai_agent/qgis_tools/inspect/field_values.py" line="53"/>
+        <source>%n value(s)</source>
+        <translation>
+            <numerusform>%n значение</numerusform>
+            <numerusform>%n значения</numerusform>
+            <numerusform>%n значений</numerusform>
         </translation>
     </message>
     <message>
@@ -506,7 +600,7 @@
         <translation>Копировать строки как CSV</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/conversation.py" line="295"/>
+        <location filename="ai_agent/ui/conversation.py" line="296"/>
         <source>Copy the whole conversation</source>
         <translation>Скопировать весь диалог</translation>
     </message>
@@ -692,7 +786,7 @@
         <translation>Введите название модели, доступной у провайдера.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="90"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="95"/>
         <source>Error: {0}</source>
         <translation>Ошибка: {0}</translation>
     </message>
@@ -847,7 +941,7 @@
         <translation>Смотрю установленные плагины.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/data/find_open_data.py" line="35"/>
+        <location filename="ai_agent/qgis_tools/data/find_open_data.py" line="38"/>
         <source>Listing the open datasets.</source>
         <translation>Показываю каталог открытых данных.</translation>
     </message>
@@ -866,7 +960,7 @@
         <translation>Загружаю геометрии из {0} ({1}).</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="65"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="68"/>
         <source>Loading knowledge: {0}</source>
         <translation>Загружаю знания: {0}</translation>
     </message>
@@ -891,7 +985,7 @@
         <translation>Ищу «{0}» через {1}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/data/find_open_data.py" line="36"/>
+        <location filename="ai_agent/qgis_tools/data/find_open_data.py" line="39"/>
         <source>Looking up open data: {0}.</source>
         <translation>Ищу открытые данные: {0}.</translation>
     </message>
@@ -966,6 +1060,11 @@
         <translation>Прошлых диалогов нет</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/data/search_imagery.py" line="80"/>
+        <source>No scenes</source>
+        <translation>Сцен нет</translation>
+    </message>
+    <message>
         <location filename="ai_agent/core/orchestrator/notices.py" line="23"/>
         <source>No skill named /{0}. Available: {1}.</source>
         <translation>Скилла /{0} нет. Доступны: {1}.</translation>
@@ -989,6 +1088,12 @@
         <location filename="ai_agent/ui/settings_probe.py" line="17"/>
         <source>Not tested yet.</source>
         <translation>Ещё не проверено.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/find_open_data.py" line="44"/>
+        <location filename="ai_agent/qgis_tools/web/geocode.py" line="63"/>
+        <source>Nothing found</source>
+        <translation>Ничего не найдено</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/geocoder_settings.py" line="33"/>
@@ -1076,7 +1181,7 @@
         <translation>План</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="62"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="65"/>
         <source>Plan {0}/{1}: {2}</source>
         <translation>План {0}/{1}: {2}</translation>
     </message>
@@ -1266,7 +1371,7 @@
         <translation>Записи</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="58"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="61"/>
         <source>Rejected: {0}</source>
         <translation>Отклонено: {0}</translation>
     </message>
@@ -1366,7 +1471,7 @@
         <translation>Выполнить автоматически</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="68"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="73"/>
         <source>Run journal: {0}</source>
         <translation>Журнал прогона: {0}</translation>
     </message>
@@ -1674,7 +1779,7 @@
         <translation>Разговор возвращён к моменту до этого сообщения; само сообщение — в поле ввода.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="73"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="78"/>
         <source>The model returned nothing. Try rephrasing.</source>
         <translation>Модель ничего не вернула. Попробуйте переформулировать.</translation>
     </message>
@@ -1940,7 +2045,7 @@
         <translation>операция может быть необратимой; требуется дополнительное подтверждение</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/osm/download_osm.py" line="157"/>
+        <location filename="ai_agent/qgis_tools/osm/download_osm.py" line="160"/>
         <source>no tag</source>
         <translation>без тега</translation>
     </message>
@@ -2029,6 +2134,16 @@
         <location filename="ai_agent/ui/context_meter.py" line="27"/>
         <source>{0} until auto-compact</source>
         <translation>{0} до авто-сжатия</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/search_imagery.py" line="85"/>
+        <source>{0} · best {1}</source>
+        <translation>{0} · лучшая {1}</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/search_imagery.py" line="84"/>
+        <source>{0} · best {1}, {2}% cloud</source>
+        <translation>{0} · лучшая {1}, облачность {2}%</translation>
     </message>
     <message>
         <location filename="ai_agent/core/llm/client.py" line="35"/>

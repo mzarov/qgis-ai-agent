@@ -1,10 +1,14 @@
-"""One turn's tool calls and reasoning, folded the way Claude Code folds them.
+"""One turn's tool calls and reasoning, listed the way TerraLab lists them.
 
-Collapsed, the group is a single muted line, "4 actions ›". Opened, its rows sit
-in a hairline list, one per call, with the reasoning as a row of its own. Success
-is the quiet default and carries no mark; only a failed or rejected call does.
+The header names the first calls and how long the turn took, "Reading layer
+roads, Adding basemap +2 · 9.4 s". The rows sit open in a hairline list, one per
+call with its skill's icon and, under it, what the call found; the reasoning is
+a row of its own. The list stays open after the answer and folds when the next
+request starts. Success is the quiet default and carries no mark; only a failed
+or rejected call does.
 """
 
+import time
 from html import escape
 from typing import Any
 
@@ -12,8 +16,9 @@ from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from ai_agent.i18n import tr_n
-from ai_agent.ui import controls, style
+from ai_agent.ui import controls, icons, style
 from ai_agent.ui.disclosure import Disclosure
+from ai_agent.ui.durations import format_seconds
 
 PENDING = "●"
 DONE = ""
@@ -23,57 +28,39 @@ RECOVERED = "↺"
 NOTE = "· {0}"
 CLOSING = {"'": "'", '"': '"', "«": "»", "“": "”"}
 STEP_FONT_SCALE = 0.95
-LIST_PAD = 12
-ROW_PAD = 8
+LIST_INDENT = 2
+ROW_PAD = 5
 HEADER_GAP = 6
+ICON = 14
+ICON_GAP = 8
+NOTE_GAP = 2
+NAMED_CALLS = 2
+# "+2" reads the same in every language, so it is no translation string.
+MORE = "{0} +{1}"
 
 
-class ActivityList(controls.RoundedFrame):
-    """The rows of a group, framed by a painted hairline once there is a call to list.
+class ActivityList(QWidget):
+    """The rows of a group, open on the page without a frame: a box around every turn read as a wall of cards."""
 
-    A reasoning-only turn stays a bare line: a box around a single fold line would
-    be a frame with nothing to frame.
-    """
-
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(style.CARD_RADIUS, parent)
-        self._border = style.hairline(palette)
-        self.framed = False
+    def __init__(self, parent: QWidget | None = None):
+        super().__init__(parent)
         self.items: list[QWidget] = []
         self.rows = QVBoxLayout(self)
-        self.rows.setContentsMargins(0, 0, 0, 0)
+        self.rows.setContentsMargins(LIST_INDENT, 0, 0, 0)
         self.rows.setSpacing(0)
 
-    def set_framed(self, framed: bool) -> None:
-        if framed == self.framed:
-            return
-        self.framed = framed
-        pad = LIST_PAD if framed else 0
-        self.rows.setContentsMargins(pad, 0, pad, 0)
-        self.set_look(None, self._border if framed else None)
-
     def add_row(self, widget: QWidget) -> None:
-        if self.items:
-            self._add(Separator(self._border))
         widget.setContentsMargins(0, ROW_PAD, 0, ROW_PAD)
-        self._add(widget)
-
-    def _add(self, widget: QWidget) -> None:
         self.items.append(widget)
         self.rows.addWidget(widget)
-
-
-class Separator(QWidget):
-    def __init__(self, colour: Any, parent: QWidget | None = None):
-        super().__init__(parent)
-        self.setFixedHeight(style.HAIRLINE)
-        style.fill(self, colour)
 
 
 class ActivityGroup(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
-        palette = self.palette()
+        # Taken before the style sheet: "background: transparent" turns the widget's own palette
+        # base transparent, which the theme reads as dark and paints the rows in near-white text.
+        palette = self._palette = self.palette()
         self.setStyleSheet("QFrame { background: transparent; border: none; }")
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 0, 0, 0)
@@ -85,7 +72,10 @@ class ActivityGroup(QFrame):
         self._header.add_note(self._status)
         self._header.toggled.connect(self._on_toggled)
         column.addWidget(self._header)
-        self._steps_holder = ActivityList(palette)
+        self._names: list[str] = []
+        self._started = 0.0
+        self._finished = 0.0
+        self._steps_holder = ActivityList()
         column.addWidget(self._steps_holder)
         self._count = 0
         self._extras = 0
@@ -97,11 +87,14 @@ class ActivityGroup(QFrame):
         self._refresh()
 
     def add_step(self, text: str) -> QWidget:
-        row = StepRow(text, self.palette())
+        row = StepRow(text, self._palette)
         self._steps_holder.add_row(row)
+        if not self._count:
+            self._started = time.monotonic()
+            self.reveal()
+        self._names.append(_without_period(str(text)))
         self._count += 1
         self._pending += 1
-        self._steps_holder.set_framed(True)
         self._refresh()
         return row
 
@@ -115,17 +108,27 @@ class ActivityGroup(QFrame):
         self._steps_holder.setVisible(True)
 
     def rest(self) -> None:
+        """The turn moved on: the list stays open with the time it took, until the next request folds it."""
         self._closed = True
-        self._toggle.setChecked(False)
         if not self._count:
             # A reasoning-only turn has no header to reopen it from: its row stays.
             self._steps_holder.setVisible(self._extras > 0)
+        elif self._finished:
+            self._header.set_detail(format_seconds(self._finished - self._started))
         self._refresh()
 
-    def mark_step(self, row: "StepRow", ok: bool) -> None:
+    def fold(self) -> None:
+        """Collapse to the header line; an earlier turn makes room for the next one."""
+        if self._count:
+            self._toggle.setChecked(False)
+
+    def mark_step(self, row: "StepRow", ok: bool, note: str = "") -> None:
         self._settle(row, DONE if ok else FAILED)
         if not ok:
             self._failures += 1
+        elif note:
+            row.set_note(note)
+        self._finished = time.monotonic()
         self._refresh()
 
     def mark_rejected(self, row: "StepRow") -> None:
@@ -139,9 +142,13 @@ class ActivityGroup(QFrame):
         row.set_state(state)
 
     def _refresh(self) -> None:
-        palette = self.palette()
+        palette = self._palette
         self._header.setVisible(bool(self._count))
-        self._title.setText(tr_n("%n action(s)", self._count))
+        title = ", ".join(self._names[:NAMED_CALLS])
+        if len(self._names) > NAMED_CALLS:
+            title = MORE.format(title, len(self._names) - NAMED_CALLS)
+        self._title.setText(title)
+        self._title.setToolTip("\n".join(self._names))
         if self._pending and not self._closed:
             marker, colour = PENDING, style.muted(palette)
         elif self._failures:
@@ -160,15 +167,27 @@ class ActivityGroup(QFrame):
 
 
 class StepRow(QWidget):
-    """One call: the wording muted, its own values bright, a mark only when it did not succeed."""
+    """One call: its skill's icon, the wording muted with its own values bright, a mark only when it
+    did not succeed, and under it what the call found."""
 
     def __init__(self, text: str, palette, parent=None):
         super().__init__(parent)
         self.setStyleSheet("border: none;")
         self._palette = palette
-        row = QHBoxLayout(self)
+        column = QVBoxLayout(self)
+        column.setContentsMargins(0, 0, 0, 0)
+        column.setSpacing(NOTE_GAP)
+        row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(8)
+        row.setSpacing(ICON_GAP)
+        column.addLayout(row)
+        self.icon = QLabel()
+        self.icon.setFixedSize(ICON, ICON)
+        skill = str(getattr(text, "skill", "") or "")
+        glyph = icons.drawn(skill, style.muted(palette), ICON) if skill in icons.NAMES else None
+        if glyph is not None:
+            self.icon.setPixmap(glyph.pixmap(ICON, ICON))
+        row.addWidget(self.icon, 0, Qt.AlignmentFlag.AlignTop)
 
         self.state = PENDING
         self._label = QLabel()
@@ -184,6 +203,16 @@ class StepRow(QWidget):
         self._marker.setFont(self._label.font())
         self._marker.setVisible(False)
         row.addWidget(self._marker, 0, Qt.AlignmentFlag.AlignTop)
+
+        self.note = controls.small("", palette)
+        self.note.setTextFormat(Qt.TextFormat.PlainText)
+        self.note.setContentsMargins(ICON + ICON_GAP, 0, 0, 0)
+        self.note.setVisible(False)
+        column.addWidget(self.note)
+
+    def set_note(self, text: str) -> None:
+        self.note.setText(text)
+        self.note.setVisible(bool(text))
 
     def set_state(self, marker: str) -> None:
         self.state = marker

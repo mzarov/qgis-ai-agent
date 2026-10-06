@@ -16,7 +16,12 @@ from ai_agent.core.agent.skills import load_skill
 from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.base import SAFETY_READ
-from ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call, validate_tool_arguments
+from ai_agent.qgis_tools.registry import (
+    get_tool_by_name,
+    summarize_tool_call,
+    summarize_tool_result,
+    validate_tool_arguments,
+)
 
 LOG_TAG = "AI Agent"
 MAX_OPTION_CHARS = 120
@@ -69,7 +74,9 @@ class DispatchMixin:
     def _run_now(self, call: ToolCall) -> ToolResult:
         self.tool_started.emit(summarize_tool_call(call.name, call.arguments))
         result = self._executor.run(call)
-        self.tool_finished.emit(call.name, result.ok)
+        self.tool_finished.emit(
+            call.name, result.ok, summarize_tool_result(call.name, call.arguments, result.payload) if result.ok else ""
+        )
         if result.visual is not None:
             self.visual_ready.emit(result.visual)
         return result

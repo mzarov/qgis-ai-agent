@@ -2,7 +2,7 @@ from typing import Any
 
 from qgis.core import QgsVectorLayer
 
-from ai_agent.i18n import tr
+from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.expressions import compile_expression
@@ -53,6 +53,9 @@ class SelectFeaturesTool(BaseTool):
     def summarize_call(self, params: dict[str, Any]) -> str:
         layer_name = (params.get("layer_name") or "").strip()
         return tr("Selecting features in '{0}'.").format(layer_name)
+
+    def summarize_result(self, params: dict[str, Any], payload: dict[str, Any]) -> str:
+        return tr_n("%n feature(s) selected", int(payload.get("selected") or 0))
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = _require_vector(params.get("layer_name") or "")

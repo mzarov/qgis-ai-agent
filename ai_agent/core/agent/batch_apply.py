@@ -6,7 +6,7 @@ from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.base import SAFETY_READ
 from ai_agent.qgis_tools.common.project_identity import project_identity
 from ai_agent.qgis_tools.project.snapshots import snapshot_error, take_snapshot
-from ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call
+from ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call, summarize_tool_result
 
 LOG_TAG = "AI Agent"
 INTERRUPTED_JOURNAL_OUTCOME = "Run interrupted during apply; completed changes remain."
@@ -132,7 +132,9 @@ class BatchApplyMixin:
     ) -> None:
         if not self._is_current(generation) and call is not self._active_apply_call:
             return
-        self.tool_finished.emit(call.name, result.ok)
+        self.tool_finished.emit(
+            call.name, result.ok, summarize_tool_result(call.name, call.arguments, result.payload) if result.ok else ""
+        )
         if call is self._active_apply_call:
             self._active_apply_call = None
 
