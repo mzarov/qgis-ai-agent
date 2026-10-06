@@ -4,13 +4,16 @@ from typing import Any
 from ai_agent.qgis_tools.annotations import ANNOTATIONS_TOOLS
 from ai_agent.qgis_tools.base import BaseTool
 from ai_agent.qgis_tools.call_summary import CallSummary
+from ai_agent.qgis_tools.charts import CHARTS_TOOLS
 from ai_agent.qgis_tools.common.validation import validate_parameters
+from ai_agent.qgis_tools.data import DATA_TOOLS
 from ai_agent.qgis_tools.draw import DRAW_TOOLS
 from ai_agent.qgis_tools.edit import EDIT_TOOLS
 from ai_agent.qgis_tools.fields import FIELDS_TOOLS
 from ai_agent.qgis_tools.inspect import INSPECT_TOOLS
 from ai_agent.qgis_tools.layout import LAYOUT_TOOLS
 from ai_agent.qgis_tools.osm import OSM_TOOLS
+from ai_agent.qgis_tools.plugins import PLUGINS_TOOLS
 from ai_agent.qgis_tools.processing import PROCESSING_TOOLS
 from ai_agent.qgis_tools.project import PROJECT_TOOLS
 from ai_agent.qgis_tools.python import PYTHON_TOOLS
@@ -23,6 +26,7 @@ ALL_TOOLS: list[BaseTool] = [
     *INSPECT_TOOLS,
     *PROJECT_TOOLS,
     *OSM_TOOLS,
+    *DATA_TOOLS,
     *WEB_TOOLS,
     *ANNOTATIONS_TOOLS,
     *THREE_D_TOOLS,
@@ -34,6 +38,8 @@ ALL_TOOLS: list[BaseTool] = [
     *PYTHON_TOOLS,
     *FIELDS_TOOLS,
     *TABLES_TOOLS,
+    *CHARTS_TOOLS,
+    *PLUGINS_TOOLS,
 ]
 
 

@@ -47,6 +47,12 @@ class _Stub(metaclass=_Meta):
     def isVisible(self):
         return self.__dict__.get("_stub_visible", True)
 
+    def hide(self):
+        self.setVisible(False)
+
+    def show(self):
+        self.setVisible(True)
+
     def keyPressEvent(self, event):
         return None
 
@@ -488,6 +494,7 @@ _mod(
         "QButtonGroup",
         "QGridLayout",
         "QFileDialog",
+        "QToolTip",
     ],
 )
 _qtcore.pyqtSignal = pyqtSignal

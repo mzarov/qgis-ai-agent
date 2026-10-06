@@ -225,6 +225,25 @@
  {
   "depth": 4,
   "type": "QLabel",
+  "text": "/charts"
+ },
+ {
+  "depth": 4,
+  "type": "ElidedLabel",
+  "text": "Draw charts and tables right in the chat — a histogram of a field, values per category as bars or a pie, a line over tim"
+ },
+ {
+  "depth": 3,
+  "type": "SkillRow",
+  "name": "skillRow"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
   "text": "/fields"
  },
  {
@@ -282,12 +301,12 @@
  {
   "depth": 4,
   "type": "QLabel",
-  "text": "/processing"
+  "text": "/plugins"
  },
  {
   "depth": 4,
   "type": "ElidedLabel",
-  "text": "Geoprocessing and analysis — buffer, clip, intersect, dissolve, join, reproject, field calculator, heatmap, clustering, "
+  "text": "Use the other QGIS plugins the user has installed — find which plugin can do a task (segmentation, web maps, special for"
  },
  {
   "depth": 3,
@@ -301,11 +320,11 @@
  {
   "depth": 4,
   "type": "QLabel",
-  "text": "/tables"
+  "text": "/processing"
  },
  {
   "depth": 4,
   "type": "ElidedLabel",
-  "text": "Tabular data — preview a CSV, load it as a table or as points from lon/lat (x/y, WKT) columns, attach a table to a layer"
+  "text": "Geoprocessing and analysis — buffer, clip, intersect, dissolve, join, reproject, field calculator, heatmap, clustering, "
  }
 ]

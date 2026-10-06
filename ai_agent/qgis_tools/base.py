@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 RESULT_IMAGE_KEY = "image_base64"
+# A chart or table for the person: the feed draws it, the model never receives it.
+RESULT_VISUAL_KEY = "visual_for_user"
 SAFETY_READ = "read"
 SAFETY_WRITE = "write"
 SAFETY_DESTRUCTIVE = "destructive"
@@ -42,6 +44,8 @@ class BaseTool(ABC):
     # The result exists only to be looked at: a model known to reject image
     # input is not offered the tool, since it would get an omission note back.
     returns_image: bool = False
+    # detail_call returns code to run (run_python): the confirmation shows it as code, not as prose.
+    detail_is_code: bool = False
 
     @property
     def is_read_only(self) -> bool:

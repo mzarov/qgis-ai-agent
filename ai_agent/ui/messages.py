@@ -1,9 +1,10 @@
 from typing import Any
 
-from qgis.PyQt.QtCore import Qt, QTimer
-from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QTextBrowser, QVBoxLayout, QWidget
+from qgis.PyQt.QtCore import QSize, Qt, QTimer, pyqtSignal
+from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QTextBrowser, QToolButton, QVBoxLayout, QWidget
 
-from ai_agent.ui import style
+from ai_agent.i18n import tr
+from ai_agent.ui import icons, style
 
 USER_MAX_WIDTH_RATIO = 0.82
 BUBBLE_PADDING = 8
@@ -12,15 +13,26 @@ BROWSER_EXTRA_HEIGHT = 6
 WRAP_SLACK = 10
 SYSTEM_FONT_SCALE = 0.92
 REPAINT_INTERVAL_MS = 80
+REWIND_ICON = 14
+REWIND_BUTTON = 24
+REWIND = tr("Rewind to before this message")
 
 
 class UserMessage(QWidget):
+    """The user's bubble; with a place in the conversation it offers a rewind button on hover."""
+
+    rewind_requested = pyqtSignal(int)
+
     def __init__(self, text: str, parent=None):
         super().__init__(parent)
         palette = self.palette()
         row = QHBoxLayout(self)
         row.setContentsMargins(0, 0, 0, 0)
         row.addStretch(1)
+        self.message: int | None = None
+        self.rewind = _rewind_button(palette)
+        self.rewind.clicked.connect(self._ask_rewind)
+        row.addWidget(self.rewind, 0, Qt.AlignmentFlag.AlignVCenter)
 
         label = QLabel(text)
         label.setWordWrap(True)
@@ -36,6 +48,21 @@ class UserMessage(QWidget):
 
     def plain_text(self) -> str:
         return self._label.text()
+
+    def set_rewind_point(self, message: int) -> None:
+        self.message = message
+
+    def _ask_rewind(self) -> None:
+        if self.message is not None:
+            self.rewind_requested.emit(self.message)
+
+    def enterEvent(self, event: Any) -> None:
+        self.rewind.setVisible(self.message is not None)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event: Any) -> None:
+        self.rewind.setVisible(False)
+        super().leaveEvent(event)
 
     def resizeEvent(self, event: Any) -> None:
         self._fit()
@@ -138,3 +165,28 @@ def _line_width(metrics: Any, line: str) -> int:
     except Exception:
         painted = 0
     return max(int(advance), int(painted))
+
+
+def _rewind_button(palette: Any) -> QToolButton:
+    button = QToolButton()
+    button.setFixedSize(REWIND_BUTTON, REWIND_BUTTON)
+    button.setAutoRaise(True)
+    button.setToolTip(REWIND)
+    button.setAccessibleName(REWIND)
+    button.setCursor(Qt.CursorShape.PointingHandCursor)
+    button.setStyleSheet(
+        "QToolButton { border: none; background: transparent; border-radius: 6px; }"
+        f"QToolButton:hover {{ background: {style.css_color(style.elevated(palette))}; }}"
+    )
+    icon = icons.drawn("rewind", style.muted(palette), REWIND_ICON)
+    if icon is None:
+        button.setText("↶")
+    else:
+        button.setIcon(icon)
+        button.setIconSize(QSize(REWIND_ICON, REWIND_ICON))
+    # Hidden until hover, but its room is kept so the bubble does not jump sideways.
+    policy = button.sizePolicy()
+    policy.setRetainSizeWhenHidden(True)
+    button.setSizePolicy(policy)
+    button.setVisible(False)
+    return button

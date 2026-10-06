@@ -3,6 +3,7 @@ import unittest
 
 from ai_agent.core.agent.executor import ToolExecutor
 from ai_agent.core.llm.turns import ToolCall
+from ai_agent.core.orchestrator.planning import CodeDetails
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
 from ai_agent.qgis_tools.python.run_python import (
     MAX_CODE_CHARS,
@@ -161,7 +162,7 @@ class ToolTest(unittest.TestCase):
 
     def test_exact_code_is_in_the_always_visible_confirmation_text(self):
         code = "print('<exact>')\nproject.clear()"
-        text = destructive_confirmation_text(["Running Python: smoke"], code)
+        text = destructive_confirmation_text(["Running Python: smoke"], CodeDetails(code))
         self.assertIn("Exact code to be executed", text)
         self.assertIn(code, text)
 

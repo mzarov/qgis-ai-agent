@@ -7,7 +7,8 @@ Domains are implemented as skills: `inspect` (reading the project, selection,
 rendering the map to an image), `project` (layers, basemaps, web services,
 PostGIS, tree, bookmarks, undo, saving), `style` (vector and raster styling,
 labels), `processing` (algorithms), `osm` (OpenStreetMap data through
-Overpass), `draw` (features from coordinates into a scratch or existing
+Overpass), `data` (open-data catalogue, Planetary Computer imagery search
+and loading, Natural Earth and geoBoundaries layers), `draw` (features from coordinates into a scratch or existing
 layer), `edit` (in-place attribute edits and deletion — the `destructive`
 class), `fields` (attribute schema and virtual fields), `layout` (print
 layouts and export), `python` (the `run_python` escape hatch to the whole
@@ -16,7 +17,11 @@ part of the design, never propose cutting it for review reasons; the
 reasoning is in [docs/core_architecture.md](docs/core_architecture.md)), and
 `web` (confirmed public-HTTPS search, page reading and geocoding),
 `annotations` (map notes and markers), `three_d` (opening a 3D map view), and
-`tables` (CSV preview and loading as points, live table joins).
+`tables` (CSV preview and loading as points, live table joins), `charts`
+(charts and tables drawn in the chat feed; the spec rides beside the tool
+result and never reaches the model), and `plugins` (other installed plugins:
+their Processing algorithms and, after a destructive-class confirmation, their
+menu commands).
 After
 the user applies a batch, the orchestrator starts a verification run: the agent
 re-reads the result with read tools and, for visual changes, looks at a

@@ -955,3 +955,26 @@ These verify the agent solves everyday tasks without wandering through search.
      2020" and hide it* → Apply → the feed says *Checked: every step is in
      place.* and no second model run starts. *Colour districts by population*
      → Apply → the usual *Checking the applied changes…* run follows.
+201. **Open data loads.** *Find a cloud-free Sentinel-2 image of the current
+     view from this summer* → a consent prompt names the Planetary Computer,
+     the answer lists scenes with dates and cloud cover; *load the clearest* →
+     a true-colour raster appears where expected. *Add the regions of Kenya* →
+     a boundary layer with 47 regions. *Load a DEM here* → a height raster.
+202. **Charts and tables.** *Chart the population by district* → a bar chart
+     appears in the feed; hover a bar → its value; right click → copy image
+     and copy CSV work. *Table of the three largest districts* → a sorted
+     table. Switch to another conversation and back → both are still there.
+203. **A question card.** Two layers with similar names, *colour the roads* →
+     the agent asks in a card with the layers as answers and a fourth row;
+     click one → the card folds, your answer appears as a message and the run
+     continues. Ask again and type your own answer in the fourth row → same.
+204. **Other plugins.** With QuickMapServices or qgis2web installed: *which
+     plugins can make a web map?* → the plugin is named; *start its export* →
+     a destructive confirmation says it runs that plugin's code; agree → the
+     plugin's window opens. A plugin with Processing algorithms (e.g. GeoAI)
+     → its algorithm runs through the plan.
+205. **Rewind.** *Make the rivers blue* → Apply; *now make them red* → Apply.
+     Hover the second request → the curved arrow; click → three choices.
+     **Conversation and project** → rivers blue again, the chat ends before
+     the second request and it sits in the input box. A message sent before
+     QGIS was restarted offers **Conversation only**.

@@ -189,5 +189,11 @@ def scale_font(widget: Any, ratio: float, bold: bool = False) -> None:
     widget.setFont(font)
 
 
+def series(palette: QPalette, index: int) -> QColor:
+    """Categorical chart colour `index` in the fixed order; the spec folds past eight, so no cycling happens."""
+    colours = theme.CHART_DARK if is_dark(palette) else theme.CHART_LIGHT
+    return theme.colour(colours[min(index, len(colours) - 1)])
+
+
 def css_color(color: QColor) -> str:
     return f"rgb({color.red()}, {color.green()}, {color.blue()})"
