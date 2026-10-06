@@ -462,6 +462,36 @@ class FailureScenario(ScenarioCase):
         self.shot("failure_keeps_plan")
 
 
+class RewindScenario(ScenarioCase):
+    def test_rewinding_restores_the_project_and_the_conversation_to_before_a_message(self) -> None:
+        self.model.script(
+            call("load_skill", names=["project"]),
+            call("configure_layer", layer_name="districts", properties={"name": "Districts A"}),
+            say("Renamed to Districts A."),
+            call("configure_layer", layer_name="Districts A", properties={"name": "Districts B"}),
+            say("Renamed to Districts B."),
+        )
+        self.ask("Rename districts to Districts A")
+        self.apply()
+        self.ask("Now rename it to Districts B")
+        self.apply()
+        self.layer("Districts B")
+        second = next(
+            index
+            for index, message in enumerate(self.orchestrator.conversation.messages)
+            if message["content"] == "Now rename it to Districts B"
+        )
+        self.dock.choose_rewind = lambda project_available: "both" if project_available else None
+        self.orchestrator.on_rewind(second)
+        pump(0.1)
+        self.layer("Districts A")
+        self.assertEqual(len(self.orchestrator.conversation.messages), second)
+        self.assertEqual(self.dock.composer._edit.toPlainText(), "Now rename it to Districts B")
+        notes = [message.plain_text() for message in self.dock.conversation.findChildren(SystemMessage)]
+        self.assertTrue(any("project is back" in note for note in notes), notes)
+        self.shot("rewound")
+
+
 class AutoModeScenario(ScenarioCase):
     def tearDown(self) -> None:
         set_work_mode("ask")

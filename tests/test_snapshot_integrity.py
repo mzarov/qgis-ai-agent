@@ -7,8 +7,8 @@ from unittest.mock import patch
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.common.project_identity import project_identity
+from ai_agent.qgis_tools.project import restore as undo_module
 from ai_agent.qgis_tools.project import scratch_copies, snapshots
-from ai_agent.qgis_tools.project import undo_last_apply as undo_module
 from ai_agent.qgis_tools.project.remove_layer import RemoveLayerTool
 from ai_agent.qgis_tools.project.undo_last_apply import UndoLastApplyTool
 

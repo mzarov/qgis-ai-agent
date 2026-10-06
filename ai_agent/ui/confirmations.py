@@ -4,6 +4,7 @@ from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QFontDatabase
 from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QLabel, QMessageBox, QPlainTextEdit, QVBoxLayout, QWidget
 
+from ai_agent.core.orchestrator.notices import REWIND_BOTH, REWIND_CONVERSATION, REWIND_PROJECT
 from ai_agent.i18n import tr
 
 
@@ -18,6 +19,37 @@ def confirm_destructive(parent: QWidget, lines: list[str], details: str = "") ->
     box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
     box.setDefaultButton(QMessageBox.StandardButton.No)
     return box.exec() == QMessageBox.StandardButton.Yes
+
+
+def choose_rewind(parent: QWidget, project_available: bool) -> str | None:
+    """What to rewind: both, the conversation only, the project only; None when cancelled."""
+    box = QMessageBox(parent)
+    box.setIcon(QMessageBox.Icon.Question)
+    box.setWindowTitle(tr("Rewind to before this message?"))
+    box.setTextFormat(Qt.TextFormat.PlainText)
+    if project_available:
+        box.setText(
+            tr(
+                "The conversation can go back to before this message, and the project to how it was "
+                "before its changes. Edits written into data sources are not undone."
+            )
+        )
+    else:
+        box.setText(
+            tr(
+                "The conversation can go back to before this message. The project cannot: no snapshot "
+                "from that point is kept in this QGIS session."
+            )
+        )
+    choices = {}
+    if project_available:
+        choices[box.addButton(tr("Conversation and project"), QMessageBox.ButtonRole.AcceptRole)] = REWIND_BOTH
+    choices[box.addButton(tr("Conversation only"), QMessageBox.ButtonRole.AcceptRole)] = REWIND_CONVERSATION
+    if project_available:
+        choices[box.addButton(tr("Project only"), QMessageBox.ButtonRole.AcceptRole)] = REWIND_PROJECT
+    box.addButton(QMessageBox.StandardButton.Cancel)
+    box.exec()
+    return choices.get(box.clickedButton())
 
 
 def confirm_delete_conversation(parent: QWidget, title: str) -> bool:

@@ -37,6 +37,7 @@ class AgentDockWidget(QDockWidget):
     work_mode_changed = pyqtSignal(str)
     compact_requested = pyqtSignal()
     plan_run_requested = pyqtSignal(str)
+    rewind_requested = pyqtSignal(int)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -113,6 +114,7 @@ class AgentDockWidget(QDockWidget):
         self.progress = self.conversation.progress
         self.conversation.confirm_requested.connect(self.confirm_plan_clicked.emit)
         self.conversation.plan_run_requested.connect(self.plan_run_requested.emit)
+        self.conversation.rewind_requested.connect(self.rewind_requested.emit)
         self.conversation.cancel_requested.connect(self.cancel_plan_clicked.emit)
         self.conversation.suggestion_chosen.connect(self._on_suggestion)
         self.conversation.settings_requested.connect(self.open_settings_clicked.emit)
@@ -172,14 +174,21 @@ class AgentDockWidget(QDockWidget):
 
     def replay(self, messages: list[dict[str, str]]) -> None:
         self.conversation.clear()
-        for message in messages:
+        for index, message in enumerate(messages):
             if message.get("role") == "user":
-                self.conversation.add_user_message(message.get("content", ""))
+                entry = self.conversation.add_user_message(message.get("content", ""))
+                self.conversation.mark_rewind_point(entry, index)
             else:
                 self.conversation.add_assistant_message(message.get("content", ""))
 
     def add_user_message(self, text: str) -> int:
         return self.conversation.add_user_message(text)
+
+    def mark_rewind_point(self, entry_id: int, message: int) -> None:
+        self.conversation.mark_rewind_point(entry_id, message)
+
+    def choose_rewind(self, project_available: bool) -> str | None:
+        return confirmations.choose_rewind(self, project_available)
 
     def add_system_message(self, text: str) -> int:
         return self.conversation.add_system_message(text)

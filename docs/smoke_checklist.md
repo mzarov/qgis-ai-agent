@@ -955,3 +955,8 @@ These verify the agent solves everyday tasks without wandering through search.
      2020" and hide it* → Apply → the feed says *Checked: every step is in
      place.* and no second model run starts. *Colour districts by population*
      → Apply → the usual *Checking the applied changes…* run follows.
+205. **Rewind.** *Make the rivers blue* → Apply; *now make them red* → Apply.
+     Hover the second request → the curved arrow; click → three choices.
+     **Conversation and project** → rivers blue again, the chat ends before
+     the second request and it sits in the input box. A message sent before
+     QGIS was restarted offers **Conversation only**.

@@ -32,6 +32,7 @@ class ConversationView(QScrollArea):
     confirm_requested = pyqtSignal()
     cancel_requested = pyqtSignal()
     plan_run_requested = pyqtSignal(str)
+    rewind_requested = pyqtSignal(int)
     suggestion_chosen = pyqtSignal(str)
     settings_requested = pyqtSignal()
 
@@ -101,7 +102,14 @@ class ConversationView(QScrollArea):
         # Any new message makes an earlier plan offer stale: only the latest plan can be run.
         self._retire_plan_offers()
         self._close_activity()
-        return self._append(UserMessage(text))
+        bubble = UserMessage(text)
+        bubble.rewind_requested.connect(self.rewind_requested.emit)
+        return self._append(bubble)
+
+    def mark_rewind_point(self, entry_id: int, message: int) -> None:
+        bubble = self._entries.get(entry_id)
+        if isinstance(bubble, UserMessage):
+            bubble.set_rewind_point(message)
 
     def add_assistant_message(self, markdown: str) -> int:
         self._close_activity()
