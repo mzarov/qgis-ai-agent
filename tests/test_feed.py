@@ -81,8 +81,11 @@ class WelcomeFeedTest(unittest.TestCase):
         self.assertIsNotNone(self.view._empty)
 
     def test_the_first_message_replaces_it(self):
+        welcome = self.view._empty
         self.view.add_user_message("hello")
         self.assertIsNone(self.view._empty)
+        # Hidden at once, not only scheduled for deletion: a busy main thread painted it over the chat.
+        self.assertTrue(welcome.isHidden())
 
     def test_a_streamed_answer_also_replaces_it(self):
         self.view.append_draft("hi")
