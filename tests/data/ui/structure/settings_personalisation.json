@@ -23,7 +23,7 @@
   "depth": 2,
   "type": "QPushButton",
   "text": "Privacy",
-  "checked": true
+  "checked": false
  },
  {
   "depth": 2,
@@ -40,7 +40,7 @@
   "depth": 2,
   "type": "QPushButton",
   "text": "Personalisation",
-  "checked": false
+  "checked": true
  },
  {
   "depth": 2,
@@ -90,76 +90,22 @@
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "Everything the agent reads goes to the model"
+  "text": "Instructions for the agent"
  },
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "Use a local server to keep project data on this computer."
+  "text": "Followed in every conversation: tone, units, naming, the rules of your organisation."
+ },
+ {
+  "depth": 5,
+  "type": "QPlainTextEdit",
+  "text": "For example: answer briefly. Use metres and EPSG:3857 for web maps. Name new layers in English with underscores."
  },
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "Connection security"
- },
- {
-  "depth": 5,
-  "type": "QWidget"
- },
- {
-  "depth": 6,
-  "type": "QWidget"
- },
- {
-  "depth": 7,
-  "type": "QWidget"
- },
- {
-  "depth": 8,
-  "type": "QLabel",
-  "text": "Verify the SSL certificate"
- },
- {
-  "depth": 8,
-  "type": "QLabel",
-  "text": "Turn off only for a trusted self-signed server."
- },
- {
-  "depth": 7,
-  "type": "Switch",
-  "checked": true
- },
- {
-  "depth": 5,
-  "type": "QLabel",
-  "text": "Records"
- },
- {
-  "depth": 5,
-  "type": "QWidget"
- },
- {
-  "depth": 6,
-  "type": "QWidget"
- },
- {
-  "depth": 7,
-  "type": "QWidget"
- },
- {
-  "depth": 8,
-  "type": "QLabel",
-  "text": "Write a run journal after applying"
- },
- {
-  "depth": 8,
-  "type": "QLabel",
-  "text": "A Markdown log in the QGIS profile."
- },
- {
-  "depth": 7,
-  "type": "Switch",
-  "checked": false
+  "text": "0 / 2000"
  },
  {
   "depth": 2,

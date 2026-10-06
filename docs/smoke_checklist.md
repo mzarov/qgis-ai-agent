@@ -978,3 +978,9 @@ These verify the agent solves everyday tasks without wandering through search.
      **Conversation and project** → rivers blue again, the chat ends before
      the second request and it sits in the input box. A message sent before
      QGIS was restarted offers **Conversation only**.
+206. **Connectors.** Settings → Connectors: thirteen sources in five groups;
+     search *dutch* → only PDOK. Switch NASA GIBS off, Save; *add yesterday's
+     NASA satellite picture* → the agent says the connector is off. Switch it
+     on → the picture loads under the vector layers.
+207. **Personalisation.** Settings → Personalisation: *Always answer in two
+     sentences.* → Save; ask anything → the answer keeps to two sentences.

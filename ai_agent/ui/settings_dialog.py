@@ -11,6 +11,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ai_agent.core.connectors import save_enabled
 from ai_agent.core.llm.client import is_local
 from ai_agent.core.llm.dialects import resolve
 from ai_agent.core.llm.probe_worker import ProbeThread
@@ -30,6 +31,7 @@ from ai_agent.core.settings import (
     set_api_url,
     set_auth_type,
     set_context_window,
+    set_custom_instructions,
     set_custom_nominatim_url,
     set_dialect,
     set_geocoder_provider,
@@ -45,7 +47,9 @@ from ai_agent.i18n import tr
 from ai_agent.ui import controls, settings_layout, style
 from ai_agent.ui import settings_fields as fields
 from ai_agent.ui.connection_widgets import ProviderTiles, StatusCard
+from ai_agent.ui.connectors_settings import ConnectorsSettings
 from ai_agent.ui.geocoder_settings import GeocoderSettings
+from ai_agent.ui.personalisation_settings import PersonalisationSettings
 from ai_agent.ui.settings_probe import MODEL_REQUIRED, ConnectionProbeMixin
 from ai_agent.ui.settings_status import SettingsStatusMixin
 from ai_agent.ui.skills_settings import SkillsSettings
@@ -85,6 +89,8 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         column.setSpacing(0)
         self.geocoder = GeocoderSettings(palette)
         self.skills = SkillsSettings(palette)
+        self.connectors = ConnectorsSettings(palette)
+        self.personalisation = PersonalisationSettings(palette)
         body, right = settings_layout.build_body(self, palette)
         column.addLayout(body, 1)
         right.addWidget(fields.separator(palette))
@@ -191,6 +197,8 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
                 self.dialect_combo.currentTextChanged,
                 self.auth_type_combo.currentTextChanged,
             ],
+            5: [self.connectors.changed],
+            6: [self.personalisation.changed],
         }
         for index, signals in pages.items():
             for signal in signals:
@@ -317,6 +325,8 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         set_context_window(context_window)
         set_reasoning_enabled(self.reasoning_cb.isChecked(), url, model, dialect)
         set_geocoder_provider(geocoder_provider)
+        save_enabled(self.connectors.enabled_ids())
+        set_custom_instructions(self.personalisation.text())
         if geocoder_provider == GEOCODER_NOMINATIM:
             set_custom_nominatim_url(geocoder_url)
         key = self.key_edit.text()

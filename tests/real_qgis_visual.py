@@ -34,7 +34,7 @@ LOCAL_MODEL = "qwen3"
 NARROW_WIDTH = 380
 SETTINGS_WIDTH = 900
 SETTINGS_HEIGHT = 640
-SETTINGS_PAGES = ("connection", "privacy", "skills", "geocoding", "advanced")
+SETTINGS_PAGES = ("connection", "privacy", "skills", "geocoding", "advanced", "connectors", "personalisation")
 PROFILE_MARKER = "ai-agent-integration-"
 # A real profile path is long; a short stand-in once hid a skills page that overflowed on a real Mac.
 LONG_PROFILE = "/Users/someone-with-a-long-name/Library/Application Support/QGIS/QGIS4/profiles/default"

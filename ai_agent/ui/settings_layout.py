@@ -9,7 +9,7 @@ from ai_agent.ui import settings_fields as fields
 
 CAPTION_TOP = 14
 # Sidebar groups as in the Claude Code settings; the numbers are page indices.
-GROUPS = ((tr("Settings"), (0, 1, 4)), (tr("Customize"), (2, 3)))
+GROUPS = ((tr("Settings"), (0, 1, 4)), (tr("Customize"), (6, 2)), (tr("Data"), (5, 3)))
 DOT_SIZE = 7
 DOT_NAME = "pageDirty"
 NAV_NAME = "settingsNav"
@@ -31,6 +31,8 @@ def build_body(owner: Any, palette: Any) -> tuple[QHBoxLayout, QVBoxLayout]:
         (tr("Skills"), "skills", owner.skills.widget),
         (tr("Geocoding"), "geocoding", owner.geocoder.widget),
         (tr("Advanced"), "advanced", settings_advanced.build_advanced(owner, palette)),
+        (tr("Connectors"), "connectors", owner.connectors.widget),
+        (tr("Personalisation"), "personalisation", owner.personalisation.widget),
     )
     owner._nav_buttons = []
     for index, (title, role, page) in enumerate(pages):

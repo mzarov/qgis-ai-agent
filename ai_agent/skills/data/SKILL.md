@@ -1,7 +1,7 @@
 ---
 name: data
-description: Find and fetch open data the project lacks — satellite images (Sentinel-2, Landsat), elevation, land cover, surface water, world base layers, administrative boundaries. Load this when the user needs data that is neither in the project nor on disk, other than OSM features.
-tools: [find_open_data, search_imagery, load_imagery, load_dataset]
+description: Find and fetch open data the project lacks — satellite images (Sentinel-2, Landsat, NASA daily imagery, cloud-free mosaics), elevation and bathymetry, land cover, surface water, world base layers, administrative boundaries, national aerial photos and maps (France, Netherlands, Switzerland, USA, Australia). Load this when the user needs data that is neither in the project nor on disk, other than OSM features.
+tools: [find_open_data, search_imagery, load_imagery, load_dataset, load_service]
 ---
 
 # Open data and imagery
@@ -9,7 +9,7 @@ tools: [find_open_data, search_imagery, load_imagery, load_dataset]
 The plugin knows a fixed catalogue. `find_open_data` lists it offline — call it
 first when you are not sure which dataset fits; each entry says how to load it.
 
-## Two kinds of data, two paths
+## Three kinds of data, three paths
 
 - **Vector sets** (`natural-earth`, `geoboundaries`): one call to `load_dataset`.
   Natural Earth is the world at small scale — countries, provinces, cities,
@@ -17,6 +17,13 @@ first when you are not sure which dataset fits; each entry says how to load it.
   10m for a country. geoBoundaries is one country's administrative units:
   `country` is the ISO alpha-3 code (FRA, KEN, RUS), `level` ADM1 for regions,
   ADM2 for districts.
+- **Web map services** (kind `service`: NASA GIBS, Sentinel-2 cloudless,
+  GEBCO, OpenTopoMap, IGN France, PDOK, swisstopo, USGS, Geoscience
+  Australia): one call to `load_service` with the dataset and a layer key from
+  find_open_data. Tiles and WMS pictures are backdrops to look at; WFS layers
+  (IGN regions, departments, communes; PDOK provinces, municipalities) are real
+  vectors you can query, style and analyse. NASA GIBS `modis_true_color` is one
+  day of the whole Earth: pass `date`, default yesterday.
 - **Imagery and rasters** (Sentinel-2, Landsat, Copernicus DEM, WorldCover,
   land use, surface water): `search_imagery` over an area, then `load_imagery`
   with the scene ids it returned. Never invent a scene id.
@@ -48,6 +55,12 @@ first when you are not sure which dataset fits; each entry says how to load it.
   keep the data or analyse it heavily.
 - Repeat the dataset's licence to the user when it asks for attribution
   (Copernicus, ESA WorldCover, geoBoundaries per country).
+
+## Switched-off connectors
+
+The user can turn a provider off in Settings → Connectors. Its datasets then
+disappear from find_open_data and loading them is refused: say which connector
+is off instead of working around it.
 
 ## Not here
 

@@ -98,6 +98,14 @@ before the model sees it, the loop hands it to the feed, and the conversation
 keeps it as a `visual` message that replays with the chat but is left out of
 the model's window. The model gets a short confirmation with the numbers.
 
+The open-data catalogue is grouped into connectors (`qgis_tools/data/connectors.py`).
+Which ones the user switched off lives in `config/connectors.py`, the leaf
+package both the tools and the settings page may read: the tools hide and
+refuse a switched-off connector's datasets, `core/connectors.py` hands the page
+plain rows. Personalisation text joins the static system prompt after the
+language policy; it changes only when the user saves Settings, so the cached
+prefix still holds from turn to turn.
+
 Network access is a capability separate from mutation safety. A read tool with
 `network_access = True` is queued and automatically pauses the run for explicit
 per-call confirmation. After approval its result enters the same transcript and

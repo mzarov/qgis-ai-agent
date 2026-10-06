@@ -53,6 +53,8 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `connection_widgets.py` | provider tiles and the connection status card |
 | `logos.py`        | provider logos from `ui/logos/*.svg`, tinted to the theme's text colour |
 | `skill_popup.py`  | the list above the composer: prefix-then-substring ranking, keyboard steering, `local` badge |
+| `connectors_settings.py` | the Connectors page: open-data sources by group, search, a switch each |
+| `personalisation_settings.py` | the Personalisation page: standing instructions for the agent, with a counter |
 | `skills_settings.py` | the Skills settings page: folder, example, discovered local skills and their problems |
 | `theme.py`        | the mockup's light and dark colour tokens; the only module that spells a colour |
 | `style.py`        | colour roles read from `theme`, `fill()` and `ink()` through the palette, `scale_font()` |

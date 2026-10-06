@@ -55,7 +55,8 @@ class CatalogueTest(unittest.TestCase):
 
     def test_the_skill_and_the_tools_agree(self):
         self.assertEqual(
-            SKILL_REGISTRY.get("data").tool_names, ["find_open_data", "search_imagery", "load_imagery", "load_dataset"]
+            SKILL_REGISTRY.get("data").tool_names,
+            ["find_open_data", "search_imagery", "load_imagery", "load_dataset", "load_service"],
         )
         found = get_tool_by_name("find_open_data").execute({"query": "land cover"})
         self.assertIn("esa-worldcover", [entry["id"] for entry in found["datasets"]])
