@@ -292,6 +292,11 @@ class SettingsScreens(ScreenCase):
                 with self.subTest(page=page):
                     settings_layout.show_page(dialog, index)
                     self.check(f"settings_{page}", dialog)
+            with self.subTest(page="connector_detail"):
+                settings_layout.show_page(dialog, SETTINGS_PAGES.index("connectors"))
+                dialog.connectors.open("pdok")
+                self.check("settings_connector_detail", dialog)
+                dialog.connectors.close_detail()
         finally:
             dialog.reject()
             dialog.deleteLater()

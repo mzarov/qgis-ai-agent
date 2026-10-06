@@ -255,7 +255,10 @@ go under your vector layers; WFS layers are real vectors to query and style.
 
 **Settings → Connectors** lists every source with a switch. A source you switch
 off disappears from the agent's catalogue and its data is refused; nothing on
-that page goes online.
+that page goes online. Click a card to open the source's own page: what it
+offers layer by layer, its licence and servers, and example requests — a click
+on one closes Settings and puts it into the chat box, switching the source on
+if it was off.
 
 ## Personalisation
 

@@ -287,6 +287,12 @@ class Composer(QWidget):
             self._edit.moveCursor(QTextCursor.MoveOperation.End)
         self._edit.setFocus()
 
+    def put(self, text: str) -> None:
+        """Replace the draft with a request picked elsewhere, ready to edit or send."""
+        self._edit.setPlainText(text)
+        self._edit.moveCursor(QTextCursor.MoveOperation.End)
+        self._edit.setFocus()
+
     def focus(self) -> None:
         self._edit.setFocus()
 

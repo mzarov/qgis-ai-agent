@@ -98,8 +98,15 @@ before the model sees it, the loop hands it to the feed, and the conversation
 keeps it as a `visual` message that replays with the chat but is left out of
 the model's window. The model gets a short confirmation with the numbers.
 
-The open-data catalogue is grouped into connectors (`qgis_tools/data/connectors.py`).
-Which ones the user switched off lives in `config/connectors.py`, the leaf
+The open-data catalogue is grouped into connectors, one JSON file each in
+`qgis_tools/data/sources/`. A new source is a new file, not new code:
+`qgis_tools/data/connectors.py` loads them strictly (unknown keys, a wrong
+category or a repeated dataset id stop the plugin's tests, naming the file).
+A file holds the datasets the model sees in English and the texts a person
+reads on the connector's own settings page — summary, description, example
+prompts, licence, layer titles. `tools/update_translations.py` reads those
+texts from the files into the translation catalogue, and the page translates
+them with `tr_data()`. Which ones the user switched off lives in `config/connectors.py`, the leaf
 package both the tools and the settings page may read: the tools hide and
 refuse a switched-off connector's datasets, `core/connectors.py` hands the page
 plain rows. Personalisation text joins the static system prompt after the

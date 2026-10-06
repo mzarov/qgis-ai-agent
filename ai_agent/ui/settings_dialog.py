@@ -83,6 +83,8 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         self.setMinimumWidth(MIN_WIDTH)
         self.setMinimumHeight(MIN_HEIGHT)
         self._probe_started = 0.0
+        # An example request picked on a connector page, for the chat box once the dialog closes.
+        self.chosen_prompt = ""
         palette = self.palette()
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 0, 0, 0)
@@ -90,6 +92,8 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         self.geocoder = GeocoderSettings(palette)
         self.skills = SkillsSettings(palette)
         self.connectors = ConnectorsSettings(palette)
+        self.connectors.prompt_chosen.connect(self._use_example)
+        self.connectors.page_switched.connect(lambda: self.pages.currentWidget().verticalScrollBar().setValue(0))
         self.personalisation = PersonalisationSettings(palette)
         body, right = settings_layout.build_body(self, palette)
         column.addLayout(body, 1)
@@ -292,6 +296,15 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         self.key_edit.clear()
         self._credential_drafts[self._credential_target(url, dialect)] = ""
         self._show(KEY_REMOVED, style.success(self.palette()))
+
+    def _use_example(self, identifier: str, text: str) -> None:
+        """Close with the request for the chat box, turning its connector on and saving, as asking means using it."""
+        self.connectors.switches[identifier].setChecked(True)
+        self.chosen_prompt = text
+        if self.save_btn.isEnabled():
+            self._save()
+        else:
+            self.accept()
 
     def _save(self) -> None:
         url = self._edited_url()

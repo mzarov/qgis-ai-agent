@@ -35,7 +35,8 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/connectors_settings.py" line="100"/>
+        <location filename="ai_agent/ui/connector_detail.py" line="116"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="93"/>
         <source>%n dataset(s)</source>
         <translation>
             <numerusform>%n набор данных</numerusform>
@@ -72,6 +73,11 @@
         <translation>Бюджет — целое число токенов, например 200000 или 200k; пустое поле — без ограничения.</translation>
     </message>
     <message>
+        <location filename="ai_agent/ui/connector_detail.py" line="19"/>
+        <source>A click puts the request into the chat box.</source>
+        <translation>По щелчку запрос попадает в поле чата.</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/settings_dialog.py" line="68"/>
         <source>A local server needs no key.</source>
         <translation>Локальному серверу ключ не нужен.</translation>
@@ -87,19 +93,69 @@
         <translation>Запуск остановится после стольких токенов.</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/data/sources/eox.json" line="7"/>
+        <source>A seamless, cloud-free Sentinel-2 mosaic of the whole planet by EOX, at about 10 m. A beautiful satellite background, free for non-commercial use only.</source>
+        <translation>Бесшовная безоблачная мозаика Sentinel-2 на всю планету от EOX, около 10 м. Красивая спутниковая подложка, бесплатна только для некоммерческого использования.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/opentopomap.json" line="7"/>
+        <source>A topographic background drawn from OpenStreetMap and elevation data, with contour lines, hillshading, paths and huts. Good for hiking and fieldwork maps.</source>
+        <translation>Топографическая подложка по данным OpenStreetMap и рельефа: горизонтали, отмывка, тропы и хижины. Хороша для туристических и полевых карт.</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="126"/>
         <source>API format</source>
         <translation>Формат API</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="149"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="152"/>
         <source>API key</source>
         <translation>Ключ API</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/connector_detail.py" line="20"/>
+        <source>About</source>
+        <translation>Описание</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/connector_detail.py" line="23"/>
+        <source>Account or key</source>
+        <translation>Аккаунт или ключ</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/pdok.json" line="10"/>
+        <source>Add Dutch aerial photos</source>
+        <translation>Добавь аэрофотоснимки Нидерландов</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/ign-france.json" line="10"/>
+        <source>Add IGN aerial photos of Lyon</source>
+        <translation>Добавь аэрофотоснимки IGN по Лиону</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/usgs.json" line="10"/>
+        <source>Add USGS imagery for this area</source>
+        <translation>Добавь снимки USGS на этот район</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/eox.json" line="9"/>
+        <source>Add a cloud-free satellite background</source>
+        <translation>Добавь безоблачную спутниковую подложку</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/skills_settings.py" line="29"/>
         <source>Add a description in SKILL.md to turn it on.</source>
         <translation>Добавьте описание в SKILL.md, чтобы включить.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/opentopomap.json" line="9"/>
+        <source>Add a topographic background</source>
+        <translation>Добавь топографическую подложку</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/openstreetmap.json" line="11"/>
+        <source>Add an OpenStreetMap background</source>
+        <translation>Добавь подложку OpenStreetMap</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/composer_parts.py" line="34"/>
@@ -110,6 +166,36 @@
         <location filename="ai_agent/ui/attachments.py" line="22"/>
         <source>Add data to the project</source>
         <translation>Добавить данные в проект</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/ga-australia.json" line="10"/>
+        <source>Add the Australian topographic base map</source>
+        <translation>Добавь топографическую основу Австралии</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/gebco.json" line="10"/>
+        <source>Add the GEBCO bathymetry background</source>
+        <translation>Добавь батиметрию GEBCO</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/swisstopo.json" line="10"/>
+        <source>Add the Swiss national map</source>
+        <translation>Добавь национальную карту Швейцарии</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/natural-earth.json" line="9"/>
+        <source>Add the countries of the world</source>
+        <translation>Добавь страны мира</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/geoboundaries.json" line="10"/>
+        <source>Add the districts of France</source>
+        <translation>Добавь округа Франции</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/nasa-gibs.json" line="10"/>
+        <source>Add the night lights layer</source>
+        <translation>Добавь слой ночных огней</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/project/add_basemap.py" line="90"/>
@@ -172,7 +258,7 @@
         <translation>Добавляю полигоны ({0}) в «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="53"/>
+        <location filename="ai_agent/qgis_tools/data/sources/geoboundaries.json" line="6"/>
         <source>Administrative boundaries of every country</source>
         <translation>Административные границы любой страны</translation>
     </message>
@@ -182,12 +268,27 @@
         <translation>Дополнительно</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/data/sources/usgs.json" line="39"/>
+        <source>Aerial imagery</source>
+        <translation>Аэрофотоснимки</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/ign-france.json" line="43"/>
+        <source>Aerial photos</source>
+        <translation>Аэрофотоснимки</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/pdok.json" line="42"/>
+        <source>Aerial photos (current)</source>
+        <translation>Аэрофотоснимки (актуальные)</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="120"/>
         <source>Algorithm: {0}</source>
         <translation>Алгоритм: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="26"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="37"/>
         <source>All</source>
         <translation>Все</translation>
     </message>
@@ -308,7 +409,7 @@
         <translation>Приложено: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="58"/>
+        <location filename="ai_agent/qgis_tools/data/sources/ga-australia.json" line="7"/>
         <source>Australia: topographic base maps</source>
         <translation>Австралия: топографические базовые карты</translation>
     </message>
@@ -324,7 +425,12 @@
         <translation>Авто</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="155"/>
+        <location filename="ai_agent/qgis_tools/data/sources/pdok.json" line="47"/>
+        <source>BRT base map</source>
+        <translation>Базовая карта BRT</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/settings_dialog.py" line="158"/>
         <source>Base URL</source>
         <translation>Базовый адрес</translation>
     </message>
@@ -334,16 +440,41 @@
         <translation>Bearer подходит почти всем.</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/data/sources/nasa-gibs.json" line="54"/>
+        <source>Blue Marble shaded relief and bathymetry</source>
+        <translation>Blue Marble: рельеф и батиметрия</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/skills_settings.py" line="27"/>
         <source>Built in</source>
         <translation>Встроенные</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/pdok.json" line="14"/>
+        <source>CC BY 4.0 and CC0, credit PDOK</source>
+        <translation>CC BY 4.0 и CC0, с указанием PDOK</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/ga-australia.json" line="13"/>
+        <source>CC BY 4.0, credit Geoscience Australia</source>
+        <translation>CC BY 4.0, с указанием Geoscience Australia</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/eox.json" line="12"/>
+        <source>CC BY-NC-SA 4.0, non-commercial use only</source>
+        <translation>CC BY-NC-SA 4.0, только некоммерческое использование</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/opentopomap.json" line="12"/>
+        <source>CC BY-SA, credit OpenTopoMap and OpenStreetMap</source>
+        <translation>CC BY-SA, с указанием OpenTopoMap и OpenStreetMap</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/confirmations.py" line="26"/>
         <location filename="ai_agent/ui/confirmations.py" line="57"/>
         <location filename="ai_agent/ui/confirmations.py" line="119"/>
         <location filename="ai_agent/ui/plan.py" line="128"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="168"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="171"/>
         <source>Cancel</source>
         <translation>Отменить</translation>
     </message>
@@ -428,7 +559,17 @@
         <translation>Проверяю применённые изменения…</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="51"/>
+        <location filename="ai_agent/qgis_tools/data/sources/natural-earth.json" line="7"/>
+        <source>Clean, generalised world layers made for small-scale maps: countries, provinces, cities, rivers, lakes, coastlines, roads, railways, airports and ports, at three levels of detail.</source>
+        <translation>Аккуратные генерализованные слои мира для мелкомасштабных карт: страны, провинции, города, реки, озёра, береговая линия, дороги, железные дороги, аэропорты и порты, в трёх уровнях детальности.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/eox.json" line="40"/>
+        <source>Cloud-free mosaic, 2024</source>
+        <translation>Безоблачная мозаика, 2024</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/eox.json" line="6"/>
         <source>Cloud-free satellite mosaic of the world, non-commercial use</source>
         <translation>Безоблачная спутниковая мозаика мира, некоммерческое использование</translation>
     </message>
@@ -441,6 +582,11 @@
         <location filename="ai_agent/qgis_tools/style/set_categories.py" line="104"/>
         <source>Colouring '{0}' by field '{1}'.</source>
         <translation>Раскрашиваю «{0}» по полю «{1}».</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/ign-france.json" line="68"/>
+        <source>Communes (vector)</source>
+        <translation>Коммуны (вектор)</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/context_meter.py" line="28"/>
@@ -488,7 +634,7 @@
         <translation>Проверка подключения отменена.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="19"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="30"/>
         <location filename="ai_agent/ui/settings_layout.py" line="34"/>
         <source>Connectors</source>
         <translation>Коннекторы</translation>
@@ -642,6 +788,11 @@
         <translation>Удаляю объектов: {0} — из «{1}».</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/data/sources/ign-france.json" line="61"/>
+        <source>Departments (vector)</source>
+        <translation>Департаменты (вектор)</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/confirmations.py" line="19"/>
         <location filename="ai_agent/ui/confirmations.py" line="96"/>
         <source>Destructive steps</source>
@@ -665,6 +816,16 @@
         <location filename="ai_agent/ui/welcome.py" line="29"/>
         <source>Download cafés in Paris from OpenStreetMap</source>
         <translation>Скачай кафе в Париже из OpenStreetMap</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/openstreetmap.json" line="10"/>
+        <source>Download the building outlines around this town</source>
+        <translation>Скачай контуры зданий вокруг этого города</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/geoboundaries.json" line="11"/>
+        <source>Download the municipal boundaries of Brazil</source>
+        <translation>Скачай границы муниципалитетов Бразилии</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/osm/download_osm.py" line="129"/>
@@ -727,7 +888,7 @@
         <translation>Пустое поле — определится само.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="130"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="133"/>
         <source>Endpoint</source>
         <translation>Адрес</translation>
     </message>
@@ -804,6 +965,11 @@
         <translation>Фильтр: {0}</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/data/sources/planetary-computer.json" line="9"/>
+        <source>Find a cloud-free Sentinel-2 picture of this area from last summer</source>
+        <translation>Найди безоблачный снимок Sentinel-2 этого района за прошлое лето</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/project/zoom_to_layer.py" line="30"/>
         <source>Fitting the map view.</source>
         <translation>Подгоняю вид карты.</translation>
@@ -834,7 +1000,7 @@
         <translation>Забываю: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="54"/>
+        <location filename="ai_agent/qgis_tools/data/sources/ign-france.json" line="7"/>
         <source>France: aerial photos, maps, communes</source>
         <translation>Франция: аэрофото, карты, коммуны</translation>
     </message>
@@ -842,6 +1008,21 @@
         <location filename="ai_agent/ui/geocoder_settings.py" line="20"/>
         <source>Free public demo, fine for occasional lookups.</source>
         <translation>Бесплатное демо, для редких запросов.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/gebco.json" line="12"/>
+        <source>Free with credit to GEBCO</source>
+        <translation>Бесплатно, с указанием GEBCO</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/swisstopo.json" line="13"/>
+        <source>Free with credit to swisstopo</source>
+        <translation>Бесплатно, с указанием swisstopo</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/gebco.json" line="39"/>
+        <source>GEBCO latest grid</source>
+        <translation>Последняя сетка GEBCO</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/attachments.py" line="20"/>
@@ -853,6 +1034,11 @@
         <location filename="ai_agent/ui/settings_layout.py" line="32"/>
         <source>Geocoding</source>
         <translation>Геокодирование</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/ga-australia.json" line="8"/>
+        <source>Geoscience Australia's national base maps: a detailed topographic map and a simpler national base map.</source>
+        <translation>Национальные базовые карты Geoscience Australia: подробная топографическая и более простая общая.</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/style/set_graduated.py" line="98"/>
@@ -875,9 +1061,14 @@
         <translation>Как работает агент</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="63"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="51"/>
         <source>Imagery</source>
         <translation>Снимки</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/connector_detail.py" line="22"/>
+        <source>Information</source>
+        <translation>Сведения</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/personalisation_settings.py" line="13"/>
@@ -912,6 +1103,16 @@
         <translation>Слой: {0}</translation>
     </message>
     <message>
+        <location filename="ai_agent/ui/connector_detail.py" line="25"/>
+        <source>Licence</source>
+        <translation>Лицензия</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/ign-france.json" line="14"/>
+        <source>Licence Ouverte Etalab 2.0: free reuse with credit to IGN</source>
+        <translation>Licence Ouverte Etalab 2.0: свободное использование с указанием IGN</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/plugins/list_plugins.py" line="32"/>
         <source>Listing the installed plugins.</source>
         <translation>Смотрю установленные плагины.</translation>
@@ -920,6 +1121,41 @@
         <location filename="ai_agent/qgis_tools/data/find_open_data.py" line="35"/>
         <source>Listing the open datasets.</source>
         <translation>Показываю каталог открытых данных.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/openstreetmap.json" line="9"/>
+        <source>Load all schools and hospitals in the current map view</source>
+        <translation>Загрузи все школы и больницы в текущем виде карты</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/planetary-computer.json" line="10"/>
+        <source>Load elevation for the current view and make a hillshade</source>
+        <translation>Загрузи высоты на текущий вид и построй отмывку</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/natural-earth.json" line="10"/>
+        <source>Load rivers and lakes for Africa at medium detail</source>
+        <translation>Загрузи реки и озёра Африки средней детальности</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/nasa-gibs.json" line="11"/>
+        <source>Load the MODIS image for 1 July 2026</source>
+        <translation>Загрузи снимок MODIS за 1 июля 2026</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/ign-france.json" line="11"/>
+        <source>Load the communes in the current view</source>
+        <translation>Загрузи коммуны в текущем виде</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/pdok.json" line="11"/>
+        <source>Load the municipalities of the Netherlands</source>
+        <translation>Загрузи муниципалитеты Нидерландов</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/geoboundaries.json" line="9"/>
+        <source>Load the regions of Kenya</source>
+        <translation>Загрузи регионы Кении</translation>
     </message>
     <message numerus="yes">
         <location filename="ai_agent/qgis_tools/data/load_imagery.py" line="63"/>
@@ -971,12 +1207,32 @@
         <translation>Изучает и предлагает план; данные не меняются</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/data/sources/nasa-gibs.json" line="41"/>
+        <source>MODIS Terra true colour, daily</source>
+        <translation>MODIS Terra в естественных цветах, ежедневно</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/connector_detail.py" line="29"/>
+        <source>Map image (WMS)</source>
+        <translation>Изображение карты (WMS)</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/connector_detail.py" line="28"/>
+        <source>Map tiles, up to zoom {0}</source>
+        <translation>Тайлы карты, до масштаба {0}</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/planetary-computer.json" line="7"/>
+        <source>Microsoft's open catalogue of satellite scenes and global rasters. The agent searches it for the clearest Sentinel-2 or Landsat picture over your area and date, and reads elevation, land cover and surface water directly from the cloud, without downloading whole files.</source>
+        <translation>Открытый каталог Microsoft со спутниковыми сценами и глобальными растрами. Агент ищет в нём самый чистый снимок Sentinel-2 или Landsat на ваш район и дату и читает высоты, покров и водные объекты прямо из облака, не скачивая файлы целиком.</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/composer_parts.py" line="27"/>
         <source>Mode</source>
         <translation>Режим</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="150"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="153"/>
         <source>Model</source>
         <translation>Модель</translation>
     </message>
@@ -986,17 +1242,37 @@
         <translation>Модель ответила: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="66"/>
+        <location filename="ai_agent/qgis_tools/data/sources/pdok.json" line="59"/>
+        <source>Municipalities (vector)</source>
+        <translation>Муниципалитеты (вектор)</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/nasa-gibs.json" line="7"/>
+        <source>NASA's global imagery service: yesterday's true-colour picture of the whole Earth from the MODIS satellite, city lights at night and the Blue Marble relief. Quick to show, coarse in detail.</source>
+        <translation>Глобальный сервис снимков NASA: вчерашний снимок всей Земли в естественных цветах со спутника MODIS, ночные огни городов и рельеф Blue Marble. Показывается быстро, детальность грубая.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/connectors_settings.py" line="54"/>
         <source>National</source>
         <translation>Страны</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="73"/>
+        <location filename="ai_agent/qgis_tools/data/sources/ga-australia.json" line="42"/>
+        <source>National base map</source>
+        <translation>Национальная базовая карта</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/swisstopo.json" line="37"/>
+        <source>National map (colour)</source>
+        <translation>Национальная карта (цветная)</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/connectors_settings.py" line="61"/>
         <source>National mapping</source>
         <translation>Национальные картографические службы</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="55"/>
+        <location filename="ai_agent/qgis_tools/data/sources/pdok.json" line="7"/>
         <source>Netherlands: aerial photos, base map, municipalities</source>
         <translation>Нидерланды: аэрофото, базовая карта, муниципалитеты</translation>
     </message>
@@ -1016,6 +1292,11 @@
         <translation>Новые значения:</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/data/sources/nasa-gibs.json" line="48"/>
+        <source>Night lights (VIIRS Black Marble 2016)</source>
+        <translation>Ночные огни (VIIRS Black Marble 2016)</translation>
+    </message>
+    <message>
         <location filename="ai_agent/core/llm/client.py" line="146"/>
         <source>No API URL. Set one in Settings.</source>
         <translation>Не задан адрес API. Укажите его в настройках.</translation>
@@ -1026,7 +1307,7 @@
         <translation>Не задан ключ API. Укажите его в настройках — или подключитесь к локальной модели: адресу на localhost ключ не нужен.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="25"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="36"/>
         <source>No connector matches.</source>
         <translation>Ни один коннектор не подходит.</translation>
     </message>
@@ -1071,7 +1352,12 @@
         <translation>Применились не все изменения.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="250"/>
+        <location filename="ai_agent/ui/connector_detail.py" line="24"/>
+        <source>Not needed: open data</source>
+        <translation>Не нужен: открытые данные</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/settings_dialog.py" line="253"/>
         <source>Not required</source>
         <translation>Не обязателен</translation>
     </message>
@@ -1081,7 +1367,12 @@
         <translation>Ещё не проверено.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="52"/>
+        <location filename="ai_agent/qgis_tools/data/sources/openstreetmap.json" line="13"/>
+        <source>ODbL, credit OpenStreetMap contributors</source>
+        <translation>ODbL, с указанием участников OpenStreetMap</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/gebco.json" line="6"/>
         <source>Ocean depths and land heights</source>
         <translation>Глубины океана и высоты суши</translation>
     </message>
@@ -1106,14 +1397,39 @@
         <translation>Открыть</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/data/sources/geoboundaries.json" line="7"/>
+        <source>Open administrative boundaries for every country, from the national border down to regions, districts and municipalities where they are published.</source>
+        <translation>Открытые административные границы любой страны: от государственной границы до регионов, районов и муниципалитетов, где они опубликованы.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/planetary-computer.json" line="13"/>
+        <source>Open licences per dataset: Copernicus, USGS public domain, CC BY 4.0</source>
+        <translation>Открытые лицензии по наборам: Copernicus, общественное достояние USGS, CC BY 4.0</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/welcome.py" line="23"/>
         <source>Open settings</source>
         <translation>Открыть настройки</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/data/sources/geoboundaries.json" line="13"/>
+        <source>Open, per country</source>
+        <translation>Открытая, своя у каждой страны</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="30"/>
         <source>OpenAI-compatible APIs. Slower, more tokens.</source>
         <translation>OpenAI-совместимые API. Медленнее, больше токенов.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/openstreetmap.json" line="44"/>
+        <source>OpenStreetMap and satellite backgrounds</source>
+        <translation>Подложки OpenStreetMap и спутниковые</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/openstreetmap.json" line="22"/>
+        <source>OpenStreetMap features by tag</source>
+        <translation>Объекты OpenStreetMap по тегам</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/three_d/open_3d_view.py" line="33"/>
@@ -1161,12 +1477,12 @@
         <translation>Картинки (*.png *.jpg *.jpeg *.webp *.gif *.bmp)</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="65"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="53"/>
         <source>Places</source>
         <translation>Места</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="72"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="60"/>
         <source>Places and boundaries</source>
         <translation>Места и границы</translation>
     </message>
@@ -1186,6 +1502,11 @@
         <translation>План</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/data/sources/ign-france.json" line="49"/>
+        <source>Plan IGN map</source>
+        <translation>Карта Plan IGN</translation>
+    </message>
+    <message>
         <location filename="ai_agent/core/orchestrator/run_events.py" line="62"/>
         <source>Plan {0}/{1}: {2}</source>
         <translation>План {0}/{1}: {2}</translation>
@@ -1201,15 +1522,55 @@
         <translation>Только проект</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="119"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="122"/>
         <source>Provider</source>
         <translation>Провайдер</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="143"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="250"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="146"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="253"/>
         <source>Provider key</source>
         <translation>Ключ провайдера</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/pdok.json" line="52"/>
+        <source>Provinces (vector)</source>
+        <translation>Провинции (вектор)</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/natural-earth.json" line="13"/>
+        <source>Public domain</source>
+        <translation>Общественное достояние</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/nasa-gibs.json" line="13"/>
+        <source>Public domain (NASA)</source>
+        <translation>Общественное достояние (NASA)</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/usgs.json" line="13"/>
+        <source>Public domain (USGS)</source>
+        <translation>Общественное достояние (USGS)</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/opentopomap.json" line="10"/>
+        <source>Put OpenTopoMap under my trail layer</source>
+        <translation>Подложи OpenTopoMap под мой слой маршрутов</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/pdok.json" line="12"/>
+        <source>Put the BRT base map under my layers</source>
+        <translation>Подложи базовую карту BRT под мои слои</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/eox.json" line="10"/>
+        <source>Put the Sentinel-2 mosaic under my layers</source>
+        <translation>Подложи мозаику Sentinel-2 под мои слои</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/ga-australia.json" line="11"/>
+        <source>Put the national base map of Australia under my layers</source>
+        <translation>Подложи национальную карту Австралии под мои слои</translation>
     </message>
     <message>
         <location filename="ai_agent/core/credentials.py" line="12"/>
@@ -1376,6 +1737,11 @@
         <translation>Записи</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/data/sources/ign-france.json" line="54"/>
+        <source>Regions (vector)</source>
+        <translation>Регионы (вектор)</translation>
+    </message>
+    <message>
         <location filename="ai_agent/core/orchestrator/run_events.py" line="58"/>
         <source>Rejected: {0}</source>
         <translation>Отклонено: {0}</translation>
@@ -1391,7 +1757,7 @@
         <translation>Убрать</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="145"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="148"/>
         <source>Remove key</source>
         <translation>Удалить ключ</translation>
     </message>
@@ -1466,7 +1832,7 @@
         <translation>Вернуться к моменту до этого сообщения?</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="46"/>
+        <location filename="ai_agent/qgis_tools/data/sources/openstreetmap.json" line="6"/>
         <source>Roads, buildings and places by tag, worldwide</source>
         <translation>Дороги, здания и места по тегам, весь мир</translation>
     </message>
@@ -1536,12 +1902,17 @@
         <translation>Выполняю план с подтверждением</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="70"/>
+        <location filename="ai_agent/qgis_tools/data/sources/swisstopo.json" line="42"/>
+        <source>SWISSIMAGE aerial photos</source>
+        <translation>Аэрофотоснимки SWISSIMAGE</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/connectors_settings.py" line="58"/>
         <source>Satellites and imagery</source>
         <translation>Спутники и снимки</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="172"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="175"/>
         <source>Save</source>
         <translation>Сохранить</translation>
     </message>
@@ -1566,7 +1937,12 @@
         <translation>Сохраняю проект.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="24"/>
+        <location filename="ai_agent/ui/connector_detail.py" line="32"/>
+        <source>Scenes and rasters, read from the cloud</source>
+        <translation>Сцены и растры, читаются из облака</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/connectors_settings.py" line="35"/>
         <source>Search connectors</source>
         <translation>Поиск коннекторов</translation>
     </message>
@@ -1606,7 +1982,7 @@
         <translation>Отправить запрос в {0}?&#10;&#10;Провайдер получит ваш запрос и всё, что агент прочитает для ответа: имена слоёв и полей, значения объектов, границы, источники слоёв и изображения карты. Если данные не должны покидать компьютер, используйте локальный сервер модели.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="49"/>
+        <location filename="ai_agent/qgis_tools/data/sources/planetary-computer.json" line="6"/>
         <source>Sentinel-2, Landsat, elevation and land cover scenes</source>
         <translation>Снимки Sentinel-2 и Landsat, рельеф и земельный покров</translation>
     </message>
@@ -1614,6 +1990,11 @@
         <location filename="ai_agent/ui/geocoder_settings.py" line="42"/>
         <source>Server address</source>
         <translation>Адрес сервера</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/connector_detail.py" line="26"/>
+        <source>Servers</source>
+        <translation>Серверы</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/geocoder_settings.py" line="37"/>
@@ -1652,6 +2033,41 @@
         <translation>Передать данные проекта?</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/data/sources/swisstopo.json" line="11"/>
+        <source>Show SWISSIMAGE aerial photos of Zurich</source>
+        <translation>Покажи аэрофотоснимки SWISSIMAGE по Цюриху</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/planetary-computer.json" line="11"/>
+        <source>Show land cover here and compare 2018 with 2023</source>
+        <translation>Покажи земной покров здесь и сравни 2018 и 2023</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/ign-france.json" line="12"/>
+        <source>Show the IGN plan map</source>
+        <translation>Покажи карту Plan IGN</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/usgs.json" line="11"/>
+        <source>Show the US Topo map</source>
+        <translation>Покажи карту US Topo</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/gebco.json" line="9"/>
+        <source>Show the ocean depths around Iceland</source>
+        <translation>Покажи глубины океана вокруг Исландии</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/natural-earth.json" line="11"/>
+        <source>Show the world's major cities</source>
+        <translation>Покажи крупные города мира</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/nasa-gibs.json" line="9"/>
+        <source>Show yesterday's satellite picture of Europe</source>
+        <translation>Покажи вчерашний спутниковый снимок Европы</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/charts/show_table.py" line="58"/>
         <source>Showing a table of '{0}'.</source>
         <translation>Показываю таблицу «{0}».</translation>
@@ -1667,7 +2083,7 @@
         <translation>Скиллы</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="47"/>
+        <location filename="ai_agent/qgis_tools/data/sources/natural-earth.json" line="6"/>
         <source>Small tidy world layers: countries, rivers, cities</source>
         <translation>Аккуратные слои мира: страны, реки, города</translation>
     </message>
@@ -1711,7 +2127,7 @@
         <translation>Оформляю растр «{0}»: {1}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="56"/>
+        <location filename="ai_agent/qgis_tools/data/sources/swisstopo.json" line="7"/>
         <source>Switzerland: national map and aerial photos</source>
         <translation>Швейцария: национальная карта и аэрофото</translation>
     </message>
@@ -1721,17 +2137,17 @@
         <translation>Связь с провайдером</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="64"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="52"/>
         <source>Terrain</source>
         <translation>Рельеф</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="71"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="59"/>
         <source>Terrain and oceans</source>
         <translation>Рельеф и океаны</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="114"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="117"/>
         <location filename="ai_agent/ui/settings_probe.py" line="96"/>
         <source>Test connection</source>
         <translation>Проверить подключение</translation>
@@ -1774,6 +2190,21 @@
         <translation>API вернул {0}: {1}</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/data/sources/pdok.json" line="8"/>
+        <source>The Dutch government's open map services: current aerial photographs, the BRT topographic base map, and the boundaries of provinces and municipalities.</source>
+        <translation>Открытые картографические сервисы правительства Нидерландов: актуальные аэрофотоснимки, топографическая основа BRT, границы провинций и муниципалитетов.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/ign-france.json" line="8"/>
+        <source>The French national mapping agency through the Géoplateforme: current aerial photographs, the IGN plan map, and vector boundaries of regions, departments and communes.</source>
+        <translation>Национальное картографическое агентство Франции через Géoplateforme: актуальные аэрофотоснимки, карта Plan IGN и векторные границы регионов, департаментов и коммун.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/gebco.json" line="7"/>
+        <source>The General Bathymetric Chart of the Oceans: one shaded grid of sea-floor depths and land heights for the whole planet.</source>
+        <translation>Генеральная батиметрическая карта океанов: единая сетка глубин морского дна и высот суши на всю планету.</translation>
+    </message>
+    <message>
         <location filename="ai_agent/core/credentials.py" line="13"/>
         <source>The QGIS authentication database is disabled for this session.</source>
         <translation>База учётных данных QGIS отключена в этом сеансе.</translation>
@@ -1792,6 +2223,16 @@
         <location filename="ai_agent/core/orchestrator/notices.py" line="24"/>
         <source>The QGIS project changed. A new project-scoped conversation was started.</source>
         <translation>Проект QGIS изменился. Начат новый диалог, привязанный к этому проекту.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/swisstopo.json" line="8"/>
+        <source>The Swiss federal mapping office: the colour national map and the SWISSIMAGE aerial photographs.</source>
+        <translation>Федеральное картографическое ведомство Швейцарии: цветная национальная карта и аэрофотоснимки SWISSIMAGE.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/usgs.json" line="8"/>
+        <source>The United States Geological Survey's National Map: aerial imagery and the US Topo map.</source>
+        <translation>Национальная карта Геологической службы США: аэрофотоснимки и карта US Topo.</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="26"/>
@@ -1822,6 +2263,11 @@
         <location filename="ai_agent/core/orchestrator/rewind.py" line="26"/>
         <source>The conversation is back to before this message; the message is in the box.</source>
         <translation>Разговор возвращён к моменту до этого сообщения; само сообщение — в поле ввода.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/openstreetmap.json" line="7"/>
+        <source>The map the world draws together. The agent asks the Overpass service for exactly the features you name — schools, cafés, footpaths, building outlines — inside your map view, and adds them as editable layers. Plain OpenStreetMap and satellite backgrounds come with it.</source>
+        <translation>Карта, которую рисует весь мир. Агент запрашивает у сервиса Overpass ровно те объекты, которые вы назвали, — школы, кафе, тропинки, контуры зданий — в пределах вида карты и добавляет их редактируемыми слоями. В комплекте — обычная подложка OpenStreetMap и спутниковые подложки.</translation>
     </message>
     <message>
         <location filename="ai_agent/core/orchestrator/run_events.py" line="73"/>
@@ -1920,6 +2366,11 @@
         <translation>Рассуждение</translation>
     </message>
     <message>
+        <location filename="ai_agent/ui/connector_detail.py" line="33"/>
+        <source>Through the agent's own tools</source>
+        <translation>Через собственные инструменты агента</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="27"/>
         <source>Token budget per run</source>
         <translation>Бюджет токенов на прогон</translation>
@@ -1930,9 +2381,24 @@
         <translation>Инструменты: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="48"/>
+        <location filename="ai_agent/qgis_tools/data/sources/ga-australia.json" line="36"/>
+        <source>Topographic base map</source>
+        <translation>Топографическая основа</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/opentopomap.json" line="37"/>
+        <source>Topographic map</source>
+        <translation>Топографическая карта</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/opentopomap.json" line="6"/>
         <source>Topographic world map with contours</source>
         <translation>Топографическая карта мира с горизонталями</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/connector_detail.py" line="18"/>
+        <source>Try asking</source>
+        <translation>Попробуйте спросить</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="49"/>
@@ -1960,7 +2426,12 @@
         <translation>Напишите, чтобы поправить меня…</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="57"/>
+        <location filename="ai_agent/qgis_tools/data/sources/usgs.json" line="45"/>
+        <source>US Topo map</source>
+        <translation>Карта US Topo</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/sources/usgs.json" line="7"/>
         <source>United States: aerial imagery and US Topo</source>
         <translation>США: аэрофото и карта US Topo</translation>
     </message>
@@ -1990,6 +2461,16 @@
         <translation>Чтобы данные не покидали компьютер, используйте локальный сервер.</translation>
     </message>
     <message>
+        <location filename="ai_agent/ui/connector_detail.py" line="30"/>
+        <source>Vector features (WFS)</source>
+        <translation>Векторные объекты (WFS)</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/connector_detail.py" line="31"/>
+        <source>Vector layers, downloaded</source>
+        <translation>Векторные слои, скачиваются</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="48"/>
         <source>Verify the SSL certificate</source>
         <translation>Проверять сертификат SSL</translation>
@@ -2010,12 +2491,17 @@
         <translation>Какие у меня слои и что в них?</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="20"/>
+        <location filename="ai_agent/ui/connector_detail.py" line="21"/>
+        <source>What's inside</source>
+        <translation>Что внутри</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/connectors_settings.py" line="31"/>
         <source>Where the agent gets data you do not have: ask for a satellite picture, boundaries or an aerial photo and it loads them from these sources. A source you switch off is hidden from it.</source>
         <translation>Откуда агент берёт данные, которых у вас нет: попросите спутниковый снимок, границы или аэрофото — и он загрузит их из этих источников. Выключенный источник от него скрыт.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="155"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="158"/>
         <source>Without /chat/completions.</source>
         <translation>Без /chat/completions.</translation>
     </message>
@@ -2025,12 +2511,12 @@
         <translation>Работаю…</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="62"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="50"/>
         <source>World</source>
         <translation>Мир</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="69"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="57"/>
         <source>Worldwide maps</source>
         <translation>Карты мира</translation>
     </message>
@@ -2040,7 +2526,7 @@
         <translation>Писать журнал прогона после применения</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="50"/>
+        <location filename="ai_agent/qgis_tools/data/sources/nasa-gibs.json" line="6"/>
         <source>Yesterday's Earth from space, night lights, Blue Marble</source>
         <translation>Вчерашняя Земля из космоса, ночные огни, Blue Marble</translation>
     </message>
@@ -2219,6 +2705,11 @@
         <location filename="ai_agent/ui/confirmations.py" line="69"/>
         <source>“{0}” will be deleted for good: it cannot be restored.</source>
         <translation>«{0}» будет удалён насовсем: восстановить его нельзя.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/connector_detail.py" line="17"/>
+        <source>‹ All connectors</source>
+        <translation>‹ Все коннекторы</translation>
     </message>
 </context>
 </TS>

@@ -1,0 +1,45 @@
+{
+  "id": "opentopomap",
+  "title": "OpenTopoMap",
+  "category": "world",
+  "order": 20,
+  "summary": "Topographic world map with contours",
+  "description": "A topographic background drawn from OpenStreetMap and elevation data, with contour lines, hillshading, paths and huts. Good for hiking and fieldwork maps.",
+  "examples": [
+    "Add a topographic background",
+    "Put OpenTopoMap under my trail layer"
+  ],
+  "licence": "CC BY-SA, credit OpenTopoMap and OpenStreetMap",
+  "hosts": [
+    "tile.opentopomap.org"
+  ],
+  "datasets": [
+    {
+      "id": "opentopomap",
+      "title": "OpenTopoMap",
+      "kind": "service",
+      "summary": "Topographic map of the world from OpenStreetMap and SRTM: contours, hillshade, paths.",
+      "coverage": "whole world, to zoom 17",
+      "license": "CC BY-SA (map style), ODbL (data)",
+      "keywords": [
+        "topographic",
+        "topo",
+        "contours",
+        "hiking",
+        "terrain map",
+        "basemap"
+      ],
+      "load_with": "load_service",
+      "service": "xyz",
+      "layers": [
+        {
+          "key": "map",
+          "title": "Topographic map",
+          "source": "https://tile.opentopomap.org/{z}/{x}/{y}.png",
+          "zmax": 17
+        }
+      ],
+      "attribution": "© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)"
+    }
+  ]
+}

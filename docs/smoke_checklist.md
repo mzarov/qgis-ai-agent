@@ -981,6 +981,10 @@ These verify the agent solves everyday tasks without wandering through search.
 206. **Connectors.** Settings → Connectors: thirteen sources in five groups;
      search *dutch* → only PDOK. Switch NASA GIBS off, Save; *add yesterday's
      NASA satellite picture* → the agent says the connector is off. Switch it
-     on → the picture loads under the vector layers.
+     on → the picture loads under the vector layers. Click the PDOK card (not
+     its switch) → its page: description, four layers with captions, licence,
+     servers; *‹ All connectors* returns to the list. Switch PDOK off, open it,
+     click *Add Dutch aerial photos* → Settings closes, the request sits in the
+     chat box, and PDOK is on again.
 207. **Personalisation.** Settings → Personalisation: *Always answer in two
      sentences.* → Save; ask anything → the answer keeps to two sentences.

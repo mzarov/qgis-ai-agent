@@ -1,4 +1,5 @@
 import ast
+import json
 import pathlib
 import sys
 import xml.etree.ElementTree as ElementTree
@@ -12,6 +13,9 @@ CONTEXT = "QgisAiAgent"
 PREFIX = "ai_agent"
 LANGUAGES = ("ru",)
 CALLS = ("tr", "tr_n")
+# Connector files carry texts a person reads; the UI translates them with tr_data().
+DATA_SOURCES = PACKAGE / "qgis_tools" / "data" / "sources"
+CONNECTOR_TEXTS = ("summary", "description", "licence")
 UNFINISHED = "unfinished"
 PLURAL_FORMS = 3
 SUFFIX = ".qm"
@@ -33,7 +37,31 @@ def sources() -> list[tuple[str, str, int, bool]]:
                 raise SystemExit(f"{path}:{node.lineno}: {name}() needs a literal string")
             location = str(path.relative_to(PACKAGE.parent))
             found.append((argument.value, location, node.lineno, name == "tr_n"))
+    return found + data_sources()
+
+
+def data_sources() -> list[tuple[str, str, int, bool]]:
+    """The person-facing texts of every connector file, located at the line that holds them."""
+    found: list[tuple[str, str, int, bool]] = []
+    for path in sorted(DATA_SOURCES.glob("*.json")):
+        text = path.read_text(encoding="utf-8")
+        lines = text.splitlines()
+        location = str(path.relative_to(PACKAGE.parent))
+        for value in connector_texts(json.loads(text)):
+            quoted = json.dumps(value, ensure_ascii=False)
+            lineno = next((index for index, line in enumerate(lines, 1) if quoted in line), 1)
+            found.append((value, location, lineno, False))
     return found
+
+
+def connector_texts(connector: dict) -> list[str]:
+    texts = [connector[key] for key in CONNECTOR_TEXTS] + list(connector["examples"])
+    # The settings page lists a web service by its layers; other datasets go by their names, or a label.
+    for dataset in connector["datasets"]:
+        texts.extend(layer["title"] for layer in dataset.get("layers", []))
+        if "label" in dataset:
+            texts.append(dataset["label"])
+    return texts
 
 
 def _called_name(func: ast.expr) -> str:

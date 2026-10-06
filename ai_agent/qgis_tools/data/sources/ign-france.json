@@ -1,0 +1,77 @@
+{
+  "id": "ign-france",
+  "title": "IGN France",
+  "category": "national",
+  "order": 80,
+  "monogram": "FR",
+  "summary": "France: aerial photos, maps, communes",
+  "description": "The French national mapping agency through the Géoplateforme: current aerial photographs, the IGN plan map, and vector boundaries of regions, departments and communes.",
+  "examples": [
+    "Add IGN aerial photos of Lyon",
+    "Load the communes in the current view",
+    "Show the IGN plan map"
+  ],
+  "licence": "Licence Ouverte Etalab 2.0: free reuse with credit to IGN",
+  "hosts": [
+    "data.geopf.fr"
+  ],
+  "datasets": [
+    {
+      "id": "ign-france",
+      "title": "IGN France",
+      "kind": "service",
+      "summary": "France: aerial photos, the Plan IGN map, and regions, departments and communes as vectors.",
+      "coverage": "France including overseas",
+      "license": "Licence Ouverte Etalab 2.0",
+      "keywords": [
+        "france",
+        "french",
+        "ign",
+        "orthophoto",
+        "aerial",
+        "commune",
+        "departement",
+        "region",
+        "cadastre"
+      ],
+      "load_with": "load_service",
+      "service": "xyz",
+      "endpoint": "https://data.geopf.fr/wfs",
+      "layers": [
+        {
+          "key": "orthophotos",
+          "title": "Aerial photos",
+          "source": "https://data.geopf.fr/wmts?REQUEST=GetTile&SERVICE=WMTS&VERSION=1.0.0&STYLE=normal&TILEMATRIXSET=PM&FORMAT=image/jpeg&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}",
+          "zmax": 20
+        },
+        {
+          "key": "plan_ign",
+          "title": "Plan IGN map",
+          "source": "https://data.geopf.fr/wmts?REQUEST=GetTile&SERVICE=WMTS&VERSION=1.0.0&STYLE=normal&TILEMATRIXSET=PM&FORMAT=image/png&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}"
+        },
+        {
+          "key": "regions",
+          "title": "Regions (vector)",
+          "source": "ADMINEXPRESS-COG-CARTO.LATEST:region",
+          "note": "vector",
+          "protocol": "wfs"
+        },
+        {
+          "key": "departements",
+          "title": "Departments (vector)",
+          "source": "ADMINEXPRESS-COG-CARTO.LATEST:departement",
+          "note": "vector",
+          "protocol": "wfs"
+        },
+        {
+          "key": "communes",
+          "title": "Communes (vector)",
+          "source": "ADMINEXPRESS-COG-CARTO.LATEST:commune",
+          "note": "vector, loads the map view only",
+          "protocol": "wfs"
+        }
+      ],
+      "attribution": "IGN – Géoplateforme"
+    }
+  ]
+}
