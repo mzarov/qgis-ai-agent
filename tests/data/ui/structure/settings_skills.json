@@ -125,7 +125,7 @@
  {
   "depth": 6,
   "type": "QLabel",
-  "text": "14"
+  "text": "15"
  },
  {
   "depth": 5,
@@ -148,6 +148,29 @@
   "depth": 7,
   "type": "ElidedLabel",
   "text": "One-off notes and markers drawn on top of the map at a coordinate — not attribute labels (those are style). Load this fo"
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "data"
+ },
+ {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "Find and fetch open data the project lacks — satellite images (Sentinel-2, Landsat), elevation, land cover, surface wate"
  },
  {
   "depth": 6,

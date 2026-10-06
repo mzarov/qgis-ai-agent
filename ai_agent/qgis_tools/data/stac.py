@@ -12,7 +12,7 @@ from ai_agent.qgis_tools.data.http import get_json, post_json
 
 STAC_ROOT = "https://planetarycomputer.microsoft.com/api/stac/v1"
 # Tokens are per storage container, not per collection: one collection's token is refused by another account.
-TOKEN_URL = "https://planetarycomputer.microsoft.com/api/sas/v1/token/{account}/{container}"
+SAS_ENDPOINT = "https://planetarycomputer.microsoft.com/api/sas/v1/token/{account}/{container}"
 BLOB_SUFFIX = ".blob.core.windows.net"
 CLOUD = "eo:cloud_cover"
 # A cached token is replaced this long before it expires, so a layer never starts with a dying link.
@@ -68,7 +68,7 @@ def sas_token(href: str) -> tuple[str, str]:
     cached = _tokens.get(key)
     if cached and cached[1] - time.time() > TOKEN_MARGIN_S:
         return cached[0], cached[2]
-    answer = get_json(TOKEN_URL.format(account=quote(account), container=quote(container)))
+    answer = get_json(SAS_ENDPOINT.format(account=quote(account), container=quote(container)))
     token = str((answer or {}).get("token") or "")
     if not token:
         raise ValueError("The Planetary Computer did not issue a read token. Retry in a minute.")
