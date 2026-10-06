@@ -37,6 +37,12 @@
       "load_with": "load_service",
       "service": "xyz",
       "endpoint": "https://data.geopf.fr/wfs",
+      "bbox": [
+        -5.2,
+        41.3,
+        9.6,
+        51.1
+      ],
       "layers": [
         {
           "key": "orthophotos",

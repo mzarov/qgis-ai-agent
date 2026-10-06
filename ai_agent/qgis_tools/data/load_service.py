@@ -8,6 +8,7 @@ from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.data.catalogue import KIND_SERVICE, dataset
 from ai_agent.qgis_tools.data.dataset import SERVICE_WFS, SERVICE_WMS, Dataset, ServiceLayer
+from ai_agent.qgis_tools.data.view import show_coverage
 
 DATE_SLOT = "{date}"
 WMS_CRS = "EPSG:3857"
@@ -70,6 +71,8 @@ class LoadServiceTool(BaseTool):
             root = project.layerTreeRoot()
             root.insertLayer(len(root.children()), added)
         result: dict[str, Any] = {"layer": added.name(), "service": protocol, "license": entry.license}
+        if show_coverage(entry.bbox):
+            result["map_moved_to"] = entry.coverage
         if entry.notes:
             result["notes"] = list(entry.notes)
         return result

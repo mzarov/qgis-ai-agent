@@ -23,7 +23,10 @@ first when you are not sure which dataset fits; each entry says how to load it.
   find_open_data. Tiles and WMS pictures are backdrops to look at; WFS layers
   (IGN regions, departments, communes; PDOK provinces, municipalities) are real
   vectors you can query, style and analyse. NASA GIBS `modis_true_color` is one
-  day of the whole Earth: pass `date`, default yesterday.
+  day of the whole Earth: pass `date`, default yesterday. A national service
+  draws nothing useful from a world or continent view, so the tool moves the
+  map to its country when the view misses it; `map_moved_to` in the result says
+  so — tell the user the map moved.
 - **Imagery and rasters** (Sentinel-2, Landsat, Copernicus DEM, WorldCover,
   land use, surface water): `search_imagery` over an area, then `load_imagery`
   with the scene ids it returned. Never invent a scene id.

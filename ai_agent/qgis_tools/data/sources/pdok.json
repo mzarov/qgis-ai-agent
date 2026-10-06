@@ -36,6 +36,12 @@
       "load_with": "load_service",
       "service": "xyz",
       "endpoint": "https://service.pdok.nl/kadaster/bestuurlijkegebieden/wfs/v1_0",
+      "bbox": [
+        3.3,
+        50.7,
+        7.3,
+        53.6
+      ],
       "layers": [
         {
           "key": "aerial",

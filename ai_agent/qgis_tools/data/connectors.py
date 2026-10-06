@@ -126,6 +126,8 @@ def _dataset(raw: dict[str, Any]) -> Dataset:
     for key in ("keywords", "assets", "rgb", "notes"):
         if key in values:
             values[key] = tuple(_list(raw, key, str))
+    if "bbox" in raw:
+        values["bbox"] = _bbox(raw)
     layers = tuple(_layer(item, raw["id"]) for item in _list(raw, "layers", dict)) if "layers" in raw else ()
     values["layers"] = layers
     _check_unique([layer.key for layer in layers], f"layer key in {raw['id']}")
@@ -141,6 +143,14 @@ def _layer(raw: dict[str, Any], owner: str) -> ServiceLayer:
     if not isinstance(raw.get("zmax", 0), int):
         raise ValueError(f"layer {raw['key']} of {owner}: zmax must be an integer")
     return ServiceLayer(**raw)
+
+
+def _bbox(raw: dict[str, Any]) -> tuple[float, ...]:
+    box = raw["bbox"]
+    numbers = isinstance(box, list) and len(box) == 4 and all(isinstance(value, int | float) for value in box)
+    if not numbers or not (-180 <= box[0] < box[2] <= 180 and -90 <= box[1] < box[3] <= 90):
+        raise ValueError(f"dataset {raw['id']}: bbox must be [west, south, east, north] in degrees")
+    return tuple(float(value) for value in box)
 
 
 def _check_keys(raw: dict[str, Any], required: set[str], optional: set[str], what: str) -> None:

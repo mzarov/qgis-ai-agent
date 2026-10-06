@@ -33,6 +33,12 @@
       ],
       "load_with": "load_service",
       "service": "xyz",
+      "bbox": [
+        -125.0,
+        24.4,
+        -66.9,
+        49.4
+      ],
       "layers": [
         {
           "key": "imagery",

@@ -252,6 +252,8 @@ GEBCO bathymetry, OpenTopoMap, and national services — IGN France (aerial
 photos, Plan IGN, regions, departments and communes as vectors), PDOK
 Netherlands, swisstopo, USGS and Geoscience Australia. Tiles and WMS pictures
 go under your vector layers; WFS layers are real vectors to query and style.
+A national service shows nothing useful from a world or continent view, so
+adding one moves the map to its country when the view does not already show it.
 
 **Settings → Connectors** lists every source with a switch. A source you switch
 off disappears from the agent's catalogue and its data is refused; nothing on

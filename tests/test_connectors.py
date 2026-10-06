@@ -13,7 +13,7 @@ from ai_agent.config import geocoder as geocoder_config
 from ai_agent.core import connectors as core_connectors
 from ai_agent.core import settings
 from ai_agent.core.agent import prompts
-from ai_agent.qgis_tools.data import catalogue, load_service
+from ai_agent.qgis_tools.data import catalogue, load_service, view
 from ai_agent.qgis_tools.data.connectors import CONNECTORS, SOURCES, connector_of, load
 from ai_agent.ui.connector_detail import caption
 from ai_agent.ui.connectors_settings import ConnectorsSettings
@@ -115,6 +115,7 @@ class SourceFileTest(unittest.TestCase):
             minimal(datasets=[]),
             minimal(datasets=[{**minimal()["datasets"][0], "layers": []}]),
             minimal(datasets=[{**minimal()["datasets"][0], "service": "ftp"}]),
+            minimal(datasets=[{**minimal()["datasets"][0], "bbox": [10, 50, 5, 53]}]),
         )
         for connector in broken:
             with self.assertRaisesRegex(ValueError, "^demo.json: "):
@@ -169,6 +170,28 @@ class SwitchedOffTest(unittest.TestCase):
         with mock.patch.object(core_connectors, "set_disabled_connectors") as stored:
             core_connectors.save_enabled([connector.id for connector in CONNECTORS if connector.id != "eox"])
         self.assertEqual(list(stored.call_args.args[0]), ["eox"])
+
+
+class CoverageViewTest(unittest.TestCase):
+    NETHERLANDS = (3.3, 50.7, 7.3, 53.6)
+
+    def test_the_map_moves_only_when_the_view_misses_or_dwarfs_the_country(self):
+        self.assertTrue(view.needs_move(None, self.NETHERLANDS))
+        self.assertTrue(view.needs_move((-180.0, -85.0, 180.0, 85.0), self.NETHERLANDS))
+        self.assertTrue(view.needs_move((10.0, 40.0, 20.0, 45.0), self.NETHERLANDS))
+        self.assertFalse(view.needs_move((4.0, 51.5, 6.0, 53.0), self.NETHERLANDS))
+        self.assertFalse(view.needs_move((4.8, 52.3, 5.0, 52.4), self.NETHERLANDS))
+
+    def test_every_national_service_knows_its_country(self):
+        for connector in CONNECTORS:
+            if connector.category == "national":
+                for item in connector.datasets:
+                    self.assertEqual(len(item.bbox), 4, item.id)
+
+    def test_without_a_canvas_nothing_moves(self):
+        self.assertFalse(view.show_coverage(()))
+        with mock.patch.dict(sys.modules, {"qgis.utils": mock.Mock(iface=None)}):
+            self.assertFalse(view.show_coverage(self.NETHERLANDS))
 
 
 class LoadServiceTest(unittest.TestCase):

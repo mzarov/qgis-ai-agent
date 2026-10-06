@@ -49,3 +49,5 @@ class Dataset:
     endpoint: str = ""
     layers: tuple[ServiceLayer, ...] = ()
     attribution: str = ""
+    # National services: west, south, east, north in degrees; the map moves there when the view misses it.
+    bbox: tuple[float, ...] = ()
