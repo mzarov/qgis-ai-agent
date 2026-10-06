@@ -587,6 +587,16 @@
         <translation>Скачиваю из OSM «{0}» ({1}) в {2}.</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/data/load_dataset.py" line="90"/>
+        <source>Downloading Natural Earth {0}.</source>
+        <translation>Скачиваю Natural Earth: {0}.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/load_dataset.py" line="87"/>
+        <source>Downloading {0} boundaries of {1} from geoBoundaries.</source>
+        <translation>Скачиваю границы {0} для {1} из geoBoundaries.</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="253"/>
         <source>Drawing {0} feature(s) in new scratch layer '{1}'.</source>
         <translation>Рисую объекты ({0}) в новом временном слое «{1}».</translation>
@@ -782,6 +792,20 @@
         <translation>Слой: {0}</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/data/find_open_data.py" line="35"/>
+        <source>Listing the open datasets.</source>
+        <translation>Показываю каталог открытых данных.</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="ai_agent/qgis_tools/data/load_imagery.py" line="63"/>
+        <source>Loading %n scene(s) of {0} from the Planetary Computer.</source>
+        <translation>
+            <numerusform>Загружаю %n снимок {0} из Planetary Computer.</numerusform>
+            <numerusform>Загружаю %n снимка {0} из Planetary Computer.</numerusform>
+            <numerusform>Загружаю %n снимков {0} из Planetary Computer.</numerusform>
+        </translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/tables/load_table.py" line="70"/>
         <source>Loading geometries from {0} ({1}).</source>
         <translation>Загружаю геометрии из {0} ({1}).</translation>
@@ -810,6 +834,11 @@
         <location filename="ai_agent/qgis_tools/web/geocode.py" line="49"/>
         <source>Looking up '{0}' with {1}.</source>
         <translation>Ищу «{0}» через {1}.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/find_open_data.py" line="36"/>
+        <source>Looking up open data: {0}.</source>
+        <translation>Ищу открытые данные: {0}.</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/composer_parts.py" line="32"/>
@@ -1350,6 +1379,11 @@
         <location filename="ai_agent/qgis_tools/processing/search_processing.py" line="45"/>
         <source>Searching for an algorithm: '{0}'.</source>
         <translation>Ищу алгоритм: «{0}».</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/data/search_imagery.py" line="75"/>
+        <source>Searching {0} scenes on the Planetary Computer.</source>
+        <translation>Ищу снимки {0} в Planetary Computer.</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/inspect/select_features.py" line="55"/>

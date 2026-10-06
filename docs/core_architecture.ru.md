@@ -17,8 +17,8 @@
 - `core/context/` — краткая стартовая сводка о проекте
 - `core/state/` — окно истории для модели и сохранённые диалоги
 - `qgis_tools/common/` — общее для доменов: слои, CRS, значения, сводка рендерера
-- `qgis_tools/` — тулы в четырнадцати доменах: `inspect/`, `project/`, `style/`,
-  `processing/`, `osm/`, `draw/`, `edit/`, `fields/`, `layout/`, `python/`, `web/`,
+- `qgis_tools/` — тулы в пятнадцати доменах: `inspect/`, `project/`, `style/`,
+  `processing/`, `osm/`, `data/`, `draw/`, `edit/`, `fields/`, `layout/`, `python/`, `web/`,
   `annotations/`, `three_d/`, `tables/`
 - `skills/` — пакеты знаний `<skill>/SKILL.md` и реестр
 

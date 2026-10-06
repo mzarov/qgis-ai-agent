@@ -17,8 +17,8 @@ The architecture of `ai_agent`: an agent loop with skills.
 - `core/context/` — the short starting summary of the project
 - `core/state/` — the model's history window and the saved conversations
 - `qgis_tools/common/` — shared across domains: layers, CRS, values, renderer summary
-- `qgis_tools/` — tools in fourteen domains: `inspect/`, `project/`, `style/`,
-  `processing/`, `osm/`, `draw/`, `edit/`, `fields/`, `layout/`, `python/`, `web/`,
+- `qgis_tools/` — tools in fifteen domains: `inspect/`, `project/`, `style/`,
+  `processing/`, `osm/`, `data/`, `draw/`, `edit/`, `fields/`, `layout/`, `python/`, `web/`,
   `annotations/`, `three_d/`, `tables/`
 - `skills/` — knowledge packages `<skill>/SKILL.md` and the registry
 
