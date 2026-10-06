@@ -39,7 +39,7 @@ class SessionStore:
 
     def recent(self, project: str, limit: int = 20) -> list[Session]:
         sessions = [item for item in self._all() if item.project == project]
-        sessions.sort(key=lambda item: item.updated, reverse=True)
+        sessions.sort(key=_newest_first, reverse=True)
         return sessions[:limit]
 
     def _all(self) -> list[Session]:
@@ -60,7 +60,7 @@ class SessionStore:
         sessions = self._all()
         if len(sessions) <= MAX_SESSIONS:
             return
-        sessions.sort(key=lambda item: item.updated, reverse=True)
+        sessions.sort(key=_newest_first, reverse=True)
         for session in sessions[MAX_SESSIONS:]:
             self.delete(session.identifier)
 
@@ -73,6 +73,12 @@ class SessionStore:
         except OSError:
             return False
         return True
+
+
+def _newest_first(session: Session) -> tuple[float, float, str]:
+    # Equal `updated` values are real (a coarse clock, sessions saved in one tick);
+    # without a tie-breaker the order would follow os.listdir, which is arbitrary.
+    return (session.updated, session.created, session.identifier)
 
 
 def default_root() -> str:

@@ -2,7 +2,6 @@ import gc
 import os
 import shutil
 import tempfile
-import time
 import unittest
 
 from ai_agent.core.state import conversation as conversation_module
@@ -121,12 +120,30 @@ class SessionStoreTest(unittest.TestCase):
         titles = [item.title for item in self.store.recent("/a.qgz")]
         self.assertEqual(titles, ["про а"])
 
+    def _saved_at(self, updated, created=0.0, identifier=None):
+        session = Session.create("/p.qgz")
+        session.add("user", "вопрос")
+        session.updated, session.created = updated, created
+        if identifier is not None:
+            session.identifier = identifier
+        self.store.save(session)
+        return session
+
     def test_recent_is_newest_first(self):
-        first = self._saved(text="первый")
-        time.sleep(0.01)
-        second = self._saved(text="второй")
-        self.assertEqual(self.store.recent("/p.qgz")[0].identifier, second.identifier)
-        self.assertEqual(self.store.recent("/p.qgz")[1].identifier, first.identifier)
+        # Explicit timestamps: the wall clock can step back or repeat between two saves.
+        newer = self._saved_at(2000.0)
+        older = self._saved_at(1000.0)
+        identifiers = [item.identifier for item in self.store.recent("/p.qgz")]
+        self.assertEqual(identifiers, [newer.identifier, older.identifier])
+
+    def test_recent_breaks_equal_update_times_deterministically(self):
+        # Ties fall back to `created`, then to the identifier, never to directory order.
+        created_later = self._saved_at(1000.0, created=20.0, identifier="aaaa")
+        higher_identifier = self._saved_at(1000.0, created=10.0, identifier="zzzz")
+        lower_identifier = self._saved_at(1000.0, created=10.0, identifier="bbbb")
+        identifiers = [item.identifier for item in self.store.recent("/p.qgz")]
+        expected = [created_later.identifier, higher_identifier.identifier, lower_identifier.identifier]
+        self.assertEqual(identifiers, expected)
 
     def test_delete(self):
         session = self._saved()
