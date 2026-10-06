@@ -4,14 +4,14 @@
 <context>
     <name>QgisAiAgent</name>
     <message>
-        <location filename="ai_agent/ui/confirmations.py" line="91"/>
-        <location filename="ai_agent/ui/confirmations.py" line="70"/>
+        <location filename="ai_agent/ui/confirmations.py" line="99"/>
+        <location filename="ai_agent/ui/confirmations.py" line="74"/>
         <source>&#10;&#10;Apply them?</source>
         <translation>&#10;&#10;Применить их?</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/confirmations.py" line="90"/>
-        <location filename="ai_agent/ui/confirmations.py" line="62"/>
+        <location filename="ai_agent/ui/confirmations.py" line="96"/>
+        <location filename="ai_agent/ui/confirmations.py" line="66"/>
         <source>&#10;&#10;Exact code to be executed:&#10;&#10;{0}</source>
         <translation>&#10;&#10;Точный код, который будет выполнен:&#10;&#10;{0}</translation>
     </message>
@@ -208,6 +208,8 @@
         <translation>Применяет сам; удаление всё равно спросит</translation>
     </message>
     <message>
+        <location filename="ai_agent/ui/confirmations.py" line="22"/>
+        <location filename="ai_agent/ui/confirmations.py" line="81"/>
         <location filename="ai_agent/ui/plan.py" line="121"/>
         <source>Apply</source>
         <translation>Применить</translation>
@@ -308,6 +310,8 @@
         <translation>Встроенные</translation>
     </message>
     <message>
+        <location filename="ai_agent/ui/confirmations.py" line="23"/>
+        <location filename="ai_agent/ui/confirmations.py" line="82"/>
         <location filename="ai_agent/ui/plan.py" line="128"/>
         <location filename="ai_agent/ui/settings_dialog.py" line="162"/>
         <source>Cancel</source>
@@ -531,13 +535,13 @@
         <translation>По умолчанию</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/confirmations.py" line="31"/>
+        <location filename="ai_agent/ui/confirmations.py" line="35"/>
         <location filename="ai_agent/ui/sessions_popup.py" line="25"/>
         <source>Delete</source>
         <translation>Удалить</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/confirmations.py" line="26"/>
+        <location filename="ai_agent/ui/confirmations.py" line="30"/>
         <source>Delete the conversation?</source>
         <translation>Удалить разговор?</translation>
     </message>
@@ -557,8 +561,8 @@
         <translation>Удаляю объектов: {0} — из «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/confirmations.py" line="15"/>
-        <location filename="ai_agent/ui/confirmations.py" line="55"/>
+        <location filename="ai_agent/ui/confirmations.py" line="16"/>
+        <location filename="ai_agent/ui/confirmations.py" line="59"/>
         <source>Destructive steps</source>
         <translation>Необратимые шаги</translation>
     </message>
@@ -1302,7 +1306,7 @@
         <translation>Запустить {0} ({1}{2}){3}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/python/run_python.py" line="72"/>
+        <location filename="ai_agent/qgis_tools/python/run_python.py" line="73"/>
         <source>Running Python: {0}</source>
         <translation>Выполняю Python: {0}</translation>
     </message>
@@ -1377,7 +1381,7 @@
         <translation>Отправить</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/confirmations.py" line="41"/>
+        <location filename="ai_agent/ui/confirmations.py" line="45"/>
         <source>Send the request to {0}?&#10;&#10;The provider receives your prompt and everything the agent reads to answer it: layer and field names, feature values, extents, layer sources and rendered map images. For data that must stay on this computer, use a local model server.</source>
         <translation>Отправить запрос в {0}?&#10;&#10;Провайдер получит ваш запрос и всё, что агент прочитает для ответа: имена слоёв и полей, значения объектов, границы, источники слоёв и изображения карты. Если данные не должны покидать компьютер, используйте локальный сервер модели.</translation>
     </message>
@@ -1418,7 +1422,7 @@
         <translation>Настройки — AI Agent</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/confirmations.py" line="38"/>
+        <location filename="ai_agent/ui/confirmations.py" line="42"/>
         <source>Share project data?</source>
         <translation>Передать данные проекта?</translation>
     </message>
@@ -1595,7 +1599,7 @@
         <translation>Сжимать пока нечего.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/confirmations.py" line="83"/>
+        <location filename="ai_agent/ui/confirmations.py" line="89"/>
         <source>These steps change or delete data and cannot be undone:&#10;&#10;{0}</source>
         <translation>Эти шаги изменяют или удаляют данные, и их нельзя отменить:&#10;&#10;{0}</translation>
     </message>
@@ -1896,7 +1900,7 @@
         <translation>{endpoint} не ответил за {seconds} с. Возможно, модель ещё работает; попробуйте снова или выберите модель побыстрее.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/confirmations.py" line="28"/>
+        <location filename="ai_agent/ui/confirmations.py" line="32"/>
         <source>“{0}” will be deleted for good: it cannot be restored.</source>
         <translation>«{0}» будет удалён насовсем: восстановить его нельзя.</translation>
     </message>

@@ -103,6 +103,20 @@ class DiscoveryTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Its commands"):
             tool.prepare({"plugin": "qgis2web", "command": "Delete everything"})
 
+    def test_the_confirmation_shows_a_warning_not_a_code_listing(self):
+        from ai_agent.core.llm.turns import ToolCall
+        from ai_agent.core.orchestrator.planning import CodeDetails, destructive_lines
+        from ai_agent.ui.confirmations import destructive_confirmation_text
+
+        call = ToolCall("1", "run_plugin_command", {"plugin": "qgis2web", "command": "Create web map from project"})
+        lines, details = destructive_lines([call])
+        self.assertNotIsInstance(details, CodeDetails)
+        text = destructive_confirmation_text(lines, details)
+        self.assertNotIn("Exact code", text)
+        self.assertIn("not of AI Agent", text)
+        python = ToolCall("2", "run_python", {"code": "print(1)", "intent": "smoke"})
+        self.assertIsInstance(destructive_lines([python])[1], CodeDetails)
+
     def test_menu_text_loses_mnemonics_and_ellipses(self):
         self.assertEqual(discovery._clean("&Save && Close…"), "Save & Close")
 
