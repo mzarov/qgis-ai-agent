@@ -1,3 +1,5 @@
+from typing import Any
+
 from qgis.core import Qgis, QgsMessageLog
 
 from ai_agent.core.agent import notices
@@ -6,6 +8,7 @@ from ai_agent.core.agent.prompts import (
     APPLY_NOW_TOOL,
     ASK_USER_TOOL,
     LOAD_SKILL_TOOL,
+    MAX_QUESTION_OPTIONS,
     UPDATE_PLAN_TOOL,
 )
 from ai_agent.core.agent.request import detect_images_unsupported
@@ -16,6 +19,7 @@ from ai_agent.qgis_tools.base import SAFETY_READ
 from ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call, validate_tool_arguments
 
 LOG_TAG = "AI Agent"
+MAX_OPTION_CHARS = 120
 DUPLICATE_NOTE = "An identical call is already queued; it was not added again."
 PLAN_MODE_REFUSAL = "Plan mode is on: {tool} would change the project, so it was not run. Put the step in your plan."
 NO_IMAGE_INPUT = (
@@ -95,6 +99,7 @@ class DispatchMixin:
         if not question:
             return ToolResult.failure(call, "The question is empty — say what you need to know.")
         self._question = question
+        self._question_options = question_options(call.arguments.get("options"))
         return ToolResult(call=call, ok=True, payload={"status": "waiting_for_user"})
 
     def _request_stage(self, call: ToolCall) -> ToolResult:
@@ -130,3 +135,15 @@ class DispatchMixin:
             self.skill_loaded.emit(name)
             QgsMessageLog.logMessage(f"Skill loaded: {name}.", LOG_TAG, Qgis.MessageLevel.Info)
         return result
+
+
+def question_options(raw: Any) -> list[str]:
+    """The offered answers: short distinct strings, at most MAX_QUESTION_OPTIONS; anything else is dropped."""
+    if not isinstance(raw, list):
+        return []
+    options: list[str] = []
+    for item in raw:
+        text = " ".join(str(item or "").split())[:MAX_OPTION_CHARS]
+        if text and text not in options:
+            options.append(text)
+    return options[:MAX_QUESTION_OPTIONS]

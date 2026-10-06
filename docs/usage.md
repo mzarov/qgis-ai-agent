@@ -35,6 +35,11 @@ drop it:
 - *clip the roads by the city boundary, compute the length and save the
   project* — a whole chain lands in one plan card
 
+When the agent cannot go on without your decision — which of two similar layers,
+which territory — it asks in a card: up to three likely answers to click, and a
+fourth row to type your own and press Enter. Typing in the main box works too.
+The run continues from the same place with your answer.
+
 ### Auto mode
 
 The mode button under the chat box, next to **+**, shows **Ask first** or

@@ -119,7 +119,9 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 9. **The run can also pause on a question.** `ask_user` is the second use of
    the same pause mechanic as `apply_now`: the loop emits `question_asked`,
    releases the thread, and the user's next message resumes the SAME run via
-   `answer()` instead of starting a new one. The prompt forbids using it for
+   `answer()` instead of starting a new one. Up to `MAX_QUESTION_OPTIONS`
+   offered answers (`question_options`) become a card with a fourth row for a
+   typed reply; a pick travels like a typed message. The prompt forbids using it for
    plan approval — queueing is the proposal; a question is only for decisions
    that are genuinely the user's.
 10. **The user can break in mid-run.** `interject` appends the message to the
