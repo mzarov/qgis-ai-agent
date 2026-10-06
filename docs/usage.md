@@ -35,6 +35,11 @@ drop it:
 - *clip the roads by the city boundary, compute the length and save the
   project* — a whole chain lands in one plan card
 
+When the agent cannot go on without your decision — which of two similar layers,
+which territory — it asks in a card: up to three likely answers to click, and a
+fourth row to type your own and press Enter. Typing in the main box works too.
+The run continues from the same place with your answer.
+
 ### Auto mode
 
 The mode button under the chat box, next to **+**, shows **Ask first** or
@@ -93,6 +98,23 @@ keeps, Esc drops — a name you chose is never replaced) and a bin to delete it
 for good after a confirmation; deleting the open conversation starts a fresh one.
 Restoring a conversation restores the model's context too — a follow-up like
 *and how many are there?* keeps working.
+
+### Rewinding to an earlier message
+
+Hover one of your messages and click the curved arrow beside it to go back to
+before it, as in Claude Code. You choose what goes back:
+
+- **Conversation and project** — the chat ends just before that message, the
+  message returns to the input box to edit or resend, and the project returns
+  to how it was before the changes that message led to;
+- **Conversation only** — the project stays as it is;
+- **Project only** — the chat stays as it is.
+
+The project side uses the snapshots taken before every Apply. They live as long
+as QGIS runs and only the newest ten are kept, so an older message may offer the
+conversation alone. Edits written into data sources (changed attributes,
+deleted features) are not undone; temporary layers too large to copy come back
+empty, and the agent says which.
 
 ### The context window
 

@@ -20,7 +20,8 @@ class ProjectLifecycleMixin:
         self._invalidated_scope = None
 
     def on_project_cleared(self) -> bool:
-        if getattr(self.agent, "active_apply_tool", "") == UNDO_TOOL:
+        # Reading a snapshot back clears the project first; it is the same project, not a new one.
+        if getattr(self.agent, "active_apply_tool", "") == UNDO_TOOL or getattr(self, "_restoring_snapshot", False):
             return False
         self._invalidated_scope = conversation_scope(self.conversation)
         self._abort_project_work()
@@ -29,6 +30,7 @@ class ProjectLifecycleMixin:
     def on_apply_interrupted(self, results: list) -> None:
         scope = self._apply_scope
         self._apply_scope = None
+        self._record_checkpoint()
         outcome = interrupted_outcome(results)
         if not outcome:
             return

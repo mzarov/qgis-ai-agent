@@ -75,6 +75,7 @@ class PlanMixin:
             self.dock_widget.add_system_message(DESTRUCTIVE_DECLINED)
             return
         self._apply_scope = conversation_scope(self.conversation)
+        self._note_apply_start()
         self.agent.confirm_pending()
 
     def _destructive_lines(self) -> tuple[list[str], str]:
@@ -88,6 +89,7 @@ class PlanMixin:
 
     def on_stage_applied(self, results: list) -> None:
         self._apply_scope = None
+        self._record_checkpoint()
         if self._plan_message_id is not None:
             if any(not result.ok for result in results):
                 self.dock_widget.mark_plan_failed(self._plan_message_id)
@@ -97,6 +99,7 @@ class PlanMixin:
 
     def on_applied(self, results: list) -> None:
         self._apply_scope = None
+        self._record_checkpoint()
         failed = [result for result in results if not result.ok]
         if self._plan_message_id is not None:
             if failed:

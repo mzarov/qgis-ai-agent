@@ -31,6 +31,12 @@ class RunEventsMixin:
         self._render_answer(text)
 
     def on_question_asked(self, question: str) -> None:
+        options = list(getattr(self.agent, "question_options", None) or [])
+        if options:
+            self.dock_widget.add_question(question, options)
+            # The saved conversation keeps the choices, so a reopened chat still shows what was offered.
+            self.conversation.add("assistant", question + "\n\n" + "\n".join(f"- {option}" for option in options))
+            return
         self.dock_widget.add_result_message(question)
         self.conversation.add("assistant", question)
         self.dock_widget.add_system_message(AWAITING_ANSWER)

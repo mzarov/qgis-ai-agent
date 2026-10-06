@@ -47,6 +47,7 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `chart.py`        | a chart in the feed: bars, rows, lines, donut, histogram, scatter; painted, hover tips, copy image/CSV |
 | `chart_scale.py`  | axis arithmetic: round ticks, compact numbers, which bar layout fits |
 | `table_card.py`   | a table in the feed: painted rows, natural column widths, elided cells with tips, copy CSV |
+| `question.py`     | the agent's question card: up to three answers to click and a fourth row to type one's own |
 | `progress.py`     | the working line as in Claude Code: walking dots, the current step, the elapsed time; the feed's last row, under the newest message |
 | `controls.py`     | custom controls: `Segmented` keeps the combo-box API, `Chips`, `RoundedFrame` (every state-dependent box), icon tiles, badges, keycaps, `ElidedLabel`, menus |
 | `connection_widgets.py` | provider tiles and the connection status card |

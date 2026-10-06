@@ -105,6 +105,11 @@ class ConversationState:
         self._session.compact(summary, KEEP_AFTER_COMPACTION, upto)
         self._store.save(self._session)
 
+    def truncate(self, index: int) -> None:
+        """Forget the messages from `index` on, as if the conversation had stopped there."""
+        self._session.truncate(index)
+        self._store.save(self._session)
+
     def set_context(self, tokens: int) -> None:
         """An estimate of the context in use until the next request measures it."""
         self._session.context_tokens = max(0, tokens)

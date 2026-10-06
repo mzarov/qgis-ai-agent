@@ -83,6 +83,15 @@ values), a step that does not read back, or a check that raises. A false
 "done" is the one failure this must not have, so a tool that cannot be sure
 returns `None`.
 
+Every applied batch takes a project snapshot first, and the orchestrator tags
+each new snapshot with the user message whose run applied it
+(`orchestrator/rewind.py`). Rewinding to a message restores the earliest
+snapshot tagged with that message or a later one and drops every later
+snapshot; the conversation side truncates the saved conversation before the
+message and puts the message back into the input box. A project read during a
+rewind is the same project, so the lifecycle handlers do not start a new
+conversation for it.
+
 A read tool can also draw for the person: `charts` tools return a chart or
 table spec under `RESULT_VISUAL_KEY`. The executor strips it from the result
 before the model sees it, the loop hands it to the feed, and the conversation

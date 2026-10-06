@@ -699,6 +699,17 @@ class AskUserFlowTest(unittest.TestCase):
         self.assertIn(notices.AWAITING_ANSWER, self.dock.system)
         self.assertEqual(self.orchestrator.conversation.messages[-1]["content"], "Какой из двух слоёв дорог брать?")
 
+    def test_offered_answers_become_a_card_and_stay_in_the_session(self):
+        shown = []
+        self.dock.add_question = lambda question, options: shown.append((question, options)) or 0
+        self.orchestrator.agent.question_options = ["roads_2024", "roads_old"]
+        self.orchestrator.on_question_asked("Which roads layer?")
+        self.assertEqual(shown, [("Which roads layer?", ["roads_2024", "roads_old"])])
+        self.assertNotIn(notices.AWAITING_ANSWER, self.dock.system)
+        self.assertEqual(
+            self.orchestrator.conversation.messages[-1]["content"], "Which roads layer?\n\n- roads_2024\n- roads_old"
+        )
+
     def test_the_next_message_is_routed_as_the_answer(self):
         self.orchestrator.agent.is_awaiting_answer = True
         self.orchestrator.on_prompt("бери layer_roads_2024")
