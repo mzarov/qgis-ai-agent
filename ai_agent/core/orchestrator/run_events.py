@@ -23,6 +23,10 @@ class RunEventsMixin:
         # A stop is deliberate: the request stays in the chat but not back in the box (the user's call).
         self.dock_widget.add_system_message(APPLY_STOPPED if applying else RUN_STOPPED)
 
+    def on_visual_ready(self, spec: dict) -> None:
+        self.dock_widget.add_visual(spec)
+        self.conversation.add_visual(spec)
+
     def on_preamble(self, text: str) -> None:
         self._render_answer(text)
 

@@ -73,6 +73,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.agent.tool_queued.connect(self.on_tool_queued)
         self.agent.tool_rejected.connect(self.on_tool_rejected)
         self.agent.skill_loaded.connect(self.on_skill_loaded)
+        self.agent.visual_ready.connect(self.on_visual_ready)
         self.agent.plan_changed.connect(self.on_plan_changed)
         self.agent.confirm_needed.connect(self.on_confirm_needed)
         self.agent.question_asked.connect(self.on_question_asked)

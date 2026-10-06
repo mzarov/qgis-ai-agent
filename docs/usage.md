@@ -224,6 +224,24 @@ The `tables` skill handles CSV files and attribute joins:
 When the joined fields must become a separate layer or file, ask for that: the
 agent then uses the Processing algorithm `native:joinattributestable` instead.
 
+## Charts and tables
+
+Ask for a picture of the data and it appears in the chat:
+
+- “Chart the population by district” — a bar per district, computed in QGIS
+  from the layer; long names lay out as rows.
+- “Show the distribution of parcel areas” — a histogram of a field or an
+  expression such as `$area / 10000`.
+- “Pie of land use by area” — shares of a whole; more than seven parts fold
+  into “Other”.
+- “Table of the ten largest towns with name and population” — a sorted table of
+  chosen fields, up to 50 rows.
+
+Hover a bar, point or slice for its value; right-click to copy the picture or
+the numbers as CSV. Charts and tables stay with the conversation and come back
+when you reopen it. They are drawn for you: the model gets only a short
+confirmation with the numbers, not the picture.
+
 ## When a run stops or fails
 
 Stop or an error keeps whatever the agent had already written, puts your

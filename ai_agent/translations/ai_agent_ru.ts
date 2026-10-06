@@ -375,6 +375,11 @@
         <translation>Меняю настройки проекта: {0}.</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/charts/chart_layer.py" line="86"/>
+        <source>Charting '{0}'.</source>
+        <translation>Строю диаграмму по «{0}».</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="25"/>
         <source>Check the result after Apply</source>
         <translation>Проверять результат после применения</translation>
@@ -476,13 +481,28 @@
         <translation>Только разговор</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="72"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="73"/>
         <location filename="ai_agent/ui/sessions_popup.py" line="27"/>
         <source>Conversations</source>
         <translation>Диалоги</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/conversation.py" line="287"/>
+        <location filename="ai_agent/ui/chart.py" line="42"/>
+        <source>Copy data as CSV</source>
+        <translation>Копировать данные как CSV</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/chart.py" line="41"/>
+        <source>Copy image</source>
+        <translation>Копировать изображение</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/table_card.py" line="27"/>
+        <source>Copy rows as CSV</source>
+        <translation>Копировать строки как CSV</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/conversation.py" line="295"/>
         <source>Copy the whole conversation</source>
         <translation>Скопировать весь диалог</translation>
     </message>
@@ -603,6 +623,11 @@
         <translation>Скачиваю из OSM «{0}» ({1}) в {2}.</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/charts/show_chart.py" line="52"/>
+        <source>Drawing a chart: {0}.</source>
+        <translation>Рисую диаграмму: {0}.</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="253"/>
         <source>Drawing {0} feature(s) in new scratch layer '{1}'.</source>
         <translation>Рисую объекты ({0}) в новом временном слое «{1}».</translation>
@@ -653,7 +678,7 @@
         <translation>Введите название модели, доступной у провайдера.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="86"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="90"/>
         <source>Error: {0}</source>
         <translation>Ошибка: {0}</translation>
     </message>
@@ -808,7 +833,7 @@
         <translation>Загружаю геометрии из {0} ({1}).</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="61"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="65"/>
         <source>Loading knowledge: {0}</source>
         <translation>Загружаю знания: {0}</translation>
     </message>
@@ -853,7 +878,7 @@
         <translation>Модель ответила: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="74"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="75"/>
         <source>New conversation</source>
         <translation>Новый диалог</translation>
     </message>
@@ -1013,7 +1038,7 @@
         <translation>План</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="58"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="62"/>
         <source>Plan {0}/{1}: {2}</source>
         <translation>План {0}/{1}: {2}</translation>
     </message>
@@ -1198,7 +1223,7 @@
         <translation>Записи</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="54"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="58"/>
         <source>Rejected: {0}</source>
         <translation>Отклонено: {0}</translation>
     </message>
@@ -1298,7 +1323,7 @@
         <translation>Выполнить автоматически</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="64"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="68"/>
         <source>Run journal: {0}</source>
         <translation>Журнал прогона: {0}</translation>
     </message>
@@ -1428,7 +1453,7 @@
         <translation>Настраиваю подписи «{0}»: {1}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/dock_widget.py" line="75"/>
+        <location filename="ai_agent/ui/dock_widget.py" line="76"/>
         <location filename="ai_agent/ui/settings_layout.py" line="12"/>
         <source>Settings</source>
         <translation>Настройки</translation>
@@ -1442,6 +1467,11 @@
         <location filename="ai_agent/ui/confirmations.py" line="75"/>
         <source>Share project data?</source>
         <translation>Передать данные проекта?</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/charts/show_table.py" line="58"/>
+        <source>Showing a table of '{0}'.</source>
+        <translation>Показываю таблицу «{0}».</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/project/zoom_to_layer.py" line="31"/>
@@ -1591,7 +1621,7 @@
         <translation>Разговор возвращён к моменту до этого сообщения; само сообщение — в поле ввода.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="69"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="73"/>
         <source>The model returned nothing. Try rephrasing.</source>
         <translation>Модель ничего не вернула. Попробуйте переформулировать.</translation>
     </message>
@@ -1702,7 +1732,7 @@
         <translation>Превращает названия мест в координаты для загрузки OpenStreetMap.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="102"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="103"/>
         <source>Type a request.</source>
         <translation>Введите запрос.</translation>
     </message>
@@ -1921,6 +1951,11 @@
         <location filename="ai_agent/ui/durations.py" line="6"/>
         <source>{0} min {1} s</source>
         <translation>{0} мин {1} с</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/table_card.py" line="28"/>
+        <source>{0} of {1} rows</source>
+        <translation>{0} из {1} строк</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/durations.py" line="5"/>

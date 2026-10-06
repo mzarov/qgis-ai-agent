@@ -92,6 +92,12 @@ message and puts the message back into the input box. A project read during a
 rewind is the same project, so the lifecycle handlers do not start a new
 conversation for it.
 
+A read tool can also draw for the person: `charts` tools return a chart or
+table spec under `RESULT_VISUAL_KEY`. The executor strips it from the result
+before the model sees it, the loop hands it to the feed, and the conversation
+keeps it as a `visual` message that replays with the chat but is left out of
+the model's window. The model gets a short confirmation with the numbers.
+
 Network access is a capability separate from mutation safety. A read tool with
 `network_access = True` is queued and automatically pauses the run for explicit
 per-call confirmation. After approval its result enters the same transcript and

@@ -81,6 +81,13 @@ DARK = Tokens(
 )
 
 
+# Categorical chart colours in their fixed order, never cycled: the validated reference palette
+# (adjacent CVD ΔE ≥ 8.4, normal-vision ΔE ≥ 19 in both modes); the dark column is stepped for
+# the dark surface. More categories fold into "Other" before they reach the feed.
+CHART_LIGHT = ("#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948")
+CHART_DARK = ("#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767")
+
+
 def is_dark(palette: QPalette) -> bool:
     return palette.base().color().lightness() < DARK_LIGHTNESS
 

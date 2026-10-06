@@ -7,7 +7,7 @@ confirm them.
 
 ## What it does
 
-Fourteen domains, 71 tools:
+Fifteen domains, 74 tools:
 
 | Domain | Example requests |
 | --- | --- |
@@ -25,6 +25,7 @@ Fourteen domains, 71 tools:
 | `annotations` | “mark this place”, “add a note to the map”, “remove that annotation” |
 | `three_d` | “open a 3D view of this project” |
 | `tables` | “join this CSV to the districts by code”, “make points from this CSV with lon/lat” |
+| `charts` | “chart population by district”, “histogram of the parcel areas”, “table of the ten largest towns” |
 
 On a vision-capable model the agent **sees** the map: it renders the canvas or
 a print layout to an image and judges colours, labels and composition by eye.
