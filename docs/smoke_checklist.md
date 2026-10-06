@@ -955,6 +955,10 @@ These verify the agent solves everyday tasks without wandering through search.
      2020" and hide it* → Apply → the feed says *Checked: every step is in
      place.* and no second model run starts. *Colour districts by population*
      → Apply → the usual *Checking the applied changes…* run follows.
+203. **A question card.** Two layers with similar names, *colour the roads* →
+     the agent asks in a card with the layers as answers and a fourth row;
+     click one → the card folds, your answer appears as a message and the run
+     continues. Ask again and type your own answer in the fourth row → same.
 205. **Rewind.** *Make the rivers blue* → Apply; *now make them red* → Apply.
      Hover the second request → the curved arrow; click → three choices.
      **Conversation and project** → rivers blue again, the chat ends before

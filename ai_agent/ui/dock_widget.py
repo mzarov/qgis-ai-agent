@@ -115,6 +115,8 @@ class AgentDockWidget(QDockWidget):
         self.conversation.confirm_requested.connect(self.confirm_plan_clicked.emit)
         self.conversation.plan_run_requested.connect(self.plan_run_requested.emit)
         self.conversation.rewind_requested.connect(self.rewind_requested.emit)
+        # A picked answer travels like a typed one: the orchestrator routes it to the waiting run.
+        self.conversation.question_answered.connect(self.prompt_submitted.emit)
         self.conversation.cancel_requested.connect(self.cancel_plan_clicked.emit)
         self.conversation.suggestion_chosen.connect(self._on_suggestion)
         self.conversation.settings_requested.connect(self.open_settings_clicked.emit)
@@ -195,6 +197,9 @@ class AgentDockWidget(QDockWidget):
 
     def add_result_message(self, text: str) -> int:
         return self.conversation.add_assistant_message(text)
+
+    def add_question(self, question: str, options: list[str]) -> int:
+        return self.conversation.add_question(question, options)
 
     def add_stream_chunk(self, text: str) -> None:
         self.conversation.append_draft(text)
