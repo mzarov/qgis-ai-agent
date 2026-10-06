@@ -6,9 +6,14 @@ tools: [chart_layer, show_chart, show_table]
 
 # Charts and tables in the chat
 
-The person sees the chart or table in the feed; you get a short confirmation
-with the numbers. After drawing, add one sentence that says what the chart
-shows — the pattern, the leader, the outlier — not a description of the chart.
+The person sees a chart or a table only when one of these tools returns
+`"shown"`. Asked for a chart, a diagram, a plot or a table, call the tool —
+numbers in a sentence or a Markdown table are not a chart, and never say one is
+shown unless the tool returned `"shown"` in this run. Two requested pictures
+are two calls.
+
+You get a short confirmation with the numbers. After drawing, add one
+sentence that says what the chart shows — the pattern, the leader, the outlier — not a description of the chart.
 
 ## Which tool
 
@@ -41,4 +46,5 @@ shows — the pattern, the leader, the outlier — not a description of the char
 - Put the unit in `title` or `unit`: "Population 2020, people", "km²".
 - Sort categories by value unless their order means something (months,
   classes): `chart_layer` already sorts by size.
-- Do not repeat every value in your answer — the chart carries them.
+- Do not repeat the values or rewrite the table in your answer — the picture
+  carries them; one sentence about what stands out is enough.
