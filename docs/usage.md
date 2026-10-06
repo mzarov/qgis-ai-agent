@@ -202,6 +202,15 @@ The `tables` skill handles CSV files and attribute joins:
 When the joined fields must become a separate layer or file, ask for that: the
 agent then uses the Processing algorithm `native:joinattributestable` instead.
 
+## Other installed plugins
+
+The agent can use plugins you have installed. Ask “which plugin can segment
+this image?” or name one — “use GeoAI on this raster”. Algorithms a plugin
+adds to Processing run like any other step, inside the plan. A plugin's menu
+command (say, qgis2web's export) is started only after a confirmation that it
+runs that plugin's code, which the agent cannot undo; its window then opens for
+you. The agent cannot install or enable plugins.
+
 ## When a run stops or fails
 
 Stop or an error keeps whatever the agent had already written, puts your

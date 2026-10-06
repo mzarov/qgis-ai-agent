@@ -955,3 +955,8 @@ These verify the agent solves everyday tasks without wandering through search.
      2020" and hide it* → Apply → the feed says *Checked: every step is in
      place.* and no second model run starts. *Colour districts by population*
      → Apply → the usual *Checking the applied changes…* run follows.
+204. **Other plugins.** With QuickMapServices or qgis2web installed: *which
+     plugins can make a web map?* → the plugin is named; *start its export* →
+     a destructive confirmation says it runs that plugin's code; agree → the
+     plugin's window opens. A plugin with Processing algorithms (e.g. GeoAI)
+     → its algorithm runs through the plan.

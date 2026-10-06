@@ -125,7 +125,7 @@
  {
   "depth": 6,
   "type": "QLabel",
-  "text": "14"
+  "text": "15"
  },
  {
   "depth": 5,
@@ -286,6 +286,29 @@
   "depth": 7,
   "type": "ElidedLabel",
   "text": "Fetch OpenStreetMap data through Overpass into new layers — roads, buildings, POIs, water, land use, anything by OSM tag"
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "plugins"
+ },
+ {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "Use the other QGIS plugins the user has installed — find which plugin can do a task (segmentation, web maps, special for"
  },
  {
   "depth": 6,

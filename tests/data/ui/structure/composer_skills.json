@@ -282,6 +282,25 @@
  {
   "depth": 4,
   "type": "QLabel",
+  "text": "/plugins"
+ },
+ {
+  "depth": 4,
+  "type": "ElidedLabel",
+  "text": "Use the other QGIS plugins the user has installed — find which plugin can do a task (segmentation, web maps, special for"
+ },
+ {
+  "depth": 3,
+  "type": "SkillRow",
+  "name": "skillRow"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
   "text": "/processing"
  },
  {

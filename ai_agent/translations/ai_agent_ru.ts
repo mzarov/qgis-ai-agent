@@ -782,6 +782,11 @@
         <translation>Слой: {0}</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/plugins/list_plugins.py" line="32"/>
+        <source>Listing the installed plugins.</source>
+        <translation>Смотрю установленные плагины.</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/tables/load_table.py" line="70"/>
         <source>Loading geometries from {0} ({1}).</source>
         <translation>Загружаю геометрии из {0} ({1}).</translation>
@@ -1148,6 +1153,11 @@
         <translation>Смотрю, что запомнено об этом проекте.</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/plugins/describe_plugin.py" line="37"/>
+        <source>Reading what plugin '{0}' offers.</source>
+        <translation>Смотрю, что умеет плагин «{0}».</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/web/fetch_url.py" line="47"/>
         <source>Reading {0}.</source>
         <translation>Читаю {0}.</translation>
@@ -1295,6 +1305,11 @@
         <location filename="ai_agent/qgis_tools/python/run_python.py" line="72"/>
         <source>Running Python: {0}</source>
         <translation>Выполняю Python: {0}</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/plugins/run_plugin_command.py" line="42"/>
+        <source>Running a command of plugin '{0}': {1}</source>
+        <translation>Запускаю команду плагина «{0}»: {1}</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/osm/run_overpass.py" line="94"/>
@@ -1603,6 +1618,11 @@
         <location filename="ai_agent/core/orchestrator/attaching.py" line="14"/>
         <source>This model does not accept pictures, so {0} was not sent.</source>
         <translation>Эта модель не принимает картинки, поэтому {0} не отправлено.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/plugins/run_plugin_command.py" line="48"/>
+        <source>This runs code of the plugin '{0}', not of AI Agent. It may change or delete data, contact the internet or open its own windows, and undo cannot reverse what it does.</source>
+        <translation>Выполняется код плагина «{0}», а не AI Agent. Он может изменить или удалить данные, обратиться в интернет или открыть свои окна, и отмена не вернёт сделанное им.</translation>
     </message>
     <message>
         <location filename="ai_agent/core/agent/notices.py" line="16"/>
