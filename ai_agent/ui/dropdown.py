@@ -94,7 +94,28 @@ class Dropdown(QPushButton):
         popup.aboutToShow.connect(fade.start)
         popup.aboutToHide.connect(lambda: self.chevron.turn(0.0))
         self.chevron.turn(UP)
-        popup.exec(self.mapToGlobal(QPoint(0, self.height() + MENU_GAP)))
+        popup.exec(self._menu_position(popup.sizeHint().height()))
+
+    def _menu_position(self, menu_height: int) -> QPoint:
+        """Under the field when the menu fits there, above it otherwise.
+
+        Left to itself, Qt slides a menu that runs off the screen back up over
+        the field, so near the bottom of the window it covered the field it
+        belongs to.
+        """
+        below = self.mapToGlobal(QPoint(0, self.height() + MENU_GAP))
+        above = self.mapToGlobal(QPoint(0, -MENU_GAP - menu_height))
+        screen = self.screen()
+        if screen is None:
+            return below
+        area = screen.availableGeometry()
+        if below.y() + menu_height <= area.bottom():
+            return below
+        if above.y() >= area.top():
+            return above
+        room_below = area.bottom() - below.y()
+        room_above = self.mapToGlobal(QPoint(0, 0)).y() - area.top()
+        return below if room_below >= room_above else QPoint(above.x(), area.top())
 
     def sizeHint(self) -> QSize:
         hint = super().sizeHint()
