@@ -10,7 +10,7 @@ from collections.abc import Callable
 from typing import Any
 
 from qgis.PyQt.QtCore import QRectF, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QColor, QPainter, QPen
+from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QPainter, QPen
 from qgis.PyQt.QtWidgets import (
     QButtonGroup,
     QFrame,
@@ -28,6 +28,8 @@ from ai_agent.ui import icons, style
 SEGMENT_NAME = "segmented"
 SEGMENT_RADIUS = 8
 SEGMENT_INNER_RADIUS = 6
+SEGMENT_PADDING = 12
+SEGMENT_SLACK = 4
 CHIP_HEIGHT = 26
 CHIP_RADIUS = CHIP_HEIGHT // 2
 BADGE_RADIUS = 8
@@ -73,6 +75,10 @@ class Segmented(QFrame):
             button.setCheckable(True)
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.setStyleSheet(self._segment_style())
+            # Room for the bold checked label: sized for the regular weight, "Balanced" lost its last letter.
+            bold = button.font()
+            bold.setWeight(QFont.Weight.DemiBold)
+            button.setMinimumWidth(QFontMetrics(bold).horizontalAdvance(item) + 2 * SEGMENT_PADDING + SEGMENT_SLACK)
             self._group.addButton(button, len(self._items))
             self._line.addWidget(button)
             self._items.append(item)
@@ -117,7 +123,7 @@ class Segmented(QFrame):
     def _segment_style(self) -> str:
         return (
             f"QPushButton {{ background: transparent; border: none; border-radius: {SEGMENT_INNER_RADIUS}px;"
-            f"padding: 4px 12px; color: {style.css_color(style.muted(self._palette))}; }}"
+            f"padding: 4px {SEGMENT_PADDING}px; color: {style.css_color(style.muted(self._palette))}; }}"
             f"QPushButton:hover {{ color: {style.css_color(style.text(self._palette))}; }}"
             f"QPushButton:checked {{ background: {style.css_color(style.panel(self._palette))};"
             f"color: {style.css_color(style.text(self._palette))}; font-weight: 600; }}"

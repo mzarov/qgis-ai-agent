@@ -2,6 +2,7 @@ from typing import Any
 
 from qgis.core import QgsVectorLayer
 
+from ai_agent.config.personal import follows_changes
 from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common import params
@@ -45,7 +46,7 @@ class SelectFeaturesTool(BaseTool):
         {
             "name": "zoom",
             "type": "boolean",
-            "description": "Zoom the map to the selection (true by default)",
+            "description": "Zoom the map to the selection; left out, the user's Settings decide (usually yes)",
             "required": False,
         },
     ]
@@ -74,7 +75,9 @@ class SelectFeaturesTool(BaseTool):
             if previous_ids:
                 layer.selectByIds(previous_ids)
             return {**result, "note": NOTHING_MATCHED}
-        if params.get("zoom") is not False:
+        # An explicit zoom wins; left out, the user's "move the map to what it changes" setting decides.
+        zoom = params.get("zoom")
+        if zoom is True or (zoom is None and follows_changes()):
             _zoom_to_selection(layer)
         _flash(layer)
         note = SHOWN_NOTE

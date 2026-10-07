@@ -15,6 +15,7 @@ from typing import Any
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
+from ai_agent.config import personal
 from ai_agent.i18n import tr_n
 from ai_agent.ui import controls, icons, style
 from ai_agent.ui.disclosure import Disclosure
@@ -110,6 +111,9 @@ class ActivityGroup(QFrame):
         self._header.toggled.connect(self._on_toggled)
         column.addWidget(self._header)
         self._names: list[str] = []
+        # Off in Personalisation: calls stay folded under their header while the agent works too.
+        self._show_steps = personal.load().show_steps
+        self._headed = HEADED_CALLS if self._show_steps else 1
         self._started = 0.0
         self._finished = 0.0
         self._steps_holder = ActivityList()
@@ -128,7 +132,8 @@ class ActivityGroup(QFrame):
         self._steps_holder.add_row(row)
         if not self._count:
             self._started = time.monotonic()
-            self.reveal()
+            if self._show_steps:
+                self.reveal()
         self._names.append(_without_period(str(text)))
         self._count += 1
         self._pending += 1
@@ -155,7 +160,7 @@ class ActivityGroup(QFrame):
     def rest(self) -> None:
         """The turn moved on: the list folds to its header line, with the time the calls took."""
         self._closed = True
-        if self._count < HEADED_CALLS:
+        if self._count < self._headed:
             # Without a header there is nothing to reopen the turn from: its rows stay.
             self._steps_holder.setVisible(bool(self._count or self._extras))
         else:
@@ -184,7 +189,7 @@ class ActivityGroup(QFrame):
 
     def _refresh(self) -> None:
         palette = self._palette
-        self._header.setVisible(self._count >= HEADED_CALLS)
+        self._header.setVisible(self._count >= self._headed)
         title = ", ".join(self._names[:NAMED_CALLS])
         if len(self._names) > NAMED_CALLS:
             title = MORE.format(title, len(self._names) - NAMED_CALLS)
@@ -203,7 +208,7 @@ class ActivityGroup(QFrame):
         style.ink(self._status, colour)
 
     def _on_toggled(self, expanded: bool) -> None:
-        if self._count >= HEADED_CALLS:
+        if self._count >= self._headed:
             self._steps_holder.setVisible(expanded)
 
 

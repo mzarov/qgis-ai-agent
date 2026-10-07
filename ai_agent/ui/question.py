@@ -2,13 +2,15 @@
 
 A click on an answer, or Enter in the fourth row, sends that text as the reply;
 the main composer still works too. Once answered — however — the card folds to
-its question, so an old card never offers a stale choice. Number keys pick an
+its question, so an old card never offers a stale choice. With "answer a
+question for me" set in Personalisation, a countdown takes the first answer —
+the one the agent recommends — unless the user starts typing their own. Number keys pick an
 answer while the card has focus. Rows paint their hover, nothing restyles in an event.
 """
 
 from typing import Any
 
-from qgis.PyQt.QtCore import Qt, pyqtSignal
+from qgis.PyQt.QtCore import Qt, QTimer, pyqtSignal
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QVBoxLayout, QWidget
 
 from ai_agent.i18n import tr
@@ -18,6 +20,8 @@ from ai_agent.ui import settings_fields as fields
 ROW_RADIUS = 8
 NUMBER_WIDTH = 18
 OWN_ANSWER = tr("Type another answer and press Enter")
+COUNTDOWN = tr("Choosing “{0}” in {1}")
+TICK_MS = 1000
 NUMBER_KEYS = {getattr(Qt.Key, f"Key_{digit}"): digit - 1 for digit in range(1, 10)}
 
 
@@ -54,7 +58,9 @@ class AnswerRow(controls.RoundedFrame):
 class QuestionCard(controls.RoundedFrame):
     answered = pyqtSignal(str)
 
-    def __init__(self, question: str, options: list[str], palette: Any, parent: QWidget | None = None):
+    def __init__(
+        self, question: str, options: list[str], palette: Any, auto_seconds: int = 0, parent: QWidget | None = None
+    ):
         super().__init__(style.CARD_RADIUS, parent)
         self.set_look(None, style.hairline(palette).name())
         self.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
@@ -85,6 +91,34 @@ class QuestionCard(controls.RoundedFrame):
         self.editor.returnPressed.connect(lambda: self._send(self.editor.text()))
         own.addWidget(self.editor, 1)
         column.addWidget(self._own)
+        self.countdown = controls.small("", palette)
+        self.countdown.setContentsMargins(10, 4, 10, 0)
+        self.countdown.setVisible(False)
+        column.addWidget(self.countdown)
+        self._left = auto_seconds if self.rows else 0
+        self._timer = QTimer(self)
+        self._timer.setInterval(TICK_MS)
+        self._timer.timeout.connect(self._tick)
+        if self._left:
+            self.editor.textEdited.connect(lambda _text: self.stop_countdown())
+            self._show_left()
+            self._timer.start()
+
+    def stop_countdown(self) -> None:
+        """The user is answering: the agent's choice must not overrule them."""
+        self._timer.stop()
+        self.countdown.setVisible(False)
+
+    def _tick(self) -> None:
+        self._left -= 1
+        if self._left <= 0:
+            self._send(self.rows[0].text)
+        else:
+            self._show_left()
+
+    def _show_left(self) -> None:
+        self.countdown.setText(COUNTDOWN.format(self.rows[0].text, f"{self._left // 60}:{self._left % 60:02d}"))
+        self.countdown.setVisible(True)
 
     def _send(self, text: str) -> None:
         reply = text.strip()
@@ -95,6 +129,7 @@ class QuestionCard(controls.RoundedFrame):
 
     def retire(self) -> None:
         """Fold to the question: the reply now sits in the chat as the user's message."""
+        self.stop_countdown()
         for row in self.rows:
             row.setVisible(False)
         self._own.setVisible(False)

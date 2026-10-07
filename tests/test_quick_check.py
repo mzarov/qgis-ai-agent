@@ -169,7 +169,7 @@ class ProjectStepsTest(unittest.TestCase):
             self.assertFalse(views.SaveBookmarkTool().confirm_applied({"name": "harbour"}, {}))
         with mock.patch.object(views, "project_themes", return_value=["print"]):
             self.assertTrue(views.SaveMapThemeTool().confirm_applied({"name": "print"}, {}))
-        store = mock.Mock(notes=lambda: ["pop2020 is people"])
+        store = mock.Mock(notes=lambda: ["pop2020 is people"], user_notes=lambda: [])
         with mock.patch.object(remember, "NoteStore", return_value=store):
             self.assertTrue(remember.RememberTool().confirm_applied({"note": "pop2020 is people"}, {}))
             self.assertFalse(remember.ForgetTool().confirm_applied({"note": "pop2020 is people"}, {}))
