@@ -258,6 +258,11 @@ class ConversationView(QScrollArea):
         if isinstance(card, PlanCard):
             card.mark_failed()
 
+    def mark_plan_step(self, entry_id: int, index: int, state: str, note: str = "") -> None:
+        card = self._entries.get(entry_id)
+        if isinstance(card, PlanCard):
+            card.mark_step(index, state, note)
+
     def mark_plan_cancelled(self, entry_id: int) -> None:
         card = self._entries.get(entry_id)
         if isinstance(card, PlanCard):

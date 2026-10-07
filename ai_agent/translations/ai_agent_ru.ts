@@ -44,7 +44,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/activity.py" line="195"/>
+        <location filename="ai_agent/ui/activity.py" line="196"/>
         <source>%n failed</source>
         <translation>
             <numerusform>%n ошибка</numerusform>
@@ -135,6 +135,15 @@
             <numerusform>%n сцена</numerusform>
             <numerusform>%n сцены</numerusform>
             <numerusform>%n сцен</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="ai_agent/core/orchestrator/plans.py" line="122"/>
+        <source>%n step(s) did not run — the reasons are in the plan above.</source>
+        <translation>
+            <numerusform>%n шаг не выполнился — причины в плане выше.</numerusform>
+            <numerusform>%n шага не выполнились — причины в плане выше.</numerusform>
+            <numerusform>%n шагов не выполнились — причины в плане выше.</numerusform>
         </translation>
     </message>
     <message numerus="yes">
@@ -267,7 +276,7 @@
         <translation>Все изменения сохранены</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="25"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="31"/>
         <source>An interrupted run completed work in the previous project; see its conversation.</source>
         <translation>Прерванный запуск успел выполнить действия в предыдущем проекте; подробности сохранены в его переписке.</translation>
     </message>
@@ -287,12 +296,12 @@
         <translation>Подойдёт любой OpenAI-совместимый сервер.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/plan.py" line="136"/>
+        <location filename="ai_agent/ui/plan.py" line="128"/>
         <source>Applied</source>
         <translation>Применено</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/plan.py" line="142"/>
+        <location filename="ai_agent/ui/plan.py" line="134"/>
         <source>Applied with errors</source>
         <translation>Применено с ошибками</translation>
     </message>
@@ -304,12 +313,12 @@
     <message>
         <location filename="ai_agent/ui/confirmations.py" line="25"/>
         <location filename="ai_agent/ui/confirmations.py" line="118"/>
-        <location filename="ai_agent/ui/plan.py" line="121"/>
+        <location filename="ai_agent/ui/plan.py" line="113"/>
         <source>Apply</source>
         <translation>Применить</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/plan.py" line="236"/>
+        <location filename="ai_agent/ui/plan.py" line="277"/>
         <source>Applying by itself — %n action(s)</source>
         <translation>
             <numerusform>Применяется само — %n действие</numerusform>
@@ -407,7 +416,7 @@
         <location filename="ai_agent/ui/confirmations.py" line="26"/>
         <location filename="ai_agent/ui/confirmations.py" line="57"/>
         <location filename="ai_agent/ui/confirmations.py" line="119"/>
-        <location filename="ai_agent/ui/plan.py" line="128"/>
+        <location filename="ai_agent/ui/plan.py" line="120"/>
         <location filename="ai_agent/ui/settings_dialog.py" line="162"/>
         <source>Cancel</source>
         <translation>Отменить</translation>
@@ -418,7 +427,7 @@
         <translation>Отменить проверку</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/plan.py" line="139"/>
+        <location filename="ai_agent/ui/plan.py" line="131"/>
         <source>Cancelled</source>
         <translation>Отменено</translation>
     </message>
@@ -428,17 +437,17 @@
         <translation>Отменяю проверку подключения…</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="27"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="33"/>
         <source>Carry out the plan.</source>
         <translation>Выполни план.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/plans.py" line="120"/>
+        <location filename="ai_agent/core/orchestrator/plans.py" line="132"/>
         <source>Changes applied.</source>
         <translation>Изменения применены.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/plan.py" line="26"/>
+        <location filename="ai_agent/ui/plan.py" line="27"/>
         <source>Changes apply by themselves; deleting still asks</source>
         <translation>Изменения применяются сами; удаление всё равно спросит</translation>
     </message>
@@ -483,7 +492,7 @@
         <translation>Проверять результат после применения</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="17"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="23"/>
         <source>Checked: every step is in place.</source>
         <translation>Проверено: все шаги на месте.</translation>
     </message>
@@ -600,7 +609,7 @@
         <translation>Копировать строки как CSV</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/conversation.py" line="292"/>
+        <location filename="ai_agent/ui/conversation.py" line="297"/>
         <source>Copy the whole conversation</source>
         <translation>Скопировать весь диалог</translation>
     </message>
@@ -618,6 +627,11 @@
         <location filename="ai_agent/core/agent/notices.py" line="20"/>
         <source>Could not create the safety snapshot. No planned changes were applied.</source>
         <translation>Не удалось создать страховочный снимок проекта. Запланированные изменения не применены.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/agent/failures.py" line="16"/>
+        <source>Could not reach the service — check the internet connection or the QGIS proxy.</source>
+        <translation>Сервис недоступен — проверьте подключение к интернету или прокси в QGIS.</translation>
     </message>
     <message>
         <location filename="ai_agent/core/llm/client.py" line="44"/>
@@ -702,7 +716,7 @@
         <translation>Не добавляйте учётные данные в URL API. Сохраните секрет провайдера в поле API-ключа.</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/core/orchestrator/plans.py" line="117"/>
+        <location filename="ai_agent/core/orchestrator/plans.py" line="129"/>
         <source>Done: %n step(s) applied.{0}</source>
         <translation>
             <numerusform>Применён %n шаг.{0}</numerusform>
@@ -786,13 +800,13 @@
         <translation>Введите название модели, доступной у провайдера.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="95"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="114"/>
         <source>Error: {0}</source>
         <translation>Ошибка: {0}</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/composer_parts.py" line="30"/>
-        <location filename="ai_agent/ui/plan.py" line="28"/>
+        <location filename="ai_agent/ui/plan.py" line="29"/>
         <source>Every change waits for Apply</source>
         <translation>Каждое изменение ждёт «Применить»</translation>
     </message>
@@ -914,7 +928,7 @@
         <translation>Присоединяю {0} к «{1}» по {2} = {3}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="18"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="24"/>
         <source>Kept everything as it was — the destructive steps were not applied.</source>
         <translation>Всё осталось как было — необратимые шаги не применялись.</translation>
     </message>
@@ -960,7 +974,7 @@
         <translation>Загружаю геометрии из {0} ({1}).</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="68"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="87"/>
         <source>Loading knowledge: {0}</source>
         <translation>Загружаю знания: {0}</translation>
     </message>
@@ -978,6 +992,11 @@
         <location filename="ai_agent/qgis_tools/project/add_db_layer.py" line="70"/>
         <source>Loading table {0}.{1} from the database.</source>
         <translation>Загружаю таблицу {0}.{1} из базы данных.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="17"/>
+        <source>Looking into what went wrong…</source>
+        <translation>Разбираюсь, что пошло не так…</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/web/geocode.py" line="49"/>
@@ -1080,7 +1099,7 @@
         <translation>Сцен нет</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="23"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="29"/>
         <source>No skill named /{0}. Available: {1}.</source>
         <translation>Скилла /{0} нет. Доступны: {1}.</translation>
     </message>
@@ -1090,7 +1109,7 @@
         <translation>Своих скиллов пока нет.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/plans.py" line="115"/>
+        <location filename="ai_agent/core/orchestrator/plans.py" line="127"/>
         <source>Not all changes were applied.</source>
         <translation>Применились не все изменения.</translation>
     </message>
@@ -1146,7 +1165,7 @@
         <translation>Открываю 3D-вид «{0}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/plan.py" line="29"/>
+        <location filename="ai_agent/ui/plan.py" line="30"/>
         <source>Or reply to change the plan.</source>
         <translation>Или ответьте, чтобы поправить план.</translation>
     </message>
@@ -1171,7 +1190,7 @@
         <translation>Параметры:</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="19"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="25"/>
         <source>Passed to the agent — it will take this into account on its next step.</source>
         <translation>Передано агенту — он учтёт это на следующем шаге.</translation>
     </message>
@@ -1196,7 +1215,7 @@
         <translation>План</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="65"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="84"/>
         <source>Plan {0}/{1}: {2}</source>
         <translation>План {0}/{1}: {2}</translation>
     </message>
@@ -1367,7 +1386,7 @@
         <translation>Читаю {0}.</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/plan.py" line="232"/>
+        <location filename="ai_agent/ui/plan.py" line="273"/>
         <source>Ready to run — %n action(s)</source>
         <translation>
             <numerusform>Готово к запуску — %n действие</numerusform>
@@ -1386,7 +1405,7 @@
         <translation>Записи</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="61"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="80"/>
         <source>Rejected: {0}</source>
         <translation>Отклонено: {0}</translation>
     </message>
@@ -1461,7 +1480,7 @@
         <translation>Запрос</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="22"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="28"/>
         <source>Request not sent.</source>
         <translation>Запрос не отправлен.</translation>
     </message>
@@ -1481,12 +1500,12 @@
         <translation>Откатываю проект к состоянию до последнего применения.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/plan.py" line="25"/>
+        <location filename="ai_agent/ui/plan.py" line="26"/>
         <source>Run automatically</source>
         <translation>Выполнить автоматически</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="73"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="92"/>
         <source>Run journal: {0}</source>
         <translation>Журнал прогона: {0}</translation>
     </message>
@@ -1501,12 +1520,12 @@
         <translation>Запуск остановлен. Ожидающие действия отменены.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/plan.py" line="24"/>
+        <location filename="ai_agent/ui/plan.py" line="25"/>
         <source>Run this plan?</source>
         <translation>Выполнить этот план?</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/plan.py" line="27"/>
+        <location filename="ai_agent/ui/plan.py" line="28"/>
         <source>Run with approval</source>
         <translation>Выполнить с подтверждением</translation>
     </message>
@@ -1531,12 +1550,12 @@
         <translation>Выполняю запрос Overpass для «{0}»: {1}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/plan.py" line="30"/>
+        <location filename="ai_agent/ui/plan.py" line="31"/>
         <source>Running the plan automatically</source>
         <translation>Выполняю план автоматически</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/plan.py" line="31"/>
+        <location filename="ai_agent/ui/plan.py" line="32"/>
         <source>Running the plan with approval</source>
         <translation>Выполняю план с подтверждением</translation>
     </message>
@@ -1657,11 +1676,6 @@
         <translation>Скиллы</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/plans.py" line="112"/>
-        <source>Some steps did not run: {0}</source>
-        <translation>Часть шагов не выполнилась: {0}</translation>
-    </message>
-    <message>
         <location filename="ai_agent/ui/context_meter.py" line="29"/>
         <source>Spent in this conversation</source>
         <translation>Потрачено за разговор</translation>
@@ -1759,7 +1773,7 @@
         <translation>Мастер-пароль QGIS не введён, поэтому ключ остаётся закрытым.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="24"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="30"/>
         <source>The QGIS project changed. A new project-scoped conversation was started.</source>
         <translation>Проект QGIS изменился. Начат новый диалог, привязанный к этому проекту.</translation>
     </message>
@@ -1794,17 +1808,17 @@
         <translation>Разговор возвращён к моменту до этого сообщения; само сообщение — в поле ввода.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="78"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="97"/>
         <source>The model returned nothing. Try rephrasing.</source>
         <translation>Модель ничего не вернула. Попробуйте переформулировать.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="30"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="36"/>
         <source>The new mode applies from the next request.</source>
         <translation>Новый режим действует со следующего запроса.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="20"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="26"/>
         <source>The planned changes were dropped — they were not applied. Starting over from your message.</source>
         <translation>Запланированные изменения сняты — они не применялись. Начинаю заново с вашего сообщения.</translation>
     </message>
@@ -1819,9 +1833,34 @@
         <translation>Результат — на панели слоёв.</translation>
     </message>
     <message>
+        <location filename="ai_agent/core/agent/failures.py" line="14"/>
+        <source>The service did not answer in time — it is busy. Try again in a minute or with a smaller area.</source>
+        <translation>Сервис не ответил вовремя — он перегружен. Попробуйте через минуту или для области поменьше.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/agent/failures.py" line="18"/>
+        <source>The service is having trouble right now. Try again later.</source>
+        <translation>У сервиса сейчас сбой. Попробуйте позже.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/agent/failures.py" line="15"/>
+        <source>The service is limiting requests. Wait a minute and try again.</source>
+        <translation>Сервис ограничивает запросы. Подождите минуту и попробуйте снова.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/agent/failures.py" line="17"/>
+        <source>The service refused access.</source>
+        <translation>Сервис отказал в доступе.</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/skills_settings.py" line="25"/>
         <source>The skills folder is unavailable in this QGIS profile.</source>
         <translation>Папка скиллов недоступна в этом профиле QGIS.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/agent/failures.py" line="19"/>
+        <source>The step did not run — the agent sees why and can try another way.</source>
+        <translation>Шаг не выполнился — агент видит причину и может попробовать иначе.</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/settings_dialog.py" line="62"/>
@@ -1829,7 +1868,7 @@
         <translation>Сохранённый ключ для этого адреса удалён.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/plans.py" line="71"/>
+        <location filename="ai_agent/core/orchestrator/plans.py" line="78"/>
         <source>There are no changes to apply.</source>
         <translation>Применять нечего.</translation>
     </message>
@@ -1910,7 +1949,7 @@
         <translation>Превращает названия мест в координаты для загрузки OpenStreetMap.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="103"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="105"/>
         <source>Type a request.</source>
         <translation>Введите запрос.</translation>
     </message>
@@ -1960,7 +1999,7 @@
         <translation>Дождитесь окончания текущей задачи.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="21"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="27"/>
         <source>Waiting for your answer — the run continues from it.</source>
         <translation>Жду вашего ответа — прогон продолжится с него.</translation>
     </message>

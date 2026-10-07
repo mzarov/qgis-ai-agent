@@ -52,42 +52,6 @@
  },
  {
   "depth": 4,
-  "type": "ActivityGroup"
- },
- {
-  "depth": 5,
-  "type": "Disclosure"
- },
- {
-  "depth": 6,
-  "type": "ElidedLabel",
-  "text": "Reading layer 'districts', Reading values of field 'pop2020' in layer 'districts'"
- },
- {
-  "depth": 6,
-  "type": "QLabel",
-  "text": "<duration>"
- },
- {
-  "depth": 6,
-  "type": "QToolButton",
-  "checked": false
- },
- {
-  "depth": 6,
-  "type": "QLabel"
- },
- {
-  "depth": 4,
-  "type": "AssistantMessage"
- },
- {
-  "depth": 5,
-  "type": "QTextBrowser",
-  "text": "districts has a numeric pop2020 field from 20 000 to 95 000. I prepared a graduated renderer with 5 classes, equal inter"
- },
- {
-  "depth": 4,
   "type": "PlanCard"
  },
  {
@@ -97,12 +61,12 @@
  {
   "depth": 6,
   "type": "QLabel",
-  "text": "◆"
+  "text": "✕"
  },
  {
   "depth": 6,
   "type": "QLabel",
-  "text": "Ready to run — 2 actions"
+  "text": "Applied with errors"
  },
  {
   "depth": 5,
@@ -123,6 +87,16 @@
   "text": "Graduating 'districts' by 'pop2020', classes: 5."
  },
  {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "✕"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "The service did not answer in time — it is busy. Try again in a minute or with a smaller area."
+ },
+ {
   "depth": 6,
   "type": "PlanStep"
  },
@@ -137,18 +111,9 @@
   "text": "Labeling 'districts' with 'name'."
  },
  {
-  "depth": 5,
-  "type": "QWidget"
- },
- {
-  "depth": 6,
-  "type": "QPushButton",
-  "text": "Apply"
- },
- {
-  "depth": 6,
-  "type": "QPushButton",
-  "text": "Cancel"
+  "depth": 7,
+  "type": "QLabel",
+  "text": "—"
  },
  {
   "depth": 4,
@@ -157,16 +122,7 @@
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "Checking the applied changes…"
- },
- {
-  "depth": 4,
-  "type": "AssistantMessage"
- },
- {
-  "depth": 5,
-  "type": "QTextBrowser",
-  "text": "Done: 2 steps applied."
+  "text": "1 step did not run — the reasons are in the plan above."
  },
  {
   "depth": 2,

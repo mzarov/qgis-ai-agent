@@ -10,6 +10,8 @@ from ai_agent.core.agent.executor import ToolExecutor
 from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.common.layers import (
+    follow_batch_renames,
+    layer_names_by_id,
     layer_pin_error,
     pin_layer_references,
     validate_public_layer_references,
@@ -102,6 +104,7 @@ class WriteBatch:
         calls = self._calls
         self._calls = []
         expected = expected_project_identity or project_identity(QgsProject.instance())
+        names_at_start = layer_names_by_id()
         self._applying = True
         self._cancel_requested = False
         try:
@@ -116,7 +119,7 @@ class WriteBatch:
                     result = _cancelled_result(call)
                 elif project_identity(QgsProject.instance()) != expected:
                     result = _project_changed_result(call)
-                elif target_error := layer_pin_error(call.arguments):
+                elif target_error := layer_pin_error(_follow(call, names_at_start)):
                     result = _layer_changed_result(call, target_error)
                 else:
                     self._executing_call = call
@@ -176,3 +179,12 @@ def _model_line(call: ToolCall) -> str:
         arguments = str(public)
     line = f"{call.name} {arguments}"
     return line if len(line) <= MODEL_LINE_LIMIT else line[: MODEL_LINE_LIMIT - 1] + "…"
+
+
+def _follow(call: ToolCall, names_at_start: dict[str, str]) -> dict[str, Any]:
+    """The call's arguments after renames earlier in this batch, updated in place: the call is tracked by identity."""
+    followed = follow_batch_renames(call.arguments, names_at_start)
+    if followed is not call.arguments:
+        call.arguments.clear()
+        call.arguments.update(followed)
+    return call.arguments

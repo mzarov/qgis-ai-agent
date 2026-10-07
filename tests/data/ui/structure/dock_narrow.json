@@ -110,7 +110,7 @@
  },
  {
   "depth": 6,
-  "type": "QWidget"
+  "type": "PlanStep"
  },
  {
   "depth": 7,
@@ -124,7 +124,7 @@
  },
  {
   "depth": 6,
-  "type": "QWidget"
+  "type": "PlanStep"
  },
  {
   "depth": 7,

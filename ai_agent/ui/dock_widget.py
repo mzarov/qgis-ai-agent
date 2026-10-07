@@ -246,6 +246,9 @@ class AgentDockWidget(QDockWidget):
     def mark_plan_failed(self, message_id: int) -> None:
         self.conversation.mark_plan_failed(message_id)
 
+    def mark_plan_step(self, message_id: int, index: int, state: str, note: str = "") -> None:
+        self.conversation.mark_plan_step(message_id, index, state, note)
+
     def mark_plan_cancelled(self, message_id: int) -> None:
         self.conversation.mark_plan_cancelled(message_id)
 

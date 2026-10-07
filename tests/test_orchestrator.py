@@ -793,3 +793,66 @@ class FailedApplySettlesTest(unittest.TestCase):
         self.assertEqual(dock.failed_plans, [7])
         self.assertEqual(dock.completed_plans, [])
         self.assertIsNone(orchestrator._plan_message_id)
+
+
+class StepDock(PlanDock):
+    def __init__(self):
+        super().__init__()
+        self.steps = []
+        self.tool_rows = []
+
+    def mark_plan_step(self, message_id, index, state, note=""):
+        self.steps.append((index, state, note))
+
+    def add_tool_message(self, text):
+        self.tool_rows.append(text)
+        return len(self.tool_rows)
+
+
+class PlanProgressTest(unittest.TestCase):
+    """While a plan applies, its card shows each step's progress; the feed gets no duplicate rows."""
+
+    def setUp(self):
+        self.dock = StepDock()
+        self.orchestrator = CoreOrchestrator(Iface(), self.dock)
+        self.orchestrator.agent = Agent()
+        self.orchestrator.on_confirm_needed([Call("download_osm"), Call("set_symbol")], "")
+
+    def test_applying_steps_light_up_in_the_card_with_the_plain_reason(self):
+        self.orchestrator.agent.is_applying = True
+        self.orchestrator.on_tool_started("Downloading roads")
+        self.orchestrator.on_tool_finished("download_osm", False, "The service did not answer in time.")
+        self.assertEqual(self.dock.tool_rows, [])
+        self.assertEqual(
+            self.dock.steps,
+            [(0, notices.STEP_RUNNING, ""), (0, notices.STEP_FAILED, "The service did not answer in time.")],
+        )
+        self.orchestrator.agent.is_applying = False
+        gateway = "Could not fetch data from Overpass: server replied: Gateway Timeout."
+        self.orchestrator.on_applied(
+            [Result(ok=False, payload={"error": gateway}), Result(ok=False, payload={"status": "skipped"})]
+        )
+        self.assertIn((1, notices.STEP_SKIPPED, ""), self.dock.steps)
+        self.assertNotIn(gateway, " ".join(self.dock.system))
+
+    def test_reads_outside_an_apply_still_become_feed_rows(self):
+        self.orchestrator.agent.is_applying = False
+        self.orchestrator.on_tool_started("Reading layer roads")
+        self.assertEqual(self.dock.tool_rows, ["Reading layer roads"])
+
+
+class FailureWordsTest(unittest.TestCase):
+    def test_network_failures_read_as_plain_sentences(self):
+        from ai_agent.core.agent import failures
+
+        cases = {
+            "Error transferring https://overpass-api.de - server replied: Gateway Timeout": failures.BUSY,
+            "server replied: Too Many Requests": failures.RATE_LIMITED,
+            "Host overpass-api.de not found": failures.OFFLINE,
+            "server replied: Forbidden": failures.DENIED,
+            "server replied: Internal Server Error": failures.SERVER_DOWN,
+            "Layer 'roads' not found. Available: rivers": failures.GENERIC,
+            "": failures.GENERIC,
+        }
+        for error, sentence in cases.items():
+            self.assertEqual(failures.explain_failure(error), sentence, error)

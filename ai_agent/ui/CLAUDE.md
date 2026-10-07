@@ -178,6 +178,12 @@ grouping.
 
 ## The plan card
 
+While the plan applies, each step shows its progress at the end of its line
+(● running, ✓ done, ✕ failed, — skipped) and a failed step its reason under
+it, in plain words (`core/agent/failures.explain_failure`); the model keeps the
+exact English error. Apply-phase tool events go to the card, not to feed rows,
+which only repeated its lines.
+
 The Apply and Cancel buttons live inside `PlanCard`, not as a separate row at
 the bottom of the panel. The card emits signals upwards; the dock re-emits them
 under the same names as before. After applying or cancelling the buttons

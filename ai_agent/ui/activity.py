@@ -168,8 +168,7 @@ class ActivityGroup(QFrame):
         self._settle(row, DONE if ok else FAILED)
         if not ok:
             self._failures += 1
-        elif note:
-            row.set_note(note)
+        row.set_note(note, failed=not ok)
         self._finished = time.monotonic()
         self._refresh()
 
@@ -249,7 +248,10 @@ class StepRow(QWidget):
         self.note.setVisible(False)
         column.addWidget(self.note)
 
-    def set_note(self, text: str) -> None:
+    def set_note(self, text: str, failed: bool = False) -> None:
+        """What the call found, or in the danger colour why it failed; set once, when the call ends."""
+        if failed:
+            self.note.setStyleSheet(f"color: {style.css_color(style.danger(self._palette))};")
         self.note.setText(text)
         self.note.setVisible(bool(text))
 

@@ -340,8 +340,9 @@ class ActivityTitleTest(unittest.TestCase):
         self.assertEqual(row.note.text(), "Rotterdam, Zuid-Holland, Nederland")
         self.assertFalse(row.note.isHidden())
         failed = view.add_activity_step("Reading layer 'nope'.")
-        view.mark_activity_step(failed, False, "ignored")
-        self.assertTrue(view._entries[failed].note.isHidden())
+        view.mark_activity_step(failed, False, "The step did not run.")
+        self.assertEqual(view._entries[failed].note.text(), "The step did not run.")
+        self.assertFalse(view._entries[failed].note.isHidden())
 
     def test_a_new_action_is_running_not_already_done(self):
         view = ConversationView()
@@ -394,12 +395,23 @@ class FailedPlanCardTest(unittest.TestCase):
                 labels.append(self)
 
         with mock.patch.object(plan_module, "QLabel", RecordingLabel):
-            plan_module.PlanCard._build_step(
-                1,
-                "<b>weather</b><!-- hidden -->",
-                QWidget().palette(),
-            )
-        self.assertEqual(labels[-1].textFormat(), Qt.TextFormat.PlainText)
+            step = plan_module.PlanStep(1, "<b>weather</b><!-- hidden -->", QWidget().palette())
+        self.assertEqual(step.label.textFormat(), Qt.TextFormat.PlainText)
+
+    def test_a_failed_step_shows_its_mark_and_reason_and_a_done_one_only_its_mark(self):
+        from ai_agent.ui import plan as plan_module
+
+        card = plan_module.PlanCard(["Downloading roads.", "Styling roads."])
+        card.mark_step(0, "running")
+        self.assertEqual(card._steps[0].mark.text(), plan_module.RUNNING_MARK)
+        card.mark_step(0, "failed", "The service did not answer in time.")
+        self.assertEqual(card._steps[0].mark.text(), plan_module.FAILED_MARK)
+        self.assertEqual(card._steps[0].reason.text(), "The service did not answer in time.")
+        self.assertFalse(card._steps[0].reason.isHidden())
+        card.mark_step(1, "done", "ignored")
+        self.assertEqual(card._steps[1].mark.text(), plan_module.APPLIED_MARK)
+        self.assertTrue(card._steps[1].reason.isHidden())
+        card.mark_step(5, "done")
 
 
 class DisclosureTest(unittest.TestCase):

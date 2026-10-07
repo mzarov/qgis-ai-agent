@@ -334,6 +334,54 @@ def layer_pin_error(params: dict[str, Any]) -> str:
     return ""
 
 
+def layer_names_by_id() -> dict[str, str]:
+    """Every project layer's current name, by id: the state a batch starts from."""
+    try:
+        layers = QgsProject.instance().mapLayers()
+    except Exception:
+        return {}
+    return {identifier: str(layer.name() or "").strip() for identifier, layer in layers.items()}
+
+
+def follow_batch_renames(params: dict[str, Any], names_at_start: dict[str, str]) -> dict[str, Any]:
+    """Point a queued call at the new name of a layer an earlier step of the same batch renamed.
+
+    The pin check refuses a target whose name changed since planning, which
+    guards against the user editing the project between plan and Apply. A layer
+    that still had its planned name when Apply began and differs now was renamed
+    by the batch itself — "rename roads, then style roads" — so the later steps
+    follow it by id instead of failing.
+    """
+    raw_pins = params.get(LAYER_PINS_KEY)
+    if not isinstance(raw_pins, list):
+        return params
+    current = layer_names_by_id()
+    renames: dict[str, str] = {}
+    for pin in raw_pins:
+        if not isinstance(pin, dict):
+            continue
+        identifier = str(pin.get("id") or "")
+        planned = str(pin.get("name") or "").strip()
+        now = current.get(identifier, "")
+        if now and now != planned and names_at_start.get(identifier) == planned:
+            renames[planned] = now
+    if not renames:
+        return params
+    followed = dict(params)
+    followed[LAYER_PINS_KEY] = [
+        {**pin, "name": renames.get(str(pin.get("name") or "").strip(), pin.get("name"))}
+        if isinstance(pin, dict)
+        else pin
+        for pin in raw_pins
+    ]
+    name = str(params.get("layer_name") or "").strip()
+    if name in renames:
+        followed["layer_name"] = renames[name]
+    if isinstance(params.get("layer_names"), (list, tuple)):
+        followed["layer_names"] = [renames.get(str(item or "").strip(), item) for item in params["layer_names"]]
+    return followed
+
+
 def pinned_ids(params: dict[str, Any]) -> list[str]:
     """The layer ids a queued call was pinned to, in order; the named target comes first."""
     raw_pins = params.get(LAYER_PINS_KEY)

@@ -47,6 +47,8 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.agent = AgentLoop()
         self._active_tool_message_id: int | None = None
         self._plan_message_id: int | None = None
+        # The plan card step the running apply is on; -1 before the first.
+        self._plan_step = -1
         self._apply_scope: tuple[str, str] | None = None
         self._checkpoints: list[Checkpoint] = []
         self._snapshot_before_apply = ""

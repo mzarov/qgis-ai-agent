@@ -985,3 +985,8 @@ These verify the agent solves everyday tasks without wandering through search.
      answer arrives → the list folds to its header with a duration; a click
      reopens it. *Zoom to the Netherlands* → one row *Moving the map to
      Netherlands* (no header above a single call), no Python confirmation.
+207. **Failures in plain words.** Disconnect the network; *download the roads
+     here from OSM* → Apply → the plan step ✕ with *Could not reach the
+     service…* under it, no feed row repeating it, no English error text,
+     then *Looking into what went wrong…*. *Rename the roads layer to Roads and
+     colour it orange* → Apply → both steps ✓.
