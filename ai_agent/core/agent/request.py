@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Any
 
+from ai_agent.config.personal import load as load_profile
+from ai_agent.core.agent.profile_prompt import render_profile
 from ai_agent.core.agent.prompts import (
     build_apply_now_schema,
     build_ask_user_schema,
@@ -68,6 +70,7 @@ def build_step_request(
         invoked_skills=invoked_skills,
         planning=planning,
         custom_instructions=get_custom_instructions(),
+        profile=render_profile(load_profile()),
     )
     system_prompt = static_prompt
     if json_protocol:
@@ -92,7 +95,8 @@ def build_step_request(
 
 def _project_notes() -> str:
     try:
-        return render_project_notes(NoteStore().notes())
+        store = NoteStore()
+        return render_project_notes(store.notes(), store.user_notes())
     except Exception:
         return ""
 

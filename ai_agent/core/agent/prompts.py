@@ -11,6 +11,7 @@ MAX_QUESTION_OPTIONS = 3
 TASK_PLAN_HEADER = "Your current task plan (kept by update_plan):"
 QUEUED_HEADER = "Already queued this run, waiting for the user to apply — do not queue these again:"
 PROJECT_NOTES_HEADER = "What you were told to remember about this project:"
+USER_NOTES_HEADER = "What you were told to remember about the user (every project):"
 PLAN_STEP_DONE = "[x]"
 PLAN_STEP_PENDING = "[ ]"
 
@@ -235,7 +236,7 @@ def build_ask_user_schema() -> dict[str, Any]:
                         "items": {"type": "string"},
                         "description": (
                             f"Up to {MAX_QUESTION_OPTIONS} likely answers the user can pick with one "
-                            "click; they can always type their own instead"
+                            "click, the one you recommend first; they can always type their own instead"
                         ),
                     },
                 },
@@ -274,10 +275,13 @@ def build_update_plan_schema() -> dict[str, Any]:
     }
 
 
-def render_project_notes(notes: list[str]) -> str:
-    if not notes:
-        return ""
-    return "\n".join([PROJECT_NOTES_HEADER] + [f"- {note}" for note in notes])
+def render_project_notes(notes: list[str], about_user: list[str] | None = None) -> str:
+    blocks = []
+    if about_user:
+        blocks.append("\n".join([USER_NOTES_HEADER] + [f"- {note}" for note in about_user]))
+    if notes:
+        blocks.append("\n".join([PROJECT_NOTES_HEADER] + [f"- {note}" for note in notes]))
+    return "\n\n".join(blocks)
 
 
 def render_task_plan(steps: list[str], done: int) -> str:
@@ -343,8 +347,11 @@ def build_system_parts(
     invoked_skills: list[str] | tuple[str, ...] = (),
     planning: bool = False,
     custom_instructions: str = "",
+    profile: str = "",
 ) -> tuple[str, str]:
     static = [CORE_PROMPT, language_policy(locale)]
+    if profile:
+        static.append(profile)
     if custom_instructions.strip():
         # Changes only when the user saves Settings, so the cached prefix holds from turn to turn.
         static.append(CUSTOM_INSTRUCTIONS_HEADER + "\n" + custom_instructions.strip())

@@ -16,6 +16,7 @@ from qgis.PyQt.QtWidgets import QLineEdit, QWidget
 
 from ai_agent.ui import controls, progress, settings_fields
 from ai_agent.ui.composer_parts import LAYER_TOKEN, SKILL_TOKEN
+from ai_agent.ui.dropdown import Dropdown
 from ai_agent.ui.settings_dialog import SettingsDialog
 
 
@@ -37,6 +38,42 @@ class SegmentedTest(unittest.TestCase):
     def test_choosing_the_current_item_again_is_silent(self) -> None:
         self.segmented.setCurrentText("auto")
         self.assertEqual(self.seen, [])
+
+    def test_a_click_slides_the_highlight_to_the_new_choice(self) -> None:
+        self.segmented.show()
+        pump(0.05)
+        target = self.segmented._group.button(2)
+        target.click()
+        self.assertEqual(self.seen, ["anthropic"])
+        pump(0.05)
+        moving = self.segmented._pill
+        self.assertIsNotNone(moving)
+        self.assertLess(moving.x(), target.x())
+        pump(controls.SLIDE_MS / 1000 + 0.2)
+        self.assertIsNone(self.segmented._pill)
+        self.segmented.hide()
+
+
+class DropdownPlacementTest(unittest.TestCase):
+    """Near the bottom of the screen the menu opens above the field instead of sliding over it."""
+
+    def test_the_menu_never_covers_its_field(self) -> None:
+        box = Dropdown(QWidget().palette())
+        for index in range(14):
+            box.addItem(f"Item {index}", index)
+        box.resize(300, 34)
+        area = box.screen().availableGeometry()
+        try:
+            for y in (area.top() + 40, area.bottom() - 60):
+                box.move(100, y)
+                box.show()
+                pump(0.05)
+                top = box.mapToGlobal(QPoint(0, 0)).y()
+                menu = box._menu_position(420)
+                self.assertTrue(menu.y() >= top + box.height() or menu.y() + 420 <= top, (y, menu.y()))
+        finally:
+            box.hide()
+            box.deleteLater()
 
 
 class ChipsTest(unittest.TestCase):

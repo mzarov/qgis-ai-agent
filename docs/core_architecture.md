@@ -109,9 +109,14 @@ texts from the files into the translation catalogue, and the page translates
 them with `tr_data()`. Which ones the user switched off lives in `config/connectors.py`, the leaf
 package both the tools and the settings page may read: the tools hide and
 refuse a switched-off connector's datasets, `core/connectors.py` hands the page
-plain rows. Personalisation text joins the static system prompt after the
-language policy; it changes only when the user saves Settings, so the cached
-prefix still holds from turn to turn.
+plain rows. Personalisation lives in `config/personal.py` (a validated
+`Profile` in QgsSettings): `core/agent/profile_prompt.py` renders it, with the
+standing instructions, into the static system prompt after the language
+policy — it changes only when the user saves Settings, so the cached prefix
+still holds from turn to turn, and defaults add nothing. The feed reads it to
+fold steps and count down an unanswered question; tools read
+`follows_changes()` before moving the map. Memory notes about the user share
+the project notes' file under their own key and ride in the live state.
 
 Network access is a capability separate from mutation safety. A read tool with
 `network_access = True` is queued and automatically pauses the run for explicit

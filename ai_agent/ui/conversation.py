@@ -9,6 +9,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ai_agent.config import personal
 from ai_agent.i18n import tr
 from ai_agent.ui import controls, style
 from ai_agent.ui.activity import ActivityGroup
@@ -233,7 +234,7 @@ class ConversationView(QScrollArea):
     def add_question(self, question: str, options: list[str]) -> int:
         self._retire_questions()
         self._close_activity()
-        card = QuestionCard(question, options, self.palette())
+        card = QuestionCard(question, options, self.palette(), personal.load().auto_answer)
         self._questions.append(card)
         card.answered.connect(self.question_answered.emit)
         return self._append(card)

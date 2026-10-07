@@ -55,7 +55,8 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `skill_popup.py`  | the list above the composer: prefix-then-substring ranking, keyboard steering, `local` badge |
 | `connectors_settings.py` | the Connectors page: open-data sources by group, search, a switch each; a card click opens its page |
 | `connector_detail.py` | one connector's page: example prompts for the chat box, description, layers, licence, servers |
-| `personalisation_settings.py` | the Personalisation page: standing instructions for the agent, with a counter |
+| `personalisation_settings.py` | the Personalisation page: who you are, instructions, how you work, answers; stores `config/personal` on Save |
+| `memory_settings.py` | the Memory section: the user's notes, add and remove, stored on Save |
 | `skills_settings.py` | the Skills settings page: folder, example, discovered local skills and their problems |
 | `theme.py`        | the mockup's light and dark colour tokens; the only module that spells a colour |
 | `style.py`        | colour roles read from `theme`, `fill()` and `ink()` through the palette, `scale_font()` |

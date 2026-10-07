@@ -31,7 +31,6 @@ from ai_agent.core.settings import (
     set_api_url,
     set_auth_type,
     set_context_window,
-    set_custom_instructions,
     set_custom_nominatim_url,
     set_dialect,
     set_geocoder_provider,
@@ -339,7 +338,11 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         set_reasoning_enabled(self.reasoning_cb.isChecked(), url, model, dialect)
         set_geocoder_provider(geocoder_provider)
         save_enabled(self.connectors.enabled_ids())
-        set_custom_instructions(self.personalisation.text())
+        try:
+            self.personalisation.save()
+        except ValueError as error:
+            self._show(str(error), style.danger(self.palette()))
+            return
         if geocoder_provider == GEOCODER_NOMINATIM:
             set_custom_nominatim_url(geocoder_url)
         key = self.key_edit.text()

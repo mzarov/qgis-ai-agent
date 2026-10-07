@@ -1000,3 +1000,10 @@ These verify the agent solves everyday tasks without wandering through search.
      service…* under it, no feed row repeating it, no English error text,
      then *Looking into what went wrong…*. *Rename the roads layer to Roads and
      colour it orange* → Apply → both steps ✓.
+210. **Personalisation.** Settings → Personalisation: name *Masha*, units
+     *Imperial*, answer length *Concise* → Save; *how long is the longest
+     river?* → the answer addresses Masha, in miles, in one or two lines.
+     *Answer questions for me after* 1 min → a question card counts down and
+     picks the first answer; typing in its fourth row stops the count. Add a
+     memory note → Save → a new conversation knows it. *Move the map to the
+     changes* off → *select the motorways* keeps the view.

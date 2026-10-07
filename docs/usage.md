@@ -275,11 +275,26 @@ if it was off.
 
 ## Personalisation
 
-**Settings → Personalisation** holds standing instructions the agent follows in
-every conversation — how briefly to answer, which units and coordinate systems
-to use, how to name layers, your organisation's rules. Up to 2000 characters.
-They travel with every request to the model, and the safety rules still win
-over them.
+**Settings → Personalisation** tells the agent who it works with and how:
+
+- **Who you are** — how to address you, your work (it decides which data and
+  methods come first) and a few lines about you.
+- **Instructions for the agent** — standing rules, up to 2000 characters:
+  coordinate systems, your organisation's conventions.
+- **How you work** — GIS experience (how much it explains), metric or imperial
+  units, layer names in plain words or snake_case.
+- **Answers** — the answer language (or the QGIS one), length, how often it
+  asks before acting, and whether an unanswered question takes the recommended
+  answer after 1, 3 or 5 minutes — a countdown under the question shows it,
+  and typing your own answer stops it. Switches: a summary after each run,
+  steps shown while it works, the map moving to new data and selections.
+- **Memory** — short facts about you kept across conversations and projects.
+  Add or remove them here; with the last switch on, the agent adds them itself
+  when you mention something that will matter next time. Notes about one
+  project stay with that project.
+
+All of it travels with every request to the model, and the safety rules still
+win over it.
 
 ## Charts and tables
 
