@@ -154,6 +154,51 @@ def soft(palette: QPalette, colour: QColor) -> QColor:
     return blend(surface(palette), colour, 0.14)
 
 
+def apply_palette(widget: Any) -> None:
+    """Give a top-level panel the theme's own palette, so its children follow it rather than QGIS.
+
+    With a panel theme other than QGIS's, plain labels, line edits and scroll areas would
+    still draw with the QGIS palette — white text on the light panel inside a dark QGIS.
+    Every role a stock widget reads is set from the tokens; children inherit it.
+    """
+    roles = getattr(QPalette, "ColorRole", None)
+    groups = getattr(QPalette, "ColorGroup", None)
+    if roles is None or groups is None:
+        return
+    current = theme.tokens(widget.palette())
+    palette = QPalette(widget.palette())
+    values = {
+        "Window": current.bg,
+        "WindowText": current.text,
+        "Base": current.surface,
+        "AlternateBase": current.surface_2,
+        "ToolTipBase": current.surface,
+        "ToolTipText": current.text,
+        "PlaceholderText": current.text_3,
+        "Text": current.text,
+        "Button": current.surface,
+        "ButtonText": current.text,
+        "BrightText": current.accent_text,
+        "Light": current.surface,
+        "Midlight": current.surface_2,
+        "Mid": current.border_strong,
+        "Dark": current.border_strong,
+        "Shadow": current.border_strong,
+        "Highlight": current.accent,
+        "HighlightedText": current.accent_text,
+        "Link": current.accent,
+        "LinkVisited": current.accent_hover,
+    }
+    for group in ("Active", "Inactive", "Disabled"):
+        for name, value in values.items():
+            role = getattr(roles, name, None)
+            if role is not None:
+                palette.setColor(getattr(groups, group), role, theme.colour(value))
+    for name in ("Text", "WindowText", "ButtonText"):
+        palette.setColor(groups.Disabled, getattr(roles, name), theme.colour(current.text_3))
+    widget.setPalette(palette)
+
+
 def fill(widget: Any, colour: QColor) -> None:
     """Paint a container's background through its palette, not a style sheet.
 
@@ -178,6 +223,17 @@ def ink(widget: Any, colour: QColor) -> None:
     palette = widget.palette()
     palette.setColor(role, colour)
     widget.setPalette(palette)
+
+
+def field_inks(widget: Any, palette: QPalette) -> None:
+    """Typed text and placeholder colours for an editor whose style sheet froze another palette."""
+    roles = getattr(QPalette, "ColorRole", None)
+    if roles is None:
+        return
+    inks = widget.palette()
+    inks.setColor(roles.Text, text(palette))
+    inks.setColor(roles.PlaceholderText, faint(palette))
+    widget.setPalette(inks)
 
 
 def scale_font(widget: Any, ratio: float, bold: bool = False) -> None:

@@ -81,3 +81,70 @@ class ProjectLifecycleTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ThemeSwitchTest(unittest.TestCase):
+    """A saved panel theme rebuilds the panel at once when the agent is idle, later otherwise."""
+
+    class Iface:
+        def __init__(self):
+            self.messages = []
+            self.removed = []
+            self.added = []
+            self.window = mock.Mock(dockWidgetArea=lambda dock: 2)
+
+        def mainWindow(self):
+            return self.window
+
+        def messageBar(self):
+            return mock.Mock(pushMessage=lambda *args, **kwargs: self.messages.append(args))
+
+        def removeDockWidget(self, dock):
+            self.removed.append(dock)
+
+        def addDockWidget(self, area, dock):
+            self.added.append((area, dock))
+
+    def setUp(self):
+        from ai_agent.ui import theme
+
+        self.theme = theme
+        self.addCleanup(theme.set_override, theme.THEME_AUTO)
+
+    def _plugin(self, idle):
+        iface = self.Iface()
+        plugin = QgisAiAgentPlugin(iface)
+        plugin.dock_widget = mock.Mock(isVisible=lambda: True)
+        plugin._orchestrator = mock.Mock(is_idle=idle)
+        return plugin, iface
+
+    def test_an_idle_agent_gets_a_rebuilt_panel_in_the_new_theme(self):
+        plugin, iface = self._plugin(idle=True)
+        old = plugin.dock_widget
+        with (
+            mock.patch.object(plugin_module.personal, "load", return_value=mock.Mock(panel_theme="light")),
+            mock.patch.object(plugin_module, "AgentDockWidget", return_value=mock.Mock()) as dock_class,
+        ):
+            plugin._follow_theme()
+        self.assertEqual(self.theme.override(), "light")
+        self.assertEqual(iface.removed, [old])
+        self.assertIs(plugin.dock_widget, dock_class.return_value)
+        plugin._orchestrator.attach_dock.assert_called_once_with(plugin.dock_widget)
+        self.assertEqual(iface.added, [(2, plugin.dock_widget)])
+
+    def test_a_busy_agent_keeps_the_panel_and_says_when(self):
+        plugin, iface = self._plugin(idle=False)
+        old = plugin.dock_widget
+        with mock.patch.object(plugin_module.personal, "load", return_value=mock.Mock(panel_theme="dark")):
+            plugin._follow_theme()
+        self.assertEqual(self.theme.override(), "auto")
+        self.assertIs(plugin.dock_widget, old)
+        self.assertEqual(len(iface.messages), 1)
+
+    def test_an_unchanged_theme_does_nothing(self):
+        plugin, iface = self._plugin(idle=True)
+        old = plugin.dock_widget
+        with mock.patch.object(plugin_module.personal, "load", return_value=mock.Mock(panel_theme="auto")):
+            plugin._follow_theme()
+        self.assertIs(plugin.dock_widget, old)
+        self.assertEqual(iface.removed, [])

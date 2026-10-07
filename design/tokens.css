@@ -1,0 +1,30 @@
+/* The brand's design tokens, from the Claude Design handoff (2026-10): cartographic
+   blue on cool neutrals, "technological, precise, calm; one accent colour".
+   ai_agent/ui/theme.py holds the same hex values (tests/test_settings_ui.py checks
+   they match); the *-soft washes are ours, the handoff names only the strong tones.
+   Qt-reachable effects only: flat fills, 1 px lines, radii. No shadows, no blur. */
+:root {
+  --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eff1f4; --sunken: #e9ecf0;
+  --border: #dfe3e8; --border-strong: #c9cfd7;
+  --text: #14181f; --text-2: #535b67; --text-3: #7c8592;
+  --accent: #1f6fb2; --accent-hover: #195d96; --accent-soft: #e5eff8; --accent-text: #ffffff;
+  --ok: #1d7f47; --ok-soft: #e3f3e9; --warn: #9a5b08; --warn-soft: #f8eedd; --bad: #c2372d; --bad-soft: #fae6e4;
+
+  /* Choropleth legend in answers, light to dark. */
+  --scale-1: #dce9f5; --scale-2: #a9c9e6; --scale-3: #6fa3d2; --scale-4: #3a7cbc; --scale-5: #1a5a92;
+
+  /* Radii: chips 4, menu items and segment buttons 5, buttons and fields 6, segment track 7,
+     cards, menus and windows 8, the user bubble 10 10 3 10, the round send button 14 (28 x 28). */
+  --r-chip: 4px; --r-item: 5px; --r-control: 6px; --r-track: 7px; --r-card: 8px; --r-bubble: 10px; --r-send: 14px;
+  /* Spacing steps. */
+  --s-2: 2px; --s-4: 4px; --s-6: 6px; --s-8: 8px; --s-10: 10px; --s-12: 12px; --s-14: 14px; --s-16: 16px; --s-22: 22px; --s-28: 28px;
+  /* Type sizes at 100 % scale: 11 group captions (600, uppercase), 12 meta, 12.5 secondary,
+     13 body (line-height 1.45), 14 question (600), 17 welcome title (600), 18 settings page title (600). */
+}
+[data-theme="dark"] {
+  --bg: #14171c; --surface: #1b1f26; --surface-2: #222731; --sunken: #101318;
+  --border: #2c323c; --border-strong: #3a414d;
+  --text: #e7eaee; --text-2: #a7aeb8; --text-3: #7f8793;
+  --accent: #4c9be8; --accent-hover: #66abee; --accent-soft: #182c42; --accent-text: #08111c;
+  --ok: #4cc27f; --ok-soft: #1c3528; --warn: #e2a33d; --warn-soft: #3a2e1d; --bad: #ef6b60; --bad-soft: #3f2422;
+}

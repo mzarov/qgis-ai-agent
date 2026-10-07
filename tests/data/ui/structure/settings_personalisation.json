@@ -587,6 +587,52 @@
  {
   "depth": 5,
   "type": "QLabel",
+  "text": "Appearance"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Panel theme"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Light or dark whatever the QGIS theme."
+ },
+ {
+  "depth": 6,
+  "type": "Segmented",
+  "name": "segmented"
+ },
+ {
+  "depth": 7,
+  "type": "QPushButton",
+  "text": "As in QGIS",
+  "checked": true
+ },
+ {
+  "depth": 7,
+  "type": "QPushButton",
+  "text": "Light",
+  "checked": false
+ },
+ {
+  "depth": 7,
+  "type": "QPushButton",
+  "text": "Dark",
+  "checked": false
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
   "text": "Memory"
  },
  {

@@ -71,6 +71,7 @@ MODEL_HINT = tr("As the provider names it.")
 class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
     def __init__(self, parent: Any = None):
         super().__init__(parent)
+        style.apply_palette(self)
         self._syncing_preset = False
         self._loading_endpoint = False
         self._active_credential_target: tuple[str, str] | None = None

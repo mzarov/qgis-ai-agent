@@ -7,13 +7,18 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QDialog
 
 from ai_agent import i18n
+from ai_agent.config import personal
 from ai_agent.core.orchestrator.orchestrator import CoreOrchestrator
+from ai_agent.i18n import tr
+from ai_agent.ui import theme
 from ai_agent.ui.dock_widget import AgentDockWidget
 from ai_agent.ui.settings_dialog import SettingsDialog
 
 MENU_TITLE = "AI Agent"
 DOCK_AREA = getattr(getattr(Qt, "DockWidgetArea", Qt), "RightDockWidgetArea", getattr(Qt, "RightDockWidgetArea", 2))
 ICON_FILENAME = "icon.png"
+THEME_LATER = tr("The panel theme changes once the agent has finished — open Settings and save again then.")
+MESSAGE_SECONDS = 8
 
 
 class QgisAiAgentPlugin:
@@ -26,6 +31,7 @@ class QgisAiAgentPlugin:
         self._project_reset_pending = False
 
     def initGui(self) -> None:
+        theme.set_override(personal.load().panel_theme)
         self.menu_action = QAction(self._icon(), MENU_TITLE, self.iface.mainWindow())
         self.menu_action.triggered.connect(self.run)
         self.iface.addPluginToMenu(MENU_TITLE, self.menu_action)
@@ -59,6 +65,9 @@ class QgisAiAgentPlugin:
     def _build(self) -> None:
         self.dock_widget = AgentDockWidget(self.iface.mainWindow())
         self._orchestrator = CoreOrchestrator(self.iface, self.dock_widget)
+        self._connect_dock()
+
+    def _connect_dock(self) -> None:
         self.dock_widget.prompt_submitted.connect(self._orchestrator.on_prompt)
         self.dock_widget.stop_clicked.connect(self._orchestrator.on_stop)
         self.dock_widget.files_attached.connect(self._orchestrator.on_files_attached)
@@ -87,6 +96,30 @@ class QgisAiAgentPlugin:
             self.dock_widget.put_prompt(prompt)
         if self._orchestrator:
             self._orchestrator.refresh_configured()
+        if accepted:
+            self._follow_theme()
+
+    def _follow_theme(self) -> None:
+        """Rebuild the panel in the theme just saved; its colours are fixed when its widgets are made."""
+        chosen = personal.load().panel_theme
+        if chosen == theme.override():
+            return
+        if self._orchestrator is not None and not self._orchestrator.is_idle:
+            self.iface.messageBar().pushMessage(MENU_TITLE, THEME_LATER, duration=MESSAGE_SECONDS)
+            return
+        theme.set_override(chosen)
+        if self.dock_widget is None or self._orchestrator is None:
+            return
+        old = self.dock_widget
+        area = self.iface.mainWindow().dockWidgetArea(old)
+        visible = old.isVisible()
+        self.dock_widget = AgentDockWidget(self.iface.mainWindow())
+        self._connect_dock()
+        self._orchestrator.attach_dock(self.dock_widget)
+        self.iface.removeDockWidget(old)
+        old.deleteLater()
+        self.iface.addDockWidget(area, self.dock_widget)
+        self.dock_widget.setVisible(visible)
 
     def _connect_project_lifecycle(self) -> None:
         project = QgsProject.instance()

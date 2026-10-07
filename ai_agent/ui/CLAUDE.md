@@ -10,9 +10,16 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
    Never `PyQt5` or `PyQt6` directly — the Qt version depends on the QGIS build.
 3. **No Qt Designer.** Widgets and layouts are built in code; there are no
    `.ui` files.
-4. **Colours come from `theme.py`, the approved mockup's tokens.** Two sets,
-   light and dark, with the exact hex values of `design/mockups/index.html`
-   (`tests/test_settings_ui.py` checks they match). The QGIS palette only
+4. **Colours come from `theme.py`, the brand's tokens.** Two sets, light and
+   dark, with the exact hex values of `design/tokens.css` — cartographic blue
+   on cool neutrals, from the design handoff (`tests/test_settings_ui.py`
+   checks they match). The user's panel theme (Personalisation: as QGIS,
+   light, dark) overrides the palette's vote through `theme.set_override`.
+   Top-level windows — the dock, the settings dialog, every popup — call
+   `style.apply_palette` first thing, so stock widgets inside follow the
+   theme rather than QGIS. A widget with a style sheet freezes the palette it
+   was polished with: give its text an explicit colour (`style.field_inks`
+   for editors), or it shows QGIS's ink on the panel's background. The QGIS palette only
    decides which set applies, by its lightness, so the plugin follows the
    light and the dark theme. It is deliberately not limited to the QGIS
    colours (the user's call: the plugin must look good, and palette-derived
@@ -48,7 +55,8 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `chart_scale.py`  | axis arithmetic: round ticks, compact numbers, which bar layout fits |
 | `table_card.py`   | a table in the feed: painted rows, natural column widths, elided cells with tips, copy CSV |
 | `question.py`     | the agent's question card: up to three answers to click and a fourth row to type one's own |
-| `progress.py`     | the working line as in Claude Code: walking dots, the current step, the elapsed time; the feed's last row, under the newest message |
+| `progress.py`     | the status line: the searching compass, "Working…", the elapsed time; the feed's last row, under the newest message |
+| `compass.py`      | the brand mark: open-ring compass painted on a 24-unit grid; needle rotation per state (rest, search, done, error, ask, arrive), keyframed with per-segment easing |
 | `controls.py`     | custom controls: `Segmented` keeps the combo-box API, `Chips`, `RoundedFrame` (every state-dependent box), icon tiles, badges, keycaps, `ElidedLabel`, menus |
 | `connection_widgets.py` | provider tiles and the connection status card |
 | `logos.py`        | provider logos from `ui/logos/*.svg`, tinted to the theme's text colour |
@@ -58,7 +66,7 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `personalisation_settings.py` | the Personalisation page: who you are, instructions, how you work, answers; stores `config/personal` on Save |
 | `memory_settings.py` | the Memory section: the user's notes, add and remove, stored on Save |
 | `skills_settings.py` | the Skills settings page: folder, example, discovered local skills and their problems |
-| `theme.py`        | the mockup's light and dark colour tokens; the only module that spells a colour |
+| `theme.py`        | the brand's light and dark colour tokens (`design/tokens.css`); the only module that spells a colour |
 | `style.py`        | colour roles read from `theme`, `fill()` and `ink()` through the palette, `scale_font()` |
 | `icons.py`        | header, settings-nav, brand and layer icons: drawn with a palette pen, one stroke weight |
 | `settings_dialog.py` | the settings window: state, dirty tracking, saving |
@@ -296,7 +304,7 @@ style sheet in the editor's `focusOutEvent`; Qt swapped the editor's style
 mid-event and QGIS segfaulted in event processing, intermittently and only in
 a full test run. Container backgrounds go through `style.fill` (the palette),
 focus and state looks are painted (`controls.RoundedFrame` for the composer,
-provider tiles and popup rows; `WorkingDots`, `PaintedDot`), and a style
+provider tiles and popup rows; `Compass`, `PaintedDot`), and a style
 sheet is set only when its text actually changed.
 
 **Nothing that cannot shrink may sit in a grid.** A pill badge or an unelided
@@ -382,3 +390,13 @@ Stop and errors keep the half-streamed answer (`keep_draft`) instead of
 dropping it. After an error the orchestrator puts the request back into an
 empty composer (`restore`) so a retry is one key; after a stop it does not —
 stopping is deliberate, and the request stays visible in the chat.
+
+## The brand mark
+
+`compass.py` is the one source of the mark: the plugin icon (`icon.svg`,
+rendered to `icon.png`) repeats its geometry. One live compass per panel —
+the status line's, swinging while the agent works; the welcome mark plays
+`arrive` once and then rests. Other marks are still pixmaps (`compass.pixmap`).
+The halo colour must be the colour under the mark, or the needle's cut in the
+ring shows as a stripe.
+

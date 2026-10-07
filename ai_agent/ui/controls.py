@@ -138,9 +138,12 @@ class Segmented(QFrame):
             self._slide.setEndValue(QRectF(target.geometry()))
             self._slide.setEasingCurve(QEasingCurve.Type.OutCubic)
             self._slide.valueChanged.connect(self._move_pill)
-            self._slide.finished.connect(lambda: self._move_pill(None))
+            self._slide.finished.connect(self._slide_done)
             self._slide.start()
         self._chosen(index)
+
+    def _slide_done(self) -> None:
+        self._move_pill(None)
 
     def _move_pill(self, rect: Any) -> None:
         self._pill = QRectF(rect) if rect is not None else None

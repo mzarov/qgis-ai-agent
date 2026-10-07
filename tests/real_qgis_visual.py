@@ -18,6 +18,7 @@ Runs inside `real_qgis_workflows.py` against the extracted plugin ZIP.
 import os
 import pathlib
 import unittest
+from typing import Any
 
 import ui_snapshot
 from e2e_harness import ARTIFACTS, WINDOW_HEIGHT, WINDOW_WIDTH, PluginCase, pump
@@ -29,7 +30,8 @@ from ai_agent import i18n
 from ai_agent.core.agent import failures
 from ai_agent.core.orchestrator import notices
 from ai_agent.qgis_tools.registry import summarize_tool_call, summarize_tool_result
-from ai_agent.ui import settings_layout
+from ai_agent.ui import compass, settings_layout, theme
+from ai_agent.ui.dock_widget import AgentDockWidget
 from ai_agent.ui.settings_dialog import SettingsDialog
 
 LOCAL_URL = "http://localhost:11434/v1"
@@ -116,9 +118,13 @@ class ScreenCase(PluginCase):
         self.faults: list[str] = []
 
     def reads(self) -> None:
+        self.reads_into(self.dock)
+
+    @staticmethod
+    def reads_into(dock: Any) -> None:
         for name, arguments, payload in READS:
-            entry = self.dock.add_tool_message(summarize_tool_call(name, arguments))
-            self.dock.mark_tool_done(entry, True, summarize_tool_result(name, arguments, payload))
+            entry = dock.add_tool_message(summarize_tool_call(name, arguments))
+            dock.mark_tool_done(entry, True, summarize_tool_result(name, arguments, payload))
 
     def check(self, name: str, widget: QWidget) -> None:
         name += LOCALE_SUFFIX
@@ -126,6 +132,9 @@ class ScreenCase(PluginCase):
         focused = QApplication.focusWidget()
         if focused is not None:
             focused.clearFocus()
+        # A swinging needle would make every pixel golden depend on the moment of the grab.
+        for mark in widget.findChildren(compass.Compass):
+            mark.stop()
         pump(0.3)
         ui_snapshot.normalize_texts(widget, {_profile_root(): LONG_PROFILE})
         pump(0.1)
@@ -175,6 +184,24 @@ class DockScreens(ScreenCase):
 
 
 class StateScreens(ScreenCase):
+    def test_a_dark_panel_in_a_light_qgis(self) -> None:
+        """The panel theme overrides QGIS: every part of the rebuilt panel follows the dark tokens."""
+        theme.set_override(theme.THEME_DARK)
+        panel = AgentDockWidget()
+        try:
+            panel.resize(self.dock.width(), self.dock.height())
+            panel.set_configured(True)
+            panel.show()
+            panel.add_user_message(REQUEST)
+            self.reads_into(panel)
+            panel.conversation.add_assistant_message(ANSWER)
+            panel.add_plan_message(PLAN)
+            self.check("dock_forced_dark", panel)
+        finally:
+            theme.set_override(theme.THEME_AUTO)
+            panel.hide()
+            panel.deleteLater()
+
     def test_working(self) -> None:
         self.dock.add_user_message(REQUEST)
         self.dock.set_busy(True)

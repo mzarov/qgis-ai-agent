@@ -4,8 +4,8 @@ from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import QFrame, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
 from ai_agent.i18n import tr
+from ai_agent.ui import compass, style
 from ai_agent.ui import settings_fields as fields
-from ai_agent.ui import style
 
 HEADING_SPACING = 5
 GROUP_SPACING = 18
@@ -15,6 +15,8 @@ BLOCK_SIDE_PADDING = 15
 TITLE_SCALE = 1.15
 SUGGESTION_NAME = "suggestion"
 SIDE_INSET = 4
+MARK = 56
+MARK_GAP = 14
 NEEDS_KEY_TITLE = tr("One step before we start")
 NEEDS_KEY_BODY = tr(
     "The agent talks to a language model of your choice, so it needs an address "
@@ -79,6 +81,11 @@ class WelcomeCard(QWidget):
         column.setContentsMargins(SIDE_INSET, 0, SIDE_INSET, 0)
         column.setSpacing(HEADING_SPACING)
         column.addStretch(1)
+        # The compass arrives: its needle swings in and settles at rest, once, when the welcome appears.
+        self.mark = compass.Compass(MARK, palette)
+        column.addWidget(self.mark, 0, Qt.AlignmentFlag.AlignHCenter)
+        self.mark.set_state(compass.ARRIVE)
+        column.addSpacing(MARK_GAP)
         column.addWidget(_title(title, palette))
         if body:
             column.addWidget(_body(body, palette))
@@ -106,6 +113,7 @@ class WelcomeCard(QWidget):
 def _title(text: str, palette: Any) -> QLabel:
     label = QLabel(text)
     label.setWordWrap(True)
+    label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
     style.scale_font(label, TITLE_SCALE, bold=True)
     label.setStyleSheet(f"color: {style.css_color(style.text(palette))}; border: none;")
     return label
@@ -114,5 +122,6 @@ def _title(text: str, palette: Any) -> QLabel:
 def _body(text: str, palette: Any) -> QLabel:
     label = QLabel(text)
     label.setWordWrap(True)
+    label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
     label.setStyleSheet(f"color: {style.css_color(style.muted(palette))}; border: none;")
     return label

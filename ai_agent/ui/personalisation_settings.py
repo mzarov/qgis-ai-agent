@@ -61,6 +61,9 @@ SHOW_STEPS = tr("Show steps while working")
 SHOW_STEPS_NOTE = tr("Each call with what it found, above the answer.")
 FOLLOW = tr("Move the map to the changes")
 FOLLOW_NOTE = tr("The view follows new data and selections. Off keeps it where you left it.")
+APPEARANCE = tr("Appearance")
+PANEL_THEME = tr("Panel theme")
+PANEL_THEME_NOTE = tr("Light or dark whatever the QGIS theme.")
 MEMORY = tr("Memory")
 MEMORY_NOTE = tr("Short facts about you that the agent keeps across conversations and projects.")
 OWN_NOTES = tr("Let the agent add its own notes")
@@ -97,6 +100,7 @@ LANGUAGE_TITLES = {
     "zh": tr("Chinese"),
     "ja": tr("Japanese"),
 }
+THEME_TITLES = {"auto": tr("As in QGIS"), "light": tr("Light"), "dark": tr("Dark")}
 AUTO_TITLES = {0: tr("Never"), 60: tr("1 min"), 180: tr("3 min"), 300: tr("5 min")}
 COUNTER = "{0} / {1}"
 ABOUT_HEIGHT = 110
@@ -163,6 +167,9 @@ class PersonalisationSettings(QObject):
                 fields.switch_row(FOLLOW, self.follow, FOLLOW_NOTE, palette),
             ],
         )
+        fields.section(column, APPEARANCE, palette)
+        self.panel_theme = self._choice(personal.PANEL_THEMES, profile.panel_theme, THEME_TITLES)
+        fields.add_rows(column, palette, [fields.custom_row(PANEL_THEME, self.panel_theme, PANEL_THEME_NOTE, palette)])
         fields.section(column, MEMORY, palette, MEMORY_NOTE)
         self.memory = MemoryNotes(palette)
         self.memory.changed.connect(self.changed.emit)
@@ -192,6 +199,7 @@ class PersonalisationSettings(QObject):
             show_steps=self.show_steps.isChecked(),
             follow_changes=self.follow.isChecked(),
             own_notes=self.own_notes.isChecked(),
+            panel_theme=self.panel_theme.currentData(),
         )
 
     def save(self) -> None:

@@ -288,6 +288,8 @@ if it was off.
   answer after 1, 3 or 5 minutes — a countdown under the question shows it,
   and typing your own answer stops it. Switches: a summary after each run,
   steps shown while it works, the map moving to new data and selections.
+- **Appearance** — the panel theme: as QGIS, light or dark. A light panel in
+  a dark QGIS works; the panel is rebuilt on Save, or once the agent is idle.
 - **Memory** — short facts about you kept across conversations and projects.
   Add or remove them here; with the last switch on, the agent adds them itself
   when you mention something that will matter next time. Notes about one

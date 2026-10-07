@@ -1007,3 +1007,12 @@ These verify the agent solves everyday tasks without wandering through search.
      picks the first answer; typing in its fourth row stops the count. Add a
      memory note → Save → a new conversation knows it. *Move the map to the
      changes* off → *select the motorways* keeps the view.
+211. **Brand mark.** The plugin icon in the Plugins menu and toolbar is the
+     white compass on blue. Open the panel on a new conversation → the compass
+     above the welcome swings in and settles pointing north-east. Send a
+     request → the compass in the status line swings while the agent works.
+212. **Panel theme.** With QGIS dark (macOS in dark mode): Settings →
+     Personalisation → Panel theme *Light* → Save → the panel is rebuilt
+     light, the conversation still there; labels, fields, menus and the plan
+     card all readable. *As in QGIS* → Save → dark again. Change it while the
+     agent works → a message says it applies once the agent has finished.

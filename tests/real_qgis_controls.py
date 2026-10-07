@@ -14,7 +14,7 @@ from qgis.PyQt.QtCore import QEvent, QPoint, Qt
 from qgis.PyQt.QtGui import QColor, QKeyEvent
 from qgis.PyQt.QtWidgets import QLineEdit, QWidget
 
-from ai_agent.ui import controls, progress, settings_fields
+from ai_agent.ui import compass, controls, progress, settings_fields
 from ai_agent.ui.composer_parts import LAYER_TOKEN, SKILL_TOKEN
 from ai_agent.ui.dropdown import Dropdown
 from ai_agent.ui.settings_dialog import SettingsDialog
@@ -52,6 +52,23 @@ class SegmentedTest(unittest.TestCase):
         pump(controls.SLIDE_MS / 1000 + 0.2)
         self.assertIsNone(self.segmented._pill)
         self.segmented.hide()
+
+
+class CompassMotionTest(unittest.TestCase):
+    """The live mark really turns: a looping state keeps moving, a one-shot state settles."""
+
+    def test_search_swings_and_done_settles_north(self) -> None:
+        mark = compass.Compass(18, QWidget().palette())
+        mark.set_state(compass.SEARCH)
+        seen = set()
+        for _ in range(6):
+            pump(0.1)
+            seen.add(round(mark.angle))
+        self.assertGreater(len(seen), 3)
+        mark.set_state(compass.DONE)
+        pump(compass.MOTIONS[compass.DONE].milliseconds / 1000 + 0.3)
+        self.assertAlmostEqual(mark.angle, 0.0, places=1)
+        mark.deleteLater()
 
 
 class DropdownPlacementTest(unittest.TestCase):
