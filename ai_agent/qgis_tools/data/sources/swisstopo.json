@@ -1,0 +1,56 @@
+{
+  "id": "swisstopo",
+  "title": "swisstopo",
+  "category": "national",
+  "order": 100,
+  "monogram": "CH",
+  "summary": "Switzerland: national map and aerial photos",
+  "description": "The Swiss federal mapping office: the colour national map and the SWISSIMAGE aerial photographs.",
+  "examples": [
+    "Add the Swiss national map",
+    "Show SWISSIMAGE aerial photos of Zurich"
+  ],
+  "licence": "Free with credit to swisstopo",
+  "hosts": [
+    "wmts.geo.admin.ch"
+  ],
+  "datasets": [
+    {
+      "id": "swisstopo",
+      "title": "swisstopo",
+      "kind": "service",
+      "summary": "Switzerland: the national map and SWISSIMAGE aerial photos.",
+      "coverage": "Switzerland",
+      "license": "free use with attribution (swisstopo)",
+      "keywords": [
+        "switzerland",
+        "swiss",
+        "swisstopo",
+        "aerial",
+        "national map"
+      ],
+      "load_with": "load_service",
+      "service": "xyz",
+      "bbox": [
+        5.9,
+        45.8,
+        10.5,
+        47.9
+      ],
+      "layers": [
+        {
+          "key": "national_map",
+          "title": "National map (colour)",
+          "source": "https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg"
+        },
+        {
+          "key": "swissimage",
+          "title": "SWISSIMAGE aerial photos",
+          "source": "https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg",
+          "zmax": 20
+        }
+      ],
+      "attribution": "© swisstopo"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "id": "gebco",
+  "title": "GEBCO",
+  "category": "terrain",
+  "order": 60,
+  "summary": "Ocean depths and land heights",
+  "description": "The General Bathymetric Chart of the Oceans: one shaded grid of sea-floor depths and land heights for the whole planet.",
+  "examples": [
+    "Show the ocean depths around Iceland",
+    "Add the GEBCO bathymetry background"
+  ],
+  "licence": "Free with credit to GEBCO",
+  "hosts": [
+    "wms.gebco.net"
+  ],
+  "datasets": [
+    {
+      "id": "gebco",
+      "title": "GEBCO bathymetry",
+      "kind": "service",
+      "summary": "Ocean depths and land heights of the whole planet as a shaded map.",
+      "coverage": "whole world, about 450 m",
+      "license": "free, attribution to GEBCO Compilation Group",
+      "keywords": [
+        "bathymetry",
+        "ocean",
+        "sea",
+        "depth",
+        "seafloor",
+        "relief",
+        "elevation"
+      ],
+      "load_with": "load_service",
+      "service": "wms",
+      "endpoint": "https://wms.gebco.net/mapserv",
+      "layers": [
+        {
+          "key": "gebco",
+          "title": "GEBCO latest grid",
+          "source": "GEBCO_LATEST"
+        }
+      ],
+      "attribution": "GEBCO Compilation Group"
+    }
+  ]
+}

@@ -7,8 +7,9 @@ Domains are implemented as skills: `inspect` (reading the project, selection,
 rendering the map to an image), `project` (layers, basemaps, web services,
 PostGIS, tree, bookmarks, undo, saving), `style` (vector and raster styling,
 labels), `processing` (algorithms), `osm` (OpenStreetMap data through
-Overpass), `data` (open-data catalogue, Planetary Computer imagery search
-and loading, Natural Earth and geoBoundaries layers), `draw` (features from coordinates into a scratch or existing
+Overpass), `data` (open-data catalogue grouped into connectors the user can switch off,
+Planetary Computer imagery, Natural Earth and geoBoundaries layers, public tile,
+WMS and WFS services), `draw` (features from coordinates into a scratch or existing
 layer), `edit` (in-place attribute edits and deletion — the `destructive`
 class), `fields` (attribute schema and virtual fields), `layout` (print
 layouts and export), `python` (the `run_python` escape hatch to the whole

@@ -39,8 +39,25 @@
  {
   "depth": 2,
   "type": "QPushButton",
+  "text": "Personalisation",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
   "text": "Skills",
   "checked": true
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Data"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Connectors",
+  "checked": false
  },
  {
   "depth": 2,
@@ -193,7 +210,7 @@
  {
   "depth": 7,
   "type": "ElidedLabel",
-  "text": "Find and fetch open data the project lacks — satellite images (Sentinel-2, Landsat), elevation, land cover, surface wate"
+  "text": "Find and fetch open data the project lacks — satellite images (Sentinel-2, Landsat, NASA daily imagery, cloud-free mosai"
  },
  {
   "depth": 6,

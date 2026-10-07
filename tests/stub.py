@@ -296,6 +296,16 @@ class _Project(_Stub):
         return {}
 
 
+class _PlainText(_Label):
+    """A plain-text editor remembers its text like a label does."""
+
+    def setPlainText(self, text):
+        self._text = str(text)
+
+    def toPlainText(self):
+        return self._text
+
+
 _FAKES = {
     "QColor": _Colour,
     "QPalette": _Palette,
@@ -303,6 +313,7 @@ _FAKES = {
     "QToolButton": _Toggle,
     "QCheckBox": _Toggle,
     "QLineEdit": _Label,
+    "QPlainTextEdit": _PlainText,
     "QTimer": _Timer,
     "QgsFeedback": _Feedback,
     "QgsProject": _Project,
@@ -375,6 +386,7 @@ core = _mod(
         "QgsRasterShader",
         "QgsRasterBandStats",
         "QgsRasterRange",
+        "QgsDataSourceUri",
         "QgsSingleBandPseudoColorRenderer",
         "QgsSingleBandGrayRenderer",
         "QgsHillshadeRenderer",

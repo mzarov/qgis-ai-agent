@@ -126,7 +126,12 @@ contact services such as Overpass, tile servers, WMS/WFS endpoints or databases
 selected by the user. The open-data tools contact the Microsoft Planetary
 Computer (scene search sends the search rectangle and dates; loaded imagery is
 read from its Azure storage through a short-lived signed link), GitHub (Natural
-Earth and geoBoundaries files) and the geoBoundaries API (the country code).
+Earth and geoBoundaries files) and the geoBoundaries API (the country code). Web map services from the
+catalogue are drawn from their providers' servers, which receive the map
+extents being drawn: NASA GIBS, EOX, GEBCO, OpenTopoMap, IGN France
+(data.geopf.fr), PDOK, swisstopo, USGS and Geoscience Australia. Any of these
+sources can be switched off in Settings → Connectors. The text in Settings →
+Personalisation is part of every request to the model.
 Each such call is listed in the plan and runs only after confirmation. QGIS and installed providers may make their own network
 requests independently of this plugin.
 

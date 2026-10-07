@@ -1,0 +1,532 @@
+[
+ {
+  "depth": 0,
+  "type": "SettingsDialog"
+ },
+ {
+  "depth": 1,
+  "type": "QWidget",
+  "name": "settingsNav"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Settings"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Connection",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Privacy",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Advanced",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Customize"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Personalisation",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Skills",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Data"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Connectors",
+  "checked": true
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Geocoding",
+  "checked": false
+ },
+ {
+  "depth": 1,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 1,
+  "type": "QWidget",
+  "name": "settingsContent"
+ },
+ {
+  "depth": 2,
+  "type": "QStackedWidget"
+ },
+ {
+  "depth": 3,
+  "type": "QScrollArea"
+ },
+ {
+  "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Connectors"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Where the agent gets data you do not have: ask for a satellite picture, boundaries or an aerial photo and it loads them "
+ },
+ {
+  "depth": 6,
+  "type": "QLineEdit",
+  "text": "Search connectors"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QPushButton",
+  "text": "All",
+  "checked": true
+ },
+ {
+  "depth": 7,
+  "type": "QPushButton",
+  "text": "World",
+  "checked": false
+ },
+ {
+  "depth": 7,
+  "type": "QPushButton",
+  "text": "Imagery",
+  "checked": false
+ },
+ {
+  "depth": 7,
+  "type": "QPushButton",
+  "text": "Terrain",
+  "checked": false
+ },
+ {
+  "depth": 7,
+  "type": "QPushButton",
+  "text": "Places",
+  "checked": false
+ },
+ {
+  "depth": 7,
+  "type": "QPushButton",
+  "text": "National",
+  "checked": false
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Worldwide maps"
+ },
+ {
+  "depth": 6,
+  "type": "CardGrid"
+ },
+ {
+  "depth": 7,
+  "type": "ConnectorCard",
+  "name": "connectorCard"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel"
+ },
+ {
+  "depth": 8,
+  "type": "ElidedLabel",
+  "text": "OpenStreetMap"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Roads, buildings and places by tag, worldwide · 2 datasets"
+ },
+ {
+  "depth": 8,
+  "type": "Switch",
+  "checked": true
+ },
+ {
+  "depth": 7,
+  "type": "ConnectorCard",
+  "name": "connectorCard"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel"
+ },
+ {
+  "depth": 8,
+  "type": "ElidedLabel",
+  "text": "Natural Earth"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Small tidy world layers: countries, rivers, cities · 1 dataset"
+ },
+ {
+  "depth": 8,
+  "type": "Switch",
+  "checked": true
+ },
+ {
+  "depth": 7,
+  "type": "ConnectorCard",
+  "name": "connectorCard"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel"
+ },
+ {
+  "depth": 8,
+  "type": "ElidedLabel",
+  "text": "OpenTopoMap"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Topographic world map with contours · 1 dataset"
+ },
+ {
+  "depth": 8,
+  "type": "Switch",
+  "checked": true
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Satellites and imagery"
+ },
+ {
+  "depth": 6,
+  "type": "CardGrid"
+ },
+ {
+  "depth": 7,
+  "type": "ConnectorCard",
+  "name": "connectorCard"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel"
+ },
+ {
+  "depth": 8,
+  "type": "ElidedLabel",
+  "text": "Microsoft Planetary Computer"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Sentinel-2, Landsat, elevation and land cover scenes · 7 datasets"
+ },
+ {
+  "depth": 8,
+  "type": "Switch",
+  "checked": true
+ },
+ {
+  "depth": 7,
+  "type": "ConnectorCard",
+  "name": "connectorCard"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel"
+ },
+ {
+  "depth": 8,
+  "type": "ElidedLabel",
+  "text": "NASA GIBS"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Yesterday's Earth from space, night lights, Blue Marble · 3 datasets"
+ },
+ {
+  "depth": 8,
+  "type": "Switch",
+  "checked": true
+ },
+ {
+  "depth": 7,
+  "type": "ConnectorCard",
+  "name": "connectorCard"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel"
+ },
+ {
+  "depth": 8,
+  "type": "ElidedLabel",
+  "text": "EOX Sentinel-2 cloudless"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Cloud-free satellite mosaic of the world, non-commercial use · 1 dataset"
+ },
+ {
+  "depth": 8,
+  "type": "Switch",
+  "checked": true
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Terrain and oceans"
+ },
+ {
+  "depth": 6,
+  "type": "CardGrid"
+ },
+ {
+  "depth": 7,
+  "type": "ConnectorCard",
+  "name": "connectorCard"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel"
+ },
+ {
+  "depth": 8,
+  "type": "ElidedLabel",
+  "text": "GEBCO"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Ocean depths and land heights · 1 dataset"
+ },
+ {
+  "depth": 8,
+  "type": "Switch",
+  "checked": true
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Places and boundaries"
+ },
+ {
+  "depth": 6,
+  "type": "CardGrid"
+ },
+ {
+  "depth": 7,
+  "type": "ConnectorCard",
+  "name": "connectorCard"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel"
+ },
+ {
+  "depth": 8,
+  "type": "ElidedLabel",
+  "text": "geoBoundaries"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Administrative boundaries of every country · 1 dataset"
+ },
+ {
+  "depth": 8,
+  "type": "Switch",
+  "checked": true
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "National mapping"
+ },
+ {
+  "depth": 6,
+  "type": "CardGrid"
+ },
+ {
+  "depth": 7,
+  "type": "ConnectorCard",
+  "name": "connectorCard"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "FR"
+ },
+ {
+  "depth": 8,
+  "type": "ElidedLabel",
+  "text": "IGN France"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "France: aerial photos, maps, communes · 5 datasets"
+ },
+ {
+  "depth": 8,
+  "type": "Switch",
+  "checked": true
+ },
+ {
+  "depth": 7,
+  "type": "ConnectorCard",
+  "name": "connectorCard"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "NL"
+ },
+ {
+  "depth": 8,
+  "type": "ElidedLabel",
+  "text": "PDOK Netherlands"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Netherlands: aerial photos, base map, municipalities · 4 datasets"
+ },
+ {
+  "depth": 8,
+  "type": "Switch",
+  "checked": true
+ },
+ {
+  "depth": 7,
+  "type": "ConnectorCard",
+  "name": "connectorCard"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "CH"
+ },
+ {
+  "depth": 8,
+  "type": "ElidedLabel",
+  "text": "swisstopo"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Switzerland: national map and aerial photos · 2 datasets"
+ },
+ {
+  "depth": 8,
+  "type": "Switch",
+  "checked": true
+ },
+ {
+  "depth": 7,
+  "type": "ConnectorCard",
+  "name": "connectorCard"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "US"
+ },
+ {
+  "depth": 8,
+  "type": "ElidedLabel",
+  "text": "USGS The National Map"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "United States: aerial imagery and US Topo · 2 datasets"
+ },
+ {
+  "depth": 8,
+  "type": "Switch",
+  "checked": true
+ },
+ {
+  "depth": 7,
+  "type": "ConnectorCard",
+  "name": "connectorCard"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "AU"
+ },
+ {
+  "depth": 8,
+  "type": "ElidedLabel",
+  "text": "Geoscience Australia"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Australia: topographic base maps · 2 datasets"
+ },
+ {
+  "depth": 8,
+  "type": "Switch",
+  "checked": true
+ },
+ {
+  "depth": 2,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "All changes saved"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Cancel"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Save",
+  "enabled": false
+ }
+]

@@ -4,7 +4,7 @@ from typing import Any
 from qgis.core import QgsProject
 from qgis.PyQt.QtCore import Qt, QTimer
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction
+from qgis.PyQt.QtWidgets import QAction, QDialog
 
 from ai_agent import i18n
 from ai_agent.core.orchestrator.orchestrator import CoreOrchestrator
@@ -80,8 +80,11 @@ class QgisAiAgentPlugin:
 
     def _on_open_settings(self) -> None:
         dialog = SettingsDialog(self.dock_widget)
-        dialog.exec()
+        accepted = dialog.exec() == QDialog.DialogCode.Accepted
+        prompt = dialog.chosen_prompt
         dialog.deleteLater()
+        if accepted and prompt and self.dock_widget:
+            self.dock_widget.put_prompt(prompt)
         if self._orchestrator:
             self._orchestrator.refresh_configured()
 

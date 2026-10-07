@@ -37,7 +37,7 @@ LOCAL_MODEL = "qwen3"
 NARROW_WIDTH = 380
 SETTINGS_WIDTH = 900
 SETTINGS_HEIGHT = 640
-SETTINGS_PAGES = ("connection", "privacy", "skills", "geocoding", "advanced")
+SETTINGS_PAGES = ("connection", "privacy", "skills", "geocoding", "advanced", "connectors", "personalisation")
 PROFILE_MARKER = "ai-agent-integration-"
 # A real profile path is long; a short stand-in once hid a skills page that overflowed on a real Mac.
 LONG_PROFILE = "/Users/someone-with-a-long-name/Library/Application Support/QGIS/QGIS4/profiles/default"
@@ -320,6 +320,11 @@ class SettingsScreens(ScreenCase):
                 with self.subTest(page=page):
                     settings_layout.show_page(dialog, index)
                     self.check(f"settings_{page}", dialog)
+            with self.subTest(page="connector_detail"):
+                settings_layout.show_page(dialog, SETTINGS_PAGES.index("connectors"))
+                dialog.connectors.open("pdok")
+                self.check("settings_connector_detail", dialog)
+                dialog.connectors.close_detail()
         finally:
             dialog.reject()
             dialog.deleteLater()

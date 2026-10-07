@@ -1,0 +1,48 @@
+{
+  "id": "eox",
+  "title": "EOX Sentinel-2 cloudless",
+  "category": "imagery",
+  "order": 50,
+  "summary": "Cloud-free satellite mosaic of the world, non-commercial use",
+  "description": "A seamless, cloud-free Sentinel-2 mosaic of the whole planet by EOX, at about 10 m. A beautiful satellite background, free for non-commercial use only.",
+  "examples": [
+    "Add a cloud-free satellite background",
+    "Put the Sentinel-2 mosaic under my layers"
+  ],
+  "licence": "CC BY-NC-SA 4.0, non-commercial use only",
+  "hosts": [
+    "tiles.maps.eox.at"
+  ],
+  "datasets": [
+    {
+      "id": "s2-cloudless",
+      "title": "Sentinel-2 cloudless (EOX)",
+      "kind": "service",
+      "summary": "A seamless cloud-free mosaic of the world from Sentinel-2, 2024: the prettiest satellite backdrop.",
+      "coverage": "whole world, 10 m, mosaic of 2024",
+      "license": "CC BY-NC-SA 4.0: non-commercial use only",
+      "keywords": [
+        "satellite",
+        "mosaic",
+        "cloud free",
+        "imagery",
+        "backdrop",
+        "sentinel"
+      ],
+      "load_with": "load_service",
+      "notes": [
+        "not for commercial use — say so when the user's work may be commercial"
+      ],
+      "service": "xyz",
+      "layers": [
+        {
+          "key": "mosaic_2024",
+          "title": "Cloud-free mosaic, 2024",
+          "source": "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/g/{z}/{y}/{x}.jpg",
+          "zmax": 15
+        }
+      ],
+      "attribution": "Sentinel-2 cloudless 2024 by EOX IT Services GmbH (contains modified Copernicus Sentinel data)"
+    }
+  ]
+}

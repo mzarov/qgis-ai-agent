@@ -161,6 +161,8 @@ def get_geocoder_url() -> str:
 # How the agent works
 
 DEFAULT_TOKEN_BUDGET = 300000
+# Personalisation text rides in the system prompt of every request; long enough for a style guide, no essay.
+MAX_CUSTOM_INSTRUCTIONS = 2000
 WORK_MODE_ASK = "ask"
 WORK_MODE_AUTO = "auto"
 WORK_MODE_PLAN = "plan"
@@ -213,6 +215,16 @@ def set_reasoning_enabled(
             f"{SETTINGS_PREFIX}/supports_thinking/{_capability_settings_key(_endpoint(url), model, dialect)}"
         )
     _write_flag("reasoning_enabled", value)
+
+
+def get_custom_instructions() -> str:
+    """The user's standing instructions for the agent, from Settings → Personalisation."""
+    stored = _stored("custom_instructions")
+    return stored.strip()[:MAX_CUSTOM_INSTRUCTIONS] if isinstance(stored, str) else ""
+
+
+def set_custom_instructions(text: str) -> None:
+    _write("custom_instructions", (text or "").strip()[:MAX_CUSTOM_INSTRUCTIONS])
 
 
 def get_work_mode() -> str:

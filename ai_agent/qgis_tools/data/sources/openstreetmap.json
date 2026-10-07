@@ -1,0 +1,59 @@
+{
+  "id": "openstreetmap",
+  "title": "OpenStreetMap",
+  "category": "world",
+  "order": 0,
+  "summary": "Roads, buildings and places by tag, worldwide",
+  "description": "The map the world draws together. The agent asks the Overpass service for exactly the features you name — schools, cafés, footpaths, building outlines — inside your map view, and adds them as editable layers. Plain OpenStreetMap and satellite backgrounds come with it.",
+  "examples": [
+    "Load all schools and hospitals in the current map view",
+    "Download the building outlines around this town",
+    "Add an OpenStreetMap background"
+  ],
+  "licence": "ODbL, credit OpenStreetMap contributors",
+  "hosts": [
+    "overpass-api.de",
+    "tile.openstreetmap.org"
+  ],
+  "datasets": [
+    {
+      "id": "openstreetmap",
+      "title": "OpenStreetMap",
+      "label": "OpenStreetMap features by tag",
+      "kind": "pointer",
+      "summary": "Detailed features by tag: buildings, roads, shops, amenities, land use, anything mapped.",
+      "coverage": "whole world",
+      "license": "ODbL",
+      "keywords": [
+        "osm",
+        "building",
+        "road",
+        "street",
+        "shop",
+        "cafe",
+        "amenity",
+        "poi",
+        "park",
+        "school"
+      ],
+      "load_with": "the osm skill (download_osm)"
+    },
+    {
+      "id": "basemaps",
+      "title": "Basemaps",
+      "label": "OpenStreetMap and satellite backgrounds",
+      "kind": "pointer",
+      "summary": "Background maps and satellite basemaps to look at, not to analyse.",
+      "coverage": "whole world",
+      "license": "per provider",
+      "keywords": [
+        "basemap",
+        "background",
+        "satellite map",
+        "topographic map",
+        "tiles"
+      ],
+      "load_with": "the project skill (add_basemap)"
+    }
+  ]
+}

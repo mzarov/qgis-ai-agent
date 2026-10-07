@@ -7,7 +7,7 @@ confirm them.
 
 ## What it does
 
-Seventeen domains, 82 tools:
+Seventeen domains, 83 tools:
 
 | Domain | Example requests |
 | --- | --- |

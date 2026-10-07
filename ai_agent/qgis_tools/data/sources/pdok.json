@@ -1,0 +1,74 @@
+{
+  "id": "pdok",
+  "title": "PDOK Netherlands",
+  "category": "national",
+  "order": 90,
+  "monogram": "NL",
+  "summary": "Netherlands: aerial photos, base map, municipalities",
+  "description": "The Dutch government's open map services: current aerial photographs, the BRT topographic base map, and the boundaries of provinces and municipalities.",
+  "examples": [
+    "Add Dutch aerial photos",
+    "Load the municipalities of the Netherlands",
+    "Put the BRT base map under my layers"
+  ],
+  "licence": "CC BY 4.0 and CC0, credit PDOK",
+  "hosts": [
+    "service.pdok.nl"
+  ],
+  "datasets": [
+    {
+      "id": "pdok",
+      "title": "PDOK Netherlands",
+      "kind": "service",
+      "summary": "The Netherlands: current aerial photos, the BRT base map, provinces and municipalities.",
+      "coverage": "the Netherlands",
+      "license": "CC BY 4.0 / CC0",
+      "keywords": [
+        "netherlands",
+        "dutch",
+        "holland",
+        "pdok",
+        "aerial",
+        "luchtfoto",
+        "gemeente",
+        "province"
+      ],
+      "load_with": "load_service",
+      "service": "xyz",
+      "endpoint": "https://service.pdok.nl/kadaster/bestuurlijkegebieden/wfs/v1_0",
+      "bbox": [
+        3.3,
+        50.7,
+        7.3,
+        53.6
+      ],
+      "layers": [
+        {
+          "key": "aerial",
+          "title": "Aerial photos (current)",
+          "source": "https://service.pdok.nl/hwh/luchtfotorgb/wmts/v1_0/Actueel_orthoHR/EPSG:3857/{z}/{x}/{y}.jpeg"
+        },
+        {
+          "key": "brt",
+          "title": "BRT base map",
+          "source": "https://service.pdok.nl/brt/achtergrondkaart/wmts/v2_0/standaard/EPSG:3857/{z}/{x}/{y}.png"
+        },
+        {
+          "key": "provinces",
+          "title": "Provinces (vector)",
+          "source": "bestuurlijkegebieden:Provinciegebied",
+          "note": "vector",
+          "protocol": "wfs"
+        },
+        {
+          "key": "municipalities",
+          "title": "Municipalities (vector)",
+          "source": "bestuurlijkegebieden:Gemeentegebied",
+          "note": "vector",
+          "protocol": "wfs"
+        }
+      ],
+      "attribution": "PDOK / Kadaster"
+    }
+  ]
+}

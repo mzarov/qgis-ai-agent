@@ -26,6 +26,8 @@ NAMES = {
     "expanded": "chevron-down",
     "rename": "pencil",
     "delete": "trash-2",
+    "connectors": "globe",
+    "personalisation": "user",
     "rewind": "undo-2",
     # A tool call's row wears its skill's icon; "knowledge" is a skill being loaded.
     "inspect": "eye",

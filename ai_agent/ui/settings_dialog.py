@@ -11,6 +11,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ai_agent.core.connectors import save_enabled
 from ai_agent.core.llm.client import is_local
 from ai_agent.core.llm.dialects import resolve
 from ai_agent.core.llm.probe_worker import ProbeThread
@@ -30,6 +31,7 @@ from ai_agent.core.settings import (
     set_api_url,
     set_auth_type,
     set_context_window,
+    set_custom_instructions,
     set_custom_nominatim_url,
     set_dialect,
     set_geocoder_provider,
@@ -45,7 +47,9 @@ from ai_agent.i18n import tr
 from ai_agent.ui import controls, settings_layout, style
 from ai_agent.ui import settings_fields as fields
 from ai_agent.ui.connection_widgets import ProviderTiles, StatusCard
+from ai_agent.ui.connectors_settings import ConnectorsSettings
 from ai_agent.ui.geocoder_settings import GeocoderSettings
+from ai_agent.ui.personalisation_settings import PersonalisationSettings
 from ai_agent.ui.settings_probe import MODEL_REQUIRED, ConnectionProbeMixin
 from ai_agent.ui.settings_status import SettingsStatusMixin
 from ai_agent.ui.skills_settings import SkillsSettings
@@ -79,12 +83,18 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         self.setMinimumWidth(MIN_WIDTH)
         self.setMinimumHeight(MIN_HEIGHT)
         self._probe_started = 0.0
+        # An example request picked on a connector page, for the chat box once the dialog closes.
+        self.chosen_prompt = ""
         palette = self.palette()
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(0)
         self.geocoder = GeocoderSettings(palette)
         self.skills = SkillsSettings(palette)
+        self.connectors = ConnectorsSettings(palette)
+        self.connectors.prompt_chosen.connect(self._use_example)
+        self.connectors.page_switched.connect(lambda: self.pages.currentWidget().verticalScrollBar().setValue(0))
+        self.personalisation = PersonalisationSettings(palette)
         body, right = settings_layout.build_body(self, palette)
         column.addLayout(body, 1)
         right.addWidget(fields.separator(palette))
@@ -191,6 +201,8 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
                 self.dialect_combo.currentTextChanged,
                 self.auth_type_combo.currentTextChanged,
             ],
+            5: [self.connectors.changed],
+            6: [self.personalisation.changed],
         }
         for index, signals in pages.items():
             for signal in signals:
@@ -285,6 +297,15 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         self._credential_drafts[self._credential_target(url, dialect)] = ""
         self._show(KEY_REMOVED, style.success(self.palette()))
 
+    def _use_example(self, identifier: str, text: str) -> None:
+        """Close with the request for the chat box, turning its connector on and saving, as asking means using it."""
+        self.connectors.switches[identifier].setChecked(True)
+        self.chosen_prompt = text
+        if self.save_btn.isEnabled():
+            self._save()
+        else:
+            self.accept()
+
     def _save(self) -> None:
         url = self._edited_url()
         if not self._valid_url(url):
@@ -317,6 +338,8 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         set_context_window(context_window)
         set_reasoning_enabled(self.reasoning_cb.isChecked(), url, model, dialect)
         set_geocoder_provider(geocoder_provider)
+        save_enabled(self.connectors.enabled_ids())
+        set_custom_instructions(self.personalisation.text())
         if geocoder_provider == GEOCODER_NOMINATIM:
             set_custom_nominatim_url(geocoder_url)
         key = self.key_edit.text()

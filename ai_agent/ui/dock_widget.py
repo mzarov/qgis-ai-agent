@@ -151,6 +151,9 @@ class AgentDockWidget(QDockWidget):
     def restore_prompt(self, text: str) -> None:
         self.composer.restore(text)
 
+    def put_prompt(self, text: str) -> None:
+        self.composer.put(text)
+
     def keep_stream(self) -> str:
         return self.conversation.keep_draft()
 

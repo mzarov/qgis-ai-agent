@@ -1,0 +1,59 @@
+{
+  "id": "usgs",
+  "title": "USGS The National Map",
+  "category": "national",
+  "order": 110,
+  "monogram": "US",
+  "summary": "United States: aerial imagery and US Topo",
+  "description": "The United States Geological Survey's National Map: aerial imagery and the US Topo map.",
+  "examples": [
+    "Add USGS imagery for this area",
+    "Show the US Topo map"
+  ],
+  "licence": "Public domain (USGS)",
+  "hosts": [
+    "basemap.nationalmap.gov"
+  ],
+  "datasets": [
+    {
+      "id": "usgs",
+      "title": "USGS The National Map",
+      "kind": "service",
+      "summary": "The United States: aerial imagery and the US Topo map.",
+      "coverage": "United States",
+      "license": "public domain (USGS)",
+      "keywords": [
+        "usa",
+        "united states",
+        "america",
+        "usgs",
+        "aerial",
+        "topo",
+        "imagery"
+      ],
+      "load_with": "load_service",
+      "service": "xyz",
+      "bbox": [
+        -125.0,
+        24.4,
+        -66.9,
+        49.4
+      ],
+      "layers": [
+        {
+          "key": "imagery",
+          "title": "Aerial imagery",
+          "source": "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}",
+          "zmax": 16
+        },
+        {
+          "key": "topo",
+          "title": "US Topo map",
+          "source": "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}",
+          "zmax": 16
+        }
+      ],
+      "attribution": "USGS The National Map"
+    }
+  ]
+}

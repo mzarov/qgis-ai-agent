@@ -978,14 +978,24 @@ These verify the agent solves everyday tasks without wandering through search.
      **Conversation and project** → rivers blue again, the chat ends before
      the second request and it sits in the input box. A message sent before
      QGIS was restarted offers **Conversation only**.
-206. **Activity list.** *How many roads are there, and where is Rotterdam?* →
+206. **Connectors.** Settings → Connectors: thirteen sources in five groups;
+     search *dutch* → only PDOK. Switch NASA GIBS off, Save; *add yesterday's
+     NASA satellite picture* → the agent says the connector is off. Switch it
+     on → the picture loads under the vector layers. Click the PDOK card (not
+     its switch) → its page: description, four layers with captions, licence,
+     servers; *‹ All connectors* returns to the list. Switch PDOK off, open it,
+     click *Add Dutch aerial photos* → Settings closes, the request sits in the
+     chat box, and PDOK is on again.
+207. **Personalisation.** Settings → Personalisation: *Always answer in two
+     sentences.* → Save; ask anything → the answer keeps to two sentences.
+208. **Activity list.** *How many roads are there, and where is Rotterdam?* →
      while it works an open list: the header names the first calls; each row
      has a coloured badge (eye for reading, globe for the web, brain for
      reasoning) and a line under it — *N features matched*, the address. The
      answer arrives → the list folds to its header with a duration; a click
      reopens it. *Zoom to the Netherlands* → one row *Moving the map to
      Netherlands* (no header above a single call), no Python confirmation.
-207. **Failures in plain words.** Disconnect the network; *download the roads
+209. **Failures in plain words.** Disconnect the network; *download the roads
      here from OSM* → Apply → the plan step ✕ with *Could not reach the
      service…* under it, no feed row repeating it, no English error text,
      then *Looking into what went wrong…*. *Rename the roads layer to Roads and
