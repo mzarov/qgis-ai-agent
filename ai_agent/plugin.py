@@ -89,10 +89,15 @@ class QgisAiAgentPlugin:
         return QIcon(icon_path) if os.path.isfile(icon_path) else QIcon()
 
     def _on_open_settings(self) -> None:
-        dialog = SettingsDialog(self.dock_widget)
+        # The main window, not the panel: a reload or a theme rebuild deletes the panel, and its
+        # children with it, while the dialog's own event loop is still running.
+        dialog = SettingsDialog(self.iface.mainWindow())
         accepted = dialog.exec() == QDialog.DialogCode.Accepted
         prompt = dialog.chosen_prompt
         dialog.deleteLater()
+        if self._orchestrator is None:
+            # Unloaded while the dialog was open: this instance has nothing left to update.
+            return
         if accepted and prompt and self.dock_widget:
             self.dock_widget.put_prompt(prompt)
         if self._orchestrator:
