@@ -28,18 +28,18 @@ RECOVERED = "↺"
 NOTE = "· {0}"
 CLOSING = {"'": "'", '"': '"', "«": "»", "“": "”"}
 LIST_INDENT = 2
-ROW_PAD = 5
+ROW_PAD = 4
 HEADER_GAP = 8
 GROUP_BOTTOM = 8
 LEAD = 14
-BADGE = 24
-BADGE_RADIUS = 7
-GLYPH = 14
+BADGE = 22
+BADGE_RADIUS = 6
+GLYPH = 13
 # The badge's wash: enough of the skill's hue to tell rows apart, little enough to stay quiet.
 BADGE_WASH = 0.16
 BADGE_GAP = 10
 # One text line sits level with the middle of the badge.
-TEXT_TOP = 3
+TEXT_TOP = 2
 NOTE_GAP = 1
 THINKING = "thinking"
 # Each skill keeps one hue from the categorical palette, so a row's kind is readable at a glance.
@@ -65,6 +65,8 @@ HUES = {
     THINKING: 6,
 }
 NAMED_CALLS = 2
+# One call is its own title: a header above it only repeated the row.
+HEADED_CALLS = 2
 # "+2" reads the same in every language, so it is no translation string.
 MORE = "{0} +{1}"
 
@@ -153,9 +155,9 @@ class ActivityGroup(QFrame):
     def rest(self) -> None:
         """The turn moved on: the list folds to its header line, with the time the calls took."""
         self._closed = True
-        if not self._count:
-            # A reasoning-only turn has no header to reopen it from: its row stays.
-            self._steps_holder.setVisible(self._extras > 0)
+        if self._count < HEADED_CALLS:
+            # Without a header there is nothing to reopen the turn from: its rows stay.
+            self._steps_holder.setVisible(bool(self._count or self._extras))
         else:
             self._toggle.setChecked(False)
             if self._finished:
@@ -183,7 +185,7 @@ class ActivityGroup(QFrame):
 
     def _refresh(self) -> None:
         palette = self._palette
-        self._header.setVisible(bool(self._count))
+        self._header.setVisible(self._count >= HEADED_CALLS)
         title = ", ".join(self._names[:NAMED_CALLS])
         if len(self._names) > NAMED_CALLS:
             title = MORE.format(title, len(self._names) - NAMED_CALLS)
@@ -202,7 +204,7 @@ class ActivityGroup(QFrame):
         style.ink(self._status, colour)
 
     def _on_toggled(self, expanded: bool) -> None:
-        if self._count:
+        if self._count >= HEADED_CALLS:
             self._steps_holder.setVisible(expanded)
 
 

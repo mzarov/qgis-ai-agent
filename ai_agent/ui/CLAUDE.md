@@ -157,7 +157,8 @@ over the categorical chart palette; the skill is the `CallSummary.skill` the
 registry sets), the wording muted with the call's own values bright, and under
 it the tool's `summarize_result` line — what the call found. Reasoning gets a
 badge of its own so it lines up. When the answer arrives the list folds to its
-header. Row text keeps the inherited font: a scaled font set before the row
+header. A group with one call has no header at all — it only repeated the row —
+and its row stays shown. Row text keeps the inherited font: a scaled font set before the row
 joins the feed is computed from the application font and came out smaller. Success carries no mark — only a failed or rejected call shows
 one, and the header counts failures in the danger colour. The working line
 below says "Working…" with the time; it does not repeat the current call, which

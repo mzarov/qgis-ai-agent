@@ -175,6 +175,7 @@ class CompactFeedTest(unittest.TestCase):
 
     def test_the_answer_folds_the_group_to_its_header(self):
         self.view.add_activity_step("Reading the project.")
+        self.view.add_activity_step("Rendering the map.")
         group = self.view._activity
         self.view.add_assistant_message("done")
         self.assertFalse(group._toggle.isChecked())
@@ -183,6 +184,7 @@ class CompactFeedTest(unittest.TestCase):
 
     def test_a_finished_answer_folds_it_too(self):
         self.view.add_activity_step("Reading the project.")
+        self.view.add_activity_step("Rendering the map.")
         group = self.view._activity
         self.view.append_draft("the answer")
         self.view.finish_draft("the answer")
@@ -293,11 +295,21 @@ class ActivityTitleTest(unittest.TestCase):
         block.finish()
         self.assertEqual(block._body.text(), "abcd")
 
-    def test_the_first_action_brings_the_header_back(self):
+    def test_a_second_call_brings_the_header(self):
         view = ConversationView()
         view.append_thinking("hmm")
         view.add_activity_step("Reading the project.")
+        self.assertFalse(view._activity._header.isVisible())
+        view.add_activity_step("Rendering the map.")
         self.assertTrue(view._activity._header.isVisible())
+
+    def test_a_single_call_is_its_own_title_and_stays_shown(self):
+        view = ConversationView()
+        view.add_activity_step("Loading knowledge: project.")
+        group = view._activity
+        view.add_assistant_message("done")
+        self.assertFalse(group._header.isVisible())
+        self.assertFalse(group._steps_holder.isHidden())
 
     def test_the_header_names_the_first_calls_and_counts_the_rest(self):
         view = ConversationView()
@@ -310,7 +322,8 @@ class ActivityTitleTest(unittest.TestCase):
 
     def test_a_finished_group_shows_how_long_it_took(self):
         view = ConversationView()
-        group_step = view.add_activity_step("Reading the project.")
+        view.add_activity_step("Reading the project.")
+        group_step = view.add_activity_step("Rendering the map.")
         group = view._activity
         with mock.patch("ai_agent.ui.activity.time.monotonic", return_value=group._started + 9.4):
             view.mark_activity_step(group_step, True)

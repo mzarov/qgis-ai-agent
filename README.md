@@ -13,7 +13,7 @@ confirms them.
 **Documentation:** <https://mzarov.github.io/qgis-ai-agent/> ·
 по-русски: <https://mzarov.github.io/qgis-ai-agent/ru/>
 
-**What it does** — seventeen domains, 81 tools:
+**What it does** — seventeen domains, 82 tools:
 
 | Domain | Example requests |
 | --- | --- |

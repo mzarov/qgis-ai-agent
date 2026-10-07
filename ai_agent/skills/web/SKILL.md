@@ -30,6 +30,8 @@ Anything shaped like "where is X" — a town, a street, a landmark — is
 bounding box, and the `bbox` string slots straight into `download_osm`. So
 "download the cafes in Divnomorskoye" that Overpass does not know by name
 becomes: `geocode` the place → `download_osm` with the returned `bbox`.
+"Zoom to X" is the same first step → `zoom_to_area` (project skill) with that
+`bbox` and `place`.
 
 The model passes only `place`; the plugin reads the provider and URL from
 Settings. If geocoding is disabled, ask the user to select Photon or Custom

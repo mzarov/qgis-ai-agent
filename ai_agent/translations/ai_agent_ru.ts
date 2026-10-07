@@ -44,7 +44,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/activity.py" line="180"/>
+        <location filename="ai_agent/ui/activity.py" line="195"/>
         <source>%n failed</source>
         <translation>
             <numerusform>%n ошибка</numerusform>
@@ -600,7 +600,7 @@
         <translation>Копировать строки как CSV</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/conversation.py" line="296"/>
+        <location filename="ai_agent/ui/conversation.py" line="292"/>
         <source>Copy the whole conversation</source>
         <translation>Скопировать весь диалог</translation>
     </message>
@@ -1008,6 +1008,21 @@
         <location filename="ai_agent/core/llm/probe.py" line="27"/>
         <source>Model replied: {0}</source>
         <translation>Модель ответила: {0}</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/project/zoom_to_area.py" line="69"/>
+        <source>Moving the map to {0}, {1}.</source>
+        <translation>Перемещаю карту в точку {0}, {1}.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/project/zoom_to_area.py" line="67"/>
+        <source>Moving the map to {0}.</source>
+        <translation>Перемещаю карту: {0}.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/project/zoom_to_area.py" line="70"/>
+        <source>Moving the map view.</source>
+        <translation>Перемещаю вид карты.</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/dock_widget.py" line="75"/>
@@ -1960,7 +1975,7 @@
         <translation>Без /chat/completions.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/progress.py" line="27"/>
+        <location filename="ai_agent/ui/progress.py" line="29"/>
         <source>Working…</source>
         <translation>Работаю…</translation>
     </message>

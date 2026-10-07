@@ -983,4 +983,5 @@ These verify the agent solves everyday tasks without wandering through search.
      has a coloured badge (eye for reading, globe for the web, brain for
      reasoning) and a line under it — *N features matched*, the address. The
      answer arrives → the list folds to its header with a duration; a click
-     reopens it.
+     reopens it. *Zoom to the Netherlands* → one row *Moving the map to
+     Netherlands* (no header above a single call), no Python confirmation.
