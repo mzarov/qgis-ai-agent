@@ -20,6 +20,11 @@ STEP_RUNNING = "running"
 STEP_DONE = "done"
 STEP_FAILED = "failed"
 STEP_SKIPPED = "skipped"
+# What the status line under the feed says once a run has stopped working.
+STATUS_WAITING = "waiting"
+STATUS_DONE = "done"
+STATUS_FAILED = "failed"
+STATUS_HIDDEN = "hidden"
 CHECKED_BY_READING = tr("Checked: every step is in place.")
 DESTRUCTIVE_DECLINED = tr("Kept everything as it was — the destructive steps were not applied.")
 INTERJECTED = tr("Passed to the agent — it will take this into account on its next step.")

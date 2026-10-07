@@ -1,8 +1,9 @@
 from typing import Any
 
-from qgis.PyQt.QtCore import Qt, pyqtSignal
+from qgis.PyQt.QtCore import Qt, QTime, pyqtSignal
 from qgis.PyQt.QtWidgets import (
-    QFrame,
+    QGraphicsOpacityEffect,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -16,12 +17,25 @@ from ai_agent.i18n import tr, tr_n
 from ai_agent.ui import controls, style
 from ai_agent.ui.choice_popup import Choice, ChoiceRow
 
-STEP_FONT_SCALE = 0.92
-BUTTON_HEIGHT = 26
+SUB_SCALE = 0.92
+BUTTON_HEIGHT = 32
+CARD_RADIUS = 8
+CONTROL_RADIUS = 6
+HEADER_PADDING = (12, 10, 12, 10)
+ROW_PADDING = (12, 9, 12, 9)
+FOOTER_PADDING = (12, 10, 12, 12)
+STATUS_PADDING = (12, 8, 12, 8)
+NUMBER_WIDTH = 18
+MARK_SIZE = 12
+CANCELLED_OPACITY = 0.55
+# A plan line may end in what Undo cannot take back ("· writes outside the project…"); it becomes the sub-line.
+SUB_SEPARATOR = " · "
 PENDING_MARK = "◆"
 APPLIED_MARK = "✓"
 CANCELLED_MARK = "—"
 FAILED_MARK = "✕"
+UNDONE_MARK = "↺"
+RUNNING_MARK = "●"
 RUN_PLAN_QUESTION = tr("Run this plan?")
 RUN_AUTO = tr("Run automatically")
 RUN_AUTO_NOTE = tr("Changes apply by themselves; deleting still asks")
@@ -30,8 +44,15 @@ RUN_ASKING_NOTE = tr("Every change waits for Apply")
 KEEP_PLANNING = tr("Or reply to change the plan.")
 PLAN_STARTED_AUTO = tr("Running the plan automatically")
 PLAN_STARTED_ASKING = tr("Running the plan with approval")
-NUMBER_WIDTH = 16
-RUNNING_MARK = "●"
+UNDO_HINT = tr("Applied changes can be undone from this card.")
+APPLIED_AT = tr("Applied at {0}")
+UNDONE_AT = tr("Undone at {0}")
+NOTHING_CHANGED = tr("Nothing changed")
+UNDO = tr("Undo")
+FAILED_TITLE = tr("Applied with errors")
+CANCELLED_TITLE = tr("Plan cancelled")
+UNDONE_TITLE = tr("Undone")
+TIME_FORMAT = "HH:mm"
 # A plan step's mark while the plan applies, by the state the orchestrator reports.
 STEP_MARKS = {
     STEP_RUNNING: (RUNNING_MARK, style.muted),
@@ -41,63 +62,120 @@ STEP_MARKS = {
 }
 
 
-class PlanCard(QFrame):
+def split_line(line: str) -> tuple[str, str]:
+    """A plan line as its step and the kind of change it is, the sub-line under it."""
+    step, separator, kind = str(line).rpartition(SUB_SEPARATOR)
+    return (step, kind) if separator else (str(line), "")
+
+
+class PlanCard(controls.RoundedFrame):
+    """The plan: a header with its count, the numbered steps, then Apply and Cancel; after it, Undo.
+
+    The only card in the feed besides a question, because only they ask for an action.
+    While the plan applies each step marks its progress; afterwards the footer says when
+    it was applied and offers to undo it from the snapshot the apply took.
+    """
+
     confirmed = pyqtSignal()
     cancelled = pyqtSignal()
+    undo_requested = pyqtSignal()
 
     def __init__(self, steps: list[str], applies_itself: bool = False, parent=None):
-        super().__init__(parent)
-        palette = self.palette()
-        self.setStyleSheet(
-            f"QFrame {{ background: transparent;"
-            f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
-            f"border-radius: {style.CARD_RADIUS}px; }}"
-        )
+        super().__init__(CARD_RADIUS, parent)
+        palette = self._palette = self.palette()
+        self._count = len(steps)
+        self.set_look(style.surface(palette).name(), style.hairline(palette).name())
         column = QVBoxLayout(self)
-        column.setContentsMargins(11, 8, 11, 9)
-        column.setSpacing(6)
-        column.addWidget(self._build_heading(len(steps), palette))
-        column.addWidget(self._build_steps(steps, palette))
+        column.setContentsMargins(0, 0, 0, 0)
+        column.setSpacing(0)
+        column.addWidget(self._build_heading(palette))
+        column.addWidget(_divider(palette))
+        self._list = self._build_steps(steps, palette)
+        column.addWidget(self._list)
+        self._footer_line = _divider(palette)
+        column.addWidget(self._footer_line)
         self._buttons = self._build_buttons(palette)
         column.addWidget(self._buttons)
+        self._status = self._build_status(palette)
+        column.addWidget(self._status)
+        self._status.setVisible(False)
         if applies_itself:
             # Auto mode: nothing to press, the card only reports what is being applied.
             self._buttons.setVisible(False)
-            self._heading.setText(_auto_heading(len(steps)))
-            self._mark.setStyleSheet(f"color: {style.css_color(style.accent(palette))};")
+            self._footer_line.setVisible(False)
+            self._heading.setText(tr_n("Applying by itself · %n change(s)", self._count))
+            self._paint_mark(PENDING_MARK, style.accent(palette))
 
-    def _build_heading(self, count: int, palette) -> QWidget:
+    def _build_heading(self, palette: Any) -> QWidget:
         holder = QWidget()
-        holder.setStyleSheet("border: none;")
         row = QHBoxLayout(holder)
-        row.setContentsMargins(0, 0, 0, 0)
+        row.setContentsMargins(*HEADER_PADDING)
         row.setSpacing(8)
-
-        self._mark = QLabel(PENDING_MARK)
-        self._mark.setFixedWidth(NUMBER_WIDTH)
-        self._mark.setStyleSheet(f"color: {style.css_color(style.warning(palette))};")
+        self._mark = QLabel()
+        self._mark.setFixedWidth(MARK_SIZE + 2)
         row.addWidget(self._mark)
-
-        self._heading = QLabel(_heading(count))
+        self._heading = QLabel(tr_n("Plan · %n change(s)", self._count))
         font = self._heading.font()
         font.setBold(True)
         self._heading.setFont(font)
-        # Explicit ink: a style sheet freezes the palette it was polished with, and that can be the
-        # QGIS palette rather than the panel's when the panel theme differs from QGIS.
-        self._heading.setStyleSheet(f"border: none; color: {style.css_color(style.text(palette))};")
+        style.ink(self._heading, style.text(palette))
         row.addWidget(self._heading, 1)
+        self._paint_mark(PENDING_MARK, style.accent(palette))
         return holder
 
-    def _build_steps(self, steps: list[str], palette) -> QWidget:
+    def _build_steps(self, steps: list[str], palette: Any) -> QWidget:
         holder = QWidget()
-        holder.setStyleSheet("border: none;")
         column = QVBoxLayout(holder)
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(0)
         self._steps: list[PlanStep] = []
         for index, step in enumerate(steps, 1):
+            if index > 1:
+                column.addWidget(_divider(palette))
             self._steps.append(PlanStep(index, step, palette))
             column.addWidget(self._steps[-1])
+        return holder
+
+    def _build_buttons(self, palette: Any) -> QWidget:
+        holder = QWidget()
+        column = QVBoxLayout(holder)
+        column.setContentsMargins(*FOOTER_PADDING)
+        column.setSpacing(8)
+        row = QHBoxLayout()
+        row.setSpacing(8)
+        apply_button = QPushButton(tr("Apply"))
+        apply_button.setFixedHeight(BUTTON_HEIGHT)
+        apply_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        apply_button.setStyleSheet(_accent_button(palette))
+        apply_button.clicked.connect(self.confirmed.emit)
+        row.addWidget(apply_button, 1)
+        cancel_button = QPushButton(tr("Cancel"))
+        cancel_button.setFixedHeight(BUTTON_HEIGHT)
+        cancel_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        cancel_button.setStyleSheet(_plain_button(palette))
+        cancel_button.clicked.connect(self.cancelled.emit)
+        row.addWidget(cancel_button)
+        column.addLayout(row)
+        hint = controls.small(UNDO_HINT, palette)
+        style.ink(hint, style.faint(palette))
+        hint.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        column.addWidget(hint)
+        return holder
+
+    def _build_status(self, palette: Any) -> QWidget:
+        holder = QWidget()
+        row = QHBoxLayout(holder)
+        row.setContentsMargins(*STATUS_PADDING)
+        row.setSpacing(8)
+        self._status_text = controls.small("", palette)
+        style.ink(self._status_text, style.faint(palette))
+        row.addWidget(self._status_text, 1)
+        self._undo = QPushButton(UNDO)
+        self._undo.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._undo.setStyleSheet(_link_button(palette))
+        self._undo.clicked.connect(self.undo_requested.emit)
+        self._undo.setVisible(False)
+        row.addWidget(self._undo)
         return holder
 
     def mark_step(self, index: int, state: str, note: str = "") -> None:
@@ -105,83 +183,80 @@ class PlanCard(QFrame):
         if 0 <= index < len(self._steps):
             self._steps[index].set_state(state, note)
 
-    def _build_buttons(self, palette) -> QWidget:
-        holder = QWidget()
-        holder.setStyleSheet("border: none;")
-        row = QHBoxLayout(holder)
-        row.setContentsMargins(NUMBER_WIDTH + 8, 2, 0, 0)
-        row.setSpacing(8)
+    def mark_applied(self, undoable: bool = False) -> None:
+        self._settle(APPLIED_MARK, tr_n("Applied · %n change(s)", self._count), style.success(self._palette))
+        self._show_status(APPLIED_AT.format(_now()), undoable)
 
-        apply_button = QPushButton(tr("Apply"))
-        apply_button.setMinimumHeight(BUTTON_HEIGHT)
-        apply_button.setCursor(apply_button.cursor())
-        apply_button.setStyleSheet(_accent_button(palette))
-        apply_button.clicked.connect(self.confirmed.emit)
-        row.addWidget(apply_button, 1)
-
-        cancel_button = QPushButton(tr("Cancel"))
-        cancel_button.setMinimumHeight(BUTTON_HEIGHT)
-        cancel_button.setStyleSheet(_plain_button(palette))
-        cancel_button.clicked.connect(self.cancelled.emit)
-        row.addWidget(cancel_button)
-        return holder
-
-    def mark_applied(self) -> None:
-        self._settle(APPLIED_MARK, tr("Applied"), style.success(self.palette()))
+    def mark_failed(self, undoable: bool = False) -> None:
+        self._settle(FAILED_MARK, FAILED_TITLE, style.danger(self._palette))
+        self._show_status(APPLIED_AT.format(_now()), undoable)
 
     def mark_cancelled(self) -> None:
-        self._settle(CANCELLED_MARK, tr("Cancelled"), style.muted(self.palette()))
+        self._settle(CANCELLED_MARK, CANCELLED_TITLE, style.muted(self._palette))
+        effect = QGraphicsOpacityEffect(self._list)
+        effect.setOpacity(CANCELLED_OPACITY)
+        self._list.setGraphicsEffect(effect)
+        self._show_status(NOTHING_CHANGED, False)
 
-    def mark_failed(self) -> None:
-        self._settle(FAILED_MARK, tr("Applied with errors"), style.danger(self.palette()))
+    def mark_undone(self) -> None:
+        self._settle(UNDONE_MARK, UNDONE_TITLE, style.muted(self._palette))
+        self._show_status(UNDONE_AT.format(_now()), False)
 
-    def _settle(self, mark: str, heading: str, colour) -> None:
-        self._mark.setText(mark)
-        self._mark.setStyleSheet(f"color: {style.css_color(colour)}; border: none;")
+    def _settle(self, mark: str, heading: str, colour: Any) -> None:
+        self._paint_mark(mark, colour)
         self._heading.setText(heading)
-        self._heading.setStyleSheet(f"color: {style.css_color(colour)}; border: none;")
         self._buttons.setVisible(False)
+
+    def _show_status(self, text: str, undoable: bool) -> None:
+        self._footer_line.setVisible(True)
+        self._status_text.setText(text)
+        self._undo.setVisible(undoable)
+        self._status.setVisible(True)
+
+    def _paint_mark(self, mark: str, colour: Any) -> None:
+        self._mark.setText(mark)
+        style.ink(self._mark, colour)
 
 
 class PlanStep(QWidget):
-    """A numbered step; while applying it gains a mark at the end and, if it failed, the reason under it."""
+    """A numbered step and, under it, the kind of change; while applying a mark at the end and, if it
+    failed, the reason under it."""
 
     def __init__(self, index: int, step: str, palette: Any, parent: QWidget | None = None):
         super().__init__(parent)
         self._palette = palette
         self.state = ""
-        # A QWidget subclass paints no style-sheet border without this: the hairline between steps vanished.
-        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        self.setStyleSheet(
-            f"border: none; border-top: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
-        )
-        column = QVBoxLayout(self)
-        column.setContentsMargins(0, 6, 0, 6)
-        column.setSpacing(2)
-        line = QHBoxLayout()
-        line.setSpacing(8)
-        column.addLayout(line)
+        text, kind = split_line(step)
+        grid = QGridLayout(self)
+        grid.setContentsMargins(*ROW_PADDING)
+        grid.setHorizontalSpacing(6)
+        grid.setVerticalSpacing(2)
         number = QLabel(f"{index}.")
         number.setFixedWidth(NUMBER_WIDTH)
-        number.setStyleSheet(f"color: {style.css_color(style.muted(palette))}; border: none;")
-        line.addWidget(number)
-        self.label = QLabel(step)
+        style.ink(number, style.faint(palette))
+        grid.addWidget(number, 0, 0, Qt.AlignmentFlag.AlignTop)
+        self.label = QLabel(text)
         self.label.setTextFormat(Qt.TextFormat.PlainText)
         self.label.setWordWrap(True)
+        # Explicit ink: a style sheet freezes the palette it was polished with, and that can be the
+        # QGIS palette rather than the panel's when the panel theme differs from QGIS.
         self.label.setStyleSheet(f"border: none; color: {style.css_color(style.text(palette))};")
-        style.scale_font(self.label, STEP_FONT_SCALE)
-        number.setFont(self.label.font())
-        line.addWidget(self.label, 1)
+        grid.addWidget(self.label, 0, 1)
         self.mark = QLabel()
-        self.mark.setFont(self.label.font())
         self.mark.setVisible(False)
-        line.addWidget(self.mark, 0, Qt.AlignmentFlag.AlignTop)
+        grid.addWidget(self.mark, 0, 2, Qt.AlignmentFlag.AlignTop)
+        self.kind = controls.small(kind, palette)
+        self.kind.setTextFormat(Qt.TextFormat.PlainText)
+        style.scale_font(self.kind, SUB_SCALE / controls.SMALL_SCALE)
+        style.ink(self.kind, style.muted(palette))
+        self.kind.setVisible(bool(kind))
+        grid.addWidget(self.kind, 1, 1)
         self.reason = controls.small("", palette)
         self.reason.setTextFormat(Qt.TextFormat.PlainText)
-        self.reason.setContentsMargins(NUMBER_WIDTH + 8, 0, 0, 0)
         self.reason.setStyleSheet(f"color: {style.css_color(style.danger(palette))}; border: none;")
         self.reason.setVisible(False)
-        column.addWidget(self.reason)
+        grid.addWidget(self.reason, 2, 1)
+        grid.setColumnStretch(1, 1)
 
     def set_state(self, state: str, note: str = "") -> None:
         self.state = state
@@ -253,29 +328,41 @@ class PlanOffer(controls.RoundedFrame):
         self._hint.setVisible(False)
 
 
-def _accent_button(palette) -> str:
+def _divider(palette: Any) -> QWidget:
+    line = QWidget()
+    line.setFixedHeight(style.HAIRLINE)
+    style.fill(line, style.hairline(palette))
+    return line
+
+
+def _now() -> str:
+    return QTime.currentTime().toString(TIME_FORMAT)
+
+
+def _accent_button(palette: Any) -> str:
     accent = style.css_color(style.accent(palette))
+    hover = style.css_color(style.accent_hover(palette))
     return (
-        f"QPushButton {{ background: {accent};"
-        f"color: {style.css_color(style.on_accent(palette))};"
-        f"border: {style.HAIRLINE}px solid {accent}; border-radius: 6px;"
-        "padding: 0 14px; font-weight: 600; }"
-        f"QPushButton:hover {{ background: {style.css_color(style.accent(palette).lighter(112))}; }}"
+        f"QPushButton {{ background: {accent}; color: {style.css_color(style.on_accent(palette))};"
+        f" border: {style.HAIRLINE}px solid {accent}; border-radius: {CONTROL_RADIUS}px;"
+        " padding: 0 14px; font-weight: 600; }"
+        f"QPushButton:hover {{ background: {hover}; border-color: {hover}; }}"
     )
 
 
-def _plain_button(palette) -> str:
-    border = style.css_color(style.hairline(palette))
+def _plain_button(palette: Any) -> str:
     return (
-        f"QPushButton {{ background: transparent; color: {style.css_color(style.text(palette))};"
-        f"border: {style.HAIRLINE}px solid {border}; border-radius: 6px; padding: 0 14px; }}"
+        f"QPushButton {{ background: {style.css_color(style.surface(palette))};"
+        f" color: {style.css_color(style.text(palette))};"
+        f" border: {style.HAIRLINE}px solid {style.css_color(style.border_strong(palette))};"
+        f" border-radius: {CONTROL_RADIUS}px; padding: 0 14px; }}"
         f"QPushButton:hover {{ background: {style.css_color(style.card(palette))}; }}"
     )
 
 
-def _heading(count: int) -> str:
-    return tr_n("Ready to run — %n action(s)", count)
-
-
-def _auto_heading(count: int) -> str:
-    return tr_n("Applying by itself — %n action(s)", count)
+def _link_button(palette: Any) -> str:
+    return (
+        f"QPushButton {{ background: transparent; border: none; color: {style.css_color(style.accent(palette))};"
+        " padding: 2px 4px; border-radius: 4px; }"
+        f"QPushButton:hover {{ background: {style.css_color(style.soft(palette, style.accent(palette)))}; }}"
+    )

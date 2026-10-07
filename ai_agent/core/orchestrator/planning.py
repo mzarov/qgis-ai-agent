@@ -4,7 +4,6 @@ from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
 from ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call
 
-EFFECT_SNAPSHOT = tr("project snapshot available")
 EFFECT_EXTERNAL = tr("writes outside the project; Undo does not restore it")
 EFFECT_NETWORK = tr("contacts an external service after confirmation")
 EFFECT_IRREVERSIBLE = tr("may be irreversible; extra confirmation required")
@@ -23,7 +22,8 @@ def plan_line(call: Any) -> str:
     elif risk == SAFETY_DESTRUCTIVE:
         effect = EFFECT_IRREVERSIBLE
     else:
-        effect = EFFECT_SNAPSHOT
+        # The card says once that applied changes can be undone; a step notes only an exception to that.
+        return summary
     return f"{summary} · {effect}"
 
 

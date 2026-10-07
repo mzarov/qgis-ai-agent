@@ -57,49 +57,12 @@
  {
   "depth": 5,
   "type": "QLabel",
+  "text": "Needs clarification"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
   "text": "There are two road layers. Which one should I colour?"
- },
- {
-  "depth": 5,
-  "type": "AnswerRow"
- },
- {
-  "depth": 6,
-  "type": "QLabel",
-  "text": "1."
- },
- {
-  "depth": 6,
-  "type": "QLabel",
-  "text": "roads_2024 (12 480 features)"
- },
- {
-  "depth": 5,
-  "type": "AnswerRow"
- },
- {
-  "depth": 6,
-  "type": "QLabel",
-  "text": "2."
- },
- {
-  "depth": 6,
-  "type": "QLabel",
-  "text": "roads_old (9 102 features)"
- },
- {
-  "depth": 5,
-  "type": "AnswerRow"
- },
- {
-  "depth": 6,
-  "type": "QLabel",
-  "text": "3."
- },
- {
-  "depth": 6,
-  "type": "QLabel",
-  "text": "Both"
  },
  {
   "depth": 5,
@@ -107,13 +70,80 @@
  },
  {
   "depth": 6,
+  "type": "AnswerRow"
+ },
+ {
+  "depth": 7,
+  "type": "Radio"
+ },
+ {
+  "depth": 7,
   "type": "QLabel",
-  "text": "4."
+  "text": "roads_2024 (12 480 features)"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "recommended"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "1"
  },
  {
   "depth": 6,
+  "type": "AnswerRow"
+ },
+ {
+  "depth": 7,
+  "type": "Radio"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "roads_old (9 102 features)"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "2"
+ },
+ {
+  "depth": 6,
+  "type": "AnswerRow"
+ },
+ {
+  "depth": 7,
+  "type": "Radio"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Both"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "3"
+ },
+ {
+  "depth": 6,
+  "type": "RoundedFrame"
+ },
+ {
+  "depth": 7,
+  "type": "Radio"
+ },
+ {
+  "depth": 7,
   "type": "QLineEdit",
-  "text": "Type another answer and press Enter"
+  "text": "Your own answer…"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "4"
  },
  {
   "depth": 2,

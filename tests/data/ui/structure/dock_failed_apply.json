@@ -73,6 +73,10 @@
   "type": "QWidget"
  },
  {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
   "depth": 6,
   "type": "PlanStep"
  },
@@ -98,6 +102,10 @@
  },
  {
   "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
   "type": "PlanStep"
  },
  {
@@ -114,6 +122,19 @@
   "depth": 7,
   "type": "QLabel",
   "text": "—"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Applied at <time>"
  },
  {
   "depth": 4,

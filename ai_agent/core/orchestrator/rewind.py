@@ -17,14 +17,17 @@ from ai_agent.core.orchestrator.notices import (
     REWIND_BOTH,
     REWIND_CONVERSATION,
     REWIND_PROJECT,
+    STATUS_HIDDEN,
     SWITCH_WHILE_RUNNING,
 )
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.project.restore import restore_snapshot
-from ai_agent.qgis_tools.project.snapshots import drop_snapshot, last_snapshot, snapshot_exists
+from ai_agent.qgis_tools.project.snapshots import MAX_SNAPSHOTS, drop_snapshot, last_snapshot, snapshot_exists
 
 REWOUND_CONVERSATION = tr("The conversation is back to before this message; the message is in the box.")
 REWOUND_PROJECT = tr("The project is back to how it was before this message.")
+UNDONE_PROJECT = tr("The plan is undone: the project is back to how it was before it.")
+UNDO_GONE = tr("This plan can no longer be undone: its snapshot is gone (only the latest {0} are kept).")
 REWIND_FAILED = tr("Could not restore the project: {0}")
 DATA_EDITS_NOTE = tr("Edits written into data sources are not undone.")
 EMPTY_LAYERS = tr("These temporary layers came back empty: {0}.")
@@ -81,13 +84,46 @@ class RewindMixin:
         if restored:
             self.dock_widget.add_system_message(restored)
 
-    def _rewind_project(self, checkpoint: Checkpoint) -> str:
-        """Restore the snapshot; returns the note for the chat, or "" after reporting a failure."""
-        later = [
-            item
-            for item in self._checkpoints
-            if item.session == checkpoint.session and item.message >= checkpoint.message
-        ]
+    def on_undo_plan(self, message_id: int) -> None:
+        """Undo one applied plan from the card: restore the snapshot its apply took."""
+        if not self.is_idle:
+            self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
+            return
+        path = self._plan_snapshots.get(message_id, "")
+        if not path or not snapshot_exists(path):
+            self.dock_widget.add_system_message(UNDO_GONE.format(MAX_SNAPSHOTS))
+            return
+        position = next((index for index, item in enumerate(self._checkpoints) if item.snapshot == path), None)
+        if position is None:
+            checkpoint = Checkpoint(path, self.conversation.session_identifier, len(self.conversation.messages))
+            later = [checkpoint]
+        else:
+            # By the order the applies happened, not by message: the stages of one run share a message,
+            # and undoing the second stage must keep the first one's snapshot.
+            checkpoint = self._checkpoints[position]
+            later = [item for item in self._checkpoints[position:] if item.session == checkpoint.session]
+        note = self._rewind_project(checkpoint, UNDONE_PROJECT, later)
+        if not note:
+            return
+        # The project is back to before this plan, so every plan applied after it is gone too.
+        gone = {item.snapshot for item in later}
+        for plan_id, snapshot in list(self._plan_snapshots.items()):
+            if plan_id == message_id or snapshot in gone:
+                del self._plan_snapshots[plan_id]
+                self.dock_widget.mark_plan_undone(plan_id)
+        self.dock_widget.add_system_message(note)
+        # The next request starts from the conversation: the model must know the changes are gone.
+        self.conversation.add("assistant", UNDONE_PROJECT)
+
+    def _rewind_project(self, checkpoint: Checkpoint, headline: str = "", later: list[Checkpoint] | None = None) -> str:
+        """Restore the snapshot and forget the checkpoints it supersedes (`later`, by default every one
+        from the checkpoint's message on); returns the note for the chat, or "" after reporting a failure."""
+        if later is None:
+            later = [
+                item
+                for item in self._checkpoints
+                if item.session == checkpoint.session and item.message >= checkpoint.message
+            ]
         self._restoring_snapshot = True
         try:
             result = restore_snapshot(checkpoint.snapshot)
@@ -101,7 +137,9 @@ class RewindMixin:
                 drop_snapshot(item.snapshot)
         self._checkpoints = [item for item in self._checkpoints if item not in later]
         self._snapshot_before_apply = last_snapshot()
-        notes = [REWOUND_PROJECT, DATA_EDITS_NOTE]
+        # "Done in 7 s" under the restore's note would read as its outcome.
+        self.dock_widget.show_outcome(STATUS_HIDDEN)
+        notes = [headline or REWOUND_PROJECT, DATA_EDITS_NOTE]
         if result.get("empty_scratch_layers"):
             notes.append(
                 tr("These temporary layers came back empty: {0}.").format(", ".join(result["empty_scratch_layers"]))

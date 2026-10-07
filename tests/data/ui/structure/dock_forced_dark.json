@@ -48,26 +48,21 @@
  },
  {
   "depth": 5,
-  "type": "Disclosure"
+  "type": "TraceHeader"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel"
  },
  {
   "depth": 6,
   "type": "ElidedLabel",
-  "text": "Reading layer 'districts', Reading values of field 'pop2020' in layer 'districts'"
+  "text": "Activity · 2 steps"
  },
  {
   "depth": 6,
   "type": "QLabel",
   "text": "<duration>"
- },
- {
-  "depth": 6,
-  "type": "QToolButton",
-  "checked": false
- },
- {
-  "depth": 6,
-  "type": "QLabel"
  },
  {
   "depth": 4,
@@ -94,7 +89,11 @@
  {
   "depth": 6,
   "type": "QLabel",
-  "text": "Ready to run — 2 actions"
+  "text": "Plan · 2 changes"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
  },
  {
   "depth": 5,
@@ -116,6 +115,10 @@
  },
  {
   "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
   "type": "PlanStep"
  },
  {
@@ -133,6 +136,10 @@
   "type": "QWidget"
  },
  {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
   "depth": 6,
   "type": "QPushButton",
   "text": "Apply"
@@ -141,6 +148,11 @@
   "depth": 6,
   "type": "QPushButton",
   "text": "Cancel"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Applied changes can be undone from this card."
  },
  {
   "depth": 2,

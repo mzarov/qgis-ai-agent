@@ -989,12 +989,14 @@ These verify the agent solves everyday tasks without wandering through search.
 207. **Personalisation.** Settings → Personalisation: *Always answer in two
      sentences.* → Save; ask anything → the answer keeps to two sentences.
 208. **Activity list.** *How many roads are there, and where is Rotterdam?* →
-     while it works an open list: the header names the first calls; each row
-     has a coloured badge (eye for reading, globe for the web, brain for
-     reasoning) and a line under it — *N features matched*, the address. The
-     answer arrives → the list folds to its header with a duration; a click
-     reopens it. *Zoom to the Netherlands* → one row *Moving the map to
-     Netherlands* (no header above a single call), no Python confirmation.
+     while it works an open timeline under *Working · step N*: a hairline joins
+     the rows, each has its skill's icon (eye for reading, globe for the web,
+     three dots for reasoning), the running one is a breathing ring, and a line
+     under each says what it found — *N features matched*, the address. A
+     loaded skill reads *Using …* with a *skill* tag. The answer arrives → the
+     list folds to *Activity · N steps* with a duration; a click reopens it.
+     *Zoom to the Netherlands* → *Moving the map to Netherlands*, no Python
+     confirmation.
 209. **Failures in plain words.** Disconnect the network; *download the roads
      here from OSM* → Apply → the plan step ✕ with *Could not reach the
      service…* under it, no feed row repeating it, no English error text,
@@ -1016,3 +1018,23 @@ These verify the agent solves everyday tasks without wandering through search.
      light, the conversation still there; labels, fields, menus and the plan
      card all readable. *As in QGIS* → Save → dark again. Change it while the
      agent works → a message says it applies once the agent has finished.
+213. **Status line outcomes.** Ask a question → the compass under the feed
+     swings beside *Working…* and the time; the answer arrives → *Done in N s*
+     with the needle settling north. A question card → *Waiting for your
+     answer*, the needle tilting slowly. Break the key mid-run → *Stopped by an
+     error — the reason is above*, a red needle tip. Press ■ → the line goes.
+     A new conversation → no old outcome under the welcome.
+214. **Undo from the plan card.** *Colour the rivers blue* → *Plan · 1 change*,
+     the step numbered with its kind under it → Apply → *Applied · 1 change*,
+     the time and **Undo** → press it → the rivers are back as before, the card
+     says *Undone* with the time, and the chat says the plan is undone. After ten
+     more applies, the first card's Undo says its snapshot is gone.
+215. **Question card.** A real ambiguity → *Needs clarification*, the question,
+     up to three rows with a radio: the first tagged *recommended*, each may
+     carry a muted why under it, a number key on the right; a fourth row
+     *Your own answer…*. Press 2 → the card folds to its question, and the
+     activity list shows *You chose* with the answer.
+216. **Welcome.** A new conversation → the compass swings in above *Ask about
+     your map*, the project line under it (file name or *Unsaved project*, the
+     layer count, the CRS), four suggestions with icons; a click puts one in
+     the box.

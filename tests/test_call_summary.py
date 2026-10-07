@@ -60,15 +60,18 @@ class StepMarkupTest(unittest.TestCase):
 
     def test_a_row_drops_the_closing_full_stop(self):
         summary = CallSummary.marking("Reading layer 'roads'.", {"layer_name": "roads"})
-        self.assertFalse(step_markup(summary, self.palette).endswith("."))
-        self.assertEqual(StepRow("Reading the project.", self.palette)._label.text(), "Reading the project")
+        self.assertFalse(step_markup(summary, self.palette).endswith(".</span>"))
+        self.assertNotIn("project.<", StepRow("Reading the project.", self.palette)._label.text())
 
-    def test_a_label_without_values_stays_plain_text(self):
-        from qgis.PyQt.QtCore import Qt
+    def test_a_label_without_values_is_all_wording(self):
+        markup = step_markup("Reading the project layers.", self.palette)
+        self.assertIn("Reading the project layers</span>", markup)
+        self.assertNotIn("font-weight", markup)
 
-        self.assertIsNone(step_markup("Reading the project layers.", self.palette))
-        row = StepRow(CallSummary.marking("Reading the project layers.", {}), self.palette)
-        self.assertEqual(row._label.textFormat(), Qt.TextFormat.PlainText)
+    def test_a_skill_being_loaded_wears_the_skill_tag(self):
+        summary = CallSummary.marking("Using style.", {})
+        summary.skill = "knowledge"
+        self.assertIn("skill", step_markup(summary, self.palette))
 
 
 if __name__ == "__main__":

@@ -135,7 +135,7 @@ class FeedPreferenceTest(SettingsCase):
         personal.save(personal.Profile(show_steps=False))
         group = ActivityGroup()
         group.add_step("Reading layer roads.")
-        self.assertTrue(group._steps_holder.isHidden())
+        self.assertTrue(group._rows_holder.isHidden())
         self.assertTrue(group._header.isVisible())
 
 

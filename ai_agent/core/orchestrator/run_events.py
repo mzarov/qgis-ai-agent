@@ -7,6 +7,10 @@ from ai_agent.core.orchestrator.notices import (
     AWAITING_ANSWER,
     LOG_TAG,
     RUN_STOPPED,
+    STATUS_DONE,
+    STATUS_FAILED,
+    STATUS_HIDDEN,
+    STATUS_WAITING,
     STEP_DONE,
     STEP_FAILED,
     STEP_RUNNING,
@@ -31,6 +35,7 @@ class RunEventsMixin:
                 self.dock_widget.mark_plan_cancelled(self._plan_message_id)
         self._plan_message_id = None
         self._keep_partial_answer()
+        self.dock_widget.show_outcome(STATUS_HIDDEN)
         # A stop is deliberate: the request stays in the chat but not back in the box (the user's call).
         self.dock_widget.add_system_message(APPLY_STOPPED if applying else RUN_STOPPED)
 
@@ -42,6 +47,7 @@ class RunEventsMixin:
         self._render_answer(text)
 
     def on_question_asked(self, question: str) -> None:
+        self.dock_widget.show_outcome(STATUS_WAITING)
         options = list(getattr(self.agent, "question_options", None) or [])
         if options:
             self.dock_widget.add_question(question, options)
@@ -84,7 +90,7 @@ class RunEventsMixin:
         self.dock_widget.add_tool_message(tr("Plan {0}/{1}: {2}").format(done, len(steps), shown))
 
     def on_skill_loaded(self, name: str) -> None:
-        summary = CallSummary.of(tr("Loading knowledge: {0}"), name)
+        summary = CallSummary.of(tr("Using {0}"), name)
         summary.skill = KNOWLEDGE
         self.dock_widget.add_tool_message(summary)
 
@@ -97,6 +103,7 @@ class RunEventsMixin:
             self.dock_widget.add_system_message(tr("The model returned nothing. Try rephrasing."))
             return
         self._render_answer(message)
+        self.dock_widget.show_outcome(STATUS_DONE)
         self.naming.after_answer()
         if getattr(self.agent, "is_planning", False) and not getattr(self.agent, "ended_on_limit", False):
             # Plan mode ends on a plan: offer to run it, as Claude Code does.
@@ -111,6 +118,7 @@ class RunEventsMixin:
         self._active_tool_message_id = None
         self._plan_message_id = None
         self._keep_partial_answer()
+        self.dock_widget.show_outcome(STATUS_FAILED)
         self.dock_widget.add_system_message(tr("Error: {0}").format(message))
         self._push_message(message, Qgis.MessageLevel.Critical)
         self._offer_request_again()

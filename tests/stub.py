@@ -416,6 +416,7 @@ _qtcore = _mod(
     "qgis.PyQt.QtCore",
     [
         "Qt",
+        "QTime",
         "QVariantAnimation",
         "QEasingCurve",
         "QThread",
@@ -508,6 +509,7 @@ _mod(
         "QStackedWidget",
         "QButtonGroup",
         "QGridLayout",
+        "QGraphicsOpacityEffect",
         "QFileDialog",
         "QToolTip",
     ],

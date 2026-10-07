@@ -103,6 +103,16 @@ class WelcomeFeedTest(unittest.TestCase):
         self.assertIsNotNone(self.view._empty)
         self.assertIsNot(self.view._empty, first)
 
+    def test_the_project_line_changes_in_place_without_replaying_the_compass(self):
+        self.view.set_configured(True)
+        card = self.view._empty
+        self.view.set_project_line("roads.qgz · 3 layers · EPSG:3857")
+        self.assertIs(self.view._empty, card)
+        self.assertEqual(card.project.label.text(), "roads.qgz · 3 layers · EPSG:3857")
+        self.assertFalse(card.project.isHidden())
+        self.view.set_project_line("")
+        self.assertTrue(card.project.isHidden())
+
 
 class ThinkingFeedTest(unittest.TestCase):
     def setUp(self):
@@ -166,20 +176,20 @@ class CompactFeedTest(unittest.TestCase):
 
     def test_thinking_starts_inside_an_open_group(self):
         self.view.append_thinking("hmm")
-        self.assertTrue(self.view._activity._toggle.isChecked())
+        self.assertTrue(self.view._activity.expanded)
 
     def test_calls_show_open_while_the_agent_works(self):
         self.view.add_activity_step("Reading the project.")
-        self.assertTrue(self.view._activity._toggle.isChecked())
-        self.assertFalse(self.view._activity._steps_holder.isHidden())
+        self.assertTrue(self.view._activity.expanded)
+        self.assertFalse(self.view._activity._rows_holder.isHidden())
 
     def test_the_answer_folds_the_group_to_its_header(self):
         self.view.add_activity_step("Reading the project.")
         self.view.add_activity_step("Rendering the map.")
         group = self.view._activity
         self.view.add_assistant_message("done")
-        self.assertFalse(group._toggle.isChecked())
-        self.assertTrue(group._steps_holder.isHidden())
+        self.assertFalse(group.expanded)
+        self.assertTrue(group._rows_holder.isHidden())
         self.assertIsNone(self.view._activity)
 
     def test_a_finished_answer_folds_it_too(self):
@@ -188,7 +198,7 @@ class CompactFeedTest(unittest.TestCase):
         group = self.view._activity
         self.view.append_draft("the answer")
         self.view.finish_draft("the answer")
-        self.assertFalse(group._toggle.isChecked())
+        self.assertFalse(group.expanded)
 
     def test_a_dropped_draft_leaves_the_group_open_for_the_next_step(self):
         self.view.add_activity_step("first")
@@ -208,7 +218,7 @@ class CompactFeedTest(unittest.TestCase):
 
 class ThinkingBlockTest(unittest.TestCase):
     def test_it_starts_open_so_the_reasoning_is_visible(self):
-        self.assertTrue(ThinkingBlock()._toggle.isChecked())
+        self.assertTrue(ThinkingBlock().expanded)
 
     def test_reasoning_watched_live_reports_how_long_it_took(self):
         with mock.patch("ai_agent.ui.thinking.time.monotonic", side_effect=[100.0, 103.0, 103.0, 103.0]):
@@ -216,29 +226,29 @@ class ThinkingBlockTest(unittest.TestCase):
             block.append("one")
             block.append("two")
             block.finish()
-        self.assertTrue(block._header.detail.text())
+        self.assertTrue(block.time.text())
 
     def test_a_burst_too_short_to_measure_claims_no_duration(self):
         block = ThinkingBlock()
         block.append("one")
         block.append("two")
         block.finish()
-        self.assertEqual(block._header.detail.text(), "")
+        self.assertEqual(block.time.text(), "")
 
     def test_reasoning_that_arrived_whole_claims_no_duration(self):
         block = ThinkingBlock()
         block.append("the whole monologue at once")
         block.finish()
-        self.assertEqual(block._header.detail.text(), "")
+        self.assertEqual(block.time.text(), "")
 
     def test_finishing_twice_changes_nothing(self):
         block = ThinkingBlock()
         block.append("a")
         block.append("b")
         block.finish()
-        first = block._header.detail.text()
+        first = block.time.text()
         block.finish()
-        self.assertEqual(block._header.detail.text(), first)
+        self.assertEqual(block.time.text(), first)
 
 
 class AssistantMessageTest(unittest.TestCase):
@@ -272,17 +282,21 @@ if __name__ == "__main__":
 
 
 class ActivityTitleTest(unittest.TestCase):
-    def test_a_thinking_only_group_hides_its_own_header(self):
+    def test_every_turn_with_steps_has_the_trace_header(self):
         view = ConversationView()
         view.append_thinking("hmm")
-        self.assertFalse(view._activity._header.isVisible())
+        view.add_activity_step("Reading layer roads")
+        self.assertFalse(view._activity._header.isHidden())
+        self.assertIn("2", view._activity._header.title.text())
 
-    def test_a_thinking_only_turn_stays_in_the_feed_after_the_answer(self):
+    def test_a_reasoning_only_turn_stays_shown_without_a_header(self):
         view = ConversationView()
         view.append_thinking("hmm")
         group = view._activity
-        view.add_assistant_message("Answer.")
-        self.assertFalse(group._steps_holder.isHidden())
+        self.assertTrue(group._header.isHidden())
+        view.add_result_message("Three layers.")
+        self.assertTrue(group._header.isHidden())
+        self.assertFalse(group._rows_holder.isHidden(), "the turn's only reasoning folded out of sight")
 
     def test_reasoning_deltas_are_painted_in_batches(self):
         block = ThinkingBlock()
@@ -295,30 +309,16 @@ class ActivityTitleTest(unittest.TestCase):
         block.finish()
         self.assertEqual(block._body.text(), "abcd")
 
-    def test_a_second_call_brings_the_header(self):
+    def test_while_working_the_header_counts_the_step_then_names_the_trace(self):
         view = ConversationView()
-        view.append_thinking("hmm")
-        view.add_activity_step("Reading the project.")
-        self.assertFalse(view._activity._header.isVisible())
+        entry = view.add_activity_step("Reading the project.")
+        self.assertEqual(view._activity._header.title.text(), "Working · step 1")
         view.add_activity_step("Rendering the map.")
-        self.assertTrue(view._activity._header.isVisible())
-
-    def test_a_single_call_is_its_own_title_and_stays_shown(self):
-        view = ConversationView()
-        view.add_activity_step("Loading knowledge: project.")
+        self.assertEqual(view._activity._header.title.text(), "Working · step 2")
         group = view._activity
+        view.mark_activity_step(entry, True)
         view.add_assistant_message("done")
-        self.assertFalse(group._header.isVisible())
-        self.assertFalse(group._steps_holder.isHidden())
-
-    def test_the_header_names_the_first_calls_and_counts_the_rest(self):
-        view = ConversationView()
-        view.add_activity_step("Reading the project.")
-        self.assertEqual(view._activity._title.text(), "Reading the project")
-        view.add_activity_step("Adding basemap 'Satellite'.")
-        view.add_activity_step("Moving the map.")
-        view.add_activity_step("Rendering the map.")
-        self.assertEqual(view._activity._title.text(), "Reading the project, Adding basemap 'Satellite' +2")
+        self.assertEqual(group._header.title.text(), "Activity · 2 steps")
 
     def test_a_finished_group_shows_how_long_it_took(self):
         view = ConversationView()
@@ -328,49 +328,63 @@ class ActivityTitleTest(unittest.TestCase):
         with mock.patch("ai_agent.ui.activity.time.monotonic", return_value=group._started + 9.4):
             view.mark_activity_step(group_step, True)
         view.add_assistant_message("done")
-        self.assertIn("9.4", group._header.detail.text())
+        self.assertIn("9.4", group._header.time.text())
 
-    def test_a_row_wears_its_skill_icon_and_shows_what_the_call_found(self):
+    def test_a_row_shows_what_the_call_found_and_its_time(self):
         view = ConversationView()
         summary = CallSummary.marking("Geocoding 'Rotterdam'.", {"query": "Rotterdam"})
         summary.skill = "web"
         entry = view.add_activity_step(summary)
         row = view._entries[entry]
-        view.mark_activity_step(entry, True, "Rotterdam, Zuid-Holland, Nederland")
+        with mock.patch("ai_agent.ui.activity.time.monotonic", return_value=row.started + 0.8):
+            view.mark_activity_step(entry, True, "Rotterdam, Zuid-Holland, Nederland")
         self.assertEqual(row.note.text(), "Rotterdam, Zuid-Holland, Nederland")
         self.assertFalse(row.note.isHidden())
+        self.assertIn("0.8", row.meta.text())
         failed = view.add_activity_step("Reading layer 'nope'.")
         view.mark_activity_step(failed, False, "The step did not run.")
         self.assertEqual(view._entries[failed].note.text(), "The step did not run.")
         self.assertFalse(view._entries[failed].note.isHidden())
 
-    def test_a_new_action_is_running_not_already_done(self):
+    def test_a_running_step_pulses_and_settles_into_its_glyph(self):
+        from ai_agent.ui.activity import PENDING, PulseRing
+
         view = ConversationView()
         entry_id = view.add_activity_step("Reading the project.")
-        self.assertEqual(view._activity._status.text(), "●")
+        row = view._entries[entry_id]
+        self.assertEqual(row.state, PENDING)
+        self.assertIsInstance(row.glyph, PulseRing)
         view.mark_activity_step(entry_id, True)
-        self.assertEqual(view._activity._status.text(), "")
+        self.assertNotIsInstance(row.glyph, PulseRing)
 
     def test_only_failures_are_marked_and_they_are_counted(self):
         view = ConversationView()
         for text in ("Reading the project.", "Labels", "Buffer"):
             view.mark_activity_step(view.add_activity_step(text), text == "Reading the project.")
-        self.assertIn("2", view._activity._status.text())
-        self.assertFalse(view._activity._status.isHidden())
+        self.assertIn("2", view._activity._header.status.text())
+        self.assertFalse(view._activity._header.status.isHidden())
 
-    def test_a_rejected_attempt_is_shown_as_recovered_not_failed(self):
+    def test_a_rejected_attempt_is_not_counted_as_a_failure(self):
         view = ConversationView()
         view.add_rejected_step("Bad arguments")
-        self.assertEqual(view._activity._status.text(), "↺")
+        self.assertTrue(view._activity._header.status.isHidden())
 
-    def test_activity_steps_are_rendered_as_plain_text(self):
-        from qgis.PyQt.QtCore import Qt
+    def test_steps_are_escaped_not_rendered(self):
         from qgis.PyQt.QtWidgets import QWidget
 
         from ai_agent.ui.activity import StepRow
 
         row = StepRow("<b>visible literally</b><!-- hidden -->", QWidget().palette())
-        self.assertEqual(row._label.textFormat(), Qt.TextFormat.PlainText)
+        self.assertIn("&lt;b&gt;visible literally&lt;/b&gt;", row._label.text())
+
+    def test_the_rows_are_joined_by_the_timeline(self):
+        view = ConversationView()
+        view.append_thinking("hmm")
+        for text in ("one", "two", "three"):
+            view.add_activity_step(text)
+        items = view._activity.items
+        self.assertEqual(len(items), 4)
+        self.assertEqual([item.connected for item in items], [True, True, True, False])
 
 
 class FailedPlanCardTest(unittest.TestCase):
@@ -414,40 +428,22 @@ class FailedPlanCardTest(unittest.TestCase):
         card.mark_step(5, "done")
 
 
-class DisclosureTest(unittest.TestCase):
+class TraceHeaderTest(unittest.TestCase):
     def test_a_click_anywhere_on_the_line_folds_and_unfolds(self):
         from types import SimpleNamespace
 
         from qgis.PyQt.QtCore import Qt
 
-        from ai_agent.ui.disclosure import Disclosure
+        from ai_agent.ui.activity import TraceHeader
 
-        line = Disclosure(ConversationView().palette())
+        line = TraceHeader(ConversationView().palette())
         seen: list[bool] = []
         line.toggled.connect(seen.append)
         click = SimpleNamespace(button=lambda: Qt.MouseButton.LeftButton)
         line.mouseReleaseEvent(click)
         line.mouseReleaseEvent(click)
         self.assertEqual(seen, [True, False])
-
-    def test_an_empty_detail_takes_no_room(self):
-        from ai_agent.ui.disclosure import Disclosure
-
-        line = Disclosure(ConversationView().palette())
-        self.assertTrue(line.detail.isHidden())
-        line.set_detail("3.0 s")
-        self.assertFalse(line.detail.isHidden())
-        line.set_detail("")
-        self.assertTrue(line.detail.isHidden())
-
-
-class ActivityListTest(unittest.TestCase):
-    def test_rows_follow_one_another_without_frame_or_hairlines(self):
-        view = ConversationView()
-        view.append_thinking("hmm")
-        for text in ("one", "two", "three"):
-            view.add_activity_step(text)
-        self.assertEqual(len(view._activity._steps_holder.items), 4)
+        self.assertFalse(line.expanded)
 
 
 class DurationTest(unittest.TestCase):
@@ -457,3 +453,55 @@ class DurationTest(unittest.TestCase):
         self.assertEqual(format_seconds(3.44), "3.4 s")
         self.assertEqual(format_seconds(5.9, decimals=0), "5 s")
         self.assertEqual(format_seconds(125.0), "2 min 5 s")
+
+
+class StatusLineTest(unittest.TestCase):
+    """The line under the feed says how the run stands once it stops working."""
+
+    def setUp(self):
+        from ai_agent.ui import compass, progress
+
+        self.compass = compass
+        self.progress = progress
+        self.view = ConversationView()
+        self.line = self.view.progress
+
+    def test_working_shows_the_searching_compass(self):
+        self.line.start()
+        self.assertFalse(self.line.isHidden())
+        self.assertEqual(self.line.step_text, self.progress.WORKING)
+        self.assertEqual(self.line.compass.state, self.compass.SEARCH)
+
+    def test_a_plain_stop_hides_the_line(self):
+        self.line.start()
+        self.line.stop()
+        self.assertTrue(self.line.isHidden())
+
+    def test_a_question_keeps_the_line_waiting_after_the_run_stops(self):
+        self.line.start()
+        self.line.show_outcome(self.progress.STATUS_WAITING)
+        self.line.stop()
+        self.assertFalse(self.line.isHidden())
+        self.assertEqual(self.line.step_text, self.progress.WAITING)
+        self.assertEqual(self.line.compass.state, self.compass.ASK)
+
+    def test_done_says_how_long_it_took(self):
+        self.line.start()
+        self.line.show_outcome(self.progress.STATUS_DONE)
+        self.assertEqual(self.line.step_text, self.progress.DONE_IN.format("0 s"))
+        self.assertEqual(self.line.compass.state, self.compass.DONE)
+
+    def test_a_failure_shakes_the_needle(self):
+        self.line.start()
+        self.line.show_outcome(self.progress.STATUS_FAILED)
+        self.assertEqual(self.line.step_text, self.progress.FAILED)
+        self.assertEqual(self.line.compass.state, self.compass.ERROR)
+
+    def test_another_conversation_drops_the_old_outcome_but_not_a_live_run(self):
+        self.line.start()
+        self.line.show_outcome(self.progress.STATUS_DONE)
+        self.view.clear()
+        self.assertTrue(self.line.isHidden())
+        self.line.start()
+        self.view.clear()
+        self.assertFalse(self.line.isHidden())

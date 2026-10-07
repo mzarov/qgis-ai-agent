@@ -40,9 +40,10 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `dock_widget.py`  | the shell: header, feed, composer; conversation menu; the orchestrator contract |
 | `conversation.py` | a `QScrollArea` with one widget per message, autoscroll, action grouping |
 | `messages.py`     | the user message, the agent reply, the service message |
-| `activity.py`     | the group of tool calls: named header with the time, rows with coloured skill badges and result lines |
-| `disclosure.py`   | the fold line: title, detail, chevron after them |
-| `plan.py`         | the plan card with its buttons inside |
+| `activity.py`     | the work trace: a fold header ("Working · step N", then "Activity · N steps" and the time) over a timeline of calls, reasoning and the user's choice |
+| `thinking.py`     | a reasoning row's content: "Thinking"/"Thought" with its time, opening a sunken box with the text |
+| `plan.py`         | the plan card: numbered steps with their kind, Apply and Cancel inside, the outcome with the time and Undo |
+| `welcome.py`      | the empty conversation: the arriving compass, the deal in one sentence, the open project, four examples |
 | `confirmations.py` | the modal questions: share data with a provider, run destructive steps |
 | `durations.py`    | `3.4 s`, `2 min 5 s` — one formatter for the feed and the settings |
 | `composer.py`     | the input box as in Claude Code: text and the send/stop button inside, the toolbar under it; Enter sends, Esc stops a run; `/` and `@` open the popup |
@@ -54,8 +55,8 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `chart.py`        | a chart in the feed: bars, rows, lines, donut, histogram, scatter; painted, hover tips, copy image/CSV |
 | `chart_scale.py`  | axis arithmetic: round ticks, compact numbers, which bar layout fits |
 | `table_card.py`   | a table in the feed: painted rows, natural column widths, elided cells with tips, copy CSV |
-| `question.py`     | the agent's question card: up to three answers to click and a fourth row to type one's own |
-| `progress.py`     | the status line: the searching compass, "Working…", the elapsed time; the feed's last row, under the newest message |
+| `question.py`     | the agent's question card: up to three answers (the first recommended, a why after " — "), a fourth row to type one's own, number keys |
+| `progress.py`     | the status line, the feed's last row: the live compass and a few words — working with the time, waiting for an answer, done in N s, stopped by an error |
 | `compass.py`      | the brand mark: open-ring compass painted on a 24-unit grid; needle rotation per state (rest, search, done, error, ask, arrive), keyframed with per-segment easing |
 | `controls.py`     | custom controls: `Segmented` keeps the combo-box API, `Chips`, `RoundedFrame` (every state-dependent box), icon tiles, badges, keycaps, `ElidedLabel`, menus |
 | `connection_widgets.py` | provider tiles and the connection status card |
@@ -153,6 +154,10 @@ to the emptiness it encloses. What works is the opposite: no container at all,
 and the suggestions themselves are the blocks. The group is centred vertically
 in the free space, so the balance is deliberate rather than leftover.
 
+Under the deal sits one quiet line naming the open project (file, layer count,
+CRS), elided when long. It changes in place: rebuilding the card would replay
+the compass's arrival on every settings save.
+
 The feed's trailing stretch is what fought the centring — it exists to push
 messages upwards. While the welcome is shown that stretch drops to zero and the
 card carries it instead; `_drop_welcome` hands it back. Both halves live in one
@@ -160,21 +165,24 @@ pair of methods so the two states cannot drift apart.
 
 ## The feed is flat lines, frames mean a decision
 
-The activity list follows TerraLab's: the header names the first two calls and
-counts the rest, "Reading layer roads, Adding basemap +2", and once the turn
-moves on shows how long it took; the whole line is clickable (`Disclosure`).
-While the agent works the rows sit **open, without a frame**, one per call: a
-badge with the skill's icon in that skill's hue on a pale wash of it (`HUES`
-over the categorical chart palette; the skill is the `CallSummary.skill` the
-registry sets), the wording muted with the call's own values bright, and under
-it the tool's `summarize_result` line — what the call found. Reasoning gets a
-badge of its own so it lines up. When the answer arrives the list folds to its
-header. A group with one call has no header at all — it only repeated the row —
-and its row stays shown. Row text keeps the inherited font: a scaled font set before the row
-joins the feed is computed from the application font and came out smaller. Success carries no mark — only a failed or rejected call shows
-one, and the header counts failures in the danger colour. The working line
-below says "Working…" with the time; it does not repeat the current call, which
-the open list already names.
+The activity list is a timeline, after the design handoff. Its header
+(`TraceHeader`, clickable as a whole) says "Working · step N" while the agent
+works and "Activity · N steps" with the turn's time once it moves on — always
+that, so it never repeats a row. Rows sit **open, without a frame**, one per
+call: the skill's icon (the skill is the `CallSummary.skill` the registry sets)
+in a fixed glyph column, a hairline down to the next row, the wording muted
+with the call's own values bright, and under it the tool's `summarize_result`
+line — what the call found. The running call is a breathing accent ring
+(`PulseRing`); it stops when the call ends, and the screen checks stop it
+before a grab. Reasoning is a row with three dots holding the `ThinkingBlock`;
+a loaded skill reads "Using …" with a `skill` tag; the answer picked on a
+question card stays in the trace as "You chose …". When the answer arrives the
+list folds to its header. A turn that only reasoned has no header: its row
+stays, folded to "Thought ›" by the block itself. Row text keeps the inherited font: a scaled font set
+before the row joins the feed is computed from the application font and came
+out smaller. Success carries no mark — only a failed or rejected call shows
+one, in the danger colour, and the header counts failures. The status line
+below does not repeat the current call, which the open list already names.
 
 Boxing every turn made the feed read as a wall of cards. A frame with a fill is
 reserved for the one thing that asks the user to act: the plan card. If a new
@@ -195,6 +203,13 @@ While the plan applies, each step shows its progress at the end of its line
 it, in plain words (`core/agent/failures.explain_failure`); the model keeps the
 exact English error. Apply-phase tool events go to the card, not to feed rows,
 which only repeated its lines.
+
+Once applied the card says "Applied · N changes" with the time and offers
+**Undo** when its apply took a snapshot: the orchestrator keeps the snapshot
+per card (`_plan_snapshots`) and restores it through the rewind machinery, so
+an undo is the same restore as rewinding to the message, with the same notes
+about data sources. A pruned snapshot answers that the plan can no longer be
+undone. A cancelled card fades instead of shouting.
 
 The Apply and Cancel buttons live inside `PlanCard`, not as a separate row at
 the bottom of the panel. The card emits signals upwards; the dock re-emits them
@@ -395,8 +410,12 @@ stopping is deliberate, and the request stays visible in the chat.
 
 `compass.py` is the one source of the mark: the plugin icon (`icon.svg`,
 rendered to `icon.png`) repeats its geometry. One live compass per panel —
-the status line's, swinging while the agent works; the welcome mark plays
-`arrive` once and then rests. Other marks are still pixmaps (`compass.pixmap`).
+the status line's: it searches while the agent works and, once the run stops,
+says how it ended (`ProgressLine.show_outcome`): it tilts slowly while waiting
+for an answer, settles north when done, shakes with a red tip after an error;
+a stop hides the line. The orchestrator names the outcome (`STATUS_*` in
+`notices`), the dock only draws it. The welcome mark plays `arrive` once and
+then rests. Other marks are still pixmaps (`compass.pixmap`).
 The halo colour must be the colour under the mark, or the needle's cut in the
 ring shows as a stripe.
 

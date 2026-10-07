@@ -4,17 +4,22 @@ Open the panel from the **AI Agent** menu entry or the toolbar icon, type a
 request, press Enter. Shift+Enter breaks the line. Type `/` (or use the
 skill button under the box) to pick a skill and `@` to pick a layer; both are
 highlighted in the text. The model name under the box opens the settings. While the agent
-works, a line above the box shows the current step, the send button becomes a
-stop button and Esc stops the run too; typing meanwhile corrects the agent.
+works, the line under the newest message shows a swinging compass and the
+time, the send button becomes a stop button and Esc stops the run too; typing
+meanwhile corrects the agent. Once the run stops, the same line says whether
+the agent waits for your answer, is done (and how long it took) or stopped on
+an error.
 
 ## Asking about the project
 
 Reading runs immediately, no confirmation. Every call the agent makes is listed
-above its answer: the header names the first calls and how long the turn took,
-each row has its skill's icon in a coloured badge, and under it what the call
-found — *12 features matched*, the address a place name resolved to, the
-clearest satellite scene. The list is open while the agent works and folds to
-its header when the answer arrives; a click reopens it.
+above its answer as a timeline: each row has its skill's icon, the running one
+breathes, and under it stands what the call found — *12 features matched*, the
+address a place name resolved to, the clearest satellite scene. Reasoning is a
+row of its own, *Thinking* and then *Thought* with its time; a click opens the
+text. While the agent works the header says *Working · step 3*; when the answer
+arrives the list folds to *Activity · 5 steps* with the time, and a click
+reopens it.
 
 - *what layers do I have?*
 - *which fields does the roads layer have, and what is in `highway`?*
@@ -26,8 +31,11 @@ its header when the answer arrives; a click reopens it.
 
 ## Changing things
 
-Writing collects into a plan card; press **Apply** to run it, **Cancel** to
-drop it:
+Writing collects into a plan card, *Plan · 2 changes*, one numbered step per
+change; press **Apply** to run it, **Cancel** to drop it. Once applied, the
+card says *Applied · 2 changes* with the time and offers **Undo**: the project
+returns to how it was right before that apply, from the same snapshot that
+rewinding uses (see below). Examples:
 
 - *make the rivers blue* / *roads as thin grey dashed lines*
 - *colour the districts by population, 7 classes, Viridis*
@@ -41,9 +49,11 @@ drop it:
   project* — a whole chain lands in one plan card
 
 When the agent cannot go on without your decision — which of two similar layers,
-which territory — it asks in a card: up to three likely answers to click, and a
-fourth row to type your own and press Enter. Typing in the main box works too.
-The run continues from the same place with your answer.
+which territory — it asks in a card: up to three likely answers to click (the
+first is the one it recommends, and each may say when it fits), and a fourth
+row to type your own and press Enter. Number keys pick a row; typing in the
+main box works too. The run continues from the same place with your answer,
+and your choice stays in the activity list as *You chose …*.
 
 ### Auto mode
 

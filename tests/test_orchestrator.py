@@ -114,13 +114,20 @@ class PlanDock(Dock):
         self.cancelled_plans = []
         self.completed_plans = []
         self.failed_plans = []
+        self.undone_plans = []
+        self.undoable = False
         self.plan_lines = None
 
-    def mark_plan_completed(self, message_id):
+    def mark_plan_completed(self, message_id, undoable=False):
         self.completed_plans.append(message_id)
+        self.undoable = undoable
 
-    def mark_plan_failed(self, message_id):
+    def mark_plan_failed(self, message_id, undoable=False):
         self.failed_plans.append(message_id)
+        self.undoable = undoable
+
+    def mark_plan_undone(self, message_id):
+        self.undone_plans.append(message_id)
 
     def add_plan_message(self, lines, applies_itself=False):
         self.plan_lines = list(lines)
@@ -675,9 +682,9 @@ class PlanCardLinesTest(unittest.TestCase):
         self.orchestrator.on_confirm_needed([Call(), Call("set_labels"), Call("add_basemap")], "")
         self.assertEqual(len(self.dock.plan_lines), 3)
 
-    def test_plan_explains_snapshot_coverage(self):
+    def test_an_ordinary_step_leaves_undo_to_the_card(self):
         line = self.orchestrator._plan_line(Call("set_symbol"))
-        self.assertIn("snapshot", line)
+        self.assertNotIn(" · ", line)
 
     def test_plan_warns_that_external_outputs_are_not_undone(self):
         line = self.orchestrator._plan_line(Call("export_layout"))
@@ -874,3 +881,153 @@ class AttachDockTest(unittest.TestCase):
         self.assertEqual([message["content"] for message in fresh.replayed], ["сколько слоёв?"])
         orchestrator.agent.is_running = True
         self.assertFalse(orchestrator.is_idle)
+
+    def test_streams_and_busy_follow_the_rebuilt_dock(self):
+        orchestrator = CoreOrchestrator(Iface(), Dock())
+        seen = []
+
+        class Recorder(Dock):
+            def set_busy(self, busy):
+                seen.append(("busy", busy))
+
+            def add_stream_chunk(self, text):
+                seen.append(("answer", text))
+
+            def add_thinking_chunk(self, text):
+                seen.append(("thinking", text))
+
+        orchestrator.attach_dock(Recorder())
+        orchestrator.on_busy(True)
+        orchestrator.on_answer_chunk("Hel")
+        orchestrator.on_thinking_chunk("hmm")
+        self.assertEqual(seen, [("busy", True), ("answer", "Hel"), ("thinking", "hmm")])
+
+
+class PlanUndoTest(unittest.TestCase):
+    """The card's Undo restores the snapshot its apply took, and only when one exists and nothing runs."""
+
+    def setUp(self):
+        from unittest import mock
+
+        from ai_agent.core.orchestrator import plans as plans_module
+        from ai_agent.core.orchestrator import rewind as rewind_module
+
+        self.root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.root, True)
+        self.dock = PlanDock()
+        self.orchestrator = CoreOrchestrator(Iface(), self.dock)
+        self.orchestrator.conversation = ConversationState(store=SessionStore(self.root))
+        self.orchestrator.agent = Agent()
+        self.orchestrator.conversation.add("user", "покрась районы")
+        self.snapshots = ["/tmp/before.qgz"]
+        for module in (plans_module, rewind_module):
+            patcher = mock.patch.object(module, "last_snapshot", side_effect=lambda: self.snapshots[-1])
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.restored = []
+        self.dropped = []
+        for name, value in (
+            ("snapshot_exists", lambda path: path in self.snapshots),
+            ("restore_snapshot", lambda path: self.restored.append(path) or {}),
+            ("drop_snapshot", self.dropped.append),
+        ):
+            patcher = mock.patch.object(rewind_module, name, side_effect=value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def _apply(self):
+        self.orchestrator.on_confirm_needed([Call()], "")
+        self.orchestrator._note_apply_start()
+        self.snapshots.append("/tmp/after-plan.qgz")
+        self.orchestrator.on_applied([Result(ok=True)])
+
+    def test_an_applied_plan_can_be_undone_from_its_card(self):
+        self._apply()
+        self.assertTrue(self.dock.undoable)
+        self.orchestrator.on_undo_plan(7)
+        self.assertEqual(self.restored, ["/tmp/after-plan.qgz"])
+        self.assertEqual(self.dock.undone_plans, [7])
+        self.assertIn("undone", self.orchestrator.conversation.messages[-1]["content"])
+
+    def test_a_vanished_snapshot_says_so(self):
+        self._apply()
+        self.snapshots.remove("/tmp/after-plan.qgz")
+        self.orchestrator.on_undo_plan(7)
+        self.assertEqual(self.restored, [])
+        self.assertTrue(any("can no longer be undone" in text for text in self.dock.system))
+
+    def test_nothing_is_undone_while_the_agent_works(self):
+        self._apply()
+        self.orchestrator.agent.is_running = True
+        self.orchestrator.on_undo_plan(7)
+        self.assertEqual(self.restored, [])
+        self.assertIn(notices.SWITCH_WHILE_RUNNING, self.dock.system)
+
+    def _apply_as(self, plan_id, snapshot):
+        self.dock.add_plan_message = lambda lines, applies_itself=False: plan_id
+        self.orchestrator.on_confirm_needed([Call()], "")
+        self.orchestrator._note_apply_start()
+        self.snapshots.append(snapshot)
+        self.orchestrator.on_applied([Result(ok=True)])
+
+    def test_undoing_an_earlier_plan_takes_back_the_later_ones_too(self):
+        self._apply_as(1, "/tmp/before-a.qgz")
+        self.orchestrator.conversation.add("assistant", "Готово.")
+        self.orchestrator.conversation.add("user", "и реки")
+        self._apply_as(2, "/tmp/before-b.qgz")
+        self.orchestrator.on_undo_plan(1)
+        self.assertEqual(self.restored, ["/tmp/before-a.qgz"])
+        self.assertEqual(sorted(self.dock.undone_plans), [1, 2])
+        self.assertEqual(self.dropped, ["/tmp/before-b.qgz"])
+
+    def test_undoing_a_later_stage_of_one_run_keeps_the_earlier_stage(self):
+        self._apply_as(1, "/tmp/before-a.qgz")
+        self._apply_as(2, "/tmp/before-b.qgz")
+        self.orchestrator.on_undo_plan(2)
+        self.assertEqual(self.dock.undone_plans, [2])
+        self.assertEqual(self.dropped, [])
+        self.orchestrator.on_undo_plan(1)
+        self.assertEqual(self.restored, ["/tmp/before-b.qgz", "/tmp/before-a.qgz"])
+        self.assertEqual(self.dock.undone_plans, [2, 1])
+
+    def test_an_apply_without_a_snapshot_offers_no_undo(self):
+        self.orchestrator.on_confirm_needed([Call()], "")
+        self.orchestrator._note_apply_start()
+        self.orchestrator.on_applied([Result(ok=True)])
+        self.assertFalse(self.dock.undoable)
+
+
+class OutcomeDock(PlanDock):
+    def __init__(self):
+        super().__init__()
+        self.outcomes = []
+
+    def show_outcome(self, kind):
+        self.outcomes.append(kind)
+
+
+class StatusOutcomeTest(unittest.TestCase):
+    """The status line under the feed hears how each run stopped working."""
+
+    def setUp(self):
+        self.dock = OutcomeDock()
+        self.orchestrator = CoreOrchestrator(Iface(), self.dock)
+        self.orchestrator.agent = Agent()
+
+    def test_a_question_waits_for_the_user(self):
+        self.orchestrator.on_question_asked("Which roads layer?")
+        self.assertEqual(self.dock.outcomes, [notices.STATUS_WAITING])
+
+    def test_an_answer_is_done(self):
+        self.orchestrator.on_finished("Three layers.")
+        self.assertEqual(self.dock.outcomes, [notices.STATUS_DONE])
+
+    def test_an_error_is_failed_and_a_stop_hides_the_line(self):
+        self.orchestrator.on_failed("HTTP 500")
+        self.orchestrator.on_aborted()
+        self.assertEqual(self.dock.outcomes, [notices.STATUS_FAILED, notices.STATUS_HIDDEN])
+
+    def test_a_plan_card_takes_over_and_its_apply_reports(self):
+        self.orchestrator.on_confirm_needed([Call()], "")
+        self.orchestrator.on_applied([Result(ok=False, payload={"error": "boom"})])
+        self.assertEqual(self.dock.outcomes, [notices.STATUS_HIDDEN, notices.STATUS_FAILED])
