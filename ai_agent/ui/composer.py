@@ -97,6 +97,9 @@ class Composer(QWidget):
         self._edit.setAccessibleName(tr("Request"))
         self._edit.setFrameShape(QFrame.Shape.NoFrame)
         self._edit.setStyleSheet("QPlainTextEdit { border: none; background: transparent; }")
+        # The style sheet froze the palette it was polished with — possibly QGIS's, not the panel
+        # theme's — so the text and the placeholder get their ink explicitly.
+        style.field_inks(self._edit, self.palette())
         self._edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self._edit.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         # The few spare pixels that keep the scroll bar away go half above, half below the text.

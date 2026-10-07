@@ -124,6 +124,8 @@ class ContextPopup(controls.RoundedFrame):
             flags = None
         if flags is not None:
             self.setWindowFlags(flags)
+        # A popup is a window of its own: it does not inherit the panel's palette, so it takes the theme's.
+        style.apply_palette(self)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.set_look(style.surface(palette).name(), style.hairline(palette).name())
         self.setFixedWidth(POPUP_WIDTH)

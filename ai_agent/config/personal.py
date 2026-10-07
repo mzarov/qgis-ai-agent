@@ -22,6 +22,8 @@ STYLES = ("concise", "balanced", "detailed")
 QUESTIONS = ("rarely", "when_needed", "often")
 # Seconds before an unanswered question takes the recommended answer; 0 waits for the user.
 AUTO_ANSWER = (0, 60, 180, 300)
+# The panel's colours: as QGIS (its palette decides), or always light, or always dark.
+PANEL_THEMES = ("auto", "light", "dark")
 # Answer languages beyond "the QGIS language"; names are English because the model reads them.
 LANGUAGES = {
     "en": "English",
@@ -56,6 +58,7 @@ class Profile:
     show_steps: bool = True
     follow_changes: bool = True
     own_notes: bool = True
+    panel_theme: str = "auto"
 
 
 CHOICES: dict[str, tuple[object, ...]] = {
@@ -66,6 +69,7 @@ CHOICES: dict[str, tuple[object, ...]] = {
     "style": STYLES,
     "questions": QUESTIONS,
     "auto_answer": AUTO_ANSWER,
+    "panel_theme": PANEL_THEMES,
 }
 LIMITS = {"name": MAX_NAME, "role": MAX_ROLE, "about": MAX_ABOUT}
 

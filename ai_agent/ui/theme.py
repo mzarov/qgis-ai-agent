@@ -88,7 +88,26 @@ CHART_LIGHT = ("#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300",
 CHART_DARK = ("#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767")
 
 
+THEME_AUTO = "auto"
+THEME_LIGHT = "light"
+THEME_DARK = "dark"
+# The user's "panel theme" from Personalisation, set once at start and on Save: read on every
+# colour lookup, so it is kept here rather than asked from the settings each time.
+_override = [THEME_AUTO]
+
+
+def set_override(theme: str) -> None:
+    _override[0] = theme if theme in (THEME_LIGHT, THEME_DARK) else THEME_AUTO
+
+
+def override() -> str:
+    return _override[0]
+
+
 def is_dark(palette: QPalette) -> bool:
+    """Dark when the user chose the dark panel, or follows QGIS and its palette is dark."""
+    if _override[0] != THEME_AUTO:
+        return _override[0] == THEME_DARK
     return palette.base().color().lightness() < DARK_LIGHTNESS
 
 

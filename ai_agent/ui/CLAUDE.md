@@ -13,7 +13,13 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 4. **Colours come from `theme.py`, the brand's tokens.** Two sets, light and
    dark, with the exact hex values of `design/tokens.css` — cartographic blue
    on cool neutrals, from the design handoff (`tests/test_settings_ui.py`
-   checks they match). The QGIS palette only
+   checks they match). The user's panel theme (Personalisation: as QGIS,
+   light, dark) overrides the palette's vote through `theme.set_override`.
+   Top-level windows — the dock, the settings dialog, every popup — call
+   `style.apply_palette` first thing, so stock widgets inside follow the
+   theme rather than QGIS. A widget with a style sheet freezes the palette it
+   was polished with: give its text an explicit colour (`style.field_inks`
+   for editors), or it shows QGIS's ink on the panel's background. The QGIS palette only
    decides which set applies, by its lightness, so the plugin follows the
    light and the dark theme. It is deliberately not limited to the QGIS
    colours (the user's call: the plugin must look good, and palette-derived

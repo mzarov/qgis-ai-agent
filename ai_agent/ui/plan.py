@@ -82,7 +82,9 @@ class PlanCard(QFrame):
         font = self._heading.font()
         font.setBold(True)
         self._heading.setFont(font)
-        self._heading.setStyleSheet("border: none;")
+        # Explicit ink: a style sheet freezes the palette it was polished with, and that can be the
+        # QGIS palette rather than the panel's when the panel theme differs from QGIS.
+        self._heading.setStyleSheet(f"border: none; color: {style.css_color(style.text(palette))};")
         row.addWidget(self._heading, 1)
         return holder
 
@@ -166,7 +168,7 @@ class PlanStep(QWidget):
         self.label = QLabel(step)
         self.label.setTextFormat(Qt.TextFormat.PlainText)
         self.label.setWordWrap(True)
-        self.label.setStyleSheet("border: none;")
+        self.label.setStyleSheet(f"border: none; color: {style.css_color(style.text(palette))};")
         style.scale_font(self.label, STEP_FONT_SCALE)
         number.setFont(self.label.font())
         line.addWidget(self.label, 1)

@@ -856,3 +856,21 @@ class FailureWordsTest(unittest.TestCase):
         }
         for error, sentence in cases.items():
             self.assertEqual(failures.explain_failure(error), sentence, error)
+
+
+class AttachDockTest(unittest.TestCase):
+    def test_a_rebuilt_dock_gets_the_conversation_and_the_idle_check_sees_work(self):
+        root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, root, True)
+        orchestrator = CoreOrchestrator(Iface(), Dock())
+        orchestrator.conversation = ConversationState(store=SessionStore(root))
+        orchestrator.agent = Agent()
+        orchestrator.conversation.add("user", "сколько слоёв?")
+        self.assertTrue(orchestrator.is_idle)
+        fresh = Dock()
+        orchestrator.attach_dock(fresh)
+        self.assertIs(orchestrator.dock_widget, fresh)
+        self.assertIs(orchestrator.compaction._dock, fresh)
+        self.assertEqual([message["content"] for message in fresh.replayed], ["сколько слоёв?"])
+        orchestrator.agent.is_running = True
+        self.assertFalse(orchestrator.is_idle)

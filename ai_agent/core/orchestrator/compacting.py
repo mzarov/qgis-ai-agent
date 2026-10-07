@@ -42,6 +42,9 @@ class SessionCompaction:
     def is_running(self) -> bool:
         return self._running
 
+    def attach(self, dock: DockWidgetContract) -> None:
+        self._dock = dock
+
     def window(self) -> int:
         return window_for(get_api_url() or "", get_model() or "", get_dialect() or None)
 

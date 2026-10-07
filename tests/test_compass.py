@@ -61,3 +61,24 @@ class WidgetTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ThemeOverrideTest(unittest.TestCase):
+    def tearDown(self):
+        from ai_agent.ui import theme
+
+        theme.set_override(theme.THEME_AUTO)
+
+    def test_the_panel_theme_wins_over_the_qgis_palette(self):
+        from ai_agent.ui import theme
+
+        palette = QWidget().palette()
+        follows = theme.tokens(palette)
+        theme.set_override(theme.THEME_DARK)
+        self.assertIs(theme.tokens(palette), theme.DARK)
+        self.assertTrue(theme.is_dark(palette))
+        theme.set_override(theme.THEME_LIGHT)
+        self.assertIs(theme.tokens(palette), theme.LIGHT)
+        theme.set_override("sepia")
+        self.assertEqual(theme.override(), theme.THEME_AUTO)
+        self.assertIs(theme.tokens(palette), follows)

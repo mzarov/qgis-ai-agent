@@ -42,6 +42,8 @@ class AgentDockWidget(QDockWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        # Before any child is built: children read the panel's palette, which must already be the theme's.
+        style.apply_palette(self)
         self.setWindowTitle(TITLE)
         self._sessions_provider: Callable[[], list[tuple[str, str]]] = list
         self._sessions_popup = SessionsPopup(self.palette())

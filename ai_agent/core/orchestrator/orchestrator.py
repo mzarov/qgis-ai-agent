@@ -159,13 +159,27 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         if not (self.compaction.needed() and self.compaction.start(after=begin, cancelled=stopped)):
             begin()
 
-    def on_compact(self) -> None:
-        if (
+    @property
+    def is_idle(self) -> bool:
+        """Nothing in flight: no run, apply, pending plan, open question or compaction."""
+        return not (
             self.agent.is_running
             or bool(getattr(self.agent, "is_applying", False))
             or self.agent.has_pending_writes
             or self.agent.is_awaiting_answer
-        ):
+            or self.compaction.is_running
+        )
+
+    def attach_dock(self, dock_widget: DockWidgetContract) -> None:
+        """Draw into a new dock — a rebuilt panel after a theme change — and show the conversation there."""
+        self.dock_widget = dock_widget
+        self.compaction.attach(dock_widget)
+        self.dock_widget.set_session_source(self.conversation.recent)
+        self.refresh_configured()
+        self._replay()
+
+    def on_compact(self) -> None:
+        if not self.is_idle:
             self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
             return
         self.compaction.start()
