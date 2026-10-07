@@ -159,3 +159,5 @@ class DropdownTest(unittest.TestCase):
         box.setCurrentIndex(1)
         self.assertEqual(changes, [0, 1])
         self.assertEqual(box.findData("fr"), -1)
+        box.chevron.set_angle(90)
+        self.assertEqual(box.chevron.angle, 90.0)

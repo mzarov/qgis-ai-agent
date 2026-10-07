@@ -416,6 +416,8 @@ _qtcore = _mod(
     "qgis.PyQt.QtCore",
     [
         "Qt",
+        "QVariantAnimation",
+        "QEasingCurve",
         "QThread",
         "QObject",
         "QEvent",

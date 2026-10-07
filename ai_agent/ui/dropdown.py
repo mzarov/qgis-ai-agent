@@ -4,12 +4,13 @@ A QComboBox draws as a bare text box once its arrow is styled away, and on
 macOS its popup is the native one, deaf to the theme. This is a field with a
 chevron that opens `controls.menu`: the current choice carries a check, the
 others leave room for it. It keeps the slice of the QComboBox API the pages use.
+Opening turns the chevron up and fades the menu in; closing turns it back.
 """
 
 from typing import Any
 
-from qgis.PyQt.QtCore import QPoint, QSize, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QIcon, QPixmap
+from qgis.PyQt.QtCore import QEasingCurve, QPoint, QPointF, QSize, Qt, QVariantAnimation, pyqtSignal
+from qgis.PyQt.QtGui import QIcon, QPainter, QPixmap
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
 
 from ai_agent.ui import controls, icons, style
@@ -20,6 +21,9 @@ MENU_GAP = 4
 RADIUS = 6
 PADDING = (10, 6, 8, 6)
 MIN_HEIGHT = 32
+TURN_MS = 180
+FADE_MS = 140
+UP = 180.0
 
 
 class Dropdown(QPushButton):
@@ -45,11 +49,8 @@ class Dropdown(QPushButton):
         self._label = QLabel()
         style.ink(self._label, style.text(palette))
         line.addWidget(self._label, 1)
-        chevron = QLabel()
-        glyph = icons.drawn("expanded", style.muted(palette), CHEVRON)
-        if glyph is not None:
-            chevron.setPixmap(glyph.pixmap(CHEVRON, CHEVRON))
-        line.addWidget(chevron, 0, Qt.AlignmentFlag.AlignVCenter)
+        self.chevron = Chevron(palette)
+        line.addWidget(self.chevron, 0, Qt.AlignmentFlag.AlignVCenter)
         self.clicked.connect(self._open)
 
     def addItem(self, text: str, data: Any = None) -> None:
@@ -88,11 +89,60 @@ class Dropdown(QPushButton):
         for index, (text, _data) in enumerate(self._items):
             action = popup.addAction(check if index == self._current and check is not None else blank, text)
             action.triggered.connect(lambda _checked=False, chosen=index: self.setCurrentIndex(chosen))
+        fade = _animation(popup, FADE_MS, 0.0, 1.0, popup.setWindowOpacity)
+        popup.setWindowOpacity(0.0)
+        popup.aboutToShow.connect(fade.start)
+        popup.aboutToHide.connect(lambda: self.chevron.turn(0.0))
+        self.chevron.turn(UP)
         popup.exec(self.mapToGlobal(QPoint(0, self.height() + MENU_GAP)))
 
     def sizeHint(self) -> QSize:
         hint = super().sizeHint()
         return QSize(hint.width(), max(hint.height(), MIN_HEIGHT))
+
+
+class Chevron(QWidget):
+    """The field's arrow, painted at an angle so it can turn up and back smoothly."""
+
+    def __init__(self, palette: Any, parent: QWidget | None = None):
+        super().__init__(parent)
+        self.setFixedSize(CHEVRON, CHEVRON)
+        glyph = icons.drawn("expanded", style.muted(palette), CHEVRON)
+        self._pixmap = glyph.pixmap(CHEVRON, CHEVRON) if glyph is not None else None
+        self.angle = 0.0
+        self._turning: Any = None
+
+    def turn(self, angle: float) -> None:
+        """Animate to `angle` degrees: 180 points up while the menu is open, 0 points down."""
+        if self._turning is not None:
+            self._turning.stop()
+        self._turning = _animation(self, TURN_MS, self.angle, angle, self.set_angle)
+        self._turning.start()
+
+    def set_angle(self, angle: Any) -> None:
+        self.angle = float(angle)
+        self.update()
+
+    def paintEvent(self, _event: Any) -> None:
+        if self._pixmap is None:
+            return
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        painter.translate(QPointF(self.width() / 2, self.height() / 2))
+        painter.rotate(self.angle)
+        painter.drawPixmap(QPointF(-CHEVRON / 2, -CHEVRON / 2), self._pixmap)
+        painter.end()
+
+
+def _animation(owner: Any, duration: int, start: float, end: float, apply: Any) -> Any:
+    """An eased value animation owned by `owner`, so Qt deletes it with the widget."""
+    animation = QVariantAnimation(owner)
+    animation.setDuration(duration)
+    animation.setStartValue(float(start))
+    animation.setEndValue(float(end))
+    animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+    animation.valueChanged.connect(apply)
+    return animation
 
 
 def _blank_icon() -> QIcon:
