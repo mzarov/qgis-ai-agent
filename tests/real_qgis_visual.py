@@ -29,7 +29,7 @@ from ai_agent import i18n
 from ai_agent.core.agent import failures
 from ai_agent.core.orchestrator import notices
 from ai_agent.qgis_tools.registry import summarize_tool_call, summarize_tool_result
-from ai_agent.ui import settings_layout
+from ai_agent.ui import compass, settings_layout
 from ai_agent.ui.settings_dialog import SettingsDialog
 
 LOCAL_URL = "http://localhost:11434/v1"
@@ -126,6 +126,9 @@ class ScreenCase(PluginCase):
         focused = QApplication.focusWidget()
         if focused is not None:
             focused.clearFocus()
+        # A swinging needle would make every pixel golden depend on the moment of the grab.
+        for mark in widget.findChildren(compass.Compass):
+            mark.stop()
         pump(0.3)
         ui_snapshot.normalize_texts(widget, {_profile_root(): LONG_PROFILE})
         pump(0.1)

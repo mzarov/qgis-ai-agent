@@ -47,7 +47,7 @@
  },
  {
   "depth": 5,
-  "type": "WorkingDots"
+  "type": "Compass"
  },
  {
   "depth": 5,
@@ -131,7 +131,7 @@
  {
   "depth": 7,
   "type": "QLabel",
-  "text": "Reading layer <span style=\"color: rgb(29, 29, 27);\">districts</span>"
+  "text": "Reading layer <span style=\"color: rgb(20, 24, 31);\">districts</span>"
  },
  {
   "depth": 7,
@@ -149,7 +149,7 @@
  {
   "depth": 7,
   "type": "QLabel",
-  "text": "Reading values of field <span style=\"color: rgb(29, 29, 27);\">pop2020</span> in layer <span style=\"color: rgb(29, 29, 27"
+  "text": "Reading values of field <span style=\"color: rgb(20, 24, 31);\">pop2020</span> in layer <span style=\"color: rgb(20, 24, 31"
  },
  {
   "depth": 7,
@@ -167,7 +167,7 @@
  {
   "depth": 7,
   "type": "QLabel",
-  "text": "Layer <span style=\"color: rgb(29, 29, 27);\">districts</span>: computing <span style=\"color: rgb(29, 29, 27);\">max</span>"
+  "text": "Layer <span style=\"color: rgb(20, 24, 31);\">districts</span>: computing <span style=\"color: rgb(20, 24, 31);\">max</span>"
  },
  {
   "depth": 2,

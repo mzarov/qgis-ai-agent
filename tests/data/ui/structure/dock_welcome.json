@@ -47,6 +47,10 @@
  },
  {
   "depth": 5,
+  "type": "Compass"
+ },
+ {
+  "depth": 5,
   "type": "QLabel",
   "text": "Ask in plain language"
  },

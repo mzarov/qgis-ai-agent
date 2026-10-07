@@ -1,9 +1,9 @@
-"""The plugin's colours: the approved mockup's two palettes, light and dark.
+"""The plugin's colours: the brand's two palettes, light and dark.
 
-`design/mockups/index.html` defines these tokens in CSS; here they are the same
-hex values. The QGIS palette still decides which set applies, by its lightness,
-so the plugin follows the light and the dark theme. This module is the only
-place in the plugin that spells a colour; everything else asks `style`.
+Cartographic blue on cool neutrals, from the design handoff's token table
+(same names as here). The QGIS palette still decides which set applies, by its
+lightness, so the plugin follows the light and the dark theme. This module is
+the only place in the plugin that spells a colour; everything else asks `style`.
 """
 
 from dataclasses import dataclass
@@ -37,47 +37,47 @@ class Tokens:
 
 
 LIGHT = Tokens(
-    bg="#f6f6f4",
+    bg="#f5f6f8",
     surface="#ffffff",
-    surface_2="#f1f1ee",
-    sunken="#ececE8",
-    border="#e3e3de",
-    border_strong="#cfcfc8",
-    text="#1d1d1b",
-    text_2="#5f5f5a",
-    text_3="#8b8b85",
-    accent="#2f6fde",
-    accent_hover="#2560c8",
-    accent_soft="#e8f0fd",
+    surface_2="#eff1f4",
+    sunken="#e9ecf0",
+    border="#dfe3e8",
+    border_strong="#c9cfd7",
+    text="#14181f",
+    text_2="#535b67",
+    text_3="#7c8592",
+    accent="#1f6fb2",
+    accent_hover="#195d96",
+    accent_soft="#e5eff8",
     accent_text="#ffffff",
-    ok="#1f8a4c",
-    ok_soft="#e5f4ea",
-    warn="#b26b00",
-    warn_soft="#fbf0dd",
-    bad="#c4362c",
-    bad_soft="#fbe7e5",
+    ok="#1d7f47",
+    ok_soft="#e3f3e9",
+    warn="#9a5b08",
+    warn_soft="#f8eedd",
+    bad="#c2372d",
+    bad_soft="#fae6e4",
 )
 
 DARK = Tokens(
-    bg="#1b1c1e",
-    surface="#242528",
-    surface_2="#2b2c30",
-    sunken="#1f2023",
-    border="#36383c",
-    border_strong="#46484d",
-    text="#ececea",
-    text_2="#a9a9a4",
-    text_3="#7d7d78",
-    accent="#5b8ff0",
-    accent_hover="#6f9df2",
-    accent_soft="#263552",
-    accent_text="#0f1420",
+    bg="#14171c",
+    surface="#1b1f26",
+    surface_2="#222731",
+    sunken="#101318",
+    border="#2c323c",
+    border_strong="#3a414d",
+    text="#e7eaee",
+    text_2="#a7aeb8",
+    text_3="#7f8793",
+    accent="#4c9be8",
+    accent_hover="#66abee",
+    accent_soft="#182c42",
+    accent_text="#08111c",
     ok="#4cc27f",
-    ok_soft="#1f3a2b",
+    ok_soft="#1c3528",
     warn="#e2a33d",
-    warn_soft="#3d3020",
+    warn_soft="#3a2e1d",
     bad="#ef6b60",
-    bad_soft="#432523",
+    bad_soft="#3f2422",
 )
 
 

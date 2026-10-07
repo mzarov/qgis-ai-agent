@@ -456,6 +456,7 @@ _mod(
     "qgis.PyQt.QtGui",
     [
         "QColor",
+        "QPolygonF",
         "QPalette",
         "QGuiApplication",
         "QKeySequence",
