@@ -1,6 +1,7 @@
 from qgis.core import Qgis, QgsMessageLog, QgsProject
 
 from ai_agent.core.agent import notices
+from ai_agent.core.agent.failures import outcome_note
 from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.base import SAFETY_READ
@@ -132,7 +133,7 @@ class BatchApplyMixin:
     ) -> None:
         if not self._is_current(generation) and call is not self._active_apply_call:
             return
-        self.tool_finished.emit(call.name, result.ok)
+        self.tool_finished.emit(call.name, result.ok, outcome_note(call, result))
         if call is self._active_apply_call:
             self._active_apply_call = None
 

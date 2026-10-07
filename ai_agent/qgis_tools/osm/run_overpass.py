@@ -1,7 +1,7 @@
 import os
 from typing import Any
 
-from ai_agent.i18n import tr
+from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.osm.args import geometry, wanted_name
 from ai_agent.qgis_tools.osm.fetch import fetch
@@ -95,6 +95,9 @@ class RunOverpassTool(BaseTool):
 
     def detail_call(self, params: dict[str, Any]) -> str:
         return str(params.get("query") or "").strip()
+
+    def summarize_result(self, params: dict[str, Any], payload: dict[str, Any]) -> str:
+        return tr_n("%n feature(s)", int(payload.get("total_features") or 0))
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         query = _checked_query(params.get("query"))

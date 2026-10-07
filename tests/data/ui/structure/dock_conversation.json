@@ -52,6 +52,33 @@
  },
  {
   "depth": 4,
+  "type": "ActivityGroup"
+ },
+ {
+  "depth": 5,
+  "type": "Disclosure"
+ },
+ {
+  "depth": 6,
+  "type": "ElidedLabel",
+  "text": "Reading layer 'districts', Reading values of field 'pop2020' in layer 'districts'"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "<duration>"
+ },
+ {
+  "depth": 6,
+  "type": "QToolButton",
+  "checked": false
+ },
+ {
+  "depth": 6,
+  "type": "QLabel"
+ },
+ {
+  "depth": 4,
   "type": "AssistantMessage"
  },
  {
@@ -83,7 +110,7 @@
  },
  {
   "depth": 6,
-  "type": "QWidget"
+  "type": "PlanStep"
  },
  {
   "depth": 7,
@@ -97,7 +124,7 @@
  },
  {
   "depth": 6,
-  "type": "QWidget"
+  "type": "PlanStep"
  },
  {
   "depth": 7,

@@ -988,3 +988,15 @@ These verify the agent solves everyday tasks without wandering through search.
      chat box, and PDOK is on again.
 207. **Personalisation.** Settings → Personalisation: *Always answer in two
      sentences.* → Save; ask anything → the answer keeps to two sentences.
+208. **Activity list.** *How many roads are there, and where is Rotterdam?* →
+     while it works an open list: the header names the first calls; each row
+     has a coloured badge (eye for reading, globe for the web, brain for
+     reasoning) and a line under it — *N features matched*, the address. The
+     answer arrives → the list folds to its header with a duration; a click
+     reopens it. *Zoom to the Netherlands* → one row *Moving the map to
+     Netherlands* (no header above a single call), no Python confirmation.
+209. **Failures in plain words.** Disconnect the network; *download the roads
+     here from OSM* → Apply → the plan step ✕ with *Could not reach the
+     service…* under it, no feed row repeating it, no English error text,
+     then *Looking into what went wrong…*. *Rename the roads layer to Roads and
+     colour it orange* → Apply → both steps ✓.

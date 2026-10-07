@@ -33,7 +33,7 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `dock_widget.py`  | the shell: header, feed, composer; conversation menu; the orchestrator contract |
 | `conversation.py` | a `QScrollArea` with one widget per message, autoscroll, action grouping |
 | `messages.py`     | the user message, the agent reply, the service message |
-| `activity.py`     | the collapsible group of tool calls |
+| `activity.py`     | the group of tool calls: named header with the time, rows with coloured skill badges and result lines |
 | `disclosure.py`   | the fold line: title, detail, chevron after them |
 | `plan.py`         | the plan card with its buttons inside |
 | `confirmations.py` | the modal questions: share data with a provider, run destructive steps |
@@ -120,9 +120,9 @@ both calls explicitly.
 
 A thinking block does not break the group: it is added **inside** the
 activity group as a row of its own, so a whole think–act–think–act chain folds
-into one box. The group opens itself while reasoning streams and `_close_activity`
-rests it when a message arrives — the feed stays compact without hiding anything:
-one click reopens the turn.
+into one list. The group opens with its first call or reasoning; `_close_activity`
+rests it when a message arrives, folding it to the header — the feed stays
+readable without hiding anything: one click reopens a turn.
 
 Drop and fold are different on purpose. A draft is normally **finalised**, not
 dropped: before the first tool of a turn reaches the feed, the loop's `preamble`
@@ -151,20 +151,26 @@ pair of methods so the two states cannot drift apart.
 
 ## The feed is flat lines, frames mean a decision
 
-The design language follows Claude Code's own feed. A finished turn's activity
-is **one muted fold line** — "4 actions ›", the chevron after the text, the whole
-line clickable (`Disclosure`). Opened, the calls sit in a hairline list, one row
-per call with the reasoning as a row of its own; the list is painted
-(`ActivityList`), so it never restyles its subtree. Success is the default and
-carries no mark — only a failed or rejected call shows one, and the fold line
-counts failures in the danger colour. A reasoning-only turn stays a bare fold
-line: a box around a single row frames nothing. Elapsed time lives in the
-working line while a turn runs, not on the group.
+The activity list follows TerraLab's: the header names the first two calls and
+counts the rest, "Reading layer roads, Adding basemap +2", and once the turn
+moves on shows how long it took; the whole line is clickable (`Disclosure`).
+While the agent works the rows sit **open, without a frame**, one per call: a
+badge with the skill's icon in that skill's hue on a pale wash of it (`HUES`
+over the categorical chart palette; the skill is the `CallSummary.skill` the
+registry sets), the wording muted with the call's own values bright, and under
+it the tool's `summarize_result` line — what the call found. Reasoning gets a
+badge of its own so it lines up. When the answer arrives the list folds to its
+header. A group with one call has no header at all — it only repeated the row —
+and its row stays shown. Row text keeps the inherited font: a scaled font set before the row
+joins the feed is computed from the application font and came out smaller. Success carries no mark — only a failed or rejected call shows
+one, and the header counts failures in the danger colour. The working line
+below says "Working…" with the time; it does not repeat the current call, which
+the open list already names.
 
 Boxing every turn made the feed read as a wall of cards. A frame with a fill is
 reserved for the one thing that asks the user to act: the plan card. If a new
 element wants a frame, the question to ask is "does it hold buttons?" — if not,
-it is a line, or at most a hairline list the user opened on purpose.
+it is a line or an open list.
 
 ## Action grouping
 
@@ -174,6 +180,12 @@ orchestrator still calls `add_tool_message` per call and knows nothing about
 grouping.
 
 ## The plan card
+
+While the plan applies, each step shows its progress at the end of its line
+(● running, ✓ done, ✕ failed, — skipped) and a failed step its reason under
+it, in plain words (`core/agent/failures.explain_failure`); the model keeps the
+exact English error. Apply-phase tool events go to the card, not to feed rows,
+which only repeated its lines.
 
 The Apply and Cancel buttons live inside `PlanCard`, not as a separate row at
 the bottom of the panel. The card emits signals upwards; the dock re-emits them
@@ -282,7 +294,7 @@ container cascades to every descendant. The composer once changed its frame's
 style sheet in the editor's `focusOutEvent`; Qt swapped the editor's style
 mid-event and QGIS segfaulted in event processing, intermittently and only in
 a full test run. Container backgrounds go through `style.fill` (the palette),
-focus and state looks are painted (`controls.RoundedFrame` for the composer, the activity list,
+focus and state looks are painted (`controls.RoundedFrame` for the composer,
 provider tiles and popup rows; `WorkingDots`, `PaintedDot`), and a style
 sheet is set only when its text actually changed.
 

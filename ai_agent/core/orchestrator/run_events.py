@@ -2,9 +2,20 @@
 
 from qgis.core import Qgis, QgsMessageLog
 
-from ai_agent.core.orchestrator.notices import APPLY_STOPPED, AWAITING_ANSWER, LOG_TAG, RUN_STOPPED
+from ai_agent.core.orchestrator.notices import (
+    APPLY_STOPPED,
+    AWAITING_ANSWER,
+    LOG_TAG,
+    RUN_STOPPED,
+    STEP_DONE,
+    STEP_FAILED,
+    STEP_RUNNING,
+)
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.call_summary import CallSummary
+
+# The feed's icon for a skill being loaded; tool calls carry their own skill.
+KNOWLEDGE = "knowledge"
 
 
 class RunEventsMixin:
@@ -42,14 +53,25 @@ class RunEventsMixin:
         self.dock_widget.add_system_message(AWAITING_ANSWER)
 
     def on_tool_started(self, summary: str) -> None:
+        if self._applying_plan():
+            # The plan card already lists this step: it shows the progress, a feed row would repeat it.
+            self._plan_step += 1
+            self.dock_widget.mark_plan_step(self._plan_message_id, self._plan_step, STEP_RUNNING)
+            return
         self._active_tool_message_id = self.dock_widget.add_tool_message(summary)
 
-    def on_tool_finished(self, tool_name: str, ok: bool) -> None:
-        if self._active_tool_message_id is not None:
-            self.dock_widget.mark_tool_done(self._active_tool_message_id, ok)
+    def on_tool_finished(self, tool_name: str, ok: bool, note: str = "") -> None:
+        if self._applying_plan() and self._plan_step >= 0:
+            state = STEP_DONE if ok else STEP_FAILED
+            self.dock_widget.mark_plan_step(self._plan_message_id, self._plan_step, state, note)
+        elif self._active_tool_message_id is not None:
+            self.dock_widget.mark_tool_done(self._active_tool_message_id, ok, note)
             self._active_tool_message_id = None
         if not ok:
             QgsMessageLog.logMessage(f"Tool {tool_name} failed.", LOG_TAG, Qgis.MessageLevel.Warning)
+
+    def _applying_plan(self) -> bool:
+        return self._plan_message_id is not None and bool(getattr(self.agent, "is_applying", False))
 
     def on_tool_queued(self, _summary: str) -> None:
         QgsMessageLog.logMessage("A validated step was added to the plan.", LOG_TAG, Qgis.MessageLevel.Info)
@@ -62,7 +84,9 @@ class RunEventsMixin:
         self.dock_widget.add_tool_message(tr("Plan {0}/{1}: {2}").format(done, len(steps), shown))
 
     def on_skill_loaded(self, name: str) -> None:
-        self.dock_widget.add_tool_message(CallSummary.of(tr("Loading knowledge: {0}"), name))
+        summary = CallSummary.of(tr("Loading knowledge: {0}"), name)
+        summary.skill = KNOWLEDGE
+        self.dock_widget.add_tool_message(summary)
 
     def on_journal_written(self, path: str) -> None:
         self.dock_widget.add_system_message(tr("Run journal: {0}").format(path))

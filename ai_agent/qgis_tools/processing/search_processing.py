@@ -1,6 +1,6 @@
 from typing import Any
 
-from ai_agent.i18n import tr
+from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common.values import clamp_limit
 from ai_agent.qgis_tools.processing.ranking import score
@@ -43,6 +43,9 @@ class SearchProcessingTool(BaseTool):
         if not query:
             return tr("Searching for a processing algorithm.")
         return tr("Searching for an algorithm: '{0}'.").format(query)
+
+    def summarize_result(self, params: dict[str, Any], payload: dict[str, Any]) -> str:
+        return tr_n("%n algorithm(s)", int(payload.get("total_matched") or 0))
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         query = (params.get("query") or "").strip().lower()

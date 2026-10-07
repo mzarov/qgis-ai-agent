@@ -28,7 +28,8 @@ PRELOADED_SKILLS = ("inspect",)
 class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
     # A CallSummary travels as an object: a str signal would hand the slot a plain copy without its marks.
     tool_started = pyqtSignal(object)
-    tool_finished = pyqtSignal(str, bool)
+    # Tool name, success, and the user-facing line about what the call found (may be empty).
+    tool_finished = pyqtSignal(str, bool, str)
     tool_queued = pyqtSignal(str)
     tool_rejected = pyqtSignal(object)
     skill_loaded = pyqtSignal(str)

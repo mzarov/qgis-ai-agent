@@ -1,7 +1,7 @@
 ---
 name: project
 description: The workspace — add layers from files, basemaps, WMS/WFS or PostGIS; remove, rename, hide, group, reorder; project CRS; export a layer to a file; save; undo the last apply; remember notes about the project; bookmarks and map themes.
-tools: [zoom_to_layer, add_layer, add_basemap, add_service_layer, list_db_connections, list_db_tables, add_db_layer, remove_layer, reorder_layers, configure_layer, configure_project, save_project, export_layer, undo_last_apply, list_views, remember, list_notes, forget, save_bookmark, save_map_theme]
+tools: [zoom_to_layer, zoom_to_area, add_layer, add_basemap, add_service_layer, list_db_connections, list_db_tables, add_db_layer, remove_layer, reorder_layers, configure_layer, configure_project, save_project, export_layer, undo_last_apply, list_views, remember, list_notes, forget, save_bookmark, save_map_theme]
 ---
 
 # The project as a workspace
@@ -21,7 +21,8 @@ saved.
 | "drop a layer", "remove the spare one" | `remove_layer` |
 | "rename", "hide", "into a group", "move to the top" | `configure_layer` |
 | "change the project CRS", "name the project" | `configure_project` |
-| "show me the layer", "zoom to" | `zoom_to_layer` |
+| "show me the layer", "zoom to the roads" | `zoom_to_layer` |
+| "zoom to Rotterdam", "show the Netherlands", coordinates | `zoom_to_area` — a `bbox` from geocode, well-known bounds for a country, or `lon`/`lat` with a `scale`; never `run_python` to move the map |
 | "save the project" | `save_project` |
 | "save this layer to a file", "export to GeoJSON" | `export_layer` |
 

@@ -13,10 +13,12 @@ from ai_agent.qgis_tools.project.reorder_layers import ReorderLayersTool
 from ai_agent.qgis_tools.project.save_project import SaveProjectTool
 from ai_agent.qgis_tools.project.undo_last_apply import UndoLastApplyTool
 from ai_agent.qgis_tools.project.views import ListViewsTool, SaveBookmarkTool, SaveMapThemeTool
+from ai_agent.qgis_tools.project.zoom_to_area import ZoomToAreaTool
 from ai_agent.qgis_tools.project.zoom_to_layer import ZoomToLayerTool
 
 PROJECT_TOOLS = [
     ZoomToLayerTool(),
+    ZoomToAreaTool(),
     AddLayerTool(),
     AddBasemapTool(),
     AddServiceLayerTool(),

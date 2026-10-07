@@ -26,6 +26,9 @@ from qgis.PyQt.QtWidgets import QApplication, QLabel, QPushButton, QScrollArea, 
 
 import ai_agent
 from ai_agent import i18n
+from ai_agent.core.agent import failures
+from ai_agent.core.orchestrator import notices
+from ai_agent.qgis_tools.registry import summarize_tool_call, summarize_tool_result
 from ai_agent.ui import settings_layout
 from ai_agent.ui.settings_dialog import SettingsDialog
 
@@ -50,7 +53,13 @@ PLAN = [
     "Labeling 'districts' with 'name'.",
 ]
 CHECKING = "Checking the applied changes…"
-STEP = "Reading layer 'districts'"
+FAILED_STEPS = "%n step(s) did not run — the reasons are in the plan above."
+STEP = ("query_layer", {"layer_name": "districts", "aggregate": "max", "expression": "pop2020"})
+# The calls before the answer, with what each found: the open activity list as a person sees it.
+READS = (
+    ("describe_layer", {"layer_name": "districts"}, {"feature_count": 12}),
+    ("get_field_values", {"layer_name": "districts", "field_name": "pop2020"}, {"unique_values": list(range(12))}),
+)
 TOKENS = "/style colour @districts by pop2020 in 5 classes"
 DONE = "Done: %n step(s) applied.{0}"
 BAR_CHART = {
@@ -106,6 +115,11 @@ class ScreenCase(PluginCase):
         QApplication.setCursorFlashTime(0)
         self.faults: list[str] = []
 
+    def reads(self) -> None:
+        for name, arguments, payload in READS:
+            entry = self.dock.add_tool_message(summarize_tool_call(name, arguments))
+            self.dock.mark_tool_done(entry, True, summarize_tool_result(name, arguments, payload))
+
     def check(self, name: str, widget: QWidget) -> None:
         name += LOCALE_SUFFIX
         # Focus paints the composer's frame; which widget holds it depends on the tests run before.
@@ -133,6 +147,7 @@ class ScreenCase(PluginCase):
 
     def conversation(self) -> None:
         self.dock.add_user_message(REQUEST)
+        self.reads()
         self.dock.conversation.add_assistant_message(ANSWER)
         self.dock.add_plan_message(PLAN)
         self.dock.add_system_message(i18n.tr(CHECKING))
@@ -163,12 +178,25 @@ class StateScreens(ScreenCase):
     def test_working(self) -> None:
         self.dock.add_user_message(REQUEST)
         self.dock.set_busy(True)
-        self.dock.add_tool_message(STEP)
+        self.dock.conversation.append_thinking("The renderer needs the value range first.")
+        self.reads()
+        self.dock.add_tool_message(summarize_tool_call(*STEP))
         self.dock.progress._timer.stop()
         try:
             self.check("dock_working", self.dock)
         finally:
             self.dock.set_busy(False)
+
+    def test_failed_apply(self) -> None:
+        self.dock.add_user_message(REQUEST)
+        plan = self.dock.add_plan_message(PLAN)
+        self.dock.mark_plan_step(
+            plan, 0, notices.STEP_FAILED, failures.explain_failure("server replied: Gateway Timeout")
+        )
+        self.dock.mark_plan_step(plan, 1, notices.STEP_SKIPPED)
+        self.dock.mark_plan_failed(plan)
+        self.dock.add_system_message(i18n.tr_n(FAILED_STEPS, 1))
+        self.check("dock_failed_apply", self.dock)
 
     def test_plan_offer(self) -> None:
         self.dock.set_work_mode("plan")

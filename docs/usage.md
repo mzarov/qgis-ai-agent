@@ -9,7 +9,12 @@ stop button and Esc stops the run too; typing meanwhile corrects the agent.
 
 ## Asking about the project
 
-Reading runs immediately, no confirmation:
+Reading runs immediately, no confirmation. Every call the agent makes is listed
+above its answer: the header names the first calls and how long the turn took,
+each row has its skill's icon in a coloured badge, and under it what the call
+found — *12 features matched*, the address a place name resolved to, the
+clearest satellite scene. The list is open while the agent works and folds to
+its header when the answer arrives; a click reopens it.
 
 - *what layers do I have?*
 - *which fields does the roads layer have, and what is in `highway`?*
@@ -151,6 +156,12 @@ plugin. It is not encrypted. See
 - A tool error does not kill the run: the agent reads the error and corrects
   itself — a wrong layer name gets the list of real ones.
 - The stop button aborts the run immediately and discards any planned changes.
+- A step that fails during Apply is marked ✕ in the plan with the reason in
+  plain words under it — *the service did not answer in time* — and the steps
+  after it are marked as not run. The agent then looks into what went wrong.
+- A plan may rename a layer and then style it: the later steps follow the
+  renamed layer. Renaming it yourself between the plan and Apply stops those
+  steps, so they never touch a layer you changed.
 - Overpass (the OSM service) is public and sometimes busy; a refusal is not a
   plugin bug — retry later or narrow the query.
 - A small local model (7–8B) will fumble the tool calls. The sensible minimum

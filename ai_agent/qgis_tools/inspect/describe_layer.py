@@ -3,7 +3,7 @@ from typing import Any
 
 from qgis.core import QgsRasterLayer, QgsVectorLayer
 
-from ai_agent.i18n import tr
+from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common.layer_meta import describe_source
 from ai_agent.qgis_tools.common.layers import (
@@ -54,6 +54,10 @@ class DescribeLayerTool(BaseTool):
         if not layer_name:
             return tr("Reading the layer.")
         return tr("Reading layer '{0}'.").format(layer_name)
+
+    def summarize_result(self, params: dict[str, Any], payload: dict[str, Any]) -> str:
+        count = payload.get("feature_count")
+        return tr_n("%n feature(s)", int(count)) if isinstance(count, int) else ""
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = find_layer_by_name(params.get("layer_name") or "")

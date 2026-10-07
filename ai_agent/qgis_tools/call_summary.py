@@ -17,6 +17,8 @@ Part = tuple[str, bool]
 
 class CallSummary(str):
     parts: tuple[Part, ...]
+    # The skill of the tool behind the call: the feed draws that skill's icon beside the row.
+    skill: str = ""
 
     def __new__(cls, parts: list[Part]) -> "CallSummary":
         merged = _merge(parts)

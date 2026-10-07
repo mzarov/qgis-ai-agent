@@ -1,0 +1,178 @@
+[
+ {
+  "depth": 0,
+  "type": "AgentDockWidget"
+ },
+ {
+  "depth": 1,
+  "type": "QAbstractButton"
+ },
+ {
+  "depth": 1,
+  "type": "QAbstractButton"
+ },
+ {
+  "depth": 1,
+  "type": "QWidget",
+  "name": "agentBody"
+ },
+ {
+  "depth": 2,
+  "type": "QWidget"
+ },
+ {
+  "depth": 3,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 3,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 3,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 2,
+  "type": "ConversationView"
+ },
+ {
+  "depth": 3,
+  "type": "QWidget",
+  "name": "feed"
+ },
+ {
+  "depth": 4,
+  "type": "UserMessage"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Colour districts by pop2020 in 5 classes"
+ },
+ {
+  "depth": 4,
+  "type": "PlanCard"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "✕"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Applied with errors"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "PlanStep"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "1."
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Graduating 'districts' by 'pop2020', classes: 5."
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "✕"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "The service did not answer in time — it is busy. Try again in a minute or with a smaller area."
+ },
+ {
+  "depth": 6,
+  "type": "PlanStep"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "2."
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Labeling 'districts' with 'name'."
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "—"
+ },
+ {
+  "depth": 4,
+  "type": "SystemMessage"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "1 step did not run — the reasons are in the plan above."
+ },
+ {
+  "depth": 2,
+  "type": "QWidget"
+ },
+ {
+  "depth": 3,
+  "type": "Composer"
+ },
+ {
+  "depth": 4,
+  "type": "RoundedFrame",
+  "name": "composerFrame"
+ },
+ {
+  "depth": 5,
+  "type": "PromptEdit",
+  "text": "Ask about the project…"
+ },
+ {
+  "depth": 5,
+  "type": "QPushButton",
+  "text": "↵",
+  "enabled": false
+ },
+ {
+  "depth": 4,
+  "type": "ComposerToolbar"
+ },
+ {
+  "depth": 5,
+  "type": "QToolButton",
+  "text": "+"
+ },
+ {
+  "depth": 5,
+  "type": "QToolButton",
+  "text": "Ask first"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "qwen3"
+ },
+ {
+  "depth": 5,
+  "type": "ContextMeter"
+ },
+ {
+  "depth": 6,
+  "type": "ContextRing"
+ }
+]

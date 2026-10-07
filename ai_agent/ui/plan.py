@@ -10,6 +10,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ai_agent.core.orchestrator.notices import STEP_DONE, STEP_FAILED, STEP_RUNNING, STEP_SKIPPED
 from ai_agent.core.settings import WORK_MODE_ASK, WORK_MODE_AUTO
 from ai_agent.i18n import tr, tr_n
 from ai_agent.ui import controls, style
@@ -30,6 +31,14 @@ KEEP_PLANNING = tr("Or reply to change the plan.")
 PLAN_STARTED_AUTO = tr("Running the plan automatically")
 PLAN_STARTED_ASKING = tr("Running the plan with approval")
 NUMBER_WIDTH = 16
+RUNNING_MARK = "●"
+# A plan step's mark while the plan applies, by the state the orchestrator reports.
+STEP_MARKS = {
+    STEP_RUNNING: (RUNNING_MARK, style.muted),
+    STEP_DONE: (APPLIED_MARK, style.success),
+    STEP_FAILED: (FAILED_MARK, style.danger),
+    STEP_SKIPPED: (CANCELLED_MARK, style.muted),
+}
 
 
 class PlanCard(QFrame):
@@ -83,33 +92,16 @@ class PlanCard(QFrame):
         column = QVBoxLayout(holder)
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(0)
+        self._steps: list[PlanStep] = []
         for index, step in enumerate(steps, 1):
-            column.addWidget(self._build_step(index, step, palette))
+            self._steps.append(PlanStep(index, step, palette))
+            column.addWidget(self._steps[-1])
         return holder
 
-    @staticmethod
-    def _build_step(index: int, step: str, palette) -> QWidget:
-        row = QWidget()
-        row.setStyleSheet(
-            f"border: none; border-top: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
-        )
-        layout = QHBoxLayout(row)
-        layout.setContentsMargins(0, 6, 0, 6)
-        layout.setSpacing(8)
-
-        number = QLabel(f"{index}.")
-        number.setFixedWidth(NUMBER_WIDTH)
-        number.setStyleSheet(f"color: {style.css_color(style.muted(palette))}; border: none;")
-        layout.addWidget(number)
-
-        label = QLabel(step)
-        label.setTextFormat(Qt.TextFormat.PlainText)
-        label.setWordWrap(True)
-        label.setStyleSheet("border: none;")
-        style.scale_font(label, STEP_FONT_SCALE)
-        number.setFont(label.font())
-        layout.addWidget(label, 1)
-        return row
+    def mark_step(self, index: int, state: str, note: str = "") -> None:
+        """One step's progress while the plan applies: running, done, failed with the reason, or skipped."""
+        if 0 <= index < len(self._steps):
+            self._steps[index].set_state(state, note)
 
     def _build_buttons(self, palette) -> QWidget:
         holder = QWidget()
@@ -147,6 +139,57 @@ class PlanCard(QFrame):
         self._heading.setText(heading)
         self._heading.setStyleSheet(f"color: {style.css_color(colour)}; border: none;")
         self._buttons.setVisible(False)
+
+
+class PlanStep(QWidget):
+    """A numbered step; while applying it gains a mark at the end and, if it failed, the reason under it."""
+
+    def __init__(self, index: int, step: str, palette: Any, parent: QWidget | None = None):
+        super().__init__(parent)
+        self._palette = palette
+        self.state = ""
+        # A QWidget subclass paints no style-sheet border without this: the hairline between steps vanished.
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setStyleSheet(
+            f"border: none; border-top: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
+        )
+        column = QVBoxLayout(self)
+        column.setContentsMargins(0, 6, 0, 6)
+        column.setSpacing(2)
+        line = QHBoxLayout()
+        line.setSpacing(8)
+        column.addLayout(line)
+        number = QLabel(f"{index}.")
+        number.setFixedWidth(NUMBER_WIDTH)
+        number.setStyleSheet(f"color: {style.css_color(style.muted(palette))}; border: none;")
+        line.addWidget(number)
+        self.label = QLabel(step)
+        self.label.setTextFormat(Qt.TextFormat.PlainText)
+        self.label.setWordWrap(True)
+        self.label.setStyleSheet("border: none;")
+        style.scale_font(self.label, STEP_FONT_SCALE)
+        number.setFont(self.label.font())
+        line.addWidget(self.label, 1)
+        self.mark = QLabel()
+        self.mark.setFont(self.label.font())
+        self.mark.setVisible(False)
+        line.addWidget(self.mark, 0, Qt.AlignmentFlag.AlignTop)
+        self.reason = controls.small("", palette)
+        self.reason.setTextFormat(Qt.TextFormat.PlainText)
+        self.reason.setContentsMargins(NUMBER_WIDTH + 8, 0, 0, 0)
+        self.reason.setStyleSheet(f"color: {style.css_color(style.danger(palette))}; border: none;")
+        self.reason.setVisible(False)
+        column.addWidget(self.reason)
+
+    def set_state(self, state: str, note: str = "") -> None:
+        self.state = state
+        mark, colour = STEP_MARKS.get(state, ("", style.muted))
+        self.mark.setText(mark)
+        self.mark.setVisible(bool(mark))
+        self.mark.setStyleSheet(f"color: {style.css_color(colour(self._palette))}; border: none;")
+        failed = state == STEP_FAILED
+        self.reason.setText(note if failed else "")
+        self.reason.setVisible(failed and bool(note))
 
 
 class OfferRow(ChoiceRow):

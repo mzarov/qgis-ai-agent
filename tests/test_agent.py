@@ -576,6 +576,50 @@ class BatchLayerPinTest(unittest.TestCase):
         self.assertFalse(results[0].ok)
         self.assertIn("changed or disappeared", results[0].payload["error"])
 
+    def test_a_rename_earlier_in_the_batch_is_followed_by_the_later_steps(self):
+        roads = self.Layer("roads — lines", "roads-id")
+        project = self.Project([roads])
+        seen = []
+
+        class RenamingExecutor(FakeExecutor):
+            def run(self, queued):
+                seen.append(dict(queued.arguments))
+                if queued.name == "configure_layer":
+                    roads._name = "roads"
+                return super().run(queued)
+
+        executor = RenamingExecutor()
+        batch = WriteBatch(executor)
+        with (
+            mock.patch.object(batch_module.QgsProject, "instance", return_value=project),
+            mock.patch.object(batch_module, "prepare_tool_call", side_effect=lambda name, params: params),
+            mock.patch.object(batch_module, "project_identity", return_value="project"),
+        ):
+            batch.add(call("configure_layer", layer_name="roads — lines", name="roads"))
+            batch.add(call("set_opacity", layer_name="roads — lines", opacity=0.5))
+            results = batch.apply(lambda item: None, lambda item, result: None, "project")
+
+        self.assertEqual(executor.ran, ["configure_layer", "set_opacity"])
+        self.assertTrue(all(result.ok for result in results))
+        self.assertEqual(seen[1]["layer_name"], "roads")
+
+    def test_a_rename_by_the_user_before_apply_still_stops_the_step(self):
+        roads = self.Layer("roads", "roads-id")
+        project = self.Project([roads])
+        executor = FakeExecutor()
+        batch = WriteBatch(executor)
+        with (
+            mock.patch.object(batch_module.QgsProject, "instance", return_value=project),
+            mock.patch.object(batch_module, "prepare_tool_call", side_effect=lambda name, params: params),
+            mock.patch.object(batch_module, "project_identity", return_value="project"),
+        ):
+            batch.add(call("set_opacity", layer_name="roads", opacity=0.5))
+            roads._name = "streets"
+            results = batch.apply(lambda item: None, lambda item, result: None, "project")
+
+        self.assertEqual(executor.ran, [])
+        self.assertIn("changed or disappeared", results[0].payload["error"])
+
     def test_real_destructive_tool_rejects_mismatched_public_layer_references(self):
         roads = self.VectorLayer("roads", "roads-id")
         rivers = self.VectorLayer("rivers", "rivers-id")

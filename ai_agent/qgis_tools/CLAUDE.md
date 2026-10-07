@@ -75,13 +75,17 @@ the schema by hand. Supported `type`s: `string`, `number`, `integer`, `boolean`,
    path too: if it throws on malformed arguments, error handling itself breaks,
    not just one line in the feed. Wrap anything that may fail to parse in `try`
    and fall back to a generic word. `tests/test_tools.py` catches this.
-4. **`summarize_call` is the only thing here a person sees.** So only it gets
-   wrapped in `tr()`, and only it may carry a literal for translation:
+4. **`summarize_call` (and `summarize_result`) are all a person sees here.** So
+   only they are wrapped in `tr()` and may carry a literal for translation:
    `tr("Reading layer '{0}'.").format(name)`. The knowledge of what a step
    looks like lives in the tool, not in the registry. Show coordinates the user
    did not give as “auto” — never substitute invented defaults. Put argument
    values in **verbatim**: the registry marks the spans that repeat them
    (`call_summary.py`) and the feed shows them bright, the wording muted.
+   Its counterpart after the call is the optional `summarize_result(params,
+   payload)`: a few translated words under the row saying what the call found
+   ("12 features matched", a geocoded place). Read the payload only; return ""
+   when it has nothing short and true to say.
 5. **Errors carry clear English text and a hint, without `tr()`.** The model
    reads them and corrects itself. When an object is missing, attach the list
    of available ones (see `common/layers.py::find_layer_by_name`).

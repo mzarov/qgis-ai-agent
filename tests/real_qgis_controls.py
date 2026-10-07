@@ -14,7 +14,7 @@ from qgis.PyQt.QtCore import QEvent, QPoint, Qt
 from qgis.PyQt.QtGui import QColor, QKeyEvent
 from qgis.PyQt.QtWidgets import QLineEdit, QWidget
 
-from ai_agent.ui import controls, settings_fields
+from ai_agent.ui import controls, progress, settings_fields
 from ai_agent.ui.composer_parts import LAYER_TOKEN, SKILL_TOKEN
 from ai_agent.ui.settings_dialog import SettingsDialog
 
@@ -134,7 +134,8 @@ class ComposerBehaviourTest(PluginCase):
         self.dock.set_busy(True)
         self.dock.add_tool_message("Reading layer 'districts'")
         self.assertFalse(self.dock.progress.isHidden())
-        self.assertEqual(self.dock.progress.step_text, "Reading layer 'districts'")
+        # The open list names the call; the line below only says the agent is still at work.
+        self.assertEqual(self.dock.progress.step_text, progress.WORKING)
         self.dock.set_busy(False)
         self.assertTrue(self.dock.progress.isHidden())
 

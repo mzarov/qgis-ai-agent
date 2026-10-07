@@ -3,7 +3,7 @@ from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
-from ai_agent.i18n import tr
+from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_WEB_CONTENT, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.web.html_text import BLOCK_TAGS, DROP_TAGS, html_to_text, normalize_text
 from ai_agent.qgis_tools.web.http import (
@@ -57,6 +57,9 @@ class SearchWebTool(BaseTool):
         _, wikipedia_url = _wikipedia_request(query)
         checked_url(wikipedia_url, resolve=False)
         return {**params, "query": query}
+
+    def summarize_result(self, params: dict[str, Any], payload: dict[str, Any]) -> str:
+        return tr_n("%n result(s)", len(payload.get("results") or []))
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         query = bounded_text(params.get("query"), "query", MAX_QUERY_CHARS)

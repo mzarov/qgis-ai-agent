@@ -2,7 +2,7 @@ from typing import Any
 
 from qgis.core import QgsVectorLayer
 
-from ai_agent.i18n import tr
+from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.expressions import build_context, build_request
@@ -96,6 +96,13 @@ class QueryLayerTool(BaseTool):
         action = tr("computing {0}").format(aggregate) if aggregate else tr("selecting features")
         where = tr(" where {0}").format(condition) if condition else ""
         return tr("Layer '{0}': {1}{2}.").format(layer_name, action, where)
+
+    def summarize_result(self, params: dict[str, Any], payload: dict[str, Any]) -> str:
+        if "value" in payload:
+            return f"{payload.get('aggregate') or ''}: {payload['value']}"
+        if "groups" in payload:
+            return tr_n("%n group(s)", len(payload.get("groups") or []))
+        return tr_n("%n feature(s) matched", int(payload.get("matched") or 0))
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = find_layer_by_name(params.get("layer_name") or "")

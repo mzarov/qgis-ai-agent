@@ -1,4 +1,6 @@
-"""The working line at the foot of the conversation, as in Claude Code: dots, the current step, the time.
+"""The working line at the foot of the conversation, as in Claude Code: dots, "Working…", the time.
+
+The current call is named in the open activity list above it, so the line does not repeat it.
 
 It lives in the feed under the last message, so it scrolls with the
 conversation instead of sitting on the composer.
@@ -93,10 +95,6 @@ class ProgressLine(QWidget):
         self._dots.set_phase(0.0)
         self._timer.start()
         self.show()
-
-    def step(self, text: str) -> None:
-        self._step.setText(text)
-        self._step.setToolTip(text)
 
     def stop(self) -> None:
         self._timer.stop()

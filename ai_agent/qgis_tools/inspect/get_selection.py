@@ -3,7 +3,7 @@ from typing import Any
 
 from qgis.core import QgsFeatureRequest, QgsProject
 
-from ai_agent.i18n import tr
+from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common.layer_meta import selected_count
 from ai_agent.qgis_tools.common.layers import layer_reference
@@ -33,6 +33,9 @@ class GetSelectionTool(BaseTool):
 
     def summarize_call(self, params: dict[str, Any]) -> str:
         return tr("Reading the current selection.")
+
+    def summarize_result(self, params: dict[str, Any], payload: dict[str, Any]) -> str:
+        return tr_n("%n feature(s) selected", int(payload.get("selected_total") or 0))
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         selections = []

@@ -3,7 +3,7 @@ from typing import Any
 
 from qgis.core import QgsVectorLayer
 
-from ai_agent.i18n import tr
+from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.layers import field_type_name, find_layer_by_name, layer_reference
@@ -48,6 +48,9 @@ class GetFieldValuesTool(BaseTool):
         layer_name = (params.get("layer_name") or "").strip()
         field_name = (params.get("field_name") or "").strip()
         return tr("Reading values of field '{0}' in layer '{1}'.").format(field_name, layer_name)
+
+    def summarize_result(self, params: dict[str, Any], payload: dict[str, Any]) -> str:
+        return tr_n("%n value(s)", len(payload.get("unique_values") or []))
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = find_layer_by_name(params.get("layer_name") or "")

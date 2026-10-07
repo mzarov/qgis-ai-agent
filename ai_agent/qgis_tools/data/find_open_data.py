@@ -7,6 +7,9 @@ from ai_agent.qgis_tools.data.catalogue import describe, search
 NOTHING = "No dataset in the catalogue matches. Call find_open_data with no query to see all of them."
 
 
+SHOWN_TITLES = 3
+
+
 class FindOpenDataTool(BaseTool):
     name = "find_open_data"
     description = (
@@ -34,6 +37,13 @@ class FindOpenDataTool(BaseTool):
         if not query:
             return tr("Listing the open datasets.")
         return tr("Looking up open data: {0}.").format(query)
+
+    def summarize_result(self, params: dict[str, Any], payload: dict[str, Any]) -> str:
+        titles = [str(item.get("title") or "") for item in payload.get("datasets") or []]
+        if not titles:
+            return tr("Nothing found")
+        shown = ", ".join(titles[:SHOWN_TITLES])
+        return shown if len(titles) <= SHOWN_TITLES else f"{shown} +{len(titles) - SHOWN_TITLES}"
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         found = search(str(params.get("query") or ""))

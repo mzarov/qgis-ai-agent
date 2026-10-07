@@ -146,8 +146,7 @@ class ConversationView(QScrollArea):
         if self._thinking is None:
             self._drop_draft()
             if self._activity is None:
-                self._activity = ActivityGroup()
-                self._append(self._activity)
+                self._new_activity()
             block = ThinkingBlock()
             self._activity.add_widget(block)
             self._activity.reveal()
@@ -200,17 +199,15 @@ class ConversationView(QScrollArea):
     def add_activity_step(self, text: str) -> int:
         self._drop_draft()
         self._close_thinking()
-        if self._activity is None:
-            self._activity = ActivityGroup()
-            self._append(self._activity)
-        step = self._activity.add_step(text)
+        activity = self._activity or self._new_activity()
+        step = activity.add_step(text)
         self._scroll_when_pinned()
         return self._remember(step)
 
-    def mark_activity_step(self, entry_id: int, ok: bool) -> None:
+    def mark_activity_step(self, entry_id: int, ok: bool, note: str = "") -> None:
         label = self._entries.get(entry_id)
         if label is not None and self._activity is not None:
-            self._activity.mark_step(label, ok)
+            self._activity.mark_step(label, ok, note)
 
     def add_rejected_step(self, text: str) -> int:
         entry_id = self.add_activity_step(text)
@@ -260,6 +257,11 @@ class ConversationView(QScrollArea):
         card = self._entries.get(entry_id)
         if isinstance(card, PlanCard):
             card.mark_failed()
+
+    def mark_plan_step(self, entry_id: int, index: int, state: str, note: str = "") -> None:
+        card = self._entries.get(entry_id)
+        if isinstance(card, PlanCard):
+            card.mark_step(index, state, note)
 
     def mark_plan_cancelled(self, entry_id: int) -> None:
         card = self._entries.get(entry_id)
@@ -312,6 +314,11 @@ class ConversationView(QScrollArea):
         self._next_id += 1
         self._entries[entry_id] = entry
         return entry_id
+
+    def _new_activity(self) -> ActivityGroup:
+        self._activity = ActivityGroup()
+        self._append(self._activity)
+        return self._activity
 
     def _close_activity(self) -> None:
         if self._activity is not None:
