@@ -7,8 +7,8 @@ the switches also steer the feed and the tools that move the map.
 
 from typing import Any
 
-from qgis.PyQt.QtCore import QLocale, QObject, Qt, pyqtSignal
-from qgis.PyQt.QtWidgets import QComboBox, QLineEdit, QPlainTextEdit
+from qgis.PyQt.QtCore import QObject, Qt, pyqtSignal
+from qgis.PyQt.QtWidgets import QLineEdit, QPlainTextEdit
 
 from ai_agent.config import personal
 from ai_agent.core.personal import save_user_notes
@@ -16,6 +16,7 @@ from ai_agent.core.settings import MAX_CUSTOM_INSTRUCTIONS, get_custom_instructi
 from ai_agent.i18n import tr
 from ai_agent.ui import controls, style
 from ai_agent.ui import settings_fields as fields
+from ai_agent.ui.dropdown import Dropdown
 from ai_agent.ui.memory_settings import MemoryNotes
 
 TITLE = tr("Instructions for the agent")
@@ -80,6 +81,22 @@ CHOICE_TITLES = {
     "when_needed": tr("When needed"),
     "often": tr("Often"),
 }
+# Languages under their names in the interface language, as system settings list them.
+LANGUAGE_TITLES = {
+    "en": tr("English"),
+    "ru": tr("Russian"),
+    "uk": tr("Ukrainian"),
+    "de": tr("German"),
+    "fr": tr("French"),
+    "es": tr("Spanish"),
+    "it": tr("Italian"),
+    "pt": tr("Portuguese"),
+    "pl": tr("Polish"),
+    "nl": tr("Dutch"),
+    "tr": tr("Turkish"),
+    "zh": tr("Chinese"),
+    "ja": tr("Japanese"),
+}
 AUTO_TITLES = {0: tr("Never"), 60: tr("1 min"), 180: tr("3 min"), 300: tr("5 min")}
 COUNTER = "{0} / {1}"
 ABOUT_HEIGHT = 110
@@ -137,7 +154,7 @@ class PersonalisationSettings(QObject):
             column,
             palette,
             [
-                fields.row(LANGUAGE, self.language, LANGUAGE_NOTE, palette),
+                fields.custom_row(LANGUAGE, self.language, LANGUAGE_NOTE, palette),
                 fields.custom_row(STYLE, self.style, STYLE_NOTE, palette),
                 fields.custom_row(QUESTIONS, self.questions, QUESTIONS_NOTE, palette),
                 fields.custom_row(AUTO_ANSWER, self.auto_answer, AUTO_ANSWER_NOTE, palette),
@@ -198,11 +215,12 @@ class PersonalisationSettings(QObject):
         choice.currentIndexChanged.connect(lambda _index: self.changed.emit())
         return choice
 
-    def _languages(self, current: str) -> QComboBox:
-        combo = QComboBox()
+    def _languages(self, current: str) -> Dropdown:
+        combo = Dropdown(self._palette)
+        combo.setFixedWidth(fields.CONTROL_WIDTH)
         combo.addItem(SAME_AS_QGIS, "")
         for code in personal.LANGUAGES:
-            combo.addItem(_native_name(code), code)
+            combo.addItem(LANGUAGE_TITLES.get(code, personal.LANGUAGES[code]), code)
         combo.setCurrentIndex(max(0, combo.findData(current)))
         combo.currentIndexChanged.connect(lambda _index: self.changed.emit())
         return combo
@@ -241,14 +259,3 @@ class PersonalisationSettings(QObject):
         style.ink(counter, style.danger(self._palette) if length > limit else style.faint(self._palette))
         if emit:
             self.changed.emit()
-
-
-def _native_name(code: str) -> str:
-    """The language under its own name, as Qt knows it: a person looks for theirs in their own words."""
-    try:
-        name = QLocale(code).nativeLanguageName()
-    except Exception:
-        name = ""
-    if not isinstance(name, str) or not name:
-        return personal.LANGUAGES[code]
-    return name[:1].upper() + name[1:]

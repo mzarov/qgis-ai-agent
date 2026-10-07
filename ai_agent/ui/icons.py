@@ -50,6 +50,7 @@ NAMES = {
     "knowledge": "book-open",
     "brain": "brain",
     "sparkles": "sparkles",
+    "check": "check",
 }
 
 

@@ -141,3 +141,21 @@ class FeedPreferenceTest(SettingsCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DropdownTest(unittest.TestCase):
+    def test_it_behaves_like_the_combo_box_it_replaces(self):
+        from ai_agent.ui.dropdown import Dropdown
+
+        box = Dropdown(QWidget().palette())
+        changes = []
+        box.currentIndexChanged.connect(changes.append)
+        box.addItem("Same as QGIS", "")
+        box.addItem("German", "de")
+        self.assertEqual((box.currentIndex(), box.currentData(), box.currentText()), (0, "", "Same as QGIS"))
+        box.setCurrentIndex(box.findData("de"))
+        self.assertEqual((box.currentData(), box.currentText(), box.count()), ("de", "German", 2))
+        box.setCurrentIndex(7)
+        box.setCurrentIndex(1)
+        self.assertEqual(changes, [0, 1])
+        self.assertEqual(box.findData("fr"), -1)

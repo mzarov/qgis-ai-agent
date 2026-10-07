@@ -345,8 +345,16 @@
  },
  {
   "depth": 6,
-  "type": "QComboBox",
+  "type": "Dropdown"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
   "text": "Same as QGIS"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel"
  },
  {
   "depth": 5,

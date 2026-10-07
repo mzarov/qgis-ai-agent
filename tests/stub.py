@@ -416,7 +416,6 @@ _qtcore = _mod(
     "qgis.PyQt.QtCore",
     [
         "Qt",
-        "QLocale",
         "QThread",
         "QObject",
         "QEvent",
