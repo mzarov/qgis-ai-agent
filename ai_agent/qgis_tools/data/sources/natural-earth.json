@@ -1,0 +1,53 @@
+{
+  "id": "natural-earth",
+  "title": "Natural Earth",
+  "category": "world",
+  "order": 10,
+  "summary": "Small tidy world layers: countries, rivers, cities",
+  "description": "Clean, generalised world layers made for small-scale maps: countries, provinces, cities, rivers, lakes, coastlines, roads, railways, airports and ports, at three levels of detail.",
+  "examples": [
+    "Add the countries of the world",
+    "Load rivers and lakes for Africa at medium detail",
+    "Show the world's major cities"
+  ],
+  "licence": "Public domain",
+  "hosts": [
+    "raw.githubusercontent.com"
+  ],
+  "datasets": [
+    {
+      "id": "natural-earth",
+      "title": "Natural Earth",
+      "kind": "vector",
+      "summary": "World base layers: countries, provinces, cities, rivers, lakes, coastline, roads, railways, ports.",
+      "coverage": "whole world, 1:10m / 1:50m / 1:110m",
+      "license": "public domain",
+      "keywords": [
+        "country",
+        "countries",
+        "border",
+        "province",
+        "state",
+        "city",
+        "cities",
+        "capital",
+        "river",
+        "lake",
+        "coast",
+        "ocean",
+        "land",
+        "road",
+        "railway",
+        "airport",
+        "port",
+        "world",
+        "admin"
+      ],
+      "load_with": "load_dataset",
+      "notes": [
+        "layer: countries, states_provinces, populated_places, rivers, lakes, coastline, land, ocean, urban_areas, roads, railroads, airports, ports",
+        "scale: 10m (detailed), 50m (default), 110m (world maps); roads, railroads, airports, ports and urban_areas exist at 10m only"
+      ]
+    }
+  ]
+}

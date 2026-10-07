@@ -107,6 +107,8 @@ class BuildTest(unittest.TestCase):
         self.assertFalse(build_plugin.is_package_file_allowed("skills/CLAUDE.md"))
         self.assertTrue(build_plugin.is_package_file_allowed("core/agent/loop.py"))
         self.assertTrue(build_plugin.is_package_file_allowed("skills/inspect/SKILL.md"))
+        self.assertTrue(build_plugin.is_package_file_allowed("qgis_tools/data/sources/pdok.json"))
+        self.assertFalse(build_plugin.is_package_file_allowed("core/settings.json"))
 
     def test_build_is_reproducible_and_uses_the_requested_directory(self):
         second = pathlib.Path(build_plugin.build(os.path.join(self.root, "second")))

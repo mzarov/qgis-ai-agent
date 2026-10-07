@@ -39,7 +39,24 @@
  {
   "depth": 2,
   "type": "QPushButton",
+  "text": "Personalisation",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
   "text": "Skills",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Data"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Connectors",
   "checked": false
  },
  {

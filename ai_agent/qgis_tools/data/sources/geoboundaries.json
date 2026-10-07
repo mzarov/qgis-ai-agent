@@ -1,0 +1,46 @@
+{
+  "id": "geoboundaries",
+  "title": "geoBoundaries",
+  "category": "people",
+  "order": 70,
+  "summary": "Administrative boundaries of every country",
+  "description": "Open administrative boundaries for every country, from the national border down to regions, districts and municipalities where they are published.",
+  "examples": [
+    "Load the regions of Kenya",
+    "Add the districts of France",
+    "Download the municipal boundaries of Brazil"
+  ],
+  "licence": "Open, per country",
+  "hosts": [
+    "www.geoboundaries.org",
+    "github.com"
+  ],
+  "datasets": [
+    {
+      "id": "geoboundaries",
+      "title": "geoBoundaries",
+      "kind": "vector",
+      "summary": "Administrative boundaries of one country down to districts and municipalities.",
+      "coverage": "every country; ADM0 country, ADM1 regions, ADM2 districts, ADM3+ where published",
+      "license": "open, per country (returned with the data)",
+      "keywords": [
+        "admin",
+        "administrative",
+        "boundary",
+        "boundaries",
+        "region",
+        "district",
+        "municipality",
+        "county",
+        "oblast",
+        "province",
+        "border"
+      ],
+      "load_with": "load_dataset",
+      "notes": [
+        "country: ISO 3166 alpha-3 code such as FRA or KEN",
+        "level: ADM0 … ADM5"
+      ]
+    }
+  ]
+}

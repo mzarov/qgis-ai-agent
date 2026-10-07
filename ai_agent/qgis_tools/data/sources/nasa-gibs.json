@@ -1,0 +1,62 @@
+{
+  "id": "nasa-gibs",
+  "title": "NASA GIBS",
+  "category": "imagery",
+  "order": 40,
+  "summary": "Yesterday's Earth from space, night lights, Blue Marble",
+  "description": "NASA's global imagery service: yesterday's true-colour picture of the whole Earth from the MODIS satellite, city lights at night and the Blue Marble relief. Quick to show, coarse in detail.",
+  "examples": [
+    "Show yesterday's satellite picture of Europe",
+    "Add the night lights layer",
+    "Load the MODIS image for 1 July 2026"
+  ],
+  "licence": "Public domain (NASA)",
+  "hosts": [
+    "gibs.earthdata.nasa.gov"
+  ],
+  "datasets": [
+    {
+      "id": "nasa-gibs",
+      "title": "NASA GIBS",
+      "kind": "service",
+      "summary": "NASA global imagery: yesterday's satellite picture of the whole Earth, night lights, Blue Marble.",
+      "coverage": "whole world; daily since 2000 at about 250 m",
+      "license": "public domain (NASA EOSDIS)",
+      "keywords": [
+        "satellite",
+        "daily",
+        "today",
+        "yesterday",
+        "modis",
+        "night lights",
+        "nasa",
+        "fires",
+        "clouds"
+      ],
+      "load_with": "load_service",
+      "service": "xyz",
+      "layers": [
+        {
+          "key": "modis_true_color",
+          "title": "MODIS Terra true colour, daily",
+          "source": "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/{date}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg",
+          "note": "one day; pass date YYYY-MM-DD, default yesterday",
+          "zmax": 9
+        },
+        {
+          "key": "black_marble",
+          "title": "Night lights (VIIRS Black Marble 2016)",
+          "source": "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/2016-01-01/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png",
+          "zmax": 8
+        },
+        {
+          "key": "blue_marble",
+          "title": "Blue Marble shaded relief and bathymetry",
+          "source": "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/2004-08-01/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg",
+          "zmax": 8
+        }
+      ],
+      "attribution": "NASA EOSDIS GIBS"
+    }
+  ]
+}

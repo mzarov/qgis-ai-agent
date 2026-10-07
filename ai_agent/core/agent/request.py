@@ -21,6 +21,7 @@ from ai_agent.core.settings import (
     get_api_key,
     get_api_url,
     get_auth_type,
+    get_custom_instructions,
     get_dialect,
     get_model,
     get_supports_images,
@@ -66,6 +67,7 @@ def build_step_request(
         project_notes=_project_notes(),
         invoked_skills=invoked_skills,
         planning=planning,
+        custom_instructions=get_custom_instructions(),
     )
     system_prompt = static_prompt
     if json_protocol:

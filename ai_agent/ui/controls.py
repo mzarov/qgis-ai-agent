@@ -161,16 +161,21 @@ class Chips(QWidget):
             chip.setChecked(value is not None and value == preset)
 
     def _chip_style(self) -> str:
-        accent = style.accent(self._palette)
-        return (
-            f"QPushButton {{ background: {style.css_color(style.panel(self._palette))};"
-            f"color: {style.css_color(style.text(self._palette))};"
-            f"border: {style.HAIRLINE}px solid {style.css_color(style.border_strong(self._palette))};"
-            f"border-radius: {CHIP_RADIUS}px; padding: 0px 11px; }}"
-            f"QPushButton:checked {{ background: {style.css_color(style.soft(self._palette, accent))};"
-            f"border-color: {style.css_color(accent)}; color: {style.css_color(style.accent_ink(self._palette))};"
-            "font-weight: 600; }"
-        )
+        return chip_style(self._palette)
+
+
+def chip_style(palette: Any) -> str:
+    """A pill button: hairline at rest, an accent wash when checked."""
+    accent = style.accent(palette)
+    return (
+        f"QPushButton {{ background: {style.css_color(style.panel(palette))};"
+        f"color: {style.css_color(style.text(palette))};"
+        f"border: {style.HAIRLINE}px solid {style.css_color(style.border_strong(palette))};"
+        f"border-radius: {CHIP_RADIUS}px; padding: 0px 11px; }}"
+        f"QPushButton:checked {{ background: {style.css_color(style.soft(palette, accent))};"
+        f"border-color: {style.css_color(accent)}; color: {style.css_color(style.accent_ink(palette))};"
+        "font-weight: 600; }"
+    )
 
 
 class RoundedFrame(QFrame):

@@ -246,6 +246,30 @@ Vector downloads are saved next to a saved project (in `open_data/`), or in a
 temporary folder for an unsaved one. OpenStreetMap features stay with the `osm`
 skill.
 
+Web map services join the same catalogue: yesterday's satellite picture of the
+whole Earth and night lights from NASA GIBS, the Sentinel-2 cloudless mosaic,
+GEBCO bathymetry, OpenTopoMap, and national services — IGN France (aerial
+photos, Plan IGN, regions, departments and communes as vectors), PDOK
+Netherlands, swisstopo, USGS and Geoscience Australia. Tiles and WMS pictures
+go under your vector layers; WFS layers are real vectors to query and style.
+A national service shows nothing useful from a world or continent view, so
+adding one moves the map to its country when the view does not already show it.
+
+**Settings → Connectors** lists every source with a switch. A source you switch
+off disappears from the agent's catalogue and its data is refused; nothing on
+that page goes online. Click a card to open the source's own page: what it
+offers layer by layer, its licence and servers, and example requests — a click
+on one closes Settings and puts it into the chat box, switching the source on
+if it was off.
+
+## Personalisation
+
+**Settings → Personalisation** holds standing instructions the agent follows in
+every conversation — how briefly to answer, which units and coordinate systems
+to use, how to name layers, your organisation's rules. Up to 2000 characters.
+They travel with every request to the model, and the safety rules still win
+over them.
+
 ## Charts and tables
 
 Ask for a picture of the data and it appears in the chat:

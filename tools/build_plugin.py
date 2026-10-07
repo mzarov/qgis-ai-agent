@@ -13,13 +13,14 @@ PACKAGE_ROOT_FILES = {"__init__.py", "i18n.py", "icon.png", "metadata.txt", "plu
 TREE_SUFFIXES = {
     "config": {".py"},
     "core": {".py"},
-    "qgis_tools": {".py"},
+    "qgis_tools": {".json", ".py"},
     "skills": {".md", ".py"},
     "translations": {".qm"},
     "ui": {".py", ".svg"},
 }
 BLOCKED_PARTS = {"__pycache__", ".git", ".mypy_cache", ".ruff_cache"}
 REQUIRED_INSIDE = (
+    "qgis_tools/data/sources/openstreetmap.json",
     "skills/annotations/SKILL.md",
     "skills/edit/SKILL.md",
     "skills/fields/SKILL.md",

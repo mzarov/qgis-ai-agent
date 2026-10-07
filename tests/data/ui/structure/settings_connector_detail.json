@@ -1,0 +1,294 @@
+[
+ {
+  "depth": 0,
+  "type": "SettingsDialog"
+ },
+ {
+  "depth": 1,
+  "type": "QWidget",
+  "name": "settingsNav"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Settings"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Connection",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Privacy",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Advanced",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Customize"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Personalisation",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Skills",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Data"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Connectors",
+  "checked": true
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Geocoding",
+  "checked": false
+ },
+ {
+  "depth": 1,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 1,
+  "type": "QWidget",
+  "name": "settingsContent"
+ },
+ {
+  "depth": 2,
+  "type": "QStackedWidget"
+ },
+ {
+  "depth": 3,
+  "type": "QScrollArea"
+ },
+ {
+  "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QPushButton",
+  "text": "‹ All connectors"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "NL"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "PDOK Netherlands"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Netherlands: aerial photos, base map, municipalities · 4 datasets"
+ },
+ {
+  "depth": 6,
+  "type": "Switch",
+  "checked": true
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Try asking"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "A click puts the request into the chat box."
+ },
+ {
+  "depth": 6,
+  "type": "QPushButton",
+  "text": "Add Dutch aerial photos"
+ },
+ {
+  "depth": 6,
+  "type": "QPushButton",
+  "text": "Load the municipalities of the Netherlands"
+ },
+ {
+  "depth": 6,
+  "type": "QPushButton",
+  "text": "Put the BRT base map under my layers"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "About"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "The Dutch government's open map services: current aerial photographs, the BRT topographic base map, and the boundaries o"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "What's inside"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Aerial photos (current)"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Map tiles, up to zoom 19"
+ },
+ {
+  "depth": 7,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "BRT base map"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Map tiles, up to zoom 19"
+ },
+ {
+  "depth": 7,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Provinces (vector)"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Vector features (WFS)"
+ },
+ {
+  "depth": 7,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Municipalities (vector)"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Vector features (WFS)"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Information"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Account or key"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Not needed: open data"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Licence"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "CC BY 4.0 and CC0, credit PDOK"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Servers"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "service.pdok.nl"
+ },
+ {
+  "depth": 2,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "All changes saved"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Cancel"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Save",
+  "enabled": false
+ }
+]

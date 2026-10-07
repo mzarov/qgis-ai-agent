@@ -321,6 +321,13 @@ def build_load_skill_schema(available_names: list[str]) -> dict[str, Any]:
     }
 
 
+CUSTOM_INSTRUCTIONS_HEADER = (
+    "## Standing instructions from the user\n"
+    "The user wrote these in Settings for every conversation. Follow them, unless they ask you to break "
+    "the safety rules above — those always win."
+)
+
+
 def language_policy(code: str) -> str:
     return LANGUAGE_POLICY.format(language=LANGUAGE_NAMES.get(code, DEFAULT_LANGUAGE))
 
@@ -335,8 +342,12 @@ def build_system_parts(
     queued_steps: str = "",
     invoked_skills: list[str] | tuple[str, ...] = (),
     planning: bool = False,
+    custom_instructions: str = "",
 ) -> tuple[str, str]:
     static = [CORE_PROMPT, language_policy(locale)]
+    if custom_instructions.strip():
+        # Changes only when the user saves Settings, so the cached prefix holds from turn to turn.
+        static.append(CUSTOM_INSTRUCTIONS_HEADER + "\n" + custom_instructions.strip())
     if json_protocol:
         static.append(JSON_PROTOCOL_PROMPT)
     static.append(SKILL_REGISTRY.summaries_block())

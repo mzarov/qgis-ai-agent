@@ -1,0 +1,131 @@
+[
+ {
+  "depth": 0,
+  "type": "SettingsDialog"
+ },
+ {
+  "depth": 1,
+  "type": "QWidget",
+  "name": "settingsNav"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Settings"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Connection",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Privacy",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Advanced",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Customize"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Personalisation",
+  "checked": true
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Skills",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Data"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Connectors",
+  "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Geocoding",
+  "checked": false
+ },
+ {
+  "depth": 1,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 1,
+  "type": "QWidget",
+  "name": "settingsContent"
+ },
+ {
+  "depth": 2,
+  "type": "QStackedWidget"
+ },
+ {
+  "depth": 3,
+  "type": "QScrollArea"
+ },
+ {
+  "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Instructions for the agent"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Followed in every conversation: tone, units, naming, the rules of your organisation."
+ },
+ {
+  "depth": 5,
+  "type": "QPlainTextEdit",
+  "text": "For example: answer briefly. Use metres and EPSG:3857 for web maps. Name new layers in English with underscores."
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "0 / 2000"
+ },
+ {
+  "depth": 2,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "All changes saved"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Cancel"
+ },
+ {
+  "depth": 2,
+  "type": "QPushButton",
+  "text": "Save",
+  "enabled": false
+ }
+]

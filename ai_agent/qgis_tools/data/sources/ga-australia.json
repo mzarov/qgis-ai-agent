@@ -1,0 +1,56 @@
+{
+  "id": "ga-australia",
+  "title": "Geoscience Australia",
+  "category": "national",
+  "order": 120,
+  "monogram": "AU",
+  "summary": "Australia: topographic base maps",
+  "description": "Geoscience Australia's national base maps: a detailed topographic map and a simpler national base map.",
+  "examples": [
+    "Add the Australian topographic base map",
+    "Put the national base map of Australia under my layers"
+  ],
+  "licence": "CC BY 4.0, credit Geoscience Australia",
+  "hosts": [
+    "services.ga.gov.au"
+  ],
+  "datasets": [
+    {
+      "id": "ga-australia",
+      "title": "Geoscience Australia",
+      "kind": "service",
+      "summary": "Australia: the national topographic base map.",
+      "coverage": "Australia",
+      "license": "CC BY 4.0",
+      "keywords": [
+        "australia",
+        "australian",
+        "topographic",
+        "base map"
+      ],
+      "load_with": "load_service",
+      "service": "xyz",
+      "bbox": [
+        112.9,
+        -43.7,
+        153.7,
+        -10.6
+      ],
+      "layers": [
+        {
+          "key": "topographic",
+          "title": "Topographic base map",
+          "source": "https://services.ga.gov.au/gis/rest/services/Topographic_Base_Map/MapServer/tile/{z}/{y}/{x}",
+          "zmax": 16
+        },
+        {
+          "key": "national",
+          "title": "National base map",
+          "source": "https://services.ga.gov.au/gis/rest/services/NationalBaseMap/MapServer/tile/{z}/{y}/{x}",
+          "zmax": 16
+        }
+      ],
+      "attribution": "© Geoscience Australia"
+    }
+  ]
+}

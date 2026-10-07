@@ -14,11 +14,25 @@ _TRANSLATOR: list[Any] = []
 
 
 def tr(text: str) -> str:
+    return _translate(text)
+
+
+def _translate(text: str) -> str:
     try:
         translated = QCoreApplication.translate(CONTEXT, text)
     except Exception:
         return text
     return translated if isinstance(translated, str) and translated else text
+
+
+def tr_data(text: str) -> str:
+    """Translate a text that comes from a data file, not a literal in code.
+
+    The connector JSON texts reach the catalogue through
+    tools/update_translations.py, which reads those files; tr() itself takes
+    literals only, so the extractor can find every string in the sources.
+    """
+    return _translate(text)
 
 
 def tr_n(text: str, count: int) -> str:
