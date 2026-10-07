@@ -9,7 +9,7 @@ replaces. Everything is drawn from the palette through `style`.
 from collections.abc import Callable
 from typing import Any
 
-from qgis.PyQt.QtCore import QRectF, Qt, pyqtSignal
+from qgis.PyQt.QtCore import QEasingCurve, QRectF, Qt, QVariantAnimation, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QPainter, QPen
 from qgis.PyQt.QtWidgets import (
     QButtonGroup,
@@ -30,6 +30,7 @@ SEGMENT_RADIUS = 8
 SEGMENT_INNER_RADIUS = 6
 SEGMENT_PADDING = 12
 SEGMENT_SLACK = 4
+SLIDE_MS = 200
 CHIP_HEIGHT = 26
 CHIP_RADIUS = CHIP_HEIGHT // 2
 BADGE_RADIUS = 8
@@ -46,7 +47,11 @@ SMALL_SCALE = 0.85
 
 
 class Segmented(QFrame):
-    """Mutually exclusive choices in one pill; reads like a combo box."""
+    """Mutually exclusive choices in one pill; reads like a combo box.
+
+    The highlight under the chosen label is painted by the frame, not by the
+    button, so a click slides it from the old choice to the new one.
+    """
 
     currentIndexChanged = pyqtSignal(int)
     currentTextChanged = pyqtSignal(str)
@@ -58,7 +63,10 @@ class Segmented(QFrame):
         self._data: dict[int, Any] = {}
         self._group = QButtonGroup(self)
         self._group.setExclusive(True)
-        self._group.idClicked.connect(self._chosen)
+        self._group.idClicked.connect(self._clicked)
+        self._last = 0
+        self._pill: QRectF | None = None
+        self._slide: Any = None
         self._line = QHBoxLayout(self)
         self._line.setContentsMargins(2, 2, 2, 2)
         self._line.setSpacing(0)
@@ -116,7 +124,43 @@ class Segmented(QFrame):
     def setCurrentText(self, text: str) -> None:
         self.setCurrentIndex(self.findText(text))
 
+    def _clicked(self, index: int) -> None:
+        """Slide the highlight from where it is now to the chosen label, then report the choice."""
+        previous = self._group.button(self._last)
+        start = self._pill or (QRectF(previous.geometry()) if previous is not None else None)
+        target = self._group.button(index)
+        if start is not None and target is not None and index != self._last:
+            if self._slide is not None:
+                self._slide.stop()
+            self._slide = QVariantAnimation(self)
+            self._slide.setDuration(SLIDE_MS)
+            self._slide.setStartValue(start)
+            self._slide.setEndValue(QRectF(target.geometry()))
+            self._slide.setEasingCurve(QEasingCurve.Type.OutCubic)
+            self._slide.valueChanged.connect(self._move_pill)
+            self._slide.finished.connect(lambda: self._move_pill(None))
+            self._slide.start()
+        self._chosen(index)
+
+    def _move_pill(self, rect: Any) -> None:
+        self._pill = QRectF(rect) if rect is not None else None
+        self.update()
+
+    def paintEvent(self, event: Any) -> None:
+        super().paintEvent(event)
+        checked = self._group.button(self.currentIndex())
+        rect = self._pill or (QRectF(checked.geometry()) if checked is not None else None)
+        if rect is None:
+            return
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(style.panel(self._palette))
+        painter.drawRoundedRect(rect, SEGMENT_INNER_RADIUS, SEGMENT_INNER_RADIUS)
+        painter.end()
+
     def _chosen(self, index: int) -> None:
+        self._last = index
         self.currentIndexChanged.emit(index)
         self.currentTextChanged.emit(self.itemText(index))
 
@@ -125,7 +169,7 @@ class Segmented(QFrame):
             f"QPushButton {{ background: transparent; border: none; border-radius: {SEGMENT_INNER_RADIUS}px;"
             f"padding: 4px {SEGMENT_PADDING}px; color: {style.css_color(style.muted(self._palette))}; }}"
             f"QPushButton:hover {{ color: {style.css_color(style.text(self._palette))}; }}"
-            f"QPushButton:checked {{ background: {style.css_color(style.panel(self._palette))};"
+            f"QPushButton:checked {{ background: transparent;"
             f"color: {style.css_color(style.text(self._palette))}; font-weight: 600; }}"
         )
 
