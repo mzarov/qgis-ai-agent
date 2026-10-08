@@ -13,9 +13,15 @@ from ai_agent.ui import svg_art
 
 FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "glyphs")
 NAMES = {
-    "sessions": "history",
-    "clear": "square-pen",
-    "settings": "settings",
+    # The panel's chrome: the title bar, the toolbar and the composer.
+    "float": "picture-in-picture-2",
+    "close": "x",
+    "new": "plus",
+    "settings": "sliders-horizontal",
+    "send": "arrow-up",
+    "mode": "shield",
+    "saved": "clock",
+    "file": "file",
     "connection": "plug",
     "privacy": "shield-check",
     "skills": "book-open",

@@ -131,6 +131,11 @@ class ConversationState:
     def named(self) -> bool:
         return self._session.named
 
+    @property
+    def title(self) -> str:
+        """The open conversation's title; empty while it has no message yet."""
+        return self._session.display_title() if self._session.messages else ""
+
     def rename(self, identifier: str, title: str) -> bool:
         """Rename a conversation of this project, the open one or a past one."""
         if identifier == self.session_identifier:
@@ -161,8 +166,17 @@ class ConversationState:
     def save(self) -> None:
         self._store.save(self._session)
 
-    def recent(self) -> list[tuple[str, str]]:
-        return [(session.identifier, session.display_title()) for session in self._store.recent(self.project_key)]
+    def recent(self) -> list[tuple[str, str, float, bool]]:
+        """The project's conversations, newest first: identifier, title, when it last changed, whether it is open."""
+        return [
+            (
+                session.identifier,
+                session.display_title(),
+                session.updated,
+                session.identifier == self.session_identifier,
+            )
+            for session in self._store.recent(self.project_key)
+        ]
 
     def start_new(self) -> None:
         self.save()

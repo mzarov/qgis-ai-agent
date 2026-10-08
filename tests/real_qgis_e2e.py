@@ -518,6 +518,45 @@ class RewindScenario(ScenarioCase):
         self.shot("rewound")
 
 
+class LayerChipScenario(ScenarioCase):
+    def test_the_active_layer_rides_into_a_new_request_until_dropped(self) -> None:
+        self.model.script(say("districts holds six squares."), say("Three layers."))
+        self.iface.setActiveLayer(self.layer("districts"))
+        chip = self.dock.composer.layer_chip
+        self.assertFalse(chip.isHidden(), "the active layer did not reach the composer")
+        self.assertIn("districts", chip.label.text())
+        self.shot("layer_chip")
+        self.ask("What is in this layer?")
+        self.assertIn("@districts", self.model.sent_text(0))
+        self.assertEqual(self.orchestrator.conversation.messages[0]["content"], "What is in this layer? @districts")
+        chip.drop()
+        self.ask("How many layers are there?")
+        self.assertNotIn("@districts", self.orchestrator.conversation.messages[-2]["content"])
+
+
+class ChromeScenario(ScenarioCase):
+    def test_a_new_conversation_keeps_the_old_one_in_the_history(self) -> None:
+        self.assertFalse(self.dock.toolbar.new_button.isEnabled(), "nothing to start over from yet")
+        self.model.script(say("Three layers."))
+        self.ask("Which layers are there?")
+        self.assertEqual(self.dock.toolbar.title.label.text(), "Which layers are there?")
+        self.assertTrue(self.dock.toolbar.new_button.isEnabled())
+        self.dock.toolbar.new_button.click()
+        pump(0.1)
+        welcome = self.dock.conversation._empty
+        self.assertIsNotNone(welcome, "a new conversation opens on the welcome")
+        self.assertFalse(welcome.saved.isHidden(), "the welcome must say where the old conversation went")
+        self.assertNotEqual(self.dock.toolbar.title.label.text(), "Which layers are there?")
+        self.shot("new_conversation")
+        self.dock._show_sessions()
+        popup = self.dock._sessions_popup
+        try:
+            self.assertEqual([row.title for row in popup.rows], ["Which layers are there?"])
+            self.assertFalse(popup.rows[0].current)
+        finally:
+            popup.hide()
+
+
 class PlanUndoScenario(ScenarioCase):
     def test_the_plan_card_undoes_its_own_apply(self) -> None:
         self.model.script(

@@ -279,7 +279,7 @@ class ConversationStateTest(unittest.TestCase):
 
     def test_recent_gives_identifier_and_title(self):
         self.state.add("user", "про слои")
-        self.assertEqual([title for _, title in self.state.recent()], ["про слои"])
+        self.assertEqual([entry[1] for entry in self.state.recent()], ["про слои"])
 
     def test_empty_conversation_is_not_listed(self):
         self.state.save()

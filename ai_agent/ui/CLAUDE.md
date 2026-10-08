@@ -37,7 +37,8 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 
 | File | What |
 | ---- | --- |
-| `dock_widget.py`  | the shell: header, feed, composer; conversation menu; the orchestrator contract |
+| `dock_widget.py`  | the shell: title bar, toolbar, feed, composer; the history menu; the orchestrator contract |
+| `chrome.py`       | the dock's own title bar (still mark, name, float, close) and the toolbar (conversation title opening the history, + new, settings); `IconButton` paints hover and a turn |
 | `conversation.py` | a `QScrollArea` with one widget per message, autoscroll, action grouping |
 | `messages.py`     | the user message, the agent reply, the service message |
 | `activity.py`     | the work trace: a fold header ("Working · step N", then "Activity · N steps" and the time) over a timeline of calls, reasoning and the user's choice |
@@ -46,11 +47,13 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `welcome.py`      | the empty conversation: the arriving compass, the deal in one sentence, the open project, four examples |
 | `confirmations.py` | the modal questions: share data with a provider, run destructive steps |
 | `durations.py`    | `3.4 s`, `2 min 5 s` — one formatter for the feed and the settings |
-| `composer.py`     | the input box as in Claude Code: text and the send/stop button inside, the toolbar under it; Enter sends, Esc stops a run; `/` and `@` open the popup |
-| `composer_parts.py` | the editor, `/skill` and `@layer` parsing, token highlighting, the toolbar (+, model) |
-| `sessions_popup.py` | the conversations menu: pick, rename in place, delete after the dock confirms |
+| `composer.py`     | the input box after the handoff: context chips, the text (two lines at least), the row of controls inside; Enter sends, Esc stops a run, Ctrl+N starts over; `/` and `@` open the popup |
+| `composer_parts.py` | the editor, `/skill` and `@layer` parsing, token highlighting, the modes |
+| `composer_controls.py` | the box's bottom row: + (add to context), the mode button, the context ring, the model in monospace (opens the settings), the round send/stop button |
+| `layer_chip.py`   | the active layer as a chip above the text, × leaves it out until another layer is active |
+| `sessions_popup.py` | the history menu: a new conversation, then the project's conversations by day with their time, rename in place, delete after the dock confirms |
 | `context_meter.py` | the ring under the composer and its popup: window, auto-compact, Compact, spent |
-| `choice_popup.py` | the mode menu as in Claude Code: caption, rows with a note, check and number key |
+| `choice_popup.py` | the mode menu: caption, rows with a check, a note and a number key, the Shift+Tab footer; spans the whole box |
 | `attachments.py`  | the + file pickers, drag-and-drop paths, the picture chips waiting in the composer |
 | `chart.py`        | a chart in the feed: bars, rows, lines, donut, histogram, scatter; painted, hover tips, copy image/CSV |
 | `chart_scale.py`  | axis arithmetic: round ticks, compact numbers, which bar layout fits |
@@ -88,17 +91,26 @@ device ratio sizes the pixmap, never the drawing. A null icon falls back to
 a text glyph in the header. Add an icon by adding its Lucide file with the
 notice and a role in `icons.NAMES`; `tests/test_icons.py` checks the set.
 
-The dock header carries no title — the dock's title bar already says AI
-Agent — only the token count and the three icon buttons.
+The dock has its own title bar (`chrome.DockTitleBar`): the still compass,
+the name, float and close. A press on its empty part is left to the dock, so
+the panel drags, docks and floats on a double click as with the native bar.
+Under it the toolbar names the open conversation — the orchestrator sends the
+title (`set_conversation_title`), "New conversation" while it is empty — and
+a click on it opens the history; **+** beside it is disabled while the feed
+shows only the welcome (`ConversationView.emptied`), and its plus turns half a
+circle when pressed. Icon buttons are painted (`IconButton`), not styled.
 
 ## Menus and suggestion cards
 
 Every popup menu comes from `controls.menu`: frameless and translucent (so
-the rounded corners are not drawn over a square system frame), a soft edge,
-roomy rows and a quiet highlight. Menus open where there is room: the history
-menu right-aligned under its button, the composer's + menu upwards. The
-history menu lists past conversations only; starting a new one is the button
-beside it.
+the rounded corners are not drawn over a square system frame), a strong
+hairline edge, 30 px rows and a quiet highlight, as in the handoff. Group
+captions are `controls.caption` (small, bold, upper case through the font,
+so translations stay plain text); a menu takes one with `menu_caption`.
+Menus open where there is room: the history left-aligned under the title,
+the composer's + menu and the mode menu upwards. A right-hand note in a menu
+row (*Layer…* 6, *Skill…* /) is the text after a tab, which QMenu sets in its
+shortcut column without binding a shortcut.
 
 Welcome suggestions are `Suggestion` frames with a wrapping label, not
 buttons: button text never wraps, and a long example was cut off in a narrow
@@ -219,19 +231,40 @@ honest.
 
 ## One button for send and stop
 
-While the agent works, the send button does not grey out — it becomes “stop”:
-the glyph, the colour and the tooltip change. There is deliberately no separate
-button — it would be visible always and inactive most of the time. Enter is
-ignored while a run is active; Esc stops it (with the popup open, Esc only
-closes the popup). On an empty box the button is grey; offline it hides, since
-the welcome card already offers Open settings.
+The send button is a painted circle at the end of the box's bottom row
+(`SendButton`): accent with an arrow, pale while there is nothing to send; while
+the agent works it becomes “stop” — a quiet circle with a square, its tooltip
+too. There is deliberately no separate button — it would be visible always and
+inactive most of the time. Enter is ignored while a run is active; Esc stops it
+(with the popup open, Esc only closes the popup). Offline it hides, since the
+welcome card already offers Open settings.
 
-## The conversations menu
+## The composer's context
 
-The Conversations button in the header builds its menu at click time instead of
-keeping a list: it goes stale with every agent reply. The list comes from the
-orchestrator through `set_session_source` — the provider returns
-`(identifier, title)` pairs so that no `core/` types leak into `ui/`.
+Above the text sit chips: the active layer and the pictures waiting to go,
+both 22 px with a 4 px corner. The layer chip shows what the orchestrator
+sends (`set_active_layer`, following QGIS's `currentLayerChanged` and every
+end of a run); when a new run starts the orchestrator asks for its @mention
+(`context_mention`) and appends it unless the request already names the layer
+— answers and interjections never get one. The chip's × leaves the layer out
+until another one is active. **+** adds context: *Layer…* types an @ (the
+layer list opens as if typed), *Skill…* types / into an empty box or opens the
+list over typed text, and a chosen skill then goes first with the text kept
+after it. The model's name opens the settings; there is no model list —
+each endpoint is its own model (the user's call). Ctrl+N belongs to the box
+only while it has the focus (`ShortcutOverride`), so elsewhere QGIS keeps it
+for a new project.
+
+## The history menu
+
+The conversation's title in the toolbar builds the history at click time
+instead of keeping a list: it goes stale with every agent reply. The list comes
+from the orchestrator through `set_session_source` — the provider returns
+`(identifier, title, updated, current)` tuples so that no `core/` types leak
+into `ui/` — and `sessions_popup.day_groups` sorts them into Today, Yesterday
+and Earlier with a time or a date. Its first row starts a new conversation;
+after one, the welcome says the previous conversation is in the history, with
+a link that opens it (`note_conversation_saved`).
 
 ## The settings window
 

@@ -107,7 +107,7 @@ def _text_fault(widget: QWidget) -> str:
         needed = widget.minimumSizeHint().width()
         if needed > widget.width() + FIT_SLACK_PX and not _elides(widget):
             return f"text does not fit ({needed} > {widget.width()})"
-    if isinstance(widget, QAbstractButton) and widget.text():
+    if isinstance(widget, QAbstractButton) and widget.text() and not _elides(widget):
         needed = widget.sizeHint().width()
         if needed > widget.width() + FIT_SLACK_PX:
             return f"button text does not fit ({needed} > {widget.width()})"
@@ -238,9 +238,12 @@ def _visible(root: QWidget) -> list[QWidget]:
     return [widget for widget in [root, *root.findChildren(QWidget)] if widget.isVisible()]
 
 
-def _elides(label: QLabel) -> bool:
-    # Only the eliding label gives up its width on purpose; any other clipped label is a fault.
-    return type(label).__name__ == "ElidedLabel"
+# Widgets that give up their width on purpose and paint an ellipsis; any other clipped text is a fault.
+ELIDING = ("ElidedLabel", "MenuButton")
+
+
+def _elides(widget: QWidget) -> bool:
+    return type(widget).__name__ in ELIDING
 
 
 def _label(widget: QWidget) -> str:

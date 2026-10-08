@@ -1,27 +1,23 @@
+"""The panel: its own title bar, the toolbar, the feed and the composer; the orchestrator's contract."""
+
+import time
 from collections.abc import Callable
 from typing import Any
 
-from qgis.PyQt.QtCore import QSize, pyqtSignal
-from qgis.PyQt.QtWidgets import (
-    QDockWidget,
-    QHBoxLayout,
-    QToolButton,
-    QVBoxLayout,
-    QWidget,
-)
+from qgis.PyQt.QtCore import pyqtSignal
+from qgis.PyQt.QtWidgets import QDockWidget, QVBoxLayout, QWidget
 
 from ai_agent.i18n import tr
-from ai_agent.ui import confirmations, icons, style
+from ai_agent.ui import chrome, confirmations, style
 from ai_agent.ui.composer import Composer
 from ai_agent.ui.conversation import ConversationView
-from ai_agent.ui.sessions_popup import SessionsPopup
+from ai_agent.ui.sessions_popup import Entry, SessionsPopup
 
-TITLE = "AI Agent"
-HEADER_MARGINS = (11, 8, 9, 8)
-HEADER_ICON = 15
-HEADER_BUTTON = 24
-BODY_MARGINS = (9, 0, 9, 9)
+TITLE = chrome.TITLE
+# The handoff's composer padding: 6 above the box, 12 around the rest.
+COMPOSER_MARGINS = (12, 6, 12, 12)
 BODY_NAME = "agentBody"
+NEW_CONVERSATION_TITLE = tr("New conversation")
 
 
 class AgentDockWidget(QDockWidget):
@@ -46,65 +42,45 @@ class AgentDockWidget(QDockWidget):
         # Before any child is built: children read the panel's palette, which must already be the theme's.
         style.apply_palette(self)
         self.setWindowTitle(TITLE)
-        self._sessions_provider: Callable[[], list[tuple[str, str]]] = list
-        self._sessions_popup = SessionsPopup(self.palette())
+        palette = self.palette()
+        self.title_bar = chrome.DockTitleBar(self, palette)
+        self.setTitleBarWidget(self.title_bar)
+        self._sessions_provider: Callable[[], list[tuple[Any, ...]]] = list
+        self._sessions_popup = SessionsPopup(palette)
         self._sessions_popup.chosen.connect(self.session_chosen.emit)
         self._sessions_popup.renamed.connect(self.session_renamed.emit)
         self._sessions_popup.delete_requested.connect(self._confirm_delete)
+        self._sessions_popup.new_requested.connect(self.new_session_clicked.emit)
         body = QWidget()
         body.setObjectName(BODY_NAME)
-        style.fill(body, style.background(self.palette()))
+        style.fill(body, style.background(palette))
         column = QVBoxLayout(body)
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(0)
-        column.addWidget(self._build_header())
+        self.toolbar = chrome.Toolbar(palette)
+        self.toolbar.history_requested.connect(self._show_sessions)
+        self.toolbar.new_requested.connect(self.new_session_clicked.emit)
+        self.toolbar.settings_requested.connect(self.open_settings_clicked.emit)
+        self.toolbar.title.set_title(NEW_CONVERSATION_TITLE)
+        column.addWidget(self.toolbar)
         column.addWidget(self._build_conversation(), 1)
         column.addWidget(self._build_composer())
         self.setWidget(body)
         self.composer.set_popup_host(body)
+        # The welcome is up: there is nothing to start over from yet.
+        self.toolbar.new_button.setEnabled(False)
 
-    def _build_header(self) -> QWidget:
-        header = QWidget()
-        palette = self.palette()
-        header.setStyleSheet(f"border-bottom: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};")
-        row = QHBoxLayout(header)
-        row.setContentsMargins(*HEADER_MARGINS)
-        row.setSpacing(4)
+    def set_conversation_title(self, title: str) -> None:
+        self.toolbar.title.set_title(title or NEW_CONVERSATION_TITLE)
 
-        # No title here: the dock's own title bar already says AI Agent; tokens live in the context meter.
-        row.addStretch(1)
-        self._sessions_button = self._build_action("sessions", "⟲", tr("Conversations"), self._show_sessions)
-        row.addWidget(self._sessions_button)
-        row.addWidget(self._build_action("clear", "+", tr("New conversation"), self.new_session_clicked.emit))
-        row.addWidget(self._build_action("settings", "⚙", tr("Settings"), self.open_settings_clicked.emit))
-        return header
+    def note_conversation_saved(self) -> None:
+        self.conversation.show_saved_hint()
 
-    def _build_action(
-        self,
-        role: str,
-        glyph: str,
-        tooltip: str,
-        handler: Callable[[], None],
-    ) -> QToolButton:
-        button = QToolButton()
-        button.setAutoRaise(True)
-        button.setToolTip(tooltip)
-        button.setAccessibleName(tooltip)
-        button.setFixedSize(HEADER_BUTTON, HEADER_BUTTON)
-        button.setStyleSheet(
-            f"QToolButton {{ border: none; background: transparent;"
-            f"color: {style.css_color(style.muted(self.palette()))}; font-size: 14px; }}"
-            f"QToolButton:hover {{ background: {style.css_color(style.card(self.palette()))};"
-            "border-radius: 5px; }"
-        )
-        icon = icons.drawn(role, style.muted(self.palette()), HEADER_ICON)
-        if icon is None:
-            button.setText(glyph)
-        else:
-            button.setIcon(icon)
-            button.setIconSize(QSize(HEADER_ICON, HEADER_ICON))
-        button.clicked.connect(handler)
-        return button
+    def set_active_layer(self, name: str, detail: str = "") -> None:
+        self.composer.set_active_layer(name, detail)
+
+    def context_mention(self) -> str:
+        return self.composer.context_mention()
 
     def set_project_line(self, text: str) -> None:
         self.conversation.set_project_line(text)
@@ -128,22 +104,30 @@ class AgentDockWidget(QDockWidget):
         self.conversation.cancel_requested.connect(self.cancel_plan_clicked.emit)
         self.conversation.suggestion_chosen.connect(self._on_suggestion)
         self.conversation.settings_requested.connect(self.open_settings_clicked.emit)
+        self.conversation.history_requested.connect(self._show_sessions)
+        self.conversation.emptied.connect(self._on_emptied)
         return self.conversation
+
+    def _on_emptied(self, empty: bool) -> None:
+        self.toolbar.new_button.setEnabled(not empty)
 
     def _build_composer(self) -> QWidget:
         holder = QWidget()
         layout = QVBoxLayout(holder)
-        layout.setContentsMargins(*BODY_MARGINS)
+        layout.setContentsMargins(*COMPOSER_MARGINS)
         self.composer = Composer()
         self.composer.submitted.connect(self.prompt_submitted.emit)
         self.composer.stopped.connect(self.stop_clicked.emit)
         self.composer.files_attached.connect(self.files_attached.emit)
         self.composer.mode_changed.connect(self.work_mode_changed.emit)
         self.composer.compact_requested.connect(self.compact_requested.emit)
+        self.composer.settings_requested.connect(self.open_settings_clicked.emit)
+        self.composer.new_requested.connect(self.new_session_clicked.emit)
         layout.addWidget(self.composer)
         return holder
 
-    def set_session_source(self, provider: Callable[[], list[tuple[str, str]]]) -> None:
+    def set_session_source(self, provider: Callable[[], list[tuple[Any, ...]]]) -> None:
+        """`provider` gives (identifier, title[, updated, current]) tuples, so no core type reaches the ui."""
         self._sessions_provider = provider
 
     def set_skill_source(self, provider: Callable[[], list[tuple[str, str, str]]]) -> None:
@@ -178,8 +162,8 @@ class AgentDockWidget(QDockWidget):
         self.composer.focus()
 
     def _show_sessions(self) -> None:
-        # Past conversations only: starting a new one is the button right next to this one.
-        self._sessions_popup.show_sessions(self._sessions_provider(), self._sessions_button)
+        entries = [Entry(*item) for item in self._sessions_provider()]
+        self._sessions_popup.show_sessions(entries, self.toolbar.title, time.time())
 
     def _confirm_delete(self, identifier: str, title: str) -> None:
         if confirmations.confirm_delete_conversation(self, title):

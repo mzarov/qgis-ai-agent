@@ -203,7 +203,8 @@ class _Palette:
 
 class _Label(_Stub):
     def __init__(self, text="", *a, **k):
-        self._text = str(text)
+        # A parent passed first is not text: QPlainTextEdit(parent), QLineEdit(parent).
+        self._text = text if isinstance(text, str) else ""
 
     def setText(self, text):
         self._text = str(text)
@@ -306,7 +307,40 @@ class _PlainText(_Label):
         return self._text
 
 
+class _Button(_Stub):
+    """A button remembers its text, tooltip and enabled state; a click emits `clicked`."""
+
+    def __init__(self, *a, **k):
+        self._text = ""
+        self._tip = ""
+        self._enabled = True
+        self.clicked = _BoundSignal()
+
+    def setText(self, text):
+        self._text = str(text)
+
+    def text(self):
+        return self._text
+
+    def setToolTip(self, tip):
+        self._tip = str(tip)
+
+    def toolTip(self):
+        return self._tip
+
+    def setEnabled(self, enabled):
+        self._enabled = bool(enabled)
+
+    def isEnabled(self):
+        return self._enabled
+
+    def click(self):
+        if self._enabled:
+            self.clicked.emit()
+
+
 _FAKES = {
+    "QAbstractButton": _Button,
     "QColor": _Colour,
     "QPalette": _Palette,
     "QLabel": _Label,
@@ -481,6 +515,7 @@ _mod(
     "qgis.PyQt.QtWidgets",
     [
         "QWidget",
+        "QAbstractButton",
         "QDockWidget",
         "QVBoxLayout",
         "QHBoxLayout",
@@ -512,6 +547,7 @@ _mod(
         "QGraphicsOpacityEffect",
         "QFileDialog",
         "QToolTip",
+        "QWidgetAction",
     ],
 )
 _qtcore.pyqtSignal = pyqtSignal

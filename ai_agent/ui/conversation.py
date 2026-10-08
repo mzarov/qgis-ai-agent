@@ -25,7 +25,8 @@ from ai_agent.ui.welcome import WelcomeCard
 MESSAGE_SPACING = 11
 WELCOME_STRETCH = 1
 TAIL_STRETCH = 1
-SIDE_PADDING = 12
+# The handoff's feed padding: 16 at the sides and the top, 10 above the composer.
+FEED_MARGINS = (16, 16, 16, 10)
 PIN_TOLERANCE = 24
 
 
@@ -41,6 +42,9 @@ class ConversationView(QScrollArea):
     question_answered = pyqtSignal(str)
     suggestion_chosen = pyqtSignal(str)
     settings_requested = pyqtSignal()
+    history_requested = pyqtSignal()
+    # True while the feed shows only the welcome: nothing to start over from.
+    emptied = pyqtSignal(bool)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -55,7 +59,7 @@ class ConversationView(QScrollArea):
         style.fill(holder, style.background(self.palette()))
         self.viewport().setAutoFillBackground(False)
         self._column = QVBoxLayout(holder)
-        self._column.setContentsMargins(SIDE_PADDING, SIDE_PADDING, SIDE_PADDING, SIDE_PADDING)
+        self._column.setContentsMargins(*FEED_MARGINS)
         self._column.setSpacing(MESSAGE_SPACING)
         # The working line is the feed's last row: every message goes in above it.
         self.progress = ProgressLine(self.palette())
@@ -79,6 +83,7 @@ class ConversationView(QScrollArea):
         self._next_id = 1
         self._configured = True
         self._project_line = ""
+        self._saved_shown = False
         self._empty: WelcomeCard | None = None
         self._show_welcome()
 
@@ -87,7 +92,9 @@ class ConversationView(QScrollArea):
             return
         self._configured = configured
         if self._empty is not None:
+            saved = self._saved_shown
             self._drop_welcome()
+            self._saved_shown = saved
             self._show_welcome()
 
     def set_project_line(self, text: str) -> None:
@@ -99,20 +106,32 @@ class ConversationView(QScrollArea):
         if self._empty is not None:
             self._empty.set_project(text)
 
+    def show_saved_hint(self) -> None:
+        """On the welcome after "New conversation": the previous one is in the history."""
+        self._saved_shown = True
+        if self._empty is not None:
+            self._empty.show_saved()
+
     def _show_welcome(self) -> None:
         card = WelcomeCard(self._configured, self._project_line)
         card.suggestion_chosen.connect(self.suggestion_chosen.emit)
         card.settings_requested.connect(self.settings_requested.emit)
+        card.history_requested.connect(self.history_requested.emit)
+        if self._saved_shown:
+            card.show_saved()
         self._empty = card
         self._insert(card, WELCOME_STRETCH)
         self._set_tail_stretch(0)
+        self.emptied.emit(True)
 
     def _drop_welcome(self) -> None:
         if self._empty is None:
             return
         self._discard(self._empty)
         self._empty = None
+        self._saved_shown = False
         self._set_tail_stretch(TAIL_STRETCH)
+        self.emptied.emit(False)
 
     def _discard(self, widget: QWidget) -> None:
         """Take a widget out of the feed now; Qt deletes it later.
@@ -314,6 +333,7 @@ class ConversationView(QScrollArea):
         self._questions = []
         self._entries.clear()
         self._empty = None
+        self._saved_shown = False
         self.progress.clear_outcome()
         self._show_welcome()
 

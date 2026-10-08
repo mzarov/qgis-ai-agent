@@ -319,7 +319,7 @@ get_supports_tools(get_api_url())
 
 ## Conversations
 
-The Conversations button is in the panel header, left of Clear.
+The history opens from the conversation's title in the toolbar; **+** next to it starts a new one.
 
 1. **A conversation survives a restart.** Ask “what layers do I have?”, wait
    for the reply, close QGIS, open it again, open the plugin → Conversations →
@@ -922,12 +922,13 @@ These verify the agent solves everyday tasks without wandering through search.
      tool-using question in the same chat → it also finishes without a 400
      about `reasoning_content` (turns from the first run go back with an empty
      one).
-191. **Auto mode applies by itself.** Click **Ask first** under the box → the
-     Mode menu opens above it, both modes described, a check on the current
-     one; press 2 (or Shift+Tab in the box) → it reads **Auto**; *make the rivers blue* → the card reads
-     "Applying by itself", the rivers turn blue without a click, the check
-     runs after; restart QGIS → the mode is still Auto.
-192. **Auto mode never deletes on its own.** In Auto, *delete the rivers
+191. **Acting on its own applies by itself.** Click **Ask before changes** in
+     the box → the Mode menu opens above the whole box, every mode described,
+     a check on the current one, *Shift+Tab — next mode* at the bottom; press 2
+     (or Shift+Tab in the box) → it reads **Act on its own**; *make the rivers
+     blue* → the card reads "Applying by itself", the rivers turn blue without
+     a click, the check runs after; restart QGIS → the mode is still the same.
+192. **Acting on its own never deletes.** In that mode, *delete the rivers
      shorter than 1 km* → the card waits with **Apply**, which still asks the
      extra destructive question.
 193. **The ring tracks the context.** Ask two questions → the ring next to the
@@ -940,10 +941,10 @@ These verify the agent solves everyday tasks without wandering through search.
 195. **The window is found.** Point at OpenRouter or Ollama, run the
      connection test → the popup's window matches the model (not 128k); set
      **Context window** by hand in Advanced → the popup follows it.
-196. **Plan mode plans.** Choose **Plan** in the mode menu, *colour the districts
+196. **Plan only plans.** Choose **Plan only** in the mode menu, *colour the districts
      by population* → the agent reads, answers with a numbered plan, nothing is
      queued, *Run this plan?* with two buttons appears under it.
-197. **A plan runs.** Press **Run automatically** → the mode becomes Auto and
+197. **A plan runs.** Press **Run automatically** → the mode becomes Act on its own and
      the plan is applied; with **Run with approval** the plan card waits for
      Apply instead.
 198. **Conversations get names.** Ask a first question → after the answer the
@@ -1038,3 +1039,25 @@ These verify the agent solves everyday tasks without wandering through search.
      your map*, the project line under it (file name or *Unsaved project*, the
      layer count, the CRS), four suggestions with icons; a click puts one in
      the box.
+217. **Title bar and toolbar.** The dock's own title bar: the still compass,
+     *AI Agent*, float and close; dragging it still docks the panel, float
+     undocks it, close hides it. Under it the conversation's title (*New
+     conversation* while empty) with a chevron, a **+** greyed out while the
+     conversation is empty, and the settings sliders.
+218. **New conversation and the history.** Ask anything → the title becomes
+     the request, **+** lights up → press it → the plus turns, the welcome
+     comes back with *Previous conversation saved in history · Open*; Open →
+     the history under the title: *New conversation* with its shortcut, then
+     the old conversation under Today with its time. Ctrl+N (⌘N) in the chat
+     box starts another one; outside the box QGIS still makes a new project.
+219. **Active layer chip.** Select *districts* in the Layers panel → a chip
+     *districts · N features* sits above the text; *colour this layer by
+     population* → the request in the chat ends with @districts and the agent
+     works on districts. Press × → the chip goes and the next request carries
+     no mention; select another layer → its chip appears.
+220. **The composer's row.** **+** opens *Add to context* upwards: *Layer…*
+     with the layer count opens the @ list, *File or table…* and *Picture…*
+     the file pickers, *Skill…* the / list (with text already typed, the
+     chosen skill goes first). The model name in monospace opens the
+     connection settings; the round send button is pale with an empty box,
+     blue with text, a stop square while the agent works.

@@ -82,14 +82,16 @@ class OrchestratorPressTest(unittest.TestCase):
 class ComposerModeTest(unittest.TestCase):
     def test_shift_tab_cycles_and_a_stored_mode_is_shown_silently(self):
         from ai_agent.ui.composer import Composer
+        from ai_agent.ui.composer_parts import MODES
 
+        titles = {choice.key: choice.title for choice in MODES}
         composer = Composer()
         seen: list[str] = []
         composer.mode_changed.connect(seen.append)
         composer.set_mode("auto")
-        self.assertEqual((seen, composer.mode, composer.toolbar.mode.text()), ([], "auto", "Auto"))
+        self.assertEqual((seen, composer.mode, composer.toolbar.mode.text()), ([], "auto", titles["auto"]))
         composer._edit.mode_cycled.emit()
-        self.assertEqual((seen, composer.toolbar.mode.text()), (["plan"], "Plan"))
+        self.assertEqual((seen, composer.toolbar.mode.text()), (["plan"], titles["plan"]))
         composer._edit.mode_cycled.emit()
         self.assertEqual(seen, ["plan", "ask"])
 

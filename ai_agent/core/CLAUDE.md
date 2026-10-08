@@ -262,11 +262,11 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `orchestrator/compacting.py` | the context meter and compaction before a request or by hand |
 | `orchestrator/attaching.py` | attachments in the chat: mentions, waiting pictures, a blind model told so |
 | `orchestrator/slash.py`  | `/skill` parsing and the skill list for the composer |
-| `orchestrator/orchestrator.py` | UI-to-loop wiring: prompts, stop, interjections; the mixins below |
-| `orchestrator/sessions.py` | new conversation, a past one, rename, delete, what a switch cancels |
+| `orchestrator/orchestrator.py` | UI-to-loop wiring: prompts, stop, interjections, the conversation's title, the active layer's chip and its @mention in a new request; the mixins below |
+| `orchestrator/sessions.py` | new conversation (and the note that the old one is saved), a past one, rename, delete, what a switch cancels |
 | `orchestrator/naming.py` | the model names a conversation once, after its first answer |
 | `agent/titling.py`       | the naming request: tool-less, a few words back      |
-| `orchestrator/rewind.py` | rewind to before a message: checkpoints tag snapshots by user message; conversation, project or both |
+| `orchestrator/rewind.py` | rewind to before a message: checkpoints tag snapshots by user message; conversation, project or both; a plan card's Undo |
 | `orchestrator/plans.py`  | the plan card, Apply and Cancel, apply outcomes, verification |
 | `orchestrator/run_events.py` | tool steps, answers, failures and stops drawn into the chat |
 | `orchestrator/notices.py` | every chat and message-bar text of the orchestrator |

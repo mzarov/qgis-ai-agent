@@ -18,7 +18,7 @@ from ai_agent.core.orchestrator.notices import (
     UNKNOWN_SKILL,
 )
 from ai_agent.core.orchestrator.plans import PlanMixin
-from ai_agent.core.orchestrator.presentation import is_configured, project_line
+from ai_agent.core.orchestrator.presentation import active_layer_chip, is_configured, project_line
 from ai_agent.core.orchestrator.project_lifecycle import ProjectLifecycleMixin
 from ai_agent.core.orchestrator.rewind import Checkpoint, RewindMixin
 from ai_agent.core.orchestrator.run_events import RunEventsMixin
@@ -58,7 +58,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self._deferred_interrupted_outcome = ""
         self._last_request = ""
         self.compaction = SessionCompaction(self.dock_widget, lambda: self.conversation)
-        self.naming = SessionNaming(lambda: self.conversation)
+        self.naming = SessionNaming(lambda: self.conversation, self._show_title)
         self._connect_agent()
         self.dock_widget.set_session_source(self.conversation.recent)
         self.refresh_configured()
@@ -70,6 +70,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.dock_widget.set_work_mode(get_work_mode())
         self.dock_widget.set_skill_source(choices)
         self.dock_widget.set_layer_source(layer_choices)
+        self.on_active_layer_changed()
         self.compaction.refresh()
 
     def _connect_agent(self) -> None:
@@ -99,6 +100,17 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
 
     def on_busy(self, busy: bool) -> None:
         self.dock_widget.set_busy(busy)
+        if not busy:
+            # A run may have edited the active layer: the chip's count follows.
+            self.on_active_layer_changed()
+
+    def on_active_layer_changed(self, *_layer: Any) -> None:
+        """The composer's chip follows the layer QGIS has active."""
+        name, detail = active_layer_chip(self.iface)
+        self.dock_widget.set_active_layer(name, detail)
+
+    def _show_title(self) -> None:
+        self.dock_widget.set_conversation_title(self.conversation.title)
 
     def on_answer_chunk(self, text: str) -> None:
         self.dock_widget.add_stream_chunk(text)
@@ -130,6 +142,10 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         if self.agent.is_awaiting_answer:
             self._answer(text)
             return
+        # The active layer the composer's chip carries joins a new request, unless it is already named.
+        mention = self.dock_widget.context_mention()
+        if isinstance(mention, str) and mention and mention not in text:
+            text = f"{text} {mention}"
         skill, rest = parse_slash(text)
         if skill and not is_known_skill(skill):
             self.dock_widget.add_system_message(UNKNOWN_SKILL.format(skill, available_names()))
@@ -162,6 +178,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         def begin() -> None:
             history = self.conversation.window()
             self.conversation.add("user", shown)
+            self._show_title()
             self._last_request = request
             self.agent.start(prompt, history, skills=skills, images=images, planning=planning)
 

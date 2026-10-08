@@ -216,17 +216,19 @@ class ComposerBehaviourTest(PluginCase):
         pump(0.05)
         try:
             self.assertTrue(toolbar.menu.isVisible())
-            self.assertEqual([action.isEnabled() for action in toolbar.menu.actions()], [True, True])
+            # A caption, then Layer…, File or table…, Picture…, a separator and Skill….
+            labels = [action.text().split("\t")[0] for action in toolbar.menu.actions() if action.text()]
+            self.assertEqual(labels, ["Layer…", "File or table…", "Picture…", "Skill…"])
             self.assertLess(toolbar.menu.geometry().bottom(), toolbar.attach.mapToGlobal(QPoint(0, 0)).y())
         finally:
             toolbar.menu.hide()
 
-    def test_the_box_starts_as_one_line_and_grows_to_a_cap(self) -> None:
+    def test_the_box_starts_at_two_lines_and_grows_to_a_cap(self) -> None:
         edit = self.dock.composer._edit
-        one_line = edit.height()
+        two_lines = edit.height()
         edit.setPlainText("first\nsecond\nthird")
         pump(0.05)
-        self.assertGreater(edit.height(), one_line)
+        self.assertGreater(edit.height(), two_lines)
         edit.setPlainText("line\n" * 30)
         pump(0.05)
         capped = edit.height()
@@ -236,7 +238,7 @@ class ComposerBehaviourTest(PluginCase):
         self.assertEqual(edit.verticalScrollBarPolicy(), Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         edit.clear()
         pump(0.05)
-        self.assertEqual(edit.height(), one_line)
+        self.assertEqual(edit.height(), two_lines)
 
     def test_the_popup_never_grows_wider_than_the_composer(self) -> None:
         composer = self.dock.composer

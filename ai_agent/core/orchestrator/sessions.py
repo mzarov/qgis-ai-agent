@@ -8,8 +8,11 @@ class SessionsMixin:
     def on_new_session(self) -> None:
         if self._busy_with_current():
             return
+        kept = bool(self.conversation.messages)
         self.conversation.start_new()
         self._replay()
+        if kept:
+            self.dock_widget.note_conversation_saved()
 
     def on_session_chosen(self, identifier: str) -> None:
         if self._busy_with_current():
@@ -21,6 +24,8 @@ class SessionsMixin:
 
     def on_session_renamed(self, identifier: str, title: str) -> None:
         self.conversation.rename(identifier, title)
+        if identifier == self.conversation.session_identifier:
+            self._show_title()
 
     def on_session_deleted(self, identifier: str) -> None:
         if identifier == self.conversation.session_identifier and self._busy_with_current():
@@ -45,4 +50,5 @@ class SessionsMixin:
         self._plan_snapshots.clear()
         self.dock_widget.set_project_line(project_line())
         self.dock_widget.replay(self.conversation.replayable())
+        self._show_title()
         self.compaction.refresh()

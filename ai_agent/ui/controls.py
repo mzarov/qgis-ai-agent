@@ -21,6 +21,7 @@ from qgis.PyQt.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QWidget,
+    QWidgetAction,
 )
 
 from ai_agent.ui import icons, style
@@ -35,9 +36,10 @@ CHIP_HEIGHT = 26
 CHIP_RADIUS = CHIP_HEIGHT // 2
 BADGE_RADIUS = 8
 KEY_RADIUS = 4
-MENU_RADIUS = 10
-MENU_ITEM_RADIUS = 6
+MENU_RADIUS = 8
+MENU_ITEM_RADIUS = 5
 MENU_GAP = 4
+CAPTION_SCALE = 11 / 13
 KEY_SCALE = 0.8
 KEY_PADDING = 5
 KEY_MIN_WIDTH = 18
@@ -309,16 +311,47 @@ def menu(parent: QWidget, palette: Any) -> QMenu:
     popup.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
     popup.setStyleSheet(
         f"QMenu {{ background: {style.css_color(style.surface(palette))};"
-        f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(palette))};"
-        f"border-radius: {MENU_RADIUS}px; padding: 5px; }}"
-        f"QMenu::item {{ padding: 7px 16px 7px 12px; border-radius: {MENU_ITEM_RADIUS}px;"
+        f"border: {style.HAIRLINE}px solid {style.css_color(style.border_strong(palette))};"
+        f"border-radius: {MENU_RADIUS}px; padding: 4px; }}"
+        f"QMenu::item {{ padding: 6px 12px 6px 10px; border-radius: {MENU_ITEM_RADIUS}px;"
         f"color: {style.css_color(style.text(palette))}; background: transparent; }}"
         f"QMenu::item:selected {{ background: {style.css_color(style.card(palette))}; }}"
         f"QMenu::item:disabled {{ color: {style.css_color(style.faint(palette))}; }}"
-        f"QMenu::separator {{ height: {style.HAIRLINE}px; margin: 5px 8px;"
+        f"QMenu::separator {{ height: {style.HAIRLINE}px; margin: 4px 6px;"
         f"background: {style.css_color(style.hairline(palette))}; }}"
     )
     return popup
+
+
+def caption(text: str, palette: Any) -> QLabel:
+    """A group caption in a menu or popup: small, bold, upper case, faint."""
+    label = QLabel(text)
+    style.scale_font(label, CAPTION_SCALE, bold=True)
+    font = label.font()
+    font.setCapitalization(QFont.Capitalization.AllUppercase)
+    label.setFont(font)
+    style.ink(label, style.faint(palette))
+    label.setContentsMargins(10, 6, 10, 4)
+    return label
+
+
+def menu_rule(palette: Any) -> QWidget:
+    """A popup's separator: a hairline inset from the edges, as `menu` draws its own."""
+    holder = QWidget()
+    line = QHBoxLayout(holder)
+    line.setContentsMargins(6, 4, 6, 4)
+    rule = QWidget()
+    rule.setFixedHeight(style.HAIRLINE)
+    style.fill(rule, style.hairline(palette))
+    line.addWidget(rule)
+    return holder
+
+
+def menu_caption(popup: QMenu, text: str, palette: Any) -> QWidgetAction:
+    """A caption row for a `menu`: a widget action, so it is neither highlighted nor triggered."""
+    action = QWidgetAction(popup)
+    action.setDefaultWidget(caption(text, palette))
+    return action
 
 
 def icon_tile(role: str, palette: Any, tile: int, size: int, radius: int, fallback: str) -> QLabel:

@@ -302,15 +302,23 @@ class ComposerScreens(ScreenCase):
             meter.popup.hide()
 
     def test_conversations_menu(self) -> None:
-        self.dock.set_session_source(
-            lambda: [
-                ("a", "Town layers and what is in them"),
-                ("b", "Roads coloured by type, cafés labelled"),
-                ("c", "A very long conversation title that has to be cut short in the menu"),
-            ]
-        )
-        self.dock._show_sessions()
+        from datetime import datetime
+
+        from ai_agent.ui.sessions_popup import Entry
+
+        # A fixed "now", so the day groups and the dates are the same on every run.
+        now = datetime(2026, 10, 8, 15, 0).timestamp()
+        entries = [
+            Entry("a", "Town layers and what is in them", datetime(2026, 10, 8, 14, 32).timestamp(), True),
+            Entry("b", "Roads coloured by type, cafés labelled", datetime(2026, 10, 7, 9, 10).timestamp()),
+            Entry(
+                "c",
+                "A very long conversation title that has to be cut short in the menu",
+                datetime(2026, 9, 1).timestamp(),
+            ),
+        ]
         popup = self.dock._sessions_popup
+        popup.show_sessions(entries, self.dock.toolbar.title, now)
         try:
             self.check("conversations_menu", popup)
         finally:
@@ -318,7 +326,8 @@ class ComposerScreens(ScreenCase):
 
     def test_mode_menu(self) -> None:
         toolbar = self.dock.composer.toolbar
-        toolbar.modes.open_above(toolbar.mode, "ask")
+        frame = self.dock.composer._frame
+        toolbar.modes.open_above(frame, "ask", frame.width())
         try:
             self.check("mode_menu", toolbar.modes)
         finally:

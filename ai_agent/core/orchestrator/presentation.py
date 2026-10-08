@@ -1,6 +1,7 @@
 import os
+from typing import Any
 
-from qgis.core import QgsProject
+from qgis.core import QgsProject, QgsRasterLayer, QgsVectorLayer
 
 from ai_agent.core.llm.client import is_local
 from ai_agent.core.settings import get_api_key, get_api_url
@@ -38,6 +39,23 @@ def is_configured() -> bool:
         return bool(url) and (bool((get_api_key() or "").strip()) or is_local(url))
     except Exception:
         return False
+
+
+def active_layer_chip(iface: Any) -> tuple[str, str]:
+    """The active layer for the composer's chip: its name and what it holds; empty strings without one."""
+    try:
+        layer = iface.activeLayer()
+        if layer is None:
+            return "", ""
+        name = str(layer.name())
+        if isinstance(layer, QgsVectorLayer):
+            count = int(layer.featureCount())
+            return name, tr_n("%n feature(s)", count) if count >= 0 else ""
+        if isinstance(layer, QgsRasterLayer):
+            return name, tr("raster")
+    except Exception:
+        return "", ""
+    return name, ""
 
 
 def project_line() -> str:
