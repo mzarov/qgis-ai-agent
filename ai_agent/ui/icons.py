@@ -51,6 +51,8 @@ NAMES = {
     "brain": "brain",
     "sparkles": "sparkles",
     "check": "check",
+    "image": "image",
+    "measure": "square-dashed",
 }
 
 

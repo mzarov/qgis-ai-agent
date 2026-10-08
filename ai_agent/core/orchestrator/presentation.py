@@ -1,3 +1,7 @@
+import os
+
+from qgis.core import QgsProject
+
 from ai_agent.core.llm.client import is_local
 from ai_agent.core.settings import get_api_key, get_api_url
 from ai_agent.i18n import tr, tr_n
@@ -34,3 +38,17 @@ def is_configured() -> bool:
         return bool(url) and (bool((get_api_key() or "").strip()) or is_local(url))
     except Exception:
         return False
+
+
+def project_line() -> str:
+    """The open project for the welcome card: its file, the number of layers, the CRS; "" when unreadable."""
+    try:
+        project = QgsProject.instance()
+        name = os.path.basename(project.fileName() or "") or tr("Unsaved project")
+        parts = [name, tr_n("%n layer(s)", len(project.mapLayers()))]
+        crs = project.crs()
+        if crs.isValid():
+            parts.append(crs.authid())
+    except Exception:
+        return ""
+    return " · ".join(str(part) for part in parts)

@@ -18,7 +18,7 @@ from ai_agent.core.orchestrator.notices import (
     UNKNOWN_SKILL,
 )
 from ai_agent.core.orchestrator.plans import PlanMixin
-from ai_agent.core.orchestrator.presentation import is_configured
+from ai_agent.core.orchestrator.presentation import is_configured, project_line
 from ai_agent.core.orchestrator.project_lifecycle import ProjectLifecycleMixin
 from ai_agent.core.orchestrator.rewind import Checkpoint, RewindMixin
 from ai_agent.core.orchestrator.run_events import RunEventsMixin
@@ -51,6 +51,8 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self._plan_step = -1
         self._apply_scope: tuple[str, str] | None = None
         self._checkpoints: list[Checkpoint] = []
+        # Plan card id to the snapshot its apply took: the card's Undo restores it.
+        self._plan_snapshots: dict[int, str] = {}
         self._snapshot_before_apply = ""
         self._invalidated_scope: tuple[str, str] | None = None
         self._deferred_interrupted_outcome = ""
@@ -62,6 +64,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.refresh_configured()
 
     def refresh_configured(self) -> None:
+        self.dock_widget.set_project_line(project_line())
         self.dock_widget.set_configured(_is_configured())
         self.dock_widget.set_model(get_model() if _is_configured() else "")
         self.dock_widget.set_work_mode(get_work_mode())
@@ -87,10 +90,21 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.agent.finished.connect(self.on_finished)
         self.agent.failed.connect(self.on_failed)
         self.agent.aborted.connect(self.on_aborted)
-        self.agent.busy_changed.connect(self.dock_widget.set_busy)
+        # Through the orchestrator, never to the dock's own methods: a rebuilt dock (a theme change)
+        # must receive them too, and a connection to the old dock's method would not follow it.
+        self.agent.busy_changed.connect(self.on_busy)
         self.agent.turn_counted.connect(self.on_turn_counted)
-        self.agent.answer_chunk.connect(self.dock_widget.add_stream_chunk)
-        self.agent.thinking_chunk.connect(self.dock_widget.add_thinking_chunk)
+        self.agent.answer_chunk.connect(self.on_answer_chunk)
+        self.agent.thinking_chunk.connect(self.on_thinking_chunk)
+
+    def on_busy(self, busy: bool) -> None:
+        self.dock_widget.set_busy(busy)
+
+    def on_answer_chunk(self, text: str) -> None:
+        self.dock_widget.add_stream_chunk(text)
+
+    def on_thinking_chunk(self, text: str) -> None:
+        self.dock_widget.add_thinking_chunk(text)
 
     def on_stop(self) -> None:
         if self.compaction.is_running:

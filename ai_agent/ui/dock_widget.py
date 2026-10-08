@@ -39,6 +39,7 @@ class AgentDockWidget(QDockWidget):
     compact_requested = pyqtSignal()
     plan_run_requested = pyqtSignal(str)
     rewind_requested = pyqtSignal(int)
+    plan_undo_requested = pyqtSignal(int)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -105,6 +106,9 @@ class AgentDockWidget(QDockWidget):
         button.clicked.connect(handler)
         return button
 
+    def set_project_line(self, text: str) -> None:
+        self.conversation.set_project_line(text)
+
     def set_configured(self, configured: bool) -> None:
         self.conversation.set_configured(configured)
         self.composer.set_configured(configured)
@@ -118,6 +122,7 @@ class AgentDockWidget(QDockWidget):
         self.conversation.confirm_requested.connect(self.confirm_plan_clicked.emit)
         self.conversation.plan_run_requested.connect(self.plan_run_requested.emit)
         self.conversation.rewind_requested.connect(self.rewind_requested.emit)
+        self.conversation.plan_undo_requested.connect(self.plan_undo_requested.emit)
         # A picked answer travels like a typed one: the orchestrator routes it to the waiting run.
         self.conversation.question_answered.connect(self.prompt_submitted.emit)
         self.conversation.cancel_requested.connect(self.cancel_plan_clicked.emit)
@@ -245,17 +250,23 @@ class AgentDockWidget(QDockWidget):
     def confirm_data_sharing(self, endpoint: str) -> bool:
         return confirmations.confirm_data_sharing(self, endpoint)
 
-    def mark_plan_completed(self, message_id: int) -> None:
-        self.conversation.mark_plan_applied(message_id)
+    def mark_plan_completed(self, message_id: int, undoable: bool = False) -> None:
+        self.conversation.mark_plan_applied(message_id, undoable)
 
-    def mark_plan_failed(self, message_id: int) -> None:
-        self.conversation.mark_plan_failed(message_id)
+    def mark_plan_failed(self, message_id: int, undoable: bool = False) -> None:
+        self.conversation.mark_plan_failed(message_id, undoable)
+
+    def mark_plan_undone(self, message_id: int) -> None:
+        self.conversation.mark_plan_undone(message_id)
 
     def mark_plan_step(self, message_id: int, index: int, state: str, note: str = "") -> None:
         self.conversation.mark_plan_step(message_id, index, state, note)
 
     def mark_plan_cancelled(self, message_id: int) -> None:
         self.conversation.mark_plan_cancelled(message_id)
+
+    def show_outcome(self, kind: str) -> None:
+        self.progress.show_outcome(kind)
 
     def set_busy(self, busy: bool) -> None:
         self.composer.set_busy(busy)

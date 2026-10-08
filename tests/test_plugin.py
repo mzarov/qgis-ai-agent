@@ -148,3 +148,36 @@ class ThemeSwitchTest(unittest.TestCase):
             plugin._follow_theme()
         self.assertIs(plugin.dock_widget, old)
         self.assertEqual(iface.removed, [])
+
+
+class SettingsWhileUnloadingTest(unittest.TestCase):
+    """A reload while the settings dialog is open must not touch the deleted panel afterwards."""
+
+    def test_the_dialog_belongs_to_the_main_window_and_an_unload_ends_quietly(self):
+        window = object()
+        iface = mock.Mock()
+        iface.mainWindow.return_value = window
+        plugin = QgisAiAgentPlugin(iface)
+        plugin._orchestrator = mock.Mock()
+        plugin.dock_widget = mock.Mock()
+        dock = plugin.dock_widget
+        parents = []
+
+        class Dialog:
+            chosen_prompt = "Add Dutch aerial photos"
+
+            def __init__(self, parent):
+                parents.append(parent)
+
+            def exec(self):
+                plugin._orchestrator = None
+                plugin.dock_widget = None
+                return plugin_module.QDialog.DialogCode.Accepted
+
+            def deleteLater(self):
+                pass
+
+        with mock.patch.object(plugin_module, "SettingsDialog", Dialog):
+            plugin._on_open_settings()
+        self.assertEqual(parents, [window])
+        dock.put_prompt.assert_not_called()

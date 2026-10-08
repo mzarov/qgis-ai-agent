@@ -1,6 +1,7 @@
 """Conversations: start a new one, pick a past one, and what a switch does to running work."""
 
 from ai_agent.core.orchestrator.notices import SESSION_MISSING, SWITCH_WHILE_APPLYING
+from ai_agent.core.orchestrator.presentation import project_line
 
 
 class SessionsMixin:
@@ -40,5 +41,8 @@ class SessionsMixin:
     def _replay(self) -> None:
         self._plan_message_id = None
         self._active_tool_message_id = None
+        # The replay draws no plan cards, and their ids are the view's: nothing is left to undo from a card.
+        self._plan_snapshots.clear()
+        self.dock_widget.set_project_line(project_line())
         self.dock_widget.replay(self.conversation.replayable())
         self.compaction.refresh()

@@ -47,6 +47,8 @@ TEXT_LIMIT = 120
 VOLATILE = [
     (re.compile(r"\b\d+(?:[.,]\d+)?\s?(?:ms|s)\b"), "<duration>"),
     (re.compile(r"\b\d+(?:[.,]\d+)?k? tokens\b"), "<tokens>"),
+    # The plan card's "Applied at 13:38".
+    (re.compile(r"\b\d{1,2}:\d{2}\b"), "<time>"),
 ]
 
 

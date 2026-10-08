@@ -187,7 +187,8 @@ class WelcomeTest(unittest.TestCase):
         self.assertEqual(suggestions, ())
 
     def test_the_examples_are_real_requests_not_placeholders(self):
-        for text in welcome.SUGGESTIONS:
+        for role, text in welcome.SUGGESTIONS:
+            self.assertIn(role, ("layer", "style", "image", "measure"))
             self.assertGreater(len(text), 20)
             self.assertNotIn("TODO", text)
 

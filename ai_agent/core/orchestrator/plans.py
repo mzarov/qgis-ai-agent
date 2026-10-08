@@ -16,6 +16,9 @@ from ai_agent.core.orchestrator.notices import (
     RUN_THE_PLAN,
     RUN_THE_PLAN_FOR,
     RUN_THE_PLAN_MODEL,
+    STATUS_DONE,
+    STATUS_FAILED,
+    STATUS_HIDDEN,
     STEP_DONE,
     STEP_FAILED,
     STEP_SKIPPED,
@@ -27,6 +30,7 @@ from ai_agent.core.orchestrator.presentation import where_to_look
 from ai_agent.core.orchestrator.scope import conversation_scope
 from ai_agent.core.settings import get_verify_after_apply, set_work_mode
 from ai_agent.i18n import tr, tr_n
+from ai_agent.qgis_tools.project.snapshots import last_snapshot
 
 
 class PlanMixin:
@@ -34,6 +38,8 @@ class PlanMixin:
         if final_text:
             self._render_answer(final_text)
         lines = [self._plan_line(call) for call in calls]
+        # The plan card asks for the next step now; the status line has nothing to add.
+        self.dock_widget.show_outcome(STATUS_HIDDEN)
         self._plan_message_id = self.dock_widget.add_plan_message(lines, applies_itself)
         self._plan_step = -1
         if applies_itself:
@@ -96,26 +102,27 @@ class PlanMixin:
 
     def on_stage_applied(self, results: list) -> None:
         self._apply_scope = None
-        self._record_checkpoint()
+        undoable = self._keep_plan_snapshot()
         self._settle_plan_steps(results)
         if self._plan_message_id is not None:
             if any(not result.ok for result in results):
-                self.dock_widget.mark_plan_failed(self._plan_message_id)
+                self.dock_widget.mark_plan_failed(self._plan_message_id, undoable)
             else:
-                self.dock_widget.mark_plan_completed(self._plan_message_id)
+                self.dock_widget.mark_plan_completed(self._plan_message_id, undoable)
         self._plan_message_id = None
 
     def on_applied(self, results: list) -> None:
         self._apply_scope = None
-        self._record_checkpoint()
+        undoable = self._keep_plan_snapshot()
         failed = [result for result in results if not result.ok]
         self._settle_plan_steps(results)
         if self._plan_message_id is not None:
             if failed:
-                self.dock_widget.mark_plan_failed(self._plan_message_id)
+                self.dock_widget.mark_plan_failed(self._plan_message_id, undoable)
             else:
-                self.dock_widget.mark_plan_completed(self._plan_message_id)
+                self.dock_widget.mark_plan_completed(self._plan_message_id, undoable)
         self._plan_message_id = None
+        self.dock_widget.show_outcome(STATUS_FAILED if failed else STATUS_DONE)
         if failed:
             # The reasons stand under the failed steps in the card; the model reads the exact errors
             # in the tool results and the check's prompt.
@@ -152,6 +159,16 @@ class PlanMixin:
             verification_round=start.round,
             preload=start.preload,
         )
+
+    def _keep_plan_snapshot(self) -> bool:
+        """Tag the snapshot this apply took and remember it for the card's Undo; False when none was taken."""
+        before = getattr(self, "_snapshot_before_apply", "")
+        self._record_checkpoint()
+        taken = last_snapshot()
+        if not taken or taken == before or self._plan_message_id is None:
+            return False
+        self._plan_snapshots[self._plan_message_id] = taken
+        return True
 
     def _settle_plan_steps(self, results: list) -> None:
         """Every step's final state on the card, including those that never started."""

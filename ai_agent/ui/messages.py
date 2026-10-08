@@ -6,9 +6,11 @@ from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QTextBrowser, QTool
 from ai_agent.i18n import tr
 from ai_agent.ui import icons, style
 
-USER_MAX_WIDTH_RATIO = 0.82
+USER_MAX_WIDTH_RATIO = 0.86
 BUBBLE_PADDING = 8
-BUBBLE_SIDE_PADDING = 11
+BUBBLE_SIDE_PADDING = 12
+# The bubble's corner nearest the composer is tighter: it points back at where the message came from.
+BUBBLE_TAIL_RADIUS = 3
 BROWSER_EXTRA_HEIGHT = 6
 WRAP_SLACK = 10
 SYSTEM_FONT_SCALE = 0.92
@@ -41,6 +43,7 @@ class UserMessage(QWidget):
             f"background: {style.css_color(style.user_bubble(palette))};"
             f"color: {style.css_color(style.text(palette))};"
             f"border-radius: {style.BUBBLE_RADIUS}px;"
+            f"border-bottom-right-radius: {BUBBLE_TAIL_RADIUS}px;"
             f"padding: {BUBBLE_PADDING}px {BUBBLE_SIDE_PADDING}px;"
         )
         row.addWidget(label, 0)

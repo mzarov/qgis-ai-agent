@@ -24,11 +24,12 @@ from e2e_harness import ARTIFACTS, PluginCase, pump
 from e2e_model import USAGE, ScriptedModel, call, calls, fail, say, think
 from qgis.core import QgsProject
 
-from ai_agent.core.orchestrator.notices import CHECKED_BY_READING
+from ai_agent.core.orchestrator.notices import CHECKED_BY_READING, STATUS_DONE, STATUS_WAITING
 from ai_agent.core.settings import get_auto_apply, set_reasoning_enabled, set_supports_images, set_work_mode
 from ai_agent.ui.chart import ChartCard
 from ai_agent.ui.composer_parts import MODES
 from ai_agent.ui.messages import SystemMessage
+from ai_agent.ui.plan import PlanCard
 from ai_agent.ui.question import QuestionCard
 
 MODEL = "scripted-model"
@@ -517,6 +518,29 @@ class RewindScenario(ScenarioCase):
         self.shot("rewound")
 
 
+class PlanUndoScenario(ScenarioCase):
+    def test_the_plan_card_undoes_its_own_apply(self) -> None:
+        self.model.script(
+            call("load_skill", names=["project"]),
+            call("configure_layer", layer_name="districts", properties={"name": "Districts A"}),
+            say("Renamed to Districts A."),
+        )
+        self.ask("Rename districts to Districts A")
+        self.apply()
+        self.layer("Districts A")
+        self.assertEqual(self.dock.progress.state, STATUS_DONE, "the status line did not say the run is done")
+        card = self.dock.conversation.findChildren(PlanCard)[-1]
+        self.assertFalse(card._undo.isHidden(), "an applied plan offers no Undo")
+        card._undo.click()
+        pump(0.1)
+        self.layer("districts")
+        self.assertTrue(card._undo.isHidden(), "an undone plan still offers Undo")
+        notes = [message.plain_text() for message in self.dock.conversation.findChildren(SystemMessage)]
+        self.assertTrue(any("plan is undone" in note for note in notes), notes)
+        self.assertIn("The plan is undone", self.orchestrator.conversation.messages[-1]["content"])
+        self.shot("plan_undone")
+
+
 class QuestionScenario(ScenarioCase):
     def test_a_picked_answer_resumes_the_same_run(self) -> None:
         self.model.script(
@@ -527,6 +551,7 @@ class QuestionScenario(ScenarioCase):
         cards = self.dock.conversation.findChildren(QuestionCard)
         self.assertEqual(len(cards), 1, "the question card never appeared")
         self.assertEqual([row.text for row in cards[0].rows], ["pop2020", "name"])
+        self.assertEqual(self.dock.progress.state, STATUS_WAITING, "the status line did not wait for the answer")
         self.shot("question_card")
         cards[0].rows[0].clicked.emit("pop2020")
         self.wait_idle()

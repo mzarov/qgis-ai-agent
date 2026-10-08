@@ -12,7 +12,7 @@ from qgis.PyQt.QtGui import QColor, QPalette
 from ai_agent.ui import theme
 
 CARD_RADIUS = 10
-BUBBLE_RADIUS = 12
+BUBBLE_RADIUS = 10
 HAIRLINE = 1
 
 

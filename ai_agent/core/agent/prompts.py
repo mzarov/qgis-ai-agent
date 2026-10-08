@@ -236,7 +236,8 @@ def build_ask_user_schema() -> dict[str, Any]:
                         "items": {"type": "string"},
                         "description": (
                             f"Up to {MAX_QUESTION_OPTIONS} likely answers the user can pick with one "
-                            "click, the one you recommend first; they can always type their own instead"
+                            "click, the one you recommend first; each may add ' — ' and a few words on "
+                            "when it fits. They can always type their own instead"
                         ),
                     },
                 },

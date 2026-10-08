@@ -52,7 +52,25 @@
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "Ask in plain language"
+  "text": "Ask about your map"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Your model, your keys, your project. Nothing changes without your approval."
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel"
+ },
+ {
+  "depth": 6,
+  "type": "ElidedLabel",
+  "text": "e2e.qgz · 2 layers"
  },
  {
   "depth": 5,
@@ -61,8 +79,12 @@
  },
  {
   "depth": 6,
+  "type": "QLabel"
+ },
+ {
+  "depth": 6,
   "type": "QLabel",
-  "text": "What layers do I have and what is in them?"
+  "text": "Which layers are in the project and what is in them?"
  },
  {
   "depth": 5,
@@ -71,8 +93,12 @@
  },
  {
   "depth": 6,
+  "type": "QLabel"
+ },
+ {
+  "depth": 6,
   "type": "QLabel",
-  "text": "Colour the layer by category and add labels"
+  "text": "Colour the districts by population"
  },
  {
   "depth": 5,
@@ -81,8 +107,26 @@
  },
  {
   "depth": 6,
+  "type": "QLabel"
+ },
+ {
+  "depth": 6,
   "type": "QLabel",
-  "text": "Download cafés in Paris from OpenStreetMap"
+  "text": "Find a cloud-free satellite image of the current extent from this summer"
+ },
+ {
+  "depth": 5,
+  "type": "Suggestion",
+  "name": "suggestion"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Calculate the built-up area in each district"
  },
  {
   "depth": 2,
