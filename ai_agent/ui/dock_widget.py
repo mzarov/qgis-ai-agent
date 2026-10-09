@@ -48,7 +48,7 @@ class AgentDockWidget(QDockWidget):
         self.setTitleBarWidget(self.title_bar)
         self._sessions_provider: Callable[[], list[tuple[Any, ...]]] = list
         self._sessions_popup = SessionsPopup(palette)
-        self._sessions_popup.chosen.connect(self.session_chosen.emit)
+        self._sessions_popup.chosen.connect(self._choose_session)
         self._sessions_popup.renamed.connect(self.session_renamed.emit)
         self._sessions_popup.delete_requested.connect(self._confirm_delete)
         self._sessions_popup.new_requested.connect(self._start_new)
@@ -72,6 +72,17 @@ class AgentDockWidget(QDockWidget):
         self.toolbar.new_button.setEnabled(False)
         # The old feed's picture while a new conversation is being asked for; see `_start_new`.
         self._leaving: QPixmap | None = None
+        # The same while a conversation from the history replaces it; see `_choose_session`.
+        self._switching: QPixmap | None = None
+
+    def _choose_session(self, identifier: str) -> None:
+        """Open a conversation from the history: what the feed shows rises away once the orchestrator
+        has replayed the chosen one, which then rises in (`replay`)."""
+        self._switching = self.conversation.snapshot(with_welcome=True)
+        try:
+            self.session_chosen.emit(identifier)
+        finally:
+            self._switching = None
 
     def _start_new(self) -> None:
         """Ask for a new conversation, as the handoff plays it: the feed's picture waits for the
@@ -188,12 +199,15 @@ class AgentDockWidget(QDockWidget):
         self.conversation.clear()
         for index, message in enumerate(messages):
             if message.get("role") == "user":
-                entry = self.conversation.add_user_message(message.get("content", ""))
+                entry = self.conversation.add_user_message(message.get("content", ""), animate=False)
                 self.conversation.mark_rewind_point(entry, index)
             elif isinstance(message.get("visual"), dict):
                 self.conversation.add_visual(message["visual"])
             else:
                 self.conversation.add_assistant_message(message.get("content", ""))
+        if self._switching is not None:
+            self.conversation.play_entrance(self._switching)
+            self._switching = None
 
     def add_user_message(self, text: str) -> int:
         return self.conversation.add_user_message(text)

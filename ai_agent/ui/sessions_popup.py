@@ -254,6 +254,7 @@ class SessionsPopup(controls.RoundedFrame):
         style.fill(self._area.viewport(), style.surface(palette))
         column.addWidget(self._area)
         self.rows: list[SessionRow] = []
+        self._current = ""
 
     def show_sessions(self, entries: list[Entry], anchor: QWidget, now: float) -> None:
         """Fill the list and open it under `anchor`, left edges aligned."""
@@ -263,6 +264,7 @@ class SessionsPopup(controls.RoundedFrame):
         rows.setContentsMargins(0, 0, 0, 0)
         rows.setSpacing(1)
         self.rows = []
+        self._current = next((entry.identifier for entry in entries if entry.current), "")
         for label, items in day_groups(entries, now):
             rows.addWidget(controls.caption(label, self._palette))
             for entry, meta in items:
@@ -297,7 +299,9 @@ class SessionsPopup(controls.RoundedFrame):
 
     def _choose(self, identifier: str) -> None:
         self.hide()
-        self.chosen.emit(identifier)
+        # The open conversation is already on screen: replaying it would only blink.
+        if identifier != self._current:
+            self.chosen.emit(identifier)
 
     def _delete(self, identifier: str, title: str) -> None:
         # Closed first: the confirmation is modal and a popup must not sit behind it.

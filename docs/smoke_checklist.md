@@ -1063,3 +1063,7 @@ These verify the agent solves everyday tasks without wandering through search.
      chosen skill goes first). The model name in monospace opens the
      connection settings; the round send button is pale with an empty box,
      blue with text, a stop square while the agent works.
+221. **The chat rises in.** On the welcome, send a request → the welcome fades
+     upwards and the chat rises in from below. Open a past conversation from
+     the history → what was shown rises away and that conversation rises in;
+     choosing the open one only closes the menu.

@@ -45,7 +45,7 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `thinking.py`     | a reasoning row's content: "Thinking"/"Thought" with its time, opening a sunken box with the text |
 | `plan.py`         | the plan card: numbered steps with their kind, Apply and Cancel inside, the outcome with the time and Undo |
 | `welcome.py`      | the empty conversation: the arriving compass, the deal in one sentence, the open project, four examples |
-| `transitions.py`  | the new-conversation transition: the old feed's snapshot fades and rises, then the welcome fades in and settles, the saved line a little behind |
+| `transitions.py`  | the feed's transitions: what leaves is a snapshot that fades and rises, what arrives fades in and settles from below (`Arrival`) |
 | `confirmations.py` | the modal questions: share data with a provider, run destructive steps |
 | `durations.py`    | `3.4 s`, `2 min 5 s` — one formatter for the feed and the settings |
 | `composer.py`     | the input box after the handoff: context chips, the text (two lines at least), the row of controls inside; Enter sends, Esc stops a run, Ctrl+N starts over; `/` and `@` open the popup |
@@ -256,19 +256,26 @@ each endpoint is its own model (the user's call). Ctrl+N belongs to the box
 only while it has the focus (`ShortcutOverride`), so elsewhere QGIS keeps it
 for a new project.
 
-## The new-conversation transition
+## The feed's transitions
 
 Starting a new conversation plays the handoff's sequence. The plus turns half a
 circle (400 ms); the old conversation fades and rises 8 px (200 ms, ease-in);
 then the welcome fades in and settles from 10 px below (320 ms,
 cubic-bezier(.2,.7,.3,1)), the line about the saved conversation 120 ms behind,
-while the compass arrives. The orchestrator clears the feed synchronously, so
-the leaving conversation is a snapshot (`LeavingFeed`) over the viewport: the
-dock takes it in `_start_new` and plays it only if the orchestrator confirms the
-switch with `note_conversation_saved` — a refused switch, or one from an empty
-conversation, drops it. The welcome moves inside a graphics effect
-(`ArrivalEffect`), never through its layout, so nothing reflows while it plays,
-and the effect is removed once it has arrived.
+while the compass arrives. The same rise plays the other way in (the user's
+call): the first message on the welcome lifts the welcome away and the chat
+rises in, and a conversation opened from the history replaces what was shown
+the same way (opening the one already open does nothing).
+
+The feed changes synchronously, so what leaves is a snapshot (`LeavingFeed`)
+over the viewport, taken just before the change: the dock takes it in
+`_start_new` and `_choose_session` and plays it only once the orchestrator has
+confirmed the switch (`note_conversation_saved`, `replay`) — a refused switch
+drops it; the first message takes its own in `add_user_message`, which a replay
+turns off. What arrives — the welcome card, or the whole feed holder — moves
+inside a graphics effect driven by `transitions.Arrival`, never through its
+layout, so nothing reflows while it plays, and the effect comes off once it has
+arrived.
 
 ## The history menu
 

@@ -539,7 +539,15 @@ class ChromeScenario(ScenarioCase):
     def test_a_new_conversation_keeps_the_old_one_in_the_history(self) -> None:
         self.assertFalse(self.dock.toolbar.new_button.isEnabled(), "nothing to start over from yet")
         self.model.script(say("Three layers."))
-        self.ask("Which layers are there?")
+        viewport = self.dock.conversation.viewport()
+        holder = self.dock.conversation.widget()
+        # The first message: the welcome rises away, the chat rises in.
+        self.orchestrator.on_prompt("Which layers are there?")
+        self.assertEqual(len([item for item in viewport.findChildren(LeavingFeed) if item.isVisible()]), 1)
+        self.assertIsNotNone(holder.graphicsEffect(), "the chat must wait behind its entrance")
+        self.wait_idle()
+        pump(0.6)
+        self.assertIsNone(holder.graphicsEffect(), "the chat must paint directly once it is in")
         self.assertEqual(self.dock.toolbar.title.label.text(), "Which layers are there?")
         self.assertTrue(self.dock.toolbar.new_button.isEnabled())
         self.dock.toolbar.new_button.click()
@@ -548,8 +556,8 @@ class ChromeScenario(ScenarioCase):
         self.assertFalse(welcome.saved.isHidden(), "the welcome must say where the old conversation went")
         self.assertNotEqual(self.dock.toolbar.title.label.text(), "Which layers are there?")
         # The handoff's transition: the old feed leaves over the welcome, then the welcome arrives.
-        viewport = self.dock.conversation.viewport()
-        self.assertEqual(len(viewport.findChildren(LeavingFeed)), 1, "the old feed did not leave")
+        leaving = [item for item in viewport.findChildren(LeavingFeed) if item.isVisible()]
+        self.assertEqual(len(leaving), 1, "the old feed did not leave")
         self.assertIsNotNone(welcome.graphicsEffect(), "the welcome must wait behind its arrival")
         self.shot_now("new_conversation_leaving", 0.1)
         self.shot_now("new_conversation_arriving", 0.25)
@@ -564,6 +572,14 @@ class ChromeScenario(ScenarioCase):
             self.assertFalse(popup.rows[0].current)
         finally:
             popup.hide()
+        # Opening it from the history: the welcome rises away, the conversation rises in.
+        popup.rows[0].chosen.emit(popup.rows[0].identifier)
+        self.assertEqual(self.dock.toolbar.title.label.text(), "Which layers are there?")
+        self.assertEqual(len([item for item in viewport.findChildren(LeavingFeed) if item.isVisible()]), 1)
+        self.assertIsNotNone(holder.graphicsEffect(), "the opened conversation must rise in")
+        pump(0.8)
+        self.assertIsNone(holder.graphicsEffect())
+        self.shot("conversation_reopened")
 
 
 class PlanUndoScenario(ScenarioCase):

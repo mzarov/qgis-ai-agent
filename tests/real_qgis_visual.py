@@ -30,7 +30,7 @@ from ai_agent import i18n
 from ai_agent.core.agent import failures
 from ai_agent.core.orchestrator import notices
 from ai_agent.qgis_tools.registry import summarize_tool_call, summarize_tool_result
-from ai_agent.ui import activity, compass, settings_layout, theme
+from ai_agent.ui import activity, compass, settings_layout, theme, transitions
 from ai_agent.ui.dock_widget import AgentDockWidget
 from ai_agent.ui.settings_dialog import SettingsDialog
 
@@ -137,6 +137,11 @@ class ScreenCase(PluginCase):
             mark.stop()
         for ring in widget.findChildren(activity.PulseRing):
             ring.stop()
+        # A transition caught halfway would too: what leaves goes, what arrives is in place.
+        for overlay in widget.findChildren(transitions.LeavingFeed):
+            overlay.finish()
+        for arrival in widget.findChildren(transitions.Arrival):
+            arrival.finish()
         pump(0.3)
         ui_snapshot.normalize_texts(widget, {_profile_root(): LONG_PROFILE})
         pump(0.1)

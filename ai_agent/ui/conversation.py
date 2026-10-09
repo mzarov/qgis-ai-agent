@@ -106,10 +106,10 @@ class ConversationView(QScrollArea):
         if self._empty is not None:
             self._empty.set_project(text)
 
-    def snapshot(self) -> QPixmap | None:
-        """The visible feed as a picture, for the leaving half of the new-conversation transition;
-        None while only the welcome shows, as there is nothing to see leave."""
-        if self._empty is not None:
+    def snapshot(self, with_welcome: bool = False) -> QPixmap | None:
+        """The visible feed as a picture, for the leaving half of a transition; None when the panel is
+        not shown, or when only the welcome shows and `with_welcome` is not asked for."""
+        if not self.isVisible() or (self._empty is not None and not with_welcome):
             return None
         return self.viewport().grab()
 
@@ -119,9 +119,12 @@ class ConversationView(QScrollArea):
         if card is None:
             return
         card.prepare_arrival()
-        overlay = transitions.LeavingFeed(leaving, self.viewport())
-        overlay.finished.connect(card.arrive)
-        overlay.start()
+        transitions.leave(leaving, self.viewport(), card.arrive)
+
+    def play_entrance(self, leaving: QPixmap) -> None:
+        """What the feed showed leaves upwards, then the feed as it is now rises in from below."""
+        arrival = transitions.Arrival(self.widget())
+        transitions.leave(leaving, self.viewport(), arrival.start)
 
     def show_saved_hint(self) -> None:
         """On the welcome after "New conversation": the previous one is in the history."""
@@ -164,7 +167,16 @@ class ConversationView(QScrollArea):
     def _set_tail_stretch(self, stretch: int) -> None:
         self._column.setStretch(self._column.count() - 1, stretch)
 
-    def add_user_message(self, text: str) -> int:
+    def add_user_message(self, text: str, animate: bool = True) -> int:
+        """The user's message; the first one on the welcome plays the entrance: the welcome rises away,
+        the chat rises in. A replay passes `animate=False` — opening a conversation has its own."""
+        welcome = self.snapshot(with_welcome=True) if animate and self._empty is not None else None
+        entry = self._add_user_message(text)
+        if welcome is not None:
+            self.play_entrance(welcome)
+        return entry
+
+    def _add_user_message(self, text: str) -> int:
         # Any new message makes an earlier plan offer or question card stale.
         self._retire_plan_offers()
         self._retire_questions()

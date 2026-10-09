@@ -180,5 +180,50 @@ class NewConversationTransitionTest(unittest.TestCase):
         self.assertIsNone(view.snapshot())
 
 
+class EntranceTest(unittest.TestCase):
+    """The chat rises in the way a new conversation's welcome does: on the first message and on opening one."""
+
+    def _view(self):
+        view = ConversationView()
+        played = []
+        view.snapshot = lambda with_welcome=False: "picture" if with_welcome else None
+        view.play_entrance = played.append
+        return view, played
+
+    def test_the_first_message_on_the_welcome_plays_the_entrance_once(self):
+        view, played = self._view()
+        view.add_user_message("hello")
+        view.add_user_message("and more")
+        self.assertEqual(played, ["picture"])
+
+    def test_a_replayed_message_does_not(self):
+        view, played = self._view()
+        view.add_user_message("hello", animate=False)
+        self.assertEqual(played, [])
+
+    def test_opening_a_conversation_from_the_history_plays_it_after_the_replay(self):
+        from ai_agent.ui.dock_widget import AgentDockWidget
+
+        dock = AgentDockWidget()
+        played = []
+        dock.conversation.snapshot = lambda with_welcome=False: "old feed"
+        dock.conversation.play_entrance = played.append
+        dock.session_chosen.connect(lambda identifier: dock.replay([{"role": "user", "content": identifier}]))
+        dock._sessions_popup.chosen.emit("past")
+        self.assertEqual(played, ["old feed"])
+        self.assertIsNone(dock._switching)
+
+    def test_the_open_conversation_is_not_opened_again(self):
+        from ai_agent.ui.sessions_popup import Entry, SessionsPopup
+
+        popup = SessionsPopup(QWidget().palette())
+        chosen = []
+        popup.chosen.connect(chosen.append)
+        popup.show_sessions([Entry("open", "Open one", 0.0, True), Entry("past", "Past one", 0.0)], QWidget(), 0.0)
+        popup._choose("open")
+        popup._choose("past")
+        self.assertEqual(chosen, ["past"])
+
+
 if __name__ == "__main__":
     unittest.main()

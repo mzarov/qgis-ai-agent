@@ -1,19 +1,21 @@
-"""The new-conversation transition from the design handoff: the old feed leaves, the welcome arrives.
+"""The feed's transitions, after the design handoff's new conversation: what leaves rises, what comes rises in.
 
-The orchestrator clears the feed at once — it replays an empty conversation — so
-the leaving feed is a snapshot laid over the viewport: it fades and rises 8 px in
-200 ms (CSS ease-in). Then the welcome arrives: it fades in and settles from 10 px
-below in 320 ms on cubic-bezier(.2,.7,.3,1), the line about the saved
-conversation 120 ms behind it, and the compass plays its arrival. The welcome
-moves inside a graphics effect, not through its layout, so nothing reflows while
-it plays. Every animation is owned by its widget and ticks a bound method, so a
-widget deleted mid-play takes its ticks with it.
+Whatever the feed showed — a conversation, the welcome — leaves as a snapshot
+laid over the viewport, since the feed itself changes at once: it fades and
+rises 8 px in 200 ms (CSS ease-in). Then what replaced it arrives: it fades in
+and settles from 10 px below in 320 ms on cubic-bezier(.2,.7,.3,1). Three moments
+play it: a new conversation (the welcome arrives, the line about the saved
+conversation 120 ms behind), the first message on the welcome (the chat
+arrives), and a conversation opened from the history. What arrives moves inside
+a graphics effect, not through its layout, so nothing reflows while it plays.
+Every animation is owned by its widget and ticks a bound method, so a widget
+deleted mid-play takes its ticks with it.
 """
 
 from collections.abc import Callable
 from typing import Any
 
-from qgis.PyQt.QtCore import QPoint, QRect, QRectF, Qt, QVariantAnimation, pyqtSignal
+from qgis.PyQt.QtCore import QObject, QPoint, QRect, QRectF, Qt, QVariantAnimation, pyqtSignal
 from qgis.PyQt.QtGui import QPainter, QPixmap, QRegion
 from qgis.PyQt.QtWidgets import QGraphicsEffect, QWidget
 
@@ -62,6 +64,11 @@ class LeavingFeed(QWidget):
         self.show()
         self.raise_()
         self._animation.start()
+
+    def finish(self) -> None:
+        """Be gone at once, as a screenshot wants it; what waits for the leaving starts now."""
+        self._animation.stop()
+        self._done()
 
     def _step(self, value: Any) -> None:
         self.progress = cubic_bezier(LEAVE_EASING, float(value))
@@ -117,6 +124,54 @@ class ArrivalEffect(QGraphicsEffect):
             painter.setClipRegion(below)
             _paint(painter, pixmap, offset, arrival(self.elapsed, LAG_MS))
         painter.restore()
+
+
+class Arrival(QObject):
+    """Holds `target` unseen behind an ArrivalEffect until `start`, plays it, then takes the effect off.
+
+    Owned by the target, so it dies with it; it touches the effect only while the target still wears it.
+    """
+
+    def __init__(self, target: QWidget, lagging: Callable[[], QRect | None] = lambda: None):
+        super().__init__(target)
+        self._target = target
+        self._effect = ArrivalEffect(lagging, target)
+        target.setGraphicsEffect(self._effect)
+        self._animation = QVariantAnimation(self)
+        self._animation.setDuration(ARRIVE_MS + LAG_MS)
+        self._animation.setStartValue(0.0)
+        self._animation.setEndValue(float(ARRIVE_MS + LAG_MS))
+        self._animation.valueChanged.connect(self._tick)
+        self._animation.finished.connect(self._done)
+
+    def start(self) -> None:
+        self._animation.start()
+
+    def finish(self) -> None:
+        """Arrive at once, as a screenshot wants it."""
+        self._animation.stop()
+        self._done()
+
+    def _worn(self) -> bool:
+        # Another effect may have replaced this one, and Qt deleted it then.
+        return self._target.graphicsEffect() is self._effect
+
+    def _tick(self, elapsed: Any) -> None:
+        if self._worn():
+            self._effect.set_elapsed(float(elapsed))
+
+    def _done(self) -> None:
+        if self._worn():
+            # Without the effect the target paints directly again; Qt deletes the effect itself.
+            self._target.setGraphicsEffect(None)
+        self.deleteLater()
+
+
+def leave(snapshot: QPixmap, viewport: QWidget, then: Callable[[], None]) -> None:
+    """Lay `snapshot` over `viewport`, let it leave, then call `then` (a bound method, so it dies with its owner)."""
+    overlay = LeavingFeed(snapshot, viewport)
+    overlay.finished.connect(then)
+    overlay.start()
 
 
 def _paint(painter: QPainter, pixmap: QPixmap, offset: QPoint, progress: float) -> None:
