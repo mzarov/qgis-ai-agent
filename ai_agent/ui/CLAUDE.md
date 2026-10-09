@@ -18,8 +18,16 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
    Top-level windows — the dock, the settings dialog, every popup — call
    `style.apply_palette` first thing, so stock widgets inside follow the
    theme rather than QGIS. A widget with a style sheet freezes the palette it
-   was polished with: give its text an explicit colour (`style.field_inks`
-   for editors), or it shows QGIS's ink on the panel's background. The QGIS palette only
+   was polished with, and a container with one resets its whole subtree to
+   QGIS's palette (the composer's popup once showed white names on white in a
+   dark QGIS); a QGIS UI theme's `QLabel { color }` rule outranks any palette.
+   So `style.ink` puts a label's colour in its own style sheet too, editors
+   carry `color` in theirs (`style.field_inks` for the placeholder), a
+   container's look is painted (`RoundedFrame`, never a style sheet), and
+   `style.fill` paints a background ahead of the widget instead of
+   auto-filling it, which dark QGIS themes repaint. The screen checks run a
+   light panel in a dark QGIS palette and under Night Mapping, and
+   `ui_snapshot.unreadable_text` fails any label whose ink nobody could see. The QGIS palette only
    decides which set applies, by its lightness, so the plugin follows the
    light and the dark theme. It is deliberately not limited to the QGIS
    colours (the user's call: the plugin must look good, and palette-derived
@@ -392,7 +400,7 @@ QGIS too: offscreen renders a smaller font, which hid real layout faults.
 container cascades to every descendant. The composer once changed its frame's
 style sheet in the editor's `focusOutEvent`; Qt swapped the editor's style
 mid-event and QGIS segfaulted in event processing, intermittently and only in
-a full test run. Container backgrounds go through `style.fill` (the palette),
+a full test run. Container backgrounds go through `style.fill` (painted),
 focus and state looks are painted (`controls.RoundedFrame` for the composer,
 provider tiles and popup rows; `Compass`, `PaintedDot`), and a style
 sheet is set only when its text actually changed.

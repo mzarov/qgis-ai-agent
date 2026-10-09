@@ -115,7 +115,9 @@ class Composer(QWidget):
         self._edit.setPlaceholderText(PLACEHOLDER)
         self._edit.setAccessibleName(tr("Request"))
         self._edit.setFrameShape(QFrame.Shape.NoFrame)
-        self._edit.setStyleSheet("QPlainTextEdit { border: none; background: transparent; }")
+        # The typed text's colour in the editor's own sheet: a QGIS UI theme's rule for editors outranks a palette.
+        ink = style.css_color(style.text(self.palette()))
+        self._edit.setStyleSheet(f"QPlainTextEdit {{ border: none; background: transparent; color: {ink}; }}")
         # The style sheet froze the palette it was polished with — possibly QGIS's, not the panel
         # theme's — so the text and the placeholder get their ink explicitly.
         style.field_inks(self._edit, self.palette())

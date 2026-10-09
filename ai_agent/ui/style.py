@@ -7,13 +7,16 @@ QGIS palette, so the plugin still follows the theme's lightness.
 
 from typing import Any
 
-from qgis.PyQt.QtGui import QColor, QPalette
+from qgis.PyQt.QtCore import QEvent, QObject
+from qgis.PyQt.QtGui import QColor, QPainter, QPalette
 
 from ai_agent.ui import theme
 
 CARD_RADIUS = 10
 BUBBLE_RADIUS = 10
 HAIRLINE = 1
+# Marks the style sheet `ink` wrote on a label, so ink rewrites only its own.
+INK_PROPERTY = "aiInk"
 
 
 def blend(first: QColor, second: QColor, ratio: float) -> QColor:
@@ -199,12 +202,32 @@ def apply_palette(widget: Any) -> None:
     widget.setPalette(palette)
 
 
-def fill(widget: Any, colour: QColor) -> None:
-    """Paint a container's background through its palette, not a style sheet.
+class _Backdrop(QObject):
+    """Paints its widget's background just before the widget paints itself."""
 
-    A style sheet on a container switches its whole subtree to QStyleSheetStyle;
-    with children that restyle and delete themselves often (the composer's hint
-    bar) that crashed QGIS inside event processing.
+    def __init__(self, widget: Any, colour: QColor):
+        super().__init__(widget)
+        self.colour = QColor(colour)
+        widget.installEventFilter(self)
+
+    def eventFilter(self, watched: Any, event: Any) -> bool:
+        if event.type() == QEvent.Type.Paint:
+            painter = QPainter(watched)
+            painter.fillRect(watched.rect(), self.colour)
+            painter.end()
+        return False
+
+
+def fill(widget: Any, colour: QColor) -> None:
+    """Paint a container's background — neither through a style sheet nor through autoFillBackground.
+
+    A style sheet on a container switches its whole subtree to QStyleSheetStyle,
+    which resets the subtree's palette to QGIS's (and, with children that
+    restyle themselves often, once crashed QGIS inside event processing). An
+    auto-filled background is what QGIS's dark UI themes repaint:
+    `QWidget[autoFillBackground=true]` takes their background colour. So the
+    colour is painted by hand, ahead of the widget, and the palette carries it
+    too for whatever reads it there.
     """
     role = getattr(getattr(QPalette, "ColorRole", None), "Window", None)
     if role is None:
@@ -212,17 +235,34 @@ def fill(widget: Any, colour: QColor) -> None:
     palette = widget.palette()
     palette.setColor(role, colour)
     widget.setPalette(palette)
-    widget.setAutoFillBackground(True)
+    backdrop = next((child for child in widget.children() if isinstance(child, _Backdrop)), None)
+    if backdrop is None:
+        _Backdrop(widget, colour)
+    else:
+        backdrop.colour = QColor(colour)
+        widget.update()
 
 
 def ink(widget: Any, colour: QColor) -> None:
-    """Set a label's text colour through its palette: safe to call from a hover event."""
+    """Set a label's text colour, in its palette and in its own style sheet.
+
+    The palette alone does not hold: an ancestor's style sheet resets its
+    subtree's palette to QGIS's — white text on the light panel inside a dark
+    QGIS — and a QGIS UI theme's `QLabel { color }` rule outranks any palette.
+    A label's own style sheet outranks both. Only a style sheet `ink` wrote is
+    rewritten; a label styled otherwise keeps its own and gets the palette.
+    """
     role = getattr(getattr(QPalette, "ColorRole", None), "WindowText", None)
     if role is None:
         return
     palette = widget.palette()
     palette.setColor(role, colour)
     widget.setPalette(palette)
+    sheet = f"color: {css_color(colour)};"
+    current = widget.styleSheet()
+    if current != sheet and current in ("", widget.property(INK_PROPERTY)):
+        widget.setProperty(INK_PROPERTY, sheet)
+        widget.setStyleSheet(sheet)
 
 
 def field_inks(widget: Any, palette: QPalette) -> None:

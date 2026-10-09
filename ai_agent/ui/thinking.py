@@ -68,8 +68,10 @@ class ThinkingBlock(QFrame):
         style.ink(self.time, style.faint(palette))
         line.addWidget(self.time)
         column.addWidget(self._line)
-        column.addWidget(self._build_body(palette))
-        self._fold = folding.Fold(self._holder)
+        self._clip = folding.ClipBox(self._build_body(palette))
+        self._clip.setVisible(False)
+        column.addWidget(self._clip)
+        self._fold = folding.Fold(self._clip)
         self._recorded: float | None = None
         self._text = ""
         self._started = time.monotonic()
@@ -100,7 +102,6 @@ class ThinkingBlock(QFrame):
         )
         style.scale_font(self._body, TEXT_FONT_SCALE)
         holder.addWidget(self._body)
-        self._holder.setVisible(False)
         return self._holder
 
     def _toggle(self) -> None:

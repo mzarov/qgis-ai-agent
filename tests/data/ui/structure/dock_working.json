@@ -114,95 +114,99 @@
  },
  {
   "depth": 5,
-  "type": "QWidget"
+  "type": "ClipBox"
  },
  {
   "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
   "type": "TraceRow"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "ThinkingDots"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "ThinkingBlock"
  },
  {
-  "depth": 8,
+  "depth": 9,
   "type": "ClickLine"
  },
  {
-  "depth": 9,
+  "depth": 10,
   "type": "QLabel",
   "text": "Thought"
  },
  {
-  "depth": 9,
+  "depth": 10,
   "type": "Chevron"
  },
  {
-  "depth": 9,
+  "depth": 10,
   "type": "QLabel"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "StepRow"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "QWidget"
  },
  {
-  "depth": 8,
+  "depth": 9,
   "type": "QLabel",
   "text": "<span style=\"color: rgb(83, 91, 103);\">Reading layer </span><span style=\"color: rgb(20, 24, 31); font-weight: 500;\">dist"
  },
  {
-  "depth": 8,
+  "depth": 9,
   "type": "QLabel",
   "text": "12 features"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "QLabel"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "StepRow"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "QWidget"
  },
  {
-  "depth": 8,
+  "depth": 9,
   "type": "QLabel",
   "text": "<span style=\"color: rgb(83, 91, 103);\">Reading values of field </span><span style=\"color: rgb(20, 24, 31); font-weight: "
  },
  {
-  "depth": 8,
+  "depth": 9,
   "type": "QLabel",
   "text": "12 values"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "QLabel"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "StepRow"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "PulseRing"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "QWidget"
  },
  {
-  "depth": 8,
+  "depth": 9,
   "type": "QLabel",
   "text": "<span style=\"color: rgb(83, 91, 103);\">Layer </span><span style=\"color: rgb(20, 24, 31); font-weight: 500;\">districts</s"
  },

@@ -376,7 +376,8 @@ def small(text: str, palette: Any, scale: float = SMALL_SCALE) -> QLabel:
     label = QLabel(text)
     label.setWordWrap(True)
     style.scale_font(label, scale)
-    label.setStyleSheet(f"color: {style.css_color(style.muted(palette))};")
+    # Through ink: the colour holds under any style sheet, and a later ink may change it.
+    style.ink(label, style.muted(palette))
     return label
 
 

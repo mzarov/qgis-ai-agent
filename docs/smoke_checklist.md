@@ -1078,3 +1078,8 @@ These verify the agent solves everyday tasks without wandering through search.
      through every glyph with the same small gap; click again → it closes the
      same way. "Thought ›" opens its box the same way. A loaded skill's row
      shows the book, not a pulsing ring, once loaded.
+224. **A light panel in a dark QGIS.** QGIS in its dark look (macOS dark mode,
+     or the Night Mapping UI theme), Panel theme *Light* → type @ and / in the
+     box → every name in both lists is dark and readable, selected or not;
+     the welcome, the trace, the plan and question cards, the mode and history
+     menus read the same.

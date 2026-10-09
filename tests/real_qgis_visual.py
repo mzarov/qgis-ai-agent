@@ -17,12 +17,14 @@ Runs inside `real_qgis_workflows.py` against the extracted plugin ZIP.
 
 import os
 import pathlib
+import time
 import unittest
 from typing import Any
 
 import ui_snapshot
 from e2e_harness import ARTIFACTS, WINDOW_HEIGHT, WINDOW_WIDTH, PluginCase, pump
 from qgis.core import QgsApplication
+from qgis.PyQt.QtGui import QColor, QPalette
 from qgis.PyQt.QtWidgets import QApplication, QLabel, QPushButton, QScrollArea, QVBoxLayout, QWidget
 
 import ai_agent
@@ -32,6 +34,7 @@ from ai_agent.core.orchestrator import notices
 from ai_agent.qgis_tools.registry import summarize_tool_call, summarize_tool_result
 from ai_agent.ui import activity, compass, settings_layout, theme, transitions
 from ai_agent.ui.dock_widget import AgentDockWidget
+from ai_agent.ui.sessions_popup import Entry
 from ai_agent.ui.settings_dialog import SettingsDialog
 from ai_agent.ui.thinking import ThinkingBlock
 
@@ -127,7 +130,7 @@ class ScreenCase(PluginCase):
             entry = dock.add_tool_message(summarize_tool_call(name, arguments))
             dock.mark_tool_done(entry, True, summarize_tool_result(name, arguments, payload))
 
-    def check(self, name: str, widget: QWidget) -> None:
+    def check(self, name: str, widget: QWidget, goldens: bool = True) -> None:
         name += LOCALE_SUFFIX
         # Focus paints the composer's frame; which widget holds it depends on the tests run before.
         focused = QApplication.focusWidget()
@@ -157,11 +160,14 @@ class ScreenCase(PluginCase):
         problems = []
         # Translated text is the catalogue's business (tests/test_i18n.py); the
         # Russian run looks for clipping, so its structure is not pinned.
-        structure = None if LOCALE else ui_snapshot.compare_structure(name, ui_snapshot.structure(widget))
+        structure = (
+            None if LOCALE or not goldens else ui_snapshot.compare_structure(name, ui_snapshot.structure(widget))
+        )
         if structure:
             problems.append(structure)
         problems.extend(ui_snapshot.layout_faults(widget))
-        if ui_snapshot.PIXEL_BASELINE:
+        problems.extend(ui_snapshot.unreadable_text(widget, image))
+        if ui_snapshot.PIXEL_BASELINE and goldens:
             pixels = ui_snapshot.compare_pixels(name, image, ARTIFACTS)
             if pixels:
                 problems.append(pixels)
@@ -292,6 +298,75 @@ class StateScreens(ScreenCase):
     def test_tokens_are_highlighted(self) -> None:
         self.dock.composer._edit.setPlainText(TOKENS)
         self.check("composer_tokens", self.dock)
+
+
+class ForeignThemeScreens(ScreenCase):
+    """A light panel inside a dark QGIS: every text keeps the panel's ink, whatever QGIS's palette or UI theme.
+
+    Checked for faults only (clipping, overflow, text nobody can read), no goldens: the screens repeat
+    the others in a foreign setting, and a dark QGIS once turned the popups' names white on white.
+    """
+
+    def test_a_light_panel_in_a_dark_palette(self) -> None:
+        app = QApplication.instance()
+        saved = QPalette(app.palette())
+        dark = QPalette()
+        for role, colour in (
+            ("Window", "#1e1e1e"),
+            ("WindowText", "#ffffff"),
+            ("Base", "#2b2b2b"),
+            ("Text", "#ffffff"),
+        ):
+            dark.setColor(getattr(QPalette.ColorRole, role), QColor(colour))
+        app.setPalette(dark)
+        try:
+            self.everywhere("dark_palette")
+        finally:
+            app.setPalette(saved)
+
+    def test_a_light_panel_under_a_dark_ui_theme(self) -> None:
+        app = QApplication.instance()
+        saved_sheet, saved_palette = app.styleSheet(), QPalette(app.palette())
+        QgsApplication.setUITheme("Night Mapping")
+        try:
+            self.everywhere("night_mapping")
+        finally:
+            app.setStyleSheet(saved_sheet)
+            app.setPalette(saved_palette)
+
+    def everywhere(self, label: str) -> None:
+        theme.set_override(theme.THEME_LIGHT)
+        panel = AgentDockWidget()
+        try:
+            panel.resize(self.dock.width(), self.dock.height())
+            panel.set_configured(True)
+            panel.set_skill_source(self.dock.composer._skills)
+            panel.set_layer_source(self.dock.composer._layers)
+            panel.show()
+            panel.add_user_message(REQUEST)
+            panel.conversation.append_thinking("The renderer needs the value range first.")
+            self.reads_into(panel)
+            panel.conversation.add_assistant_message(ANSWER)
+            panel.add_plan_message(PLAN)
+            panel.add_question("Which roads layer?", ["roads_2024 — the newer one", "roads_old"])
+            panel.composer._edit.insertPlainText("@")
+            self.check(f"foreign_{label}_layers", panel, goldens=False)
+            panel.composer._edit.clear()
+            panel.composer._edit.insertPlainText("/s")
+            self.check(f"foreign_{label}_skills", panel, goldens=False)
+            panel.composer._edit.clear()
+            toolbar = panel.composer.toolbar
+            toolbar.modes.open_above(panel.composer._frame, "ask", panel.composer._frame.width())
+            self.check(f"foreign_{label}_modes", toolbar.modes, goldens=False)
+            toolbar.modes.hide()
+            sessions = [Entry("a", "Town layers and what is in them", time.time(), True)]
+            panel._sessions_popup.show_sessions(sessions, panel.toolbar.title, time.time())
+            self.check(f"foreign_{label}_history", panel._sessions_popup, goldens=False)
+            panel._sessions_popup.hide()
+        finally:
+            theme.set_override(theme.THEME_AUTO)
+            panel.hide()
+            panel.deleteLater()
 
 
 class ComposerScreens(ScreenCase):

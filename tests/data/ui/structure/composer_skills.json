@@ -206,41 +206,49 @@
  },
  {
   "depth": 3,
-  "type": "QFrame",
+  "type": "QWidget",
   "name": "popupFooter"
  },
  {
   "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 4,
+  "type": "QWidget"
+ },
+ {
+  "depth": 5,
   "type": "KeyCap",
   "text": "↑"
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "KeyCap",
   "text": "↓"
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "QLabel",
   "text": "choose"
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "KeyCap",
   "text": "Tab"
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "QLabel",
   "text": "insert"
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "KeyCap",
   "text": "Esc"
  },
  {
-  "depth": 4,
+  "depth": 5,
   "type": "QLabel",
   "text": "close"
  },

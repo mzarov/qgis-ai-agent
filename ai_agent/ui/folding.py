@@ -2,16 +2,18 @@
 
 The activity list and a reasoning block open the same way: the chevron turns a
 quarter circle and the body grows from nothing to its full height (or shrinks
-back) on the handoff's curve, its content laid out at full size and clipped
-meanwhile. Off screen, or asked to, the change is immediate. The animations
-belong to their widgets and tick bound methods, so a widget deleted mid-fold
-takes its ticks with it.
+back) on the handoff's curve. The body is a `ClipBox`: its content keeps its
+full height and the box only shows as much of it as the fold allows — a layout
+given less room squeezed the rows mid-fold until they overlapped, and the user
+saw the list jump. Off screen, or asked to, the change is immediate. The
+animations belong to their widgets and tick bound methods, so a widget deleted
+mid-fold takes its ticks with it.
 """
 
 from collections.abc import Callable
 from typing import Any
 
-from qgis.PyQt.QtCore import QObject, QVariantAnimation
+from qgis.PyQt.QtCore import QEvent, QObject, QSize, QVariantAnimation
 from qgis.PyQt.QtGui import QPainter
 from qgis.PyQt.QtWidgets import QWidget
 
@@ -75,6 +77,49 @@ class Chevron(QWidget):
         half = self._size // 2
         painter.drawPixmap(-half, -half, self._icon.pixmap(self._size, self._size))
         painter.end()
+
+
+class ClipBox(QWidget):
+    """Holds `content` at its natural height and shows as much of it as its own height allows."""
+
+    def __init__(self, content: QWidget, parent: QWidget | None = None):
+        super().__init__(parent)
+        self.content = content
+        content.setParent(self)
+        # The content's layout asks for room when rows come or grow: the box follows.
+        content.installEventFilter(self)
+
+    def natural_height(self, width: int = -1) -> int:
+        width = self.width() if width < 0 else width
+        if self.content.hasHeightForWidth() and width > 0:
+            return max(0, self.content.heightForWidth(width))
+        return max(0, self.content.sizeHint().height())
+
+    def hasHeightForWidth(self) -> bool:
+        return True
+
+    def heightForWidth(self, width: int) -> int:
+        return self.natural_height(width)
+
+    def sizeHint(self) -> QSize:
+        return QSize(self.content.sizeHint().width(), self.natural_height())
+
+    def minimumSizeHint(self) -> QSize:
+        # As low as nothing: the fold decides the height, the content is clipped, never squeezed.
+        return QSize(self.content.minimumSizeHint().width(), 0)
+
+    def resizeEvent(self, event: Any) -> None:
+        self._place()
+        super().resizeEvent(event)
+
+    def eventFilter(self, watched: Any, event: Any) -> bool:
+        if watched is self.content and event.type() == QEvent.Type.LayoutRequest:
+            self.updateGeometry()
+            self._place()
+        return False
+
+    def _place(self) -> None:
+        self.content.setGeometry(0, 0, self.width(), self.natural_height())
 
 
 class Fold(QObject):
