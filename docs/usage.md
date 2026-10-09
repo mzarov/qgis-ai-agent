@@ -7,7 +7,8 @@ conversation and the settings beside it. Type `/` to pick a skill and `@` to
 pick a layer, or use **+** in the box: a layer, a file or table, a picture, a
 skill; both are highlighted in the text. The layer active in QGIS sits above
 the text as a chip: a new request names it, so *colour this layer* means that
-one; its × leaves it out until another layer is active. While the agent
+one; its × leaves it out until another layer is active. The box also names
+the model in use; it is changed in the settings. While the agent
 works, the line under the newest message shows a swinging compass and the
 time, the send button becomes a stop button and Esc stops the run too; typing
 meanwhile corrects the agent. Once the run stops, the same line says whether
@@ -141,7 +142,7 @@ empty, and the agent says which.
 
 ### The context window
 
-The ring at the right of the chat box, before the send button, fills with the share of the
+The ring at the right of the chat box, beside the model's name, fills with the share of the
 model's context window the latest request used; click it for the numbers:
 
 - **Context window** — the latest request against the window, with a bar.

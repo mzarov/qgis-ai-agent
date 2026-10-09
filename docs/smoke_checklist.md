@@ -933,7 +933,7 @@ These verify the agent solves everyday tasks without wandering through search.
      shorter than 1 km* → the card waits with **Apply**, which still asks the
      extra destructive question.
 193. **The ring tracks the context.** Ask two questions → the ring next to the
-     send button fills a little more each time; its popup shows the window, a
+     model's name fills a little more each time; its popup shows the window, a
      bar, the room before auto-compaction and tokens with the request count.
 194. **Compact by hand.** In the popup press **Compact** → *Conversation
      compacted · about N tokens saved* appears, the ring drops; a follow-up
@@ -1061,7 +1061,8 @@ These verify the agent solves everyday tasks without wandering through search.
 220. **The composer's row.** **+** opens *Add to context* upwards: *Layer…*
      with the layer count opens the @ list, *File or table…* and *Picture…*
      the file pickers, *Skill…* the / list (with text already typed, the
-     chosen skill goes first). No model name sits in the box; the round send
+     chosen skill goes first). The model's name is quiet monospace text:
+     hovering shows the full name, a click does nothing. The round send
      button is pale with an empty box,
      blue with text, a stop square while the agent works.
 221. **The chat rises in.** On the welcome, send a request → the welcome fades

@@ -225,6 +225,11 @@
  },
  {
   "depth": 6,
+  "type": "ElidedLabel",
+  "text": "No model"
+ },
+ {
+  "depth": 6,
   "type": "SendButton",
   "enabled": false
  }

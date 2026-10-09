@@ -58,9 +58,18 @@ class ComposerContextTest(unittest.TestCase):
         self.composer._insert_skill("style")
         self.assertEqual(self.composer._edit.toPlainText(), "/style ")
 
-    def test_the_box_names_no_model(self):
-        # The model is a setting: a button with its name only took room (the user's call).
-        self.assertNotIn("model", vars(self.composer.toolbar))
+    def test_the_model_is_said_not_offered(self):
+        from qgis.PyQt.QtWidgets import QAbstractButton
+
+        from ai_agent.ui import composer_controls
+
+        self.composer.set_model("moonshotai/kimi-k2.5")
+        self.assertEqual(self.composer.toolbar.model.text(), "kimi-k2.5")
+        self.assertEqual(self.composer.toolbar.model.toolTip(), "moonshotai/kimi-k2.5")
+        # A plain label, nothing to click: choosing a model belongs to the settings (the user's call).
+        self.assertNotIsInstance(self.composer.toolbar.model, QAbstractButton)
+        self.composer.set_model("")
+        self.assertEqual(self.composer.toolbar.model.text(), composer_controls.NO_MODEL)
 
     def test_modes_are_one_word_each(self):
         from ai_agent.ui.composer_parts import MODES

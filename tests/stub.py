@@ -218,6 +218,12 @@ class _Label(_Stub):
     def textFormat(self):
         return getattr(self, "_text_format", None)
 
+    def setToolTip(self, tip):
+        self._tip = str(tip)
+
+    def toolTip(self):
+        return getattr(self, "_tip", "")
+
 
 class _Toggle(_Label):
     def __init__(self, *a, **k):

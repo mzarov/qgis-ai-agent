@@ -319,6 +319,9 @@ class Composer(QWidget):
         if paths:
             self.files_attached.emit(paths)
 
+    def set_model(self, name: str) -> None:
+        self.toolbar.set_model(name)
+
     def set_context(self, used: int, window: int, spent: int, turns: int = 0) -> None:
         self.toolbar.meter.set_numbers(used, window, spent, turns)
 

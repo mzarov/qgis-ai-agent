@@ -200,6 +200,8 @@ class ComposerBehaviourTest(PluginCase):
         composer._edit.setPlainText("colour the rivers")
         self.assertTrue(composer._send.isEnabled())
         composer._edit.clear()
+        self.dock.set_model("moonshotai/kimi-k2.5")
+        self.assertEqual(composer.toolbar.model.text(), "kimi-k2.5")
         self.dock.set_busy(True)
         self.assertEqual(composer._send.toolTip(), "Stop")
         self.assertTrue(composer._send.isEnabled(), "stop works with an empty box")

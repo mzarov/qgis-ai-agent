@@ -307,7 +307,7 @@
         <translation>Добавь подложку OpenStreetMap</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="42"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="45"/>
         <source>Add context</source>
         <translation>Добавить контекст</translation>
     </message>
@@ -347,7 +347,7 @@
         <translation>Добавь слой ночных огней</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="43"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="46"/>
         <source>Add to context</source>
         <translation>Добавить в контекст</translation>
     </message>
@@ -1206,7 +1206,7 @@
         <translation>Будет удалено объектов: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="45"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="48"/>
         <source>File or table…</source>
         <translation>Файл или таблица…</translation>
     </message>
@@ -1343,7 +1343,7 @@
         <translation>Строю градации «{0}» по «{1}», классов: {2}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="49"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="52"/>
         <source>How changes are applied. Shift+Tab switches.</source>
         <translation>Как применяются изменения. Shift+Tab переключает.</translation>
     </message>
@@ -1455,7 +1455,7 @@
         <translation>Слой: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="44"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="47"/>
         <source>Layer…</source>
         <translation>Слой…</translation>
     </message>
@@ -1609,7 +1609,7 @@
         <translation>Открытый каталог Microsoft со спутниковыми сценами и глобальными растрами. Агент ищет в нём самый чистый снимок Sentinel-2 или Landsat на ваш район и дату и читает высоты, покров и водные объекты прямо из облака, не скачивая файлы целиком.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="48"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="51"/>
         <source>Mode</source>
         <translation>Режим</translation>
     </message>
@@ -1739,6 +1739,11 @@
         <location filename="ai_agent/ui/skill_popup.py" line="29"/>
         <source>No matching skill</source>
         <translation>Подходящего скилла нет</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/composer_controls.py" line="56"/>
+        <source>No model</source>
+        <translation>Нет модели</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/memory_settings.py" line="18"/>
@@ -1918,7 +1923,7 @@
         <translation>Картинки (*.png *.jpg *.jpeg *.webp *.gif *.bmp)</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="46"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="49"/>
         <source>Picture…</source>
         <translation>Картинка…</translation>
     </message>
@@ -2478,7 +2483,7 @@
         <translation>Выделяю объекты в «{0}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="51"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="54"/>
         <source>Send</source>
         <translation>Отправить</translation>
     </message>
@@ -2539,7 +2544,7 @@
         <translation>Передать данные проекта?</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="50"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="53"/>
         <source>Shift+Tab — next mode</source>
         <translation>Shift+Tab — следующий режим</translation>
     </message>
@@ -2614,7 +2619,7 @@
         <translation>Скиллы</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="47"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="50"/>
         <source>Skill…</source>
         <translation>Навык…</translation>
     </message>
@@ -2634,7 +2639,7 @@
         <translation>Потрачено за разговор</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="52"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="55"/>
         <source>Stop</source>
         <translation>Стоп</translation>
     </message>
@@ -3027,7 +3032,7 @@
         <translation>Превращает названия мест в координаты для загрузки OpenStreetMap.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="129"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="131"/>
         <source>Type a request.</source>
         <translation>Введите запрос.</translation>
     </message>

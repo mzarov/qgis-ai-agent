@@ -108,6 +108,9 @@ class AgentDockWidget(QDockWidget):
     def context_mention(self) -> str:
         return self.composer.context_mention()
 
+    def set_model(self, name: str) -> None:
+        self.composer.set_model(name)
+
     def set_project_line(self, text: str) -> None:
         self.conversation.set_project_line(text)
 
