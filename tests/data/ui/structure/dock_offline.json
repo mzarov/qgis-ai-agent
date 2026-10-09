@@ -116,7 +116,7 @@
  {
   "depth": 6,
   "type": "MenuButton",
-  "text": "Ask before changes"
+  "text": "Ask"
  },
  {
   "depth": 6,
@@ -125,10 +125,5 @@
  {
   "depth": 7,
   "type": "ContextRing"
- },
- {
-  "depth": 6,
-  "type": "MenuButton",
-  "text": "qwen3"
  }
 ]

@@ -50,7 +50,6 @@ class Composer(QWidget):
     files_attached = pyqtSignal(list)
     mode_changed = pyqtSignal(str)
     compact_requested = pyqtSignal()
-    settings_requested = pyqtSignal()
     new_requested = pyqtSignal()
 
     def __init__(self, parent=None):
@@ -85,7 +84,6 @@ class Composer(QWidget):
         self.toolbar.layer_requested.connect(self._start_mention)
         self.toolbar.skill_requested.connect(self._start_skill)
         self.toolbar.mode_chosen.connect(self._on_mode)
-        self.toolbar.model_clicked.connect(self.settings_requested.emit)
         self.toolbar.meter.compact_requested.connect(self.compact_requested.emit)
         self._send = self.toolbar.send
         self._send.clicked.connect(self._on_button)
@@ -252,9 +250,6 @@ class Composer(QWidget):
         else:
             self._open_popup(MODE_SKILL, "", self._skills(), SLASH)
         self._edit.setFocus()
-
-    def set_model(self, name: str) -> None:
-        self.toolbar.set_model(name)
 
     def _insert_layer(self, name: str) -> None:
         text = self._edit.toPlainText()

@@ -65,7 +65,7 @@ mode instead of per batch, and never for destructive steps.
 Plan mode removes the button altogether: a planning run offers only read
 tools, carries a note asking for a numbered plan in the live state, and the
 dispatcher refuses any other call. The run ends on an offer to carry the plan
-out, which switches to Ask before changes or Act on its own and starts the next run with the
+out, which switches to Ask or Auto and starts the next run with the
 original request.
 
 After Apply the orchestrator checks the result. A full check is a model run:

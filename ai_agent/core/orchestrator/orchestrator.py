@@ -28,7 +28,6 @@ from ai_agent.core.privacy import endpoint_label
 from ai_agent.core.settings import (
     get_api_url,
     get_data_sharing_consent,
-    get_model,
     get_planning,
     get_work_mode,
     set_data_sharing_consent,
@@ -66,7 +65,6 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
     def refresh_configured(self) -> None:
         self.dock_widget.set_project_line(project_line())
         self.dock_widget.set_configured(_is_configured())
-        self.dock_widget.set_model(get_model() if _is_configured() else "")
         self.dock_widget.set_work_mode(get_work_mode())
         self.dock_widget.set_skill_source(choices)
         self.dock_widget.set_layer_source(layer_choices)

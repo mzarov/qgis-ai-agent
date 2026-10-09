@@ -115,9 +115,6 @@ class AgentDockWidget(QDockWidget):
         self.conversation.set_configured(configured)
         self.composer.set_configured(configured)
 
-    def set_model(self, name: str) -> None:
-        self.composer.set_model(name)
-
     def _build_conversation(self) -> QWidget:
         self.conversation = ConversationView()
         self.progress = self.conversation.progress
@@ -147,7 +144,6 @@ class AgentDockWidget(QDockWidget):
         self.composer.files_attached.connect(self.files_attached.emit)
         self.composer.mode_changed.connect(self.work_mode_changed.emit)
         self.composer.compact_requested.connect(self.compact_requested.emit)
-        self.composer.settings_requested.connect(self.open_settings_clicked.emit)
         self.composer.new_requested.connect(self._start_new)
         layout.addWidget(self.composer)
         return holder

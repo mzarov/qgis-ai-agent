@@ -58,11 +58,14 @@ class ComposerContextTest(unittest.TestCase):
         self.composer._insert_skill("style")
         self.assertEqual(self.composer._edit.toPlainText(), "/style ")
 
-    def test_the_model_name_opens_the_settings(self):
-        opened = []
-        self.composer.settings_requested.connect(lambda: opened.append(True))
-        self.composer.toolbar.model.click()
-        self.assertEqual(opened, [True])
+    def test_the_box_names_no_model(self):
+        # The model is a setting: a button with its name only took room (the user's call).
+        self.assertNotIn("model", vars(self.composer.toolbar))
+
+    def test_modes_are_one_word_each(self):
+        from ai_agent.ui.composer_parts import MODES
+
+        self.assertEqual([len(choice.title.split()) for choice in MODES], [1, 1, 1])
 
     def test_the_mode_menu_carries_its_shift_tab_footer(self):
         from ai_agent.ui import composer_controls

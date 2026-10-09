@@ -7,8 +7,7 @@ conversation and the settings beside it. Type `/` to pick a skill and `@` to
 pick a layer, or use **+** in the box: a layer, a file or table, a picture, a
 skill; both are highlighted in the text. The layer active in QGIS sits above
 the text as a chip: a new request names it, so *colour this layer* means that
-one; its × leaves it out until another layer is active. The model name in the
-box opens the connection settings. While the agent
+one; its × leaves it out until another layer is active. While the agent
 works, the line under the newest message shows a swinging compass and the
 time, the send button becomes a stop button and Esc stops the run too; typing
 meanwhile corrects the agent. Once the run stops, the same line says whether
@@ -60,11 +59,11 @@ row to type your own and press Enter. Number keys pick a row; typing in the
 main box works too. The run continues from the same place with your answer,
 and your choice stays in the activity list as *You chose …*.
 
-### Acting on its own
+### Auto mode
 
-The mode button in the chat box, next to **+**, shows **Ask before changes**
-or **Act on its own**; click it for the mode menu (number keys choose) or press
-Shift+Tab in the box to switch. Acting on its own, the plan card applies itself the
+The mode button in the chat box, next to **+**, shows **Ask** or **Auto**;
+click it for the mode menu (number keys choose) or press Shift+Tab in the box
+to switch. In Auto the plan card applies itself the
 moment it appears — styles, layers, fields, processing, OSM downloads, web
 search and page reading included — and the check after it still runs. A batch
 with a destructive step (deleting features, overwriting a file, Python code)
@@ -72,13 +71,13 @@ waits for **Apply** and its extra confirmation as before, and so does the batch
 left over after a failed run. Every applied batch still takes a project
 snapshot, so *undo the last change* works the same. The mode is remembered.
 
-### Plan only
+### Plan mode
 
-The third mode, **Plan only**, changes nothing: the agent may only read — layers,
+The third mode, **Plan**, changes nothing: the agent may only read — layers,
 fields, values, the web — and answers with a numbered plan of the changes it
 would make, with exact names and the order. Under the plan two buttons run it:
-**Run with approval** (switches to Ask before changes) or **Run automatically**
-(switches to Act on its own); to change the plan, just reply to it. A step the model tries
+**Run with approval** (switches to Ask) or **Run automatically**
+(switches to Auto); to change the plan, just reply to it. A step the model tries
 to run anyway is refused, not queued. Web search and page reading still ask
 for consent per call. Processing algorithms count as changes, even the ones
 that only compute statistics, so a plan names them instead of running them;
@@ -142,7 +141,7 @@ empty, and the agent says which.
 
 ### The context window
 
-The ring next to the model name under the chat box fills with the share of the
+The ring at the right of the chat box, before the send button, fills with the share of the
 model's context window the latest request used; click it for the numbers:
 
 - **Context window** — the latest request against the window, with a bar.

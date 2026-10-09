@@ -1,19 +1,18 @@
-"""The composer's bottom row, after the design handoff: add context, the mode, the model, send.
+"""The composer's bottom row, after the design handoff: add context, the mode, send.
 
 "+" opens the add-to-context menu: a layer (opens the @ list), a file or table,
 a picture, a skill (opens the / list). The mode button — shield, name, chevron —
-opens the mode menu above the whole box. On the right sit the context ring, the
-model's name in monospace and the round send button, a stop square while the
-agent works. The name opens the connection settings; there is no model list,
-since each endpoint is its own model (the user's call). Everything paints its
-own hover.
+opens the mode menu above the whole box. On the right sit the context ring and
+the round send button, a stop square while the agent works. There is no model
+button: the model is a setting, and its name only took room (the user's call).
+Everything paints its own hover.
 """
 
 from collections.abc import Callable
 from typing import Any
 
 from qgis.PyQt.QtCore import QPoint, QRect, QRectF, QSize, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QFontDatabase, QIcon, QPainter
+from qgis.PyQt.QtGui import QIcon, QPainter
 from qgis.PyQt.QtWidgets import QAbstractButton, QHBoxLayout, QSizePolicy, QWidget
 
 from ai_agent.i18n import tr
@@ -39,7 +38,6 @@ STOP_SIDE = 10
 STOP_RADIUS = 2
 DISABLED_OPACITY = 0.4
 MODE_SCALE = 12.5 / 13
-MODEL_SCALE = 12 / 13
 ROW_MARGINS = (6, 4, 6, 6)
 ADD_CONTEXT = tr("Add context")
 ADD_CAPTION = tr("Add to context")
@@ -50,8 +48,6 @@ SKILL_ITEM = tr("Skill…")
 MODE_CAPTION = tr("Mode")
 MODE_HINT = tr("How changes are applied. Shift+Tab switches.")
 MODE_FOOTER = tr("Shift+Tab — next mode")
-MODEL_HINT = tr("{0} — opens the connection settings")
-NO_MODEL = tr("No model")
 SEND = tr("Send")
 STOP = tr("Stop")
 SKILL_KEY = "/"
@@ -174,14 +170,13 @@ class SendButton(QAbstractButton):
 
 
 class ComposerControls(QWidget):
-    """The row at the bottom of the box: +, the mode, then the context ring, the model and send."""
+    """The row at the bottom of the box: +, the mode, then the context ring and send."""
 
     data_requested = pyqtSignal()
     picture_requested = pyqtSignal()
     layer_requested = pyqtSignal()
     skill_requested = pyqtSignal()
     mode_chosen = pyqtSignal(str)
-    model_clicked = pyqtSignal()
 
     def __init__(self, palette: Any, count_layers: Callable[[], int] = lambda: 0, parent: QWidget | None = None):
         super().__init__(parent)
@@ -208,15 +203,8 @@ class ComposerControls(QWidget):
         row.addStretch(1)
         self.meter = ContextMeter(palette)
         row.addWidget(self.meter, 0, Qt.AlignmentFlag.AlignVCenter)
-        self.model = MenuButton(palette)
-        mono = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
-        mono.setPointSizeF(max(1.0, self.font().pointSizeF() * MODEL_SCALE))
-        self.model.setFont(mono)
-        self.model.clicked.connect(self.model_clicked.emit)
-        row.addWidget(self.model)
         self.send = SendButton(palette)
         row.addWidget(self.send)
-        self.set_model("")
 
     def set_menu_anchor(self, anchor: QWidget) -> None:
         """The widget the mode menu spans and opens above: the whole box."""
@@ -225,11 +213,6 @@ class ComposerControls(QWidget):
     def set_mode(self, mode: str) -> None:
         self._mode = mode
         self.mode.setText(next((choice.title for choice in MODES if choice.key == mode), MODES[0].title))
-
-    def set_model(self, name: str) -> None:
-        shown = name.rsplit("/", 1)[-1] if name else NO_MODEL
-        self.model.setText(shown)
-        self.model.setToolTip(MODEL_HINT.format(name or NO_MODEL))
 
     def _build_menu(self, palette: Any) -> Any:
         menu = controls.menu(self.attach, palette)

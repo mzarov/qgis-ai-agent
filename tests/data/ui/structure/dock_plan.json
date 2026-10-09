@@ -152,7 +152,7 @@
  {
   "depth": 6,
   "type": "MenuButton",
-  "text": "Plan only"
+  "text": "Plan"
  },
  {
   "depth": 6,
@@ -161,11 +161,6 @@
  {
   "depth": 7,
   "type": "ContextRing"
- },
- {
-  "depth": 6,
-  "type": "MenuButton",
-  "text": "qwen3"
  },
  {
   "depth": 6,

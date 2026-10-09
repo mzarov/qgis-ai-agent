@@ -19,7 +19,12 @@
  {
   "depth": 2,
   "type": "QLabel",
-  "text": "Ask before changes"
+  "text": "Ask"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Default"
  },
  {
   "depth": 2,
@@ -38,12 +43,12 @@
  {
   "depth": 2,
   "type": "QLabel",
-  "text": "Act on its own"
+  "text": "Auto"
  },
  {
   "depth": 2,
   "type": "QLabel",
-  "text": "Applies changes at once; deleting still asks"
+  "text": "Applies at once; deleting still asks"
  },
  {
   "depth": 2,
@@ -57,12 +62,12 @@
  {
   "depth": 2,
   "type": "QLabel",
-  "text": "Plan only"
+  "text": "Plan"
  },
  {
   "depth": 2,
   "type": "QLabel",
-  "text": "Reads the project and proposes a plan; changes nothing"
+  "text": "Proposes a plan, changes nothing"
  },
  {
   "depth": 2,

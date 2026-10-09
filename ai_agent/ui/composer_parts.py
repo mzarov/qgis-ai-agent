@@ -18,11 +18,11 @@ LAYER_TOKEN = re.compile(r'(?:(?<=\s)|^)@(?:"[^"]*"?|\S+)')
 SLASH = "/"
 MENTION = "@"
 QUOTE = '"'
-# The handoff's names, which say what each mode does; the notes stay exact about deleting.
+# One word a mode, as Claude Code names them (the user's call); the note says the rest, exact about deleting.
 MODES = (
-    Choice(WORK_MODE_ASK, tr("Ask before changes"), tr("Shows a plan and waits for Apply")),
-    Choice(WORK_MODE_AUTO, tr("Act on its own"), tr("Applies changes at once; deleting still asks")),
-    Choice(WORK_MODE_PLAN, tr("Plan only"), tr("Reads the project and proposes a plan; changes nothing")),
+    Choice(WORK_MODE_ASK, tr("Ask"), tr("Shows a plan and waits for Apply"), tr("Default")),
+    Choice(WORK_MODE_AUTO, tr("Auto"), tr("Applies at once; deleting still asks")),
+    Choice(WORK_MODE_PLAN, tr("Plan"), tr("Proposes a plan, changes nothing")),
 )
 
 

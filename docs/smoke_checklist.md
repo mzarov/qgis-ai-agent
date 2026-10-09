@@ -922,17 +922,18 @@ These verify the agent solves everyday tasks without wandering through search.
      tool-using question in the same chat → it also finishes without a 400
      about `reasoning_content` (turns from the first run go back with an empty
      one).
-191. **Acting on its own applies by itself.** Click **Ask before changes** in
-     the box → the Mode menu opens above the whole box, every mode described,
-     a check on the current one, *Shift+Tab — next mode* at the bottom; press 2
-     (or Shift+Tab in the box) → it reads **Act on its own**; *make the rivers
-     blue* → the card reads "Applying by itself", the rivers turn blue without
-     a click, the check runs after; restart QGIS → the mode is still the same.
-192. **Acting on its own never deletes.** In that mode, *delete the rivers
+191. **Auto mode applies by itself.** Click **Ask** in the box → the Mode menu
+     opens above the whole box: one word a mode, each described, *Default*
+     on Ask, a check on the current one, *Shift+Tab — next mode* at the
+     bottom; press 2 (or Shift+Tab in the box) → it reads **Auto**; *make the
+     rivers blue* → the card reads "Applying by itself", the rivers turn blue
+     without a click, the check runs after; restart QGIS → the mode is still
+     Auto.
+192. **Auto mode never deletes on its own.** In Auto, *delete the rivers
      shorter than 1 km* → the card waits with **Apply**, which still asks the
      extra destructive question.
 193. **The ring tracks the context.** Ask two questions → the ring next to the
-     model name fills a little more each time; its popup shows the window, a
+     send button fills a little more each time; its popup shows the window, a
      bar, the room before auto-compaction and tokens with the request count.
 194. **Compact by hand.** In the popup press **Compact** → *Conversation
      compacted · about N tokens saved* appears, the ring drops; a follow-up
@@ -941,10 +942,10 @@ These verify the agent solves everyday tasks without wandering through search.
 195. **The window is found.** Point at OpenRouter or Ollama, run the
      connection test → the popup's window matches the model (not 128k); set
      **Context window** by hand in Advanced → the popup follows it.
-196. **Plan only plans.** Choose **Plan only** in the mode menu, *colour the districts
+196. **Plan mode plans.** Choose **Plan** in the mode menu, *colour the districts
      by population* → the agent reads, answers with a numbered plan, nothing is
      queued, *Run this plan?* with two buttons appears under it.
-197. **A plan runs.** Press **Run automatically** → the mode becomes Act on its own and
+197. **A plan runs.** Press **Run automatically** → the mode becomes Auto and
      the plan is applied; with **Run with approval** the plan card waits for
      Apply instead.
 198. **Conversations get names.** Ask a first question → after the answer the
@@ -1060,8 +1061,8 @@ These verify the agent solves everyday tasks without wandering through search.
 220. **The composer's row.** **+** opens *Add to context* upwards: *Layer…*
      with the layer count opens the @ list, *File or table…* and *Picture…*
      the file pickers, *Skill…* the / list (with text already typed, the
-     chosen skill goes first). The model name in monospace opens the
-     connection settings; the round send button is pale with an empty box,
+     chosen skill goes first). No model name sits in the box; the round send
+     button is pale with an empty box,
      blue with text, a stop square while the agent works.
 221. **The chat rises in.** On the welcome, send a request → the welcome fades
      upwards and the chat rises in from below. Open a past conversation from
