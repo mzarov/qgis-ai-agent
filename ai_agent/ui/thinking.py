@@ -71,6 +71,8 @@ class ThinkingBlock(QFrame):
         self._clip = folding.ClipBox(self._build_body(palette))
         self._clip.setVisible(False)
         column.addWidget(self._clip)
+        # Room the row gives beyond the line and the box goes below them: the title never moves.
+        column.addStretch(1)
         self._fold = folding.Fold(self._clip)
         self._recorded: float | None = None
         self._text = ""

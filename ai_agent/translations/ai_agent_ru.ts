@@ -54,7 +54,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/activity.py" line="410"/>
+        <location filename="ai_agent/ui/activity.py" line="414"/>
         <source>%n failed</source>
         <translation>
             <numerusform>%n ошибка</numerusform>
@@ -258,7 +258,7 @@
         <translation>Аккаунт или ключ</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/activity.py" line="402"/>
+        <location filename="ai_agent/ui/activity.py" line="406"/>
         <source>Activity · %n step(s)</source>
         <translation>
             <numerusform>Ход работы · %n шаг</numerusform>
@@ -2974,7 +2974,7 @@
     <message>
         <location filename="ai_agent/ui/thinking.py" line="28"/>
         <source>Thought</source>
-        <translation>Размышлял</translation>
+        <translation>Размышление</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/connector_detail.py" line="33"/>

@@ -278,6 +278,7 @@ class ReopenedTurnTest(unittest.TestCase):
         rebuilt = groups[0]
         self.assertEqual(len(rebuilt.items), 3)
         self.assertFalse(rebuilt.expanded, "a reopened turn rests folded")
+        self.assertFalse(rebuilt.quiet, "built still, it must open and close like any other once clicked")
         self.assertEqual(rebuilt._failures, 1)
         self.assertEqual(rebuilt._header.time.text(), "2.4 s")
         card = next(entry for entry in entries if isinstance(entry, PlanCard))

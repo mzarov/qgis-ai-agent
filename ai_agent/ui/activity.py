@@ -364,6 +364,8 @@ class ActivityGroup(QFrame):
         self.rest()
         self._fold.finish()
         self._header.chevron.finish()
+        # Built still; from now on the user's clicks open and close it like any other.
+        self.quiet = False
 
     def mark_step(self, row: StepRow, ok: bool, note: str = "", seconds: float | None = None) -> None:
         if row.state == PENDING:
