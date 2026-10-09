@@ -50,7 +50,7 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `durations.py`    | `3.4 s`, `2 min 5 s` — one formatter for the feed and the settings |
 | `composer.py`     | the input box after the handoff: context chips, the text (two lines at least), the row of controls inside; Enter sends, Esc stops a run, Ctrl+N starts over; `/` and `@` open the popup |
 | `composer_parts.py` | the editor, `/skill` and `@layer` parsing, token highlighting, the modes |
-| `composer_controls.py` | the box's bottom row: + (add to context), the mode button, the context ring, the model's name (said, not a button), the round send/stop button |
+| `composer_controls.py` | the box's bottom row: + (add to context), the mode button, the model's name (said, not a button), the context ring, the round send/stop button |
 | `layer_chip.py`   | the active layer as a chip above the text, × leaves it out until another layer is active |
 | `sessions_popup.py` | the history menu: a new conversation, then the project's conversations by day with their time, rename in place, delete after the dock confirms |
 | `context_meter.py` | the ring under the composer and its popup: window, auto-compact, Compact, spent |

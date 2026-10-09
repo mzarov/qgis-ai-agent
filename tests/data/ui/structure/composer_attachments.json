@@ -226,16 +226,16 @@
  },
  {
   "depth": 6,
+  "type": "ElidedLabel",
+  "text": "qwen3"
+ },
+ {
+  "depth": 6,
   "type": "ContextMeter"
  },
  {
   "depth": 7,
   "type": "ContextRing"
- },
- {
-  "depth": 6,
-  "type": "ElidedLabel",
-  "text": "qwen3"
  },
  {
   "depth": 6,

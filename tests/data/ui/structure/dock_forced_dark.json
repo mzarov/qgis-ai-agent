@@ -217,16 +217,16 @@
  },
  {
   "depth": 6,
+  "type": "ElidedLabel",
+  "text": "No model"
+ },
+ {
+  "depth": 6,
   "type": "ContextMeter"
  },
  {
   "depth": 7,
   "type": "ContextRing"
- },
- {
-  "depth": 6,
-  "type": "ElidedLabel",
-  "text": "No model"
  },
  {
   "depth": 6,

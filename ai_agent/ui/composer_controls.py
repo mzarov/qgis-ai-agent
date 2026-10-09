@@ -2,8 +2,8 @@
 
 "+" opens the add-to-context menu: a layer (opens the @ list), a file or table,
 a picture, a skill (opens the / list). The mode button — shield, name, chevron —
-opens the mode menu above the whole box. On the right sit the context ring, the
-model's name and the round send button, a stop square while the agent works.
+opens the mode menu above the whole box. On the right sit the model's name, the
+context ring and the round send button, a stop square while the agent works.
 The name is only said, in quiet monospace, never a button: choosing a model
 belongs to the settings, and a button with a chevron took room for nothing
 (the user's call). Everything else paints its own hover.
@@ -174,7 +174,7 @@ class SendButton(QAbstractButton):
 
 
 class ComposerControls(QWidget):
-    """The row at the bottom of the box: +, the mode, then the context ring, the model and send."""
+    """The row at the bottom of the box: +, the mode, then the model, the context ring and send."""
 
     data_requested = pyqtSignal()
     picture_requested = pyqtSignal()
@@ -205,9 +205,9 @@ class ComposerControls(QWidget):
         self._mode = MODES[0].key
         self.set_mode(self._mode)
         row.addStretch(1)
+        row.addWidget(self._build_model(palette), 0, Qt.AlignmentFlag.AlignVCenter)
         self.meter = ContextMeter(palette)
         row.addWidget(self.meter, 0, Qt.AlignmentFlag.AlignVCenter)
-        row.addWidget(self._build_model(palette), 0, Qt.AlignmentFlag.AlignVCenter)
         self.send = SendButton(palette)
         row.addWidget(self.send)
         self.set_model("")
