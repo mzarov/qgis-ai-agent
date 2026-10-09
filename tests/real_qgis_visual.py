@@ -33,6 +33,7 @@ from ai_agent.qgis_tools.registry import summarize_tool_call, summarize_tool_res
 from ai_agent.ui import activity, compass, settings_layout, theme, transitions
 from ai_agent.ui.dock_widget import AgentDockWidget
 from ai_agent.ui.settings_dialog import SettingsDialog
+from ai_agent.ui.thinking import ThinkingBlock
 
 LOCAL_URL = "http://localhost:11434/v1"
 LOCAL_MODEL = "qwen3"
@@ -142,6 +143,11 @@ class ScreenCase(PluginCase):
             overlay.finish()
         for arrival in widget.findChildren(transitions.Arrival):
             arrival.finish()
+        # And a list or a reasoning box still opening: open it fully.
+        for group in widget.findChildren(activity.ActivityGroup):
+            group.finish_folding()
+        for block in widget.findChildren(ThinkingBlock):
+            block.finish_folding()
         pump(0.3)
         ui_snapshot.normalize_texts(widget, {_profile_root(): LONG_PROFILE})
         pump(0.1)

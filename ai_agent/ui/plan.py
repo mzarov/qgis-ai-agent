@@ -183,13 +183,14 @@ class PlanCard(controls.RoundedFrame):
         if 0 <= index < len(self._steps):
             self._steps[index].set_state(state, note)
 
-    def mark_applied(self, undoable: bool = False) -> None:
+    def mark_applied(self, undoable: bool = False, at: str = "") -> None:
+        """Applied; `at` is a saved card's time, a live one takes the clock's."""
         self._settle(APPLIED_MARK, tr_n("Applied · %n change(s)", self._count), style.success(self._palette))
-        self._show_status(APPLIED_AT.format(_now()), undoable)
+        self._show_status(APPLIED_AT.format(at or _now()), undoable)
 
-    def mark_failed(self, undoable: bool = False) -> None:
+    def mark_failed(self, undoable: bool = False, at: str = "") -> None:
         self._settle(FAILED_MARK, FAILED_TITLE, style.danger(self._palette))
-        self._show_status(APPLIED_AT.format(_now()), undoable)
+        self._show_status(APPLIED_AT.format(at or _now()), undoable)
 
     def mark_cancelled(self) -> None:
         self._settle(CANCELLED_MARK, CANCELLED_TITLE, style.muted(self._palette))
@@ -198,9 +199,9 @@ class PlanCard(controls.RoundedFrame):
         self._list.setGraphicsEffect(effect)
         self._show_status(NOTHING_CHANGED, False)
 
-    def mark_undone(self) -> None:
+    def mark_undone(self, at: str = "") -> None:
         self._settle(UNDONE_MARK, UNDONE_TITLE, style.muted(self._palette))
-        self._show_status(UNDONE_AT.format(_now()), False)
+        self._show_status(UNDONE_AT.format(at or _now()), False)
 
     def _settle(self, mark: str, heading: str, colour: Any) -> None:
         self._paint_mark(mark, colour)

@@ -1069,3 +1069,12 @@ These verify the agent solves everyday tasks without wandering through search.
      upwards and the chat rises in from below. Open a past conversation from
      the history → what was shown rises away and that conversation rises in;
      choosing the open one only closes the menu.
+222. **The trace survives a restart.** Ask something that reasons, loads a skill
+     and applies a plan; restart QGIS and open the conversation → the activity
+     lists come back folded with their times, "Thought" opens the same text,
+     the plan card shows how it ended, without Undo.
+223. **Folding animates.** Click an activity header → its chevron turns and the
+     list opens smoothly, the hairline running from the header's chevron down
+     through every glyph with the same small gap; click again → it closes the
+     same way. "Thought ›" opens its box the same way. A loaded skill's row
+     shows the book, not a pulsing ring, once loaded.

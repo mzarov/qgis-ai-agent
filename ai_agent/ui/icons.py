@@ -35,11 +35,12 @@ NAMES = {
     "connectors": "globe",
     "personalisation": "user",
     "rewind": "undo-2",
-    # A tool call's row wears its skill's icon; "knowledge" is a skill being loaded.
-    "inspect": "eye",
+    # A tool call's row wears its skill's icon; "knowledge" is a skill being loaded. Reading wears the
+    # layers and Processing a square with a play mark, as the handoff draws the trace.
+    "inspect": "layers",
     "project": "layers",
     "style": "palette",
-    "processing": "cog",
+    "processing": "square-play",
     "osm": "map",
     "data": "database",
     "draw": "pen-tool",

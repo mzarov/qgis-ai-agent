@@ -1,5 +1,7 @@
 """Plans: the card, Apply and Cancel, what an apply reports, and the check that follows it."""
 
+import time
+
 from qgis.core import Qgis
 from qgis.PyQt.QtCore import QTimer
 
@@ -29,8 +31,12 @@ from ai_agent.core.orchestrator.planning import destructive_lines, plan_line
 from ai_agent.core.orchestrator.presentation import where_to_look
 from ai_agent.core.orchestrator.scope import conversation_scope
 from ai_agent.core.settings import get_verify_after_apply, set_work_mode
+from ai_agent.core.state.trace import APPLIED, CANCELLED, FAILED
 from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.project.snapshots import last_snapshot
+
+# The clock time a kept plan card shows, as the live card writes it.
+TIME_FORMAT = "%H:%M"
 
 
 class PlanMixin:
@@ -41,6 +47,9 @@ class PlanMixin:
         # The plan card asks for the next step now; the status line has nothing to add.
         self.dock_widget.show_outcome(STATUS_HIDDEN)
         self._plan_message_id = self.dock_widget.add_plan_message(lines, applies_itself)
+        # Kept for a reopened conversation; settled below as the plan is applied, cancelled or undone.
+        self._plan_keys[self._plan_message_id] = self.conversation.add_plan(lines)
+        self._plan_marks = []
         self._plan_step = -1
         if applies_itself:
             # Pressed for the user once the card is on screen; the same path as the button.
@@ -98,7 +107,18 @@ class PlanMixin:
         self.agent.cancel_pending()
         if self._plan_message_id is not None:
             self.dock_widget.mark_plan_cancelled(self._plan_message_id)
+            self._plan_settled(CANCELLED)
         self._plan_message_id = None
+
+    def _plan_settled(self, state: str, marks: list[list[str]] | None = None, plan_id: int | None = None) -> None:
+        """Keep how a plan card ended, for a reopened conversation."""
+        key = self._plan_keys.get(self._plan_message_id if plan_id is None else plan_id)
+        if not key:
+            return
+        changes: dict[str, object] = {"state": state, "at": time.strftime(TIME_FORMAT)}
+        if marks is not None:
+            changes["marks"] = marks
+        self.conversation.update_plan(key, **changes)
 
     def on_stage_applied(self, results: list) -> None:
         self._apply_scope = None
@@ -107,8 +127,10 @@ class PlanMixin:
         if self._plan_message_id is not None:
             if any(not result.ok for result in results):
                 self.dock_widget.mark_plan_failed(self._plan_message_id, undoable)
+                self._plan_settled(FAILED, self._plan_marks)
             else:
                 self.dock_widget.mark_plan_completed(self._plan_message_id, undoable)
+                self._plan_settled(APPLIED, self._plan_marks)
         self._plan_message_id = None
 
     def on_applied(self, results: list) -> None:
@@ -119,8 +141,10 @@ class PlanMixin:
         if self._plan_message_id is not None:
             if failed:
                 self.dock_widget.mark_plan_failed(self._plan_message_id, undoable)
+                self._plan_settled(FAILED, self._plan_marks)
             else:
                 self.dock_widget.mark_plan_completed(self._plan_message_id, undoable)
+                self._plan_settled(APPLIED, self._plan_marks)
         self._plan_message_id = None
         self.dock_widget.show_outcome(STATUS_FAILED if failed else STATUS_DONE)
         if failed:
@@ -174,11 +198,13 @@ class PlanMixin:
         """Every step's final state on the card, including those that never started."""
         if self._plan_message_id is None:
             return
+        self._plan_marks = []
         for index, result in enumerate(results):
             if result.payload.get("status") == SKIPPED_STATUS:
                 state, note = STEP_SKIPPED, ""
             else:
                 state, note = (STEP_DONE, "") if result.ok else (STEP_FAILED, explain_failure(_error(result)))
+            self._plan_marks.append([state, note])
             if state != STEP_DONE or index > self._plan_step:
                 self.dock_widget.mark_plan_step(self._plan_message_id, index, state, note)
 
@@ -188,6 +214,7 @@ class PlanMixin:
             self.agent.cancel_pending()
             if self._plan_message_id is not None:
                 self.dock_widget.mark_plan_cancelled(self._plan_message_id)
+                self._plan_settled(CANCELLED)
             self.dock_widget.add_system_message(PLAN_DROPPED)
         self._plan_message_id = None
 

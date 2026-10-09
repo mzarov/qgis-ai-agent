@@ -5,7 +5,8 @@ from typing import Any
 
 from ai_agent.i18n import tr
 
-MAX_MESSAGES = 200
+# Display entries ride along (a turn's trace, a plan card): a turn writes up to four, not two.
+MAX_MESSAGES = 400
 TITLE_LIMIT = 48
 UNTITLED = tr("Untitled")
 NO_PROJECT = "no project"

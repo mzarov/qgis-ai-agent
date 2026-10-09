@@ -10,6 +10,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from ai_agent.config import personal
+from ai_agent.core.state import trace
 from ai_agent.i18n import tr
 from ai_agent.ui import controls, style, transitions
 from ai_agent.ui.activity import ActivityGroup
@@ -193,6 +194,11 @@ class ConversationView(QScrollArea):
         bubble.rewind_requested.connect(self.rewind_requested.emit)
         return self._append(bubble)
 
+    def add_chosen(self, text: str) -> int:
+        """A reopened answer that was picked on a question card: "You chose …" again, not a bubble."""
+        self._pending_choice = text
+        return self.add_user_message(text, animate=False)
+
     def mark_rewind_point(self, entry_id: int, message: int) -> None:
         bubble = self._entries.get(entry_id)
         if isinstance(bubble, UserMessage):
@@ -285,6 +291,48 @@ class ConversationView(QScrollArea):
         if label is not None and self._activity is not None:
             self._activity.mark_rejected(label)
         return entry_id
+
+    def add_trace(self, record: dict[str, Any]) -> None:
+        """A reopened turn's steps and reasoning, folded as the turn left them."""
+        steps = [step for step in record.get("steps") or () if isinstance(step, dict)]
+        if not steps:
+            return
+        self._close_activity()
+        group = ActivityGroup()
+        group.quiet = True
+        self._append(group)
+        for step in steps:
+            kind = step.get("kind")
+            if kind == trace.THOUGHT:
+                block = ThinkingBlock()
+                group.add_widget(block)
+                block.restore(str(step.get("text") or ""), step.get("seconds"))
+            elif kind == trace.CHOICE:
+                group.add_choice(str(step.get("text") or ""))
+            else:
+                group.add_recorded_step(step)
+        group.settle(record.get("seconds"))
+
+    def add_recorded_plan(self, record: dict[str, Any]) -> None:
+        """A reopened plan card, settled as it ended; never undoable, the snapshots died with that session."""
+        lines = [str(line) for line in record.get("lines") or ()]
+        entry_id = self.add_plan_card(lines)
+        card = self._entries.get(entry_id)
+        if not isinstance(card, PlanCard):
+            return
+        for index, mark in enumerate(record.get("marks") or ()):
+            if isinstance(mark, (list, tuple)) and len(mark) == 2:
+                card.mark_step(index, str(mark[0]), str(mark[1]))
+        state, at = record.get("state"), str(record.get("at") or "")
+        if state == trace.APPLIED:
+            card.mark_applied(False, at)
+        elif state == trace.FAILED:
+            card.mark_failed(False, at)
+        elif state == trace.UNDONE:
+            card.mark_undone(at)
+        else:
+            # Never applied before the conversation was closed: the batch is gone with that session.
+            card.mark_cancelled()
 
     def add_plan_card(self, steps: list[str], applies_itself: bool = False) -> int:
         self._close_activity()

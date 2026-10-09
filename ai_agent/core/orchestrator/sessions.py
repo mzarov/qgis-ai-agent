@@ -48,6 +48,7 @@ class SessionsMixin:
         self._active_tool_message_id = None
         # The replay draws no plan cards, and their ids are the view's: nothing is left to undo from a card.
         self._plan_snapshots.clear()
+        self._plan_keys.clear()
         self.dock_widget.set_project_line(project_line())
         self.dock_widget.replay(self.conversation.replayable())
         self._show_title()

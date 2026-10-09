@@ -321,6 +321,16 @@ class ReasoningScenario(ScenarioCase):
         self.assertTrue(blocks[0].isVisibleTo(self.dock.conversation), "a reasoning-only turn must stay in the feed")
         self.assertEqual(self.answers()[-1], "There are three layers.")
         self.shot("reasoning_folded")
+        # Reopened later, the conversation shows the reasoning again; the model never gets it.
+        identifier = self.orchestrator.conversation.session_identifier
+        self.orchestrator.on_new_session()
+        self.orchestrator.on_session_chosen(identifier)
+        pump(0.8)
+        reopened = self.dock.conversation.findChildren(ThinkingBlock)
+        self.assertEqual([block._text for block in reopened if block.isVisibleTo(self.dock.conversation)], [reasoning])
+        window = self.orchestrator.conversation.window()
+        self.assertFalse(any(reasoning in str(message["content"]) for message in window))
+        self.shot("reasoning_reopened")
 
     def test_the_reasoning_switch_asks_and_remembers_a_refusal(self) -> None:
         set_reasoning_enabled(True)

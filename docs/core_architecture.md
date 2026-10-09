@@ -342,10 +342,15 @@ first, ahead of text and tool calls. Extended thinking is off until a budget is
 set in the settings — it costs tokens — and an endpoint that refuses the
 parameter is remembered like any other unsupported feature.
 
-The reasoning **text** never enters the saved conversation and is not sent
-back to any endpoint except DeepSeek with reasoning switched on (below). In the
-chat it lives in its own collapsible block: open while it grows, folded into
-one line once the answer starts.
+The reasoning **text** is not sent back to any endpoint except DeepSeek with
+reasoning switched on (below). In the chat it lives in its own collapsible
+block: open while it grows, folded into one line once the answer starts. The
+saved conversation keeps it only for the chat: `core/state/trace.py` records
+each turn's steps and reasoning — and each plan card with its outcome — as
+display-only entries beside the messages (`trace`, `plan` roles), written just
+before the next message so a reopened conversation draws them where they were.
+The model's window takes `user` and `assistant` messages only, role and content,
+so none of it reaches a model.
 
 ### Asking an OpenAI-compatible endpoint to reason
 

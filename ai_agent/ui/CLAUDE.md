@@ -43,6 +43,7 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `messages.py`     | the user message, the agent reply, the service message |
 | `activity.py`     | the work trace: a fold header ("Working · step N", then "Activity · N steps" and the time) over a timeline of calls, reasoning and the user's choice |
 | `thinking.py`     | a reasoning row's content: "Thinking"/"Thought" with its time, opening a sunken box with the text |
+| `folding.py`      | the feed's folding: a chevron that turns, a body that opens to its height on the handoff's curve |
 | `plan.py`         | the plan card: numbered steps with their kind, Apply and Cancel inside, the outcome with the time and Undo |
 | `welcome.py`      | the empty conversation: the arriving compass, the deal in one sentence, the open project, four examples |
 | `transitions.py`  | the feed's transitions: what leaves is a snapshot that fades and rises, what arrives fades in and settles from below (`Arrival`) |
@@ -179,13 +180,20 @@ pair of methods so the two states cannot drift apart.
 ## The feed is flat lines, frames mean a decision
 
 The activity list is a timeline, after the design handoff. Its header
-(`TraceHeader`, clickable as a whole) says "Working · step N" while the agent
-works and "Activity · N steps" with the turn's time once it moves on — always
-that, so it never repeats a row. Rows sit **open, without a frame**, one per
-call: the skill's icon (the skill is the `CallSummary.skill` the registry sets)
-in a fixed glyph column, a hairline down to the next row, the wording muted
-with the call's own values bright, and under it the tool's `summarize_result`
-line — what the call found. The running call is a breathing accent ring
+(`TraceHeader`, clickable as a whole) is the timeline's first node: its chevron
+sits in the glyph column and turns as the list opens or closes, and its title —
+"Working · step N" while the agent works, "Activity · N steps" with the turn's
+time once it moves on, never a row repeated — stands level with the steps' text.
+Rows sit **open, without a frame**, one per call: the skill's icon (the skill is
+the `CallSummary.skill` the registry sets; reading wears the layers, Processing
+a square with a play mark, as the handoff draws them) in the fixed glyph column,
+the wording muted with the call's own values bright, and under it the tool's
+`summarize_result` line — what the call found. One hairline joins the nodes; the
+group draws it from each glyph's `mark` (where its drawing sits), stopping
+`LINE_GAP` short of every glyph whatever its size, so dots, rings and icons get
+the same gap. Opening and closing animate (`folding.Fold`); a skill being
+loaded or the plan moving on settles at once — such a step is over as it is
+drawn, and left pending it pulsed forever. The running call is a breathing accent ring
 (`PulseRing`); it stops when the call ends, and the screen checks stop it
 before a grab. Reasoning is a row with three dots holding the `ThinkingBlock`;
 a loaded skill reads "Using …" with a `skill` tag; the answer picked on a
@@ -201,6 +209,16 @@ Boxing every turn made the feed read as a wall of cards. A frame with a fill is
 reserved for the one thing that asks the user to act: the plan card. If a new
 element wants a frame, the question to ask is "does it hold buttons?" — if not,
 it is a line or an open list.
+
+## A reopened conversation
+
+What the feed showed of a turn comes back with the conversation: core keeps each
+turn's steps and reasoning, and each plan card with its outcome, as display-only
+entries (`core/state/trace.py`), and the dock's `replay` rebuilds them —
+`ConversationView.add_trace` builds the group folded and still
+(`ActivityGroup.quiet`, `settle`), the reasoning restored with its time, a plan
+card settled as it ended without Undo (the snapshots died with that session), and
+an answer picked on a question card as "You chose …" again.
 
 ## Action grouping
 

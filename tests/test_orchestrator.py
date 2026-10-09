@@ -1117,3 +1117,76 @@ class ChromeFlowTest(unittest.TestCase):
         self.orchestrator.iface = SimpleNamespace(activeLayer=lambda: None)
         self.orchestrator.on_busy(False)
         self.assertEqual(self.dock.active_layers[-1], ("", ""))
+
+
+class StepDockWithMarks(PlanDock):
+    def __init__(self):
+        super().__init__()
+        self.marked = []
+        self.next_id = 0
+
+    def add_tool_message(self, text):
+        self.next_id += 1
+        return self.next_id
+
+    def mark_tool_done(self, message_id, ok=True, note=""):
+        self.marked.append((message_id, ok))
+
+
+class KeptTurnTest(unittest.TestCase):
+    """What the feed showed of a turn is kept for a reopened conversation."""
+
+    def setUp(self):
+        from ai_agent.core.state.trace import TRACE_ROLE
+
+        self.trace_role = TRACE_ROLE
+        self.root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.root, True)
+        self.dock = StepDockWithMarks()
+        self.orchestrator = CoreOrchestrator(Iface(), self.dock)
+        self.orchestrator.conversation = ConversationState(store=SessionStore(self.root))
+        self.orchestrator.agent = Agent()
+
+    def test_a_loaded_skill_is_settled_at_once_instead_of_pulsing_forever(self):
+        self.orchestrator.on_skill_loaded("project")
+        self.assertEqual(self.dock.marked, [(1, True)])
+
+    def test_steps_and_reasoning_are_kept_before_the_answer(self):
+        self.orchestrator.conversation.add("user", "Which layers?")
+        self.orchestrator.on_thinking_chunk("Let me look.")
+        self.orchestrator.on_skill_loaded("inspect")
+        self.orchestrator.on_tool_started(summary_of("Reading the project"))
+        self.orchestrator.on_tool_finished("describe_project", True, "3 layers")
+        self.orchestrator.on_finished("Three layers.")
+        messages = self.orchestrator.conversation.messages
+        self.assertEqual([message["role"] for message in messages], ["user", self.trace_role, "assistant"])
+        steps = self.orchestrator.conversation.replayable()[1]["trace"]["steps"]
+        self.assertEqual([step["kind"] for step in steps], ["thought", "call", "call"])
+        self.assertEqual((steps[2]["ok"], steps[2]["note"]), (True, "3 layers"))
+
+    def test_a_plan_card_is_kept_and_settled_when_applied(self):
+        from ai_agent.core.state.trace import APPLIED, CANCELLED
+
+        self.orchestrator.conversation.add("user", "Colour the rivers")
+        self.orchestrator.on_confirm_needed([Call()], "")
+        self.orchestrator.on_applied([Result(ok=True)])
+        plan = next(entry["plan"] for entry in self.orchestrator.conversation.replayable() if "plan" in entry)
+        self.assertEqual((plan["state"], plan["marks"]), (APPLIED, [["done", ""]]))
+        self.assertTrue(plan["at"])
+        self.orchestrator.on_confirm_needed([Call()], "")
+        self.orchestrator.on_cancel_plan()
+        plans = [entry["plan"] for entry in self.orchestrator.conversation.replayable() if "plan" in entry]
+        self.assertEqual(plans[-1]["state"], CANCELLED)
+
+    def test_an_answer_picked_from_the_offered_ones_is_flagged(self):
+        self.orchestrator.agent.is_awaiting_answer = True
+        self.orchestrator.agent.question_options = ["pop2020", "name"]
+        self.orchestrator._confirm_first_send = lambda *endpoint: True
+        self.orchestrator.on_prompt("pop2020")
+        self.assertTrue(self.orchestrator.conversation.messages[-1].get("chosen"))
+
+
+def summary_of(text):
+    from ai_agent.qgis_tools.call_summary import CallSummary
+
+    return CallSummary.marking(text, {})

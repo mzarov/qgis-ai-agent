@@ -59,6 +59,10 @@ class _Stub(metaclass=_Meta):
     def isHidden(self):
         return not self.__dict__.get("_stub_visible", True)
 
+    def window(self):
+        # No window is ever on screen in these tests: what would animate there changes at once.
+        return _OffScreen()
+
     def __int__(self):
         return 0
 
@@ -93,6 +97,11 @@ class _Stub(metaclass=_Meta):
         return False
 
     def __ge__(self, other):
+        return False
+
+
+class _OffScreen(_Stub):
+    def isVisible(self):
         return False
 
 

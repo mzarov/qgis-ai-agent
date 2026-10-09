@@ -100,7 +100,7 @@
  },
  {
   "depth": 6,
-  "type": "QLabel"
+  "type": "Chevron"
  },
  {
   "depth": 6,
@@ -139,7 +139,7 @@
  },
  {
   "depth": 9,
-  "type": "QLabel"
+  "type": "Chevron"
  },
  {
   "depth": 9,

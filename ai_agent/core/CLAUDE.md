@@ -81,8 +81,10 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    (DeepSeek, OpenRouter) and Anthropic `thinking` blocks. `llm/thinking.py`
    cuts the tags out — across chunk boundaries, and before the JSON protocol
    parses, or the parser may pick a candidate object out of the reasoning.
-   The reasoning **text** goes to the UI only and never back to the model or
-   into the saved conversation. Anthropic blocks are the exception: with tools
+   The reasoning **text** goes to the UI and never back to the model; the saved
+   conversation keeps it only as a display-only trace entry (`state/trace.py`)
+   that the model's window skips — a reopened chat shows it again (the user's
+   call). Anthropic blocks are the exception: with tools
    in the run the API demands them back verbatim with their `signature`, so
    `ModelTurn` carries them, the transcript keeps them and `_assistant_message`
    re-emits them first. DeepSeek with the Reasoning switch on is the second:
@@ -144,7 +146,10 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    Do not add branching logic there.
 13. **A message is written with one call.** `ConversationState.add` writes the
    session; the model's window is derived from it (summary, then the messages
-   after `summary_index`). Never keep a second copy of the conversation for the
+   after `summary_index`, `user` and `assistant` only, role and content). What
+   the chat showed besides messages — a turn's steps and reasoning, a plan card,
+   a chart — rides in the same list under display-only roles; `add` writes the
+   turn's pending trace first, so the replay draws it in place. Never keep a second copy of the conversation for the
    model — the two diverge, and the model would see something other than what
    the chat shows.
 14. **Aborting never blocks the main thread.** `abort` does not wait and does not
@@ -273,4 +278,5 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `orchestrator/contracts.py` | the DockWidget contract                          |
 | `state/conversation.py`  | the model window and the current dialogue, one entry point |
 | `state/session.py`       | the conversation model: title, messages, serialising |
+| `state/trace.py`         | what a turn showed besides its messages — steps, reasoning, plan cards — kept for the replay |
 | `state/store.py`         | conversations on disk, filtered by the open project |

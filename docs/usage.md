@@ -121,7 +121,9 @@ Hovering a conversation in the history swaps its time for a pencil to rename it 
 keeps, Esc drops — a name you chose is never replaced) and a bin to delete it
 for good after a confirmation; deleting the open conversation starts a fresh one.
 Restoring a conversation restores the model's context too — a follow-up like
-*and how many are there?* keeps working.
+*and how many are there?* keeps working — and what the chat showed of each turn:
+the activity lists with the reasoning, the answers picked on question cards and
+the plan cards with how they ended, folded as they were left.
 
 ### Rewinding to an earlier message
 

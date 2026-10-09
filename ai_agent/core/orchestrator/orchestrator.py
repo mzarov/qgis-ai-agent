@@ -53,6 +53,9 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self._checkpoints: list[Checkpoint] = []
         # Plan card id to the snapshot its apply took: the card's Undo restores it.
         self._plan_snapshots: dict[int, str] = {}
+        # Each live plan card's kept record, by the card's id in the feed.
+        self._plan_keys: dict[int, str] = {}
+        self._plan_marks: list[list[str]] = []
         self._snapshot_before_apply = ""
         self._invalidated_scope: tuple[str, str] | None = None
         self._deferred_interrupted_outcome = ""
@@ -117,6 +120,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
 
     def on_thinking_chunk(self, text: str) -> None:
         self.dock_widget.add_thinking_chunk(text)
+        self.conversation.trace.thinking(text)
 
     def on_stop(self) -> None:
         if self.compaction.is_running:
@@ -239,7 +243,9 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
             return
         self._show_user_message(text)
         self.dock_widget.clear_prompt()
-        self.conversation.add("user", text)
+        # Picked on the question card, so a reopened chat says "You chose" again; typed the same is the same.
+        chosen = text in list(getattr(self.agent, "question_options", None) or [])
+        self.conversation.add("user", text, chosen=chosen)
         self.agent.answer(text)
 
     def _interject(self, text: str) -> None:
@@ -253,6 +259,8 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
 
     def _show_user_message(self, text: str) -> None:
         """Draw the user's message with the place it takes in the conversation, so it can be rewound to."""
+        # The steps so far are written first: they come before the message, and so does its place.
+        self.conversation.keep_trace()
         entry = self.dock_widget.add_user_message(text)
         self.dock_widget.mark_rewind_point(entry, self.conversation.message_count)
 

@@ -198,10 +198,18 @@ class AgentDockWidget(QDockWidget):
         self.conversation.clear()
         for index, message in enumerate(messages):
             if message.get("role") == "user":
-                entry = self.conversation.add_user_message(message.get("content", ""), animate=False)
+                text = message.get("content", "")
+                if message.get("chosen"):
+                    entry = self.conversation.add_chosen(text)
+                else:
+                    entry = self.conversation.add_user_message(text, animate=False)
                 self.conversation.mark_rewind_point(entry, index)
             elif isinstance(message.get("visual"), dict):
                 self.conversation.add_visual(message["visual"])
+            elif isinstance(message.get("trace"), dict):
+                self.conversation.add_trace(message["trace"])
+            elif isinstance(message.get("plan"), dict):
+                self.conversation.add_recorded_plan(message["plan"])
             else:
                 self.conversation.add_assistant_message(message.get("content", ""))
         if self._switching is not None:

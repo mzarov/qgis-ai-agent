@@ -237,5 +237,53 @@ class EntranceTest(unittest.TestCase):
         self.assertEqual(chosen, ["past"])
 
 
+class ReopenedTurnTest(unittest.TestCase):
+    """A reopened conversation draws the saved steps, reasoning, choices and plan cards again."""
+
+    def test_the_replay_rebuilds_the_trace_the_choice_and_the_plan(self):
+        from ai_agent.ui.activity import ActivityGroup
+        from ai_agent.ui.dock_widget import AgentDockWidget
+        from ai_agent.ui.plan import PlanCard
+
+        dock = AgentDockWidget()
+        trace = {
+            "steps": [
+                {"kind": "thought", "text": "Let me look.", "seconds": 2.0},
+                {"kind": "call", "text": "Using inspect", "parts": [], "skill": "knowledge", "ok": True},
+                {
+                    "kind": "call",
+                    "text": "Reading layer 'roads'",
+                    "parts": [["roads", True]],
+                    "skill": "inspect",
+                    "ok": False,
+                    "note": "No such layer",
+                    "seconds": 0.4,
+                },
+            ],
+            "seconds": 2.4,
+        }
+        plan = {"lines": ["Styling 'rivers' blue"], "state": "applied", "at": "14:32", "marks": [["done", ""]]}
+        dock.replay(
+            [
+                {"role": "user", "content": "Which layers?"},
+                {"role": "trace", "trace": trace},
+                {"role": "assistant", "content": "Which field?"},
+                {"role": "user", "content": "pop2020", "chosen": True},
+                {"role": "plan", "plan": plan},
+            ]
+        )
+        entries = list(dock.conversation._entries.values())
+        groups = list({id(entry): entry for entry in entries if isinstance(entry, ActivityGroup)}.values())
+        self.assertEqual(len(groups), 2, "the saved trace and the choice each draw a group")
+        rebuilt = groups[0]
+        self.assertEqual(len(rebuilt.items), 3)
+        self.assertFalse(rebuilt.expanded, "a reopened turn rests folded")
+        self.assertEqual(rebuilt._failures, 1)
+        self.assertEqual(rebuilt._header.time.text(), "2.4 s")
+        card = next(entry for entry in entries if isinstance(entry, PlanCard))
+        self.assertIn("14:32", card._status_text.text())
+        self.assertTrue(card._undo.isHidden(), "the snapshot died with that session")
+
+
 if __name__ == "__main__":
     unittest.main()
