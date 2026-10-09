@@ -8,11 +8,11 @@ one sends it. Without a configured model the card asks for settings instead.
 
 from typing import Any
 
-from qgis.PyQt.QtCore import Qt, pyqtSignal
+from qgis.PyQt.QtCore import QRect, Qt, QVariantAnimation, pyqtSignal
 from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
 from ai_agent.i18n import tr
-from ai_agent.ui import compass, controls, icons, style
+from ai_agent.ui import compass, controls, icons, style, transitions
 from ai_agent.ui import settings_fields as fields
 
 STACK_GAP = 10
@@ -128,6 +128,7 @@ class WelcomeCard(QWidget):
         # After "New conversation": where the previous one went, and a way back to it.
         self.saved = self._saved_line(palette)
         self.saved.setVisible(False)
+        self._arrival: transitions.ArrivalEffect | None = None
         column.addWidget(self.saved, 0, Qt.AlignmentFlag.AlignHCenter)
         column.addStretch(1)
 
@@ -138,6 +139,37 @@ class WelcomeCard(QWidget):
 
     def show_saved(self) -> None:
         self.saved.setVisible(True)
+
+    def prepare_arrival(self) -> None:
+        """Wait unseen behind the arrival effect until `arrive` plays it (the old feed is still leaving)."""
+        self._arrival = transitions.ArrivalEffect(self._saved_rect, self)
+        self.setGraphicsEffect(self._arrival)
+
+    def arrive(self) -> None:
+        """Fade in and settle from below, the saved line a little behind, while the compass arrives."""
+        if self._arrival is None:
+            return
+        self.mark.set_state(compass.ARRIVE)
+        animation = QVariantAnimation(self)
+        animation.setDuration(transitions.ARRIVE_MS + transitions.LAG_MS)
+        animation.setStartValue(0.0)
+        animation.setEndValue(float(transitions.ARRIVE_MS + transitions.LAG_MS))
+        # Bound methods: the card's death drops them, so a tick never reaches a deleted effect.
+        animation.valueChanged.connect(self._arriving)
+        animation.finished.connect(self._arrived)
+        animation.start()
+
+    def _arriving(self, elapsed: Any) -> None:
+        if self._arrival is not None:
+            self._arrival.set_elapsed(float(elapsed))
+
+    def _arrived(self) -> None:
+        # Without the effect the card paints directly again; Qt deletes the effect itself.
+        self._arrival = None
+        self.setGraphicsEffect(None)
+
+    def _saved_rect(self) -> QRect | None:
+        return self.saved.geometry() if not self.saved.isHidden() else None
 
     def _saved_line(self, palette: Any) -> QWidget:
         holder = QWidget()

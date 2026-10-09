@@ -1,7 +1,7 @@
 from typing import Any
 
 from qgis.PyQt.QtCore import Qt, QTimer, pyqtSignal
-from qgis.PyQt.QtGui import QGuiApplication
+from qgis.PyQt.QtGui import QGuiApplication, QPixmap
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QScrollArea,
@@ -11,7 +11,7 @@ from qgis.PyQt.QtWidgets import (
 
 from ai_agent.config import personal
 from ai_agent.i18n import tr
-from ai_agent.ui import controls, style
+from ai_agent.ui import controls, style, transitions
 from ai_agent.ui.activity import ActivityGroup
 from ai_agent.ui.chart import ChartCard
 from ai_agent.ui.messages import AssistantMessage, SystemMessage, UserMessage
@@ -105,6 +105,23 @@ class ConversationView(QScrollArea):
         # In place: rebuilding the card would replay the compass's arrival on every settings save.
         if self._empty is not None:
             self._empty.set_project(text)
+
+    def snapshot(self) -> QPixmap | None:
+        """The visible feed as a picture, for the leaving half of the new-conversation transition;
+        None while only the welcome shows, as there is nothing to see leave."""
+        if self._empty is not None:
+            return None
+        return self.viewport().grab()
+
+    def play_new_conversation(self, leaving: QPixmap) -> None:
+        """The handoff's new conversation: the old feed's picture leaves, then the welcome arrives."""
+        card = self._empty
+        if card is None:
+            return
+        card.prepare_arrival()
+        overlay = transitions.LeavingFeed(leaving, self.viewport())
+        overlay.finished.connect(card.arrive)
+        overlay.start()
 
     def show_saved_hint(self) -> None:
         """On the welcome after "New conversation": the previous one is in the history."""

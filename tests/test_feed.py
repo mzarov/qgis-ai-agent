@@ -70,7 +70,8 @@ class DraftTest(unittest.TestCase):
 
 class DockHeaderContractTest(unittest.TestCase):
     def test_header_starts_a_real_new_conversation(self):
-        self.assertIn("self.toolbar.new_requested.connect(self.new_session_clicked.emit)", DOCK_SOURCE)
+        self.assertIn("self.toolbar.new_requested.connect(self._start_new)", DOCK_SOURCE)
+        self.assertIn("self.new_session_clicked.emit()", DOCK_SOURCE)
         self.assertNotIn("def _on_clear", DOCK_SOURCE)
 
 

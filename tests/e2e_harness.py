@@ -182,6 +182,12 @@ class PluginCase(unittest.TestCase):
         pump(0.2)
         self.dock.grab().save(str(ARTIFACTS / f"{name}.png"))
 
+    def shot_now(self, name: str, after: float) -> None:
+        """A frame `after` seconds on, for a transition caught in the middle."""
+        ARTIFACTS.mkdir(parents=True, exist_ok=True)
+        pump(after)
+        self.dock.grab().save(str(ARTIFACTS / f"{name}.png"))
+
     def layer(self, name: str) -> QgsVectorLayer:
         layers = QgsProject.instance().mapLayersByName(name)
         self.assertEqual(len(layers), 1, f"expected one layer named {name!r}")

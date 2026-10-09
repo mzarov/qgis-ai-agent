@@ -11,7 +11,7 @@ an event.
 
 from typing import Any
 
-from qgis.PyQt.QtCore import QEasingCurve, QPointF, QRectF, Qt, QVariantAnimation, pyqtSignal
+from qgis.PyQt.QtCore import QPointF, QRectF, Qt, QVariantAnimation, pyqtSignal
 from qgis.PyQt.QtGui import QPainter
 from qgis.PyQt.QtWidgets import QAbstractButton, QDockWidget, QHBoxLayout, QLabel, QSizePolicy, QWidget
 
@@ -33,6 +33,8 @@ TOOL_RADIUS = 6
 CHEVRON = 14
 SPIN_DEGREES = 180.0
 SPIN_MS = 400
+# The handoff's transition for the plus: cubic-bezier(.3,.7,.3,1).
+SPIN_EASING = (0.3, 0.7, 0.3, 1.0)
 DISABLED_OPACITY = 0.55
 FLOAT = tr("Float")
 CLOSE = tr("Close")
@@ -70,15 +72,14 @@ class IconButton(QAbstractButton):
         animation = QVariantAnimation(self)
         animation.setDuration(SPIN_MS)
         animation.setStartValue(0.0)
-        animation.setEndValue(SPIN_DEGREES)
-        animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+        animation.setEndValue(1.0)
         # A bound method: Qt drops the connection with the button, a lambda would outlive it.
         animation.valueChanged.connect(self._turn)
         self._spin = animation
         animation.start()
 
-    def _turn(self, value: Any) -> None:
-        self.angle = float(value)
+    def _turn(self, progress: Any) -> None:
+        self.angle = SPIN_DEGREES * compass.cubic_bezier(SPIN_EASING, float(progress))
         self.update()
 
     def enterEvent(self, event: Any) -> None:

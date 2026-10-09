@@ -1045,8 +1045,10 @@ These verify the agent solves everyday tasks without wandering through search.
      conversation* while empty) with a chevron, a **+** greyed out while the
      conversation is empty, and the settings sliders.
 218. **New conversation and the history.** Ask anything → the title becomes
-     the request, **+** lights up → press it → the plus turns, the welcome
-     comes back with *Previous conversation saved in history · Open*; Open →
+     the request, **+** lights up → press it → the plus turns, the old
+     conversation fades upwards, the welcome fades in from below with the
+     compass swinging in and *Previous conversation saved in history · Open*
+     a moment after it; Open →
      the history under the title: *New conversation* with its shortcut, then
      the old conversation under Today with its time. Ctrl+N (⌘N) in the chat
      box starts another one; outside the box QGIS still makes a new project.

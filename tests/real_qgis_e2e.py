@@ -31,6 +31,7 @@ from ai_agent.ui.composer_parts import MODES
 from ai_agent.ui.messages import SystemMessage
 from ai_agent.ui.plan import PlanCard
 from ai_agent.ui.question import QuestionCard
+from ai_agent.ui.transitions import LeavingFeed
 
 MODEL = "scripted-model"
 SIZES_FILE = "request_sizes.json"
@@ -542,11 +543,19 @@ class ChromeScenario(ScenarioCase):
         self.assertEqual(self.dock.toolbar.title.label.text(), "Which layers are there?")
         self.assertTrue(self.dock.toolbar.new_button.isEnabled())
         self.dock.toolbar.new_button.click()
-        pump(0.1)
         welcome = self.dock.conversation._empty
         self.assertIsNotNone(welcome, "a new conversation opens on the welcome")
         self.assertFalse(welcome.saved.isHidden(), "the welcome must say where the old conversation went")
         self.assertNotEqual(self.dock.toolbar.title.label.text(), "Which layers are there?")
+        # The handoff's transition: the old feed leaves over the welcome, then the welcome arrives.
+        viewport = self.dock.conversation.viewport()
+        self.assertEqual(len(viewport.findChildren(LeavingFeed)), 1, "the old feed did not leave")
+        self.assertIsNotNone(welcome.graphicsEffect(), "the welcome must wait behind its arrival")
+        self.shot_now("new_conversation_leaving", 0.1)
+        self.shot_now("new_conversation_arriving", 0.25)
+        pump(0.6)
+        self.assertEqual([item for item in viewport.findChildren(LeavingFeed) if item.isVisible()], [])
+        self.assertIsNone(welcome.graphicsEffect(), "the welcome must paint directly once it has arrived")
         self.shot("new_conversation")
         self.dock._show_sessions()
         popup = self.dock._sessions_popup

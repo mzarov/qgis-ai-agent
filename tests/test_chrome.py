@@ -133,5 +133,52 @@ class SessionsPopupTest(unittest.TestCase):
         self.assertEqual(asked, [True])
 
 
+class NewConversationTransitionTest(unittest.TestCase):
+    """The handoff's new conversation: the old feed leaves, then the welcome arrives."""
+
+    def test_the_arrival_runs_on_the_handoff_curve_with_the_saved_line_behind(self):
+        from ai_agent.ui import transitions
+
+        self.assertEqual(transitions.arrival(0), 0.0)
+        self.assertAlmostEqual(transitions.arrival(transitions.ARRIVE_MS), 1.0, places=3)
+        self.assertEqual(transitions.arrival(transitions.LAG_MS, transitions.LAG_MS), 0.0)
+        middle = transitions.arrival(transitions.ARRIVE_MS / 2)
+        # cubic-bezier(.2,.7,.3,1) is quick at first: half the time is well past half the way.
+        self.assertGreater(middle, 0.75)
+        self.assertLess(transitions.arrival(200, transitions.LAG_MS), middle)
+
+    def _dock(self):
+        from ai_agent.ui.dock_widget import AgentDockWidget
+
+        dock = AgentDockWidget()
+        played = []
+        dock.conversation.play_new_conversation = played.append
+        dock.conversation.snapshot = lambda: "picture of the old feed"
+        return dock, played
+
+    def test_a_confirmed_switch_plays_the_transition_with_the_old_feed(self):
+        dock, played = self._dock()
+
+        def switch():
+            dock.replay([])
+            dock.note_conversation_saved()
+
+        dock.new_session_clicked.connect(switch)
+        dock.toolbar.new_requested.emit()
+        self.assertEqual(played, ["picture of the old feed"])
+        self.assertIsNone(dock._leaving)
+
+    def test_a_refused_switch_drops_the_picture(self):
+        dock, played = self._dock()
+        dock.new_session_clicked.connect(lambda: None)
+        dock.toolbar.new_requested.emit()
+        dock.note_conversation_saved()
+        self.assertEqual(played, [])
+
+    def test_only_a_feed_with_messages_has_anything_to_see_leave(self):
+        view = ConversationView()
+        self.assertIsNone(view.snapshot())
+
+
 if __name__ == "__main__":
     unittest.main()

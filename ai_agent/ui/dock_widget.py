@@ -5,6 +5,7 @@ from collections.abc import Callable
 from typing import Any
 
 from qgis.PyQt.QtCore import pyqtSignal
+from qgis.PyQt.QtGui import QPixmap
 from qgis.PyQt.QtWidgets import QDockWidget, QVBoxLayout, QWidget
 
 from ai_agent.i18n import tr
@@ -50,7 +51,7 @@ class AgentDockWidget(QDockWidget):
         self._sessions_popup.chosen.connect(self.session_chosen.emit)
         self._sessions_popup.renamed.connect(self.session_renamed.emit)
         self._sessions_popup.delete_requested.connect(self._confirm_delete)
-        self._sessions_popup.new_requested.connect(self.new_session_clicked.emit)
+        self._sessions_popup.new_requested.connect(self._start_new)
         body = QWidget()
         body.setObjectName(BODY_NAME)
         style.fill(body, style.background(palette))
@@ -59,7 +60,7 @@ class AgentDockWidget(QDockWidget):
         column.setSpacing(0)
         self.toolbar = chrome.Toolbar(palette)
         self.toolbar.history_requested.connect(self._show_sessions)
-        self.toolbar.new_requested.connect(self.new_session_clicked.emit)
+        self.toolbar.new_requested.connect(self._start_new)
         self.toolbar.settings_requested.connect(self.open_settings_clicked.emit)
         self.toolbar.title.set_title(NEW_CONVERSATION_TITLE)
         column.addWidget(self.toolbar)
@@ -69,12 +70,26 @@ class AgentDockWidget(QDockWidget):
         self.composer.set_popup_host(body)
         # The welcome is up: there is nothing to start over from yet.
         self.toolbar.new_button.setEnabled(False)
+        # The old feed's picture while a new conversation is being asked for; see `_start_new`.
+        self._leaving: QPixmap | None = None
+
+    def _start_new(self) -> None:
+        """Ask for a new conversation, as the handoff plays it: the feed's picture waits for the
+        orchestrator to confirm the switch (`note_conversation_saved`) and is dropped if it does not."""
+        self._leaving = self.conversation.snapshot()
+        try:
+            self.new_session_clicked.emit()
+        finally:
+            self._leaving = None
 
     def set_conversation_title(self, title: str) -> None:
         self.toolbar.title.set_title(title or NEW_CONVERSATION_TITLE)
 
     def note_conversation_saved(self) -> None:
         self.conversation.show_saved_hint()
+        if self._leaving is not None:
+            self.conversation.play_new_conversation(self._leaving)
+            self._leaving = None
 
     def set_active_layer(self, name: str, detail: str = "") -> None:
         self.composer.set_active_layer(name, detail)
@@ -122,7 +137,7 @@ class AgentDockWidget(QDockWidget):
         self.composer.mode_changed.connect(self.work_mode_changed.emit)
         self.composer.compact_requested.connect(self.compact_requested.emit)
         self.composer.settings_requested.connect(self.open_settings_clicked.emit)
-        self.composer.new_requested.connect(self.new_session_clicked.emit)
+        self.composer.new_requested.connect(self._start_new)
         layout.addWidget(self.composer)
         return holder
 
