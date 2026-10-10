@@ -44,7 +44,8 @@ GLYPH_BOX = 20
 COLUMN_GAP = 8
 ROW_BOTTOM = 8
 HEADER_GAP = 6
-GROUP_BOTTOM = 8
+# With the feed's spacing, the handoff's 14 px from the trace to whatever follows it.
+GROUP_BOTTOM = 3
 # The hairline stops this far from every glyph, whatever the glyph's size.
 LINE_GAP = 3
 SMALL = 0.92
@@ -211,6 +212,9 @@ class TraceRow(QWidget):
     def set_meta(self, text: str) -> None:
         self.meta.setText(text)
         self.meta.setVisible(bool(text))
+
+    def set_bottom(self, margin: int) -> None:
+        self._line.setContentsMargins(0, 0, 0, margin)
 
 
 class StepRow(TraceRow):
@@ -400,6 +404,10 @@ class ActivityGroup(QFrame):
         count = len(self.items)
         self._header.setVisible(bool(count) and not self.only_thoughts)
         self._rows.setContentsMargins(0, 0 if self.only_thoughts else HEADER_GAP, 0, 0)
+        # Reasoning alone stands in for the header: no row gap under it, the answer sits as close
+        # below it as below a folded "Activity" line.
+        for row in self.items:
+            row.set_bottom(0 if self.only_thoughts and row is self.items[-1] else ROW_BOTTOM)
         if self.only_thoughts and self._rows_holder.isHidden():
             self._fold.set_open(True, animate=False)
         working = self._pending and not self._closed

@@ -554,6 +554,7 @@ _mod(
         "QDialogButtonBox",
         "QToolButton",
         "QScrollArea",
+        "QAbstractScrollArea",
         "QTextBrowser",
         "QFrame",
         "QSizePolicy",

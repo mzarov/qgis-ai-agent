@@ -199,7 +199,10 @@ the wording muted with the call's own values bright, and under it the tool's
 `summarize_result` line — what the call found. One hairline joins the nodes; the
 group draws it from each glyph's `mark` (where its drawing sits), stopping
 `LINE_GAP` short of every glyph whatever its size, so dots, rings and icons get
-the same gap. Opening and closing animate (`folding.Fold`); a skill being
+the same gap. Opening and closing animate (`folding.Fold`), and every frame
+lays out the containers above the body at once (`folding.lay_out_above`):
+left to Qt's posted layout requests, a paint landed between two parents and
+the fold stalled, then jumped. A skill being
 loaded or the plan moving on settles at once — such a step is over as it is
 drawn, and left pending it pulsed forever. The running call is a breathing accent ring
 (`PulseRing`); it stops when the call ends, and the screen checks stop it

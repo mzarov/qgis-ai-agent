@@ -1076,8 +1076,11 @@ These verify the agent solves everyday tasks without wandering through search.
 223. **Folding animates.** Click an activity header → its chevron turns and the
      list opens smoothly, the hairline running from the header's chevron down
      through every glyph with the same small gap; click again → it closes the
-     same way. "Thought ›" opens its box the same way. A loaded skill's row
-     shows the book, not a pulsing ring, once loaded.
+     same way. "Thought ›" opens its box the same way. Click either ten times
+     in a row → every opening and closing runs evenly, never pausing and then
+     jumping, and the title above the box never moves. Folded, the header sits
+     about as far above the answer as below the message before it. A loaded
+     skill's row shows the book, not a pulsing ring, once loaded.
 224. **A light panel in a dark QGIS.** QGIS in its dark look (macOS dark mode,
      or the Night Mapping UI theme), Panel theme *Light* → type @ and / in the
      box → every name in both lists is dark and readable, selected or not;
