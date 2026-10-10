@@ -15,7 +15,7 @@
  {
   "depth": 2,
   "type": "QLabel",
-  "text": "Ask first"
+  "text": "Ask"
  },
  {
   "depth": 2,
@@ -25,12 +25,7 @@
  {
   "depth": 2,
   "type": "QLabel",
-  "text": "Every change waits for Apply"
- },
- {
-  "depth": 2,
-  "type": "QLabel",
-  "text": "✓"
+  "text": "Shows a plan and waits for Apply"
  },
  {
   "depth": 2,
@@ -49,7 +44,7 @@
  {
   "depth": 2,
   "type": "QLabel",
-  "text": "Applies changes itself; deleting still asks"
+  "text": "Applies at once; deleting still asks"
  },
  {
   "depth": 2,
@@ -68,11 +63,24 @@
  {
   "depth": 2,
   "type": "QLabel",
-  "text": "Looks around and proposes a plan; your data stays as it is"
+  "text": "Proposes a plan, changes nothing"
  },
  {
   "depth": 2,
   "type": "QLabel",
   "text": "3"
+ },
+ {
+  "depth": 1,
+  "type": "QWidget"
+ },
+ {
+  "depth": 2,
+  "type": "QWidget"
+ },
+ {
+  "depth": 1,
+  "type": "QLabel",
+  "text": "Shift+Tab — next mode"
  }
 ]

@@ -1,6 +1,7 @@
 import shutil
 import tempfile
 import unittest
+from types import SimpleNamespace
 
 from ai_agent.core.orchestrator import notices
 from ai_agent.core.orchestrator import orchestrator as orchestrator_module
@@ -1031,3 +1032,161 @@ class StatusOutcomeTest(unittest.TestCase):
         self.orchestrator.on_confirm_needed([Call()], "")
         self.orchestrator.on_applied([Result(ok=False, payload={"error": "boom"})])
         self.assertEqual(self.dock.outcomes, [notices.STATUS_HIDDEN, notices.STATUS_FAILED])
+
+
+class ChromeDock(PlanDock):
+    def __init__(self):
+        super().__init__()
+        self.mention = ""
+        self.titles = []
+        self.saved_notes = 0
+        self.active_layers = []
+
+    def context_mention(self):
+        return self.mention
+
+    def set_conversation_title(self, title):
+        self.titles.append(title)
+
+    def note_conversation_saved(self):
+        self.saved_notes += 1
+
+    def set_active_layer(self, name, detail=""):
+        self.active_layers.append((name, detail))
+
+
+class ChromeFlowTest(unittest.TestCase):
+    """What the panel's chrome hears: the title, the saved note, the active layer and its mention."""
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.root, True)
+        self.dock = ChromeDock()
+        self.orchestrator = CoreOrchestrator(Iface(), self.dock)
+        self.orchestrator.conversation = ConversationState(store=SessionStore(self.root))
+        self.orchestrator.agent = Agent()
+        self.orchestrator._confirm_first_send = lambda *endpoint: True
+
+    def test_the_chip_names_the_active_layer_in_a_new_request(self):
+        self.dock.mention = "@districts"
+        self.orchestrator.on_prompt("colour by population")
+        self.assertEqual(self.orchestrator.agent.started[0], "colour by population @districts")
+
+    def test_a_request_that_names_the_layer_is_left_as_it_is(self):
+        self.dock.mention = "@districts"
+        self.orchestrator.on_prompt("colour @districts by population")
+        self.assertEqual(self.orchestrator.agent.started[0], "colour @districts by population")
+
+    def test_an_answer_to_a_question_carries_no_mention(self):
+        self.dock.mention = "@districts"
+        self.orchestrator.agent.is_awaiting_answer = True
+        self.orchestrator.on_prompt("pop2020")
+        self.assertEqual(self.orchestrator.agent.answered, "pop2020")
+
+    def test_the_first_message_titles_the_conversation(self):
+        self.orchestrator.on_prompt("Which layers are there?")
+        self.assertEqual(self.dock.titles[-1], "Which layers are there?")
+
+    def test_a_new_conversation_after_a_real_one_leaves_a_note(self):
+        self.orchestrator.on_new_session()
+        self.assertEqual(self.dock.saved_notes, 0, "an empty conversation leaves nothing behind")
+        self.orchestrator.conversation.add("user", "hello")
+        self.orchestrator.on_new_session()
+        self.assertEqual(self.dock.saved_notes, 1)
+        self.assertEqual(self.dock.titles[-1], "")
+
+    def test_renaming_the_open_conversation_retitles_the_panel(self):
+        self.orchestrator.conversation.add("user", "hello")
+        self.orchestrator.on_session_renamed(self.orchestrator.conversation.session_identifier, "Greeting")
+        self.assertEqual(self.dock.titles[-1], "Greeting")
+
+    def test_the_chip_follows_the_active_layer(self):
+        from ai_agent.core.orchestrator import presentation
+
+        class Layer(presentation.QgsVectorLayer):
+            def name(self):
+                return "districts"
+
+            def featureCount(self):
+                return 12
+
+        self.orchestrator.iface = SimpleNamespace(activeLayer=lambda: Layer())
+        self.orchestrator.on_active_layer_changed()
+        self.assertEqual(self.dock.active_layers[-1][0], "districts")
+        self.assertIn("12", self.dock.active_layers[-1][1])
+        self.orchestrator.iface = SimpleNamespace(activeLayer=lambda: None)
+        self.orchestrator.on_busy(False)
+        self.assertEqual(self.dock.active_layers[-1], ("", ""))
+
+
+class StepDockWithMarks(PlanDock):
+    def __init__(self):
+        super().__init__()
+        self.marked = []
+        self.next_id = 0
+
+    def add_tool_message(self, text):
+        self.next_id += 1
+        return self.next_id
+
+    def mark_tool_done(self, message_id, ok=True, note=""):
+        self.marked.append((message_id, ok))
+
+
+class KeptTurnTest(unittest.TestCase):
+    """What the feed showed of a turn is kept for a reopened conversation."""
+
+    def setUp(self):
+        from ai_agent.core.state.trace import TRACE_ROLE
+
+        self.trace_role = TRACE_ROLE
+        self.root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.root, True)
+        self.dock = StepDockWithMarks()
+        self.orchestrator = CoreOrchestrator(Iface(), self.dock)
+        self.orchestrator.conversation = ConversationState(store=SessionStore(self.root))
+        self.orchestrator.agent = Agent()
+
+    def test_a_loaded_skill_is_settled_at_once_instead_of_pulsing_forever(self):
+        self.orchestrator.on_skill_loaded("project")
+        self.assertEqual(self.dock.marked, [(1, True)])
+
+    def test_steps_and_reasoning_are_kept_before_the_answer(self):
+        self.orchestrator.conversation.add("user", "Which layers?")
+        self.orchestrator.on_thinking_chunk("Let me look.")
+        self.orchestrator.on_skill_loaded("inspect")
+        self.orchestrator.on_tool_started(summary_of("Reading the project"))
+        self.orchestrator.on_tool_finished("describe_project", True, "3 layers")
+        self.orchestrator.on_finished("Three layers.")
+        messages = self.orchestrator.conversation.messages
+        self.assertEqual([message["role"] for message in messages], ["user", self.trace_role, "assistant"])
+        steps = self.orchestrator.conversation.replayable()[1]["trace"]["steps"]
+        self.assertEqual([step["kind"] for step in steps], ["thought", "call", "call"])
+        self.assertEqual((steps[2]["ok"], steps[2]["note"]), (True, "3 layers"))
+
+    def test_a_plan_card_is_kept_and_settled_when_applied(self):
+        from ai_agent.core.state.trace import APPLIED, CANCELLED
+
+        self.orchestrator.conversation.add("user", "Colour the rivers")
+        self.orchestrator.on_confirm_needed([Call()], "")
+        self.orchestrator.on_applied([Result(ok=True)])
+        plan = next(entry["plan"] for entry in self.orchestrator.conversation.replayable() if "plan" in entry)
+        self.assertEqual((plan["state"], plan["marks"]), (APPLIED, [["done", ""]]))
+        self.assertTrue(plan["at"])
+        self.orchestrator.on_confirm_needed([Call()], "")
+        self.orchestrator.on_cancel_plan()
+        plans = [entry["plan"] for entry in self.orchestrator.conversation.replayable() if "plan" in entry]
+        self.assertEqual(plans[-1]["state"], CANCELLED)
+
+    def test_an_answer_picked_from_the_offered_ones_is_flagged(self):
+        self.orchestrator.agent.is_awaiting_answer = True
+        self.orchestrator.agent.question_options = ["pop2020", "name"]
+        self.orchestrator._confirm_first_send = lambda *endpoint: True
+        self.orchestrator.on_prompt("pop2020")
+        self.assertTrue(self.orchestrator.conversation.messages[-1].get("chosen"))
+
+
+def summary_of(text):
+    from ai_agent.qgis_tools.call_summary import CallSummary
+
+    return CallSummary.marking(text, {})

@@ -21,7 +21,7 @@ import os
 import pathlib
 import re
 
-from qgis.PyQt.QtCore import QRect
+from qgis.PyQt.QtCore import QPoint, QRect
 from qgis.PyQt.QtGui import QColor, QImage, QPainter
 from qgis.PyQt.QtWidgets import (
     QAbstractButton,
@@ -107,11 +107,60 @@ def _text_fault(widget: QWidget) -> str:
         needed = widget.minimumSizeHint().width()
         if needed > widget.width() + FIT_SLACK_PX and not _elides(widget):
             return f"text does not fit ({needed} > {widget.width()})"
-    if isinstance(widget, QAbstractButton) and widget.text():
+    if isinstance(widget, QAbstractButton) and widget.text() and not _elides(widget):
         needed = widget.sizeHint().width()
         if needed > widget.width() + FIT_SLACK_PX:
             return f"button text does not fit ({needed} > {widget.width()})"
     return ""
+
+
+# Ink this close to what lies under it cannot be read: max channel difference, out of 255.
+CONTRAST_FLOOR = 48
+# Every other pixel of a big label; every pixel of a small one, or a thin dash slips between samples.
+CONTRAST_STEP = 2
+SMALL_LABEL = 4000
+
+
+def unreadable_text(root: QWidget, image: QImage) -> list[str]:
+    """Labels whose text cannot be told from what is under it, measured on the grabbed screen.
+
+    White text on the light panel inside a dark QGIS passed every other check: the
+    label was there, the right size, with its words — only nobody could read them.
+    """
+    faults = []
+    ratio = image.devicePixelRatio() or 1.0
+    for widget in _visible(root):
+        if not isinstance(widget, QLabel) or not widget.text().strip():
+            continue
+        shown = widget.visibleRegion().boundingRect()
+        if shown.isEmpty():
+            continue
+        origin = QPoint(0, 0) if widget is root else widget.mapTo(root, QPoint(0, 0))
+        box = shown.translated(origin)
+        # Under a popup laid over the feed, a label shows nothing of its own: nothing to judge.
+        hit = root.childAt(box.center())
+        if hit is not None and hit is not widget and not hit.isAncestorOf(widget):
+            continue
+        rect = QRect(
+            round(box.x() * ratio), round(box.y() * ratio), round(box.width() * ratio), round(box.height() * ratio)
+        ).intersected(image.rect())
+        if rect.isEmpty():
+            continue
+        counts: dict[int, int] = {}
+        step = 1 if rect.width() * rect.height() < SMALL_LABEL else CONTRAST_STEP
+        for y in range(rect.top(), rect.bottom() + 1, step):
+            for x in range(rect.left(), rect.right() + 1, step):
+                rgb = image.pixel(x, y) & 0xFFFFFF
+                counts[rgb] = counts.get(rgb, 0) + 1
+        background = max(counts, key=counts.__getitem__)
+        contrast = max(_channel_distance(rgb, background) for rgb in counts)
+        if contrast < CONTRAST_FLOOR:
+            faults.append(f"text cannot be seen (contrast {contrast}): {_label(widget)}")
+    return faults
+
+
+def _channel_distance(first: int, second: int) -> int:
+    return max(abs(((first >> shift) & 0xFF) - ((second >> shift) & 0xFF)) for shift in (16, 8, 0))
 
 
 def _overflow_fault(widget: QWidget) -> str:
@@ -238,9 +287,12 @@ def _visible(root: QWidget) -> list[QWidget]:
     return [widget for widget in [root, *root.findChildren(QWidget)] if widget.isVisible()]
 
 
-def _elides(label: QLabel) -> bool:
-    # Only the eliding label gives up its width on purpose; any other clipped label is a fault.
-    return type(label).__name__ == "ElidedLabel"
+# Widgets that give up their width on purpose and paint an ellipsis; any other clipped text is a fault.
+ELIDING = ("ElidedLabel", "MenuButton")
+
+
+def _elides(widget: QWidget) -> bool:
+    return type(widget).__name__ in ELIDING
 
 
 def _label(widget: QWidget) -> str:

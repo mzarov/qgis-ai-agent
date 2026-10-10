@@ -18,8 +18,16 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
    Top-level windows — the dock, the settings dialog, every popup — call
    `style.apply_palette` first thing, so stock widgets inside follow the
    theme rather than QGIS. A widget with a style sheet freezes the palette it
-   was polished with: give its text an explicit colour (`style.field_inks`
-   for editors), or it shows QGIS's ink on the panel's background. The QGIS palette only
+   was polished with, and a container with one resets its whole subtree to
+   QGIS's palette (the composer's popup once showed white names on white in a
+   dark QGIS); a QGIS UI theme's `QLabel { color }` rule outranks any palette.
+   So `style.ink` puts a label's colour in its own style sheet too, editors
+   carry `color` in theirs (`style.field_inks` for the placeholder), a
+   container's look is painted (`RoundedFrame`, never a style sheet), and
+   `style.fill` paints a background ahead of the widget instead of
+   auto-filling it, which dark QGIS themes repaint. The screen checks run a
+   light panel in a dark QGIS palette and under Night Mapping, and
+   `ui_snapshot.unreadable_text` fails any label whose ink nobody could see. The QGIS palette only
    decides which set applies, by its lightness, so the plugin follows the
    light and the dark theme. It is deliberately not limited to the QGIS
    colours (the user's call: the plugin must look good, and palette-derived
@@ -37,20 +45,25 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 
 | File | What |
 | ---- | --- |
-| `dock_widget.py`  | the shell: header, feed, composer; conversation menu; the orchestrator contract |
+| `dock_widget.py`  | the shell: title bar, toolbar, feed, composer; the history menu; the orchestrator contract |
+| `chrome.py`       | the dock's own title bar (still mark, name, float, close) and the toolbar (conversation title opening the history, + new, settings); `IconButton` paints hover and a turn |
 | `conversation.py` | a `QScrollArea` with one widget per message, autoscroll, action grouping |
 | `messages.py`     | the user message, the agent reply, the service message |
 | `activity.py`     | the work trace: a fold header ("Working · step N", then "Activity · N steps" and the time) over a timeline of calls, reasoning and the user's choice |
 | `thinking.py`     | a reasoning row's content: "Thinking"/"Thought" with its time, opening a sunken box with the text |
+| `folding.py`      | the feed's folding: a chevron that turns, a body that opens to its height on the handoff's curve |
 | `plan.py`         | the plan card: numbered steps with their kind, Apply and Cancel inside, the outcome with the time and Undo |
 | `welcome.py`      | the empty conversation: the arriving compass, the deal in one sentence, the open project, four examples |
+| `transitions.py`  | the feed's transitions: what leaves is a snapshot that fades and rises, what arrives fades in and settles from below (`Arrival`) |
 | `confirmations.py` | the modal questions: share data with a provider, run destructive steps |
 | `durations.py`    | `3.4 s`, `2 min 5 s` — one formatter for the feed and the settings |
-| `composer.py`     | the input box as in Claude Code: text and the send/stop button inside, the toolbar under it; Enter sends, Esc stops a run; `/` and `@` open the popup |
-| `composer_parts.py` | the editor, `/skill` and `@layer` parsing, token highlighting, the toolbar (+, model) |
-| `sessions_popup.py` | the conversations menu: pick, rename in place, delete after the dock confirms |
+| `composer.py`     | the input box after the handoff: context chips, the text (two lines at least), the row of controls inside; Enter sends, Esc stops a run, Ctrl+N starts over; `/` and `@` open the popup |
+| `composer_parts.py` | the editor, `/skill` and `@layer` parsing, token highlighting, the modes |
+| `composer_controls.py` | the box's bottom row: + (add to context), the mode button, the model's name (said, not a button), the context ring, the round send/stop button |
+| `layer_chip.py`   | the active layer as a chip above the text, × leaves it out until another layer is active |
+| `sessions_popup.py` | the history menu: a new conversation, then the project's conversations by day with their time, rename in place, delete after the dock confirms |
 | `context_meter.py` | the ring under the composer and its popup: window, auto-compact, Compact, spent |
-| `choice_popup.py` | the mode menu as in Claude Code: caption, rows with a note, check and number key |
+| `choice_popup.py` | the mode menu: caption, rows with a note and a number key, the current one lit (no check), the Shift+Tab footer; as wide as its text |
 | `attachments.py`  | the + file pickers, drag-and-drop paths, the picture chips waiting in the composer |
 | `chart.py`        | a chart in the feed: bars, rows, lines, donut, histogram, scatter; painted, hover tips, copy image/CSV |
 | `chart_scale.py`  | axis arithmetic: round ticks, compact numbers, which bar layout fits |
@@ -58,7 +71,7 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `question.py`     | the agent's question card: up to three answers (the first recommended, a why after " — "), a fourth row to type one's own, number keys |
 | `progress.py`     | the status line, the feed's last row: the live compass and a few words — working with the time, waiting for an answer, done in N s, stopped by an error |
 | `compass.py`      | the brand mark: open-ring compass painted on a 24-unit grid; needle rotation per state (rest, search, done, error, ask, arrive), keyframed with per-segment easing |
-| `controls.py`     | custom controls: `Segmented` keeps the combo-box API, `Chips`, `RoundedFrame` (every state-dependent box), icon tiles, badges, keycaps, `ElidedLabel`, menus |
+| `controls.py`     | custom controls: `Segmented` keeps the combo-box API, `Chips`, `RoundedFrame` (every state-dependent box), `HoverFrame` (a lit row that clicks), glyphs, icon buttons and tiles, badges, keycaps, `ElidedLabel`, menus |
 | `connection_widgets.py` | provider tiles and the connection status card |
 | `logos.py`        | provider logos from `ui/logos/*.svg`, tinted to the theme's text colour |
 | `skill_popup.py`  | the list above the composer: prefix-then-substring ranking, keyboard steering, `local` badge |
@@ -88,17 +101,26 @@ device ratio sizes the pixmap, never the drawing. A null icon falls back to
 a text glyph in the header. Add an icon by adding its Lucide file with the
 notice and a role in `icons.NAMES`; `tests/test_icons.py` checks the set.
 
-The dock header carries no title — the dock's title bar already says AI
-Agent — only the token count and the three icon buttons.
+The dock has its own title bar (`chrome.DockTitleBar`): the still compass,
+the name, float and close. A press on its empty part is left to the dock, so
+the panel drags, docks and floats on a double click as with the native bar.
+Under it the toolbar names the open conversation — the orchestrator sends the
+title (`set_conversation_title`), "New conversation" while it is empty — and
+a click on it opens the history; **+** beside it is disabled while the feed
+shows only the welcome (`ConversationView.emptied`), and its plus turns half a
+circle when pressed. Icon buttons are painted (`IconButton`), not styled.
 
 ## Menus and suggestion cards
 
 Every popup menu comes from `controls.menu`: frameless and translucent (so
-the rounded corners are not drawn over a square system frame), a soft edge,
-roomy rows and a quiet highlight. Menus open where there is room: the history
-menu right-aligned under its button, the composer's + menu upwards. The
-history menu lists past conversations only; starting a new one is the button
-beside it.
+the rounded corners are not drawn over a square system frame), a strong
+hairline edge, 30 px rows and a quiet highlight, as in the handoff. Group
+captions are `controls.caption` (small, bold, upper case through the font,
+so translations stay plain text); a menu takes one with `menu_caption`.
+Menus open where there is room: the history left-aligned under the title,
+the composer's + menu and the mode menu upwards. A right-hand note in a menu
+row (*Layer…* 6, *Skill…* /) is the text after a tab, which QMenu sets in its
+shortcut column without binding a shortcut.
 
 Welcome suggestions are `Suggestion` frames with a wrapping label, not
 buttons: button text never wraps, and a long example was cut off in a narrow
@@ -166,13 +188,23 @@ pair of methods so the two states cannot drift apart.
 ## The feed is flat lines, frames mean a decision
 
 The activity list is a timeline, after the design handoff. Its header
-(`TraceHeader`, clickable as a whole) says "Working · step N" while the agent
-works and "Activity · N steps" with the turn's time once it moves on — always
-that, so it never repeats a row. Rows sit **open, without a frame**, one per
-call: the skill's icon (the skill is the `CallSummary.skill` the registry sets)
-in a fixed glyph column, a hairline down to the next row, the wording muted
-with the call's own values bright, and under it the tool's `summarize_result`
-line — what the call found. The running call is a breathing accent ring
+(`TraceHeader`, clickable as a whole) is the timeline's first node: its chevron
+sits in the glyph column and turns as the list opens or closes, and its title —
+"Working · step N" while the agent works, "Activity · N steps" with the turn's
+time once it moves on, never a row repeated — stands level with the steps' text.
+Rows sit **open, without a frame**, one per call: the skill's icon (the skill is
+the `CallSummary.skill` the registry sets; reading wears the layers, Processing
+a square with a play mark, as the handoff draws them) in the fixed glyph column,
+the wording muted with the call's own values bright, and under it the tool's
+`summarize_result` line — what the call found. One hairline joins the nodes; the
+group draws it from each glyph's `mark` (where its drawing sits), stopping
+`LINE_GAP` short of every glyph whatever its size, so dots, rings and icons get
+the same gap. Opening and closing animate (`folding.ClipBox`), and every frame
+lays out the containers above the body at once (`folding.lay_out_above`):
+left to Qt's posted layout requests, a paint landed between two parents and
+the fold stalled, then jumped. A skill being
+loaded or the plan moving on settles at once — such a step is over as it is
+drawn, and left pending it pulsed forever. The running call is a breathing accent ring
 (`PulseRing`); it stops when the call ends, and the screen checks stop it
 before a grab. Reasoning is a row with three dots holding the `ThinkingBlock`;
 a loaded skill reads "Using …" with a `skill` tag; the answer picked on a
@@ -188,6 +220,16 @@ Boxing every turn made the feed read as a wall of cards. A frame with a fill is
 reserved for the one thing that asks the user to act: the plan card. If a new
 element wants a frame, the question to ask is "does it hold buttons?" — if not,
 it is a line or an open list.
+
+## A reopened conversation
+
+What the feed showed of a turn comes back with the conversation: core keeps each
+turn's steps and reasoning, and each plan card with its outcome, as display-only
+entries (`core/state/trace.py`), and the dock's `replay` rebuilds them —
+`ConversationView.add_trace` builds the group folded and still
+(`ActivityGroup.quiet`, `settle`), the reasoning restored with its time, a plan
+card settled as it ended without Undo (the snapshots died with that session), and
+an answer picked on a question card as "You chose …" again.
 
 ## Action grouping
 
@@ -219,19 +261,63 @@ honest.
 
 ## One button for send and stop
 
-While the agent works, the send button does not grey out — it becomes “stop”:
-the glyph, the colour and the tooltip change. There is deliberately no separate
-button — it would be visible always and inactive most of the time. Enter is
-ignored while a run is active; Esc stops it (with the popup open, Esc only
-closes the popup). On an empty box the button is grey; offline it hides, since
-the welcome card already offers Open settings.
+The send button is a painted circle at the end of the box's bottom row
+(`SendButton`): accent with an arrow, pale while there is nothing to send; while
+the agent works it becomes “stop” — a quiet circle with a square, its tooltip
+too. There is deliberately no separate button — it would be visible always and
+inactive most of the time. Enter is ignored while a run is active; Esc stops it
+(with the popup open, Esc only closes the popup). Offline it hides, since the
+welcome card already offers Open settings.
 
-## The conversations menu
+## The composer's context
 
-The Conversations button in the header builds its menu at click time instead of
-keeping a list: it goes stale with every agent reply. The list comes from the
-orchestrator through `set_session_source` — the provider returns
-`(identifier, title)` pairs so that no `core/` types leak into `ui/`.
+Above the text sit chips: the active layer and the pictures waiting to go,
+both 22 px with a 4 px corner. The layer chip shows what the orchestrator
+sends (`set_active_layer`, following QGIS's `currentLayerChanged` and every
+end of a run); when a new run starts the orchestrator asks for its @mention
+(`context_mention`) and appends it unless the request already names the layer
+— answers and interjections never get one. The chip's × leaves the layer out
+until another one is active. **+** adds context: *Layer…* types an @ (the
+layer list opens as if typed), *Skill…* types / into an empty box or opens the
+list over typed text, and a chosen skill then goes first with the text kept
+after it. The model's name sits in the row as quiet monospace — said, never
+offered: no hover, no chevron, no click, as choosing a model belongs to the
+settings (the user's call). Modes are one word each, as in Claude Code — the
+note under each says the rest. Ctrl+N belongs to the box
+only while it has the focus (`ShortcutOverride`), so elsewhere QGIS keeps it
+for a new project.
+
+## The feed's transitions
+
+Starting a new conversation plays the handoff's sequence. The plus turns half a
+circle (400 ms); the old conversation fades and rises 8 px (200 ms, ease-in);
+then the welcome fades in and settles from 10 px below (320 ms,
+cubic-bezier(.2,.7,.3,1)), the line about the saved conversation 120 ms behind,
+while the compass arrives. The same rise plays the other way in (the user's
+call): the first message on the welcome lifts the welcome away and the chat
+rises in, and a conversation opened from the history replaces what was shown
+the same way (opening the one already open does nothing).
+
+The feed changes synchronously, so what leaves is a snapshot (`LeavingFeed`)
+over the viewport, taken just before the change: the dock takes it in
+`_start_new` and `_choose_session` and plays it only once the orchestrator has
+confirmed the switch (`note_conversation_saved`, `replay`) — a refused switch
+drops it; the first message takes its own in `add_user_message`, which a replay
+turns off. What arrives — the welcome card, or the whole feed holder — moves
+inside a graphics effect driven by `transitions.Arrival`, never through its
+layout, so nothing reflows while it plays, and the effect comes off once it has
+arrived.
+
+## The history menu
+
+The conversation's title in the toolbar builds the history at click time
+instead of keeping a list: it goes stale with every agent reply. The list comes
+from the orchestrator through `set_session_source` — the provider returns
+`(identifier, title, updated, current)` tuples so that no `core/` types leak
+into `ui/` — and `sessions_popup.day_groups` sorts them into Today, Yesterday
+and Earlier with a time or a date. Its first row starts a new conversation;
+after one, the welcome says the previous conversation is in the history, with
+a link that opens it (`note_conversation_saved`).
 
 ## The settings window
 
@@ -317,7 +403,7 @@ QGIS too: offscreen renders a smaller font, which hid real layout faults.
 container cascades to every descendant. The composer once changed its frame's
 style sheet in the editor's `focusOutEvent`; Qt swapped the editor's style
 mid-event and QGIS segfaulted in event processing, intermittently and only in
-a full test run. Container backgrounds go through `style.fill` (the palette),
+a full test run. Container backgrounds go through `style.fill` (painted),
 focus and state looks are painted (`controls.RoundedFrame` for the composer,
 provider tiles and popup rows; `Compass`, `PaintedDot`), and a style
 sheet is set only when its text actually changed.

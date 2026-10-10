@@ -319,7 +319,7 @@ get_supports_tools(get_api_url())
 
 ## Conversations
 
-The Conversations button is in the panel header, left of Clear.
+The history opens from the conversation's title in the toolbar; **+** next to it starts a new one.
 
 1. **A conversation survives a restart.** Ask “what layers do I have?”, wait
    for the reply, close QGIS, open it again, open the plugin → Conversations →
@@ -922,16 +922,19 @@ These verify the agent solves everyday tasks without wandering through search.
      tool-using question in the same chat → it also finishes without a 400
      about `reasoning_content` (turns from the first run go back with an empty
      one).
-191. **Auto mode applies by itself.** Click **Ask first** under the box → the
-     Mode menu opens above it, both modes described, a check on the current
-     one; press 2 (or Shift+Tab in the box) → it reads **Auto**; *make the rivers blue* → the card reads
-     "Applying by itself", the rivers turn blue without a click, the check
-     runs after; restart QGIS → the mode is still Auto.
+191. **Auto mode applies by itself.** Click **Ask** in the box → the Mode menu
+     opens above the box, only as wide as its text: one word a mode, each
+     described, *Default* on Ask, the current one lit (no check; the light
+     follows the pointer and comes back when it leaves), *Shift+Tab — next
+     mode* at the bottom; press 2 (or Shift+Tab in the box) → it reads **Auto**; *make the
+     rivers blue* → the card reads "Applying by itself", the rivers turn blue
+     without a click, the check runs after; restart QGIS → the mode is still
+     Auto.
 192. **Auto mode never deletes on its own.** In Auto, *delete the rivers
      shorter than 1 km* → the card waits with **Apply**, which still asks the
      extra destructive question.
 193. **The ring tracks the context.** Ask two questions → the ring next to the
-     model name fills a little more each time; its popup shows the window, a
+     model's name fills a little more each time; its popup shows the window, a
      bar, the room before auto-compaction and tokens with the request count.
 194. **Compact by hand.** In the popup press **Compact** → *Conversation
      compacted · about N tokens saved* appears, the ring drops; a follow-up
@@ -1038,3 +1041,49 @@ These verify the agent solves everyday tasks without wandering through search.
      your map*, the project line under it (file name or *Unsaved project*, the
      layer count, the CRS), four suggestions with icons; a click puts one in
      the box.
+217. **Title bar and toolbar.** The dock's own title bar: the still compass,
+     *AI Agent*, float and close; dragging it still docks the panel, float
+     undocks it, close hides it. Under it the conversation's title (*New
+     conversation* while empty) with a chevron, a **+** greyed out while the
+     conversation is empty, and the settings sliders.
+218. **New conversation and the history.** Ask anything → the title becomes
+     the request, **+** lights up → press it → the plus turns, the old
+     conversation fades upwards, the welcome fades in from below with the
+     compass swinging in and *Previous conversation saved in history · Open*
+     a moment after it; Open →
+     the history under the title: *New conversation* with its shortcut, then
+     the old conversation under Today with its time. Ctrl+N (⌘N) in the chat
+     box starts another one; outside the box QGIS still makes a new project.
+219. **Active layer chip.** Select *districts* in the Layers panel → a chip
+     *districts · N features* sits above the text; *colour this layer by
+     population* → the request in the chat ends with @districts and the agent
+     works on districts. Press × → the chip goes and the next request carries
+     no mention; select another layer → its chip appears.
+220. **The composer's row.** **+** opens *Add to context* upwards: *Layer…*
+     with the layer count opens the @ list, *File or table…* and *Picture…*
+     the file pickers, *Skill…* the / list (with text already typed, the
+     chosen skill goes first). The model's name is quiet monospace text:
+     hovering shows the full name, a click does nothing. The round send
+     button is pale with an empty box,
+     blue with text, a stop square while the agent works.
+221. **The chat rises in.** On the welcome, send a request → the welcome fades
+     upwards and the chat rises in from below. Open a past conversation from
+     the history → what was shown rises away and that conversation rises in;
+     choosing the open one only closes the menu.
+222. **The trace survives a restart.** Ask something that reasons, loads a skill
+     and applies a plan; restart QGIS and open the conversation → the activity
+     lists come back folded with their times, "Thought" opens the same text,
+     the plan card shows how it ended, without Undo.
+223. **Folding animates.** Click an activity header → its chevron turns and the
+     list opens smoothly, the hairline running from the header's chevron down
+     through every glyph with the same small gap; click again → it closes the
+     same way. "Thought ›" opens its box the same way. Click either ten times
+     in a row → every opening and closing runs evenly, never pausing and then
+     jumping, and the title above the box never moves. Folded, the header sits
+     about as far above the answer as below the message before it. A loaded
+     skill's row shows the book, not a pulsing ring, once loaded.
+224. **A light panel in a dark QGIS.** QGIS in its dark look (macOS dark mode,
+     or the Night Mapping UI theme), Panel theme *Light* → type @ and / in the
+     box → every name in both lists is dark and readable, selected or not;
+     the welcome, the trace, the plan and question cards, the mode and history
+     menus read the same.

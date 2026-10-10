@@ -5,11 +5,24 @@
  },
  {
   "depth": 1,
-  "type": "QAbstractButton"
+  "type": "DockTitleBar"
  },
  {
-  "depth": 1,
-  "type": "QAbstractButton"
+  "depth": 2,
+  "type": "Compass"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "AI Agent"
+ },
+ {
+  "depth": 2,
+  "type": "IconButton"
+ },
+ {
+  "depth": 2,
+  "type": "IconButton"
  },
  {
   "depth": 1,
@@ -18,19 +31,28 @@
  },
  {
   "depth": 2,
-  "type": "QWidget"
+  "type": "Toolbar"
  },
  {
   "depth": 3,
-  "type": "QToolButton"
+  "type": "TitleButton"
+ },
+ {
+  "depth": 4,
+  "type": "ElidedLabel",
+  "text": "New conversation"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel"
  },
  {
   "depth": 3,
-  "type": "QToolButton"
+  "type": "IconButton"
  },
  {
   "depth": 3,
-  "type": "QToolButton"
+  "type": "IconButton"
  },
  {
   "depth": 2,
@@ -78,7 +100,7 @@
  },
  {
   "depth": 6,
-  "type": "QLabel"
+  "type": "Chevron"
  },
  {
   "depth": 6,
@@ -92,95 +114,99 @@
  },
  {
   "depth": 5,
-  "type": "QWidget"
+  "type": "ClipBox"
  },
  {
   "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
   "type": "TraceRow"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "ThinkingDots"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "ThinkingBlock"
  },
  {
-  "depth": 8,
+  "depth": 9,
   "type": "ClickLine"
  },
  {
-  "depth": 9,
+  "depth": 10,
   "type": "QLabel",
   "text": "Thought"
  },
  {
-  "depth": 9,
-  "type": "QLabel"
+  "depth": 10,
+  "type": "Chevron"
  },
  {
-  "depth": 9,
+  "depth": 10,
   "type": "QLabel"
- },
- {
-  "depth": 6,
-  "type": "StepRow"
  },
  {
   "depth": 7,
-  "type": "QWidget"
+  "type": "StepRow"
  },
  {
   "depth": 8,
+  "type": "QWidget"
+ },
+ {
+  "depth": 9,
   "type": "QLabel",
   "text": "<span style=\"color: rgb(83, 91, 103);\">Reading layer </span><span style=\"color: rgb(20, 24, 31); font-weight: 500;\">dist"
  },
  {
-  "depth": 8,
+  "depth": 9,
   "type": "QLabel",
   "text": "12 features"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "QLabel"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "StepRow"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "QWidget"
  },
  {
-  "depth": 8,
+  "depth": 9,
   "type": "QLabel",
   "text": "<span style=\"color: rgb(83, 91, 103);\">Reading values of field </span><span style=\"color: rgb(20, 24, 31); font-weight: "
  },
  {
-  "depth": 8,
+  "depth": 9,
   "type": "QLabel",
   "text": "12 values"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "QLabel"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "StepRow"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "PulseRing"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "QWidget"
  },
  {
-  "depth": 8,
+  "depth": 9,
   "type": "QLabel",
   "text": "<span style=\"color: rgb(83, 91, 103);\">Layer </span><span style=\"color: rgb(20, 24, 31); font-weight: 500;\">districts</s"
  },
@@ -204,34 +230,32 @@
  },
  {
   "depth": 5,
-  "type": "QPushButton",
-  "text": "■"
- },
- {
-  "depth": 4,
-  "type": "ComposerToolbar"
- },
- {
-  "depth": 5,
-  "type": "QToolButton",
-  "text": "+"
- },
- {
-  "depth": 5,
-  "type": "QToolButton",
-  "text": "Ask first"
- },
- {
-  "depth": 5,
-  "type": "QLabel",
-  "text": "qwen3"
- },
- {
-  "depth": 5,
-  "type": "ContextMeter"
+  "type": "ComposerControls"
  },
  {
   "depth": 6,
+  "type": "IconButton"
+ },
+ {
+  "depth": 6,
+  "type": "MenuButton",
+  "text": "Ask"
+ },
+ {
+  "depth": 6,
+  "type": "ElidedLabel",
+  "text": "qwen3"
+ },
+ {
+  "depth": 6,
+  "type": "ContextMeter"
+ },
+ {
+  "depth": 7,
   "type": "ContextRing"
+ },
+ {
+  "depth": 6,
+  "type": "SendButton"
  }
 ]

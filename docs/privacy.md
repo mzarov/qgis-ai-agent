@@ -100,7 +100,10 @@ settings file; only the identifier of the stored entry goes into the settings,
 never the secret. Removing the key from the settings window deletes that entry.
 
 Conversation messages and remembered project notes are stored as plain JSON
-under the active QGIS profile in `ai_agent_sessions`. Atomic writes keep a
+under the active QGIS profile in `ai_agent_sessions`. So is what the chat showed
+of each turn, so a reopened conversation shows it again: the activity steps with
+their result lines, the model's reasoning text and the plan cards with their
+outcome. None of that is sent back to the model. Atomic writes keep a
 previous `.bak` copy so a power loss or partial write does not destroy the last
 valid state. These files are not encrypted. Tool results and rendered images
 remain in memory unless their content is repeated in a saved chat message or

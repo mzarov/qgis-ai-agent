@@ -81,8 +81,10 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    (DeepSeek, OpenRouter) and Anthropic `thinking` blocks. `llm/thinking.py`
    cuts the tags out — across chunk boundaries, and before the JSON protocol
    parses, or the parser may pick a candidate object out of the reasoning.
-   The reasoning **text** goes to the UI only and never back to the model or
-   into the saved conversation. Anthropic blocks are the exception: with tools
+   The reasoning **text** goes to the UI and never back to the model; the saved
+   conversation keeps it only as a display-only trace entry (`state/trace.py`)
+   that the model's window skips — a reopened chat shows it again (the user's
+   call). Anthropic blocks are the exception: with tools
    in the run the API demands them back verbatim with their `signature`, so
    `ModelTurn` carries them, the transcript keeps them and `_assistant_message`
    re-emits them first. DeepSeek with the Reasoning switch on is the second:
@@ -144,7 +146,10 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    Do not add branching logic there.
 13. **A message is written with one call.** `ConversationState.add` writes the
    session; the model's window is derived from it (summary, then the messages
-   after `summary_index`). Never keep a second copy of the conversation for the
+   after `summary_index`, `user` and `assistant` only, role and content). What
+   the chat showed besides messages — a turn's steps and reasoning, a plan card,
+   a chart — rides in the same list under display-only roles; `add` writes the
+   turn's pending trace first, so the replay draws it in place. Never keep a second copy of the conversation for the
    model — the two diverge, and the model would see something other than what
    the chat shows.
 14. **Aborting never blocks the main thread.** `abort` does not wait and does not
@@ -262,15 +267,16 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `orchestrator/compacting.py` | the context meter and compaction before a request or by hand |
 | `orchestrator/attaching.py` | attachments in the chat: mentions, waiting pictures, a blind model told so |
 | `orchestrator/slash.py`  | `/skill` parsing and the skill list for the composer |
-| `orchestrator/orchestrator.py` | UI-to-loop wiring: prompts, stop, interjections; the mixins below |
-| `orchestrator/sessions.py` | new conversation, a past one, rename, delete, what a switch cancels |
+| `orchestrator/orchestrator.py` | UI-to-loop wiring: prompts, stop, interjections, the conversation's title, the active layer's chip and its @mention in a new request; the mixins below |
+| `orchestrator/sessions.py` | new conversation (and the note that the old one is saved), a past one, rename, delete, what a switch cancels |
 | `orchestrator/naming.py` | the model names a conversation once, after its first answer |
 | `agent/titling.py`       | the naming request: tool-less, a few words back      |
-| `orchestrator/rewind.py` | rewind to before a message: checkpoints tag snapshots by user message; conversation, project or both |
+| `orchestrator/rewind.py` | rewind to before a message: checkpoints tag snapshots by user message; conversation, project or both; a plan card's Undo |
 | `orchestrator/plans.py`  | the plan card, Apply and Cancel, apply outcomes, verification |
 | `orchestrator/run_events.py` | tool steps, answers, failures and stops drawn into the chat |
 | `orchestrator/notices.py` | every chat and message-bar text of the orchestrator |
 | `orchestrator/contracts.py` | the DockWidget contract                          |
 | `state/conversation.py`  | the model window and the current dialogue, one entry point |
 | `state/session.py`       | the conversation model: title, messages, serialising |
+| `state/trace.py`         | what a turn showed besides its messages — steps, reasoning, plan cards — kept for the replay |
 | `state/store.py`         | conversations on disk, filtered by the open project |

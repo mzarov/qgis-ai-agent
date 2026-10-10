@@ -31,6 +31,7 @@ from ai_agent.ui.composer_parts import MODES
 from ai_agent.ui.messages import SystemMessage
 from ai_agent.ui.plan import PlanCard
 from ai_agent.ui.question import QuestionCard
+from ai_agent.ui.transitions import LeavingFeed
 
 MODEL = "scripted-model"
 SIZES_FILE = "request_sizes.json"
@@ -320,6 +321,16 @@ class ReasoningScenario(ScenarioCase):
         self.assertTrue(blocks[0].isVisibleTo(self.dock.conversation), "a reasoning-only turn must stay in the feed")
         self.assertEqual(self.answers()[-1], "There are three layers.")
         self.shot("reasoning_folded")
+        # Reopened later, the conversation shows the reasoning again; the model never gets it.
+        identifier = self.orchestrator.conversation.session_identifier
+        self.orchestrator.on_new_session()
+        self.orchestrator.on_session_chosen(identifier)
+        pump(0.8)
+        reopened = self.dock.conversation.findChildren(ThinkingBlock)
+        self.assertEqual([block._text for block in reopened if block.isVisibleTo(self.dock.conversation)], [reasoning])
+        window = self.orchestrator.conversation.window()
+        self.assertFalse(any(reasoning in str(message["content"]) for message in window))
+        self.shot("reasoning_reopened")
 
     def test_the_reasoning_switch_asks_and_remembers_a_refusal(self) -> None:
         set_reasoning_enabled(True)
@@ -516,6 +527,69 @@ class RewindScenario(ScenarioCase):
         notes = [message.plain_text() for message in self.dock.conversation.findChildren(SystemMessage)]
         self.assertTrue(any("project is back" in note for note in notes), notes)
         self.shot("rewound")
+
+
+class LayerChipScenario(ScenarioCase):
+    def test_the_active_layer_rides_into_a_new_request_until_dropped(self) -> None:
+        self.model.script(say("districts holds six squares."), say("Three layers."))
+        self.iface.setActiveLayer(self.layer("districts"))
+        chip = self.dock.composer.layer_chip
+        self.assertFalse(chip.isHidden(), "the active layer did not reach the composer")
+        self.assertIn("districts", chip.label.text())
+        self.shot("layer_chip")
+        self.ask("What is in this layer?")
+        self.assertIn("@districts", self.model.sent_text(0))
+        self.assertEqual(self.orchestrator.conversation.messages[0]["content"], "What is in this layer? @districts")
+        chip.drop()
+        self.ask("How many layers are there?")
+        self.assertNotIn("@districts", self.orchestrator.conversation.messages[-2]["content"])
+
+
+class ChromeScenario(ScenarioCase):
+    def test_a_new_conversation_keeps_the_old_one_in_the_history(self) -> None:
+        self.assertFalse(self.dock.toolbar.new_button.isEnabled(), "nothing to start over from yet")
+        self.model.script(say("Three layers."))
+        viewport = self.dock.conversation.viewport()
+        holder = self.dock.conversation.widget()
+        # The first message: the welcome rises away, the chat rises in.
+        self.orchestrator.on_prompt("Which layers are there?")
+        self.assertEqual(len([item for item in viewport.findChildren(LeavingFeed) if item.isVisible()]), 1)
+        self.assertIsNotNone(holder.graphicsEffect(), "the chat must wait behind its entrance")
+        self.wait_idle()
+        pump(0.6)
+        self.assertIsNone(holder.graphicsEffect(), "the chat must paint directly once it is in")
+        self.assertEqual(self.dock.toolbar.title.label.text(), "Which layers are there?")
+        self.assertTrue(self.dock.toolbar.new_button.isEnabled())
+        self.dock.toolbar.new_button.click()
+        welcome = self.dock.conversation._empty
+        self.assertIsNotNone(welcome, "a new conversation opens on the welcome")
+        self.assertFalse(welcome.saved.isHidden(), "the welcome must say where the old conversation went")
+        self.assertNotEqual(self.dock.toolbar.title.label.text(), "Which layers are there?")
+        # The handoff's transition: the old feed leaves over the welcome, then the welcome arrives.
+        leaving = [item for item in viewport.findChildren(LeavingFeed) if item.isVisible()]
+        self.assertEqual(len(leaving), 1, "the old feed did not leave")
+        self.assertIsNotNone(welcome.graphicsEffect(), "the welcome must wait behind its arrival")
+        self.shot_now("new_conversation_leaving", 0.1)
+        self.shot_now("new_conversation_arriving", 0.25)
+        pump(0.6)
+        self.assertEqual([item for item in viewport.findChildren(LeavingFeed) if item.isVisible()], [])
+        self.assertIsNone(welcome.graphicsEffect(), "the welcome must paint directly once it has arrived")
+        self.shot("new_conversation")
+        self.dock._show_sessions()
+        popup = self.dock._sessions_popup
+        try:
+            self.assertEqual([row.title for row in popup.rows], ["Which layers are there?"])
+            self.assertFalse(popup.rows[0].current)
+        finally:
+            popup.hide()
+        # Opening it from the history: the welcome rises away, the conversation rises in.
+        popup.rows[0].chosen.emit(popup.rows[0].identifier)
+        self.assertEqual(self.dock.toolbar.title.label.text(), "Which layers are there?")
+        self.assertEqual(len([item for item in viewport.findChildren(LeavingFeed) if item.isVisible()]), 1)
+        self.assertIsNotNone(holder.graphicsEffect(), "the opened conversation must rise in")
+        pump(0.8)
+        self.assertIsNone(holder.graphicsEffect())
+        self.shot("conversation_reopened")
 
 
 class PlanUndoScenario(ScenarioCase):

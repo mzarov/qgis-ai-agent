@@ -11,8 +11,9 @@ from ai_agent.core.state.conversation import ConversationState
 
 
 class SessionNaming:
-    def __init__(self, conversation: Callable[[], ConversationState]):
+    def __init__(self, conversation: Callable[[], ConversationState], renamed: Callable[[], None] = lambda: None):
         self._conversation = conversation
+        self._renamed = renamed
         self._titler = Titler()
         self._titler.finished.connect(self._on_named)
         self._asked: set[str] = set()
@@ -41,3 +42,4 @@ class SessionNaming:
             return
         conversation.rename(self._scope, title)
         conversation.count_turn(0, read + written)
+        self._renamed()

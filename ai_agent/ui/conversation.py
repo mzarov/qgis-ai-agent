@@ -1,7 +1,7 @@
 from typing import Any
 
 from qgis.PyQt.QtCore import Qt, QTimer, pyqtSignal
-from qgis.PyQt.QtGui import QGuiApplication
+from qgis.PyQt.QtGui import QGuiApplication, QPixmap
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QScrollArea,
@@ -10,8 +10,9 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from ai_agent.config import personal
+from ai_agent.core.state import trace
 from ai_agent.i18n import tr
-from ai_agent.ui import controls, style
+from ai_agent.ui import controls, style, transitions
 from ai_agent.ui.activity import ActivityGroup
 from ai_agent.ui.chart import ChartCard
 from ai_agent.ui.messages import AssistantMessage, SystemMessage, UserMessage
@@ -25,7 +26,8 @@ from ai_agent.ui.welcome import WelcomeCard
 MESSAGE_SPACING = 11
 WELCOME_STRETCH = 1
 TAIL_STRETCH = 1
-SIDE_PADDING = 12
+# The handoff's feed padding: 16 at the sides and the top, 10 above the composer.
+FEED_MARGINS = (16, 16, 16, 10)
 PIN_TOLERANCE = 24
 
 
@@ -41,6 +43,9 @@ class ConversationView(QScrollArea):
     question_answered = pyqtSignal(str)
     suggestion_chosen = pyqtSignal(str)
     settings_requested = pyqtSignal()
+    history_requested = pyqtSignal()
+    # True while the feed shows only the welcome: nothing to start over from.
+    emptied = pyqtSignal(bool)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -55,7 +60,7 @@ class ConversationView(QScrollArea):
         style.fill(holder, style.background(self.palette()))
         self.viewport().setAutoFillBackground(False)
         self._column = QVBoxLayout(holder)
-        self._column.setContentsMargins(SIDE_PADDING, SIDE_PADDING, SIDE_PADDING, SIDE_PADDING)
+        self._column.setContentsMargins(*FEED_MARGINS)
         self._column.setSpacing(MESSAGE_SPACING)
         # The working line is the feed's last row: every message goes in above it.
         self.progress = ProgressLine(self.palette())
@@ -79,6 +84,7 @@ class ConversationView(QScrollArea):
         self._next_id = 1
         self._configured = True
         self._project_line = ""
+        self._saved_shown = False
         self._empty: WelcomeCard | None = None
         self._show_welcome()
 
@@ -99,13 +105,43 @@ class ConversationView(QScrollArea):
         if self._empty is not None:
             self._empty.set_project(text)
 
+    def snapshot(self, with_welcome: bool = False) -> QPixmap | None:
+        """The visible feed as a picture, for the leaving half of a transition; None when the panel is
+        not shown, or when only the welcome shows and `with_welcome` is not asked for."""
+        if not self.isVisible() or (self._empty is not None and not with_welcome):
+            return None
+        return self.viewport().grab()
+
+    def play_new_conversation(self, leaving: QPixmap) -> None:
+        """The handoff's new conversation: the old feed's picture leaves, then the welcome arrives."""
+        card = self._empty
+        if card is None:
+            return
+        card.prepare_arrival()
+        transitions.leave(leaving, self.viewport(), card.arrive)
+
+    def play_entrance(self, leaving: QPixmap) -> None:
+        """What the feed showed leaves upwards, then the feed as it is now rises in from below."""
+        arrival = transitions.Arrival(self.widget())
+        transitions.leave(leaving, self.viewport(), arrival.start)
+
+    def show_saved_hint(self) -> None:
+        """On the welcome after "New conversation": the previous one is in the history."""
+        self._saved_shown = True
+        if self._empty is not None:
+            self._empty.show_saved()
+
     def _show_welcome(self) -> None:
         card = WelcomeCard(self._configured, self._project_line)
         card.suggestion_chosen.connect(self.suggestion_chosen.emit)
         card.settings_requested.connect(self.settings_requested.emit)
+        card.history_requested.connect(self.history_requested.emit)
+        if self._saved_shown:
+            card.show_saved()
         self._empty = card
         self._insert(card, WELCOME_STRETCH)
         self._set_tail_stretch(0)
+        self.emptied.emit(True)
 
     def _drop_welcome(self) -> None:
         if self._empty is None:
@@ -113,6 +149,7 @@ class ConversationView(QScrollArea):
         self._discard(self._empty)
         self._empty = None
         self._set_tail_stretch(TAIL_STRETCH)
+        self.emptied.emit(False)
 
     def _discard(self, widget: QWidget) -> None:
         """Take a widget out of the feed now; Qt deletes it later.
@@ -128,7 +165,16 @@ class ConversationView(QScrollArea):
     def _set_tail_stretch(self, stretch: int) -> None:
         self._column.setStretch(self._column.count() - 1, stretch)
 
-    def add_user_message(self, text: str) -> int:
+    def add_user_message(self, text: str, animate: bool = True) -> int:
+        """The user's message; the first one on the welcome plays the entrance: the welcome rises away,
+        the chat rises in. A replay passes `animate=False` — opening a conversation has its own."""
+        welcome = self.snapshot(with_welcome=True) if animate and self._empty is not None else None
+        entry = self._add_user_message(text)
+        if welcome is not None:
+            self.play_entrance(welcome)
+        return entry
+
+    def _add_user_message(self, text: str) -> int:
         # Any new message makes an earlier plan offer or question card stale.
         self._retire_plan_offers()
         self._retire_questions()
@@ -144,6 +190,11 @@ class ConversationView(QScrollArea):
         bubble = UserMessage(text)
         bubble.rewind_requested.connect(self.rewind_requested.emit)
         return self._append(bubble)
+
+    def add_chosen(self, text: str) -> int:
+        """A reopened answer that was picked on a question card: "You chose …" again, not a bubble."""
+        self._pending_choice = text
+        return self.add_user_message(text, animate=False)
 
     def mark_rewind_point(self, entry_id: int, message: int) -> None:
         bubble = self._entries.get(entry_id)
@@ -238,6 +289,46 @@ class ConversationView(QScrollArea):
             self._activity.mark_rejected(label)
         return entry_id
 
+    def add_trace(self, record: dict[str, Any]) -> None:
+        """A reopened turn's steps and reasoning, folded as the turn left them."""
+        steps = [step for step in record.get("steps") or () if isinstance(step, dict)]
+        if not steps:
+            return
+        self._close_activity()
+        group = ActivityGroup()
+        group.quiet = True
+        self._append(group)
+        for step in steps:
+            kind = step.get("kind")
+            if kind == trace.THOUGHT:
+                block = ThinkingBlock()
+                group.add_widget(block)
+                block.restore(str(step.get("text") or ""), step.get("seconds"))
+            else:
+                group.add_recorded_step(step)
+        group.settle(record.get("seconds"))
+
+    def add_recorded_plan(self, record: dict[str, Any]) -> None:
+        """A reopened plan card, settled as it ended; never undoable, the snapshots died with that session."""
+        lines = [str(line) for line in record.get("lines") or ()]
+        entry_id = self.add_plan_card(lines)
+        card = self._entries.get(entry_id)
+        if not isinstance(card, PlanCard):
+            return
+        for index, mark in enumerate(record.get("marks") or ()):
+            if isinstance(mark, (list, tuple)) and len(mark) == 2:
+                card.mark_step(index, str(mark[0]), str(mark[1]))
+        state, at = record.get("state"), str(record.get("at") or "")
+        if state == trace.APPLIED:
+            card.mark_applied(False, at)
+        elif state == trace.FAILED:
+            card.mark_failed(False, at)
+        elif state == trace.UNDONE:
+            card.mark_undone(at)
+        else:
+            # Never applied before the conversation was closed: the batch is gone with that session.
+            card.mark_cancelled()
+
     def add_plan_card(self, steps: list[str], applies_itself: bool = False) -> int:
         self._close_activity()
         card = PlanCard(steps, applies_itself)
@@ -314,6 +405,7 @@ class ConversationView(QScrollArea):
         self._questions = []
         self._entries.clear()
         self._empty = None
+        self._saved_shown = False
         self.progress.clear_outcome()
         self._show_welcome()
 

@@ -5,11 +5,24 @@
  },
  {
   "depth": 1,
-  "type": "QAbstractButton"
+  "type": "DockTitleBar"
  },
  {
-  "depth": 1,
-  "type": "QAbstractButton"
+  "depth": 2,
+  "type": "Compass"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "AI Agent"
+ },
+ {
+  "depth": 2,
+  "type": "IconButton"
+ },
+ {
+  "depth": 2,
+  "type": "IconButton"
  },
  {
   "depth": 1,
@@ -18,19 +31,29 @@
  },
  {
   "depth": 2,
-  "type": "QWidget"
+  "type": "Toolbar"
  },
  {
   "depth": 3,
-  "type": "QToolButton"
+  "type": "TitleButton"
+ },
+ {
+  "depth": 4,
+  "type": "ElidedLabel",
+  "text": "New conversation"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel"
  },
  {
   "depth": 3,
-  "type": "QToolButton"
+  "type": "IconButton",
+  "enabled": false
  },
  {
   "depth": 3,
-  "type": "QToolButton"
+  "type": "IconButton"
  },
  {
   "depth": 2,
@@ -143,43 +166,45 @@
  },
  {
   "depth": 5,
-  "type": "AttachmentChips"
+  "type": "QWidget"
  },
  {
   "depth": 6,
+  "type": "AttachmentChips"
+ },
+ {
+  "depth": 7,
   "type": "AttachmentChip"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "QLabel"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "ElidedLabel",
   "text": "sketch.png"
  },
  {
-  "depth": 7,
-  "type": "QToolButton",
-  "text": "×"
+  "depth": 8,
+  "type": "QToolButton"
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "AttachmentChip"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "QLabel"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "ElidedLabel",
   "text": "a photo of the paper map from the archive.jpg"
  },
  {
-  "depth": 7,
-  "type": "QToolButton",
-  "text": "×"
+  "depth": 8,
+  "type": "QToolButton"
  },
  {
   "depth": 5,
@@ -188,34 +213,32 @@
  },
  {
   "depth": 5,
-  "type": "QPushButton",
-  "text": "↵"
- },
- {
-  "depth": 4,
-  "type": "ComposerToolbar"
- },
- {
-  "depth": 5,
-  "type": "QToolButton",
-  "text": "+"
- },
- {
-  "depth": 5,
-  "type": "QToolButton",
-  "text": "Ask first"
- },
- {
-  "depth": 5,
-  "type": "QLabel",
-  "text": "qwen3"
- },
- {
-  "depth": 5,
-  "type": "ContextMeter"
+  "type": "ComposerControls"
  },
  {
   "depth": 6,
+  "type": "IconButton"
+ },
+ {
+  "depth": 6,
+  "type": "MenuButton",
+  "text": "Ask"
+ },
+ {
+  "depth": 6,
+  "type": "ElidedLabel",
+  "text": "qwen3"
+ },
+ {
+  "depth": 6,
+  "type": "ContextMeter"
+ },
+ {
+  "depth": 7,
   "type": "ContextRing"
+ },
+ {
+  "depth": 6,
+  "type": "SendButton"
  }
 ]

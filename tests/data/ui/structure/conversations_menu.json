@@ -5,8 +5,29 @@
  },
  {
   "depth": 1,
+  "type": "NewRow"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel"
+ },
+ {
+  "depth": 2,
   "type": "QLabel",
-  "text": "Conversations"
+  "text": "New conversation"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "Ctrl+N"
+ },
+ {
+  "depth": 1,
+  "type": "QWidget"
+ },
+ {
+  "depth": 2,
+  "type": "QWidget"
  },
  {
   "depth": 1,
@@ -18,12 +39,27 @@
  },
  {
   "depth": 3,
+  "type": "QLabel",
+  "text": "Today"
+ },
+ {
+  "depth": 3,
   "type": "SessionRow"
  },
  {
   "depth": 4,
   "type": "ElidedLabel",
   "text": "Town layers and what is in them"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "<time>"
+ },
+ {
+  "depth": 3,
+  "type": "QLabel",
+  "text": "Yesterday"
  },
  {
   "depth": 3,
@@ -35,6 +71,16 @@
   "text": "Roads coloured by type, cafés labelled"
  },
  {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "<time>"
+ },
+ {
+  "depth": 3,
+  "type": "QLabel",
+  "text": "Earlier"
+ },
+ {
   "depth": 3,
   "type": "SessionRow"
  },
@@ -42,5 +88,10 @@
   "depth": 4,
   "type": "ElidedLabel",
   "text": "A very long conversation title that has to be cut short in the menu"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
+  "text": "01.09"
  }
 ]

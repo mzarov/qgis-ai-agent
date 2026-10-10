@@ -21,7 +21,7 @@ from qgis.core import (
     QgsVectorFileWriter,
     QgsVectorLayer,
 )
-from qgis.PyQt.QtCore import QCoreApplication, QEvent, QEventLoop
+from qgis.PyQt.QtCore import QCoreApplication, QEvent, QEventLoop, QObject, pyqtSignal
 from qgis.PyQt.QtWidgets import QMainWindow
 
 from ai_agent.core.settings import (
@@ -49,10 +49,24 @@ class _MessageBar:
         self.messages.append(text)
 
 
-class _Interface:
+class _Interface(QObject):
+    """The part of QgisInterface the plugin touches, the active layer included."""
+
+    currentLayerChanged = pyqtSignal(object)
+
     def __init__(self) -> None:
+        super().__init__()
         self.window = QMainWindow()
         self.bar = _MessageBar()
+        self._active = None
+
+    def activeLayer(self) -> object:
+        return self._active
+
+    def setActiveLayer(self, layer: object) -> bool:
+        self._active = layer
+        self.currentLayerChanged.emit(layer)
+        return True
 
     def mainWindow(self) -> QMainWindow:
         return self.window
@@ -166,6 +180,12 @@ class PluginCase(unittest.TestCase):
     def shot(self, name: str) -> None:
         ARTIFACTS.mkdir(parents=True, exist_ok=True)
         pump(0.2)
+        self.dock.grab().save(str(ARTIFACTS / f"{name}.png"))
+
+    def shot_now(self, name: str, after: float) -> None:
+        """A frame `after` seconds on, for a transition caught in the middle."""
+        ARTIFACTS.mkdir(parents=True, exist_ok=True)
+        pump(after)
         self.dock.grab().save(str(ARTIFACTS / f"{name}.png"))
 
     def layer(self, name: str) -> QgsVectorLayer:

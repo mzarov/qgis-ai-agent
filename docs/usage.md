@@ -1,9 +1,14 @@
 # Usage
 
 Open the panel from the **AI Agent** menu entry or the toolbar icon, type a
-request, press Enter. Shift+Enter breaks the line. Type `/` (or use the
-skill button under the box) to pick a skill and `@` to pick a layer; both are
-highlighted in the text. The model name under the box opens the settings. While the agent
+request, press Enter. Shift+Enter breaks the line. The bar on top shows the
+conversation's title — click it for the history — with **+** for a new
+conversation and the settings beside it. Type `/` to pick a skill and `@` to
+pick a layer, or use **+** in the box: a layer, a file or table, a picture, a
+skill; both are highlighted in the text. The layer active in QGIS sits above
+the text as a chip: a new request names it, so *colour this layer* means that
+one; its × leaves it out until another layer is active. The box also names
+the model in use; it is changed in the settings. While the agent
 works, the line under the newest message shows a swinging compass and the
 time, the send button becomes a stop button and Esc stops the run too; typing
 meanwhile corrects the agent. Once the run stops, the same line says whether
@@ -57,9 +62,9 @@ and your choice stays in the activity list as *You chose …*.
 
 ### Auto mode
 
-The mode button under the chat box, next to **+**, shows **Ask first** or
-**Auto**; click it for the mode menu (number keys choose) or press Shift+Tab in
-the box to switch. In Auto the plan card applies itself the
+The mode button in the chat box, next to **+**, shows **Ask** or **Auto**;
+click it for the mode menu (number keys choose) or press Shift+Tab in the box
+to switch. In Auto the plan card applies itself the
 moment it appears — styles, layers, fields, processing, OSM downloads, web
 search and page reading included — and the check after it still runs. A batch
 with a destructive step (deleting features, overwriting a file, Python code)
@@ -72,7 +77,7 @@ snapshot, so *undo the last change* works the same. The mode is remembered.
 The third mode, **Plan**, changes nothing: the agent may only read — layers,
 fields, values, the web — and answers with a numbered plan of the changes it
 would make, with exact names and the order. Under the plan two buttons run it:
-**Run with approval** (switches to Ask first) or **Run automatically**
+**Run with approval** (switches to Ask) or **Run automatically**
 (switches to Auto); to change the plan, just reply to it. A step the model tries
 to run anyway is refused, not queued. Web search and page reading still ask
 for consent per call. Processing algorithms count as changes, even the ones
@@ -105,14 +110,20 @@ before the plan card appears.
 ## Conversations
 
 Conversations persist across QGIS restarts and are bound to the project: the
-**Conversations** menu lists only the ones started in the currently open
-project. After the first answer the model names the conversation in a few words,
+history — click the conversation's title in the bar on top — lists only the
+ones started in the currently open project, by day (Today, Yesterday, Earlier)
+with their time, the open one highlighted. Its first row starts a new
+conversation, like the **+** beside the title or Ctrl+N (⌘N on macOS) in the
+chat box; the welcome then says the previous conversation is in the history,
+with a link back to it. After the first answer the model names the conversation in a few words,
 as Claude does; until then the title is the start of your first message.
-Hovering a conversation in the menu shows a pencil to rename it in place (Enter
+Hovering a conversation in the history swaps its time for a pencil to rename it in place (Enter
 keeps, Esc drops — a name you chose is never replaced) and a bin to delete it
 for good after a confirmation; deleting the open conversation starts a fresh one.
 Restoring a conversation restores the model's context too — a follow-up like
-*and how many are there?* keeps working.
+*and how many are there?* keeps working — and what the chat showed of each turn:
+the activity lists with the reasoning, the answers picked on question cards and
+the plan cards with how they ended, folded as they were left.
 
 ### Rewinding to an earlier message
 
@@ -133,7 +144,7 @@ empty, and the agent says which.
 
 ### The context window
 
-The ring next to the model name under the chat box fills with the share of the
+The ring at the right of the chat box, beside the model's name, fills with the share of the
 model's context window the latest request used; click it for the numbers:
 
 - **Context window** — the latest request against the window, with a bar.

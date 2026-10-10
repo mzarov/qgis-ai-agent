@@ -59,6 +59,10 @@ class _Stub(metaclass=_Meta):
     def isHidden(self):
         return not self.__dict__.get("_stub_visible", True)
 
+    def window(self):
+        # No window is ever on screen in these tests: what would animate there changes at once.
+        return _OffScreen()
+
     def __int__(self):
         return 0
 
@@ -93,6 +97,11 @@ class _Stub(metaclass=_Meta):
         return False
 
     def __ge__(self, other):
+        return False
+
+
+class _OffScreen(_Stub):
+    def isVisible(self):
         return False
 
 
@@ -203,7 +212,8 @@ class _Palette:
 
 class _Label(_Stub):
     def __init__(self, text="", *a, **k):
-        self._text = str(text)
+        # A parent passed first is not text: QPlainTextEdit(parent), QLineEdit(parent).
+        self._text = text if isinstance(text, str) else ""
 
     def setText(self, text):
         self._text = str(text)
@@ -216,6 +226,12 @@ class _Label(_Stub):
 
     def textFormat(self):
         return getattr(self, "_text_format", None)
+
+    def setToolTip(self, tip):
+        self._tip = str(tip)
+
+    def toolTip(self):
+        return getattr(self, "_tip", "")
 
 
 class _Toggle(_Label):
@@ -306,7 +322,40 @@ class _PlainText(_Label):
         return self._text
 
 
+class _Button(_Stub):
+    """A button remembers its text, tooltip and enabled state; a click emits `clicked`."""
+
+    def __init__(self, *a, **k):
+        self._text = ""
+        self._tip = ""
+        self._enabled = True
+        self.clicked = _BoundSignal()
+
+    def setText(self, text):
+        self._text = str(text)
+
+    def text(self):
+        return self._text
+
+    def setToolTip(self, tip):
+        self._tip = str(tip)
+
+    def toolTip(self):
+        return self._tip
+
+    def setEnabled(self, enabled):
+        self._enabled = bool(enabled)
+
+    def isEnabled(self):
+        return self._enabled
+
+    def click(self):
+        if self._enabled:
+            self.clicked.emit()
+
+
 _FAKES = {
+    "QAbstractButton": _Button,
     "QColor": _Colour,
     "QPalette": _Palette,
     "QLabel": _Label,
@@ -471,6 +520,7 @@ _mod(
         "QPixmap",
         "QImage",
         "QPainterPath",
+        "QRegion",
         "QDesktopServices",
         "QTextCursor",
         "QSyntaxHighlighter",
@@ -481,6 +531,7 @@ _mod(
     "qgis.PyQt.QtWidgets",
     [
         "QWidget",
+        "QAbstractButton",
         "QDockWidget",
         "QVBoxLayout",
         "QHBoxLayout",
@@ -503,6 +554,7 @@ _mod(
         "QDialogButtonBox",
         "QToolButton",
         "QScrollArea",
+        "QAbstractScrollArea",
         "QTextBrowser",
         "QFrame",
         "QSizePolicy",
@@ -512,6 +564,8 @@ _mod(
         "QGraphicsOpacityEffect",
         "QFileDialog",
         "QToolTip",
+        "QWidgetAction",
+        "QGraphicsEffect",
     ],
 )
 _qtcore.pyqtSignal = pyqtSignal

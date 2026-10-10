@@ -7,7 +7,6 @@ from qgis.PyQt.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QPlainTextEdit,
-    QPushButton,
     QVBoxLayout,
     QWidget,
 )
@@ -15,40 +14,43 @@ from qgis.PyQt.QtWidgets import (
 from ai_agent.i18n import tr
 from ai_agent.ui import controls, style
 from ai_agent.ui.attachments import DATA, PICTURE, AttachmentChips, choose_files
+from ai_agent.ui.composer_controls import ComposerControls
 from ai_agent.ui.composer_parts import (
     MENTION,
     MODES,
     SLASH,
-    ComposerToolbar,
     PromptEdit,
     PromptHighlighter,
     mention_query,
     mention_text,
     slash_query,
 )
+from ai_agent.ui.layer_chip import LayerChip
 from ai_agent.ui.skill_popup import SkillPopup
 
-PLACEHOLDER = tr("Ask about the project…")
+PLACEHOLDER = tr("Ask about the project or ask to change the map…")
 PLACEHOLDER_BUSY = tr("Type to correct me…")
 PLACEHOLDER_OFFLINE = tr("Connect a model to start")
 FRAME_NAME = "composerFrame"
-FRAME_RADIUS = 14
+FRAME_RADIUS = 8
+MIN_LINES = 2
 MAX_LINES = 8
 HEIGHT_SLACK = 4
-SEND_SIZE = 28
-SEND_RADIUS = 7
-SEND_GLYPH = "↵"
-STOP_GLYPH = "■"
+CHIPS_MARGINS = (8, 8, 8, 0)
+EDIT_MARGINS = (12, 6, 12, 2)
 MODE_SKILL = "skill"
 MODE_LAYER = "layer"
 
 
 class Composer(QWidget):
+    """The input box after the design handoff: context chips, the text, and the row of controls inside."""
+
     submitted = pyqtSignal(str)
     stopped = pyqtSignal()
     files_attached = pyqtSignal(list)
     mode_changed = pyqtSignal(str)
     compact_requested = pyqtSignal()
+    new_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -67,36 +69,54 @@ class Composer(QWidget):
 
         self._frame = controls.RoundedFrame(FRAME_RADIUS)
         self._frame.setObjectName(FRAME_NAME)
-        self._send_look = ""
         framed = QVBoxLayout(self._frame)
         framed.setContentsMargins(0, 0, 0, 0)
         framed.setSpacing(0)
-        self.attachments = AttachmentChips(palette)
-        self.attachments.setContentsMargins(8, 6, 8, 0)
-        framed.addWidget(self.attachments)
-        # One row like Claude Code: the text grows line by line, the button stays at the bottom right.
-        inner = QHBoxLayout()
-        inner.setContentsMargins(12, 6, 6, 6)
-        inner.setSpacing(8)
-        inner.addWidget(self._build_edit(), 1, Qt.AlignmentFlag.AlignVCenter)
-        inner.addWidget(self._build_send(), 0, Qt.AlignmentFlag.AlignBottom)
-        framed.addLayout(inner)
-        column.addWidget(self._frame)
-        self.toolbar = ComposerToolbar(palette)
-        self.toolbar.set_model("")
+        framed.addWidget(self._build_chips(palette))
+        edit_row = QHBoxLayout()
+        edit_row.setContentsMargins(*EDIT_MARGINS)
+        edit_row.addWidget(self._build_edit())
+        framed.addLayout(edit_row)
+        self.toolbar = ComposerControls(palette, lambda: len(self._layers()))
         self.toolbar.data_requested.connect(lambda: self._choose(DATA))
         self.toolbar.picture_requested.connect(lambda: self._choose(PICTURE))
+        self.toolbar.layer_requested.connect(self._start_mention)
+        self.toolbar.skill_requested.connect(self._start_skill)
         self.toolbar.mode_chosen.connect(self._on_mode)
         self.toolbar.meter.compact_requested.connect(self.compact_requested.emit)
-        column.addWidget(self.toolbar)
+        self._send = self.toolbar.send
+        self._send.clicked.connect(self._on_button)
+        framed.addWidget(self.toolbar)
+        column.addWidget(self._frame)
         self._paint()
+
+    def _build_chips(self, palette: Any) -> QWidget:
+        """The context above the text: the active layer and the pictures waiting to go."""
+        self._chips = QWidget()
+        row = QHBoxLayout(self._chips)
+        row.setContentsMargins(*CHIPS_MARGINS)
+        row.setSpacing(6)
+        self.layer_chip = LayerChip(palette)
+        self.layer_chip.changed.connect(self._sync_chips)
+        row.addWidget(self.layer_chip, 0, Qt.AlignmentFlag.AlignVCenter)
+        self.attachments = AttachmentChips(palette)
+        self.attachments.changed.connect(self._sync_chips)
+        row.addWidget(self.attachments, 0, Qt.AlignmentFlag.AlignVCenter)
+        row.addStretch(1)
+        self._chips.setVisible(False)
+        return self._chips
+
+    def _sync_chips(self) -> None:
+        self._chips.setVisible(not self.layer_chip.isHidden() or not self.attachments.isHidden())
 
     def _build_edit(self) -> QPlainTextEdit:
         self._edit = PromptEdit()
         self._edit.setPlaceholderText(PLACEHOLDER)
         self._edit.setAccessibleName(tr("Request"))
         self._edit.setFrameShape(QFrame.Shape.NoFrame)
-        self._edit.setStyleSheet("QPlainTextEdit { border: none; background: transparent; }")
+        # The typed text's colour in the editor's own sheet: a QGIS UI theme's rule for editors outranks a palette.
+        ink = style.css_color(style.text(self.palette()))
+        self._edit.setStyleSheet(f"QPlainTextEdit {{ border: none; background: transparent; color: {ink}; }}")
         # The style sheet froze the palette it was polished with — possibly QGIS's, not the panel
         # theme's — so the text and the placeholder get their ink explicitly.
         style.field_inks(self._edit, self.palette())
@@ -114,16 +134,11 @@ class Composer(QWidget):
         self._edit.escaped.connect(self._on_escape)
         self._edit.files_dropped.connect(self.files_attached.emit)
         self._edit.mode_cycled.connect(self._next_mode)
+        self._edit.new_requested.connect(self.new_requested.emit)
         self._edit.focus_changed.connect(self._on_focus)
         self._edit.textChanged.connect(self._on_text_changed)
         self._grow()
         return self._edit
-
-    def _build_send(self) -> QPushButton:
-        self._send = QPushButton(SEND_GLYPH)
-        self._send.setFixedSize(SEND_SIZE, SEND_SIZE)
-        self._send.clicked.connect(self._on_button)
-        return self._send
 
     def _paint(self) -> None:
         """Frame, hint and button follow one state: offline, busy, typing or idle."""
@@ -141,25 +156,9 @@ class Composer(QWidget):
         self._paint_send(has_text)
 
     def _paint_send(self, has_text: bool) -> None:
-        """A bare glyph as in Claude Code: dim and disabled with nothing to send, bright once there is,
-        and a rounded plate only under the pointer."""
-        palette = self.palette()
-        active = self._busy or has_text
-        glyph, name = (STOP_GLYPH, tr("Stop")) if self._busy else (SEND_GLYPH, tr("Send"))
-        self._send.setEnabled(active)
-        self._send.setText(glyph)
-        self._send.setToolTip(name)
-        self._send.setAccessibleName(name)
-        look = (
-            f"QPushButton {{ background: transparent; color: {style.css_color(style.text(palette))};"
-            f"border: none; border-radius: {SEND_RADIUS}px; font-weight: 600; }}"
-            f"QPushButton:hover {{ background: {style.css_color(style.card(palette))}; }}"
-            f"QPushButton:disabled {{ color: {style.css_color(style.faint(palette))}; background: transparent; }}"
-        )
-        # Restyle only on a real change: a style sheet set per keystroke repolishes for nothing.
-        if look != self._send_look:
-            self._send_look = look
-            self._send.setStyleSheet(look)
+        """Dimmed with nothing to send, bright once there is; a stop square while the agent works."""
+        self._send.setEnabled(self._busy or has_text)
+        self._send.set_busy(self._busy)
 
     def _on_focus(self, focused: bool) -> None:
         self._focused = focused
@@ -229,12 +228,29 @@ class Composer(QWidget):
             self._insert_skill(name)
 
     def _insert_skill(self, name: str) -> None:
-        self._edit.setPlainText(f"{SLASH}{name} ")
+        """Put `/name ` first: a typed /query gives way, any other text stays after the skill."""
+        text = self._edit.toPlainText()
+        rest = "" if text.startswith(SLASH) else text.strip()
+        self._edit.setPlainText(f"{SLASH}{name} {rest}".rstrip() + " ")
         self._edit.moveCursor(QTextCursor.MoveOperation.End)
         self._hide_popup()
 
-    def set_model(self, name: str) -> None:
-        self.toolbar.set_model(name)
+    def _start_mention(self) -> None:
+        """Layer… in the + menu: an @ at the cursor opens the layer list as if typed."""
+        cursor = self._edit.textCursor()
+        before = self._edit.toPlainText()[: cursor.position()]
+        cursor.insertText(MENTION if not before or before[-1].isspace() else f" {MENTION}")
+        self._edit.setFocus()
+
+    def _start_skill(self) -> None:
+        """Skill… in the + menu: an empty box gets the / that opens the list; text already typed stays,
+        and the list opens over it so the chosen skill goes first."""
+        if not self._edit.toPlainText().strip():
+            self._edit.setPlainText(SLASH)
+            self._edit.moveCursor(QTextCursor.MoveOperation.End)
+        else:
+            self._open_popup(MODE_SKILL, "", self._skills(), SLASH)
+        self._edit.setFocus()
 
     def _insert_layer(self, name: str) -> None:
         text = self._edit.toPlainText()
@@ -259,14 +275,14 @@ class Composer(QWidget):
         self._on_submit()
 
     def _grow(self, *_args: Any) -> None:
-        """Fit the editor to its wrapped lines, one line at least and MAX_LINES at most."""
+        """Fit the editor to its wrapped lines, MIN_LINES at least and MAX_LINES at most."""
         try:
             wanted = max(1, int(round(float(self._edit.document().size().height()))))
             margin = 2 * float(self._edit.document().documentMargin()) + 2 * float(self._edit.frameWidth())
             line = float(self._line_height())
         except (TypeError, ValueError):
             return
-        lines = min(MAX_LINES, wanted)
+        lines = min(MAX_LINES, max(MIN_LINES, wanted))
         self._edit.setFixedHeight(int(lines * line + margin + HEIGHT_SLACK))
         # A scroll bar only once the text outgrows the cap; below it the box simply grows.
         policy = Qt.ScrollBarPolicy.ScrollBarAsNeeded if wanted > MAX_LINES else Qt.ScrollBarPolicy.ScrollBarAlwaysOff
@@ -304,8 +320,19 @@ class Composer(QWidget):
         if paths:
             self.files_attached.emit(paths)
 
+    def set_model(self, name: str) -> None:
+        self.toolbar.set_model(name)
+
     def set_context(self, used: int, window: int, spent: int, turns: int = 0) -> None:
         self.toolbar.meter.set_numbers(used, window, spent, turns)
+
+    def set_active_layer(self, name: str, detail: str = "") -> None:
+        self.layer_chip.set_layer(name, detail)
+
+    def context_mention(self) -> str:
+        """The @mention of the layer the chip carries into a new request; empty without one."""
+        name = self.layer_chip.active_name
+        return mention_text(name) if name else ""
 
     @property
     def mode(self) -> str:

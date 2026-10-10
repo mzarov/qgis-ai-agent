@@ -8,11 +8,11 @@ one sends it. Without a configured model the card asks for settings instead.
 
 from typing import Any
 
-from qgis.PyQt.QtCore import Qt, pyqtSignal
+from qgis.PyQt.QtCore import QRect, Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
 from ai_agent.i18n import tr
-from ai_agent.ui import compass, controls, icons, style
+from ai_agent.ui import compass, controls, icons, style, transitions
 from ai_agent.ui import settings_fields as fields
 
 STACK_GAP = 10
@@ -35,6 +35,9 @@ NEEDS_KEY_BODY = tr(
 OPEN_SETTINGS = tr("Open settings")
 READY_TITLE = tr("Ask about your map")
 READY_BODY = tr("Your model, your keys, your project. Nothing changes without your approval.")
+SAVED = tr("Previous conversation saved in history")
+OPEN = tr("Open")
+SAVED_ICON = 12
 # Each example wears the icon of what it does: read, style, imagery, measure.
 SUGGESTIONS = (
     ("layer", tr("Which layers are in the project and what is in them?")),
@@ -91,6 +94,7 @@ class Suggestion(QFrame):
 class WelcomeCard(QWidget):
     suggestion_chosen = pyqtSignal(str)
     settings_requested = pyqtSignal()
+    history_requested = pyqtSignal()
 
     def __init__(self, configured: bool, project: str = "", parent: Any = None):
         super().__init__(parent)
@@ -121,12 +125,58 @@ class WelcomeCard(QWidget):
         column.addLayout(stack)
         if not suggestions:
             column.addWidget(self._settings_button(palette))
+        # After "New conversation": where the previous one went, and a way back to it.
+        self.saved = self._saved_line(palette)
+        self.saved.setVisible(False)
+        self._arrival: transitions.Arrival | None = None
+        column.addWidget(self.saved, 0, Qt.AlignmentFlag.AlignHCenter)
         column.addStretch(1)
 
     def set_project(self, text: str) -> None:
         self.project.label.setText(text)
         self.project.label.setToolTip(text)
         self.project.setVisible(bool(text) and self._configured)
+
+    def show_saved(self) -> None:
+        self.saved.setVisible(True)
+
+    def prepare_arrival(self) -> None:
+        """Wait unseen until `arrive` (the old conversation is still leaving)."""
+        self._arrival = transitions.Arrival(self, self._saved_rect)
+
+    def arrive(self) -> None:
+        """Fade in and settle from below, the saved line a little behind, while the compass arrives."""
+        if self._arrival is None:
+            return
+        self.mark.set_state(compass.ARRIVE)
+        self._arrival.start()
+        self._arrival = None
+
+    def _saved_rect(self) -> QRect | None:
+        return self.saved.geometry() if not self.saved.isHidden() else None
+
+    def _saved_line(self, palette: Any) -> QWidget:
+        holder = QWidget()
+        line = QHBoxLayout(holder)
+        line.setContentsMargins(0, 0, 0, 0)
+        line.setSpacing(6)
+        line.addWidget(controls.glyph("saved", style.faint(palette), SAVED_ICON))
+        text = QLabel(SAVED)
+        style.scale_font(text, SMALL)
+        style.ink(text, style.faint(palette))
+        line.addWidget(text)
+        link = QPushButton(OPEN)
+        style.scale_font(link, SMALL)
+        link.setCursor(Qt.CursorShape.PointingHandCursor)
+        link.setFlat(True)
+        link.setStyleSheet(
+            f"QPushButton {{ border: none; background: transparent; padding: 0 2px;"
+            f" color: {style.css_color(style.accent(palette))}; }}"
+            f"QPushButton:hover {{ color: {style.css_color(style.accent_hover(palette))}; }}"
+        )
+        link.clicked.connect(self.history_requested.emit)
+        line.addWidget(link)
+        return holder
 
     def _suggestion(self, role: str, text: str, palette: Any) -> QFrame:
         card = Suggestion(role, text, palette)

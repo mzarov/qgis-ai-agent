@@ -20,6 +20,7 @@ from ai_agent.core.orchestrator.notices import (
     STATUS_HIDDEN,
     SWITCH_WHILE_RUNNING,
 )
+from ai_agent.core.state.trace import UNDONE
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.project.restore import restore_snapshot
 from ai_agent.qgis_tools.project.snapshots import MAX_SNAPSHOTS, drop_snapshot, last_snapshot, snapshot_exists
@@ -111,6 +112,7 @@ class RewindMixin:
             if plan_id == message_id or snapshot in gone:
                 del self._plan_snapshots[plan_id]
                 self.dock_widget.mark_plan_undone(plan_id)
+                self._plan_settled(UNDONE, plan_id=plan_id)
         self.dock_widget.add_system_message(note)
         # The next request starts from the conversation: the model must know the changes are gone.
         self.conversation.add("assistant", UNDONE_PROJECT)

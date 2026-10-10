@@ -37,9 +37,11 @@ class QgisAiAgentPlugin:
         self.iface.addPluginToMenu(MENU_TITLE, self.menu_action)
         self.iface.addToolBarIcon(self.menu_action)
         self._connect_project_lifecycle()
+        self._follow_active_layer(True)
 
     def unload(self) -> None:
         self._disconnect_project_lifecycle()
+        self._follow_active_layer(False)
         if self._orchestrator:
             self._orchestrator.shutdown()
         self._orchestrator = None
@@ -126,6 +128,21 @@ class QgisAiAgentPlugin:
         old.deleteLater()
         self.iface.addDockWidget(area, self.dock_widget)
         self.dock_widget.setVisible(visible)
+
+    def _follow_active_layer(self, following: bool) -> None:
+        """The composer's chip names the layer QGIS has active."""
+        try:
+            signal = self.iface.currentLayerChanged
+            if following:
+                signal.connect(self._on_active_layer)
+            else:
+                signal.disconnect(self._on_active_layer)
+        except (AttributeError, TypeError, RuntimeError):
+            return
+
+    def _on_active_layer(self, *_layer: Any) -> None:
+        if self._orchestrator is not None:
+            self._orchestrator.on_active_layer_changed()
 
     def _connect_project_lifecycle(self) -> None:
         project = QgsProject.instance()

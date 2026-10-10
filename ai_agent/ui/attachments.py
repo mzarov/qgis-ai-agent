@@ -22,9 +22,13 @@ PICTURE_FILTER = tr("Pictures (*.png *.jpg *.jpeg *.webp *.gif *.bmp)")
 DATA_TITLE = tr("Add data to the project")
 PICTURE_TITLE = tr("Attach a picture for the model")
 REMOVE = tr("Remove")
-CHIP_RADIUS = 8
-CHIP_HEIGHT = 30
-THUMB = 20
+# The same chip as the active layer's: 22 px, a 4 px corner, small muted text.
+CHIP_RADIUS = 4
+CHIP_HEIGHT = 22
+THUMB = 16
+ICON = 12
+CLOSE_RADIUS = 3
+TEXT_SCALE = 12 / 13
 NAME_WIDTH = 160
 CHIP_GAP = 6
 
@@ -46,6 +50,13 @@ def local_files(mime: Any) -> list[str]:
     return [url.toLocalFile() for url in urls]
 
 
+def chip_close(tooltip: str, palette: Any) -> QToolButton:
+    """The × at the end of a chip, this one's or the active layer's."""
+    return controls.icon_button(
+        "close", "×", tooltip, style.faint(palette), palette, CHIP_HEIGHT - 4, ICON, CLOSE_RADIUS
+    )
+
+
 class AttachmentChip(controls.RoundedFrame):
     removed = pyqtSignal(str)
 
@@ -55,8 +66,8 @@ class AttachmentChip(controls.RoundedFrame):
         self.setFixedHeight(CHIP_HEIGHT)
         self.set_look(style.card(palette).name(), style.hairline(palette).name())
         line = QHBoxLayout(self)
-        line.setContentsMargins(5, 0, 2, 0)
-        line.setSpacing(6)
+        line.setContentsMargins(3, 0, 2, 0)
+        line.setSpacing(5)
         thumb = QLabel()
         thumb.setFixedSize(THUMB, THUMB)
         picture = QPixmap(path)
@@ -68,27 +79,20 @@ class AttachmentChip(controls.RoundedFrame):
             )
         line.addWidget(thumb)
         name = controls.ElidedLabel(os.path.basename(path), mode=Qt.TextElideMode.ElideMiddle)
+        style.scale_font(name, TEXT_SCALE)
         # An eliding label claims no width of its own: give it the name's, up to a cap.
         name.setFixedWidth(min(NAME_WIDTH, name.fontMetrics().horizontalAdvance(name.text()) + 2))
-        name.setStyleSheet(f"color: {style.css_color(style.text(palette))};")
+        style.ink(name, style.muted(palette))
         line.addWidget(name)
-        close = QToolButton()
-        close.setText("×")
-        close.setToolTip(REMOVE)
-        close.setAccessibleName(REMOVE)
-        close.setAutoRaise(True)
-        close.setCursor(Qt.CursorShape.PointingHandCursor)
-        close.setStyleSheet(
-            f"QToolButton {{ border: none; background: transparent; padding: 0 5px;"
-            f"color: {style.css_color(style.muted(palette))}; }}"
-            f"QToolButton:hover {{ color: {style.css_color(style.text(palette))}; }}"
-        )
+        close = chip_close(REMOVE, palette)
         close.clicked.connect(lambda: self.removed.emit(self.path))
         line.addWidget(close)
 
 
 class AttachmentChips(QWidget):
     """The pictures waiting for the next request; hidden while there are none."""
+
+    changed = pyqtSignal()
 
     def __init__(self, palette: Any, parent: QWidget | None = None):
         super().__init__(parent)
@@ -112,6 +116,7 @@ class AttachmentChips(QWidget):
         self._chips.append(chip)
         self._line.insertWidget(len(self._chips) - 1, chip)
         self.setVisible(True)
+        self.changed.emit()
 
     def remove(self, path: str) -> None:
         for chip in [chip for chip in self._chips if chip.path == path]:
@@ -121,6 +126,7 @@ class AttachmentChips(QWidget):
             # Deleted later: the chip's own button is still inside its clicked signal.
             chip.deleteLater()
         self.setVisible(bool(self._chips))
+        self.changed.emit()
 
     def take(self) -> list[str]:
         paths = self.paths

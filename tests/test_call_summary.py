@@ -69,9 +69,14 @@ class StepMarkupTest(unittest.TestCase):
         self.assertNotIn("font-weight", markup)
 
     def test_a_skill_being_loaded_wears_the_skill_tag(self):
+        from ai_agent.ui import activity
+
         summary = CallSummary.marking("Using style.", {})
         summary.skill = "knowledge"
-        self.assertIn("skill", step_markup(summary, self.palette))
+        row = StepRow(summary, self.palette)
+        # A chip of its own: rich text in a label draws no border round a span.
+        self.assertEqual(row.tag.text(), activity.SKILL_TAG)
+        self.assertIsNone(StepRow("Reading the project.", self.palette).tag)
 
 
 if __name__ == "__main__":

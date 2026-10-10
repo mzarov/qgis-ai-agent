@@ -15,9 +15,13 @@ from qgis.PyQt.QtGui import QColor, QKeyEvent
 from qgis.PyQt.QtWidgets import QLineEdit, QWidget
 
 from ai_agent.ui import compass, controls, progress, settings_fields
+from ai_agent.ui.activity import ActivityGroup
 from ai_agent.ui.composer_parts import LAYER_TOKEN, SKILL_TOKEN
+from ai_agent.ui.conversation import ConversationView
 from ai_agent.ui.dropdown import Dropdown
+from ai_agent.ui.messages import AssistantMessage
 from ai_agent.ui.settings_dialog import SettingsDialog
+from ai_agent.ui.thinking import ThinkingBlock
 
 
 class SegmentedTest(unittest.TestCase):
@@ -69,6 +73,107 @@ class CompassMotionTest(unittest.TestCase):
         pump(compass.MOTIONS[compass.DONE].milliseconds / 1000 + 0.3)
         self.assertAlmostEqual(mark.angle, 0.0, places=1)
         mark.deleteLater()
+
+
+class FoldMotionTest(unittest.TestCase):
+    """Every frame of a fold leaves the whole feed laid out. Qt passes a size change up one parent per
+    round of posted events; a frame painted between rounds showed the reasoning grown inside a trace
+    that had not, and the motion stalled, then jumped."""
+
+    def setUp(self) -> None:
+        self.view = ConversationView()
+        # Shorter than the feed: the scroll area has to follow each frame as well.
+        self.view.resize(560, 260)
+        self.view.show()
+        self.view.add_user_message("Which layers are in the project?", animate=False)
+        thought = "The user asks which layers there are and what they hold. Let me inspect the project first."
+        steps = [
+            {"kind": "thought", "text": thought, "seconds": 0.4},
+            {"kind": "call", "text": "Looking at the whole project", "parts": [], "skill": "inspect", "ok": True},
+            {"kind": "call", "text": "Looking at the layers", "parts": [], "skill": "inspect", "ok": True},
+        ]
+        self.view.add_trace({"steps": steps, "seconds": 0.4})
+        self.view.add_assistant_message("\n\n".join(["Two raster basemaps, no attribute data."] * 6))
+        pump(0.2)
+        self.feed = self.view.widget()
+        self.group = self.feed.findChildren(ActivityGroup)[0]
+        self.block = self.feed.findChildren(ThinkingBlock)[0]
+        self.answer = self.feed.findChildren(AssistantMessage)[0]
+
+    def tearDown(self) -> None:
+        self.view.hide()
+        self.view.deleteLater()
+
+    def _top(self, widget: QWidget) -> int:
+        return widget.mapTo(self.feed, QPoint(0, 0)).y()
+
+    def _assert_laid_out(self) -> None:
+        for clip in (self.block._clip, self.group._rows_holder):
+            if clip.isVisible():
+                self.assertEqual(clip.height(), min(clip.maximumHeight(), clip.natural_height()))
+        if self.block._clip.isVisible():
+            # No slack under the box: the block shrank or grew with it, and so did every row below.
+            fitted = self.block.layout().contentsMargins().top() + self.block._line.height() + self.block._clip.height()
+            self.assertEqual(self.block.height(), max(fitted, self.block.parentWidget().glyph.height()))
+        below = self._top(self.group) + self.group.height() + self.view._column.spacing()
+        self.assertEqual(self._top(self.answer), below)
+        self.assertGreaterEqual(self.feed.height(), self.feed.heightForWidth(self.feed.width()))
+
+    def _frames(self, fold) -> None:
+        # One frame at a time and no event processing in between: what a paint at that moment shows.
+        for value in (0.15, 0.4, 0.7, 1.0):
+            fold._step(value)
+            self._assert_laid_out()
+
+    def test_the_reasoning_moves_the_trace_and_the_answer_in_the_same_frame(self) -> None:
+        self.group._header.set_expanded(True)
+        self.group.finish_folding()
+        pump(0.1)
+        title = self._top(self.block._line)
+        self.block.set_expanded(True)
+        self._frames(self.block._clip)
+        self.assertEqual(self._top(self.block._line), title, "the title stays put while its box opens")
+        self.block.finish_folding()
+        self.block.set_expanded(False)
+        self._frames(self.block._clip)
+        self.block.finish_folding()
+
+    def test_the_trace_moves_the_answer_in_the_same_frame(self) -> None:
+        self.group._header.set_expanded(True)
+        self._frames(self.group._rows_holder)
+        self.group.finish_folding()
+        self.group._header.set_expanded(False)
+        self._frames(self.group._rows_holder)
+        self.group.finish_folding()
+
+
+class TraceSpacingTest(unittest.TestCase):
+    def test_reasoning_alone_sits_as_close_above_the_answer_as_a_folded_trace(self) -> None:
+        view = ConversationView()
+        view.resize(560, 600)
+        view.show()
+        view.add_user_message("Which layers?", animate=False)
+        step = {"kind": "call", "text": "Looking at the layers", "parts": [], "skill": "inspect", "ok": True}
+        view.add_trace({"steps": [step], "seconds": 0.4})
+        view.add_assistant_message("Two layers.")
+        view.add_user_message("Thanks", animate=False)
+        view.add_trace({"steps": [{"kind": "thought", "text": "Nothing to do.", "seconds": 0.3}], "seconds": 0.3})
+        view.add_assistant_message("You are welcome.")
+        pump(0.2)
+        feed = view.widget()
+        trace, reasoning = feed.findChildren(ActivityGroup)
+        first, second = feed.findChildren(AssistantMessage)
+
+        def gap(line: QWidget, answer: QWidget) -> float:
+            # From the middle of the line the eye reads to the answer: the two lines differ in height.
+            return answer.mapTo(feed, QPoint(0, 0)).y() - line.mapTo(feed, QPoint(0, 0)).y() - line.height() / 2
+
+        # The reasoning title sits at the top of its glyph's box like every step's text, the header's is
+        # centred in it: a pixel or two apart, never a row gap.
+        thought_line = reasoning.findChildren(ThinkingBlock)[0]._line
+        self.assertLessEqual(abs(gap(thought_line, second) - gap(trace._header, first)), 3)
+        view.hide()
+        view.deleteLater()
 
 
 class DropdownPlacementTest(unittest.TestCase):
@@ -216,17 +321,19 @@ class ComposerBehaviourTest(PluginCase):
         pump(0.05)
         try:
             self.assertTrue(toolbar.menu.isVisible())
-            self.assertEqual([action.isEnabled() for action in toolbar.menu.actions()], [True, True])
+            # A caption, then Layer…, File or table…, Picture…, a separator and Skill….
+            labels = [action.text().split("\t")[0] for action in toolbar.menu.actions() if action.text()]
+            self.assertEqual(labels, ["Layer…", "File or table…", "Picture…", "Skill…"])
             self.assertLess(toolbar.menu.geometry().bottom(), toolbar.attach.mapToGlobal(QPoint(0, 0)).y())
         finally:
             toolbar.menu.hide()
 
-    def test_the_box_starts_as_one_line_and_grows_to_a_cap(self) -> None:
+    def test_the_box_starts_at_two_lines_and_grows_to_a_cap(self) -> None:
         edit = self.dock.composer._edit
-        one_line = edit.height()
+        two_lines = edit.height()
         edit.setPlainText("first\nsecond\nthird")
         pump(0.05)
-        self.assertGreater(edit.height(), one_line)
+        self.assertGreater(edit.height(), two_lines)
         edit.setPlainText("line\n" * 30)
         pump(0.05)
         capped = edit.height()
@@ -236,7 +343,7 @@ class ComposerBehaviourTest(PluginCase):
         self.assertEqual(edit.verticalScrollBarPolicy(), Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         edit.clear()
         pump(0.05)
-        self.assertEqual(edit.height(), one_line)
+        self.assertEqual(edit.height(), two_lines)
 
     def test_the_popup_never_grows_wider_than_the_composer(self) -> None:
         composer = self.dock.composer

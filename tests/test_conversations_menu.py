@@ -107,9 +107,9 @@ class RowTest(unittest.TestCase):
     def test_a_row_renames_in_place_and_asks_before_deleting(self):
         from qgis.PyQt.QtWidgets import QWidget
 
-        from ai_agent.ui.sessions_popup import SessionRow
+        from ai_agent.ui.sessions_popup import Entry, SessionRow
 
-        row = SessionRow("id1", "Старое", QWidget().palette())
+        row = SessionRow(Entry("id1", "Старое"), "12:30", QWidget().palette())
         renamed: list[tuple[str, str]] = []
         deletions: list[tuple[str, str]] = []
         row.renamed.connect(lambda identifier, title: renamed.append((identifier, title)))
@@ -120,6 +120,55 @@ class RowTest(unittest.TestCase):
         self.assertEqual(renamed, [("id1", "Новое")])
         row._ask_delete()
         self.assertEqual(deletions, [("id1", "Новое")])
+
+
+class DayGroupsTest(unittest.TestCase):
+    """The history menu groups conversations by day, newest first, a time today and yesterday, a date before."""
+
+    def test_today_yesterday_and_earlier(self):
+        from datetime import datetime
+
+        from ai_agent.ui import sessions_popup
+        from ai_agent.ui.sessions_popup import Entry, day_groups
+
+        now = datetime(2026, 10, 8, 15, 0).timestamp()
+        entries = [
+            Entry("old", "Old", datetime(2026, 9, 1, 9, 5).timestamp()),
+            Entry("today", "Today", datetime(2026, 10, 8, 14, 32).timestamp(), True),
+            Entry("last-year", "Last year", datetime(2025, 12, 31, 23, 0).timestamp()),
+            Entry("yesterday", "Yesterday", datetime(2026, 10, 7, 9, 10).timestamp()),
+        ]
+        groups = day_groups(entries, now)
+        self.assertEqual(
+            [(label, [(entry.identifier, meta) for entry, meta in items]) for label, items in groups],
+            [
+                (sessions_popup.TODAY, [("today", "14:32")]),
+                (sessions_popup.YESTERDAY, [("yesterday", "09:10")]),
+                (sessions_popup.EARLIER, [("old", "01.09"), ("last-year", "31.12.2025")]),
+            ],
+        )
+
+    def test_a_clock_that_ran_ahead_still_reads_as_today(self):
+        from datetime import datetime
+
+        from ai_agent.ui import sessions_popup
+        from ai_agent.ui.sessions_popup import Entry, day_groups
+
+        now = datetime(2026, 10, 8, 15, 0).timestamp()
+        ahead = Entry("ahead", "Ahead", datetime(2026, 10, 9, 1, 0).timestamp())
+        self.assertEqual(day_groups([ahead], now)[0][0], sessions_popup.TODAY)
+
+    def test_the_open_conversation_is_marked_by_the_state(self):
+        root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, root, True)
+        state = ConversationState(store=SessionStore(root))
+        state.add("user", "первый")
+        past = state.session_identifier
+        state.start_new()
+        state.add("user", "второй")
+        listed = {entry[0]: entry[3] for entry in state.recent()}
+        self.assertEqual(listed, {past: False, state.session_identifier: True})
+        self.assertEqual(state.title, "второй")
 
 
 if __name__ == "__main__":

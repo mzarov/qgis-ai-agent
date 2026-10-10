@@ -70,7 +70,8 @@ class DraftTest(unittest.TestCase):
 
 class DockHeaderContractTest(unittest.TestCase):
     def test_header_starts_a_real_new_conversation(self):
-        self.assertIn('tr("New conversation"), self.new_session_clicked.emit', DOCK_SOURCE)
+        self.assertIn("self.toolbar.new_requested.connect(self._start_new)", DOCK_SOURCE)
+        self.assertIn("self.new_session_clicked.emit()", DOCK_SOURCE)
         self.assertNotIn("def _on_clear", DOCK_SOURCE)
 
 
@@ -377,14 +378,17 @@ class ActivityTitleTest(unittest.TestCase):
         row = StepRow("<b>visible literally</b><!-- hidden -->", QWidget().palette())
         self.assertIn("&lt;b&gt;visible literally&lt;/b&gt;", row._label.text())
 
-    def test_the_rows_are_joined_by_the_timeline(self):
+    def test_every_node_says_where_its_drawing_sits_for_the_timeline(self):
+        from ai_agent.ui import activity
+
         view = ConversationView()
         view.append_thinking("hmm")
-        for text in ("one", "two", "three"):
-            view.add_activity_step(text)
-        items = view._activity.items
-        self.assertEqual(len(items), 4)
-        self.assertEqual([item.connected for item in items], [True, True, True, False])
+        view.add_activity_step("one")
+        self.assertEqual(len(view._activity.items), 2)
+        # The group stops its hairline LINE_GAP short of each drawing, whatever the glyph's size.
+        marks = [view._activity._header.chevron.mark, activity.ThinkingDots.mark, activity.PulseRing.mark]
+        for top, bottom in [*marks, activity.ICON_MARK]:
+            self.assertTrue(0 <= top < bottom <= activity.GLYPH_BOX)
 
 
 class FailedPlanCardTest(unittest.TestCase):

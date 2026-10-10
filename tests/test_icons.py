@@ -9,6 +9,7 @@ SOURCE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "
 DOCK = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "dock_widget.py").read_text(
     encoding="utf-8"
 )
+CHROME = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "chrome.py").read_text(encoding="utf-8")
 COORDINATE = re.compile(r"QPointF\(([0-9.]+), ([0-9.]+)\)")
 PLUGIN = pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "plugin.py"
 BRAND_ICON = pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "icon.svg"
@@ -16,24 +17,32 @@ RENDERED_ICON = pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "i
 
 
 class ApiTest(unittest.TestCase):
-    def test_header_has_an_icon_for_every_button(self):
-        for name in ("sessions", "clear", "settings"):
+    def test_the_chrome_has_an_icon_for_every_button(self):
+        for name in ("float", "close", "new", "settings", "send", "mode", "saved", "file"):
             self.assertIn(name, icons.NAMES)
 
-    def test_dock_uses_the_drawn_set(self):
-        self.assertIn("icons.drawn(role", DOCK)
-        for name in ('"sessions"', '"clear"', '"settings"'):
-            self.assertIn(name, DOCK)
+    def test_the_chrome_uses_the_drawn_set(self):
+        self.assertIn("icons.drawn(role", CHROME)
+        for name in ('"float"', '"close"', '"new"', '"settings"'):
+            self.assertIn(name, CHROME)
 
     def test_dock_no_longer_names_qgis_theme_icons(self):
         self.assertNotIn(".svg", DOCK)
+        self.assertNotIn(".svg", CHROME)
 
     def test_glyph_fallback_survives(self):
-        self.assertIn("button.setText(glyph)", DOCK)
         from unittest import mock
 
+        from qgis.PyQt.QtWidgets import QWidget
+
+        from ai_agent.ui.chrome import IconButton
+
         with mock.patch.object(icons, "glyph", side_effect=RuntimeError("no QtSvg")):
-            self.assertIsNone(icons.drawn("sessions", None, 15))
+            self.assertIsNone(icons.drawn("new", None, 15))
+            button = IconButton("new", "+", "New conversation", QWidget().palette(), 28, 16)
+        # No artwork: the button paints its text glyph instead.
+        self.assertIsNone(button._rest)
+        self.assertEqual(button._fallback, "+")
 
     def test_toolbar_icon_is_loaded_from_the_package_root(self):
         source = PLUGIN.read_text(encoding="utf-8")

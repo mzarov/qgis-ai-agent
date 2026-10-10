@@ -56,11 +56,14 @@ class SkillRow(controls.RoundedFrame):
         self.hovered.emit(self.name)
 
 
-class SkillPopup(QFrame):
+class SkillPopup(controls.RoundedFrame):
+    """The list above the composer. Its box is painted: a style sheet on it reset its rows' palette to
+    QGIS's, and in a dark QGIS the light panel's names came out white on white."""
+
     chosen = pyqtSignal(str)
 
     def __init__(self, host: QWidget):
-        super().__init__(host)
+        super().__init__(style.CARD_RADIUS, host)
         self._host = host
         self._palette = host.palette()
         self._matches: list[tuple[str, str, str]] = []
@@ -68,11 +71,7 @@ class SkillPopup(QFrame):
         self._index = 0
         self._prefix = SKILL_PREFIX
         self.setObjectName(POPUP_NAME)
-        self.setStyleSheet(
-            f"QFrame#{POPUP_NAME} {{ background: {style.css_color(style.panel(self._palette))};"
-            f"border: {style.HAIRLINE}px solid {style.css_color(style.hairline(self._palette))};"
-            f"border-radius: {style.CARD_RADIUS}px; }}"
-        )
+        self.set_look(style.panel(self._palette).name(), style.hairline(self._palette).name())
         self._column = QVBoxLayout(self)
         self._column.setContentsMargins(*POPUP_MARGINS)
         self._column.setSpacing(0)
@@ -118,7 +117,8 @@ class SkillPopup(QFrame):
         self._rows = []
         if not self._matches:
             empty = QLabel(EMPTY)
-            empty.setStyleSheet(f"color: {style.css_color(style.muted(self._palette))}; padding: 5px 10px;")
+            empty.setContentsMargins(10, 5, 10, 5)
+            style.ink(empty, style.muted(self._palette))
             self._rows.append(self._wrap(empty))
         for name, description, origin in self._matches:
             self._rows.append(self._row(name, description, origin))
@@ -145,12 +145,13 @@ class SkillPopup(QFrame):
         font = title.font()
         font.setBold(True)
         title.setFont(font)
+        style.ink(title, style.text(self._palette))
         line.addWidget(title)
         if origin == "local":
             line.addWidget(controls.badge(LOCAL_BADGE, "accent", self._palette))
         note = controls.ElidedLabel(description)
         style.scale_font(note, DESCRIPTION_SCALE)
-        note.setStyleSheet(f"color: {style.css_color(style.muted(self._palette))};")
+        style.ink(note, style.muted(self._palette))
         line.addWidget(note, 1)
         return frame
 
@@ -158,14 +159,20 @@ class SkillPopup(QFrame):
         role = "layer" if self._prefix == LAYER_PREFIX else "skills"
         return controls.icon_tile(role, self._palette, ICON_TILE, ICON_SIZE, ICON_RADIUS, self._prefix)
 
-    def _footer(self) -> QFrame:
-        footer = QFrame()
+    def _footer(self) -> QWidget:
+        """The key hints under a hairline; the line is a filled strip, not a border in a style sheet."""
+        footer = QWidget()
         footer.setObjectName(FOOTER_NAME)
-        footer.setStyleSheet(
-            f"QFrame#{FOOTER_NAME} {{ border-top: {style.HAIRLINE}px solid"
-            f" {style.css_color(style.hairline(self._palette))}; }}"
-        )
-        line = QHBoxLayout(footer)
+        column = QVBoxLayout(footer)
+        column.setContentsMargins(0, 0, 0, 0)
+        column.setSpacing(0)
+        rule = QWidget()
+        rule.setFixedHeight(style.HAIRLINE)
+        style.fill(rule, style.hairline(self._palette))
+        column.addWidget(rule)
+        keys = QWidget()
+        column.addWidget(keys)
+        line = QHBoxLayout(keys)
         line.setContentsMargins(8, 6, 8, 2)
         line.setSpacing(5)
         for keys, word in ((("↑", "↓"), KEY_CHOOSE), (("Tab",), KEY_INSERT), (("Esc",), KEY_CLOSE)):

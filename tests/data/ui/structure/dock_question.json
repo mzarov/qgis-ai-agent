@@ -5,11 +5,24 @@
  },
  {
   "depth": 1,
-  "type": "QAbstractButton"
+  "type": "DockTitleBar"
  },
  {
-  "depth": 1,
-  "type": "QAbstractButton"
+  "depth": 2,
+  "type": "Compass"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "AI Agent"
+ },
+ {
+  "depth": 2,
+  "type": "IconButton"
+ },
+ {
+  "depth": 2,
+  "type": "IconButton"
  },
  {
   "depth": 1,
@@ -18,19 +31,28 @@
  },
  {
   "depth": 2,
-  "type": "QWidget"
+  "type": "Toolbar"
  },
  {
   "depth": 3,
-  "type": "QToolButton"
+  "type": "TitleButton"
+ },
+ {
+  "depth": 4,
+  "type": "ElidedLabel",
+  "text": "New conversation"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel"
  },
  {
   "depth": 3,
-  "type": "QToolButton"
+  "type": "IconButton"
  },
  {
   "depth": 3,
-  "type": "QToolButton"
+  "type": "IconButton"
  },
  {
   "depth": 2,
@@ -161,39 +183,37 @@
  {
   "depth": 5,
   "type": "PromptEdit",
-  "text": "Ask about the project…"
+  "text": "Ask about the project or ask to change the map…"
  },
  {
   "depth": 5,
-  "type": "QPushButton",
-  "text": "↵",
-  "enabled": false
- },
- {
-  "depth": 4,
-  "type": "ComposerToolbar"
- },
- {
-  "depth": 5,
-  "type": "QToolButton",
-  "text": "+"
- },
- {
-  "depth": 5,
-  "type": "QToolButton",
-  "text": "Ask first"
- },
- {
-  "depth": 5,
-  "type": "QLabel",
-  "text": "qwen3"
- },
- {
-  "depth": 5,
-  "type": "ContextMeter"
+  "type": "ComposerControls"
  },
  {
   "depth": 6,
+  "type": "IconButton"
+ },
+ {
+  "depth": 6,
+  "type": "MenuButton",
+  "text": "Ask"
+ },
+ {
+  "depth": 6,
+  "type": "ElidedLabel",
+  "text": "qwen3"
+ },
+ {
+  "depth": 6,
+  "type": "ContextMeter"
+ },
+ {
+  "depth": 7,
   "type": "ContextRing"
+ },
+ {
+  "depth": 6,
+  "type": "SendButton",
+  "enabled": false
  }
 ]
