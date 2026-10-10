@@ -231,7 +231,7 @@ class ComposerControls(QWidget):
         self.menu.popup(QPoint(above.x(), above.y() - self.menu.sizeHint().height() - controls.MENU_GAP))
 
     def _open_modes(self) -> None:
-        # The menu spans the whole box the row sits in, and opens above it.
+        # Above the box the row sits in, left edges aligned; as wide as its text, never wider than the box.
         self.modes.open_above(self.parentWidget() or self, self._mode)
 
 
