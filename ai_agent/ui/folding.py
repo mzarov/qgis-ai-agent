@@ -16,12 +16,13 @@ widget deleted mid-fold takes its ticks with it.
 from collections.abc import Callable
 from typing import Any
 
-from qgis.PyQt.QtCore import QCoreApplication, QEvent, QObject, QSize, QVariantAnimation
+from qgis.PyQt.QtCore import QCoreApplication, QEvent, QSize, QVariantAnimation
 from qgis.PyQt.QtGui import QPainter
 from qgis.PyQt.QtWidgets import QAbstractScrollArea, QWidget
 
 from ai_agent.ui import icons, style
 from ai_agent.ui.compass import cubic_bezier
+from ai_agent.ui.transitions import animation
 
 FOLD_MS = 220
 TURN_MS = 160
@@ -43,16 +44,14 @@ class Chevron(QWidget):
         self._size = size
         self._icon = icons.drawn("collapsed", style.faint(palette), size)
         self.angle = 0.0
-        self.setFixedSize(box or size, box or size)
-        self._turn = QVariantAnimation(self)
-        self._turn.setDuration(TURN_MS)
-        self._turn.valueChanged.connect(self._step)
+        self.setFixedSize(side, side)
+        self._turn = animation(self, TURN_MS, self._step)
 
     def set_open(self, open_: bool, animate: bool = True) -> None:
         target = OPEN_DEGREES if open_ else 0.0
         self._turn.stop()
         if not animate or not self.isVisible():
-            self._step_to(target)
+            self._step(target)
             return
         self._turn.setStartValue(self.angle)
         self._turn.setEndValue(target)
@@ -61,13 +60,10 @@ class Chevron(QWidget):
     def finish(self) -> None:
         if self._turn.state() == QVariantAnimation.State.Running:
             self._turn.stop()
-            self._step_to(float(self._turn.endValue()))
+            self._step(self._turn.endValue())
 
-    def _step(self, value: Any) -> None:
-        self._step_to(float(value))
-
-    def _step_to(self, angle: float) -> None:
-        self.angle = angle
+    def _step(self, angle: Any) -> None:
+        self.angle = float(angle)
         self.update()
 
     def paintEvent(self, _event: Any) -> None:
@@ -83,14 +79,24 @@ class Chevron(QWidget):
 
 
 class ClipBox(QWidget):
-    """Holds `content` at its natural height and shows as much of it as its own height allows."""
+    """Holds `content` at its natural height and shows as much of it as its own height allows.
 
-    def __init__(self, content: QWidget, parent: QWidget | None = None):
+    Starts folded; `set_open` animates the height between nothing and the content's, and `step`
+    hears every frame (to repaint a line).
+    """
+
+    def __init__(self, content: QWidget, step: Callable[[], None] = lambda: None, parent: QWidget | None = None):
         super().__init__(parent)
         self.content = content
         content.setParent(self)
         # The content's layout asks for room when rows come or grow: the box follows.
         content.installEventFilter(self)
+        self._step_hook = step
+        self.open = False
+        self._from = 0
+        self._to = 0
+        self._animation = animation(self, FOLD_MS, self._step, self._done)
+        self.setVisible(False)
 
     def natural_height(self, width: int = -1) -> int:
         width = self.width() if width < 0 else width
@@ -128,6 +134,38 @@ class ClipBox(QWidget):
     def _place(self) -> None:
         self.content.setGeometry(0, 0, self.width(), self.natural_height())
 
+    def set_open(self, open_: bool, animate: bool = True) -> None:
+        if open_ == self.open and self._animation.state() != QVariantAnimation.State.Running:
+            return
+        self.open = open_
+        self._animation.stop()
+        if not animate or not self.window().isVisible():
+            self._done()
+            return
+        self._from = self.height() if self.isVisible() else 0
+        self.setMaximumHeight(self._from)
+        self.setVisible(True)
+        parent = self.parentWidget()
+        width = self.width() or (parent.width() if parent is not None else 0)
+        self._to = self.natural_height(width) if open_ else 0
+        self._animation.start()
+
+    def finish(self) -> None:
+        if self._animation.state() == QVariantAnimation.State.Running:
+            self._animation.stop()
+            self._done()
+
+    def _step(self, value: Any) -> None:
+        progress = cubic_bezier(EASING, float(value))
+        self.setMaximumHeight(round(self._from + (self._to - self._from) * progress))
+        lay_out_above(self)
+        self._step_hook()
+
+    def _done(self) -> None:
+        self.setMaximumHeight(UNBOUNDED)
+        self.setVisible(self.open)
+        self._step_hook()
+
 
 def lay_out_above(widget: QWidget) -> None:
     """Lay out every container above `widget` now, innermost first, up to the scroll area it sits in.
@@ -158,59 +196,3 @@ def _scroll_viewport(widget: QWidget) -> QWidget | None:
     if isinstance(area, QAbstractScrollArea) and area.viewport() is viewport:
         return viewport
     return None
-
-
-class Fold(QObject):
-    """Opens and closes `body` by animating its height; `step` hears every frame (to repaint a line)."""
-
-    def __init__(self, body: QWidget, step: Callable[[], None] = lambda: None):
-        super().__init__(body)
-        self._body = body
-        self._step_hook = step
-        self.open = not body.isHidden()
-        self._from = 0
-        self._to = 0
-        self._animation = QVariantAnimation(self)
-        self._animation.setDuration(FOLD_MS)
-        self._animation.setStartValue(0.0)
-        self._animation.setEndValue(1.0)
-        self._animation.valueChanged.connect(self._step)
-        self._animation.finished.connect(self._done)
-
-    def set_open(self, open_: bool, animate: bool = True) -> None:
-        if open_ == self.open and self._animation.state() != QVariantAnimation.State.Running:
-            return
-        self.open = open_
-        self._animation.stop()
-        body = self._body
-        if not animate or not body.window().isVisible():
-            self._done()
-            return
-        self._from = body.height() if body.isVisible() else 0
-        body.setMaximumHeight(self._from)
-        body.setVisible(True)
-        self._to = self._natural_height() if open_ else 0
-        self._animation.start()
-
-    def finish(self) -> None:
-        if self._animation.state() == QVariantAnimation.State.Running:
-            self._animation.stop()
-            self._done()
-
-    def _natural_height(self) -> int:
-        body = self._body
-        width = body.width() or (body.parentWidget().width() if body.parentWidget() is not None else 0)
-        if body.hasHeightForWidth() and width > 0:
-            return max(0, body.heightForWidth(width))
-        return max(0, body.sizeHint().height())
-
-    def _step(self, value: Any) -> None:
-        progress = cubic_bezier(EASING, float(value))
-        self._body.setMaximumHeight(round(self._from + (self._to - self._from) * progress))
-        lay_out_above(self._body)
-        self._step_hook()
-
-    def _done(self) -> None:
-        self._body.setMaximumHeight(UNBOUNDED)
-        self._body.setVisible(self.open)
-        self._step_hook()

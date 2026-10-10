@@ -4,12 +4,12 @@ import re
 from typing import Any
 
 from qgis.PyQt.QtCore import QEvent, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QFont, QKeySequence, QSyntaxHighlighter, QTextCharFormat
+from qgis.PyQt.QtGui import QFont, QSyntaxHighlighter, QTextCharFormat
 from qgis.PyQt.QtWidgets import QPlainTextEdit
 
 from ai_agent.core.settings import WORK_MODE_ASK, WORK_MODE_AUTO, WORK_MODE_PLAN
 from ai_agent.i18n import tr
-from ai_agent.ui import style
+from ai_agent.ui import controls, style
 from ai_agent.ui.attachments import local_files
 from ai_agent.ui.choice_popup import Choice
 
@@ -97,7 +97,7 @@ class PromptEdit(QPlainTextEdit):
 
     def event(self, event: Any) -> bool:
         # The box claims Ctrl+N while it has the focus: a new conversation here, a new project elsewhere.
-        if event.type() == QEvent.Type.ShortcutOverride and _is_new(event):
+        if event.type() == QEvent.Type.ShortcutOverride and controls.is_new_shortcut(event):
             event.accept()
             return True
         return super().event(event)
@@ -111,7 +111,7 @@ class PromptEdit(QPlainTextEdit):
         self.focus_changed.emit(False)
 
     def keyPressEvent(self, event: Any) -> None:
-        if _is_new(event):
+        if controls.is_new_shortcut(event):
             self.new_requested.emit()
             return
         key = event.key()
@@ -162,11 +162,6 @@ class PromptHighlighter(QSyntaxHighlighter):
                 self.setFormat(match.start(), match.end() - match.start(), self._skill)
         for match in LAYER_TOKEN.finditer(text):
             self.setFormat(match.start(), match.end() - match.start(), self._layer)
-
-
-def _is_new(event: Any) -> bool:
-    matches = getattr(event, "matches", None)
-    return bool(matches is not None and matches(QKeySequence.StandardKey.New) is True)
 
 
 def _token_format(palette: Any, colour: Any) -> QTextCharFormat:

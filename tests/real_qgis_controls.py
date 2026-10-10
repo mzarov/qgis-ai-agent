@@ -131,19 +131,19 @@ class FoldMotionTest(unittest.TestCase):
         pump(0.1)
         title = self._top(self.block._line)
         self.block.set_expanded(True)
-        self._frames(self.block._fold)
+        self._frames(self.block._clip)
         self.assertEqual(self._top(self.block._line), title, "the title stays put while its box opens")
         self.block.finish_folding()
         self.block.set_expanded(False)
-        self._frames(self.block._fold)
+        self._frames(self.block._clip)
         self.block.finish_folding()
 
     def test_the_trace_moves_the_answer_in_the_same_frame(self) -> None:
         self.group._header.set_expanded(True)
-        self._frames(self.group._fold)
+        self._frames(self.group._rows_holder)
         self.group.finish_folding()
         self.group._header.set_expanded(False)
-        self._frames(self.group._fold)
+        self._frames(self.group._rows_holder)
         self.group.finish_folding()
 
 

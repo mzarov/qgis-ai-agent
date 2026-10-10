@@ -8,7 +8,6 @@ from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtGui import QPixmap
 from qgis.PyQt.QtWidgets import QDockWidget, QVBoxLayout, QWidget
 
-from ai_agent.i18n import tr
 from ai_agent.ui import chrome, confirmations, style
 from ai_agent.ui.composer import Composer
 from ai_agent.ui.conversation import ConversationView
@@ -18,7 +17,6 @@ TITLE = chrome.TITLE
 # The handoff's composer padding: 6 above the box, 12 around the rest.
 COMPOSER_MARGINS = (12, 6, 12, 12)
 BODY_NAME = "agentBody"
-NEW_CONVERSATION_TITLE = tr("New conversation")
 
 
 class AgentDockWidget(QDockWidget):
@@ -62,7 +60,6 @@ class AgentDockWidget(QDockWidget):
         self.toolbar.history_requested.connect(self._show_sessions)
         self.toolbar.new_requested.connect(self._start_new)
         self.toolbar.settings_requested.connect(self.open_settings_clicked.emit)
-        self.toolbar.title.set_title(NEW_CONVERSATION_TITLE)
         column.addWidget(self.toolbar)
         column.addWidget(self._build_conversation(), 1)
         column.addWidget(self._build_composer())
@@ -94,7 +91,7 @@ class AgentDockWidget(QDockWidget):
             self._leaving = None
 
     def set_conversation_title(self, title: str) -> None:
-        self.toolbar.title.set_title(title or NEW_CONVERSATION_TITLE)
+        self.toolbar.title.set_title(title or chrome.NEW_CONVERSATION)
 
     def note_conversation_saved(self) -> None:
         self.conversation.show_saved_hint()

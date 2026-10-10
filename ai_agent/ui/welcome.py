@@ -160,11 +160,7 @@ class WelcomeCard(QWidget):
         line = QHBoxLayout(holder)
         line.setContentsMargins(0, 0, 0, 0)
         line.setSpacing(6)
-        glyph = QLabel()
-        icon = icons.drawn("saved", style.faint(palette), SAVED_ICON)
-        if icon is not None:
-            glyph.setPixmap(icon.pixmap(SAVED_ICON, SAVED_ICON))
-        line.addWidget(glyph)
+        line.addWidget(controls.glyph("saved", style.faint(palette), SAVED_ICON))
         text = QLabel(SAVED)
         style.scale_font(text, SMALL)
         style.ink(text, style.faint(palette))

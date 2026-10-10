@@ -14,8 +14,8 @@ KEEP_AFTER_COMPACTION = 2
 # A chart or table the feed drew, kept so a reopened conversation shows it again; the model never gets it.
 VISUAL_ROLE = "visual"
 MODEL_ROLES = frozenset({"user", "assistant"})
-# Display-only entries and the key each comes back under for the chat; the model's window skips them.
-DISPLAY_KEYS = {VISUAL_ROLE: "visual", TRACE_ROLE: "trace", PLAN_ROLE: "plan"}
+# Display-only entries, each coming back for the chat under its role as the key; the model's window skips them.
+DISPLAY_ROLES = frozenset({VISUAL_ROLE, TRACE_ROLE, PLAN_ROLE})
 # A user message the user picked on a question card: the chat shows it as "You chose …" again.
 CHOSEN = "chosen"
 
@@ -83,15 +83,12 @@ class ConversationState:
         shown: list[dict[str, Any]] = []
         for message in self._session.messages:
             role = message.get("role")
-            if role not in DISPLAY_KEYS:
+            if role not in DISPLAY_ROLES:
                 shown.append(dict(message))
                 continue
-            try:
-                data = json.loads(message.get("content") or "")
-            except ValueError:
-                continue
-            if isinstance(data, dict):
-                shown.append({"role": role, DISPLAY_KEYS[role]: data})
+            data = _decoded(message)
+            if data is not None:
+                shown.append({"role": role, role: data})
         return shown
 
     def add(self, role: str, text: str, chosen: bool = False) -> None:
@@ -119,13 +116,8 @@ class ConversationState:
     def update_plan(self, key: str, **changes: Any) -> None:
         """Settle a kept plan card: its state, the time, every step's mark."""
         for message in reversed(self._session.messages):
-            if message.get("role") != PLAN_ROLE:
-                continue
-            try:
-                record = json.loads(message.get("content") or "")
-            except ValueError:
-                continue
-            if isinstance(record, dict) and record.get("key") == key:
+            record = _decoded(message) if message.get("role") == PLAN_ROLE else None
+            if record is not None and record.get("key") == key:
                 record.update(changes)
                 message["content"] = json.dumps(record, ensure_ascii=False)
                 self._store.save(self._session)
@@ -251,3 +243,12 @@ class ConversationState:
 
     def _adopt(self, session: Session) -> None:
         self._session = session
+
+
+def _decoded(message: dict[str, Any]) -> dict[str, Any] | None:
+    """A display entry's saved object; None when its content is not one."""
+    try:
+        data = json.loads(message.get("content") or "")
+    except ValueError:
+        return None
+    return data if isinstance(data, dict) else None

@@ -93,9 +93,7 @@ class ConversationView(QScrollArea):
             return
         self._configured = configured
         if self._empty is not None:
-            saved = self._saved_shown
             self._drop_welcome()
-            self._saved_shown = saved
             self._show_welcome()
 
     def set_project_line(self, text: str) -> None:
@@ -150,7 +148,6 @@ class ConversationView(QScrollArea):
             return
         self._discard(self._empty)
         self._empty = None
-        self._saved_shown = False
         self._set_tail_stretch(TAIL_STRETCH)
         self.emptied.emit(False)
 
@@ -307,8 +304,6 @@ class ConversationView(QScrollArea):
                 block = ThinkingBlock()
                 group.add_widget(block)
                 block.restore(str(step.get("text") or ""), step.get("seconds"))
-            elif kind == trace.CHOICE:
-                group.add_choice(str(step.get("text") or ""))
             else:
                 group.add_recorded_step(step)
         group.settle(record.get("seconds"))

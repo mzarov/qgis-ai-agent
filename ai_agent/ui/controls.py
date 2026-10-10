@@ -9,8 +9,8 @@ replaces. Everything is drawn from the palette through `style`.
 from collections.abc import Callable
 from typing import Any
 
-from qgis.PyQt.QtCore import QEasingCurve, QRectF, Qt, QVariantAnimation, pyqtSignal
-from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QPainter, QPen
+from qgis.PyQt.QtCore import QEasingCurve, QRectF, QSize, Qt, QVariantAnimation, pyqtSignal
+from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QKeySequence, QPainter, QPen
 from qgis.PyQt.QtWidgets import (
     QButtonGroup,
     QFrame,
@@ -20,6 +20,7 @@ from qgis.PyQt.QtWidgets import (
     QMenu,
     QPushButton,
     QSizePolicy,
+    QToolButton,
     QWidget,
     QWidgetAction,
 )
@@ -271,6 +272,29 @@ class RoundedFrame(QFrame):
         painter.end()
 
 
+class HoverFrame(RoundedFrame):
+    """A rounded row lit under the pointer; a left click emits `clicked`."""
+
+    clicked = pyqtSignal()
+
+    def __init__(self, radius: float, palette: Any, parent: QWidget | None = None):
+        super().__init__(radius, parent)
+        self._fill = style.card(palette).name()
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def mouseReleaseEvent(self, event: Any) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit()
+
+    def enterEvent(self, event: Any) -> None:
+        self.set_look(self._fill, None)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event: Any) -> None:
+        self.set_look(None, None)
+        super().leaveEvent(event)
+
+
 class PaintedDot(QWidget):
     """A round status dot drawn by hand, recoloured with `set_colour` and no style sheet."""
 
@@ -369,6 +393,45 @@ def icon_tile(role: str, palette: Any, tile: int, size: int, radius: int, fallba
     else:
         label.setPixmap(icon.pixmap(size, size))
     return label
+
+
+def glyph(role: str, colour: Any, size: int) -> QLabel:
+    """A drawn icon in a label of its size; empty when it cannot be drawn."""
+    label = QLabel()
+    label.setFixedSize(size, size)
+    icon = icons.drawn(role, colour, size)
+    if icon is not None:
+        label.setPixmap(icon.pixmap(size, size))
+    return label
+
+
+def icon_button(
+    role: str, fallback: str, tooltip: str, colour: Any, palette: Any, side: int, icon: int, radius: int
+) -> QToolButton:
+    """A flat icon button with a sunken plate under the pointer; its fallback text when the glyph cannot be drawn."""
+    button = QToolButton()
+    button.setFixedSize(side, side)
+    button.setAutoRaise(True)
+    button.setToolTip(tooltip)
+    button.setAccessibleName(tooltip)
+    button.setCursor(Qt.CursorShape.PointingHandCursor)
+    button.setStyleSheet(
+        f"QToolButton {{ border: none; background: transparent; border-radius: {radius}px; }}"
+        f"QToolButton:hover {{ background: {style.css_color(style.sunken(palette))}; }}"
+    )
+    drawn = icons.drawn(role, colour, icon)
+    if drawn is None:
+        button.setText(fallback)
+    else:
+        button.setIcon(drawn)
+        button.setIconSize(QSize(icon, icon))
+    return button
+
+
+def is_new_shortcut(event: Any) -> bool:
+    """Whether a key event is the platform's new-document shortcut (Ctrl+N, ⌘N on macOS)."""
+    matches = getattr(event, "matches", None)
+    return bool(matches is not None and matches(QKeySequence.StandardKey.New) is True)
 
 
 def small(text: str, palette: Any, scale: float = SMALL_SCALE) -> QLabel:

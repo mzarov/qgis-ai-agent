@@ -14,17 +14,16 @@ from typing import Any
 
 from qgis.PyQt.QtCore import QPoint, QRect, QRectF, QSize, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QFontDatabase, QIcon, QPainter
-from qgis.PyQt.QtWidgets import QAbstractButton, QHBoxLayout, QSizePolicy, QWidget
+from qgis.PyQt.QtWidgets import QHBoxLayout, QSizePolicy, QWidget
 
 from ai_agent.i18n import tr
 from ai_agent.ui import controls, icons, style
 from ai_agent.ui.choice_popup import ChoicePopup
-from ai_agent.ui.chrome import IconButton
+from ai_agent.ui.chrome import IconButton, PaintedButton
 from ai_agent.ui.composer_parts import MODES
 from ai_agent.ui.context_meter import ContextMeter
 
 BUTTON_HEIGHT = 28
-BUTTON_RADIUS = 6
 PADDING = 6
 LEAD = 14
 LEAD_GAP = 5
@@ -57,12 +56,11 @@ NO_MODEL = tr("No model")
 SKILL_KEY = "/"
 
 
-class MenuButton(QAbstractButton):
+class MenuButton(PaintedButton):
     """A flat button that opens a menu: an optional leading glyph, its text elided, a chevron after it."""
 
     def __init__(self, palette: Any, lead: str = "", parent: QWidget | None = None):
-        super().__init__(parent)
-        self._palette = palette
+        super().__init__(palette, parent)
         self._lead = (icons.drawn(lead, style.muted(palette), LEAD), icons.drawn(lead, style.text(palette), LEAD))
         self._chevron = (
             icons.drawn("expanded", style.muted(palette), CHEVRON),
@@ -70,7 +68,6 @@ class MenuButton(QAbstractButton):
         )
         self._has_lead = bool(lead) and self._lead[0] is not None
         self.setFixedHeight(BUTTON_HEIGHT)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFocusPolicy(Qt.FocusPolicy.TabFocus)
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
 
@@ -84,22 +81,12 @@ class MenuButton(QAbstractButton):
     def minimumSizeHint(self) -> QSize:
         return QSize(self._frame_width() + MIN_TEXT, BUTTON_HEIGHT)
 
-    def enterEvent(self, event: Any) -> None:
-        self.update()
-        super().enterEvent(event)
-
-    def leaveEvent(self, event: Any) -> None:
-        self.update()
-        super().leaveEvent(event)
-
     def paintEvent(self, _event: Any) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        hovered = self.isEnabled() and self.underMouse()
+        hovered = self._hovered()
         if hovered:
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(style.card(self._palette))
-            painter.drawRoundedRect(QRectF(self.rect()), BUTTON_RADIUS, BUTTON_RADIUS)
+            self._paint_plate(painter)
         state = 1 if hovered else 0
         x = PADDING
         lead = self._lead[state]
@@ -117,16 +104,14 @@ class MenuButton(QAbstractButton):
         painter.end()
 
 
-class SendButton(QAbstractButton):
+class SendButton(PaintedButton):
     """The round send button: accent with an arrow, dimmed with nothing to send; a stop square while busy."""
 
     def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
-        self._palette = palette
+        super().__init__(palette, parent)
         self._arrow = icons.drawn("send", style.on_accent(palette), SEND_ICON)
         self.busy = False
         self.setFixedSize(SEND_SIZE, SEND_SIZE)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.set_busy(False)
 
     def set_busy(self, busy: bool) -> None:
@@ -135,14 +120,6 @@ class SendButton(QAbstractButton):
         self.setToolTip(name)
         self.setAccessibleName(name)
         self.update()
-
-    def enterEvent(self, event: Any) -> None:
-        self.update()
-        super().enterEvent(event)
-
-    def leaveEvent(self, event: Any) -> None:
-        self.update()
-        super().leaveEvent(event)
 
     def paintEvent(self, _event: Any) -> None:
         painter = QPainter(self)
@@ -158,7 +135,7 @@ class SendButton(QAbstractButton):
             square = QRectF(centre - STOP_SIDE / 2, centre - STOP_SIDE / 2, STOP_SIDE, STOP_SIDE)
             painter.drawRoundedRect(square, STOP_RADIUS, STOP_RADIUS)
         else:
-            hovered = self.isEnabled() and self.underMouse()
+            hovered = self._hovered()
             if not self.isEnabled():
                 painter.setOpacity(DISABLED_OPACITY)
             painter.setPen(Qt.PenStyle.NoPen)
@@ -186,7 +163,6 @@ class ComposerControls(QWidget):
         super().__init__(parent)
         self._palette = palette
         self._count_layers = count_layers
-        self._anchor: QWidget = self
         row = QHBoxLayout(self)
         row.setContentsMargins(*ROW_MARGINS)
         row.setSpacing(2)
@@ -211,10 +187,6 @@ class ComposerControls(QWidget):
         self.send = SendButton(palette)
         row.addWidget(self.send)
         self.set_model("")
-
-    def set_menu_anchor(self, anchor: QWidget) -> None:
-        """The widget the mode menu spans and opens above: the whole box."""
-        self._anchor = anchor
 
     def _build_model(self, palette: Any) -> controls.ElidedLabel:
         """The model's name: said, not offered — no hover, no chevron, nothing to click."""
@@ -259,7 +231,8 @@ class ComposerControls(QWidget):
         self.menu.popup(QPoint(above.x(), above.y() - self.menu.sizeHint().height() - controls.MENU_GAP))
 
     def _open_modes(self) -> None:
-        self.modes.open_above(self._anchor, self._mode)
+        # The menu spans the whole box the row sits in, and opens above it.
+        self.modes.open_above(self.parentWidget() or self, self._mode)
 
 
 def _glyph(role: str, palette: Any) -> QIcon:

@@ -71,7 +71,7 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `question.py`     | the agent's question card: up to three answers (the first recommended, a why after " — "), a fourth row to type one's own, number keys |
 | `progress.py`     | the status line, the feed's last row: the live compass and a few words — working with the time, waiting for an answer, done in N s, stopped by an error |
 | `compass.py`      | the brand mark: open-ring compass painted on a 24-unit grid; needle rotation per state (rest, search, done, error, ask, arrive), keyframed with per-segment easing |
-| `controls.py`     | custom controls: `Segmented` keeps the combo-box API, `Chips`, `RoundedFrame` (every state-dependent box), icon tiles, badges, keycaps, `ElidedLabel`, menus |
+| `controls.py`     | custom controls: `Segmented` keeps the combo-box API, `Chips`, `RoundedFrame` (every state-dependent box), `HoverFrame` (a lit row that clicks), glyphs, icon buttons and tiles, badges, keycaps, `ElidedLabel`, menus |
 | `connection_widgets.py` | provider tiles and the connection status card |
 | `logos.py`        | provider logos from `ui/logos/*.svg`, tinted to the theme's text colour |
 | `skill_popup.py`  | the list above the composer: prefix-then-substring ranking, keyboard steering, `local` badge |
@@ -199,7 +199,7 @@ the wording muted with the call's own values bright, and under it the tool's
 `summarize_result` line — what the call found. One hairline joins the nodes; the
 group draws it from each glyph's `mark` (where its drawing sits), stopping
 `LINE_GAP` short of every glyph whatever its size, so dots, rings and icons get
-the same gap. Opening and closing animate (`folding.Fold`), and every frame
+the same gap. Opening and closing animate (`folding.ClipBox`), and every frame
 lays out the containers above the body at once (`folding.lay_out_above`):
 left to Qt's posted layout requests, a paint landed between two parents and
 the fold stalled, then jumped. A skill being

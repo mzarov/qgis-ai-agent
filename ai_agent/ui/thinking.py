@@ -69,11 +69,9 @@ class ThinkingBlock(QFrame):
         line.addWidget(self.time)
         column.addWidget(self._line)
         self._clip = folding.ClipBox(self._build_body(palette))
-        self._clip.setVisible(False)
         column.addWidget(self._clip)
         # Room the row gives beyond the line and the box goes below them: the title never moves.
         column.addStretch(1)
-        self._fold = folding.Fold(self._clip)
         self._recorded: float | None = None
         self._text = ""
         self._started = time.monotonic()
@@ -89,9 +87,9 @@ class ThinkingBlock(QFrame):
 
     def _build_body(self, palette: Any) -> QWidget:
         """The sunken box, in a holder whose top margin is the gap: it opens with the box, no jump."""
-        self._holder = QWidget()
-        holder = QVBoxLayout(self._holder)
-        holder.setContentsMargins(0, BOX_GAP, 0, 0)
+        holder = QWidget()
+        box = QVBoxLayout(holder)
+        box.setContentsMargins(0, BOX_GAP, 0, 0)
         self._body = QLabel()
         self._body.setTextFormat(Qt.TextFormat.PlainText)
         self._body.setWordWrap(True)
@@ -103,8 +101,8 @@ class ThinkingBlock(QFrame):
             f" border-radius: {BOX_RADIUS}px; padding: {BOX_PADDING}; }}"
         )
         style.scale_font(self._body, TEXT_FONT_SCALE)
-        holder.addWidget(self._body)
-        return self._holder
+        box.addWidget(self._body)
+        return holder
 
     def _toggle(self) -> None:
         self.set_expanded(not self.expanded)
@@ -112,11 +110,11 @@ class ThinkingBlock(QFrame):
     def set_expanded(self, expanded: bool, animate: bool = True) -> None:
         self.expanded = expanded
         self._chevron.set_open(expanded, animate)
-        self._fold.set_open(expanded, animate)
+        self._clip.set_open(expanded, animate)
 
     def finish_folding(self) -> None:
         """End a fold or a turn at once, as a screenshot wants it."""
-        self._fold.finish()
+        self._clip.finish()
         self._chevron.finish()
 
     def restore(self, text: str, seconds: Any = None) -> None:

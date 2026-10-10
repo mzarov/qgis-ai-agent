@@ -8,12 +8,12 @@ until the next request takes them.
 import os
 from typing import Any
 
-from qgis.PyQt.QtCore import QSize, Qt, pyqtSignal
+from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtGui import QPixmap
 from qgis.PyQt.QtWidgets import QFileDialog, QHBoxLayout, QLabel, QToolButton, QWidget
 
 from ai_agent.i18n import tr
-from ai_agent.ui import controls, icons, style
+from ai_agent.ui import controls, style
 
 DATA = "data"
 PICTURE = "picture"
@@ -27,6 +27,7 @@ CHIP_RADIUS = 4
 CHIP_HEIGHT = 22
 THUMB = 16
 ICON = 12
+CLOSE_RADIUS = 3
 TEXT_SCALE = 12 / 13
 NAME_WIDTH = 160
 CHIP_GAP = 6
@@ -47,6 +48,13 @@ def local_files(mime: Any) -> list[str]:
     if not urls or not all(url.isLocalFile() for url in urls):
         return []
     return [url.toLocalFile() for url in urls]
+
+
+def chip_close(tooltip: str, palette: Any) -> QToolButton:
+    """The × at the end of a chip, this one's or the active layer's."""
+    return controls.icon_button(
+        "close", "×", tooltip, style.faint(palette), palette, CHIP_HEIGHT - 4, ICON, CLOSE_RADIUS
+    )
 
 
 class AttachmentChip(controls.RoundedFrame):
@@ -76,22 +84,7 @@ class AttachmentChip(controls.RoundedFrame):
         name.setFixedWidth(min(NAME_WIDTH, name.fontMetrics().horizontalAdvance(name.text()) + 2))
         style.ink(name, style.muted(palette))
         line.addWidget(name)
-        close = QToolButton()
-        close.setFixedSize(CHIP_HEIGHT - 4, CHIP_HEIGHT - 4)
-        close.setToolTip(REMOVE)
-        close.setAccessibleName(REMOVE)
-        close.setAutoRaise(True)
-        close.setCursor(Qt.CursorShape.PointingHandCursor)
-        close.setStyleSheet(
-            "QToolButton { border: none; background: transparent; border-radius: 3px; }"
-            f"QToolButton:hover {{ background: {style.css_color(style.sunken(palette))}; }}"
-        )
-        cross = icons.drawn("close", style.faint(palette), ICON)
-        if cross is None:
-            close.setText("×")
-        else:
-            close.setIcon(cross)
-            close.setIconSize(QSize(ICON, ICON))
+        close = chip_close(REMOVE, palette)
         close.clicked.connect(lambda: self.removed.emit(self.path))
         line.addWidget(close)
 

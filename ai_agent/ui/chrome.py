@@ -11,12 +11,12 @@ an event.
 
 from typing import Any
 
-from qgis.PyQt.QtCore import QPointF, QRectF, Qt, QVariantAnimation, pyqtSignal
+from qgis.PyQt.QtCore import QPointF, QRectF, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QPainter
 from qgis.PyQt.QtWidgets import QAbstractButton, QDockWidget, QHBoxLayout, QLabel, QSizePolicy, QWidget
 
 from ai_agent.i18n import tr
-from ai_agent.ui import compass, controls, icons, style
+from ai_agent.ui import compass, controls, icons, style, transitions
 
 TITLE = "AI Agent"
 TITLE_BAR_HEIGHT = 26
@@ -43,44 +43,22 @@ SETTINGS = tr("Settings")
 HISTORY = tr("Conversation history")
 
 
-class IconButton(QAbstractButton):
-    """A square icon button: a rounded plate under the pointer, the glyph turned by `angle` degrees.
+class PaintedButton(QAbstractButton):
+    """A button that paints itself: entering and leaving only repaint, so nothing restyles in an event."""
 
-    Painted rather than styled, so hover and the turn are repaints. A glyph that cannot be drawn
-    falls back to its text.
-    """
-
-    def __init__(self, role: str, fallback: str, tooltip: str, palette: Any, size: int, icon: int, parent=None):
+    def __init__(self, palette: Any, parent: QWidget | None = None):
         super().__init__(parent)
         self._palette = palette
-        self._icon_size = icon
-        self._fallback = fallback
-        self._rest = icons.drawn(role, style.muted(palette), icon)
-        self._hover = icons.drawn(role, style.text(palette), icon)
-        self.angle = 0.0
-        self._spin: Any = None
-        self.setFixedSize(size, size)
-        self.setToolTip(tooltip)
-        self.setAccessibleName(tooltip)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setFocusPolicy(Qt.FocusPolicy.TabFocus)
 
-    def spin(self) -> None:
-        """Turn the glyph half a circle, once."""
-        if self._spin is not None:
-            self._spin.stop()
-        animation = QVariantAnimation(self)
-        animation.setDuration(SPIN_MS)
-        animation.setStartValue(0.0)
-        animation.setEndValue(1.0)
-        # A bound method: Qt drops the connection with the button, a lambda would outlive it.
-        animation.valueChanged.connect(self._turn)
-        self._spin = animation
-        animation.start()
+    def _hovered(self) -> bool:
+        return self.isEnabled() and self.underMouse()
 
-    def _turn(self, progress: Any) -> None:
-        self.angle = SPIN_DEGREES * compass.cubic_bezier(SPIN_EASING, float(progress))
-        self.update()
+    def _paint_plate(self, painter: QPainter) -> None:
+        """The rounded plate under the pointer."""
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(style.card(self._palette))
+        painter.drawRoundedRect(QRectF(self.rect()), TOOL_RADIUS, TOOL_RADIUS)
 
     def enterEvent(self, event: Any) -> None:
         self.update()
@@ -90,14 +68,41 @@ class IconButton(QAbstractButton):
         self.update()
         super().leaveEvent(event)
 
+
+class IconButton(PaintedButton):
+    """A square icon button: a rounded plate under the pointer, the glyph turned by `angle` degrees.
+
+    A glyph that cannot be drawn falls back to its text.
+    """
+
+    def __init__(self, role: str, fallback: str, tooltip: str, palette: Any, size: int, icon: int, parent=None):
+        super().__init__(palette, parent)
+        self._icon_size = icon
+        self._fallback = fallback
+        self._rest = icons.drawn(role, style.muted(palette), icon)
+        self._hover = icons.drawn(role, style.text(palette), icon)
+        self.angle = 0.0
+        self._spin = transitions.animation(self, SPIN_MS, self._turn)
+        self.setFixedSize(size, size)
+        self.setToolTip(tooltip)
+        self.setAccessibleName(tooltip)
+        self.setFocusPolicy(Qt.FocusPolicy.TabFocus)
+
+    def spin(self) -> None:
+        """Turn the glyph half a circle, once."""
+        self._spin.stop()
+        self._spin.start()
+
+    def _turn(self, progress: Any) -> None:
+        self.angle = SPIN_DEGREES * compass.cubic_bezier(SPIN_EASING, float(progress))
+        self.update()
+
     def paintEvent(self, _event: Any) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        hovered = self.isEnabled() and self.underMouse()
+        hovered = self._hovered()
         if hovered:
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(style.card(self._palette))
-            painter.drawRoundedRect(QRectF(self.rect()), TOOL_RADIUS, TOOL_RADIUS)
+            self._paint_plate(painter)
         if not self.isEnabled():
             painter.setOpacity(DISABLED_OPACITY)
         icon = self._hover if hovered else self._rest
@@ -147,16 +152,12 @@ class DockTitleBar(QWidget):
         _bottom_hairline(self, self._palette)
 
 
-class TitleButton(controls.RoundedFrame):
+class TitleButton(controls.HoverFrame):
     """The open conversation's title, bold and elided, with a chevron; a click opens the history."""
 
-    clicked = pyqtSignal()
-
     def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(TOOL_RADIUS, parent)
-        self._palette = palette
+        super().__init__(TOOL_RADIUS, palette, parent)
         self.setFixedHeight(TOOL_BUTTON)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setToolTip(HISTORY)
         self.setAccessibleName(HISTORY)
         row = QHBoxLayout(self)
@@ -170,29 +171,13 @@ class TitleButton(controls.RoundedFrame):
         self.label.setFont(font)
         style.ink(self.label, style.text(palette))
         row.addWidget(self.label)
-        chevron = QLabel()
-        chevron.setFixedSize(CHEVRON, CHEVRON)
-        icon = icons.drawn("expanded", style.faint(palette), CHEVRON)
-        if icon is not None:
-            chevron.setPixmap(icon.pixmap(CHEVRON, CHEVRON))
-        row.addWidget(chevron, 0, Qt.AlignmentFlag.AlignVCenter)
+        row.addWidget(controls.glyph("expanded", style.faint(palette), CHEVRON), 0, Qt.AlignmentFlag.AlignVCenter)
         row.addStretch(1)
+        self.set_title(NEW_CONVERSATION)
 
     def set_title(self, title: str) -> None:
         self.label.setText(title)
         self.label.setToolTip(title)
-
-    def mouseReleaseEvent(self, event: Any) -> None:
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.clicked.emit()
-
-    def enterEvent(self, event: Any) -> None:
-        self.set_look(style.card(self._palette).name(), None)
-        super().enterEvent(event)
-
-    def leaveEvent(self, event: Any) -> None:
-        self.set_look(None, None)
-        super().leaveEvent(event)
 
 
 class Toolbar(QWidget):

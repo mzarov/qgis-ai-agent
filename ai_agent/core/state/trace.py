@@ -16,7 +16,6 @@ TRACE_ROLE = "trace"
 PLAN_ROLE = "plan"
 CALL = "call"
 THOUGHT = "thought"
-CHOICE = "choice"
 # A plan card's ends, as the replay settles it.
 PENDING = "pending"
 APPLIED = "applied"
@@ -30,20 +29,12 @@ class TraceLog:
 
     def __init__(self, clock: Callable[[], float] = time.monotonic):
         self._clock = clock
-        self._steps: list[dict[str, Any]] = []
-        self._open: dict[str, Any] | None = None
-        self._thought: dict[str, Any] | None = None
-        self._first = 0.0
-        self._last = 0.0
-
-    @property
-    def pending(self) -> bool:
-        return bool(self._steps)
+        self.drop()
 
     def call(self, summary: Any) -> None:
         """A call started; `summary` is its CallSummary (text, marked parts, skill)."""
         self._end_thought()
-        step = {
+        self._open = {
             "kind": CALL,
             "text": str(summary),
             "parts": [[str(text), bool(marked)] for text, marked in getattr(summary, "parts", ())],
@@ -52,75 +43,67 @@ class TraceLog:
             "note": "",
             "seconds": None,
         }
-        self._add(step)
-        self._open = step
+        self._opened = self._add(self._open)
 
     def finished(self, ok: bool, note: str = "") -> None:
         """The open call ended."""
-        step = self._open
-        if step is None:
+        if self._open is None:
             return
-        step["ok"] = ok
-        step["note"] = note
-        step["seconds"] = round(self._clock() - step.pop("_started"), 2)
         self._last = self._clock()
+        self._open.update(ok=ok, note=note, seconds=round(self._last - self._opened, 2))
         self._open = None
 
     def done(self, summary: Any) -> None:
         """A step that is over as it starts: a skill loaded, the plan moved on."""
         self.call(summary)
-        if self._open is not None:
-            self._open.pop("_started", None)
-            self._open["ok"] = True
-            self._open = None
+        self._steps[-1]["ok"] = True
+        self._open = None
 
     def rejected(self, summary: Any) -> None:
         self.done(summary)
         self._steps[-1].update(ok=False, rejected=True)
 
-    def choice(self, answer: str) -> None:
-        """The answer the user picked on a question card."""
-        self._end_thought()
-        self._add({"kind": CHOICE, "text": answer})
-
     def thinking(self, delta: str) -> None:
         if self._thought is None:
-            self._thought = {"kind": THOUGHT, "text": "", "seconds": None, "_deliveries": 0}
-            self._add(self._thought)
+            self._thought = {"kind": THOUGHT, "text": "", "seconds": None}
+            self._thought_started = self._add(self._thought)
+            self._deliveries = 0
         self._thought["text"] += delta
-        self._thought["_deliveries"] += 1
+        self._deliveries += 1
 
     def take(self) -> dict[str, Any] | None:
-        """The turn's record, or None when nothing happened; the log starts afresh."""
+        """The turn's record, or None when nothing happened; the log starts afresh.
+
+        A call cut short — a stop, an error — keeps no time: the replay shows it settled.
+        """
         self._end_thought()
         if not self._steps:
             return None
-        for step in self._steps:
-            if step.pop("_started", None) is not None and step.get("ok") is None:
-                # Cut short — a stop, an error: the replay shows it settled, without a time.
-                step["seconds"] = None
         record = {"steps": self._steps, "seconds": round(max(0.0, self._last - self._first), 2)}
-        self._steps, self._open, self._thought = [], None, None
+        self.drop()
         return record
 
     def drop(self) -> None:
-        self._steps, self._open, self._thought = [], None, None
+        self._steps: list[dict[str, Any]] = []
+        self._open: dict[str, Any] | None = None
+        self._thought: dict[str, Any] | None = None
+        self._opened = self._thought_started = self._first = self._last = 0.0
+        self._deliveries = 0
 
-    def _add(self, step: dict[str, Any]) -> None:
+    def _add(self, step: dict[str, Any]) -> float:
+        """Append a step; the time it started."""
         now = self._clock()
         if not self._steps:
             self._first = now
-        step["_started"] = now
         self._steps.append(step)
         self._last = now
+        return now
 
     def _end_thought(self) -> None:
-        thought = self._thought
-        if thought is None:
+        if self._thought is None:
             return
         # Reasoning that came whole has no measurable duration; one that streamed has.
-        started = thought.pop("_started", self._clock())
-        if thought.pop("_deliveries", 0) > 1:
-            thought["seconds"] = round(self._clock() - started, 2)
         self._last = self._clock()
+        if self._deliveries > 1:
+            self._thought["seconds"] = round(self._last - self._thought_started, 2)
         self._thought = None

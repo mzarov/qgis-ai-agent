@@ -31,6 +31,21 @@ LAG_MS = 120
 ARRIVE_EASING = (0.2, 0.7, 0.3, 1.0)
 
 
+def animation(
+    owner: QObject, ms: int, step: Callable[[Any], None], done: Callable[[], None] | None = None, end: float = 1.0
+) -> QVariantAnimation:
+    """An animation from 0 to `end` over `ms`, owned by `owner`; `step` and `done` must be bound methods,
+    so Qt drops the connections with their widget where a lambda would outlive it."""
+    motion = QVariantAnimation(owner)
+    motion.setDuration(ms)
+    motion.setStartValue(0.0)
+    motion.setEndValue(end)
+    motion.valueChanged.connect(step)
+    if done is not None:
+        motion.finished.connect(done)
+    return motion
+
+
 def arrival(elapsed_ms: float, delay_ms: float = 0.0) -> float:
     """How far an arriving part has come, 0…1 on the handoff's curve, for a part starting `delay_ms` late."""
     linear = (elapsed_ms - delay_ms) / ARRIVE_MS
@@ -53,12 +68,7 @@ class LeavingFeed(QWidget):
         self.progress = 0.0
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         self.setGeometry(parent.rect())
-        self._animation = QVariantAnimation(self)
-        self._animation.setDuration(LEAVE_MS)
-        self._animation.setStartValue(0.0)
-        self._animation.setEndValue(1.0)
-        self._animation.valueChanged.connect(self._step)
-        self._animation.finished.connect(self._done)
+        self._animation = animation(self, LEAVE_MS, self._step, self._done)
 
     def start(self) -> None:
         self.show()
@@ -137,12 +147,8 @@ class Arrival(QObject):
         self._target = target
         self._effect = ArrivalEffect(lagging, target)
         target.setGraphicsEffect(self._effect)
-        self._animation = QVariantAnimation(self)
-        self._animation.setDuration(ARRIVE_MS + LAG_MS)
-        self._animation.setStartValue(0.0)
-        self._animation.setEndValue(float(ARRIVE_MS + LAG_MS))
-        self._animation.valueChanged.connect(self._tick)
-        self._animation.finished.connect(self._done)
+        total = ARRIVE_MS + LAG_MS
+        self._animation = animation(self, total, self._tick, self._done, end=float(total))
 
     def start(self) -> None:
         self._animation.start()

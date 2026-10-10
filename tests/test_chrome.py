@@ -119,7 +119,7 @@ class NewConversationButtonTest(unittest.TestCase):
         dock.set_conversation_title("Districts by population")
         self.assertEqual(dock.toolbar.title.label.text(), "Districts by population")
         dock.set_conversation_title("")
-        self.assertEqual(dock.toolbar.title.label.text(), dock_widget.NEW_CONVERSATION_TITLE)
+        self.assertEqual(dock.toolbar.title.label.text(), dock_widget.chrome.NEW_CONVERSATION)
 
 
 class SavedHintTest(unittest.TestCase):

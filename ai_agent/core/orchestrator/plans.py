@@ -120,32 +120,25 @@ class PlanMixin:
             changes["marks"] = marks
         self.conversation.update_plan(key, **changes)
 
-    def on_stage_applied(self, results: list) -> None:
+    def _close_plan_card(self, results: list, failed: bool) -> None:
+        """The applied card's outcome, on screen and kept for a reopened conversation."""
         self._apply_scope = None
         undoable = self._keep_plan_snapshot()
-        self._settle_plan_steps(results)
-        if self._plan_message_id is not None:
-            if any(not result.ok for result in results):
-                self.dock_widget.mark_plan_failed(self._plan_message_id, undoable)
-                self._plan_settled(FAILED, self._plan_marks)
-            else:
-                self.dock_widget.mark_plan_completed(self._plan_message_id, undoable)
-                self._plan_settled(APPLIED, self._plan_marks)
-        self._plan_message_id = None
-
-    def on_applied(self, results: list) -> None:
-        self._apply_scope = None
-        undoable = self._keep_plan_snapshot()
-        failed = [result for result in results if not result.ok]
         self._settle_plan_steps(results)
         if self._plan_message_id is not None:
             if failed:
                 self.dock_widget.mark_plan_failed(self._plan_message_id, undoable)
-                self._plan_settled(FAILED, self._plan_marks)
             else:
                 self.dock_widget.mark_plan_completed(self._plan_message_id, undoable)
-                self._plan_settled(APPLIED, self._plan_marks)
+            self._plan_settled(FAILED if failed else APPLIED, self._plan_marks)
         self._plan_message_id = None
+
+    def on_stage_applied(self, results: list) -> None:
+        self._close_plan_card(results, any(not result.ok for result in results))
+
+    def on_applied(self, results: list) -> None:
+        failed = [result for result in results if not result.ok]
+        self._close_plan_card(results, bool(failed))
         self.dock_widget.show_outcome(STATUS_FAILED if failed else STATUS_DONE)
         if failed:
             # The reasons stand under the failed steps in the card; the model reads the exact errors

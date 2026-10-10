@@ -9,16 +9,13 @@ as the exact name of a layer.
 
 from typing import Any
 
-from qgis.PyQt.QtCore import QSize, Qt, pyqtSignal
-from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QToolButton, QWidget
+from qgis.PyQt.QtCore import pyqtSignal
+from qgis.PyQt.QtWidgets import QHBoxLayout, QSizePolicy, QWidget
 
 from ai_agent.i18n import tr
-from ai_agent.ui import controls, icons, style
+from ai_agent.ui import controls, style
+from ai_agent.ui.attachments import CHIP_HEIGHT, CHIP_RADIUS, ICON, TEXT_SCALE, chip_close
 
-CHIP_HEIGHT = 22
-CHIP_RADIUS = 4
-ICON = 12
-TEXT_SCALE = 12 / 13
 MAX_WIDTH = 280
 SEPARATOR = " · "
 DROP = tr("Leave this layer out of the request")
@@ -37,34 +34,14 @@ class LayerChip(controls.RoundedFrame):
         row = QHBoxLayout(self)
         row.setContentsMargins(6, 0, 2, 0)
         row.setSpacing(5)
-        glyph = QLabel()
-        glyph.setFixedSize(ICON, ICON)
-        icon = icons.drawn("layer", style.muted(palette), ICON)
-        if icon is not None:
-            glyph.setPixmap(icon.pixmap(ICON, ICON))
-        row.addWidget(glyph)
+        row.addWidget(controls.glyph("layer", style.muted(palette), ICON))
         self.label = controls.ElidedLabel()
         # As wide as its text while there is room; a long name elides instead of widening the box.
         self.label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         style.scale_font(self.label, TEXT_SCALE)
         style.ink(self.label, style.muted(palette))
         row.addWidget(self.label, 1)
-        self.drop_button = QToolButton()
-        self.drop_button.setFixedSize(CHIP_HEIGHT - 4, CHIP_HEIGHT - 4)
-        self.drop_button.setAutoRaise(True)
-        self.drop_button.setToolTip(DROP)
-        self.drop_button.setAccessibleName(DROP)
-        self.drop_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.drop_button.setStyleSheet(
-            "QToolButton { border: none; background: transparent; border-radius: 3px; }"
-            f"QToolButton:hover {{ background: {style.css_color(style.sunken(palette))}; }}"
-        )
-        cross = icons.drawn("close", style.faint(palette), ICON)
-        if cross is None:
-            self.drop_button.setText("×")
-        else:
-            self.drop_button.setIcon(cross)
-            self.drop_button.setIconSize(QSize(ICON, ICON))
+        self.drop_button = chip_close(DROP, palette)
         self.drop_button.clicked.connect(self.drop)
         row.addWidget(self.drop_button)
         self.setVisible(False)

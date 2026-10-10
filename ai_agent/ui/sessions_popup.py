@@ -12,12 +12,12 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 
-from qgis.PyQt.QtCore import QPoint, QSize, Qt, pyqtSignal
+from qgis.PyQt.QtCore import QPoint, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QFont, QKeySequence
-from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QScrollArea, QToolButton, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QScrollArea, QVBoxLayout, QWidget
 
 from ai_agent.i18n import tr
-from ai_agent.ui import controls, icons, style
+from ai_agent.ui import controls, style
 from ai_agent.ui import settings_fields as fields
 
 POPUP_WIDTH = 320
@@ -113,10 +113,11 @@ class SessionRow(controls.RoundedFrame):
         style.ink(self.meta, style.faint(palette))
         self.meta.setContentsMargins(0, 0, 6, 0)
         line.addWidget(self.meta)
-        self.rename_button = _icon_button("rename", "✎", RENAME, palette)
+        muted = style.muted(palette)
+        self.rename_button = controls.icon_button("rename", "✎", RENAME, muted, palette, ICON_BUTTON, ICON, ROW_RADIUS)
         self.rename_button.clicked.connect(self.start_rename)
         line.addWidget(self.rename_button)
-        self.delete_button = _icon_button("delete", "🗑", DELETE, palette)
+        self.delete_button = controls.icon_button("delete", "🗑", DELETE, muted, palette, ICON_BUTTON, ICON, ROW_RADIUS)
         self.delete_button.clicked.connect(self._ask_delete)
         line.addWidget(self.delete_button)
         self._show_actions(False)
@@ -177,25 +178,16 @@ class SessionRow(controls.RoundedFrame):
         super().leaveEvent(event)
 
 
-class NewRow(controls.RoundedFrame):
+class NewRow(controls.HoverFrame):
     """The menu's first row: a plus, "New conversation", the shortcut."""
 
-    clicked = pyqtSignal()
-
     def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(ROW_RADIUS, parent)
-        self._fill = style.card(palette).name()
+        super().__init__(ROW_RADIUS, palette, parent)
         self.setFixedHeight(ROW_HEIGHT)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
         line = QHBoxLayout(self)
         line.setContentsMargins(10, 0, 10, 0)
         line.setSpacing(10)
-        glyph = QLabel()
-        glyph.setFixedSize(NEW_ICON, NEW_ICON)
-        icon = icons.drawn("new", style.faint(palette), NEW_ICON)
-        if icon is not None:
-            glyph.setPixmap(icon.pixmap(NEW_ICON, NEW_ICON))
-        line.addWidget(glyph)
+        line.addWidget(controls.glyph("new", style.faint(palette), NEW_ICON))
         title = QLabel(NEW_CONVERSATION)
         style.ink(title, style.text(palette))
         line.addWidget(title, 1)
@@ -203,18 +195,6 @@ class NewRow(controls.RoundedFrame):
         style.scale_font(self.shortcut, META_SCALE)
         style.ink(self.shortcut, style.faint(palette))
         line.addWidget(self.shortcut)
-
-    def mouseReleaseEvent(self, event: Any) -> None:
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.clicked.emit()
-
-    def enterEvent(self, event: Any) -> None:
-        self.set_look(self._fill, None)
-        super().enterEvent(event)
-
-    def leaveEvent(self, event: Any) -> None:
-        self.set_look(None, None)
-        super().leaveEvent(event)
 
 
 class SessionsPopup(controls.RoundedFrame):
@@ -287,8 +267,7 @@ class SessionsPopup(controls.RoundedFrame):
         self.show()
 
     def keyPressEvent(self, event: Any) -> None:
-        matches = getattr(event, "matches", None)
-        if matches is not None and matches(QKeySequence.StandardKey.New):
+        if controls.is_new_shortcut(event):
             self._new()
             return
         super().keyPressEvent(event)
@@ -307,23 +286,3 @@ class SessionsPopup(controls.RoundedFrame):
         # Closed first: the confirmation is modal and a popup must not sit behind it.
         self.hide()
         self.delete_requested.emit(identifier, title)
-
-
-def _icon_button(role: str, fallback: str, tooltip: str, palette: Any) -> QToolButton:
-    button = QToolButton()
-    button.setFixedSize(ICON_BUTTON, ICON_BUTTON)
-    button.setAutoRaise(True)
-    button.setToolTip(tooltip)
-    button.setAccessibleName(tooltip)
-    button.setCursor(Qt.CursorShape.PointingHandCursor)
-    button.setStyleSheet(
-        "QToolButton { border: none; background: transparent; border-radius: 5px; }"
-        f"QToolButton:hover {{ background: {style.css_color(style.sunken(palette))}; }}"
-    )
-    icon = icons.drawn(role, style.muted(palette), ICON)
-    if icon is None:
-        button.setText(fallback)
-    else:
-        button.setIcon(icon)
-        button.setIconSize(QSize(ICON, ICON))
-    return button

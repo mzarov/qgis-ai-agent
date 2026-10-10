@@ -78,7 +78,6 @@ class Composer(QWidget):
         edit_row.addWidget(self._build_edit())
         framed.addLayout(edit_row)
         self.toolbar = ComposerControls(palette, lambda: len(self._layers()))
-        self.toolbar.set_menu_anchor(self._frame)
         self.toolbar.data_requested.connect(lambda: self._choose(DATA))
         self.toolbar.picture_requested.connect(lambda: self._choose(PICTURE))
         self.toolbar.layer_requested.connect(self._start_mention)

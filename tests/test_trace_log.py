@@ -5,7 +5,7 @@ import unittest
 
 from ai_agent.core.state.conversation import ConversationState
 from ai_agent.core.state.store import SessionStore
-from ai_agent.core.state.trace import APPLIED, CALL, CHOICE, PENDING, PLAN_ROLE, THOUGHT, TRACE_ROLE, TraceLog
+from ai_agent.core.state.trace import APPLIED, CALL, PENDING, PLAN_ROLE, THOUGHT, TRACE_ROLE, TraceLog
 from ai_agent.qgis_tools.call_summary import CallSummary
 
 
@@ -53,14 +53,12 @@ class TraceLogTest(unittest.TestCase):
         self.assertIsNone(steps[2]["seconds"])
         self.assertNotIn("_started", json.dumps(steps))
 
-    def test_a_cut_short_call_rejected_one_and_a_choice_are_kept_as_they_ended(self):
+    def test_a_cut_short_call_and_a_rejected_one_are_kept_as_they_ended(self):
         self.log.rejected("Rejected: delete")
-        self.log.choice("pop2020")
         self.log.call("Downloading roads")
         steps = self.log.take()["steps"]
         self.assertEqual((steps[0]["ok"], steps[0]["rejected"]), (False, True))
-        self.assertEqual((steps[1]["kind"], steps[1]["text"]), (CHOICE, "pop2020"))
-        self.assertEqual((steps[2]["ok"], steps[2]["seconds"]), (None, None))
+        self.assertEqual((steps[1]["ok"], steps[1]["seconds"]), (None, None))
 
 
 class DisplayEntriesTest(unittest.TestCase):
@@ -107,7 +105,7 @@ class DisplayEntriesTest(unittest.TestCase):
         self.state.add("user", "second")
         self.state.trace.done("Using style")
         self.state.delete(self.state.session_identifier)
-        self.assertFalse(self.state.trace.pending)
+        self.assertIsNone(self.state.trace.take())
 
 
 if __name__ == "__main__":

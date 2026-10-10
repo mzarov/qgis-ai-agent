@@ -288,10 +288,8 @@ class ActivityGroup(QFrame):
         self._rows.setContentsMargins(0, 0, 0, 0)
         self._rows.setSpacing(0)
         # The fold shows a part of the rows, never squeezes them: they keep their height and are clipped.
-        self._rows_holder = folding.ClipBox(rows)
+        self._rows_holder = folding.ClipBox(rows, self.update)
         column.addWidget(self._rows_holder)
-        self._rows_holder.setVisible(False)
-        self._fold = folding.Fold(self._rows_holder, self.update)
         self.items: list[TraceRow] = []
         # Off in Personalisation: steps stay folded under the header while the agent works too.
         self._show_steps = personal.load().show_steps
@@ -366,8 +364,7 @@ class ActivityGroup(QFrame):
         """A replayed turn: folded at once, its header showing the time the record kept."""
         self._recorded = float(seconds) if isinstance(seconds, (int, float)) else None
         self.rest()
-        self._fold.finish()
-        self._header.chevron.finish()
+        self.finish_folding()
         # Built still; from now on the user's clicks open and close it like any other.
         self.quiet = False
 
@@ -388,7 +385,7 @@ class ActivityGroup(QFrame):
 
     def finish_folding(self) -> None:
         """End any fold or turn at once, as a screenshot wants it."""
-        self._fold.finish()
+        self._rows_holder.finish()
         self._header.chevron.finish()
 
     def _add(self, row: TraceRow) -> None:
@@ -409,7 +406,7 @@ class ActivityGroup(QFrame):
         for row in self.items:
             row.set_bottom(0 if self.only_thoughts and row is self.items[-1] else ROW_BOTTOM)
         if self.only_thoughts and self._rows_holder.isHidden():
-            self._fold.set_open(True, animate=False)
+            self._rows_holder.set_open(True, animate=False)
         working = self._pending and not self._closed
         title = WORKING.format(count) if working else tr_n("Activity · %n step(s)", count)
         self._header.title.setText(title)
@@ -424,7 +421,7 @@ class ActivityGroup(QFrame):
         self.update()
 
     def _on_toggled(self, expanded: bool) -> None:
-        self._fold.set_open(expanded or self.only_thoughts, animate=not self.quiet)
+        self._rows_holder.set_open(expanded or self.only_thoughts, animate=not self.quiet)
 
     def paintEvent(self, event: Any) -> None:
         super().paintEvent(event)
