@@ -259,7 +259,7 @@ class ComposerControls(QWidget):
         self.menu.popup(QPoint(above.x(), above.y() - self.menu.sizeHint().height() - controls.MENU_GAP))
 
     def _open_modes(self) -> None:
-        self.modes.open_above(self._anchor, self._mode, self._anchor.width())
+        self.modes.open_above(self._anchor, self._mode)
 
 
 def _glyph(role: str, palette: Any) -> QIcon:

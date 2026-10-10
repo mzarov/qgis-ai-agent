@@ -923,9 +923,10 @@ These verify the agent solves everyday tasks without wandering through search.
      about `reasoning_content` (turns from the first run go back with an empty
      one).
 191. **Auto mode applies by itself.** Click **Ask** in the box → the Mode menu
-     opens above the whole box: one word a mode, each described, *Default*
-     on Ask, a check on the current one, *Shift+Tab — next mode* at the
-     bottom; press 2 (or Shift+Tab in the box) → it reads **Auto**; *make the
+     opens above the box, only as wide as its text: one word a mode, each
+     described, *Default* on Ask, the current one lit (no check; the light
+     follows the pointer and comes back when it leaves), *Shift+Tab — next
+     mode* at the bottom; press 2 (or Shift+Tab in the box) → it reads **Auto**; *make the
      rivers blue* → the card reads "Applying by itself", the rivers turn blue
      without a click, the check runs after; restart QGIS → the mode is still
      Auto.

@@ -356,7 +356,7 @@ class ForeignThemeScreens(ScreenCase):
             self.check(f"foreign_{label}_skills", panel, goldens=False)
             panel.composer._edit.clear()
             toolbar = panel.composer.toolbar
-            toolbar.modes.open_above(panel.composer._frame, "ask", panel.composer._frame.width())
+            toolbar.modes.open_above(panel.composer._frame, "ask")
             self.check(f"foreign_{label}_modes", toolbar.modes, goldens=False)
             toolbar.modes.hide()
             sessions = [Entry("a", "Town layers and what is in them", time.time(), True)]
@@ -413,8 +413,12 @@ class ComposerScreens(ScreenCase):
     def test_mode_menu(self) -> None:
         toolbar = self.dock.composer.toolbar
         frame = self.dock.composer._frame
-        toolbar.modes.open_above(frame, "ask", frame.width())
+        toolbar.modes.open_above(frame, "ask")
         try:
+            # Lit, not checked: the current mode is the row with the fill, and the menu is as wide as its text.
+            lit = [row.key for row in toolbar.modes.rows if row.lit]
+            self.assertEqual(lit, ["ask"])
+            self.assertLess(toolbar.modes.width(), frame.width())
             self.check("mode_menu", toolbar.modes)
         finally:
             toolbar.modes.hide()

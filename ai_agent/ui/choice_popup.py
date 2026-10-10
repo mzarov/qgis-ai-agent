@@ -1,10 +1,12 @@
 """A small popup of exclusive choices: the mode menu, after the design handoff.
 
-A caption, then one row per choice — a check on the current one, its name (with
-an optional badge), a muted line saying what it does, and its number key — and
-an optional footer under a hairline. Digits, arrows and Enter choose; Esc or a
-click outside closes. Rows paint their hover and highlight, so nothing restyles
-while a mouse event runs.
+A caption, then one row per choice — its name (with an optional badge), a muted
+line saying what it does, and its number key — and an optional footer under a
+hairline. The current choice is the lit row, no check: the light follows the
+pointer and the arrows, and comes back to the current one when the pointer
+leaves. The popup is as wide as its text, never wider than its anchor. Digits,
+arrows and Enter choose; Esc or a click outside closes. Rows paint their light,
+so nothing restyles while a mouse event runs.
 """
 
 from dataclasses import dataclass
@@ -13,15 +15,13 @@ from typing import Any
 from qgis.PyQt.QtCore import QPoint, Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
-from ai_agent.ui import controls, icons, style
+from ai_agent.ui import controls, style
 
 POPUP_RADIUS = 8
 POPUP_PADDING = 4
 ROW_RADIUS = 5
-POPUP_WIDTH = 360
-CHECK = "✓"
-CHECK_SIZE = 14
-CHECK_COLUMN = 16
+ROW_MARGINS = (10, 5, 10, 5)
+FOOTER_MARGINS = (10, 2, 10, 4)
 PILL_RADIUS = 6
 NOTE_SCALE = 12 / 13
 NUMBER_SCALE = 11 / 13
@@ -43,21 +43,12 @@ class ChoiceRow(controls.RoundedFrame):
     def __init__(self, choice: Choice, number: int, palette: Any, parent: QWidget | None = None, wrap: bool = False):
         super().__init__(ROW_RADIUS, parent)
         self.key = choice.key
+        self.lit = False
         self._fill = style.card(palette).name()
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         line = QHBoxLayout(self)
-        line.setContentsMargins(10, 7, 10, 7)
+        line.setContentsMargins(*ROW_MARGINS)
         line.setSpacing(8)
-        self.check = QLabel()
-        self.check.setFixedWidth(CHECK_COLUMN)
-        self.check.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        mark = icons.drawn("check", style.accent(palette), CHECK_SIZE)
-        if mark is None:
-            self.check.setText(CHECK)
-            style.ink(self.check, style.accent(palette))
-        else:
-            self.check.setPixmap(mark.pixmap(CHECK_SIZE, CHECK_SIZE))
-        line.addWidget(self.check, 0, Qt.AlignmentFlag.AlignTop)
         text = QVBoxLayout()
         text.setSpacing(1)
         head = QHBoxLayout()
@@ -69,13 +60,13 @@ class ChoiceRow(controls.RoundedFrame):
             head.addWidget(_pill(choice.badge, palette), 0, Qt.AlignmentFlag.AlignVCenter)
         head.addStretch(1)
         text.addLayout(head)
-        note = QLabel(choice.note)
-        style.scale_font(note, NOTE_SCALE)
-        style.ink(note, style.faint(palette))
+        self.note = QLabel(choice.note)
+        style.scale_font(self.note, NOTE_SCALE)
+        style.ink(self.note, style.faint(palette))
         # In the feed the row must shrink with the dock, so there it wraps; the popup wraps
-        # too when it is as wide as the composer and the note is longer than that.
-        note.setWordWrap(wrap)
-        text.addWidget(note)
+        # only when its anchor is narrower than the longest note.
+        self.note.setWordWrap(wrap)
+        text.addWidget(self.note)
         line.addLayout(text, 1)
         self.number = QLabel(str(number))
         style.scale_font(self.number, NUMBER_SCALE)
@@ -83,6 +74,7 @@ class ChoiceRow(controls.RoundedFrame):
         line.addWidget(self.number, 0, Qt.AlignmentFlag.AlignTop)
 
     def set_highlighted(self, highlighted: bool) -> None:
+        self.lit = highlighted
         self.set_look(self._fill if highlighted else None, None)
 
     def mouseReleaseEvent(self, event: Any) -> None:
@@ -103,6 +95,7 @@ class ChoicePopup(controls.RoundedFrame):
         super().__init__(POPUP_RADIUS, parent)
         self._choices = choices
         self._index = 0
+        self._current = 0
         try:
             flags = Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint | Qt.WindowType.NoDropShadowWindowHint
         except TypeError:
@@ -113,18 +106,13 @@ class ChoicePopup(controls.RoundedFrame):
         style.apply_palette(self)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.set_look(style.surface(palette).name(), style.border_strong(palette).name())
-        self.setFixedWidth(POPUP_WIDTH)
         column = QVBoxLayout(self)
         column.setContentsMargins(POPUP_PADDING, POPUP_PADDING, POPUP_PADDING, POPUP_PADDING)
         column.setSpacing(1)
         column.addWidget(controls.caption(caption, palette))
         self.rows: list[ChoiceRow] = []
         for number, choice in enumerate(choices, 1):
-            row = ChoiceRow(choice, number, palette, wrap=True)
-            # Every row keeps the check's column, so the names line up whichever is current.
-            policy = row.check.sizePolicy()
-            policy.setRetainSizeWhenHidden(True)
-            row.check.setSizePolicy(policy)
+            row = ChoiceRow(choice, number, palette)
             row.clicked.connect(self.choose)
             row.hovered.connect(lambda key: self._highlight(self._position(key)))
             self.rows.append(row)
@@ -134,16 +122,20 @@ class ChoicePopup(controls.RoundedFrame):
             hint = QLabel(footer)
             style.scale_font(hint, NOTE_SCALE)
             style.ink(hint, style.faint(palette))
-            hint.setContentsMargins(10, 4, 10, 6)
+            hint.setContentsMargins(*FOOTER_MARGINS)
             column.addWidget(hint)
 
-    def open_above(self, anchor: QWidget, current: str, width: int = 0) -> None:
-        """Show the popup over `anchor`, left edges aligned, `width` wide when given, `current` checked and lit."""
+    def open_above(self, anchor: QWidget, current: str) -> None:
+        """Show the popup over `anchor`, left edges aligned, as wide as its text allows, `current` lit."""
+        self._current = self._position(current)
+        self._highlight(self._current)
         for row in self.rows:
-            row.check.setVisible(row.key == current)
-        self._highlight(self._position(current))
-        if width:
-            self.setFixedWidth(width)
+            row.note.setWordWrap(False)
+        natural = self.sizeHint().width()
+        narrow = natural > anchor.width() > 0
+        for row in self.rows:
+            row.note.setWordWrap(narrow)
+        self.setFixedWidth(anchor.width() if narrow else natural)
         self.adjustSize()
         corner = anchor.mapToGlobal(QPoint(0, 0))
         self.move(corner.x(), corner.y() - self.sizeHint().height() - controls.MENU_GAP)
@@ -167,6 +159,11 @@ class ChoicePopup(controls.RoundedFrame):
             self.hide()
         else:
             super().keyPressEvent(event)
+
+    def leaveEvent(self, event: Any) -> None:
+        # The light is the only mark of the current choice: it goes back there once the pointer leaves.
+        self._highlight(self._current)
+        super().leaveEvent(event)
 
     def _position(self, key: str) -> int:
         return next((index for index, choice in enumerate(self._choices) if choice.key == key), 0)

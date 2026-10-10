@@ -308,7 +308,6 @@ class PlanOffer(controls.RoundedFrame):
             (Choice(WORK_MODE_AUTO, RUN_AUTO, RUN_AUTO_NOTE), Choice(WORK_MODE_ASK, RUN_ASKING, RUN_ASKING_NOTE)), 1
         ):
             row = OfferRow(choice, number, palette, wrap=True)
-            row.check.setVisible(False)
             # No number keys in the feed, so no numbers: they would promise a shortcut that is not there.
             row.number.setVisible(False)
             row.clicked.connect(self._run)

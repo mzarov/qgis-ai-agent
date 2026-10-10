@@ -63,7 +63,7 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `layer_chip.py`   | the active layer as a chip above the text, × leaves it out until another layer is active |
 | `sessions_popup.py` | the history menu: a new conversation, then the project's conversations by day with their time, rename in place, delete after the dock confirms |
 | `context_meter.py` | the ring under the composer and its popup: window, auto-compact, Compact, spent |
-| `choice_popup.py` | the mode menu: caption, rows with a check, a note and a number key, the Shift+Tab footer; spans the whole box |
+| `choice_popup.py` | the mode menu: caption, rows with a note and a number key, the current one lit (no check), the Shift+Tab footer; as wide as its text |
 | `attachments.py`  | the + file pickers, drag-and-drop paths, the picture chips waiting in the composer |
 | `chart.py`        | a chart in the feed: bars, rows, lines, donut, histogram, scatter; painted, hover tips, copy image/CSV |
 | `chart_scale.py`  | axis arithmetic: round ticks, compact numbers, which bar layout fits |
