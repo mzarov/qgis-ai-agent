@@ -10,8 +10,21 @@
  },
  {
   "depth": 2,
+  "type": "SettingsSearch"
+ },
+ {
+  "depth": 3,
+  "type": "QLineEdit",
+  "text": "Find a setting"
+ },
+ {
+  "depth": 4,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 2,
   "type": "QLabel",
-  "text": "Settings"
+  "text": "Model"
  },
  {
   "depth": 2,
@@ -49,6 +62,11 @@
   "checked": false
  },
  {
+  "depth": 3,
+  "type": "QLabel",
+  "text": "17"
+ },
+ {
   "depth": 2,
   "type": "QLabel",
   "text": "Data"
@@ -64,6 +82,11 @@
   "type": "QPushButton",
   "text": "Geocoding",
   "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "AI Agent 0.2.0 · QGIS 4.0"
  },
  {
   "depth": 1,
@@ -90,17 +113,40 @@
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "Everything the agent reads goes to the model"
+  "text": "Privacy"
  },
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "Use a local server to keep project data on this computer."
+  "text": "Everything the agent reads goes to the model you chose. Here: where it goes and what stays on disk."
+ },
+ {
+  "depth": 5,
+  "type": "PrivacyStatus"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "Data stays on this computer"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "The model runs at http://localhost:11434, on this device."
+ },
+ {
+  "depth": 6,
+  "type": "QPushButton",
+  "text": "Connection"
  },
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "Connection security"
+  "text": "Network"
  },
  {
   "depth": 5,
@@ -132,7 +178,7 @@
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "Records"
+  "text": "History and journals"
  },
  {
   "depth": 5,
@@ -149,12 +195,53 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "Write a run journal after applying"
+  "text": "Keep conversations"
+ },
+ {
+  "depth": 7,
+  "type": "Segmented",
+  "name": "segmented"
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "7 days",
+  "checked": false
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "30 days",
+  "checked": false
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "Always",
+  "checked": true
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
  },
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "A Markdown log in the QGIS profile."
+  "text": "Run journal"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "A Markdown file with the steps and calls after every Apply."
  },
  {
   "depth": 7,
@@ -162,9 +249,73 @@
   "checked": false
  },
  {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Folder"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "ElidedLabel",
+  "text": "/Users/someone-with-a-long-name/Library/Application Support/QGIS/QGIS4/profiles/default/config/profiles/default/ai_agent"
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "Open"
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Delete history and journals"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "12 conversations, 2.1 MB. This cannot be undone."
+ },
+ {
+  "depth": 7,
+  "type": "QPushButton",
+  "text": "Delete…"
+ },
+ {
   "depth": 2,
   "type": "QFrame",
   "name": "settingsSeparator"
+ },
+ {
+  "depth": 2,
+  "type": "PaintedDot"
  },
  {
   "depth": 2,

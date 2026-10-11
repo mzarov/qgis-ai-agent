@@ -112,6 +112,7 @@ class SkillRegistry:
                 self._local_problems.append(problem)
                 continue
             skill.origin = LOCAL
+            skill.path = os.path.join(self._local_root or "", entry, SKILL_FILENAME)
             self._local[skill.name] = skill
 
     def _local_problem(self, entry: str, skill: Skill, builtin: dict[str, Skill]) -> str:

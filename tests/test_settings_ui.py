@@ -171,7 +171,7 @@ class SidebarSettingsTest(unittest.TestCase):
         self.assertIn("class Switch(QCheckBox):", SOURCE)
         body = SOURCE.split("class Switch(")[1].split("\ndef ")[0]
         self.assertIn("drawRoundedRect", body)
-        self.assertIn("style.accent(self._palette) if self.isChecked()", body)
+        self.assertIn("style.accent(palette) if on", body)
         self.assertNotIn("QCheckBox(", ADVANCED_SOURCE)
 
     def test_the_run_journal_is_off_until_asked_for(self):
@@ -294,8 +294,8 @@ class CredentialUiContractTest(unittest.TestCase):
         self.assertIn("super().reject()", finished_body)
 
     def test_geocoder_is_selected_in_settings_not_by_the_model(self):
-        self.assertIn('addItem("Photon", GEOCODER_PHOTON)', GEOCODER_SOURCE)
-        self.assertIn('addItem("Nominatim", GEOCODER_NOMINATIM)', GEOCODER_SOURCE)
+        self.assertIn('(GEOCODER_PHOTON, "Photon"', GEOCODER_SOURCE)
+        self.assertIn("(GEOCODER_NOMINATIM, tr(", GEOCODER_SOURCE)
         self.assertIn("validated_service_url", GEOCODER_SOURCE)
         self.assertIn("self.geocoder.values()", DIALOG_SOURCE)
 

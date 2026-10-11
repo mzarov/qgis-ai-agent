@@ -83,7 +83,14 @@ def describe_local_skills(path: str | None = None) -> dict[str, Any]:
     for name in SKILL_REGISTRY.local_names():
         skill = SKILL_REGISTRY.get(name)
         if skill is not None:
-            skills.append({"name": skill.name, "description": skill.description, "tools": list(skill.tool_names)})
+            skills.append(
+                {
+                    "name": skill.name,
+                    "description": skill.description,
+                    "tools": list(skill.tool_names),
+                    "path": skill.path,
+                }
+            )
     return {
         "path": root,
         "skills": skills,

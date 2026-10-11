@@ -10,8 +10,21 @@
  },
  {
   "depth": 2,
+  "type": "SettingsSearch"
+ },
+ {
+  "depth": 3,
+  "type": "QLineEdit",
+  "text": "Find a setting"
+ },
+ {
+  "depth": 4,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 2,
   "type": "QLabel",
-  "text": "Settings"
+  "text": "Model"
  },
  {
   "depth": 2,
@@ -49,6 +62,11 @@
   "checked": false
  },
  {
+  "depth": 3,
+  "type": "QLabel",
+  "text": "17"
+ },
+ {
   "depth": 2,
   "type": "QLabel",
   "text": "Data"
@@ -64,6 +82,11 @@
   "type": "QPushButton",
   "text": "Geocoding",
   "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "AI Agent 0.2.0 · QGIS 4.0"
  },
  {
   "depth": 1,
@@ -90,12 +113,17 @@
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "Provider"
+  "text": "Connection"
  },
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "Any OpenAI-compatible server works."
+  "text": "Any OpenAI-compatible server works. Keys are kept in the QGIS authentication database, not in the project."
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Provider"
  },
  {
   "depth": 5,
@@ -103,8 +131,8 @@
  },
  {
   "depth": 6,
-  "type": "ProviderTile",
-  "name": "providerTile"
+  "type": "ChoiceTile",
+  "name": "choiceTile"
  },
  {
   "depth": 7,
@@ -116,9 +144,18 @@
   "text": "Ollama"
  },
  {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Local"
+ },
+ {
+  "depth": 7,
+  "type": "Radio"
+ },
+ {
   "depth": 6,
-  "type": "ProviderTile",
-  "name": "providerTile"
+  "type": "ChoiceTile",
+  "name": "choiceTile"
  },
  {
   "depth": 7,
@@ -130,9 +167,18 @@
   "text": "LM Studio"
  },
  {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Local"
+ },
+ {
+  "depth": 7,
+  "type": "Radio"
+ },
+ {
   "depth": 6,
-  "type": "ProviderTile",
-  "name": "providerTile"
+  "type": "ChoiceTile",
+  "name": "choiceTile"
  },
  {
   "depth": 7,
@@ -144,9 +190,18 @@
   "text": "OpenAI"
  },
  {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Cloud · key"
+ },
+ {
+  "depth": 7,
+  "type": "Radio"
+ },
+ {
   "depth": 6,
-  "type": "ProviderTile",
-  "name": "providerTile"
+  "type": "ChoiceTile",
+  "name": "choiceTile"
  },
  {
   "depth": 7,
@@ -158,9 +213,18 @@
   "text": "OpenRouter"
  },
  {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Cloud · key"
+ },
+ {
+  "depth": 7,
+  "type": "Radio"
+ },
+ {
   "depth": 6,
-  "type": "ProviderTile",
-  "name": "providerTile"
+  "type": "ChoiceTile",
+  "name": "choiceTile"
  },
  {
   "depth": 7,
@@ -172,9 +236,18 @@
   "text": "Anthropic"
  },
  {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Cloud · key"
+ },
+ {
+  "depth": 7,
+  "type": "Radio"
+ },
+ {
   "depth": 6,
-  "type": "ProviderTile",
-  "name": "providerTile"
+  "type": "ChoiceTile",
+  "name": "choiceTile"
  },
  {
   "depth": 7,
@@ -186,9 +259,18 @@
   "text": "Google Gemini"
  },
  {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Cloud · key"
+ },
+ {
+  "depth": 7,
+  "type": "Radio"
+ },
+ {
   "depth": 6,
-  "type": "ProviderTile",
-  "name": "providerTile"
+  "type": "ChoiceTile",
+  "name": "choiceTile"
  },
  {
   "depth": 7,
@@ -200,9 +282,18 @@
   "text": "Custom address"
  },
  {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Any compatible server"
+ },
+ {
+  "depth": 7,
+  "type": "Radio"
+ },
+ {
   "depth": 5,
   "type": "QLabel",
-  "text": "Endpoint"
+  "text": "Ollama"
  },
  {
   "depth": 5,
@@ -219,7 +310,7 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "Base URL"
+  "text": "Server address"
  },
  {
   "depth": 8,
@@ -289,46 +380,36 @@
  {
   "depth": 8,
   "type": "QLineEdit",
-  "text": "Not required"
+  "text": "Not required",
+  "enabled": false
  },
  {
-  "depth": 8,
-  "type": "QPushButton",
-  "text": "Remove key"
- },
- {
-  "depth": 6,
-  "type": "QFrame",
-  "name": "settingsSeparator"
- },
- {
-  "depth": 6,
+  "depth": 5,
   "type": "StatusCard",
   "name": "connectionStatus"
  },
  {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Connection test"
+  "depth": 6,
+  "type": "QPushButton",
+  "text": "Test connection"
  },
  {
-  "depth": 7,
+  "depth": 6,
   "type": "PaintedDot"
  },
  {
-  "depth": 7,
+  "depth": 6,
   "type": "QLabel",
   "text": "Not tested yet."
- },
- {
-  "depth": 7,
-  "type": "QPushButton",
-  "text": "Test connection"
  },
  {
   "depth": 2,
   "type": "QFrame",
   "name": "settingsSeparator"
+ },
+ {
+  "depth": 2,
+  "type": "PaintedDot"
  },
  {
   "depth": 2,

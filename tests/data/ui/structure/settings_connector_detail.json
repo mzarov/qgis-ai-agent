@@ -10,8 +10,21 @@
  },
  {
   "depth": 2,
+  "type": "SettingsSearch"
+ },
+ {
+  "depth": 3,
+  "type": "QLineEdit",
+  "text": "Find a setting"
+ },
+ {
+  "depth": 4,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 2,
   "type": "QLabel",
-  "text": "Settings"
+  "text": "Model"
  },
  {
   "depth": 2,
@@ -49,6 +62,11 @@
   "checked": false
  },
  {
+  "depth": 3,
+  "type": "QLabel",
+  "text": "17"
+ },
+ {
   "depth": 2,
   "type": "QLabel",
   "text": "Data"
@@ -64,6 +82,11 @@
   "type": "QPushButton",
   "text": "Geocoding",
   "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "AI Agent 0.2.0 · QGIS 4.0"
  },
  {
   "depth": 1,
@@ -108,8 +131,17 @@
  },
  {
   "depth": 6,
+  "type": "PaintedDot"
+ },
+ {
+  "depth": 6,
   "type": "QLabel",
-  "text": "Netherlands: aerial photos, base map, municipalities · 4 datasets"
+  "text": "Connected"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "· Netherlands: aerial photos, base map, municipalities"
  },
  {
   "depth": 6,
@@ -123,28 +155,50 @@
  },
  {
   "depth": 6,
-  "type": "QLabel",
-  "text": "A click puts the request into the chat box."
+  "type": "HoverFrame"
  },
  {
-  "depth": 6,
-  "type": "QPushButton",
+  "depth": 7,
+  "type": "QLabel",
   "text": "Add Dutch aerial photos"
  },
  {
-  "depth": 6,
-  "type": "QPushButton",
-  "text": "Load the municipalities of the Netherlands"
+  "depth": 7,
+  "type": "QLabel",
+  "text": "to chat ↵"
  },
  {
   "depth": 6,
-  "type": "QPushButton",
+  "type": "HoverFrame"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Load the municipalities of the Netherlands"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "to chat ↵"
+ },
+ {
+  "depth": 6,
+  "type": "HoverFrame"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
   "text": "Put the BRT base map under my layers"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "to chat ↵"
  },
  {
   "depth": 6,
   "type": "QLabel",
-  "text": "About"
+  "text": "How it works"
  },
  {
   "depth": 6,
@@ -242,31 +296,53 @@
  },
  {
   "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
   "type": "QLabel",
   "text": "Account or key"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "QLabel",
   "text": "Not needed: open data"
  },
  {
   "depth": 7,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
   "type": "QLabel",
   "text": "Licence"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "QLabel",
   "text": "CC BY 4.0 and CC0, credit PDOK"
  },
  {
   "depth": 7,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
   "type": "QLabel",
   "text": "Servers"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "QLabel",
   "text": "service.pdok.nl"
  },
@@ -274,6 +350,10 @@
   "depth": 2,
   "type": "QFrame",
   "name": "settingsSeparator"
+ },
+ {
+  "depth": 2,
+  "type": "PaintedDot"
  },
  {
   "depth": 2,

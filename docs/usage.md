@@ -120,6 +120,8 @@ as Claude does; until then the title is the start of your first message.
 Hovering a conversation in the history swaps its time for a pencil to rename it in place (Enter
 keeps, Esc drops — a name you chose is never replaced) and a bin to delete it
 for good after a confirmation; deleting the open conversation starts a fresh one.
+**Settings → Privacy → Keep conversations** can delete the ones untouched for
+7 or 30 days; the open one is never deleted, and the default keeps them all.
 Restoring a conversation restores the model's context too — a follow-up like
 *and how many are there?* keeps working — and what the chat showed of each turn:
 the activity lists with the reasoning, the answers picked on question cards and
@@ -169,7 +171,9 @@ otherwise 128k.
 After an applied run, the conversation shows the path to its plaintext Markdown
 journal. It lives in the active QGIS profile's `ai_agent_runs` directory, uses
 owner-only permissions where supported and is not removed automatically by the
-plugin. It is not encrypted. See
+plugin. It is not encrypted. **Settings → Privacy** opens the folder and, with
+**Delete history and journals**, erases every journal and every saved
+conversation at once after a confirmation. See
 [Data and privacy](privacy.md) for its exact contents and cleanup guidance.
 
 ## When something goes wrong
@@ -192,7 +196,10 @@ plugin. It is not encrypted. See
 
 A skill is a knowledge package the agent loads when a task enters its domain:
 one `SKILL.md` with a name, a one-line description and the rules in Markdown.
-The fourteen built-in skills cover the QGIS domains; you can add your own.
+The seventeen built-in skills cover the QGIS domains; you can add your own.
+**Settings → Skills** lists them with a switch each: a skill switched off
+leaves the agent's prompt and cannot be loaded, not even through a skill of
+your own that names its tools.
 
 Type `/` in the chat to see the list. Pick a skill with the arrows and Tab, then
 write the request: `/osm cafes in Kazan` loads the OSM rules before the first
@@ -200,9 +207,9 @@ model turn, so the agent starts in the right domain instead of discovering it a
 turn later. A bare `/skill` applies the skill to the current project.
 
 Your own skills live in the QGIS profile, in `ai_agent_skills/<name>/SKILL.md`
-— **Settings → Skills** shows the folder, opens it and writes an example to
-start from — a `house-style` skill that stays switched off until you edit its
-description. The frontmatter needs `name` (lowercase letters, digits, `-` or
+— **Settings → Skills** shows the folder, opens it, opens each skill's
+`SKILL.md` for editing and creates an example to start from — a `house-style`
+skill that stays switched off until you edit its description. The frontmatter needs `name` (lowercase letters, digits, `-` or
 `_`) and `description` (the sentence the model picks the skill by); an optional
 `tools` list names existing tools to bring along — the domain rules of those
 tools load with them. A local skill cannot add Python code: it teaches the
@@ -298,19 +305,20 @@ if it was off.
 
 **Settings → Personalisation** tells the agent who it works with and how:
 
-- **Who you are** — how to address you, your work (it decides which data and
-  methods come first) and a few lines about you.
-- **Instructions for the agent** — standing rules, up to 2000 characters:
-  coordinate systems, your organisation's conventions.
-- **How you work** — GIS experience (how much it explains), metric or imperial
-  units, layer names in plain words or snake_case.
-- **Answers** — the answer language (or the QGIS one), length, how often it
-  asks before acting, and whether an unanswered question takes the recommended
-  answer after 1, 3 or 5 minutes — a countdown under the question shows it,
-  and typing your own answer stops it. Switches: a summary after each run,
-  steps shown while it works, the map moving to new data and selections.
+- **Talking** — how to address you, your work (it decides which data and
+  methods come first), the answer language (or the QGIS one), how long the
+  answers are, metric or imperial units, your GIS experience (how much it
+  explains), layer names in plain words or snake_case.
 - **Appearance** — the panel theme: as QGIS, light or dark. A light panel in
   a dark QGIS works; the panel is rebuilt on Save, or once the agent is idle.
+- **In the conversation** — steps shown while it works, a summary after each
+  run, the map moving to new data and selections, how often it asks before
+  acting, and whether an unanswered question takes the recommended answer
+  after 1, 3 or 5 minutes — a countdown under the question shows it, and
+  typing your own answer stops it.
+- **About you** — a few lines about what you work on, where and with which data.
+- **Instructions for the agent** — standing rules, up to 2000 characters:
+  coordinate systems, your organisation's conventions.
 - **Memory** — short facts about you kept across conversations and projects.
   Add or remove them here; with the last switch on, the agent adds them itself
   when you mention something that will matter next time. Notes about one
@@ -318,6 +326,37 @@ if it was off.
 
 All of it travels with every request to the model, and the safety rules still
 win over it.
+
+## Settings
+
+The gear in the panel's toolbar opens the settings: a sidebar of pages in three
+groups — *Model*, *Customize*, *Data* — with **Find a setting** on top, which
+lists the matching rows of every page; a click opens the page at the row. Each
+page says in one sentence what it is for. Nothing is stored until **Save**; a
+page with unsaved edits has a dot in the sidebar, and the footer says whether
+everything is saved.
+
+- **Connection** — the provider as tiles (Ollama, LM Studio, OpenAI, OpenRouter,
+  Anthropic, Google Gemini or your own address), then the server address, the
+  model and the key. A local server needs no key, so its field is greyed out.
+  **Test connection** answers on the same line.
+- **Privacy** — where your data goes, read from the address being edited: this
+  computer, or the provider's host. SSL certificate checking, how long
+  conversations are kept, the run journal and its folder, and deleting the
+  history and the journals.
+- **Advanced** — checking the result after Apply, the token budget, how many
+  steps one run may take (40 by default) and how long one Processing algorithm
+  may run before it is stopped (120 s by default; raise it for long
+  algorithms). The context window, reasoning, the API format and authorisation.
+  **Extra headers** add one `Name: value` per line to every model request — for
+  a gateway such as Yandex Cloud's `x-folder-id`; a header that would carry a
+  key is refused, keys go in the API key field. **Reset agent settings**
+  returns limits, modes, connectors, skills, geocoding and personalisation
+  choices to their defaults; the connection, keys, your own texts and skills
+  stay.
+- **Personalisation**, **Skills**, **Connectors** — as described above.
+- **Geocoding** — off, the public Photon or your own server: any Nominatim you
+  may use, at its address.
 
 ## Charts and tables
 

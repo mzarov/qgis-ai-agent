@@ -27,6 +27,7 @@ from ai_agent.ui.composer_parts import (
 )
 from ai_agent.ui.layer_chip import LayerChip
 from ai_agent.ui.skill_popup import SkillPopup
+from ai_agent.ui.skill_summaries import summary
 
 PLACEHOLDER = tr("Ask about the project or ask to change the map…")
 PLACEHOLDER_BUSY = tr("Type to correct me…")
@@ -174,7 +175,11 @@ class Composer(QWidget):
         self._paint()
 
     def set_skill_source(self, provider: Callable[[], list[tuple[str, str, str]]]) -> None:
-        self._skills = provider
+        def described() -> list[tuple[str, str, str]]:
+            # The person's own-language line, not the English one the model chooses by.
+            return [(name, summary(name, description), origin) for name, description, origin in provider()]
+
+        self._skills = described
 
     def set_layer_source(self, provider: Callable[[], list[tuple[str, str, str]]]) -> None:
         self._layers = provider

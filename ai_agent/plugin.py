@@ -102,6 +102,9 @@ class QgisAiAgentPlugin:
             return
         if accepted and prompt and self.dock_widget:
             self.dock_widget.put_prompt(prompt)
+        if dialog.history_erased:
+            # The open conversation's file went with the rest: a fresh one takes its place.
+            self._orchestrator.on_history_erased()
         if self._orchestrator:
             self._orchestrator.refresh_configured()
         if accepted:

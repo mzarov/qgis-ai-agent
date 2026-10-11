@@ -8,16 +8,18 @@ example prompt hands it to the chat box through `prompt_chosen`.
 from typing import Any
 
 from qgis.PyQt.QtCore import QObject, Qt, pyqtSignal
-from qgis.PyQt.QtWidgets import QGridLayout, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
-from ai_agent.i18n import tr, tr_data, tr_n
+from ai_agent.i18n import tr, tr_data
 from ai_agent.ui import controls, icons, style
 from ai_agent.ui import settings_fields as fields
 
 BACK = tr("‹ All connectors")
 TRY = tr("Try asking")
-TRY_NOTE = tr("A click puts the request into the chat box.")
-ABOUT = tr("About")
+TO_CHAT = tr("to chat ↵")
+ABOUT = tr("How it works")
+ENABLED = tr("Connected")
+DISABLED = tr("Switched off")
 INSIDE = tr("What's inside")
 INFORMATION = tr("Information")
 KEY_LABEL = tr("Account or key")
@@ -41,8 +43,12 @@ MONOGRAM_SCALE = 0.85
 GLYPH = 17
 HEADER_GAP = 14
 EXAMPLE_GAP = 6
+EXAMPLE_RADIUS = 6
+EXAMPLE_MARGINS = (12, 8, 12, 8)
+STATUS_DOT = 6
 ROW_PADDING = (0, 9, 0, 9)
 INFO_LABEL_WIDTH = 150
+INFO_PADDING = (0, 8, 0, 8)
 
 
 def caption(item: dict[str, Any]) -> str:
@@ -84,11 +90,13 @@ class ConnectorDetail(QObject):
         column.addSpacing(HEADER_GAP)
         column.addLayout(self._header(row, palette))
         self.switch.setChecked(card_switch.isChecked())
+        self._show_state(self.switch.isChecked(), palette)
         self.switch.toggled.connect(card_switch.setChecked)
         card_switch.toggled.connect(self.switch.setChecked)
-        self.examples: list[QPushButton] = []
+        self.examples: list[QWidget] = []
         if row["examples"]:
-            fields.section(column, TRY, palette, TRY_NOTE)
+            fields.section(column, TRY, palette)
+            column.addSpacing(EXAMPLE_GAP)
             for text in row["examples"]:
                 column.addWidget(self._example(tr_data(text), palette))
                 column.addSpacing(EXAMPLE_GAP)
@@ -110,23 +118,47 @@ class ConnectorDetail(QObject):
         line.addWidget(monogram(row, palette, LARGE_MONOGRAM), 0, Qt.AlignmentFlag.AlignTop)
         text = QVBoxLayout()
         text.setSpacing(2)
-        title = fields.heading(str(row["title"]), palette)
-        title.setWordWrap(True)
-        text.addWidget(title)
-        count = tr_n("%n dataset(s)", int(row["count"]))
-        text.addWidget(controls.small(f"{tr_data(str(row['summary']))} · {count}", palette))
+        text.addWidget(fields.page_title(str(row["title"]), palette))
+        state = QHBoxLayout()
+        state.setSpacing(6)
+        self._dot = controls.PaintedDot(STATUS_DOT)
+        state.addWidget(self._dot, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._state = controls.small("", palette)
+        self._state.setWordWrap(False)
+        state.addWidget(self._state)
+        summary = controls.small(f"· {tr_data(str(row['summary']))}", palette)
+        state.addWidget(summary, 1)
+        text.addLayout(state)
         line.addLayout(text, 1)
         self.switch = fields.switch(palette)
+        self.switch.toggled.connect(lambda on: self._show_state(on, palette))
         line.addWidget(self.switch, 0, Qt.AlignmentFlag.AlignVCenter)
         return line
 
-    def _example(self, text: str, palette: Any) -> QPushButton:
-        button = QPushButton(text)
-        button.setStyleSheet(fields.plain_button(palette) + "QPushButton { text-align: left; }")
-        button.setCursor(Qt.CursorShape.PointingHandCursor)
-        button.clicked.connect(lambda _checked=False, chosen=text: self.prompt_chosen.emit(chosen))
-        self.examples.append(button)
-        return button
+    def _show_state(self, enabled: bool, palette: Any) -> None:
+        colour = style.success(palette) if enabled else style.border_strong(palette)
+        self._dot.set_colour(colour.name())
+        self._state.setText(ENABLED if enabled else DISABLED)
+        style.ink(self._state, style.success(palette) if enabled else style.faint(palette))
+
+    def _example(self, text: str, palette: Any) -> QWidget:
+        """A request to try: the words, and on the right where a click sends them."""
+        row = controls.HoverFrame(EXAMPLE_RADIUS, palette)
+        row.set_look(style.surface(palette).name(), style.hairline(palette).name())
+        line = QHBoxLayout(row)
+        line.setContentsMargins(*EXAMPLE_MARGINS)
+        line.setSpacing(10)
+        words = QLabel(text)
+        words.setWordWrap(True)
+        style.ink(words, style.text(palette))
+        line.addWidget(words, 1)
+        hint = controls.small(TO_CHAT, palette)
+        hint.setWordWrap(False)
+        style.ink(hint, style.faint(palette))
+        line.addWidget(hint, 0, Qt.AlignmentFlag.AlignVCenter)
+        row.clicked.connect(lambda chosen=text: self.prompt_chosen.emit(chosen))
+        self.examples.append(row)
+        return row
 
     @staticmethod
     def _item(item: dict[str, Any], palette: Any) -> QWidget:
@@ -143,27 +175,29 @@ class ConnectorDetail(QObject):
 
     @staticmethod
     def _information(row: dict[str, Any], palette: Any) -> QWidget:
-        holder = QWidget()
-        grid = QGridLayout(holder)
-        grid.setContentsMargins(0, 0, 0, 0)
-        grid.setHorizontalSpacing(HEADER_GAP)
-        grid.setVerticalSpacing(EXAMPLE_GAP * 2)
+        """Key and value pairs, a hairline under each, as the handoff's table of facts."""
         facts = (
             (KEY_LABEL, KEY_VALUE),
             (LICENCE, tr_data(str(row["licence"]))),
             (SERVERS, ", ".join(row["hosts"])),
         )
-        for index, (label, value) in enumerate(facts):
+        rows = []
+        for label, value in facts:
+            holder = QWidget()
+            line = QHBoxLayout(holder)
+            line.setContentsMargins(*INFO_PADDING)
+            line.setSpacing(HEADER_GAP)
             name = controls.small(label, palette)
             name.setFixedWidth(INFO_LABEL_WIDTH)
-            grid.addWidget(name, index, 0, Qt.AlignmentFlag.AlignTop)
+            style.ink(name, style.faint(palette))
+            line.addWidget(name, 0, Qt.AlignmentFlag.AlignTop)
             shown = QLabel(value)
             shown.setWordWrap(True)
             shown.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             style.ink(shown, style.text(palette))
-            grid.addWidget(shown, index, 1)
-        grid.setColumnStretch(1, 1)
-        return holder
+            line.addWidget(shown, 1)
+            rows.append(holder)
+        return fields.card_rows(palette, rows)
 
 
 def _link_style(palette: Any) -> str:

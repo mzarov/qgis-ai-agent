@@ -10,8 +10,21 @@
  },
  {
   "depth": 2,
+  "type": "SettingsSearch"
+ },
+ {
+  "depth": 3,
+  "type": "QLineEdit",
+  "text": "Find a setting"
+ },
+ {
+  "depth": 4,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 2,
   "type": "QLabel",
-  "text": "Settings"
+  "text": "Model"
  },
  {
   "depth": 2,
@@ -49,6 +62,11 @@
   "checked": false
  },
  {
+  "depth": 3,
+  "type": "QLabel",
+  "text": "17"
+ },
+ {
   "depth": 2,
   "type": "QLabel",
   "text": "Data"
@@ -64,6 +82,11 @@
   "type": "QPushButton",
   "text": "Geocoding",
   "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "AI Agent 0.2.0 · QGIS 4.0"
  },
  {
   "depth": 1,
@@ -99,7 +122,7 @@
  {
   "depth": 6,
   "type": "QLabel",
-  "text": "Where the agent gets data you do not have: ask for a satellite picture, boundaries or an aerial photo and it loads them "
+  "text": "Data sources the agent turns to by itself. A connector switched off is hidden from it."
  },
  {
   "depth": 6,
@@ -172,12 +195,36 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "Roads, buildings and places by tag, worldwide · 2 datasets"
+  "text": "Roads, buildings and places by tag, worldwide"
  },
  {
   "depth": 8,
   "type": "Switch",
   "checked": true
+ },
+ {
+  "depth": 8,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 8,
+  "type": "PaintedDot"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Connected"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "2 datasets"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "›"
  },
  {
   "depth": 7,
@@ -196,12 +243,36 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "Small tidy world layers: countries, rivers, cities · 1 dataset"
+  "text": "Small tidy world layers: countries, rivers, cities"
  },
  {
   "depth": 8,
   "type": "Switch",
   "checked": true
+ },
+ {
+  "depth": 8,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 8,
+  "type": "PaintedDot"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Connected"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "1 dataset"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "›"
  },
  {
   "depth": 7,
@@ -220,12 +291,36 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "Topographic world map with contours · 1 dataset"
+  "text": "Topographic world map with contours"
  },
  {
   "depth": 8,
   "type": "Switch",
   "checked": true
+ },
+ {
+  "depth": 8,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 8,
+  "type": "PaintedDot"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Connected"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "1 dataset"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "›"
  },
  {
   "depth": 6,
@@ -253,12 +348,36 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "Sentinel-2, Landsat, elevation and land cover scenes · 7 datasets"
+  "text": "Sentinel-2, Landsat, elevation and land cover scenes"
  },
  {
   "depth": 8,
   "type": "Switch",
   "checked": true
+ },
+ {
+  "depth": 8,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 8,
+  "type": "PaintedDot"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Connected"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "7 datasets"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "›"
  },
  {
   "depth": 7,
@@ -277,12 +396,36 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "Yesterday's Earth from space, night lights, Blue Marble · 3 datasets"
+  "text": "Yesterday's Earth from space, night lights, Blue Marble"
  },
  {
   "depth": 8,
   "type": "Switch",
   "checked": true
+ },
+ {
+  "depth": 8,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 8,
+  "type": "PaintedDot"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Connected"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "3 datasets"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "›"
  },
  {
   "depth": 7,
@@ -301,12 +444,36 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "Cloud-free satellite mosaic of the world, non-commercial use · 1 dataset"
+  "text": "Cloud-free satellite mosaic of the world, non-commercial use"
  },
  {
   "depth": 8,
   "type": "Switch",
   "checked": true
+ },
+ {
+  "depth": 8,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 8,
+  "type": "PaintedDot"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Connected"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "1 dataset"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "›"
  },
  {
   "depth": 6,
@@ -334,12 +501,36 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "Ocean depths and land heights · 1 dataset"
+  "text": "Ocean depths and land heights"
  },
  {
   "depth": 8,
   "type": "Switch",
   "checked": true
+ },
+ {
+  "depth": 8,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 8,
+  "type": "PaintedDot"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Connected"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "1 dataset"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "›"
  },
  {
   "depth": 6,
@@ -367,12 +558,36 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "Administrative boundaries of every country · 1 dataset"
+  "text": "Administrative boundaries of every country"
  },
  {
   "depth": 8,
   "type": "Switch",
   "checked": true
+ },
+ {
+  "depth": 8,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 8,
+  "type": "PaintedDot"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Connected"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "1 dataset"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "›"
  },
  {
   "depth": 6,
@@ -401,12 +616,36 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "France: aerial photos, maps, communes · 5 datasets"
+  "text": "France: aerial photos, maps, communes"
  },
  {
   "depth": 8,
   "type": "Switch",
   "checked": true
+ },
+ {
+  "depth": 8,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 8,
+  "type": "PaintedDot"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Connected"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "5 datasets"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "›"
  },
  {
   "depth": 7,
@@ -426,12 +665,36 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "Netherlands: aerial photos, base map, municipalities · 4 datasets"
+  "text": "Netherlands: aerial photos, base map, municipalities"
  },
  {
   "depth": 8,
   "type": "Switch",
   "checked": true
+ },
+ {
+  "depth": 8,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 8,
+  "type": "PaintedDot"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Connected"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "4 datasets"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "›"
  },
  {
   "depth": 7,
@@ -451,12 +714,36 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "Switzerland: national map and aerial photos · 2 datasets"
+  "text": "Switzerland: national map and aerial photos"
  },
  {
   "depth": 8,
   "type": "Switch",
   "checked": true
+ },
+ {
+  "depth": 8,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 8,
+  "type": "PaintedDot"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Connected"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "2 datasets"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "›"
  },
  {
   "depth": 7,
@@ -476,12 +763,36 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "United States: aerial imagery and US Topo · 2 datasets"
+  "text": "United States: aerial imagery and US Topo"
  },
  {
   "depth": 8,
   "type": "Switch",
   "checked": true
+ },
+ {
+  "depth": 8,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 8,
+  "type": "PaintedDot"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Connected"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "2 datasets"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "›"
  },
  {
   "depth": 7,
@@ -501,7 +812,7 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "Australia: topographic base maps · 2 datasets"
+  "text": "Australia: topographic base maps"
  },
  {
   "depth": 8,
@@ -509,9 +820,37 @@
   "checked": true
  },
  {
+  "depth": 8,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 8,
+  "type": "PaintedDot"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Connected"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "2 datasets"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "›"
+ },
+ {
   "depth": 2,
   "type": "QFrame",
   "name": "settingsSeparator"
+ },
+ {
+  "depth": 2,
+  "type": "PaintedDot"
  },
  {
   "depth": 2,

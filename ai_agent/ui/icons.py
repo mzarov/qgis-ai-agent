@@ -60,6 +60,7 @@ NAMES = {
     "check": "check",
     "image": "image",
     "measure": "square-dashed",
+    "search": "search",
 }
 
 

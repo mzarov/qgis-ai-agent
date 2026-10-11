@@ -98,6 +98,10 @@ layer and PostGIS passwords. It is unlocked by the QGIS master password, which
 QGIS asks for once per session. The plugin writes no key to a QGIS project or
 settings file; only the identifier of the stored entry goes into the settings,
 never the secret. Removing the key from the settings window deletes that entry.
+Extra request headers (Settings → Advanced) are plain settings, so a header
+whose name would carry a credential — `Authorization`, `X-Api-Key`, or any name
+with *key*, *token*, *secret*, *password*, *session*, *cookie* or *auth* in it —
+is refused there: a key cannot land in a settings file that way either.
 
 Conversation messages and remembered project notes are stored as plain JSON
 under the active QGIS profile in `ai_agent_sessions`. So is what the chat showed
@@ -105,7 +109,9 @@ of each turn, so a reopened conversation shows it again: the activity steps with
 their result lines, the model's reasoning text and the plan cards with their
 outcome. None of that is sent back to the model. Atomic writes keep a
 previous `.bak` copy so a power loss or partial write does not destroy the last
-valid state. These files are not encrypted. Tool results and rendered images
+valid state. These files are not encrypted. Settings → Privacy can keep them
+for 7 or 30 days after their last change instead of until deleted; the open
+conversation is never pruned. Tool results and rendered images
 remain in memory unless their content is repeated in a saved chat message or
 written by another operation. Web responses are not cached on disk.
 
@@ -117,7 +123,9 @@ and the final outcome. The plugin refuses a symbolic-link journal directory,
 sets the directory to owner-only mode `0700` and each atomically written file to
 `0600` where the platform supports those permissions. This limits other local
 accounts but is not encryption. Journals persist across QGIS restarts and remain
-until the user deletes them. They do not add tool arguments or successful
+until the user deletes them — one by one in the folder, or all of them together
+with every saved conversation through **Delete history and journals** in
+Settings → Privacy, after a confirmation. They do not add tool arguments or successful
 tool-result payloads, but recorded text and errors can still contain sensitive
 information.
 

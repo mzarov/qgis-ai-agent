@@ -45,6 +45,9 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    remembers the choice in `QgsSettings` under a hash of the URL. All paths
    normalise into `ModelTurn` — the loop does not know which one worked.
    Never add provider SDKs: a dialect is a shape of HTTP, not a library.
+   The user's extra headers (`llm/extra_headers.py`, Settings → Advanced) ride
+   on every model request through `build_request`; the transport's own headers
+   always win, and names that would carry a key are refused on save.
    Streaming and web redirects are the two exceptions to
    `QgsBlockingNetworkRequest`; both use `QgsNetworkAccessManager` with a nested
    `QEventLoop`. Streaming needs a body as it arrives. The web runner resolves

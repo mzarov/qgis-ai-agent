@@ -80,3 +80,13 @@ already exist, unknown names are dropped and reported. Loading a local skill
 also loads the domains of the tools it names (`skills_to_load`), so a skill
 that says `tools: [download_osm]` brings the OSM rules with it — otherwise the
 model would have the tool without the knowledge of how it is used here.
+
+## Switching a built-in skill off
+
+Settings → Skills can switch built-in skills off. The registry stays pure here
+too: `core/local_skills.register_local_skills` hands it the names from the
+settings (`set_disabled`), and every view the agent reads — `get`, `names`,
+`all_skills`, the prompt's summaries — leaves them out, while
+`builtin_skills()` still lists them for the settings page. `tools_for_skills`
+drops the tools of a switched-off domain even when a local skill names them:
+off means the agent cannot reach that domain at all.

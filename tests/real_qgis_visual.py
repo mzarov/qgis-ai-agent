@@ -20,6 +20,7 @@ import pathlib
 import time
 import unittest
 from typing import Any
+from unittest import mock
 
 import ui_snapshot
 from e2e_harness import ARTIFACTS, WINDOW_HEIGHT, WINDOW_WIDTH, PluginCase, pump
@@ -440,7 +441,9 @@ class ComposerScreens(ScreenCase):
 
 class SettingsScreens(ScreenCase):
     def test_every_settings_page(self) -> None:
-        dialog = SettingsDialog(self.dock)
+        # What the profile holds depends on the tests run before: the history's size is pinned.
+        with mock.patch("ai_agent.core.history.usage", return_value=(12, 2_200_000)):
+            dialog = SettingsDialog(self.dock)
         dialog.resize(SETTINGS_WIDTH, SETTINGS_HEIGHT)
         dialog.show()
         try:

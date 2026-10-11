@@ -10,8 +10,21 @@
  },
  {
   "depth": 2,
+  "type": "SettingsSearch"
+ },
+ {
+  "depth": 3,
+  "type": "QLineEdit",
+  "text": "Find a setting"
+ },
+ {
+  "depth": 4,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 2,
   "type": "QLabel",
-  "text": "Settings"
+  "text": "Model"
  },
  {
   "depth": 2,
@@ -49,6 +62,11 @@
   "checked": false
  },
  {
+  "depth": 3,
+  "type": "QLabel",
+  "text": "17"
+ },
+ {
   "depth": 2,
   "type": "QLabel",
   "text": "Data"
@@ -64,6 +82,11 @@
   "type": "QPushButton",
   "text": "Geocoding",
   "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "AI Agent 0.2.0 · QGIS 4.0"
  },
  {
   "depth": 1,
@@ -86,6 +109,16 @@
  {
   "depth": 4,
   "type": "QWidget"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Advanced"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Limits and fine tuning. The defaults suit most people."
  },
  {
   "depth": 5,
@@ -195,6 +228,109 @@
  {
   "depth": 8,
   "type": "QLabel",
+  "text": "Steps per run, at most"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Every tool call is one step."
+ },
+ {
+  "depth": 7,
+  "type": "Stepper",
+  "name": "settingsStepper"
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "−"
+ },
+ {
+  "depth": 8,
+  "type": "QWidget"
+ },
+ {
+  "depth": 9,
+  "type": "QLabel",
+  "text": "40"
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "+"
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Tool timeout"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Raise it for long Processing algorithms."
+ },
+ {
+  "depth": 7,
+  "type": "Stepper",
+  "name": "settingsStepper"
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "−"
+ },
+ {
+  "depth": 8,
+  "type": "QWidget"
+ },
+ {
+  "depth": 9,
+  "type": "QLabel",
+  "text": "120"
+ },
+ {
+  "depth": 9,
+  "type": "QLabel",
+  "text": " s"
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "+"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Model"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
   "text": "Context window"
  },
  {
@@ -288,7 +424,7 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "auto picks it from the address."
+  "text": "Auto picks it from the address."
  },
  {
   "depth": 7,
@@ -298,19 +434,19 @@
  {
   "depth": 8,
   "type": "QPushButton",
-  "text": "auto",
+  "text": "Auto",
   "checked": false
  },
  {
   "depth": 8,
   "type": "QPushButton",
-  "text": "openai",
+  "text": "OpenAI",
   "checked": true
  },
  {
   "depth": 8,
   "type": "QPushButton",
-  "text": "anthropic",
+  "text": "Anthropic",
   "checked": false
  },
  {
@@ -329,7 +465,7 @@
  {
   "depth": 8,
   "type": "QLabel",
-  "text": "Authorisation type"
+  "text": "Authorisation"
  },
  {
   "depth": 8,
@@ -354,9 +490,64 @@
   "checked": false
  },
  {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "Extra headers"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "One per line, Name: value. Keys go in the API key field."
+ },
+ {
+  "depth": 7,
+  "type": "QPlainTextEdit",
+  "text": "x-folder-id: b1g8f3k2…"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Reset agent settings"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "The connection, keys, your own texts and skills stay."
+ },
+ {
+  "depth": 7,
+  "type": "QPushButton",
+  "text": "Reset…"
+ },
+ {
   "depth": 2,
   "type": "QFrame",
   "name": "settingsSeparator"
+ },
+ {
+  "depth": 2,
+  "type": "PaintedDot"
  },
  {
   "depth": 2,

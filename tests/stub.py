@@ -498,6 +498,7 @@ _qtcore = _mod(
         "QIODevice",
         "QEventLoop",
         "QUrl",
+        "QLocale",
         "QUrlQuery",
         "QPointF",
         "QRectF",

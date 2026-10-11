@@ -10,8 +10,21 @@
  },
  {
   "depth": 2,
+  "type": "SettingsSearch"
+ },
+ {
+  "depth": 3,
+  "type": "QLineEdit",
+  "text": "Find a setting"
+ },
+ {
+  "depth": 4,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 2,
   "type": "QLabel",
-  "text": "Settings"
+  "text": "Model"
  },
  {
   "depth": 2,
@@ -49,6 +62,11 @@
   "checked": false
  },
  {
+  "depth": 3,
+  "type": "QLabel",
+  "text": "17"
+ },
+ {
   "depth": 2,
   "type": "QLabel",
   "text": "Data"
@@ -64,6 +82,11 @@
   "type": "QPushButton",
   "text": "Geocoding",
   "checked": false
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "AI Agent 0.2.0 · QGIS 4.0"
  },
  {
   "depth": 1,
@@ -90,12 +113,17 @@
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "Who you are"
+  "text": "Personalisation"
  },
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "The agent reads this at the start of every conversation."
+  "text": "How the agent talks to you and what it shows in the conversation. Applies in every project."
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Talking"
  },
  {
   "depth": 5,
@@ -107,25 +135,271 @@
  },
  {
   "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
   "type": "QLabel",
   "text": "How to address you"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "QLabel",
   "text": "Used in answers. Empty: no name."
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "QLineEdit",
   "text": "Your name"
  },
  {
-  "depth": 5,
+  "depth": 6,
   "type": "QFrame",
   "name": "settingsSeparator"
  },
  {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Your work"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "A few words. It decides which data and methods come first."
+ },
+ {
+  "depth": 7,
+  "type": "QLineEdit",
+  "text": "Hydrologist, urban planner…"
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Answer language"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "The language the agent writes in."
+ },
+ {
+  "depth": 7,
+  "type": "Dropdown"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Same as QGIS"
+ },
+ {
+  "depth": 8,
+  "type": "Chevron"
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Answer length"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Short, balanced, or with the reasoning."
+ },
+ {
+  "depth": 7,
+  "type": "Segmented",
+  "name": "segmented"
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "Concise",
+  "checked": false
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "Balanced",
+  "checked": true
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "Detailed",
+  "checked": false
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Units"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Kilometres and hectares, or miles and acres."
+ },
+ {
+  "depth": 7,
+  "type": "Segmented",
+  "name": "segmented"
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "Metric",
+  "checked": true
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "Imperial",
+  "checked": false
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "GIS experience"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "How much the agent explains."
+ },
+ {
+  "depth": 7,
+  "type": "Segmented",
+  "name": "segmented"
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "Auto",
+  "checked": true
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "Beginner",
+  "checked": false
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "Regular",
+  "checked": false
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "Expert",
+  "checked": false
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Layer names"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "How the agent names the layers it creates."
+ },
+ {
+  "depth": 7,
+  "type": "Segmented",
+  "name": "segmented"
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "Plain words",
+  "checked": true
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "snake_case",
+  "checked": false
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Appearance"
+ },
+ {
   "depth": 5,
   "type": "QWidget"
  },
@@ -135,18 +409,226 @@
  },
  {
   "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
   "type": "QLabel",
-  "text": "Your work"
+  "text": "Panel theme"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Light or dark whatever the QGIS theme."
  },
  {
   "depth": 7,
+  "type": "Segmented",
+  "name": "segmented"
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "As in QGIS",
+  "checked": true
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "Light",
+  "checked": false
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "Dark",
+  "checked": false
+ },
+ {
+  "depth": 5,
   "type": "QLabel",
-  "text": "A few words. It decides which data and methods come first."
+  "text": "In the conversation"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
  },
  {
   "depth": 6,
-  "type": "QLineEdit",
-  "text": "Hydrologist, urban planner…"
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Show steps while working"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Each call with what it found, above the answer."
+ },
+ {
+  "depth": 7,
+  "type": "Switch",
+  "checked": true
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Sum up after each run"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "A short account of what changed."
+ },
+ {
+  "depth": 7,
+  "type": "Switch",
+  "checked": true
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Move the map to the changes"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "The view follows new data and selections. Off keeps it where you left it."
+ },
+ {
+  "depth": 7,
+  "type": "Switch",
+  "checked": true
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Questions"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "How often the agent asks before acting."
+ },
+ {
+  "depth": 7,
+  "type": "Segmented",
+  "name": "segmented"
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "Rarely",
+  "checked": false
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "When needed",
+  "checked": true
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "Often",
+  "checked": false
+ },
+ {
+  "depth": 6,
+  "type": "QFrame",
+  "name": "settingsSeparator"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Answer questions for me after"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "The agent takes the answer it recommends and carries on."
+ },
+ {
+  "depth": 7,
+  "type": "Segmented",
+  "name": "segmented"
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "Never",
+  "checked": true
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "1 min",
+  "checked": false
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "3 min",
+  "checked": false
+ },
+ {
+  "depth": 8,
+  "type": "QPushButton",
+  "text": "5 min",
+  "checked": false
  },
  {
   "depth": 5,
@@ -191,448 +673,6 @@
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "How you work"
- },
- {
-  "depth": 5,
-  "type": "QWidget"
- },
- {
-  "depth": 6,
-  "type": "QWidget"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "GIS experience"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "How much the agent explains."
- },
- {
-  "depth": 6,
-  "type": "Segmented",
-  "name": "segmented"
- },
- {
-  "depth": 7,
-  "type": "QPushButton",
-  "text": "Auto",
-  "checked": true
- },
- {
-  "depth": 7,
-  "type": "QPushButton",
-  "text": "Beginner",
-  "checked": false
- },
- {
-  "depth": 7,
-  "type": "QPushButton",
-  "text": "Regular",
-  "checked": false
- },
- {
-  "depth": 7,
-  "type": "QPushButton",
-  "text": "Expert",
-  "checked": false
- },
- {
-  "depth": 5,
-  "type": "QFrame",
-  "name": "settingsSeparator"
- },
- {
-  "depth": 5,
-  "type": "QWidget"
- },
- {
-  "depth": 6,
-  "type": "QWidget"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Units"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Kilometres and hectares, or miles and acres."
- },
- {
-  "depth": 6,
-  "type": "Segmented",
-  "name": "segmented"
- },
- {
-  "depth": 7,
-  "type": "QPushButton",
-  "text": "Metric",
-  "checked": true
- },
- {
-  "depth": 7,
-  "type": "QPushButton",
-  "text": "Imperial",
-  "checked": false
- },
- {
-  "depth": 5,
-  "type": "QFrame",
-  "name": "settingsSeparator"
- },
- {
-  "depth": 5,
-  "type": "QWidget"
- },
- {
-  "depth": 6,
-  "type": "QWidget"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Layer names"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "How the agent names the layers it creates."
- },
- {
-  "depth": 6,
-  "type": "Segmented",
-  "name": "segmented"
- },
- {
-  "depth": 7,
-  "type": "QPushButton",
-  "text": "Plain words",
-  "checked": true
- },
- {
-  "depth": 7,
-  "type": "QPushButton",
-  "text": "snake_case",
-  "checked": false
- },
- {
-  "depth": 5,
-  "type": "QLabel",
-  "text": "Answers"
- },
- {
-  "depth": 5,
-  "type": "QWidget"
- },
- {
-  "depth": 6,
-  "type": "QWidget"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Answer language"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "The language the agent writes in."
- },
- {
-  "depth": 6,
-  "type": "Dropdown"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Same as QGIS"
- },
- {
-  "depth": 7,
-  "type": "Chevron"
- },
- {
-  "depth": 5,
-  "type": "QFrame",
-  "name": "settingsSeparator"
- },
- {
-  "depth": 5,
-  "type": "QWidget"
- },
- {
-  "depth": 6,
-  "type": "QWidget"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Answer length"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Short, balanced, or with the reasoning."
- },
- {
-  "depth": 6,
-  "type": "Segmented",
-  "name": "segmented"
- },
- {
-  "depth": 7,
-  "type": "QPushButton",
-  "text": "Concise",
-  "checked": false
- },
- {
-  "depth": 7,
-  "type": "QPushButton",
-  "text": "Balanced",
-  "checked": true
- },
- {
-  "depth": 7,
-  "type": "QPushButton",
-  "text": "Detailed",
-  "checked": false
- },
- {
-  "depth": 5,
-  "type": "QFrame",
-  "name": "settingsSeparator"
- },
- {
-  "depth": 5,
-  "type": "QWidget"
- },
- {
-  "depth": 6,
-  "type": "QWidget"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Questions"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "How often the agent asks before acting."
- },
- {
-  "depth": 6,
-  "type": "Segmented",
-  "name": "segmented"
- },
- {
-  "depth": 7,
-  "type": "QPushButton",
-  "text": "Rarely",
-  "checked": false
- },
- {
-  "depth": 7,
-  "type": "QPushButton",
-  "text": "When needed",
-  "checked": true
- },
- {
-  "depth": 7,
-  "type": "QPushButton",
-  "text": "Often",
-  "checked": false
- },
- {
-  "depth": 5,
-  "type": "QFrame",
-  "name": "settingsSeparator"
- },
- {
-  "depth": 5,
-  "type": "QWidget"
- },
- {
-  "depth": 6,
-  "type": "QWidget"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Answer questions for me after"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "The agent takes the answer it recommends and carries on."
- },
- {
-  "depth": 6,
-  "type": "Segmented",
-  "name": "segmented"
- },
- {
-  "depth": 7,
-  "type": "QPushButton",
-  "text": "Never",
-  "checked": true
- },
- {
-  "depth": 7,
-  "type": "QPushButton",
-  "text": "1 min",
-  "checked": false
- },
- {
-  "depth": 7,
-  "type": "QPushButton",
-  "text": "3 min",
-  "checked": false
- },
- {
-  "depth": 7,
-  "type": "QPushButton",
-  "text": "5 min",
-  "checked": false
- },
- {
-  "depth": 5,
-  "type": "QFrame",
-  "name": "settingsSeparator"
- },
- {
-  "depth": 5,
-  "type": "QWidget"
- },
- {
-  "depth": 6,
-  "type": "QWidget"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Sum up after each run"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "A short account of what changed."
- },
- {
-  "depth": 6,
-  "type": "Switch",
-  "checked": true
- },
- {
-  "depth": 5,
-  "type": "QFrame",
-  "name": "settingsSeparator"
- },
- {
-  "depth": 5,
-  "type": "QWidget"
- },
- {
-  "depth": 6,
-  "type": "QWidget"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Show steps while working"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Each call with what it found, above the answer."
- },
- {
-  "depth": 6,
-  "type": "Switch",
-  "checked": true
- },
- {
-  "depth": 5,
-  "type": "QFrame",
-  "name": "settingsSeparator"
- },
- {
-  "depth": 5,
-  "type": "QWidget"
- },
- {
-  "depth": 6,
-  "type": "QWidget"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Move the map to the changes"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "The view follows new data and selections. Off keeps it where you left it."
- },
- {
-  "depth": 6,
-  "type": "Switch",
-  "checked": true
- },
- {
-  "depth": 5,
-  "type": "QLabel",
-  "text": "Appearance"
- },
- {
-  "depth": 5,
-  "type": "QWidget"
- },
- {
-  "depth": 6,
-  "type": "QWidget"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Panel theme"
- },
- {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Light or dark whatever the QGIS theme."
- },
- {
-  "depth": 6,
-  "type": "Segmented",
-  "name": "segmented"
- },
- {
-  "depth": 7,
-  "type": "QPushButton",
-  "text": "As in QGIS",
-  "checked": true
- },
- {
-  "depth": 7,
-  "type": "QPushButton",
-  "text": "Light",
-  "checked": false
- },
- {
-  "depth": 7,
-  "type": "QPushButton",
-  "text": "Dark",
-  "checked": false
- },
- {
-  "depth": 5,
-  "type": "QLabel",
   "text": "Memory"
  },
  {
@@ -669,16 +709,20 @@
  },
  {
   "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
   "type": "QLabel",
   "text": "Let the agent add its own notes"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "QLabel",
   "text": "When you mention something that will matter next time."
  },
  {
-  "depth": 6,
+  "depth": 7,
   "type": "Switch",
   "checked": true
  },
@@ -686,6 +730,10 @@
   "depth": 2,
   "type": "QFrame",
   "name": "settingsSeparator"
+ },
+ {
+  "depth": 2,
+  "type": "PaintedDot"
  },
  {
   "depth": 2,

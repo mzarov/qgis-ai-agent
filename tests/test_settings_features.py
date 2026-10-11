@@ -113,6 +113,13 @@ class SkillSwitchTest(SettingsCase):
         self.assertFalse(SKILL_REGISTRY.is_disabled("no-such-skill"))
 
 
+class SkillSummaryTest(unittest.TestCase):
+    def test_every_built_in_skill_has_a_line_a_person_reads(self):
+        from ai_agent.ui.skill_summaries import SUMMARIES
+
+        self.assertEqual(set(SUMMARIES), {skill.name for skill in SKILL_REGISTRY.builtin_skills()})
+
+
 class ResetTest(SettingsCase):
     def test_reset_returns_preferences_and_keeps_the_connection_and_the_users_words(self):
         settings.set_api_url("https://api.example.com/v1")

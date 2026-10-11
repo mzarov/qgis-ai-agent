@@ -72,23 +72,26 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `progress.py`     | the status line, the feed's last row: the live compass and a few words — working with the time, waiting for an answer, done in N s, stopped by an error |
 | `compass.py`      | the brand mark: open-ring compass painted on a 24-unit grid; needle rotation per state (rest, search, done, error, ask, arrive), keyframed with per-segment easing |
 | `controls.py`     | custom controls: `Segmented` keeps the combo-box API, `Chips`, `RoundedFrame` (every state-dependent box), `HoverFrame` (a lit row that clicks), glyphs, icon buttons and tiles, badges, keycaps, `ElidedLabel`, menus |
-| `connection_widgets.py` | provider tiles and the connection status card |
+| `connection_widgets.py` | provider tiles (Local, Cloud · key, Any compatible server) and the connection test's line |
+| `choice_tiles.py` | exclusive choices as tiles after the handoff: logo, name, a quiet line, a radio; the grid fills its width |
+| `settings_search.py` | the sidebar's Find a setting: matching rows of every page in place of the page list |
 | `logos.py`        | provider logos from `ui/logos/*.svg`, tinted to the theme's text colour |
 | `skill_popup.py`  | the list above the composer: prefix-then-substring ranking, keyboard steering, `local` badge |
-| `connectors_settings.py` | the Connectors page: open-data sources by group, search, a switch each; a card click opens its page |
-| `connector_detail.py` | one connector's page: example prompts for the chat box, description, layers, licence, servers |
-| `personalisation_settings.py` | the Personalisation page: who you are, instructions, how you work, answers; stores `config/personal` on Save |
+| `skill_summaries.py` | a person's short line for each built-in skill, for the settings page and the / list; the model keeps the English description |
+| `connectors_settings.py` | the Connectors page: open-data sources by group, search, a switch each, a status row under a hairline; a card click opens its page |
+| `connector_detail.py` | one connector's page: its state, example prompts for the chat box (to chat ↵), how it works, layers, facts |
+| `personalisation_settings.py` | the Personalisation page: talking, appearance, the conversation, about you, instructions, memory; stores `config/personal` on Save |
 | `memory_settings.py` | the Memory section: the user's notes, add and remove, stored on Save |
-| `skills_settings.py` | the Skills settings page: folder, example, discovered local skills and their problems |
+| `skills_settings.py` | the Skills page: your skills (Edit, the folder, Create) and the built-in ones with a switch each, searchable |
 | `theme.py`        | the brand's light and dark colour tokens (`design/tokens.css`); the only module that spells a colour |
 | `style.py`        | colour roles read from `theme`, `fill()` and `ink()` through the palette, `scale_font()` |
 | `icons.py`        | header, settings-nav, brand and layer icons: drawn with a palette pen, one stroke weight |
 | `settings_dialog.py` | the settings window: state, dirty tracking, saving |
 | `settings_probe.py` | the connection test: start, cancel, report, close only once stopped |
-| `settings_layout.py` | the sidebar, the page stack and per-page scrolling |
-| `settings_fields.py` | the row grammar: rows, switches, separators, inputs, buttons |
-| `settings_advanced.py` | the Privacy and Advanced pages |
-| `geocoder_settings.py` | the Geocoding page |
+| `settings_layout.py` | the sidebar (search, groups, counts, the versions at its foot), the page stack and per-page scrolling |
+| `settings_fields.py` | the page and row grammar: page title, section captions, rows, wide rows, switches, steppers, inputs, buttons |
+| `settings_advanced.py` | the Privacy and Advanced pages: where data goes, history keeping and erasing, limits, extra headers, reset |
+| `geocoder_settings.py` | the Geocoding page: off, Photon or your own server as tiles, the address under them |
 
 ## Icons
 
@@ -321,19 +324,26 @@ a link that opens it (`note_conversation_saved`).
 
 ## The settings window
 
-**A sidebar over a page stack, styled after Claude's own settings.** Five
-entries with drawn icons — Connection, Privacy, Skills, Geocoding, Advanced —
-ordered by how often each is touched. Sidebar and pages sit **full-bleed on the same window surface**,
-split by one vertical hairline; the footer is cut off by a horizontal one.
-A floating lifted pane was tried between the tab and this version and looked
-worse than both — a box inside a box reads as a widget, not a page. The
-selected entry is a `panel()` pill plus bold, so the selection survives the
-light theme where the lift is zero. The sidebar opens with the plugin's
-brand mark, never with the word Settings: the window is already titled so.
+**A sidebar over a page stack, after the design handoff.** *Find a setting* on
+top, then seven entries in three groups — Model (Connection, Privacy,
+Advanced), Customize (Personalisation, Skills), Data (Connectors, Geocoding) —
+with small upper-case captions, the number of usable skills beside Skills, and
+the plugin's and QGIS's versions at the foot. Sidebar and pages share the
+window's background, split by one vertical hairline; the footer is cut off by a
+horizontal one and carries a green or amber dot with the saved state. The
+chosen entry is a lifted pill with a hairline and its icon in the accent. The
+search lists the rows of every page whose title or hint matches (each row the
+grammar builds carries them in `SEARCH_PROPERTY`); a result opens the page with
+the row in view. The handoff replaced the earlier "no search, no page titles"
+choice (the user's call, 2026-10-10).
 
-**One row grammar for every control.** A row is caption left (title plus a
-muted hint under it, both wrapping), control right at a fixed
-`CONTROL_WIDTH`, vertically centred. Uniform control width is what makes the
+**One page and row grammar.** A page opens with its title (18/600) and one
+sentence (`fields.page(title, lead, palette)`); sections are small 12/600
+captions in the secondary ink. A row is caption left (title plus a hint in the
+tertiary ink under it, both wrapping), control right at a fixed
+`CONTROL_WIDTH`, vertically centred; a text area takes the full width under its
+title (`wide_row`). Numbers with a range are a `Stepper` (− value +), whose
+value column is measured once the window's font reaches it. Uniform control width is what makes the
 pages read as straight columns instead of ragged boxes. `add_rows`
 interleaves hairline separators **between** rows, never after the last one;
 `card_rows` wraps them in a card. Controls that size themselves (segmented
@@ -349,9 +359,7 @@ palette-driven `QPainter`, no image assets.
 
 **Copy is short.** Every hint is one short phrase; a page or section note is
 one sentence. Wordy explanations read as generated filler (the user's word
-was "нейрослоп") — cut them, or move detail to a tooltip. The geocoder is one
-row with a segmented Off · Photon · Nominatim choice, its hint follows the
-choice, and the server address row appears only for Nominatim.
+was "нейрослоп") — cut them, or move detail to a tooltip.
 
 **Hints are visible, one short line under each title.** They used to hide
 behind "?" marks to avoid a wall of text; the user approved the redesign
@@ -359,15 +367,14 @@ behind "?" marks to avoid a wall of text; the user approved the redesign
 single short sentence. A longer explanation goes to the row's tooltip
 (`tooltip=` in `fields.row`), never under the title.
 
-**The window follows the Claude Code desktop settings** (the user's
-reference). The sidebar has small group captions (`GROUPS`) and no search — there are
-too few settings to need one (the user's call);
-pages carry no title of their own and open with bold `section` headings, each
-with an optional muted sentence; rows sit flat on the page with hairlines
-between them (`card_rows` builds no frame). Only the main providers get a
-tile — Ollama, LM Studio, OpenAI, OpenRouter, Anthropic, Google Gemini — with
+**Choices with a story are tiles.** Providers and geocoders are
+`choice_tiles.ChoiceTile`s: a name, a quiet line under it, a radio on the right,
+the chosen one in the accent edge and wash. Only the main providers get a tile
+— Ollama, LM Studio, OpenAI, OpenRouter, Anthropic, Google Gemini — with
 monochrome Simple Icons logos (CC0) in `ui/logos/`, tinted by `logos.py`;
-every other service is a custom address.
+every other service is a custom address. The geocoder offers Turned off,
+Photon and Your own server; the public OSMF Nominatim is refused on purpose
+(`config/geocoder.py`).
 
 **The custom controls keep the combo-box API.** `Segmented` (API format,
 authorisation, geocoder) answers `currentText`, `findText`,
@@ -377,9 +384,11 @@ single source of truth: a tile sets the combo, the combo selects the tile.
 
 **Edits are tracked.** `_watch_changes` marks a page dirty from its controls'
 signals (never while `_loading_endpoint` is set); the page gets a dot in the
-sidebar and Save stays disabled until something changed. The connection probe
-answers in the status card at the top of the Connection page, with latency and
-what is known about the endpoint; the footer line is for validation errors.
+sidebar and Save stays a quiet sunken button until something changed. The
+connection probe answers on its own line under the Connection page's fields;
+the footer line is for validation errors. Erasing the history and resetting
+the preferences act at once, after a question, and leave flags the plugin
+reads when the window closes (`history_erased`, `was_reset`).
 
 **The accent is the system accent, not the selection highlight.**
 `style.accent` reads the Qt 6.6+ `Accent` role and falls back to `highlight`.
@@ -392,11 +401,10 @@ content (`style.content`) and runs the full height, with the footer only under
 the pages. Verify the window inside a real QGIS too: offscreen renders a
 smaller font and the standard palette, and both hid real layout faults.
 
-**The roles follow the mockup's CSS.** The settings sidebar is `surface-2`
-and runs the full height with the footer only under the pages; pages, cards
-and inputs are `surface`; inputs and plain buttons take `border-strong`; the
-selected sidebar entry is a `surface` fill with no border and hover is
-`sunken`; the dock and feed backdrop is `bg`. Verify windows inside a real
+**The roles follow the handoff's CSS.** The settings sidebar, the pages and
+the footer are `bg`; cards, tiles and inputs are `surface`; inputs and plain
+buttons take `border-strong`; the selected sidebar entry and hover are
+`surface-2`; the dock and feed backdrop is `bg`. Verify windows inside a real
 QGIS too: offscreen renders a smaller font, which hid real layout faults.
 
 **Never restyle a container from inside a child's event.** A style sheet on a
