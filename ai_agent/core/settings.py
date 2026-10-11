@@ -1,10 +1,11 @@
 import hashlib
+from dataclasses import fields
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
 from qgis.core import QgsSettings
 
-from ai_agent.config import geocoder
+from ai_agent.config import geocoder, personal
 from ai_agent.core import credentials
 
 SETTINGS_PREFIX = "ai_agent"
@@ -117,6 +118,70 @@ def get_auth_type() -> str:
 
 def set_auth_type(value: str | None) -> None:
     _write("auth_type", value or AUTH_TYPE_BEARER)
+
+
+# Days a conversation is kept after its last change; 0 keeps it until deleted.
+HISTORY_DAYS = (7, 30, 0)
+
+
+def get_history_days() -> int:
+    days = _read_count("history_days", 0)
+    return days if days in HISTORY_DAYS else 0
+
+
+def set_history_days(days: int) -> None:
+    _write_count("history_days", days if days in HISTORY_DAYS else 0)
+
+
+def get_disabled_skills() -> list[str]:
+    """Built-in skills switched off in Settings → Skills: the agent neither sees nor loads them."""
+    raw = _read("disabled_skills", "")
+    return sorted({name.strip() for name in raw.split(",") if name.strip()})
+
+
+def set_disabled_skills(names: list[str]) -> None:
+    _write("disabled_skills", ",".join(sorted({name.strip() for name in names if name.strip()})))
+
+
+# What "Reset agent settings" returns to its default. The connection and its headers, keys, consents,
+# the user's own words (name, work, about, instructions, notes) and their own skills all stay.
+RESET_KEYS = (
+    "auto_apply",
+    "connectors/disabled",
+    "context_window",
+    "disabled_skills",
+    "geocoder_provider",
+    "history_days",
+    "max_steps",
+    "reasoning_enabled",
+    "thinking_budget",
+    "token_budget",
+    "tool_timeout",
+    "verify_after_apply",
+    "work_mode",
+    "write_run_journal",
+)
+PERSONAL_WORDS = ("name", "role", "about")
+
+
+def reset_preferences() -> None:
+    """Forget the preferences in `RESET_KEYS` and the personal choices; the next read gives the defaults."""
+    settings = QgsSettings()
+    for key in RESET_KEYS:
+        settings.remove(f"{SETTINGS_PREFIX}/{key}")
+    for field in fields(personal.Profile):
+        if field.name not in PERSONAL_WORDS:
+            settings.remove(f"{personal.PREFIX}/{field.name}")
+    settings.sync()
+
+
+def get_extra_headers() -> str:
+    """The user's own request headers, one "Name: value" per line; see `llm/extra_headers.py`."""
+    return _read("extra_headers", "")
+
+
+def set_extra_headers(text: str) -> None:
+    _write("extra_headers", (text or "").strip())
 
 
 def get_verify_ssl(url: str | None = None) -> bool:

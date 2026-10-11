@@ -208,7 +208,7 @@
         <translation>Локальному серверу ключ не нужен.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="163"/>
+        <location filename="ai_agent/core/llm/client.py" line="165"/>
         <source>A non-local model endpoint must use HTTPS. Use an SSH tunnel to localhost for a trusted LAN server.</source>
         <translation>Нелокальная конечная точка модели должна использовать HTTPS. Для доверенного сервера в локальной сети используйте SSH-туннель на localhost.</translation>
     </message>
@@ -437,7 +437,7 @@
         <translation>Аэрофотоснимки (актуальные)</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="120"/>
+        <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="122"/>
         <source>Algorithm: {0}</source>
         <translation>Алгоритм: {0}</translation>
     </message>
@@ -580,6 +580,11 @@
         <location filename="ai_agent/ui/settings_advanced.py" line="31"/>
         <source>Asks the model to think before it answers, in the parameter its provider expects. A server that rejects it is skipped from then on; a connection test, or saving the switch off and then on, asks it again.</source>
         <translation>Просит модель подумать перед ответом — тем параметром, который ждёт её провайдер. Сервер, который его отклонил, дальше не спрашивается; проверка соединения или сохранение переключателя выключенным, а затем включённым, спросит снова.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/llm/extra_headers.py" line="37"/>
+        <source>At most {0} headers.</source>
+        <translation>Не больше {0} заголовков.</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/attachments.py" line="23"/>
@@ -935,7 +940,7 @@
         <translation>Сервис недоступен — проверьте подключение к интернету или прокси в QGIS.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="44"/>
+        <location filename="ai_agent/core/llm/client.py" line="46"/>
         <source>Could not reach {endpoint}: {reason}. Check the address, the network and the QGIS proxy settings.</source>
         <translation>Не удалось достучаться до {endpoint}: {reason}. Проверьте адрес, сеть и настройки прокси в QGIS.</translation>
     </message>
@@ -1032,7 +1037,7 @@
         <translation>Подробно</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="169"/>
+        <location filename="ai_agent/core/llm/client.py" line="171"/>
         <source>Do not put credentials in the API URL. Store the provider secret in the API key field instead.</source>
         <translation>Не добавляйте учётные данные в URL API. Сохраните секрет провайдера в поле API-ключа.</translation>
     </message>
@@ -1490,6 +1495,31 @@
         <translation>Светлая или тёмная независимо от темы QGIS.</translation>
     </message>
     <message>
+        <location filename="ai_agent/core/llm/extra_headers.py" line="35"/>
+        <source>Line {0}: the plugin sets {1} itself.</source>
+        <translation>Строка {0}: заголовок {1} плагин задаёт сам.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/llm/extra_headers.py" line="38"/>
+        <source>Line {0}: the value must be plain text of at most {1} characters.</source>
+        <translation>Строка {0}: значение — обычный текст не длиннее {1} символов.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/llm/extra_headers.py" line="33"/>
+        <source>Line {0}: write a header as Name: value.</source>
+        <translation>Строка {0}: пишите заголовок как «Имя: значение».</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/llm/extra_headers.py" line="36"/>
+        <source>Line {0}: {1} looks like it carries a key. Keys go in the API key field, which keeps them encrypted.</source>
+        <translation>Строка {0}: {1} похож на заголовок с ключом. Ключи — только в поле «Ключ API», там они хранятся зашифрованными.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/llm/extra_headers.py" line="34"/>
+        <source>Line {0}: «{1}» is not a header name.</source>
+        <translation>Строка {0}: «{1}» — не имя заголовка.</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/plugins/list_plugins.py" line="32"/>
         <source>Listing the installed plugins.</source>
         <translation>Смотрю установленные плагины.</translation>
@@ -1710,12 +1740,12 @@
         <translation>Ночные огни (VIIRS Black Marble 2016)</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="146"/>
+        <location filename="ai_agent/core/llm/client.py" line="148"/>
         <source>No API URL. Set one in Settings.</source>
         <translation>Не задан адрес API. Укажите его в настройках.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="39"/>
+        <location filename="ai_agent/core/llm/client.py" line="41"/>
         <source>No API key. Set one in Settings — or connect to a local model: an address on localhost needs no key.</source>
         <translation>Не задан ключ API. Укажите его в настройках — или подключитесь к локальной модели: адресу на localhost ключ не нужен.</translation>
     </message>
@@ -1750,7 +1780,7 @@
         <translation>Заметок пока нет.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="125"/>
+        <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="127"/>
         <source>No parameters.</source>
         <translation>Параметров нет.</translation>
     </message>
@@ -1902,7 +1932,7 @@
         <translation>Тема панели</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="122"/>
+        <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="124"/>
         <source>Parameters:</source>
         <translation>Параметры:</translation>
     </message>
@@ -2372,7 +2402,7 @@
         <translation>Выполнить с подтверждением</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="115"/>
+        <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="117"/>
         <source>Run {0} ({1}{2}){3}.</source>
         <translation>Запустить {0} ({1}{2}){3}.</translation>
     </message>
@@ -2708,34 +2738,34 @@
         <translation>Проверяю подключение…</translation>
     </message>
     <message>
+        <location filename="ai_agent/core/llm/client.py" line="162"/>
+        <location filename="ai_agent/core/llm/client.py" line="152"/>
         <location filename="ai_agent/core/llm/client.py" line="160"/>
-        <location filename="ai_agent/core/llm/client.py" line="150"/>
-        <location filename="ai_agent/core/llm/client.py" line="158"/>
         <source>The API URL is malformed. Check its host, brackets and port.</source>
         <translation>URL API некорректен. Проверьте адрес узла, скобки и порт.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="153"/>
+        <location filename="ai_agent/core/llm/client.py" line="155"/>
         <source>The API URL must use http or https.</source>
         <translation>URL API должен использовать http или https.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="330"/>
+        <location filename="ai_agent/core/llm/client.py" line="336"/>
         <source>The API returned an empty answer.</source>
         <translation>API вернул пустой ответ.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="282"/>
+        <location filename="ai_agent/core/llm/client.py" line="287"/>
         <source>The API returned non-JSON: {0}</source>
         <translation>API вернул не JSON: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="285"/>
+        <location filename="ai_agent/core/llm/client.py" line="290"/>
         <source>The API returned something that is not a JSON object.</source>
         <translation>API вернул нечто, что не является объектом JSON.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="115"/>
+        <location filename="ai_agent/core/llm/client.py" line="117"/>
         <source>The API returned {0}: {1}</source>
         <translation>API вернул {0}: {1}</translation>
     </message>
@@ -3031,7 +3061,7 @@
         <translation>Превращает названия мест в координаты для загрузки OpenStreetMap.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="135"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="139"/>
         <source>Type a request.</source>
         <translation>Введите запрос.</translation>
     </message>
@@ -3341,8 +3371,8 @@
         <translation>выбираю объекты</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="291"/>
-        <location filename="ai_agent/core/llm/client.py" line="293"/>
+        <location filename="ai_agent/core/llm/client.py" line="296"/>
+        <location filename="ai_agent/core/llm/client.py" line="298"/>
         <source>service unavailable</source>
         <translation>сервис недоступен</translation>
     </message>
@@ -3372,7 +3402,7 @@
         <translation>имя модели у вашего провайдера</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="120"/>
+        <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="122"/>
         <source>unknown</source>
         <translation>неизвестно</translation>
     </message>
@@ -3432,7 +3462,7 @@
         <translation>{0} · лучшая {1}, облачность {2}%</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="35"/>
+        <location filename="ai_agent/core/llm/client.py" line="37"/>
         <source>{endpoint} did not answer within {seconds} s. The model may still be working on it; try again, or use a faster model.</source>
         <translation>{endpoint} не ответил за {seconds} с. Возможно, модель ещё работает; попробуйте снова или выберите модель побыстрее.</translation>
     </message>

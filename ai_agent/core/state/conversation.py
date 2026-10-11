@@ -2,6 +2,7 @@ import json
 import uuid
 from typing import Any
 
+from ai_agent.core.settings import get_history_days
 from ai_agent.core.state.session import Session
 from ai_agent.core.state.store import SessionStore, current_project_key
 from ai_agent.core.state.trace import PENDING, PLAN_ROLE, TRACE_ROLE, TraceLog
@@ -205,6 +206,10 @@ class ConversationState:
 
     def save(self) -> None:
         self._store.save(self._session)
+
+    def prune_history(self) -> None:
+        """Delete conversations older than Settings → Privacy keeps them; never the open one."""
+        self._store.prune(get_history_days(), keep=self.session_identifier)
 
     def recent(self) -> list[tuple[str, str, float, bool]]:
         """The project's conversations, newest first: identifier, title, when it last changed, whether it is open."""

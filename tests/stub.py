@@ -291,6 +291,21 @@ class _Feedback(_Stub):
     def isCanceled(self):
         return self._cancelled
 
+    def setProgressText(self, text):
+        pass
+
+    def pushInfo(self, info):
+        pass
+
+    def pushDebugInfo(self, info):
+        pass
+
+    def pushCommandInfo(self, info):
+        pass
+
+    def pushConsoleInfo(self, info):
+        pass
+
 
 class _Project(_Stub):
     _singleton = None
@@ -365,6 +380,7 @@ _FAKES = {
     "QPlainTextEdit": _PlainText,
     "QTimer": _Timer,
     "QgsFeedback": _Feedback,
+    "QgsProcessingFeedback": _Feedback,
     "QgsProject": _Project,
 }
 

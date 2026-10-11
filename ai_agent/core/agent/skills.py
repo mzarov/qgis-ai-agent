@@ -94,6 +94,8 @@ def tools_for_skills(loaded_skills, images: bool = True, writes: bool = True) ->
         tool
         for tool in ALL_TOOLS
         if (tool.skill in domains or tool.name in named)
+        # A local skill naming a tool cannot bring back a domain the user switched off.
+        and not SKILL_REGISTRY.is_disabled(tool.skill)
         and (images or not tool.returns_image)
         and (writes or tool.safety == SAFETY_READ)
     ]

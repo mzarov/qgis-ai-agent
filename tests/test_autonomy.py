@@ -1,9 +1,10 @@
 import unittest
 
+from ai_agent.config import limits
 from ai_agent.core.agent import batch_apply as batch_apply_module
 from ai_agent.core.agent import loop as loop_module
 from ai_agent.core.agent import prompts
-from ai_agent.core.agent.loop import MAX_ITERATIONS, AgentLoop
+from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.notices import APPLY_DECLINED_MESSAGE, BUDGET_REACHED_MESSAGE
 from ai_agent.core.agent.prompts import (
     APPLY_NOW_TOOL,
@@ -291,7 +292,24 @@ class BudgetTest(unittest.TestCase):
         self.assertEqual(started, [True])
 
     def test_the_turn_ceiling_allows_real_autonomy(self):
-        self.assertGreaterEqual(MAX_ITERATIONS, 40)
+        self.assertGreaterEqual(limits.DEFAULT_STEPS, 40)
+
+    def test_a_run_stops_at_the_step_limit_from_the_settings(self):
+        completed = []
+        self.loop.finished.connect(completed.append)
+        saved_limit, saved_request = limits.max_steps, loop_module.build_step_request
+        limits.max_steps = lambda: 5
+        loop_module.build_step_request = lambda *args, **kwargs: _FakeRequest()
+        self.loop._turn.start = lambda *args: None
+        try:
+            self.loop.start("go")
+            self.loop._iteration = 5
+            self.loop._request_step()
+        finally:
+            limits.max_steps, loop_module.build_step_request = saved_limit, saved_request
+        self.assertEqual(self.loop._max_steps, 5)
+        self.assertEqual(len(completed), 1)
+        self.assertTrue(self.loop.ended_on_limit)
 
 
 if __name__ == "__main__":

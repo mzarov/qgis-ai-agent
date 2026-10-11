@@ -170,6 +170,7 @@ def _call_anthropic(
         overrides.get("auth_type_override"),
         overrides.get("model_override"),
         overrides.get("dialect_override"),
+        overrides.get("extra_headers_override"),
     )
     budget = get_thinking_budget() if get_supports_thinking(cache_url, cache_model, cache_dialect) is not False else 0
     bind = anthropic.binds_thinking(model) and host_of(url) in ANTHROPIC_HOSTS
@@ -241,6 +242,7 @@ def _try_streaming(
         overrides.get("auth_type_override"),
         overrides.get("model_override"),
         overrides.get("dialect_override"),
+        overrides.get("extra_headers_override"),
     )
     body = {
         "model": model,

@@ -7,6 +7,7 @@ import uuid
 from typing import Any
 
 FOLDER = "ai_agent_runs"
+JOURNAL_PREFIX = "run_"
 OK_MARK = "[ok]"
 FAIL_MARK = "[failed]"
 DEDUPLICATED_MARK = "[deduplicated]"
@@ -32,7 +33,7 @@ def write_journal(markdown: str, folder: str | None = None) -> str:
     target = os.path.abspath(os.path.expanduser(folder or default_root()))
     _ensure_private_directory(target)
     stamp = time.strftime("%Y%m%d_%H%M%S")
-    path = os.path.join(target, f"run_{stamp}_{uuid.uuid4().hex}.md")
+    path = os.path.join(target, f"{JOURNAL_PREFIX}{stamp}_{uuid.uuid4().hex}.md")
     descriptor, temporary = tempfile.mkstemp(prefix=".run-", suffix=".tmp", dir=target)
     try:
         _set_descriptor_mode(descriptor, temporary)
@@ -52,6 +53,36 @@ def write_journal(markdown: str, folder: str | None = None) -> str:
             pass
         raise
     return path
+
+
+def usage(folder: str | None = None) -> tuple[int, int]:
+    """How many run journals there are, and their size in bytes."""
+    paths = _journals(folder)
+    size = 0
+    for path in paths:
+        try:
+            size += os.path.getsize(path)
+        except OSError:
+            continue
+    return len(paths), size
+
+
+def erase(folder: str | None = None) -> None:
+    """Delete every run journal; the folder itself stays."""
+    for path in _journals(folder):
+        try:
+            os.remove(path)
+        except OSError:
+            continue
+
+
+def _journals(folder: str | None) -> list[str]:
+    target = os.path.abspath(os.path.expanduser(folder or default_root()))
+    try:
+        names = os.listdir(target)
+    except OSError:
+        return []
+    return [os.path.join(target, name) for name in names if name.startswith(JOURNAL_PREFIX) and name.endswith(".md")]
 
 
 def default_root() -> str:

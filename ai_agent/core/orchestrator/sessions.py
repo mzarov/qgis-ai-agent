@@ -33,6 +33,10 @@ class SessionsMixin:
         if self.conversation.delete(identifier):
             self._replay()
 
+    def on_history_erased(self) -> None:
+        """Settings erased every kept conversation: the open one goes too, a fresh one takes its place."""
+        self.on_session_deleted(self.conversation.session_identifier)
+
     def _busy_with_current(self) -> bool:
         self.compaction.cancel()
         if bool(getattr(self.agent, "is_applying", False)):
