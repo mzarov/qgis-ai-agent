@@ -13,9 +13,9 @@ on:
         type: boolean
         default: true
       live_model_check:
-        description: "Run the live-model scenarios first (spends real tokens on the YANDEX_API_KEY account)"
+        description: "Run the live-model scenarios first (spends tokens with the provider in the LIVE_MODEL_* settings)"
         type: boolean
-        default: true
+        default: false
 
 concurrency:
   group: release
@@ -54,7 +54,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && inputs.live_model_check
     uses: ./.github/workflows/live-model.yml
     secrets:
-      YANDEX_API_KEY: ${{ secrets.YANDEX_API_KEY }}
+      LIVE_MODEL_KEY: ${{ secrets.LIVE_MODEL_KEY }}
 
   release:
     needs: [real-qgis, live-model]

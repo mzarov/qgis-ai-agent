@@ -54,6 +54,10 @@ class WorkflowTest(unittest.TestCase):
         self.assertIn("!failure() && !cancelled()", self.text)
         self.assertIn("tests/real_qgis_workflows.py", self.text)
 
+    def test_the_live_model_check_spends_tokens_only_when_ticked(self):
+        choice = self.text[self.text.index("live_model_check:") : self.text.index("\nconcurrency:")]
+        self.assertIn("default: false", choice)
+
 
 class LiveModelWorkflowTest(unittest.TestCase):
     def setUp(self):
@@ -65,9 +69,13 @@ class LiveModelWorkflowTest(unittest.TestCase):
         self.assertNotIn("pull_request", triggers)
 
     def test_the_key_comes_from_a_secret_and_spending_is_capped(self):
-        self.assertIn("secrets.YANDEX_API_KEY", self.text)
+        self.assertIn("secrets.LIVE_MODEL_KEY", self.text)
         for cap in ("timeout-minutes:", "LIVE_TOTAL_TOKENS:", "LIVE_RUN_TOKENS:"):
             self.assertIn(cap, self.text)
+
+    def test_the_provider_is_a_setting_not_part_of_the_workflow(self):
+        self.assertIn("LIVE_MODEL_URL: ${{ vars.LIVE_MODEL_URL }}", self.text)
+        self.assertIn("LIVE_MODEL: ${{ vars.LIVE_MODEL }}", self.text)
 
 
 if __name__ == "__main__":

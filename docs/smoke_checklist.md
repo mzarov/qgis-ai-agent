@@ -82,25 +82,18 @@ answer), because a model is free to choose its own route. A failure here
 means a prompt, skill or tool schema misleads real models, or the provider
 changed.
 
-The `live-model` workflow runs it in QGIS CI against Yandex AI Studio. It
-never runs on push or on pull requests: start it from the Actions tab, or
-let the release workflow run it first. It needs the `YANDEX_API_KEY` secret
-(a service account that may only call models) and the `YANDEX_MODEL`
-variable. Spending is capped per agent run, per suite and by the job
-timeout; screenshots and `live_usage.json` with the tokens spent are
-attached to the run, and a scenario that spends more than its token ceiling
-fails (see below).
+The `live-model` workflow runs it in QGIS CI against any OpenAI-compatible
+provider. It never runs on push or on pull requests: start it from the
+Actions tab, or tick **live_model_check** when running the release. It needs
+the `LIVE_MODEL_URL` and `LIVE_MODEL` variables and the `LIVE_MODEL_KEY`
+secret (a key that may only call models, where the provider offers one).
+Spending is capped per agent run, per suite and by the job timeout;
+screenshots and `live_usage.json` with the tokens spent are attached to the
+run, and a scenario that spends more than its token ceiling fails (see
+below). The caps bound one run, not how often it is started: set a spending
+limit at the provider as well.
 
-A billing budget on the `qgis-ai-agent` folder (2000 ₽ a month) triggers a
-Cloud Function, `tools/budget_killswitch/index.py`, that removes the model
-role from the CI service account once the budget is spent. If live runs
-suddenly fail with 403, that is why; once the month resets, restore the role:
-
-```bash
-yc resource-manager folder add-access-binding qgis-ai-agent --role ai.languageModels.user --service-account-name qgis-ai-agent-ci
-```
-
-Any OpenAI-compatible server works locally:
+Any OpenAI-compatible server works locally, at no cost with a local model:
 
 ```bash
 LIVE_MODEL_URL=http://localhost:11434/v1 LIVE_MODEL=qwen3 LIVE_MODEL_KEY=local \
@@ -129,7 +122,7 @@ about 0.7M tokens. Two checks keep it from creeping back, both against
   `live` section. The ceilings belong to the model they were measured on;
   with another model, for example a local one, the run only reports. The
   workflow sets `LIVE_REQUIRE_CEILINGS=1`, so there a scenario without a
-  ceiling for `YANDEX_MODEL` fails instead: a changed model must not turn the
+  ceiling for `LIVE_MODEL` fails instead: a changed model must not turn the
   guard off silently.
 
 Both are meant to fail on a regression, not on noise: live ceilings carry
@@ -138,11 +131,13 @@ scripted ones 10 %. A scenario that got no answer and a metric a report did
 not measure set no ceiling.
 
 **Refreshing.** Do it when the spending changed on purpose — a new scenario,
-a new skill a scenario loads, a cheaper prompt, another `YANDEX_MODEL` — and
+a new skill a scenario loads, a cheaper prompt, another `LIVE_MODEL` — and
 say why in the commit. A model varies from run to run, so build live
 ceilings from two or three runs of the `live-model` workflow; the script
 takes the largest value of each metric and adds the headroom. Scenarios
-absent from the reports keep their ceilings.
+absent from the reports keep their ceilings. The first runs on a new model
+fail for want of ceilings; their reports are what the ceilings are built
+from.
 
 ```bash
 gh run download <run-id> -n live-token-usage -D /tmp/live-1
