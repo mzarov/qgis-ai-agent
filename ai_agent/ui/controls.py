@@ -48,6 +48,7 @@ KEY_EXTRA_HEIGHT = 4
 KEY_EDGE_TINT = 0.35
 SMALL_SCALE = 0.85
 BAR_HEIGHT = 2
+SWATCH_RADIUS = 2
 
 
 class Segmented(QFrame):
@@ -318,6 +319,25 @@ class PaintedDot(QWidget):
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QColor(self.colour))
         painter.drawEllipse(QRectF(0, 0, self._size, self._size))
+        painter.end()
+
+
+class PaintedSwatch(QWidget):
+    """A small square of one colour, its corners softened, drawn by hand: a legend's key."""
+
+    def __init__(self, size: int, colour: str, edge: Any, parent: QWidget | None = None):
+        super().__init__(parent)
+        self.colour = colour
+        self._edge = edge
+        self.setFixedSize(size, size)
+
+    def paintEvent(self, _event: Any) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        # A pale key would vanish into the backdrop without its hairline.
+        painter.setPen(QPen(self._edge, style.HAIRLINE))
+        painter.setBrush(QColor(self.colour))
+        painter.drawRoundedRect(QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5), SWATCH_RADIUS, SWATCH_RADIUS)
         painter.end()
 
 

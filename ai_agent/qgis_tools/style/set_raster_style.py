@@ -7,6 +7,7 @@ from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.layers import find_layer_by_name, layer_reference
 from ai_agent.qgis_tools.style.apply import refresh
+from ai_agent.qgis_tools.style.legend import with_legend
 from ai_agent.qgis_tools.style.raster import (
     DEFAULT_CLASSES,
     INTERPOLATION,
@@ -146,7 +147,7 @@ class SetRasterStyleTool(BaseTool):
         result.update(details)
         if hidden:
             result["hidden_values"] = hidden
-        return result
+        return with_legend(result, layer)
 
 
 def _built(layer: Any, mode: str, band: int, params: dict[str, Any]) -> tuple[Any, dict[str, Any]]:

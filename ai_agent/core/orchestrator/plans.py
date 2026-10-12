@@ -160,6 +160,7 @@ class PlanMixin:
 
     def on_stage_applied(self, results: list) -> None:
         self._close_plan_card(results, any(not result.ok for result in results))
+        self._show_visuals(results)
 
     def on_applied(self, results: list) -> None:
         failed = [result for result in results if not result.ok]
@@ -179,7 +180,15 @@ class PlanMixin:
             self.dock_widget.add_result_message(outcome)
             self.conversation.add("assistant", outcome)
             self._push_message(tr("Changes applied."), Qgis.MessageLevel.Success)
+        self._show_visuals(results)
         self._maybe_verify(results)
+
+    def _show_visuals(self, results: list) -> None:
+        """What applied steps drew for the person — a restyled layer's legend — under the outcome."""
+        for result in results:
+            spec = getattr(result, "visual", None)
+            if isinstance(spec, dict):
+                self.on_visual_ready(spec)
 
     def _maybe_verify(self, results: list) -> None:
         if not results or self.agent.is_running or not get_verify_after_apply():

@@ -159,7 +159,8 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    session; the model's window is derived from it (summary, then the messages
    after `summary_index`, `user` and `assistant` only, role and content). What
    the chat showed besides messages — a turn's steps and reasoning, a plan card,
-   a chart — rides in the same list under display-only roles; `add` writes the
+   a chart, a restyled layer's legend (drawn by `PlanMixin._show_visuals` under
+   the apply's outcome) — rides in the same list under display-only roles; `add` writes the
    turn's pending trace first, so the replay draws it in place. Never keep a second copy of the conversation for the
    model — the two diverge, and the model would see something other than what
    the chat shows.

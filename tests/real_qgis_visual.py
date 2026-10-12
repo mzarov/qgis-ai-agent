@@ -92,6 +92,29 @@ PIE_CHART = {
     "y_label": "",
     "unit": "km²",
 }
+RANGES_LEGEND = {
+    "type": "legend",
+    "title": "districts",
+    "kind": "ranges",
+    "items": [
+        {"color": color, "label": "", "low": low, "high": low + 15000}
+        for color, low in zip(
+            ("#f7fbff", "#c6dbef", "#6baed6", "#2171b5", "#08306b"), range(20000, 95000, 15000), strict=False
+        )
+    ],
+    "more": 0,
+}
+CATEGORY_LEGEND = {
+    "type": "legend",
+    "title": "land use",
+    "kind": "categories",
+    "items": [
+        {"color": "#1b9e77", "label": "Forest"},
+        {"color": "#d95f02", "label": "Cropland"},
+        {"color": "#7570b3", "label": "Built-up"},
+    ],
+    "more": 4,
+}
 TABLE = {
     "type": "table",
     "title": "Largest districts",
@@ -270,6 +293,13 @@ class StateScreens(ScreenCase):
         self.dock.add_visual(PIE_CHART)
         self.dock.add_visual(TABLE)
         self.check("dock_charts", self.dock)
+
+    def test_legends_after_a_restyle(self) -> None:
+        self.dock.add_user_message(REQUEST)
+        self.dock.add_result_message("Done: 1 step applied.")
+        self.dock.add_visual(RANGES_LEGEND)
+        self.dock.add_visual(CATEGORY_LEGEND)
+        self.check("dock_legend", self.dock)
 
     def test_question_card(self) -> None:
         self.dock.add_user_message("Colour the roads")

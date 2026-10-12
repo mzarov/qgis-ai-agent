@@ -15,6 +15,7 @@ from ai_agent.qgis_tools.style.apply import (
     require_vector_layer,
     resolve_ramp,
 )
+from ai_agent.qgis_tools.style.legend import with_legend
 
 MAX_CATEGORIES = 60
 DEFAULT_RAMPS = ("Set2", "Spectral", "Paired", "Viridis")
@@ -114,12 +115,13 @@ class SetCategoriesTool(BaseTool):
         ]
         layer.setRenderer(QgsCategorizedSymbolRenderer(field, categories))
         refresh(layer)
-        return {
+        payload = {
             **layer_reference(layer),
             "renderer": "categorizedSymbol",
             "class_attribute": field,
             "class_count": len(categories),
         }
+        return with_legend(payload, layer)
 
 
 def _wanted_values(layer: Any, field: str, requested: Any) -> list[Any]:

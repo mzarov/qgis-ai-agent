@@ -28,6 +28,7 @@ from ai_agent.core.orchestrator.notices import CHECKED_BY_READING, STATUS_DONE, 
 from ai_agent.core.settings import get_auto_apply, set_reasoning_enabled, set_supports_images, set_work_mode
 from ai_agent.ui.chart import ChartCard
 from ai_agent.ui.composer_parts import MODES
+from ai_agent.ui.legend import LegendCard
 from ai_agent.ui.messages import SystemMessage
 from ai_agent.ui.plan import PlanCard
 from ai_agent.ui.question import QuestionCard
@@ -116,6 +117,11 @@ class StyleScenario(ScenarioCase):
         self.assertEqual(renderer.type(), "graduatedSymbol")
         self.assertEqual(renderer.classAttribute(), "pop2020")
         self.assertEqual(len(renderer.ranges()), 5)
+        legends = self.dock.conversation.findChildren(LegendCard)
+        self.assertEqual(len(legends), 1, "the restyled layer's legend is not in the feed")
+        self.assertTrue(legends[0].as_strip)
+        self.assertEqual(len(legends[0].items), 5)
+        self.assertNotIn("visual_for_user", self.model.sent_text(4), "the legend reached the model")
 
         verification = self.model.tool_names(4)
         self.assertIn("describe_style", verification, "verification started without the applying run's skills")
