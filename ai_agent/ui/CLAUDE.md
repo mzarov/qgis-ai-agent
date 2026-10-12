@@ -40,6 +40,12 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 5. **Enum compatibility.** Qt5 and Qt6 hold enums differently. Paths like
    `Qt.DockWidgetArea.RightDockWidgetArea` do not exist on Qt5 — wrap them in
    `getattr` with a fallback, as done in `plugin.py`.
+6. **Never show a widget before it has a parent.** `setVisible(True)` on a
+   parentless widget makes it a window of its own, a native one on macOS:
+   thirty hint labels once did, and making those windows was most of the
+   second the settings took to open. Add it to its layout first, then set its
+   visibility. `e2e_harness.WindowSpy` fails any real-QGIS scenario that
+   shows one.
 
 ## What the interface is made of
 
@@ -88,7 +94,7 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `icons.py`        | header, settings-nav, brand and layer icons: drawn with a palette pen, one stroke weight |
 | `settings_dialog.py` | the settings window: state, dirty tracking, saving |
 | `settings_probe.py` | the connection test: start, cancel, report, close only once stopped |
-| `settings_layout.py` | the sidebar (search, groups, counts, the versions at its foot), the page stack and per-page scrolling |
+| `settings_layout.py` | the sidebar (search, groups, counts, the versions at its foot), the page stack, per-page scrolling, pages built on their first visit |
 | `settings_fields.py` | the page and row grammar: page title, section captions, rows, wide rows, switches, steppers, inputs, buttons |
 | `settings_advanced.py` | the Privacy and Advanced pages: where data goes, history keeping and erasing, limits, extra headers, reset |
 | `geocoder_settings.py` | the Geocoding page: off, Photon or your own server as tiles, the address under them |
@@ -406,6 +412,14 @@ the footer are `bg`; cards, tiles and inputs are `surface`; inputs and plain
 buttons take `border-strong`; the selected sidebar entry and hover are
 `surface-2`; the dock and feed backdrop is `bg`. Verify windows inside a real
 QGIS too: offscreen renders a smaller font, which hid real layout faults.
+
+**Pages nobody opens are not built.** Skills, Geocoding, Connectors and
+Personalisation are built on their first visit (`settings_layout.ensure_page`
+calls the dialog's `build_page`), and the first search builds them all, as it
+reads their rows. A page never visited holds what is stored, so Save leaves it
+alone. Privacy and Advanced edit the endpoint with the Connection page and are
+built with it. The dialog's `skills`, `geocoder`, `connectors` and
+`personalisation` build their page when asked for.
 
 **Never restyle a container from inside a child's event.** A style sheet on a
 container cascades to every descendant. The composer once changed its frame's

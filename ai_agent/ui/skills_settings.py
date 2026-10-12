@@ -56,7 +56,6 @@ class SkillsSettings(QObject):
     def __init__(self, palette: Any):
         super().__init__()
         self._palette = palette
-        self._own = 0
         self._mono = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
         holder, self._column = fields.page(TITLE, LEAD, palette)
         self._column.addSpacing(fields.SECTION_GAP)
@@ -89,10 +88,6 @@ class SkillsSettings(QObject):
         self.widget: QWidget = holder
         self.refresh()
 
-    def count(self) -> int:
-        """Skills the agent can use: built-in ones switched on and the user's own."""
-        return sum(switch.isChecked() for switch in self.switches.values()) + self._own
-
     def disabled(self) -> list[str]:
         return [name for name, switch in self.switches.items() if not switch.isChecked()]
 
@@ -100,8 +95,7 @@ class SkillsSettings(QObject):
         described = describe_local_skills()
         self._path.setText(described["path"] or FOLDER_UNAVAILABLE)
         self._path.setToolTip(described["path"] or "")
-        self._own = len(described["skills"])
-        self._yours_title.setText(YOURS.format(self._own + len(described["drafts"])))
+        self._yours_title.setText(YOURS.format(len(described["skills"]) + len(described["drafts"])))
         rows = [self._own_row(entry) for entry in described["skills"]]
         rows += [self._draft_row(draft) for draft in described["drafts"]]
         fresh = QWidget()
@@ -283,6 +277,11 @@ class SkillsSettings(QObject):
         self.refresh()
         if path:
             _open(path)
+
+
+def usable_count() -> int:
+    """Skills the agent can use: built-in ones switched on and the user's own; the sidebar shows it."""
+    return sum(enabled for _name, _description, enabled in builtin_skills()) + len(describe_local_skills()["skills"])
 
 
 def _open(path: str) -> None:

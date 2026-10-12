@@ -9,9 +9,15 @@ from ai_agent.i18n import tr
 from ai_agent.ui import controls, icons, settings_advanced, style
 from ai_agent.ui import settings_fields as fields
 from ai_agent.ui.settings_search import SettingsSearch
+from ai_agent.ui.skills_settings import usable_count
 
-# Sidebar groups as in the handoff; the numbers are page indices.
-GROUPS = ((tr("Model"), (0, 1, 4)), (tr("Customize"), (6, 2)), (tr("Data"), (5, 3)))
+CONNECTION, PRIVACY, SKILLS, GEOCODING, ADVANCED, CONNECTORS, PERSONALISATION = range(7)
+# Sidebar groups as in the handoff.
+GROUPS = (
+    (tr("Model"), (CONNECTION, PRIVACY, ADVANCED)),
+    (tr("Customize"), (PERSONALISATION, SKILLS)),
+    (tr("Data"), (CONNECTORS, GEOCODING)),
+)
 CAPTION_MARGINS = (8, 10, 8, 4)
 CAPTION_SCALE = 11 / 13
 CAPTION_SPACING = 0.4
@@ -34,31 +40,37 @@ def build_body(owner: Any, palette: Any) -> tuple[QHBoxLayout, QVBoxLayout]:
     nav, nav_column = fields.sidebar()
     nav.setObjectName(NAV_NAME)
     style.fill(nav, style.sidebar(palette))
+    # None marks a page built on its first visit, by the owner's `build_page`: most openings never reach
+    # it, and building every page up front more than doubled the time the window took to appear. Privacy
+    # and Advanced edit the endpoint together with the Connection page, so they are built with it.
     pages = (
         (tr("Connection"), "connection", owner._build_connection(palette)),
         (tr("Privacy"), "privacy", settings_advanced.build_privacy(owner, palette)),
-        (tr("Skills"), "skills", owner.skills.widget),
-        (tr("Geocoding"), "geocoding", owner.geocoder.widget),
+        (tr("Skills"), "skills", None),
+        (tr("Geocoding"), "geocoding", None),
         (tr("Advanced"), "advanced", settings_advanced.build_advanced(owner, palette)),
-        (tr("Connectors"), "connectors", owner.connectors.widget),
-        (tr("Personalisation"), "personalisation", owner.personalisation.widget),
+        (tr("Connectors"), "connectors", None),
+        (tr("Personalisation"), "personalisation", None),
     )
     owner.search = SettingsSearch(palette)
     owner.search.opened.connect(lambda index, row: _open_result(owner, index, row))
     nav_column.addWidget(owner.search)
     owner._nav_buttons = []
+    owner._unbuilt_pages = {}
     areas = []
     for index, (title, role, page) in enumerate(pages):
         area = scrollable(page)
         areas.append((title, area))
         owner.pages.addWidget(area)
+        if page is None:
+            owner._unbuilt_pages[index] = area
         glyphs = (
             icons.drawn(role, style.muted(palette), fields.NAV_ICON),
             icons.drawn(role, style.accent(palette), fields.NAV_ICON),
         )
         button = fields.sidebar_button(title, palette, glyphs)
         button.clicked.connect(lambda _checked=False, at=index: show_page(owner, at))
-        _add_marks(button, palette, owner.skills.count() if role == "skills" else 0)
+        _add_marks(button, palette, usable_count() if index == SKILLS else 0)
         owner._nav_buttons.append(button)
     page_list: list[QWidget] = []
     for caption, members in GROUPS:
@@ -68,7 +80,7 @@ def build_body(owner: Any, palette: Any) -> tuple[QHBoxLayout, QVBoxLayout]:
         for index in members:
             nav_column.addWidget(owner._nav_buttons[index])
             page_list.append(owner._nav_buttons[index])
-    owner.search.index(areas, page_list)
+    owner.search.index(areas, page_list, lambda: build_all(owner))
     nav_column.addStretch(1)
     nav_column.addWidget(_version(palette))
     content = QWidget()
@@ -86,9 +98,23 @@ def build_body(owner: Any, palette: Any) -> tuple[QHBoxLayout, QVBoxLayout]:
 
 
 def show_page(owner: Any, index: int) -> None:
+    ensure_page(owner, index)
     owner.pages.setCurrentIndex(index)
     for at, button in enumerate(owner._nav_buttons):
         button.setChecked(at == index)
+
+
+def ensure_page(owner: Any, index: int) -> None:
+    """Build a deferred page if this is its first visit."""
+    area = owner._unbuilt_pages.pop(index, None)
+    if area is not None:
+        _hold(area, owner.build_page(index))
+
+
+def build_all(owner: Any) -> None:
+    """Every page at once, for the search, which reads their rows."""
+    for index in list(owner._unbuilt_pages):
+        ensure_page(owner, index)
 
 
 def mark_page(owner: Any, index: int) -> None:
@@ -96,16 +122,22 @@ def mark_page(owner: Any, index: int) -> None:
     owner._nav_buttons[index].findChild(controls.PaintedDot, DOT_NAME).setVisible(True)
 
 
-def scrollable(page: QWidget) -> QScrollArea:
+def scrollable(page: QWidget | None) -> QScrollArea:
+    """A page's own scroll area; a deferred page arrives later, through `ensure_page`."""
     area = QScrollArea()
     area.setWidgetResizable(True)
     area.setFrameShape(QScrollArea.Shape.NoFrame)
     area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
     area.setStyleSheet("QScrollArea { background: transparent; }")
-    area.setWidget(page)
     area.viewport().setAutoFillBackground(False)
-    page.setAutoFillBackground(False)
+    if page is not None:
+        _hold(area, page)
     return area
+
+
+def _hold(area: QScrollArea, page: QWidget) -> None:
+    area.setWidget(page)
+    page.setAutoFillBackground(False)
 
 
 def _open_result(owner: Any, index: int, row: Any) -> None:

@@ -3,6 +3,7 @@
 Every row the page grammar builds carries its title and hint in a property
 (`settings_fields.SEARCH_PROPERTY`); page names match too. A result opens its
 page and scrolls the row into view. An empty box brings the page list back.
+Pages built only on their first visit are built for the first search.
 """
 
 from collections.abc import Callable
@@ -35,6 +36,7 @@ class SettingsSearch(QWidget):
         self._palette = palette
         self._pages: list[tuple[str, QScrollArea]] = []
         self._hidden_while_searching: list[QWidget] = []
+        self._build_pages: Callable[[], None] = lambda: None
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 0, 0, FIELD_GAP)
         column.setSpacing(2)
@@ -58,10 +60,13 @@ class SettingsSearch(QWidget):
         self._results.setVisible(False)
         column.addWidget(self._results)
 
-    def index(self, pages: list[tuple[str, QScrollArea]], page_list: list[QWidget]) -> None:
-        """The pages by title, and the sidebar widgets that give way to the results."""
+    def index(
+        self, pages: list[tuple[str, QScrollArea]], page_list: list[QWidget], build_pages: Callable[[], None]
+    ) -> None:
+        """The pages by title, the sidebar widgets that give way to the results, and how to build every page."""
         self._pages = pages
         self._hidden_while_searching = page_list
+        self._build_pages = build_pages
 
     def _search(self, text: str) -> None:
         words = text.casefold().split()
@@ -74,6 +79,7 @@ class SettingsSearch(QWidget):
                 item.widget().deleteLater()
         if not words:
             return
+        self._build_pages()
         found = self._matches(words)
         for title, page_title, open_it in found[:MAX_RESULTS]:
             self._list.addWidget(self._result(title, page_title, open_it))

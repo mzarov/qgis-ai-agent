@@ -6,7 +6,7 @@ import time
 import unittest
 from unittest import mock
 
-from ai_agent.config import connectors, limits, personal
+from ai_agent.config import connectors, geocoder, limits, personal
 from ai_agent.core import history, settings
 from ai_agent.core.agent import journal
 from ai_agent.core.agent.skills import tools_for_skills
@@ -14,13 +14,14 @@ from ai_agent.core.local_skills import builtin_skills, register_local_skills, sk
 from ai_agent.core.state.session import Session
 from ai_agent.core.state.store import DAY_SECONDS, SessionStore
 from ai_agent.skills.registry import SKILL_REGISTRY
+from ai_agent.ui import settings_dialog, settings_layout
 from tests.test_credentials import MemorySettings
 
 
 class SettingsCase(unittest.TestCase):
     def setUp(self):
         MemorySettings.values = {}
-        for module in (personal, settings, limits, connectors):
+        for module in (personal, settings, limits, connectors, geocoder):
             patcher = mock.patch.object(module, "QgsSettings", MemorySettings)
             patcher.start()
             self.addCleanup(patcher.stop)
@@ -118,6 +119,46 @@ class SkillSummaryTest(unittest.TestCase):
         from ai_agent.ui.skill_summaries import SUMMARIES
 
         self.assertEqual(set(SUMMARIES), {skill.name for skill in SKILL_REGISTRY.builtin_skills()})
+
+
+class DeferredPagesTest(SettingsCase):
+    """Pages the Connection page does not edit with it are built on their first visit, and saved only then."""
+
+    def setUp(self):
+        super().setUp()
+        self.dialog = settings_dialog.SettingsDialog()
+
+    def test_the_window_opens_without_the_pages_nobody_has_visited(self):
+        deferred = {
+            settings_layout.SKILLS,
+            settings_layout.GEOCODING,
+            settings_layout.CONNECTORS,
+            settings_layout.PERSONALISATION,
+        }
+        self.assertEqual(set(self.dialog._unbuilt_pages), deferred)
+        self.assertEqual(self.dialog._built_pages, {})
+
+    def test_a_page_is_built_on_its_first_visit_and_kept(self):
+        self.dialog.show_page(settings_layout.CONNECTORS)
+        built = self.dialog.connectors
+        self.dialog.show_page(settings_layout.CONNECTION)
+        self.dialog.show_page(settings_layout.CONNECTORS)
+        self.assertIs(self.dialog.connectors, built)
+        self.assertNotIn(settings_layout.CONNECTORS, self.dialog._unbuilt_pages)
+
+    def test_an_edit_on_a_visited_page_is_saved_and_unvisited_pages_are_left_alone(self):
+        with (
+            mock.patch.object(settings_dialog, "set_disabled_skills") as skills_saved,
+            mock.patch.object(settings_dialog, "save_enabled") as connectors_saved,
+            mock.patch.object(settings_dialog, "set_geocoder_provider") as geocoder_saved,
+        ):
+            self.dialog.show_page(settings_layout.SKILLS)
+            self.dialog.skills.switches["charts"].setChecked(False)
+            self.assertTrue(self.dialog.save_btn.isEnabled())
+            self.dialog._save()
+        skills_saved.assert_called_once_with(["charts"])
+        connectors_saved.assert_not_called()
+        geocoder_saved.assert_not_called()
 
 
 class ResetTest(SettingsCase):

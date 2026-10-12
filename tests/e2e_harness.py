@@ -22,7 +22,7 @@ from qgis.core import (
     QgsVectorLayer,
 )
 from qgis.PyQt.QtCore import QCoreApplication, QEvent, QEventLoop, QObject, pyqtSignal
-from qgis.PyQt.QtWidgets import QMainWindow
+from qgis.PyQt.QtWidgets import QMainWindow, QWidget
 
 from ai_agent.core.settings import (
     reset_capabilities,
@@ -93,6 +93,29 @@ class _Interface(QObject):
         self.window.removeDockWidget(dock)
 
 
+class WindowSpy(QObject):
+    """Widgets shown as windows and then given a parent: each was shown before its layout took it.
+
+    Such a widget becomes a native window, made and torn down for nothing: thirty hint labels once took
+    most of the second the settings needed to open. A window a test shows on purpose keeps no parent
+    and is not counted.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.strays: list[str] = []
+        # The widgets themselves, not only their ids: a freed wrapper's id could come back as another's.
+        self._windows: dict[int, QWidget] = {}
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        kind = event.type()
+        if kind == QEvent.Type.Show and isinstance(watched, QWidget) and watched.parent() is None:
+            self._windows[id(watched)] = watched
+        elif kind == QEvent.Type.ParentChange and self._windows.pop(id(watched), None) is not None:
+            self.strays.append(type(watched).__name__)
+        return False
+
+
 def process() -> None:
     QCoreApplication.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 20)
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
@@ -124,6 +147,8 @@ class PluginCase(unittest.TestCase):
         self.iface = _Interface()
         self.iface.window.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
         self.iface.window.show()
+        self.window_spy = WindowSpy()
+        QCoreApplication.instance().installEventFilter(self.window_spy)
         self.plugin = QgisAiAgentPlugin(self.iface)
         self.plugin.initGui()
         self.plugin.run()
@@ -134,9 +159,11 @@ class PluginCase(unittest.TestCase):
         self.orchestrator.on_new_session()
 
     def tearDown(self) -> None:
+        QCoreApplication.instance().removeEventFilter(self.window_spy)
         self.plugin.unload()
         QgsProject.instance().clear()
         pump(0.1)
+        self.assertEqual(self.window_spy.strays, [], "widgets shown before they had a parent")
 
     @property
     def agent(self):

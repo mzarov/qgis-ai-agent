@@ -326,12 +326,32 @@ class SettingsBehaviourTest(PluginCase):
         self.assertFalse(stepper.plus.isEnabled())
         self.assertTrue(self.dialog.save_btn.isEnabled())
 
+    def test_no_page_shows_a_window_of_its_own(self) -> None:
+        # Thirty hint labels were once shown before their rows took them: each became a window,
+        # and making those windows was most of the second the settings took to open.
+        for index in range(self.dialog.pages.count()):
+            self.dialog.show_page(index)
+        self.dialog.search.field.setText("a")
+        pump(0.05)
+        self.assertEqual(self.window_spy.strays, [])
+
+    def test_a_setting_on_a_page_not_yet_opened_is_found(self) -> None:
+        from ai_agent.ui import personalisation_settings, settings_layout
+
+        self.assertIn(settings_layout.PERSONALISATION, self.dialog._unbuilt_pages)
+        self.dialog.search.field.setText(personalisation_settings.UNITS)
+        pump(0.05)
+        results = [row for row in self.dialog.search._results.findChildren(controls.HoverFrame) if row.isVisible()]
+        shown = [label.text() for row in results for label in row.findChildren(QLabel)]
+        self.assertIn("Personalisation", shown, "the page is built for the search")
+        self.assertEqual(self.dialog._unbuilt_pages, {})
+
     def test_a_chosen_group_sits_under_the_chips(self) -> None:
-        from ai_agent.ui import connectors_settings
+        from ai_agent.ui import connectors_settings, settings_layout
 
         # The groups above a chosen one once left their air behind: a band of empty page under the chips.
+        self.dialog._nav_buttons[settings_layout.CONNECTORS].click()
         connectors = self.dialog.connectors
-        self.dialog._nav_buttons[5].click()
         chips = connectors.chips[0][0].parentWidget()
         under_chips = chips.mapTo(connectors.list, QPoint(0, chips.height())).y()
         for _chip, key in connectors.chips[1:]:

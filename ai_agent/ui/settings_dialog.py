@@ -74,6 +74,13 @@ KEY_REMOVED = tr("The stored key for this endpoint was removed.")
 KEY_HINT = tr("Kept in the QGIS authentication database.")
 KEYLESS_HINT = tr("A local server needs no key.")
 MODEL_HINT = tr("As the provider names it.")
+# The pages the window builds on their first visit (`settings_layout.build_body` explains why).
+DEFERRED_PAGES = {
+    settings_layout.SKILLS: SkillsSettings,
+    settings_layout.GEOCODING: GeocoderSettings,
+    settings_layout.CONNECTORS: ConnectorsSettings,
+    settings_layout.PERSONALISATION: PersonalisationSettings,
+}
 
 
 class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
@@ -97,15 +104,11 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         self.history_erased = False
         self.was_reset = False
         palette = self.palette()
+        self._palette = palette
+        self._built_pages: dict[int, Any] = {}
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(0)
-        self.geocoder = GeocoderSettings(palette)
-        self.skills = SkillsSettings(palette)
-        self.connectors = ConnectorsSettings(palette)
-        self.connectors.prompt_chosen.connect(self._use_example)
-        self.connectors.page_switched.connect(lambda: self.pages.currentWidget().verticalScrollBar().setValue(0))
-        self.personalisation = PersonalisationSettings(palette)
         body, right = settings_layout.build_body(self, palette)
         column.addLayout(body, 1)
         right.addWidget(fields.separator(palette))
@@ -132,6 +135,40 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
 
     def show_page(self, index: int) -> None:
         settings_layout.show_page(self, index)
+
+    @property
+    def skills(self) -> SkillsSettings:
+        return self._page(settings_layout.SKILLS)
+
+    @property
+    def geocoder(self) -> GeocoderSettings:
+        return self._page(settings_layout.GEOCODING)
+
+    @property
+    def connectors(self) -> ConnectorsSettings:
+        return self._page(settings_layout.CONNECTORS)
+
+    @property
+    def personalisation(self) -> PersonalisationSettings:
+        return self._page(settings_layout.PERSONALISATION)
+
+    def build_page(self, index: int) -> QWidget:
+        """Build a page left for its first visit; from then on its edits mark it as any other page's do."""
+        page = DEFERRED_PAGES[index](self._palette)
+        page.changed.connect(lambda *_args, at=index: self._mark_dirty(at))
+        if index == settings_layout.CONNECTORS:
+            page.prompt_chosen.connect(self._use_example)
+            page.page_switched.connect(lambda: self.pages.currentWidget().verticalScrollBar().setValue(0))
+        self._built_pages[index] = page
+        return page.widget
+
+    def _page(self, index: int) -> Any:
+        """A deferred page's object, built now if nobody has visited it yet."""
+        settings_layout.ensure_page(self, index)
+        return self._built_pages[index]
+
+    def _built(self, index: int) -> bool:
+        return index in self._built_pages
 
     def _build_connection(self, palette: Any) -> QWidget:
         holder, column = fields.page(CONNECTION_TITLE, CONNECTION_LEAD, palette)
@@ -209,18 +246,23 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         return row
 
     def _watch_changes(self) -> None:
-        """Mark a page as edited the moment one of its controls changes; Save waits for that."""
+        """Mark a page as edited the moment one of its controls changes; Save waits for that.
+
+        A deferred page is watched from its first visit, in `build_page`: unvisited, it holds no edits.
+        """
         pages = {
-            0: [
+            settings_layout.CONNECTION: [
                 self.preset_combo.currentTextChanged,
                 self.url_edit.textEdited,
                 self.model_edit.textEdited,
                 self.key_edit.textEdited,
             ],
-            1: [self.verify_ssl_cb.toggled, self.journal_cb.toggled, self.keep_choice.currentIndexChanged],
-            2: [self.skills.changed],
-            3: [self.geocoder.changed],
-            4: [
+            settings_layout.PRIVACY: [
+                self.verify_ssl_cb.toggled,
+                self.journal_cb.toggled,
+                self.keep_choice.currentIndexChanged,
+            ],
+            settings_layout.ADVANCED: [
                 self.verify_apply_cb.toggled,
                 self.budget_edit.textChanged,
                 self.steps_stepper.valueChanged,
@@ -232,8 +274,6 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
                 self.auth_type_combo.currentTextChanged,
                 self.headers_edit.textChanged,
             ],
-            5: [self.connectors.changed],
-            6: [self.personalisation.changed],
         }
         for index, signals in pages.items():
             for signal in signals:
@@ -349,11 +389,14 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         url = self._edited_url()
         if not self._valid_url(url):
             return
-        try:
-            geocoder_provider, geocoder_url = self.geocoder.values()
-        except ValueError as error:
-            self._show(str(error), style.danger(self.palette()))
-            return
+        # A page never built holds what is stored already: only the built ones are saved.
+        geocoder: tuple[str, str] | None = None
+        if self._built(settings_layout.GEOCODING):
+            try:
+                geocoder = self.geocoder.values()
+            except ValueError as error:
+                self._show(str(error), style.danger(self.palette()))
+                return
         dialect = self._dialect()
         model = self.model_edit.text().strip()
         if not model:
@@ -380,17 +423,21 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         set_thinking_budget(thinking_budget)
         set_context_window(context_window)
         set_reasoning_enabled(self.reasoning_cb.isChecked(), url, model, dialect)
-        set_geocoder_provider(geocoder_provider)
-        save_enabled(self.connectors.enabled_ids())
-        set_disabled_skills(self.skills.disabled())
+        if geocoder is not None:
+            set_geocoder_provider(geocoder[0])
+        if self._built(settings_layout.CONNECTORS):
+            save_enabled(self.connectors.enabled_ids())
+        if self._built(settings_layout.SKILLS):
+            set_disabled_skills(self.skills.disabled())
         settings_advanced.save(self)
-        try:
-            self.personalisation.save()
-        except ValueError as error:
-            self._show(str(error), style.danger(self.palette()))
-            return
-        if geocoder_provider == GEOCODER_NOMINATIM:
-            set_custom_nominatim_url(geocoder_url)
+        if self._built(settings_layout.PERSONALISATION):
+            try:
+                self.personalisation.save()
+            except ValueError as error:
+                self._show(str(error), style.danger(self.palette()))
+                return
+        if geocoder is not None and geocoder[0] == GEOCODER_NOMINATIM:
+            set_custom_nominatim_url(geocoder[1])
         key = self.key_edit.text()
         if key:
             try:

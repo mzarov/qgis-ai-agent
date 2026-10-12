@@ -121,8 +121,8 @@ class Stepper(QFrame):
         middle.addWidget(self._number)
         self._unit = QLabel(suffix)
         style.ink(self._unit, style.text(palette))
-        self._unit.setVisible(bool(suffix))
         middle.addWidget(self._unit)
+        self._unit.setVisible(bool(suffix))
         middle.addStretch(1)
         self._shown = shown
         line.addWidget(shown)
@@ -310,8 +310,8 @@ def wide_row(title: str, widget: QWidget, note: str, palette: Any) -> QWidget:
     column.addWidget(name)
     holder.setProperty(SEARCH_PROPERTY, f"{title} {note}".strip())
     holder.hint = hint(note, palette)
-    holder.hint.setVisible(bool(note))
     column.addWidget(holder.hint)
+    holder.hint.setVisible(bool(note))
     column.addSpacing(WIDE_GAP)
     column.addWidget(widget)
     return holder
@@ -336,8 +336,10 @@ def _row(title: str, widget: QWidget, note: str, palette: Any, tooltip: str) -> 
     # What the sidebar's search matches: the row's title and its hint.
     holder.setProperty(SEARCH_PROPERTY, f"{title} {note}".strip())
     holder.hint = hint(note, palette)
-    holder.hint.setVisible(bool(note))
+    # Shown only once it has a parent: a parentless widget shown becomes a window of its own,
+    # and thirty such windows were most of the second the settings took to open.
     text.addWidget(holder.hint)
+    holder.hint.setVisible(bool(note))
     text.addStretch(1)
     line.addWidget(caption, 1)
     line.addWidget(widget, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
