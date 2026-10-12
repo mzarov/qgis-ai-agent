@@ -96,15 +96,7 @@ class ChoicePopup(controls.RoundedFrame):
         self._choices = choices
         self._index = 0
         self._current = 0
-        try:
-            flags = Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint | Qt.WindowType.NoDropShadowWindowHint
-        except TypeError:
-            flags = None
-        if flags is not None:
-            self.setWindowFlags(flags)
-        # A popup is a window of its own: it does not inherit the panel's palette, so it takes the theme's.
-        style.apply_palette(self)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        controls.as_popup(self)
         self.set_look(style.surface(palette).name(), style.border_strong(palette).name())
         column = QVBoxLayout(self)
         column.setContentsMargins(POPUP_PADDING, POPUP_PADDING, POPUP_PADDING, POPUP_PADDING)

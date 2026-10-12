@@ -15,6 +15,7 @@ from ai_agent.core.orchestrator.notices import (
     LOOKING_INTO_FAILURE,
     MODE_NEXT_REQUEST,
     PLAN_DROPPED,
+    PLAN_GONE,
     RUN_THE_PLAN,
     RUN_THE_PLAN_FOR,
     RUN_THE_PLAN_MODEL,
@@ -27,11 +28,11 @@ from ai_agent.core.orchestrator.notices import (
     SWITCH_WHILE_RUNNING,
     VERIFYING,
 )
-from ai_agent.core.orchestrator.planning import destructive_lines, plan_line
+from ai_agent.core.orchestrator.planning import destructive_lines, plan_layer, plan_line
 from ai_agent.core.orchestrator.presentation import where_to_look
 from ai_agent.core.orchestrator.scope import conversation_scope
 from ai_agent.core.settings import get_verify_after_apply, set_work_mode
-from ai_agent.core.state.trace import APPLIED, CANCELLED, FAILED
+from ai_agent.core.state.trace import APPLIED, CANCELLED, FAILED, PENDING
 from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.project.snapshots import last_snapshot
 
@@ -44,11 +45,12 @@ class PlanMixin:
         if final_text:
             self._render_answer(final_text)
         lines = [self._plan_line(call) for call in calls]
+        layer = plan_layer(calls)
         # The plan card asks for the next step now; the status line has nothing to add.
         self.dock_widget.show_outcome(STATUS_HIDDEN)
-        self._plan_message_id = self.dock_widget.add_plan_message(lines, applies_itself)
+        self._plan_message_id = self.dock_widget.add_plan_message(lines, applies_itself, layer)
         # Kept for a reopened conversation; settled below as the plan is applied, cancelled or undone.
-        self._plan_keys[self._plan_message_id] = self.conversation.add_plan(lines)
+        self._plan_keys[self._plan_message_id] = self.conversation.add_plan(lines, layer)
         self._plan_marks = []
         self._plan_step = -1
         if applies_itself:
@@ -106,9 +108,32 @@ class PlanMixin:
     def on_cancel_plan(self) -> None:
         self.agent.cancel_pending()
         if self._plan_message_id is not None:
-            self.dock_widget.mark_plan_cancelled(self._plan_message_id)
+            # Until anything else happens the card offers the plan back.
+            self.dock_widget.mark_plan_cancelled(self._plan_message_id, restorable=True)
             self._plan_settled(CANCELLED)
+            self._restorable_plan_id = self._plan_message_id
         self._plan_message_id = None
+
+    def on_restore_plan(self, message_id: int) -> None:
+        """Bring a cancelled plan back to Apply and Cancel, if nothing has happened since it was cancelled."""
+        restorable = message_id == self._restorable_plan_id and self.is_idle
+        if not (restorable and self.agent.restore_declined()):
+            self._forget_restore()
+            self.dock_widget.add_system_message(PLAN_GONE)
+            return
+        self._restorable_plan_id = None
+        self._plan_message_id = message_id
+        self._plan_marks = []
+        self._plan_step = -1
+        self.dock_widget.mark_plan_restored(message_id)
+        self._plan_settled(PENDING, marks=[])
+
+    def _forget_restore(self) -> None:
+        """Something happened after a cancel: the cancelled plan stays cancelled."""
+        if self._restorable_plan_id is not None:
+            self.dock_widget.forget_plan_restore(self._restorable_plan_id)
+        self._restorable_plan_id = None
+        self.agent.forget_declined()
 
     def _plan_settled(self, state: str, marks: list[list[str]] | None = None, plan_id: int | None = None) -> None:
         """Keep how a plan card ended, for a reopened conversation."""

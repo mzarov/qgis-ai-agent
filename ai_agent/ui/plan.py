@@ -49,6 +49,9 @@ APPLIED_AT = tr("Applied at {0}")
 UNDONE_AT = tr("Undone at {0}")
 NOTHING_CHANGED = tr("Nothing changed")
 UNDO = tr("Undo")
+RESTORE = tr("Restore plan")
+LAYER = tr("layer “{0}”")
+LAYER_SCALE = 12 / 13
 FAILED_TITLE = tr("Applied with errors")
 CANCELLED_TITLE = tr("Plan cancelled")
 UNDONE_TITLE = tr("Undone")
@@ -79,8 +82,9 @@ class PlanCard(controls.RoundedFrame):
     confirmed = pyqtSignal()
     cancelled = pyqtSignal()
     undo_requested = pyqtSignal()
+    restore_requested = pyqtSignal()
 
-    def __init__(self, steps: list[str], applies_itself: bool = False, parent=None):
+    def __init__(self, steps: list[str], applies_itself: bool = False, layer: str = "", parent=None):
         super().__init__(CARD_RADIUS, parent)
         palette = self._palette = self.palette()
         self._count = len(steps)
@@ -88,7 +92,7 @@ class PlanCard(controls.RoundedFrame):
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(0)
-        column.addWidget(self._build_heading(palette))
+        column.addWidget(self._build_heading(palette, layer))
         column.addWidget(_divider(palette))
         self._list = self._build_steps(steps, palette)
         column.addWidget(self._list)
@@ -106,7 +110,7 @@ class PlanCard(controls.RoundedFrame):
             self._heading.setText(tr_n("Applying by itself · %n change(s)", self._count))
             self._paint_mark(PENDING_MARK, style.accent(palette))
 
-    def _build_heading(self, palette: Any) -> QWidget:
+    def _build_heading(self, palette: Any, layer: str) -> QWidget:
         holder = QWidget()
         row = QHBoxLayout(holder)
         row.setContentsMargins(*HEADER_PADDING)
@@ -119,7 +123,14 @@ class PlanCard(controls.RoundedFrame):
         font.setBold(True)
         self._heading.setFont(font)
         style.ink(self._heading, style.text(palette))
-        row.addWidget(self._heading, 1)
+        row.addWidget(self._heading, 0 if layer else 1)
+        if layer:
+            # The layer the steps work on, on the right; it gives way first when the panel is narrow.
+            self.layer = controls.ElidedLabel(LAYER.format(layer))
+            self.layer.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            style.scale_font(self.layer, LAYER_SCALE)
+            style.ink(self.layer, style.faint(palette))
+            row.addWidget(self.layer, 1)
         self._paint_mark(PENDING_MARK, style.accent(palette))
         return holder
 
@@ -174,8 +185,14 @@ class PlanCard(controls.RoundedFrame):
         self._undo.setCursor(Qt.CursorShape.PointingHandCursor)
         self._undo.setStyleSheet(_link_button(palette))
         self._undo.clicked.connect(self.undo_requested.emit)
-        self._undo.setVisible(False)
         row.addWidget(self._undo)
+        self._undo.setVisible(False)
+        self._restore = QPushButton(RESTORE)
+        self._restore.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._restore.setStyleSheet(_link_button(palette))
+        self._restore.clicked.connect(self.restore_requested.emit)
+        row.addWidget(self._restore)
+        self._restore.setVisible(False)
         return holder
 
     def mark_step(self, index: int, state: str, note: str = "") -> None:
@@ -192,12 +209,27 @@ class PlanCard(controls.RoundedFrame):
         self._settle(FAILED_MARK, FAILED_TITLE, style.danger(self._palette))
         self._show_status(APPLIED_AT.format(at or _now()), undoable)
 
-    def mark_cancelled(self) -> None:
+    def mark_cancelled(self, restorable: bool = False) -> None:
+        """Cancelled; `restorable` offers the plan back until the orchestrator says it is gone."""
         self._settle(CANCELLED_MARK, CANCELLED_TITLE, style.muted(self._palette))
         effect = QGraphicsOpacityEffect(self._list)
         effect.setOpacity(CANCELLED_OPACITY)
         self._list.setGraphicsEffect(effect)
         self._show_status(NOTHING_CHANGED, False)
+        self._restore.setVisible(restorable)
+
+    def forget_restore(self) -> None:
+        self._restore.setVisible(False)
+
+    def restore(self) -> None:
+        """Back to the plan waiting for Apply, as it was before Cancel."""
+        self._paint_mark(PENDING_MARK, style.accent(self._palette))
+        self._heading.setText(tr_n("Plan · %n change(s)", self._count))
+        self._list.setGraphicsEffect(None)
+        self._status.setVisible(False)
+        self._restore.setVisible(False)
+        self._footer_line.setVisible(True)
+        self._buttons.setVisible(True)
 
     def mark_undone(self, at: str = "") -> None:
         self._settle(UNDONE_MARK, UNDONE_TITLE, style.muted(self._palette))

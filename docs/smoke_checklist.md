@@ -1121,3 +1121,11 @@ These verify the agent solves everyday tasks without wandering through search.
      texts and your own skills stayed.
 233. **Geocoding tiles.** *Turned off*, *Photon*, *Your own server* as tiles;
      Photon shows its public address greyed out, your own server takes yours.
+234. **Restore plan.** Ask “Make the rivers half transparent” → the card names
+     *layer “rivers”* on the right → **Cancel** → *Plan cancelled*, *Nothing
+     changed* and **Restore plan** → click it → Apply and Cancel are back →
+     **Apply** works. Cancel again and send a new message: the link is gone.
+235. **Menus drop in.** The + menu, the mode menu, the history and the context
+     ring's popup each appear sliding 4 px down and fading in, quickly; none
+     jumps or flickers. The history of a project with many conversations
+     lists them all and scrolls.

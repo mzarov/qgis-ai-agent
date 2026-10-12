@@ -368,6 +368,20 @@ class ComposerBehaviourTest(PluginCase):
     api_url = "http://localhost:11434/v1"
     model_name = "qwen3"
 
+    def test_a_menu_drops_in_and_settles_where_it_opened(self) -> None:
+        from ai_agent.ui import transitions
+
+        toolbar = self.dock.composer.toolbar
+        toolbar.mode.click()
+        popup = toolbar.modes
+        first = popup.pos()
+        self.assertLess(popup.windowOpacity(), 0.5, "the menu is shown at once instead of fading in")
+        pump(0.4)
+        self.assertEqual(popup.windowOpacity(), 1.0)
+        self.assertEqual(popup.pos().y() - first.y(), transitions.MENU_DROP, "the menu did not drop into place")
+        popup.hide()
+        self.assertEqual(popup.windowOpacity(), 1.0)
+
     def test_escape_stops_a_running_agent_only(self) -> None:
         stops: list[bool] = []
         self.dock.composer.stopped.connect(lambda: stops.append(True))

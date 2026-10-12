@@ -49,6 +49,8 @@ class SessionsMixin:
 
     def _replay(self) -> None:
         self._plan_message_id = None
+        self._restorable_plan_id = None
+        self.agent.forget_declined()
         self._active_tool_message_id = None
         # The replay draws no plan cards, and their ids are the view's: nothing is left to undo from a card.
         self._plan_snapshots.clear()

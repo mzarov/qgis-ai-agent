@@ -163,7 +163,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/core/orchestrator/plans.py" line="146"/>
+        <location filename="ai_agent/core/orchestrator/plans.py" line="171"/>
         <source>%n step(s) did not run — the reasons are in the plan above.</source>
         <translation>
             <numerusform>%n шаг не выполнился — причины в плане выше.</numerusform>
@@ -271,7 +271,7 @@
         <translation>Формат API</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="179"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="216"/>
         <source>API key</source>
         <translation>Ключ API</translation>
     </message>
@@ -451,7 +451,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="73"/>
-        <location filename="ai_agent/ui/settings_layout.py" line="42"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="51"/>
         <source>Advanced</source>
         <translation>Дополнительно</translation>
     </message>
@@ -491,7 +491,7 @@
         <translation>Всегда</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="36"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="37"/>
         <source>An interrupted run completed work in the previous project; see its conversation.</source>
         <translation>Прерванный запуск успел выполнить действия в предыдущем проекте; подробности сохранены в его переписке.</translation>
     </message>
@@ -546,12 +546,12 @@
         <translation>Применённые изменения можно откатить из этой карточки.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/plan.py" line="52"/>
+        <location filename="ai_agent/ui/plan.py" line="55"/>
         <source>Applied with errors</source>
         <translation>Применено с ошибками</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/plan.py" line="188"/>
+        <location filename="ai_agent/ui/plan.py" line="205"/>
         <source>Applied · %n change(s)</source>
         <translation>
             <numerusform>Применено · %n изменение</numerusform>
@@ -567,12 +567,12 @@
     <message>
         <location filename="ai_agent/ui/confirmations.py" line="25"/>
         <location filename="ai_agent/ui/confirmations.py" line="118"/>
-        <location filename="ai_agent/ui/plan.py" line="146"/>
+        <location filename="ai_agent/ui/plan.py" line="157"/>
         <source>Apply</source>
         <translation>Применить</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/plan.py" line="106"/>
+        <location filename="ai_agent/ui/plan.py" line="110"/>
         <source>Applying by itself · %n change(s)</source>
         <translation>
             <numerusform>Применяю сам · %n изменение</numerusform>
@@ -727,8 +727,8 @@
         <location filename="ai_agent/ui/confirmations.py" line="26"/>
         <location filename="ai_agent/ui/confirmations.py" line="57"/>
         <location filename="ai_agent/ui/confirmations.py" line="119"/>
-        <location filename="ai_agent/ui/plan.py" line="152"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="199"/>
+        <location filename="ai_agent/ui/plan.py" line="163"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="236"/>
         <source>Cancel</source>
         <translation>Отменить</translation>
     </message>
@@ -743,12 +743,12 @@
         <translation>Отменяю проверку подключения…</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="38"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="39"/>
         <source>Carry out the plan.</source>
         <translation>Выполни план.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/plans.py" line="156"/>
+        <location filename="ai_agent/core/orchestrator/plans.py" line="181"/>
         <source>Changes applied.</source>
         <translation>Изменения применены.</translation>
     </message>
@@ -901,7 +901,7 @@
     <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="52"/>
         <location filename="ai_agent/ui/settings_dialog.py" line="64"/>
-        <location filename="ai_agent/ui/settings_layout.py" line="38"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="47"/>
         <source>Connection</source>
         <translation>Подключение</translation>
     </message>
@@ -912,7 +912,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/connectors_settings.py" line="29"/>
-        <location filename="ai_agent/ui/settings_layout.py" line="43"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="52"/>
         <source>Connectors</source>
         <translation>Коннекторы</translation>
     </message>
@@ -968,7 +968,7 @@
         <translation>Копировать строки как CSV</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/conversation.py" line="424"/>
+        <location filename="ai_agent/ui/conversation.py" line="436"/>
         <source>Copy the whole conversation</source>
         <translation>Скопировать весь разговор</translation>
     </message>
@@ -1029,7 +1029,7 @@
         <translation>Свой адрес</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_layout.py" line="14"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="18"/>
         <source>Customize</source>
         <translation>Под себя</translation>
     </message>
@@ -1039,7 +1039,7 @@
         <translation>Тёмная</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_layout.py" line="14"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="19"/>
         <source>Data</source>
         <translation>Данные</translation>
     </message>
@@ -1131,7 +1131,7 @@
         <translation>Готово за {0}</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/core/orchestrator/plans.py" line="153"/>
+        <location filename="ai_agent/core/orchestrator/plans.py" line="178"/>
         <source>Done: %n step(s) applied.{0}</source>
         <translation>
             <numerusform>Применён %n шаг.{0}</numerusform>
@@ -1341,7 +1341,7 @@
         <translation>Найди снимок без облаков на текущий экстент за лето</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_search.py" line="18"/>
+        <location filename="ai_agent/ui/settings_search.py" line="19"/>
         <source>Find a setting</source>
         <translation>Найти настройку</translation>
     </message>
@@ -1427,7 +1427,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/geocoder_settings.py" line="27"/>
-        <location filename="ai_agent/ui/settings_layout.py" line="41"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="50"/>
         <source>Geocoding</source>
         <translation>Геокодирование</translation>
     </message>
@@ -1794,8 +1794,8 @@
     </message>
     <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="85"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="180"/>
-        <location filename="ai_agent/ui/settings_layout.py" line="14"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="217"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="17"/>
         <source>Model</source>
         <translation>Модель</translation>
     </message>
@@ -1956,7 +1956,7 @@
         <translation>Такого навыка нет.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="34"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="35"/>
         <source>No skill named /{0}. Available: {1}.</source>
         <translation>Навыка /{0} нет. Доступны: {1}.</translation>
     </message>
@@ -1966,7 +1966,7 @@
         <translation>Своих навыков пока нет.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/plans.py" line="151"/>
+        <location filename="ai_agent/core/orchestrator/plans.py" line="176"/>
         <source>Not all changes were applied.</source>
         <translation>Применились не все изменения.</translation>
     </message>
@@ -1998,7 +1998,7 @@
     <message>
         <location filename="ai_agent/qgis_tools/data/find_open_data.py" line="44"/>
         <location filename="ai_agent/qgis_tools/web/geocode.py" line="63"/>
-        <location filename="ai_agent/ui/settings_search.py" line="19"/>
+        <location filename="ai_agent/ui/settings_search.py" line="20"/>
         <source>Nothing found</source>
         <translation>Ничего не найдено</translation>
     </message>
@@ -2135,7 +2135,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/personalisation_settings.py" line="22"/>
-        <location filename="ai_agent/ui/settings_layout.py" line="44"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="53"/>
         <source>Personalisation</source>
         <translation>Персонализация</translation>
     </message>
@@ -2185,7 +2185,7 @@
         <translation>Карта Plan IGN</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/plan.py" line="53"/>
+        <location filename="ai_agent/ui/plan.py" line="56"/>
         <source>Plan cancelled</source>
         <translation>План отменён</translation>
     </message>
@@ -2195,7 +2195,8 @@
         <translation>План {0}/{1}: {2}</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/plan.py" line="117"/>
+        <location filename="ai_agent/ui/plan.py" line="121"/>
+        <location filename="ai_agent/ui/plan.py" line="227"/>
         <source>Plan · %n change(s)</source>
         <translation>
             <numerusform>План · %n изменение</numerusform>
@@ -2230,7 +2231,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="46"/>
-        <location filename="ai_agent/ui/settings_layout.py" line="39"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="48"/>
         <source>Privacy</source>
         <translation>Приватность</translation>
     </message>
@@ -2245,13 +2246,13 @@
         <translation>Предлагает план, ничего не меняет</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="143"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="180"/>
         <source>Provider</source>
         <translation>Провайдер</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="173"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="291"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="210"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="331"/>
         <source>Provider key</source>
         <translation>Ключ провайдера</translation>
     </message>
@@ -2491,7 +2492,7 @@
         <translation>Убрать</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="175"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="212"/>
         <source>Remove key</source>
         <translation>Удалить ключ</translation>
     </message>
@@ -2556,7 +2557,7 @@
         <translation>Запрос</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="33"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="34"/>
         <source>Request not sent.</source>
         <translation>Запрос не отправлен.</translation>
     </message>
@@ -2569,6 +2570,11 @@
         <location filename="ai_agent/ui/settings_advanced.py" line="117"/>
         <source>Reset…</source>
         <translation>Сбросить…</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/plan.py" line="52"/>
+        <source>Restore plan</source>
+        <translation>Вернуть план</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="118"/>
@@ -2681,7 +2687,7 @@
         <translation>Спутники и снимки</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="203"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="240"/>
         <source>Save</source>
         <translation>Сохранить</translation>
     </message>
@@ -2757,7 +2763,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/geocoder_settings.py" line="31"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="185"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="222"/>
         <source>Server address</source>
         <translation>Адрес сервера</translation>
     </message>
@@ -2877,7 +2883,7 @@
         <translation>Показывает план и ждёт «Применить»</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_layout.py" line="40"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="49"/>
         <location filename="ai_agent/ui/skills_settings.py" line="22"/>
         <source>Skills</source>
         <translation>Навыки</translation>
@@ -2983,7 +2989,7 @@
         <translation>Рельеф и океаны</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="138"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="175"/>
         <location filename="ai_agent/ui/settings_probe.py" line="96"/>
         <source>Test connection</source>
         <translation>Проверить подключение</translation>
@@ -3056,7 +3062,7 @@
         <translation>Мастер-пароль QGIS не введён, поэтому ключ остаётся закрытым.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="35"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="36"/>
         <source>The QGIS project changed. A new project-scoped conversation was started.</source>
         <translation>Проект QGIS изменился. Начат новый разговор, привязанный к этому проекту.</translation>
     </message>
@@ -3136,7 +3142,7 @@
         <translation>Модель работает на {0}, на этом устройстве.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="41"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="42"/>
         <source>The new mode applies from the next request.</source>
         <translation>Новый режим действует со следующего запроса.</translation>
     </message>
@@ -3206,7 +3212,7 @@
         <translation>Вид следует за новыми данными и выделением. Выключено — карта остаётся, где вы её оставили.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/plans.py" line="93"/>
+        <location filename="ai_agent/core/orchestrator/plans.py" line="95"/>
         <source>There are no changes to apply.</source>
         <translation>Применять нечего.</translation>
     </message>
@@ -3222,7 +3228,7 @@
     </message>
     <message>
         <location filename="ai_agent/core/orchestrator/rewind.py" line="34"/>
-        <location filename="ai_agent/core/orchestrator/rewind.py" line="147"/>
+        <location filename="ai_agent/core/orchestrator/rewind.py" line="149"/>
         <source>These temporary layers came back empty: {0}.</source>
         <translation>Эти временные слои вернулись пустыми: {0}.</translation>
     </message>
@@ -3245,6 +3251,11 @@
         <location filename="ai_agent/core/orchestrator/attaching.py" line="14"/>
         <source>This model does not accept pictures, so {0} was not sent.</source>
         <translation>Эта модель не принимает картинки, поэтому {0} не отправлено.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="32"/>
+        <source>This plan can no longer be restored: the conversation or the project has moved on.</source>
+        <translation>Этот план уже не вернуть: разговор или проект ушли дальше.</translation>
     </message>
     <message>
         <location filename="ai_agent/core/orchestrator/rewind.py" line="31"/>
@@ -3337,7 +3348,7 @@
         <translation>Превращает названия мест в координаты — например, когда вы пишете «школы в Казани».</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="139"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="141"/>
         <source>Type a request.</source>
         <translation>Введите запрос.</translation>
     </message>
@@ -3362,7 +3373,7 @@
         <translation>Откатить</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/plan.py" line="54"/>
+        <location filename="ai_agent/ui/plan.py" line="57"/>
         <source>Undone</source>
         <translation>Откачено</translation>
     </message>
@@ -3442,7 +3453,7 @@
         <translation>Жду вашего ответа</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/notices.py" line="32"/>
+        <location filename="ai_agent/core/orchestrator/notices.py" line="33"/>
         <source>Waiting for your answer — the run continues from it.</source>
         <translation>Жду вашего ответа — прогон продолжится с него.</translation>
     </message>
@@ -3482,7 +3493,7 @@
         <translation>Какие слои есть в проекте и что в них?</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="185"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="222"/>
         <source>Without /chat/completions.</source>
         <translation>Без /chat/completions.</translation>
     </message>
@@ -3610,6 +3621,11 @@
         <location filename="ai_agent/ui/skill_popup.py" line="20"/>
         <source>insert</source>
         <translation>вставить</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/plan.py" line="53"/>
+        <source>layer “{0}”</source>
+        <translation>слой «{0}»</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/skill_popup.py" line="28"/>

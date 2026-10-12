@@ -90,6 +90,15 @@ class Agent:
     def cancel_pending(self):
         self.cancelled = True
         self.has_pending_writes = False
+        self.declined = True
+
+    def restore_declined(self):
+        restored, self.declined = getattr(self, "declined", False), False
+        self.has_pending_writes = restored
+        return restored
+
+    def forget_declined(self):
+        self.declined = False
 
     def answer(self, text):
         self.answered = text
@@ -118,6 +127,10 @@ class PlanDock(Dock):
         self.undone_plans = []
         self.undoable = False
         self.plan_lines = None
+        self.plan_layer = ""
+        self.restorable = []
+        self.restored_plans = []
+        self.forgotten_restores = []
 
     def mark_plan_completed(self, message_id, undoable=False):
         self.completed_plans.append(message_id)
@@ -130,13 +143,21 @@ class PlanDock(Dock):
     def mark_plan_undone(self, message_id):
         self.undone_plans.append(message_id)
 
-    def add_plan_message(self, lines, applies_itself=False):
+    def add_plan_message(self, lines, applies_itself=False, layer=""):
         self.plan_lines = list(lines)
         self.applies_itself = applies_itself
+        self.plan_layer = layer
         return 7
 
-    def mark_plan_cancelled(self, message_id):
+    def mark_plan_cancelled(self, message_id, restorable=False):
         self.cancelled_plans.append(message_id)
+        self.restorable.append(restorable)
+
+    def mark_plan_restored(self, message_id):
+        self.restored_plans.append(message_id)
+
+    def forget_plan_restore(self, message_id):
+        self.forgotten_restores.append(message_id)
 
 
 class Call:
@@ -965,7 +986,7 @@ class PlanUndoTest(unittest.TestCase):
         self.assertIn(notices.SWITCH_WHILE_RUNNING, self.dock.system)
 
     def _apply_as(self, plan_id, snapshot):
-        self.dock.add_plan_message = lambda lines, applies_itself=False: plan_id
+        self.dock.add_plan_message = lambda lines, applies_itself=False, layer="": plan_id
         self.orchestrator.on_confirm_needed([Call()], "")
         self.orchestrator._note_apply_start()
         self.snapshots.append(snapshot)
@@ -1184,6 +1205,52 @@ class KeptTurnTest(unittest.TestCase):
         self.orchestrator._confirm_first_send = lambda *endpoint: True
         self.orchestrator.on_prompt("pop2020")
         self.assertTrue(self.orchestrator.conversation.messages[-1].get("chosen"))
+
+
+class PlanRestoreTest(unittest.TestCase):
+    """A cancelled plan comes back to Apply and Cancel until anything else happens."""
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.root, True)
+        self.dock = PlanDock()
+        self.orchestrator = CoreOrchestrator(Iface(), self.dock)
+        self.orchestrator.conversation = ConversationState(store=SessionStore(self.root))
+        self.orchestrator.agent = Agent()
+        layered = Call()
+        layered.arguments = {"layer_name": "Districts"}
+        self.orchestrator.on_confirm_needed([layered], "")
+        self.orchestrator.agent.has_pending_writes = True
+
+    def _plan_state(self):
+        plans = [entry["plan"] for entry in self.orchestrator.conversation.replayable() if "plan" in entry]
+        return plans[-1]["state"]
+
+    def test_the_card_names_the_layer_its_steps_work_on(self):
+        self.assertEqual(self.dock.plan_layer, "Districts")
+        plans = [entry["plan"] for entry in self.orchestrator.conversation.replayable() if "plan" in entry]
+        self.assertEqual(plans[-1]["layer"], "Districts")
+
+    def test_a_cancelled_plan_is_offered_back_and_restored(self):
+        from ai_agent.core.state.trace import CANCELLED, PENDING
+
+        self.orchestrator.on_cancel_plan()
+        self.assertEqual((self.dock.cancelled_plans, self.dock.restorable), ([7], [True]))
+        self.assertEqual(self._plan_state(), CANCELLED)
+        self.orchestrator.on_restore_plan(7)
+        self.assertEqual(self.dock.restored_plans, [7])
+        self.assertTrue(self.orchestrator.agent.has_pending_writes)
+        self.assertEqual(self._plan_state(), PENDING)
+        self.orchestrator.on_confirm_plan()
+        self.assertTrue(self.orchestrator.agent.confirmed)
+
+    def test_a_new_request_takes_the_offer_back(self):
+        self.orchestrator.on_cancel_plan()
+        self.orchestrator.on_prompt("Now label them")
+        self.assertEqual(self.dock.forgotten_restores, [7])
+        self.orchestrator.on_restore_plan(7)
+        self.assertEqual(self.dock.restored_plans, [])
+        self.assertIn(notices.PLAN_GONE, self.dock.system)
 
 
 def summary_of(text):

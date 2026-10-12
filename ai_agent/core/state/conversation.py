@@ -107,10 +107,10 @@ class ConversationState:
             self._session.add(TRACE_ROLE, json.dumps(record, ensure_ascii=False))
             self._store.save(self._session)
 
-    def add_plan(self, lines: list[str]) -> str:
+    def add_plan(self, lines: list[str], layer: str = "") -> str:
         """Keep a plan card for the replay; the returned key settles it once it is applied or dropped."""
         key = uuid.uuid4().hex[:12]
-        record = {"key": key, "lines": list(lines), "state": PENDING, "marks": [], "at": ""}
+        record = {"key": key, "lines": list(lines), "layer": layer, "state": PENDING, "marks": [], "at": ""}
         self.add(PLAN_ROLE, json.dumps(record, ensure_ascii=False))
         return key
 

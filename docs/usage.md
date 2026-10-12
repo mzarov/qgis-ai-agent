@@ -37,10 +37,12 @@ reopens it.
 ## Changing things
 
 Writing collects into a plan card, *Plan · 2 changes*, one numbered step per
-change; press **Apply** to run it, **Cancel** to drop it. Once applied, the
-card says *Applied · 2 changes* with the time and offers **Undo**: the project
-returns to how it was right before that apply, from the same snapshot that
-rewinding uses (see below). Examples:
+change, with the layer they work on at the right; press **Apply** to run it,
+**Cancel** to drop it. A cancelled card offers **Restore plan** until you write
+again: the plan comes back with Apply and Cancel. Once applied, the card says
+*Applied · 2 changes* with the time and offers **Undo**: the project returns to
+how it was right before that apply, from the same snapshot that rewinding uses
+(see below). Examples:
 
 - *make the rivers blue* / *roads as thin grey dashed lines*
 - *colour the districts by population, 7 classes, Viridis*
@@ -111,8 +113,9 @@ before the plan card appears.
 
 Conversations persist across QGIS restarts and are bound to the project: the
 history — click the conversation's title in the bar on top — lists only the
-ones started in the currently open project, by day (Today, Yesterday, Earlier)
-with their time, the open one highlighted. Its first row starts a new
+ones started in the currently open project, all of them, by day (Today,
+Yesterday, Earlier) with their time, the open one highlighted; a long history
+scrolls. Its first row starts a new
 conversation, like the **+** beside the title or Ctrl+N (⌘N on macOS) in the
 chat box; the welcome then says the previous conversation is in the history,
 with a link back to it. After the first answer the model names the conversation in a few words,

@@ -90,6 +90,8 @@ class RewindMixin:
         if not self.is_idle:
             self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
             return
+        # The project goes back: a plan cancelled after this one was meant for the project as it was.
+        self._forget_restore()
         path = self._plan_snapshots.get(message_id, "")
         if not path or not snapshot_exists(path):
             self.dock_widget.add_system_message(UNDO_GONE.format(MAX_SNAPSHOTS))

@@ -57,6 +57,8 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         # Each live plan card's kept record, by the card's id in the feed.
         self._plan_keys: dict[int, str] = {}
         self._plan_marks: list[list[str]] = []
+        # The cancelled plan card that may still be restored, until anything else happens.
+        self._restorable_plan_id: int | None = None
         self._snapshot_before_apply = ""
         self._invalidated_scope: tuple[str, str] | None = None
         self._deferred_interrupted_outcome = ""
@@ -180,6 +182,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
     ) -> None:
         """Show `shown`, then run `prompt`; `request` is what the user asked, for the check after Apply."""
         self._show_user_message(shown)
+        self._forget_restore()
         self._drop_pending_plan()
         planning = get_planning()
 

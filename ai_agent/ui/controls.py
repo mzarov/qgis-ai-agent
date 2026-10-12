@@ -25,7 +25,7 @@ from qgis.PyQt.QtWidgets import (
     QWidgetAction,
 )
 
-from ai_agent.ui import icons, style
+from ai_agent.ui import icons, style, transitions
 
 SEGMENT_NAME = "segmented"
 SEGMENT_RADIUS = 8
@@ -333,6 +333,7 @@ def menu(parent: QWidget, palette: Any) -> QMenu:
     if flags is not None:
         popup.setWindowFlags(flags)
     popup.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+    transitions.DropIn(popup)
     popup.setStyleSheet(
         f"QMenu {{ background: {style.css_color(style.surface(palette))};"
         f"border: {style.HAIRLINE}px solid {style.css_color(style.border_strong(palette))};"
@@ -345,6 +346,21 @@ def menu(parent: QWidget, palette: Any) -> QMenu:
         f"background: {style.css_color(style.hairline(palette))}; }}"
     )
     return popup
+
+
+def as_popup(window: QWidget) -> None:
+    """Make a frame a popup window in the panel's look: frameless and translucent, so its rounded corners
+    are not drawn over a square system frame; the theme's palette; dropping in as the menus do."""
+    try:
+        flags = Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint | Qt.WindowType.NoDropShadowWindowHint
+    except TypeError:
+        flags = None
+    if flags is not None:
+        window.setWindowFlags(flags)
+    # A popup is a window of its own: it does not inherit the panel's palette, so it takes the theme's.
+    style.apply_palette(window)
+    window.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+    transitions.DropIn(window)
 
 
 def caption(text: str, palette: Any) -> QLabel:
@@ -515,5 +531,6 @@ class ElidedLabel(QLabel):
         painter = QPainter(self)
         painter.setPen(self.palette().color(self.foregroundRole()))
         shown = self.fontMetrics().elidedText(self.text(), self._mode, self.width())
-        painter.drawText(self.rect(), int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter), shown)
+        across = self.alignment() & Qt.AlignmentFlag.AlignHorizontal_Mask
+        painter.drawText(self.rect(), int(across | Qt.AlignmentFlag.AlignVCenter), shown)
         painter.end()

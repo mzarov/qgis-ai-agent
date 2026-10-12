@@ -67,7 +67,7 @@ class SessionStore:
         for name in self._names():
             self.delete(name[: -len(SUFFIX)])
 
-    def recent(self, project: str, limit: int = 20) -> list[Session]:
+    def recent(self, project: str, limit: int | None = None) -> list[Session]:
         sessions = [item for item in self._all() if item.project == project]
         sessions.sort(key=_newest_first, reverse=True)
         return sessions[:limit]
