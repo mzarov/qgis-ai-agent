@@ -1,12 +1,12 @@
-import os
 from typing import Any
 
 from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.common.background import Background, InTask
 from ai_agent.qgis_tools.osm.args import geometry, wanted_name
 from ai_agent.qgis_tools.osm.fetch import fetch
-from ai_agent.qgis_tools.osm.load import SUBLAYERS, load_sublayers, storage_note, write_payload
-from ai_agent.qgis_tools.osm.overpass import RECURSE_DOWN
+from ai_agent.qgis_tools.osm.load import SUBLAYERS, load_answer
+from ai_agent.qgis_tools.osm.overpass import RECURSE_DOWN, endpoint
 
 MAX_QUERY_CHARS = 4000
 SHOWN_CHARS = 90
@@ -99,20 +99,19 @@ class RunOverpassTool(BaseTool):
     def summarize_result(self, params: dict[str, Any], payload: dict[str, Any]) -> str:
         return tr_n("%n feature(s)", int(payload.get("total_features") or 0))
 
+    def start(self, params: dict[str, Any]) -> Background:
+        """The query off the main thread; the layers are made on it once the answer is in."""
+        query = _checked_query(params.get("query"))
+        wanted, name, url = geometry(params), wanted_name(params), endpoint()
+        return InTask(
+            self.summarize_call(params),
+            lambda feedback: fetch(query, url, feedback),
+            lambda text: load_answer(text, wanted, name, NOTHING_FOUND),
+        )
+
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         query = _checked_query(params.get("query"))
-        wanted = geometry(params)
-        name = wanted_name(params)
-        path, temporary = write_payload(fetch(query), name)
-        loaded = load_sublayers(path, wanted, name)
-        if not loaded:
-            raise ValueError(NOTHING_FOUND)
-        return {
-            "layers": loaded,
-            "total_features": sum(item["feature_count"] for item in loaded),
-            "folder": os.path.dirname(path),
-            **storage_note(temporary),
-        }
+        return load_answer(fetch(query), geometry(params), wanted_name(params), NOTHING_FOUND)
 
 
 def _checked_intent(raw: Any) -> str:

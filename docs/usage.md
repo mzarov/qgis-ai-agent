@@ -42,7 +42,10 @@ change, with the layer they work on at the right; press **Apply** to run it,
 again: the plan comes back with Apply and Cancel. Once applied, the card says
 *Applied · 2 changes* with the time and offers **Undo**: the project returns to
 how it was right before that apply, from the same snapshot that rewinding uses
-(see below). Examples:
+(see below). A long step — a Processing algorithm, an OpenStreetMap or
+open-data download — works in the background: QGIS stays usable, the step's
+line shows how far it is, and ■ stops it along with the steps after it.
+Examples:
 
 - *make the rivers blue* / *roads as thin grey dashed lines*
 - *colour the districts by population, 7 classes, Viridis*

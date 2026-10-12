@@ -431,6 +431,21 @@ class FailedPlanCardTest(unittest.TestCase):
         card.mark_cancelled()
         self.assertTrue(card._restore.isHidden(), "a plan the conversation moved past is not offered back")
 
+    def test_a_long_step_shows_how_far_it_is_until_it_ends(self):
+        from ai_agent.ui import plan as plan_module
+
+        card = plan_module.PlanCard(["Buffering roads."])
+        card.mark_step(0, "running")
+        self.assertTrue(card._buttons.isHidden(), "Apply stays pressable while the plan applies")
+        card.mark_progress(0, 64.4)
+        step = card._steps[0]
+        self.assertEqual(step.mark.text(), "64 %")
+        self.assertFalse(step.bar.isHidden())
+        self.assertAlmostEqual(step.bar.fraction, 0.644)
+        card.mark_step(0, "done")
+        self.assertTrue(step.bar.isHidden())
+        self.assertEqual(step.mark.text(), plan_module.APPLIED_MARK)
+
     def test_a_failed_step_shows_its_mark_and_reason_and_a_done_one_only_its_mark(self):
         from ai_agent.ui import plan as plan_module
 

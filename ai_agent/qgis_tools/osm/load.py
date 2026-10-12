@@ -63,6 +63,20 @@ def storage_note(temporary: bool) -> dict[str, str]:
     return {"storage_note": TEMP_NOTE} if temporary else {}
 
 
+def load_answer(text: str, geometry: str, name: str, nothing_found: str) -> dict[str, Any]:
+    """Overpass's answer written and loaded as layers, with the payload a download tool returns."""
+    path, temporary = write_payload(text, name)
+    loaded = load_sublayers(path, geometry, name)
+    if not loaded:
+        raise ValueError(nothing_found)
+    return {
+        "layers": loaded,
+        "total_features": sum(item["feature_count"] for item in loaded),
+        "folder": os.path.dirname(path),
+        **storage_note(temporary),
+    }
+
+
 def load_sublayers(path: str, geometry: str, name: str) -> list[dict[str, Any]]:
     """Add each non-empty sublayer; drop the raw .osm once no layer reads it."""
     loaded: list[dict[str, Any]] = []

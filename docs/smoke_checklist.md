@@ -1129,3 +1129,10 @@ These verify the agent solves everyday tasks without wandering through search.
      ring's popup each appear sliding 4 px down and fading in, quickly; none
      jumps or flickers. The history of a project with many conversations
      lists them all and scrolls.
+236. **A long step in the background.** On a layer of tens of thousands of
+     features ask for a buffer with many segments → Apply → while it runs the
+     map pans, the panel scrolls, and the step's line shows a thin bar and
+     “NN %” growing → the layer arrives and the line shows ✓. Again, and press
+     ■ while it runs: the step and the ones after it are cancelled, no new
+     layer. Download cafes from OpenStreetMap: QGIS stays usable while
+     Overpass answers.

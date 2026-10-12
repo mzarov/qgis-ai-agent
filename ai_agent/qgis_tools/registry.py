@@ -65,6 +65,13 @@ def execute_tool(tool_name: str, params: dict[str, Any]) -> dict[str, Any]:
     return tool.execute(params)
 
 
+def start_tool(tool_name: str, params: dict[str, Any]) -> Any:
+    """The call's work started off the main thread, or None when the tool runs it in `execute`."""
+    tool = _require_tool(tool_name)
+    validate_parameters(params, tool.params_schema)
+    return tool.start(params)
+
+
 def prepare_tool_call(tool_name: str, params: dict[str, Any]) -> dict[str, Any]:
     tool = _require_tool(tool_name)
     validate_parameters(params, tool.params_schema)

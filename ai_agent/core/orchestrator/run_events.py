@@ -72,6 +72,11 @@ class RunEventsMixin:
         self._active_tool_message_id = self.dock_widget.add_tool_message(summary)
         self.conversation.trace.call(summary)
 
+    def on_tool_progressed(self, percent: float) -> None:
+        """A plan step working off the main thread says how far it is; its line on the card shows it."""
+        if self._applying_plan() and self._plan_step >= 0:
+            self.dock_widget.mark_plan_progress(self._plan_message_id, self._plan_step, percent)
+
     def on_tool_finished(self, tool_name: str, ok: bool, note: str = "") -> None:
         if self._applying_plan() and self._plan_step >= 0:
             state = STEP_DONE if ok else STEP_FAILED

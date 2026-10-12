@@ -117,6 +117,9 @@ class Agent:
         self.stops += 1
         self.abort()
 
+    def shutdown(self):
+        self.stop()
+
 
 class PlanDock(Dock):
     def __init__(self):
@@ -131,6 +134,7 @@ class PlanDock(Dock):
         self.restorable = []
         self.restored_plans = []
         self.forgotten_restores = []
+        self.progress = []
 
     def mark_plan_completed(self, message_id, undoable=False):
         self.completed_plans.append(message_id)
@@ -155,6 +159,9 @@ class PlanDock(Dock):
 
     def mark_plan_restored(self, message_id):
         self.restored_plans.append(message_id)
+
+    def mark_plan_progress(self, message_id, index, percent):
+        self.progress.append((message_id, index, percent))
 
     def forget_plan_restore(self, message_id):
         self.forgotten_restores.append(message_id)
@@ -814,8 +821,11 @@ class StageAppliedTest(unittest.TestCase):
 
 class FailedApplySettlesTest(unittest.TestCase):
     def test_a_failed_apply_marks_the_card_instead_of_leaving_it_live(self):
+        root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, root, True)
         dock = PlanDock()
         orchestrator = CoreOrchestrator(Iface(), dock)
+        orchestrator.conversation = ConversationState(store=SessionStore(root))
         orchestrator.agent = Agent()
         orchestrator.on_confirm_needed([Call()], "")
         orchestrator.on_applied([Result(ok=False, payload={"error": "boom"})])
@@ -1205,6 +1215,20 @@ class KeptTurnTest(unittest.TestCase):
         self.orchestrator._confirm_first_send = lambda *endpoint: True
         self.orchestrator.on_prompt("pop2020")
         self.assertTrue(self.orchestrator.conversation.messages[-1].get("chosen"))
+
+
+class LongStepProgressTest(unittest.TestCase):
+    def test_a_long_step_reports_on_its_plan_line(self):
+        dock = PlanDock()
+        orchestrator = CoreOrchestrator(Iface(), dock)
+        orchestrator.agent = Agent()
+        orchestrator.on_confirm_needed([Call()], "")
+        orchestrator.agent.is_applying = True
+        orchestrator.on_tool_progressed(10.0)
+        self.assertEqual(dock.progress, [], "no step is running yet")
+        orchestrator.on_tool_started("Buffering")
+        orchestrator.on_tool_progressed(64.0)
+        self.assertEqual(dock.progress, [(7, 0, 64.0)])
 
 
 class PlanRestoreTest(unittest.TestCase):

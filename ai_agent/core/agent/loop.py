@@ -30,6 +30,8 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
     tool_started = pyqtSignal(object)
     # Tool name, success, and the user-facing line about what the call found (may be empty).
     tool_finished = pyqtSignal(str, bool, str)
+    # A step working off the main thread: how far it is, 0–100.
+    tool_progressed = pyqtSignal(float)
     tool_queued = pyqtSignal(str)
     tool_rejected = pyqtSignal(object)
     skill_loaded = pyqtSignal(str)
@@ -209,6 +211,11 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._turn_callbacks = None
         self.abort()
         self._turn.stop()
+
+    def shutdown(self) -> None:
+        """The plugin unloads: stop, and let a step still working off the main thread report to nobody."""
+        self.stop()
+        self._batch.detach()
 
     def interject(self, text: str) -> bool:
         message = (text or "").strip()

@@ -12,16 +12,16 @@ JSON_TYPE = "application/json"
 MAX_JSON_BYTES = 8 * 1024 * 1024
 
 
-def get_json(url: str) -> Any:
-    return _decoded(_send(url), url)
+def get_json(url: str, feedback: Any = None) -> Any:
+    return _decoded(_send(url, feedback=feedback), url)
 
 
 def post_json(url: str, body: dict[str, Any]) -> Any:
     return _decoded(_send(url, json.dumps(body).encode("utf-8")), url)
 
 
-def get_bytes(url: str, limit: int) -> bytes:
-    payload = _send(url)
+def get_bytes(url: str, limit: int, feedback: Any = None) -> bytes:
+    payload = _send(url, feedback=feedback)
     if len(payload) > limit:
         raise ValueError(
             f"{_host(url)} sent {len(payload) // 1024 // 1024} MB, over the limit of {limit // 1024 // 1024} MB. "
@@ -30,15 +30,16 @@ def get_bytes(url: str, limit: int) -> bytes:
     return payload
 
 
-def _send(url: str, body: bytes | None = None) -> bytes:
+def _send(url: str, body: bytes | None = None, feedback: Any = None) -> bytes:
+    """The answer's bytes; safe off the main thread, where `feedback` can cancel the request."""
     request = QNetworkRequest(QUrl(url))
     request.setRawHeader(b"User-Agent", USER_AGENT)
     caller = QgsBlockingNetworkRequest()
     if body is None:
-        code = caller.get(request)
+        code = caller.get(request, False, feedback)
     else:
         request.setHeader(QNetworkRequest.KnownHeaders.ContentTypeHeader, JSON_TYPE)
-        code = caller.post(request, QByteArray(body))
+        code = caller.post(request, QByteArray(body), False, feedback)
     if code != QgsBlockingNetworkRequest.ErrorCode.NoError:
         raise ValueError(f"{_host(url)} did not answer: {_message(caller)}. The service may be busy — retry later.")
     return bytes(caller.reply().content())

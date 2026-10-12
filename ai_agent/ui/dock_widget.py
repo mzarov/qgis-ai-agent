@@ -281,6 +281,9 @@ class AgentDockWidget(QDockWidget):
     def mark_plan_step(self, message_id: int, index: int, state: str, note: str = "") -> None:
         self.conversation.mark_plan_step(message_id, index, state, note)
 
+    def mark_plan_progress(self, message_id: int, index: int, percent: float) -> None:
+        self.conversation.mark_plan_progress(message_id, index, percent)
+
     def mark_plan_cancelled(self, message_id: int, restorable: bool = False) -> None:
         self.conversation.mark_plan_cancelled(message_id, restorable)
 

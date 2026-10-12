@@ -217,11 +217,13 @@ class _FinalBatch:
     def clear(self):
         self._calls = []
 
-    def apply(self, on_start, on_finish, _expected_project_identity):
+    def apply(self, on_start, on_finish, _expected_project_identity, done=None, _on_progress=None):
         self._calls = []
         for result in self._results:
             on_start(result.call)
             on_finish(result.call, result)
+        if done is not None:
+            done(self._results)
         return list(self._results)
 
 

@@ -91,12 +91,18 @@ Details: [docs/core_architecture.md](docs/core_architecture.md).
 ## Main thread — critical
 
 PyQGIS and Qt objects may be touched **only from the main thread**. That is why
-the agent loop is a state machine on the main thread: the single outgoing HTTP
-request runs in `ModelTurnThread`, while `_on_turn` and tool execution run as a
+the agent loop is a state machine on the main thread: the outgoing HTTP request
+runs in `ModelTurnThread`, while `_on_turn` and tool execution run as a
 main-thread slot.
 
-Never move tool execution to a background thread and never rewrite the loop as a
-background `while` or as `asyncio` — that crashes QGIS.
+A long step may hand **only its heavy part** to a QGIS task (`BaseTool.start`,
+`qgis_tools/common/background.py`): a Processing algorithm through
+`QgsProcessingAlgRunnerTask`, a download through `QgsBlockingNetworkRequest`.
+The task touches only thread-safe objects; the project, layers and widgets are
+touched when it ends, on the main thread, and the apply run waits for its signal
+without blocking (`core/agent/apply_run.py`). Never move a whole tool or the loop
+to a background thread, and never rewrite the loop as a background `while` or as
+`asyncio` — that crashes QGIS. Details: [docs/core_architecture.md](docs/core_architecture.md).
 
 ## PyQGIS — do not hallucinate
 

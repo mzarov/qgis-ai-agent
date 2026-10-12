@@ -3,6 +3,7 @@ from unittest import mock
 
 from qgis.core import QgsVectorLayer
 
+from ai_agent.core.agent import apply_run as apply_run_module
 from ai_agent.core.agent import batch as batch_module
 from ai_agent.core.agent import batch_apply as batch_apply_module
 from ai_agent.core.agent import executor as executor_module
@@ -19,7 +20,15 @@ from ai_agent.qgis_tools.web import http as http_module
 from ai_agent.skills.registry import SKILL_REGISTRY
 
 
-class FakeExecutor:
+class MainThreadOnly:
+    """An executor fake whose calls all run on the main thread, through `run`."""
+
+    @staticmethod
+    def start(call, done):
+        return None
+
+
+class FakeExecutor(MainThreadOnly):
     def __init__(self):
         self.ran = []
 
@@ -214,7 +223,7 @@ class AbortReentrancyTest(unittest.TestCase):
         requested = []
         loop._batch._calls = [ToolCall(id="guard", name="set_opacity", arguments={})]
 
-        class AbortingExecutor:
+        class AbortingExecutor(MainThreadOnly):
             @staticmethod
             def run(item):
                 ran.append(item.name)
@@ -302,7 +311,7 @@ class AbortReentrancyTest(unittest.TestCase):
         loop._batch._calls = [ToolCall(id="write", name="set_opacity", arguments={})]
         loop._staged = True
 
-        class NestedStartExecutor:
+        class NestedStartExecutor(MainThreadOnly):
             @staticmethod
             def run(item):
                 attempted.append(loop.start("new"))
@@ -331,7 +340,7 @@ class AbortReentrancyTest(unittest.TestCase):
         loop._batch._calls = calls
         loop._staged = True
 
-        class StoppingExecutor:
+        class StoppingExecutor(MainThreadOnly):
             @staticmethod
             def run(item):
                 ran.append(item.name)
@@ -373,7 +382,7 @@ class AbortReentrancyTest(unittest.TestCase):
 
         with (
             mock.patch.object(batch_apply_module, "take_snapshot", return_value="/tmp/snapshot.qgz"),
-            mock.patch.object(batch_module.QApplication, "processEvents", side_effect=deliver_ui_events) as process,
+            mock.patch.object(apply_run_module.QApplication, "processEvents", side_effect=deliver_ui_events) as process,
         ):
             loop.confirm_pending()
 
@@ -396,7 +405,7 @@ class AbortReentrancyTest(unittest.TestCase):
         loop._batch._calls = calls
         loop._staged = True
 
-        class WebCancellingExecutor:
+        class WebCancellingExecutor(MainThreadOnly):
             @staticmethod
             def run(item):
                 ran.append(item.name)
@@ -583,7 +592,7 @@ class BatchLayerPinTest(unittest.TestCase):
         with (
             mock.patch.object(batch_module.QgsProject, "instance", return_value=project),
             mock.patch.object(batch_module, "prepare_tool_call", side_effect=lambda name, params: params),
-            mock.patch.object(batch_module, "project_identity", return_value="project"),
+            mock.patch.object(apply_run_module, "project_identity", return_value="project"),
         ):
             batch.add(call("set_opacity", layer_name="roads", opacity=0.5))
             project.layers = {replacement.id(): replacement}
@@ -611,7 +620,7 @@ class BatchLayerPinTest(unittest.TestCase):
         with (
             mock.patch.object(batch_module.QgsProject, "instance", return_value=project),
             mock.patch.object(batch_module, "prepare_tool_call", side_effect=lambda name, params: params),
-            mock.patch.object(batch_module, "project_identity", return_value="project"),
+            mock.patch.object(apply_run_module, "project_identity", return_value="project"),
         ):
             batch.add(call("configure_layer", layer_name="roads — lines", name="roads"))
             batch.add(call("set_opacity", layer_name="roads — lines", opacity=0.5))
@@ -629,7 +638,7 @@ class BatchLayerPinTest(unittest.TestCase):
         with (
             mock.patch.object(batch_module.QgsProject, "instance", return_value=project),
             mock.patch.object(batch_module, "prepare_tool_call", side_effect=lambda name, params: params),
-            mock.patch.object(batch_module, "project_identity", return_value="project"),
+            mock.patch.object(apply_run_module, "project_identity", return_value="project"),
         ):
             batch.add(call("set_opacity", layer_name="roads", opacity=0.5))
             roads._name = "streets"
@@ -716,9 +725,9 @@ class BatchFailFastTest(unittest.TestCase):
         self.batch.add(ToolCall(id="one", name="set_opacity", arguments={}))
         self.batch.add(ToolCall(id="two", name="set_symbol", arguments={}))
         self.batch.add(ToolCall(id="three", name="configure_layer", arguments={}))
-        saved_identity = batch_module.project_identity
+        saved_identity = apply_run_module.project_identity
         identities = iter(("project-a", "project-b"))
-        batch_module.project_identity = lambda project: next(identities)
+        apply_run_module.project_identity = lambda project: next(identities)
         try:
             results = self.batch.apply(
                 lambda item: None,
@@ -726,7 +735,7 @@ class BatchFailFastTest(unittest.TestCase):
                 expected_project_identity="project-a",
             )
         finally:
-            batch_module.project_identity = saved_identity
+            apply_run_module.project_identity = saved_identity
         self.assertEqual(self.executor.ran, ["set_opacity"])
         self.assertTrue(results[0].ok)
         self.assertIn("project changed", results[1].payload["error"].lower())

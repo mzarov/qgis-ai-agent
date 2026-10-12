@@ -4,27 +4,16 @@ from dataclasses import replace
 from typing import Any
 
 from qgis.core import QgsProject
-from qgis.PyQt.QtWidgets import QApplication
 
+from ai_agent.core.agent.apply_run import ApplyRun
 from ai_agent.core.agent.executor import ToolExecutor
 from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.core.llm.turns import ToolCall
-from ai_agent.qgis_tools.common.layers import (
-    follow_batch_renames,
-    layer_names_by_id,
-    layer_pin_error,
-    pin_layer_references,
-    validate_public_layer_references,
-)
+from ai_agent.qgis_tools.common.layers import pin_layer_references, validate_public_layer_references
 from ai_agent.qgis_tools.common.project_identity import project_identity
-from ai_agent.qgis_tools.registry import get_tool_by_name, prepare_tool_call, summarize_tool_call
+from ai_agent.qgis_tools.registry import prepare_tool_call, summarize_tool_call
 
-SKIPPED_STATUS = "skipped"
 UNDO_TOOL = "undo_last_apply"
-PROJECT_CHANGED_ERROR = (
-    "The QGIS project changed while this plan was being applied. This step and every later step were stopped."
-)
-CANCELLED_ERROR = "The run was stopped. This pending step and every later step were cancelled."
 
 
 def _signature(call: ToolCall) -> str:
@@ -42,6 +31,7 @@ class WriteBatch:
         self._applying = False
         self._cancel_requested = False
         self._executing_call: ToolCall | None = None
+        self._run: ApplyRun | None = None
 
     def __bool__(self) -> bool:
         return bool(self._calls) or self._applying
@@ -57,6 +47,9 @@ class WriteBatch:
     def clear(self) -> None:
         self._calls = []
         self._cancel_requested = self._applying
+        if self._applying and self._run is not None:
+            # A step working in the background stops too; the steps after it are cancelled as usual.
+            self._run.cancel()
 
     def add(self, call: ToolCall) -> ToolCall:
         if self._applying:
@@ -104,74 +97,45 @@ class WriteBatch:
         on_start: Callable[[ToolCall], Any],
         on_finish: Callable[[ToolCall, ToolResult], Any],
         expected_project_identity: str | None = None,
-    ) -> list[ToolResult]:
+        done: Callable[[list[ToolResult]], Any] | None = None,
+        on_progress: Callable[[float], Any] | None = None,
+    ) -> list[ToolResult] | None:
+        """Apply the queued calls in order; `done` gets their results once the last step has ended.
+
+        When no step went off the main thread that happens before this returns, and the results are
+        returned too; otherwise this returns None and `done` follows. `on_progress` hears 0–100 from a
+        step working in the background.
+        """
         if self._applying:
             raise RuntimeError("This plan is already being applied.")
         calls = self._calls
         self._calls = []
         expected = expected_project_identity or project_identity(QgsProject.instance())
-        names_at_start = layer_names_by_id()
         self._applying = True
         self._cancel_requested = False
-        try:
-            results = []
-            failed: ToolResult | None = None
-            for call in calls:
-                on_start(call)
-                QApplication.processEvents()
-                if failed is not None:
-                    result = _skipped_result(call, failed.call)
-                elif self._cancel_requested:
-                    result = _cancelled_result(call)
-                elif project_identity(QgsProject.instance()) != expected:
-                    result = _project_changed_result(call)
-                elif target_error := layer_pin_error(_follow(call, names_at_start)):
-                    result = _layer_changed_result(call, target_error)
-                else:
-                    self._executing_call = call
-                    try:
-                        result = self._executor.run(call)
-                    finally:
-                        self._executing_call = None
-                on_finish(call, result)
-                results.append(result)
-                if not result.ok and failed is None:
-                    failed = result
-            return results
-        finally:
-            self._executing_call = None
-            self._applying = False
-            self._cancel_requested = False
+        ended: list[list[ToolResult]] = []
 
+        def complete(results: list[ToolResult]) -> None:
+            ended.append(results)
+            if done is not None:
+                done(results)
 
-def _skipped_result(call: ToolCall, blocker: ToolCall) -> ToolResult:
-    tool = get_tool_by_name(call.name)
-    return ToolResult(
-        call=call,
-        ok=False,
-        payload={
-            "status": SKIPPED_STATUS,
-            "error": f"Not run because the earlier planned step '{blocker.name}' failed.",
-            "blocked_by": {"id": blocker.id, "tool": blocker.name},
-            "arguments_sent": call.arguments,
-        },
-        egress=tool.egress if tool is not None else "metadata",
-    )
+        self._run = ApplyRun(self, calls, on_start, on_finish, complete, expected, on_progress)
+        self._run.advance()
+        return ended[0] if ended else None
 
+    def detach(self) -> None:
+        """Leave a running apply behind for good: its background step stops and reports to nobody."""
+        if self._run is not None:
+            self._run.detach()
+        self._calls = []
+        self._stop_applying()
 
-def _project_changed_result(call: ToolCall) -> ToolResult:
-    tool = get_tool_by_name(call.name)
-    return ToolResult.failure(call, PROJECT_CHANGED_ERROR, tool.egress if tool is not None else "metadata")
-
-
-def _cancelled_result(call: ToolCall) -> ToolResult:
-    tool = get_tool_by_name(call.name)
-    return ToolResult.failure(call, CANCELLED_ERROR, tool.egress if tool is not None else "metadata")
-
-
-def _layer_changed_result(call: ToolCall, message: str) -> ToolResult:
-    tool = get_tool_by_name(call.name)
-    return ToolResult.failure(call, message, tool.egress if tool is not None else "metadata")
+    def _stop_applying(self) -> None:
+        self._executing_call = None
+        self._applying = False
+        self._cancel_requested = False
+        self._run = None
 
 
 MODEL_LINE_LIMIT = 240
@@ -185,12 +149,3 @@ def _model_line(call: ToolCall) -> str:
         arguments = str(public)
     line = f"{call.name} {arguments}"
     return line if len(line) <= MODEL_LINE_LIMIT else line[: MODEL_LINE_LIMIT - 1] + "…"
-
-
-def _follow(call: ToolCall, names_at_start: dict[str, str]) -> dict[str, Any]:
-    """The call's arguments after renames earlier in this batch, updated in place: the call is tracked by identity."""
-    followed = follow_batch_renames(call.arguments, names_at_start)
-    if followed is not call.arguments:
-        call.arguments.clear()
-        call.arguments.update(followed)
-    return call.arguments

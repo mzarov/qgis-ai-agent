@@ -389,6 +389,11 @@ class ConversationView(QScrollArea):
         if isinstance(card, PlanCard):
             card.mark_step(index, state, note)
 
+    def mark_plan_progress(self, entry_id: int, index: int, percent: float) -> None:
+        card = self._entries.get(entry_id)
+        if isinstance(card, PlanCard):
+            card.mark_progress(index, percent)
+
     def mark_plan_cancelled(self, entry_id: int, restorable: bool = False) -> None:
         card = self._entries.get(entry_id)
         if isinstance(card, PlanCard):

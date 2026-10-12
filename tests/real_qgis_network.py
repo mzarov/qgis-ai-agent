@@ -251,3 +251,66 @@ class RealNetworkTest(unittest.TestCase):
         self.assertEqual(observer.errors, [])
         self.assertFalse(self.server.release.is_set())
         owner.stop()
+
+
+OSM_ANSWER = (
+    b'<?xml version="1.0" encoding="UTF-8"?><osm version="0.6" generator="fixture">'
+    b'<node id="1" lat="55.75" lon="37.62"><tag k="amenity" v="cafe"/><tag k="name" v="One"/></node>'
+    b'<node id="2" lat="55.76" lon="37.63"><tag k="amenity" v="cafe"/><tag k="name" v="Two"/></node>'
+    b"</osm>"
+)
+OVERPASS_DELAY_S = 0.6
+
+
+class _SlowOverpass(BaseHTTPRequestHandler):
+    def do_POST(self):
+        self.rfile.read(int(self.headers.get("Content-Length", "0")))
+        time.sleep(OVERPASS_DELAY_S)
+        self.send_response(200)
+        self.send_header("Content-Type", "application/osm3s+xml")
+        self.send_header("Content-Length", str(len(OSM_ANSWER)))
+        self.end_headers()
+        self.wfile.write(OSM_ANSWER)
+
+    def log_message(self, format, *args):
+        pass
+
+
+class DownloadInBackgroundTest(unittest.TestCase):
+    """An Overpass download waits off the main thread; the layers are made on it once the answer is in."""
+
+    def setUp(self):
+        self.server = ThreadingHTTPServer(("127.0.0.1", 0), _SlowOverpass)
+        self.server.daemon_threads = True
+        threading.Thread(target=self.server.serve_forever, kwargs={"poll_interval": 0.02}, daemon=True).start()
+        self.addCleanup(self.server.server_close)
+        self.addCleanup(self.server.shutdown)
+
+    def test_the_main_thread_keeps_running_while_overpass_answers(self):
+        from unittest import mock
+
+        from qgis.core import QgsProject
+
+        from ai_agent.core.agent.batch import WriteBatch
+        from ai_agent.core.agent.executor import ToolExecutor
+        from ai_agent.core.llm.turns import ToolCall
+
+        url = f"http://127.0.0.1:{self.server.server_address[1]}/api/interpreter"
+        query = "[out:xml];node[amenity=cafe](55.7,37.6,55.8,37.7);out body;"
+        arguments = {"intent": "cafes in a corner of Moscow", "query": query, "name": "Cafes", "geometry": "points"}
+        ticks, ended = [], []
+        timer = QTimer()
+        timer.setInterval(10)
+        timer.timeout.connect(lambda: ticks.append(True))
+        with mock.patch("ai_agent.qgis_tools.osm.run_overpass.endpoint", return_value=url):
+            batch = WriteBatch(ToolExecutor())
+            batch.add(ToolCall("overpass", "run_overpass", arguments))
+            timer.start()
+            batch.apply(lambda call: None, lambda call, result: None, done=ended.append)
+            self.assertTrue(_wait_until(lambda: bool(ended), 20000), "the download never ended")
+            timer.stop()
+        self.addCleanup(QgsProject.instance().clear)
+        result = ended[0][0]
+        self.assertTrue(result.ok, result.payload)
+        self.assertEqual(result.payload["total_features"], 2)
+        self.assertGreater(len(ticks), 10, "the main thread was blocked while Overpass answered")

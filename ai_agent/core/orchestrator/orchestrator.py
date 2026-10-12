@@ -85,6 +85,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
     def _connect_agent(self) -> None:
         self.agent.tool_started.connect(self.on_tool_started)
         self.agent.tool_finished.connect(self.on_tool_finished)
+        self.agent.tool_progressed.connect(self.on_tool_progressed)
         self.agent.tool_queued.connect(self.on_tool_queued)
         self.agent.tool_rejected.connect(self.on_tool_rejected)
         self.agent.skill_loaded.connect(self.on_skill_loaded)
@@ -273,7 +274,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
 
     def shutdown(self) -> None:
         self.conversation.save()
-        self.agent.stop()
+        self.agent.shutdown()
         self.compaction.stop()
         self.naming.stop()
 

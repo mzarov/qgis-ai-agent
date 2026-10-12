@@ -16,13 +16,15 @@ TOO_BIG = (
 )
 
 
-def fetch(query: str) -> str:
-    request = QNetworkRequest(QUrl(endpoint()))
+def fetch(query: str, url: str = "", feedback: Any = None) -> str:
+    """Overpass's answer to `query`, checked. Safe off the main thread when `url` is given:
+    the endpoint comes from the settings, read on the main thread; `feedback` cancels the request."""
+    request = QNetworkRequest(QUrl(url or endpoint()))
     request.setHeader(QNetworkRequest.KnownHeaders.ContentTypeHeader, CONTENT_TYPE)
     request.setRawHeader(b"User-Agent", USER_AGENT.encode("utf-8"))
 
     caller = QgsBlockingNetworkRequest()
-    code = caller.post(request, QByteArray(f"data={query}".encode()))
+    code = caller.post(request, QByteArray(f"data={query}".encode()), False, feedback)
     if code != QgsBlockingNetworkRequest.ErrorCode.NoError:
         raise ValueError(_failure(caller))
 
