@@ -1,8 +1,8 @@
-import os
 from typing import Any
 
 from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.common.background import Background, InTask
 from ai_agent.qgis_tools.osm.args import (
     CANVAS,
     as_text,
@@ -13,8 +13,8 @@ from ai_agent.qgis_tools.osm.args import (
     wanted_name,
 )
 from ai_agent.qgis_tools.osm.fetch import fetch
-from ai_agent.qgis_tools.osm.load import SUBLAYERS, load_sublayers, storage_note, write_payload
-from ai_agent.qgis_tools.osm.overpass import build_query
+from ai_agent.qgis_tools.osm.load import SUBLAYERS, load_answer
+from ai_agent.qgis_tools.osm.overpass import build_query, endpoint
 
 NOTHING_FOUND = (
     "Overpass ran fine, but nothing matches this query. Either the tag is wrong — "
@@ -131,23 +131,28 @@ class DownloadOsmTool(BaseTool):
     def summarize_result(self, params: dict[str, Any], payload: dict[str, Any]) -> str:
         return tr_n("%n feature(s)", int(payload.get("total_features") or 0))
 
+    def start(self, params: dict[str, Any]) -> Background:
+        """The download off the main thread; the layers are made on it once the answer is in."""
+        query, wanted, name = _request(params)
+        url = endpoint()
+        return InTask(
+            self.summarize_call(params),
+            lambda feedback: fetch(query, url, feedback),
+            lambda text: load_answer(text, wanted, name, NOTHING_FOUND),
+        )
+
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        chosen = selectors(params)
-        key = "" if chosen else required_key(params)
-        wanted = geometry(params)
-        name = wanted_name(params)
-        area, bbox = territory(params)
-        query = build_query(key, params.get("value") or "", area, bbox, wanted, chosen)
-        path, temporary = write_payload(fetch(query), name)
-        loaded = load_sublayers(path, wanted, name)
-        if not loaded:
-            raise ValueError(NOTHING_FOUND)
-        return {
-            "layers": loaded,
-            "total_features": sum(item["feature_count"] for item in loaded),
-            "folder": os.path.dirname(path),
-            **storage_note(temporary),
-        }
+        query, wanted, name = _request(params)
+        return load_answer(fetch(query), wanted, name, NOTHING_FOUND)
+
+
+def _request(params: dict[str, Any]) -> tuple[str, str, str]:
+    """The Overpass query, the geometries wanted and the layer name; the territory is read here."""
+    chosen = selectors(params)
+    key = "" if chosen else required_key(params)
+    wanted = geometry(params)
+    area, bbox = territory(params)
+    return build_query(key, params.get("value") or "", area, bbox, wanted, chosen), wanted, wanted_name(params)
 
 
 def _what(params: dict[str, Any]) -> str:

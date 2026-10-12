@@ -253,7 +253,8 @@ grouping.
 ## The plan card
 
 While the plan applies, each step shows its progress at the end of its line
-(● running, ✓ done, ✕ failed, — skipped) and a failed step its reason under
+(● running, ✓ done, ✕ failed, — skipped; a step working in the background
+shows "64 %" there and a 2 px bar under its words) and a failed step its reason under
 it, in plain words (`core/agent/failures.explain_failure`); the model keeps the
 exact English error. Apply-phase tool events go to the card, not to feed rows,
 which only repeated its lines.

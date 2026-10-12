@@ -43,6 +43,13 @@ user agrees to that by configuring a remote model (docs/privacy.md).
 `prepare` validates and normalizes arguments without modifying project state or
 contacting services; bind target layers by ID. `execute` runs on the main thread,
 returns JSON-compatible values and reports partial effects accurately on failure.
+A step that can take long also implements `start`: it validates as `execute`
+does and returns a `common.background.Background` — `InTask(description, work,
+complete)` for a download, `processing/background_run.py` for an algorithm.
+`work` runs in a QGIS task and touches only its arguments and thread-safe
+classes (`QgsBlockingNetworkRequest` with the task's feedback); `complete` makes
+the layers and the payload on the main thread. Keep `execute` working: the
+executor falls back to it when a step cannot start.
 Raise clear English errors with a recovery hint. `summarize_call` handles invalid
 input and uses translated text because it can run on an error path.
 `confirm_applied` is optional: one cheap read proving the applied step (True),

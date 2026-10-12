@@ -1,12 +1,13 @@
 import pathlib
 import struct
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
 from osgeo import gdal
 from qgis.core import QgsFeature, QgsGeometry, QgsProject, QgsRasterLayer, QgsVectorLayer
-from qgis.PyQt.QtCore import QCoreApplication, QEvent
+from qgis.PyQt.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer
 from qgis.PyQt.QtWidgets import QMainWindow
 
 from ai_agent.core.agent.batch import WriteBatch
@@ -19,6 +20,9 @@ from ai_agent.qgis_tools.draw.draw_features import DrawFeaturesTool
 from ai_agent.qgis_tools.processing.run_processing import RunProcessingTool
 from ai_agent.qgis_tools.project.snapshots import take_snapshot
 from ai_agent.ui.dock_widget import AgentDockWidget
+
+BACKGROUND_WAIT_S = 120
+MANY_POINTS = 20000
 
 
 class GisWorkflowsTest(unittest.TestCase):
@@ -48,10 +52,21 @@ class GisWorkflowsTest(unittest.TestCase):
         self.project.addMapLayer(layer)
         return layer
 
+    def _applied(self, batch, progress=None):
+        """The batch's results, once a step working off the main thread has ended too."""
+        ended = []
+        batch.apply(lambda call: None, lambda call, result: None, done=ended.append, on_progress=progress)
+        deadline = time.monotonic() + BACKGROUND_WAIT_S
+        while not ended and time.monotonic() < deadline:
+            QCoreApplication.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 20)
+            time.sleep(0.005)
+        self.assertTrue(ended, "the batch never ended")
+        return ended[0]
+
     def _run(self, tool_name, **arguments):
         batch = WriteBatch(ToolExecutor())
         queued = batch.add(ToolCall("integration", tool_name, arguments))
-        results = batch.apply(lambda call: None, lambda call, result: None)
+        results = self._applied(batch)
         self.assertEqual(len(results), 1)
         self.assertTrue(results[0].ok, results[0].payload)
         return queued, results[0].payload
@@ -107,6 +122,60 @@ class GisWorkflowsTest(unittest.TestCase):
             self.assertTrue(feature.geometry().isGeosValid())
         self.assertEqual(self.layer.featureCount(), 2)
         self.assertEqual(next(self.layer.getFeatures()).geometry().asWkt(), "Point (0 0)")
+
+    def test_a_long_algorithm_runs_off_the_main_thread_and_reports_progress(self):
+        many = QgsVectorLayer("Point?crs=EPSG:3857", "many", "memory")
+        features = []
+        for index in range(MANY_POINTS):
+            feature = QgsFeature(many.fields())
+            feature.setGeometry(QgsGeometry.fromWkt(f"POINT ({index * 10} {index % 100 * 10})"))
+            features.append(feature)
+        many.dataProvider().addFeatures(features)
+        self.project.addMapLayer(many)
+        ticks = []
+        timer = QTimer()
+        timer.setInterval(10)
+        timer.timeout.connect(lambda: ticks.append(True))
+        timer.start()
+        progress = []
+        batch = WriteBatch(ToolExecutor())
+        batch.add(
+            ToolCall(
+                "buffer",
+                "run_processing",
+                {"algorithm_id": "native:buffer", "parameters": {"INPUT": "many", "DISTANCE": 5, "SEGMENTS": 32}},
+            )
+        )
+        results = self._applied(batch, progress.append)
+        timer.stop()
+        self.assertTrue(results[0].ok, results[0].payload)
+        self.assertTrue(progress, "the algorithm's progress never reached the batch")
+        self.assertGreater(len(ticks), 2, "the main thread was blocked while the algorithm ran")
+        self.assertEqual(self.project.mapLayersByName("Buffered")[0].featureCount(), MANY_POINTS)
+
+    def test_a_background_algorithm_past_the_tool_timeout_is_stopped_with_the_limit_named(self):
+        batch = WriteBatch(ToolExecutor())
+        arguments = {"algorithm_id": "native:buffer", "parameters": {"INPUT": self.layer.id(), "DISTANCE": 10}}
+        batch.add(ToolCall("buffer", "run_processing", arguments))
+        with patch("ai_agent.config.limits.tool_seconds", return_value=0):
+            results = self._applied(batch)
+        self.assertFalse(results[0].ok)
+        self.assertIn("0 s tool timeout", results[0].payload["error"])
+        self.assertEqual(self.project.mapLayersByName("Buffered"), [])
+
+    def test_stopping_cancels_an_algorithm_working_in_the_background(self):
+        batch = WriteBatch(ToolExecutor())
+        arguments = {"algorithm_id": "native:buffer", "parameters": {"INPUT": self.layer.id(), "DISTANCE": 10}}
+        batch.add(ToolCall("buffer", "run_processing", arguments))
+        batch.add(ToolCall("opacity", "set_opacity", {"layer_name": self.layer.name(), "opacity": 0.5}))
+        ended = []
+        batch.apply(lambda call: None, lambda call, result: None, done=ended.append)
+        batch.clear()
+        deadline = time.monotonic() + BACKGROUND_WAIT_S
+        while not ended and time.monotonic() < deadline:
+            QCoreApplication.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 20)
+        self.assertEqual([result.ok for result in ended[0]], [False, False])
+        self.assertAlmostEqual(self.layer.opacity(), 1.0, msg="a step after the stopped one ran")
 
     def test_truncate_is_classified_destructive_using_the_real_algorithm(self):
         tool = RunProcessingTool()
@@ -180,7 +249,7 @@ class GisWorkflowsTest(unittest.TestCase):
             "output_name": "Town hall 500 m",
         }
         batch.add(ToolCall("buffer", "run_processing", buffer))
-        results = batch.apply(lambda call: None, lambda call, result: None)
+        results = self._applied(batch)
         self.assertTrue(all(result.ok for result in results), [result.payload for result in results])
         drawn = self.project.mapLayersByName("Town hall")[0]
         self.assertEqual((drawn.providerType(), drawn.crs().authid()), ("memory", "EPSG:32639"))

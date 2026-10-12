@@ -38,8 +38,21 @@ The architecture of `ai_agent`: an agent loop with skills.
 ## Threading model
 
 PyQGIS and Qt objects may be touched only from the main thread. So the loop is
-not a background `while` but a **state machine on the main thread**: only the
-HTTP request leaves it, and `_on_turn` runs as a main-thread slot.
+not a background `while` but a **state machine on the main thread**: the HTTP
+request leaves it, and `_on_turn` runs as a main-thread slot.
+
+A long step leaves it too, in part. A step that held the main thread for a
+whole Processing algorithm or a download froze QGIS for as long — the window,
+the map, the Stop button. So a tool may start its heavy part as a QGIS task
+(`BaseTool.start`): a Processing algorithm through `QgsProcessingAlgRunnerTask`,
+as the Processing toolbox's "Run in background" does, a download through
+`QgsBlockingNetworkRequest`, which is safe in any thread and releases Python's
+lock while it waits. The task touches nothing but thread-safe objects; the
+project, its layers and the interface are touched only when it ends, back on
+the main thread. Applying a batch (`agent/apply_run.py`) returns to Qt's event
+loop while such a step works and goes on when its result arrives; meanwhile its
+progress reaches the plan card. Stop cancels the task and the steps after it.
+Algorithms QGIS flags NoThreading still run on the main thread.
 
 ## Safety classes
 

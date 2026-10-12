@@ -47,6 +47,7 @@ KEY_MIN_WIDTH = 18
 KEY_EXTRA_HEIGHT = 4
 KEY_EDGE_TINT = 0.35
 SMALL_SCALE = 0.85
+BAR_HEIGHT = 2
 
 
 class Segmented(QFrame):
@@ -317,6 +318,35 @@ class PaintedDot(QWidget):
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QColor(self.colour))
         painter.drawEllipse(QRectF(0, 0, self._size, self._size))
+        painter.end()
+
+
+class ThinBar(QWidget):
+    """How far a long step has come: a 2 px accent line over a hairline track, painted."""
+
+    def __init__(self, palette: Any, parent: QWidget | None = None):
+        super().__init__(parent)
+        self._track = style.hairline(palette)
+        self._fill = style.accent(palette)
+        self.fraction = 0.0
+        self.setFixedHeight(BAR_HEIGHT)
+
+    def set_fraction(self, value: float) -> None:
+        value = min(max(float(value), 0.0), 1.0)
+        if value != self.fraction:
+            self.fraction = value
+            self.update()
+
+    def paintEvent(self, _event: Any) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(Qt.PenStyle.NoPen)
+        radius = self.height() / 2
+        painter.setBrush(self._track)
+        painter.drawRoundedRect(QRectF(self.rect()), radius, radius)
+        if self.fraction > 0:
+            painter.setBrush(self._fill)
+            painter.drawRoundedRect(QRectF(0, 0, self.width() * self.fraction, self.height()), radius, radius)
         painter.end()
 
 

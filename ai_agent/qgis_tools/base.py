@@ -142,6 +142,15 @@ class BaseTool(ABC):
         """
         return None
 
+    def start(self, params: dict[str, Any]) -> Any:
+        """Start this call's long work off the main thread, or return None to run `execute` instead.
+
+        A tool that can take long returns a `common.background.Background`: its
+        task does only thread-safe work, and the project is touched when it ends,
+        on the main thread. Validate as `execute` does and raise the same errors.
+        """
+        return None
+
     @abstractmethod
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         """Execute on the Qt main thread and return JSON-compatible results.

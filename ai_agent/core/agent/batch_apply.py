@@ -1,6 +1,7 @@
 from qgis.core import Qgis, QgsMessageLog, QgsProject
 
 from ai_agent.core.agent import notices
+from ai_agent.core.agent.apply_run import SKIPPED_STATUS
 from ai_agent.core.agent.failures import outcome_note
 from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.core.llm.turns import ToolCall
@@ -11,7 +12,6 @@ from ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call
 
 LOG_TAG = "AI Agent"
 INTERRUPTED_JOURNAL_OUTCOME = "Run interrupted during apply; completed changes remain."
-SKIPPED_STATUS = "skipped"
 
 
 class BatchApplyMixin:
@@ -45,17 +45,22 @@ class BatchApplyMixin:
             return
         self.busy_changed.emit(True)
         try:
-            results = self._batch.apply(
+            # A step working off the main thread returns here at once; the rest follows in _after_apply.
+            self._batch.apply(
                 lambda call: self._on_apply_start(call, generation),
                 lambda call, result: self._on_apply_finish(call, result, generation),
                 expected_project_identity,
+                lambda results: self._after_apply(results, generation, staged),
+                lambda percent: self._on_apply_progress(percent, generation),
             )
         except Exception:
+            self._active_apply_call = None
             if not staged and self._is_current(generation):
                 self.busy_changed.emit(False)
             raise
-        finally:
-            self._active_apply_call = None
+
+    def _after_apply(self, results: list[ToolResult], generation: int, staged: bool) -> None:
+        self._active_apply_call = None
         successful = sum(1 for result in results if result.ok)
         self._journal.count(successful)
         if not self._is_current(generation):
@@ -134,6 +139,10 @@ class BatchApplyMixin:
         QgsMessageLog.logMessage("Stage applied, the run continues.", LOG_TAG, Qgis.MessageLevel.Info)
         if self._is_current(generation):
             self._request_step()
+
+    def _on_apply_progress(self, percent: float, generation: int) -> None:
+        if self._is_current(generation):
+            self.tool_progressed.emit(percent)
 
     def _on_apply_start(self, call: ToolCall, generation: int | None = None) -> None:
         if not self._is_current(generation):

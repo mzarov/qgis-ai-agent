@@ -5,7 +5,9 @@ from qgis.core import Qgis
 from ai_agent.config import limits
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_DESTRUCTIVE, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.common.background import Background
 from ai_agent.qgis_tools.common.paths import check_overwrite
+from ai_agent.qgis_tools.processing.background_run import ProcessingInBackground, runs_in_background
 from ai_agent.qgis_tools.processing.deadline import DeadlineFeedback
 from ai_agent.qgis_tools.processing.effects import contacts_network, sends_network_data, writes_external_data
 from ai_agent.qgis_tools.processing.units import check_distance_units
@@ -127,11 +129,23 @@ class RunProcessingTool(BaseTool):
             lines.append(tr("No parameters."))
         return "\n".join(lines)
 
+    def start(self, params: dict[str, Any]) -> Background | None:
+        """Most algorithms run in QGIS's task, off the main thread; NoThreading ones run in `execute`."""
+        algorithm, prepared, load_output = self._ready(params)
+        if not runs_in_background(algorithm):
+            return None
+        self._get_runner(load_output)
+        output_name = params.get("output_name") or ""
+        return ProcessingInBackground(
+            algorithm.id(),
+            prepared,
+            load_output,
+            lambda result: _payload(algorithm.id(), prepared, load_output, result, output_name),
+            limits.tool_seconds(),
+        )
+
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        algorithm, prepared = self._prepare(params)
-        destination_names = destination_parameter_names(algorithm)
-        _check_destinations(prepared, bool(params.get("overwrite_outputs")), destination_names)
-        load_output = self._resolve_load_output(params)
+        algorithm, prepared, load_output = self._ready(params)
         runner = self._get_runner(load_output)
         feedback = DeadlineFeedback(limits.tool_seconds())
         try:
@@ -142,18 +156,13 @@ class RunProcessingTool(BaseTool):
             raise
         if feedback.timed_out:
             raise TimeoutError(feedback.timeout_message())
-        layer_name = apply_output_name(result, params.get("output_name") or "") if load_output else ""
-        payload = {
-            "algorithm_id": algorithm.id(),
-            "loaded_to_project": load_output,
-            "result_layer_name": layer_name,
-            "parameters_used": prepared,
-            "outputs": normalize_output(result),
-        }
-        warnings = empty_output_warnings(result)
-        if warnings:
-            payload["warnings"] = warnings
-        return payload
+        return _payload(algorithm.id(), prepared, load_output, result, params.get("output_name") or "")
+
+    def _ready(self, params: dict[str, Any]) -> tuple[Any, dict[str, Any], bool]:
+        algorithm, prepared = self._prepare(params)
+        destination_names = destination_parameter_names(algorithm)
+        _check_destinations(prepared, bool(params.get("overwrite_outputs")), destination_names)
+        return algorithm, prepared, self._resolve_load_output(params)
 
     @staticmethod
     def _prepare(params: dict[str, Any]) -> tuple[Any, dict[str, Any]]:
@@ -177,6 +186,23 @@ class RunProcessingTool(BaseTool):
         except ImportError:
             raise RuntimeError(PROCESSING_MISSING_MSG) from None
         return processing.runAndLoadResults if load_output else processing.run
+
+
+def _payload(
+    algorithm_id: str, prepared: dict[str, Any], load_output: bool, result: Any, output_name: str
+) -> dict[str, Any]:
+    layer_name = apply_output_name(result, output_name) if load_output else ""
+    payload = {
+        "algorithm_id": algorithm_id,
+        "loaded_to_project": load_output,
+        "result_layer_name": layer_name,
+        "parameters_used": prepared,
+        "outputs": normalize_output(result),
+    }
+    warnings = empty_output_warnings(result)
+    if warnings:
+        payload["warnings"] = warnings
+    return payload
 
 
 def _check_destinations(

@@ -20,9 +20,9 @@ import json
 from typing import Any
 
 import token_ceilings
-from e2e_harness import ARTIFACTS, PluginCase, pump
+from e2e_harness import ARTIFACTS, PluginCase, process, pump
 from e2e_model import USAGE, ScriptedModel, call, calls, fail, say, think
-from qgis.core import QgsProject
+from qgis.core import QgsFeature, QgsGeometry, QgsProject, QgsVectorLayer
 
 from ai_agent.core.orchestrator.notices import CHECKED_BY_READING, STATUS_DONE, STATUS_WAITING
 from ai_agent.core.settings import get_auto_apply, set_reasoning_enabled, set_supports_images, set_work_mode
@@ -641,6 +641,68 @@ class PlanRestoreScenario(ScenarioCase):
         self.assertAlmostEqual(self.layer("districts").opacity(), 0.5)
         self.assertEqual(card._mark.text(), plan_module.APPLIED_MARK)
         self.shot("plan_restored_and_applied")
+
+
+class BackgroundStepScenario(ScenarioCase):
+    """A long Processing step runs off the main thread: the card shows how far it is, Stop stops it."""
+
+    STATIONS = 20000
+    BUFFER = {"algorithm_id": "native:buffer", "parameters": {"INPUT": "stations", "DISTANCE": 5, "SEGMENTS": 64}}
+
+    def setUp(self) -> None:
+        super().setUp()
+        stations = QgsVectorLayer("Point?crs=EPSG:3857", "stations", "memory")
+        features = []
+        for index in range(self.STATIONS):
+            feature = QgsFeature(stations.fields())
+            feature.setGeometry(QgsGeometry.fromWkt(f"POINT ({index * 20} {index % 200 * 20})"))
+            features.append(feature)
+        stations.dataProvider().addFeatures(features)
+        QgsProject.instance().addMapLayer(stations)
+
+    def test_the_card_shows_the_progress_of_a_long_step(self) -> None:
+        self.model.script(
+            call("load_skill", names=["processing"]),
+            call("run_processing", **self.BUFFER, output_name="Station zones"),
+            say("I will buffer the stations by 5 m."),
+            say("Checked: every station has its zone."),
+        )
+        self.ask("Buffer the stations by 5 m")
+        card = self.dock.conversation.findChildren(PlanCard)[-1]
+        self.orchestrator.on_confirm_plan()
+        shown = []
+        while self.agent.is_applying:
+            process()
+            step = card._steps[0]
+            if not step.bar.isHidden():
+                shown.append(step.mark.text())
+                if len(shown) == 1:
+                    ARTIFACTS.mkdir(parents=True, exist_ok=True)
+                    self.dock.grab().save(str(ARTIFACTS / "background_step_progress.png"))
+        self.assertTrue(shown, "the running step never showed its progress")
+        self.assertTrue(all(text.endswith("%") for text in shown), shown)
+        self.wait_idle()
+        self.assertEqual(self.layer("Station zones").featureCount(), self.STATIONS)
+        self.assertTrue(card._steps[0].bar.isHidden(), "the bar stays after the step ended")
+
+    def test_stop_stops_a_long_step_and_the_steps_after_it(self) -> None:
+        centroids = {"algorithm_id": "native:centroids", "parameters": {"INPUT": "districts"}}
+        self.model.script(
+            call("load_skill", names=["processing"]),
+            call("run_processing", **self.BUFFER, output_name="Station zones"),
+            call("run_processing", **centroids, output_name="District centres"),
+            say("I will buffer the stations, then find the district centres."),
+        )
+        self.ask("Buffer the stations and find the district centres")
+        self.orchestrator.on_confirm_plan()
+        self.assertTrue(self.agent.is_applying, "the long step did not go to the background")
+        self.orchestrator.on_stop()
+        self.wait_idle()
+        project = QgsProject.instance()
+        self.assertEqual(project.mapLayersByName("Station zones"), [])
+        self.assertEqual(project.mapLayersByName("District centres"), [], "a step after the stopped one ran")
+        notes = [message.plain_text() for message in self.dock.conversation.findChildren(SystemMessage)]
+        self.assertTrue(any("stopped during apply" in note.lower() for note in notes), notes)
 
 
 class QuestionScenario(ScenarioCase):

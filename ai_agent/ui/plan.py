@@ -49,6 +49,8 @@ APPLIED_AT = tr("Applied at {0}")
 UNDONE_AT = tr("Undone at {0}")
 NOTHING_CHANGED = tr("Nothing changed")
 UNDO = tr("Undo")
+# A number and a sign, the same in every language.
+PERCENT = "{0} %"
 RESTORE = tr("Restore plan")
 LAYER = tr("layer “{0}”")
 LAYER_SCALE = 12 / 13
@@ -197,8 +199,17 @@ class PlanCard(controls.RoundedFrame):
 
     def mark_step(self, index: int, state: str, note: str = "") -> None:
         """One step's progress while the plan applies: running, done, failed with the reason, or skipped."""
+        if state == STEP_RUNNING and not self._buttons.isHidden():
+            # Applying has begun, and the window stays live while a step works: nothing left to press here.
+            self._buttons.setVisible(False)
+            self._footer_line.setVisible(False)
+            self._heading.setText(tr_n("Applying · %n change(s)", self._count))
         if 0 <= index < len(self._steps):
             self._steps[index].set_state(state, note)
+
+    def mark_progress(self, index: int, percent: float) -> None:
+        if 0 <= index < len(self._steps):
+            self._steps[index].set_progress(percent)
 
     def mark_applied(self, undoable: bool = False, at: str = "") -> None:
         """Applied; `at` is a saved card's time, a live one takes the clock's."""
@@ -289,10 +300,22 @@ class PlanStep(QWidget):
         self.reason.setStyleSheet(f"color: {style.css_color(style.danger(palette))}; border: none;")
         self.reason.setVisible(False)
         grid.addWidget(self.reason, 2, 1)
+        # A long step's progress, under its words: the bar and, in the mark's place, the percent.
+        self.bar = controls.ThinBar(palette)
+        grid.addWidget(self.bar, 3, 1, 1, 2)
+        self.bar.setVisible(False)
         grid.setColumnStretch(1, 1)
+
+    def set_progress(self, percent: float) -> None:
+        """A running step that reports how far it is."""
+        self.bar.set_fraction(percent / 100)
+        self.bar.setVisible(True)
+        self.mark.setText(PERCENT.format(int(percent)))
+        self.mark.setVisible(True)
 
     def set_state(self, state: str, note: str = "") -> None:
         self.state = state
+        self.bar.setVisible(False)
         mark, colour = STEP_MARKS.get(state, ("", style.muted))
         self.mark.setText(mark)
         self.mark.setVisible(bool(mark))

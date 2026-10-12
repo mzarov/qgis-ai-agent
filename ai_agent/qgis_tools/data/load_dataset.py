@@ -1,9 +1,11 @@
+from collections.abc import Callable
 from typing import Any
 
 from qgis.core import QgsProject, QgsVectorLayer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.common.background import Background, InTask
 from ai_agent.qgis_tools.data.catalogue import (
     GEOBOUNDARIES_LEVELS,
     KIND_VECTOR,
@@ -89,36 +91,64 @@ class LoadDatasetTool(BaseTool):
             )
         return tr("Downloading Natural Earth {0}.").format(str(params.get("layer") or ""))
 
+    def start(self, params: dict[str, Any]) -> Background:
+        """The download off the main thread; the layer is written and added on it once the data is in."""
+        return InTask(self.summarize_call(params), _fetcher(params), lambda fetched: _added(params, fetched))
+
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        entry = dataset(params.get("dataset") or "", KIND_VECTOR)
-        if entry.id == "natural-earth":
-            layer_key, scale = _natural_earth(params)
-            url = NATURAL_EARTH_URL.format(scale=scale, layer=NATURAL_EARTH_LAYERS[layer_key])
-            title, licence = f"{layer_key.replace('_', ' ').capitalize()} ({scale})", entry.license
-        else:
-            country, level = _geoboundaries(params)
-            meta = get_json(GEOBOUNDARIES_API.format(country=country, level=level))
-            if isinstance(meta, list):
-                meta = meta[0] if meta else {}
-            key = "gjDownloadURL" if params.get("detailed") else "simplifiedGeometryGeoJSON"
-            url = str((meta or {}).get(key) or (meta or {}).get("gjDownloadURL") or "")
-            if not url:
-                raise ValueError(f"geoBoundaries has no {level} layer for {country}. Try a coarser level.")
-            title, licence = f"{meta.get('boundaryName') or country} {level}", str(meta.get("boundaryLicense") or "")
-        name = str(params.get("name") or "").strip() or title
-        path, temporary = target_path(name, GEOJSON)
-        with open(path, "wb") as handle:
-            handle.write(get_bytes(url, MAX_BYTES))
-        layer = QgsVectorLayer(path, name, "ogr")
-        if not layer.isValid():
-            raise ValueError(f"The download from {url} is not a readable layer.")
-        QgsProject.instance().addMapLayer(layer)
-        result: dict[str, Any] = {"layer": layer.name(), "features": layer.featureCount(), "file": path}
-        if licence:
-            result["license"] = licence
-        if temporary:
-            result["storage_note"] = TEMP_NOTE
-        return result
+        return _added(params, _fetcher(params)(None))
+
+
+def _fetcher(params: dict[str, Any]) -> Callable[[Any], dict[str, Any]]:
+    """What to download, checked here; the returned work only talks to the network, so it may run anywhere."""
+    entry = dataset(params.get("dataset") or "", KIND_VECTOR)
+    if entry.id == "natural-earth":
+        layer_key, scale = _natural_earth(params)
+        url = NATURAL_EARTH_URL.format(scale=scale, layer=NATURAL_EARTH_LAYERS[layer_key])
+        title = f"{layer_key.replace('_', ' ').capitalize()} ({scale})"
+
+        def natural_earth(feedback: Any) -> dict[str, Any]:
+            return {"data": get_bytes(url, MAX_BYTES, feedback), "url": url, "title": title, "licence": entry.license}
+
+        return natural_earth
+    country, level = _geoboundaries(params)
+    detailed = bool(params.get("detailed"))
+
+    def geoboundaries(feedback: Any) -> dict[str, Any]:
+        meta = get_json(GEOBOUNDARIES_API.format(country=country, level=level), feedback)
+        if isinstance(meta, list):
+            meta = meta[0] if meta else {}
+        key = "gjDownloadURL" if detailed else "simplifiedGeometryGeoJSON"
+        url = str((meta or {}).get(key) or (meta or {}).get("gjDownloadURL") or "")
+        if not url:
+            raise ValueError(f"geoBoundaries has no {level} layer for {country}. Try a coarser level.")
+        return {
+            "data": get_bytes(url, MAX_BYTES, feedback),
+            "url": url,
+            "title": f"{meta.get('boundaryName') or country} {level}",
+            "licence": str(meta.get("boundaryLicense") or ""),
+        }
+
+    return geoboundaries
+
+
+def _added(params: dict[str, Any], fetched: dict[str, Any]) -> dict[str, Any]:
+    """The downloaded data written next to the project and added as a layer, on the main thread."""
+    url, licence = fetched["url"], fetched["licence"]
+    name = str(params.get("name") or "").strip() or fetched["title"]
+    path, temporary = target_path(name, GEOJSON)
+    with open(path, "wb") as handle:
+        handle.write(fetched["data"])
+    layer = QgsVectorLayer(path, name, "ogr")
+    if not layer.isValid():
+        raise ValueError(f"The download from {url} is not a readable layer.")
+    QgsProject.instance().addMapLayer(layer)
+    result: dict[str, Any] = {"layer": layer.name(), "features": layer.featureCount(), "file": path}
+    if licence:
+        result["license"] = licence
+    if temporary:
+        result["storage_note"] = TEMP_NOTE
+    return result
 
 
 def _natural_earth(params: dict[str, Any]) -> tuple[str, str]:

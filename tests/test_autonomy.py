@@ -123,6 +123,10 @@ class FakeExecutor:
         return ToolResult(call=call, payload={"ok": True})
 
     @staticmethod
+    def start(call, done):
+        return None
+
+    @staticmethod
     def queued(call):
         return ToolResult(call=call, payload={"status": "queued"})
 
@@ -450,7 +454,7 @@ class StageAppliedSignalTest(unittest.TestCase):
         call = ToolCall(id="w", name="add_basemap", arguments={})
         result = ToolResult(call=call, payload={"status": "done"})
         loop._batch._calls.append(call)
-        loop._batch.apply = lambda on_start, on_finish, expected_project_identity=None: [result]
+        loop._batch.apply = lambda on_start, on_finish, expected=None, done=None, on_progress=None: done([result])
         loop._request_step = lambda: None
         saved = batch_apply_module.take_snapshot
         batch_apply_module.take_snapshot = lambda: "/tmp/snapshot.qgz"

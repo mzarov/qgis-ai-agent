@@ -24,8 +24,11 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 ## Rules
 
 1. **Main thread.** `_on_turn` and `ToolExecutor.run` must run on the main
-   thread — they touch PyQGIS there. Only the HTTP call goes to the background.
-   Do not rewrite the loop as a background `while` or as `asyncio`.
+   thread — they touch PyQGIS there. The HTTP call goes to the background, and
+   so does the heavy part of a long apply step: `ToolExecutor.start` hands it to
+   a QGIS task and `ApplyRun` goes on when its result arrives, so the window and
+   Stop stay alive; Stop cancels the task, the steps after it are cancelled as
+   usual. Do not rewrite the loop as a background `while` or as `asyncio`.
 2. **Writes are validated before the queue.** `BaseTool.prepare` is called in
    `_queue_write` while the loop is alive. Execution itself happens after the
    loop ends, and there is nobody left to return an error to — so everything
@@ -103,9 +106,10 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    a run starts) guards against endless loops, and a token budget from the
    settings guards the user's wallet. Both end the run through `_complete`
    with a plain explanation — never by silently stopping. A Processing
-   algorithm runs with a `DeadlineFeedback` that cancels it past the tool
-   timeout (`config/limits`); it can only stop an algorithm that reports
-   progress, which nearly all do. A failed run
+   algorithm in the background is stopped past the tool timeout
+   (`config/limits`) by a timer; one flagged NoThreading runs on the main
+   thread with a `DeadlineFeedback` that cancels it at its next progress
+   report. Downloads keep the network's own timeout. A failed run
    (`_fail`) keeps its prepared batch and offers it after the error: a transport
    error at turn thirty must not throw away validated work. Only Stop clears it.
    A run that ends — completed or failed — is never left staged.
@@ -248,7 +252,8 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `agent/skills.py` (plan) | plan mode: `tools_for_skills(writes=False)`; `PLAN_MODE_NOTE` in the live state; refusal in `dispatch.py` |
 | `agent/compaction.py`    | compacting a conversation: one tool-less summary request |
 | `agent/request.py`       | messages, tool schemas and transport settings       |
-| `agent/executor.py`      | tool-call execution with error capture              |
+| `agent/executor.py`      | tool-call execution with error capture; a long step started off the main thread |
+| `agent/apply_run.py`     | one batch applied step by step, waiting for a background step without blocking |
 | `agent/transcript.py`    | the run transcript and rendering for both protocols |
 | `agent/prompts.py`       | the system prompt core, the `load_skill` meta-tool  |
 | `llm/transport.py`       | dialect choice, feature detect, the request itself  |
