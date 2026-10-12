@@ -48,7 +48,8 @@ line shows how far it is, and ■ stops it along with the steps after it.
 Examples:
 
 - *make the rivers blue* / *roads as thin grey dashed lines*
-- *colour the districts by population, 7 classes, Viridis*
+- *colour the districts by population, 7 classes, Viridis* — after Apply the
+  chat shows the legend: the classes' colours with their bounds
 - *label the cities with names, bold, 12 pt, white halo* — one step, not four
 - *build a 500 m buffer around the schools* — on a degree-based layer the agent
   reprojects first, on its own

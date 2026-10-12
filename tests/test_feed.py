@@ -462,6 +462,33 @@ class FailedPlanCardTest(unittest.TestCase):
         card.mark_step(5, "done")
 
 
+class LegendCardTest(unittest.TestCase):
+    RANGES = {
+        "type": "legend",
+        "title": "districts",
+        "kind": "ranges",
+        "items": [{"color": "#c6dbef", "label": "20000.0000 - 35000.0000", "low": 20000.0, "high": 35000.0}] * 5,
+        "more": 0,
+    }
+
+    def test_ordered_classes_are_one_strip_with_compact_bounds(self):
+        from ai_agent.ui.legend import LegendCard, item_label
+
+        card = LegendCard(self.RANGES)
+        self.assertTrue(card.as_strip)
+        self.assertEqual(item_label(self.RANGES["items"][0]), "20k–35k")
+        self.assertEqual(card.plain_text(), "districts")
+
+    def test_categories_and_long_ramps_are_rows_with_the_rest_counted(self):
+        from ai_agent.ui.legend import LegendCard, item_label
+
+        categories = {**self.RANGES, "kind": "categories", "items": [{"color": "#1b9e77", "label": "Forest"}]}
+        self.assertFalse(LegendCard(categories).as_strip)
+        self.assertEqual(item_label(categories["items"][0]), "Forest")
+        long_ramp = {**self.RANGES, "items": self.RANGES["items"] * 2, "more": 3}
+        self.assertFalse(LegendCard(long_ramp).as_strip)
+
+
 class TraceHeaderTest(unittest.TestCase):
     def test_a_click_anywhere_on_the_line_folds_and_unfolds(self):
         from types import SimpleNamespace

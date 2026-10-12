@@ -1038,6 +1038,28 @@ class OutcomeDock(PlanDock):
         self.outcomes.append(kind)
 
 
+class AppliedVisualTest(unittest.TestCase):
+    def test_a_restyled_layers_legend_follows_the_outcome_and_is_kept(self):
+        root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, root, True)
+        dock = PlanDock()
+        drawn = []
+        dock.add_visual = lambda spec: drawn.append(("visual", spec)) or 1
+        dock.add_result_message = lambda text: drawn.append(("result", text)) or 1
+        orchestrator = CoreOrchestrator(Iface(), dock)
+        orchestrator.conversation = ConversationState(store=SessionStore(root))
+        orchestrator.agent = Agent()
+        orchestrator._maybe_verify = lambda results: None
+        legend = {"type": "legend", "title": "districts", "kind": "ranges", "items": [], "more": 0}
+        styled = Result(ok=True)
+        styled.visual = legend
+        orchestrator.on_confirm_needed([Call()], "")
+        orchestrator.on_applied([styled])
+        self.assertEqual([kind for kind, _ in drawn], ["result", "visual"])
+        kept = [entry for entry in orchestrator.conversation.replayable() if "visual" in entry]
+        self.assertEqual(kept[0]["visual"], legend)
+
+
 class StatusOutcomeTest(unittest.TestCase):
     """The status line under the feed hears how each run stopped working."""
 

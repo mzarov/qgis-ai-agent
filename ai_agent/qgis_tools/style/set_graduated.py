@@ -13,6 +13,7 @@ from ai_agent.qgis_tools.style.apply import (
     require_vector_layer,
     resolve_ramp,
 )
+from ai_agent.qgis_tools.style.legend import with_legend
 
 MODES = {
     "equal": "EqualInterval",
@@ -116,13 +117,14 @@ class SetGraduatedTool(BaseTool):
             )
         layer.setRenderer(renderer)
         refresh(layer)
-        return {
+        payload = {
             **layer_reference(layer),
             "renderer": "graduatedSymbol",
             "class_attribute": field,
             "class_count": len(renderer.ranges()),
             "mode": mode,
         }
+        return with_legend(payload, layer)
 
 
 def _require_numeric(layer: Any, field: str) -> None:

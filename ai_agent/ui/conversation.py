@@ -15,6 +15,7 @@ from ai_agent.i18n import tr
 from ai_agent.ui import controls, style, transitions
 from ai_agent.ui.activity import ActivityGroup
 from ai_agent.ui.chart import ChartCard
+from ai_agent.ui.legend import LegendCard
 from ai_agent.ui.messages import AssistantMessage, SystemMessage, UserMessage
 from ai_agent.ui.plan import PlanCard, PlanOffer
 from ai_agent.ui.progress import ProgressLine
@@ -211,9 +212,10 @@ class ConversationView(QScrollArea):
         return self._append(SystemMessage(text))
 
     def add_visual(self, spec: dict[str, Any]) -> int:
-        """A chart or a table a read tool drew; it closes the activity group like any message."""
+        """A chart, a table or a legend a tool drew; it closes the activity group like any message."""
         self._close_activity()
-        card = TableCard(spec) if spec.get("type") == "table" else ChartCard(spec)
+        kind = spec.get("type")
+        card = TableCard(spec) if kind == "table" else LegendCard(spec) if kind == "legend" else ChartCard(spec)
         return self._append(card)
 
     def append_thinking(self, delta: str) -> None:

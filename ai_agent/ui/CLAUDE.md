@@ -72,6 +72,7 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `choice_popup.py` | the mode menu: caption, rows with a note and a number key, the current one lit (no check), the Shift+Tab footer; as wide as its text |
 | `attachments.py`  | the + file pickers, drag-and-drop paths, the picture chips waiting in the composer |
 | `chart.py`        | a chart in the feed: bars, rows, lines, donut, histogram, scatter; painted, hover tips, copy image/CSV |
+| `legend.py`       | a restyled layer's legend under the outcome: ordered classes as one strip of 10 px cells with compact bounds, categories as swatch rows |
 | `chart_scale.py`  | axis arithmetic: round ticks, compact numbers, which bar layout fits |
 | `table_card.py`   | a table in the feed: painted rows, natural column widths, elided cells with tips, copy CSV |
 | `question.py`     | the agent's question card: up to three answers (the first recommended, a why after " — "), a fourth row to type one's own, number keys |

@@ -163,7 +163,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/core/orchestrator/plans.py" line="171"/>
+        <location filename="ai_agent/core/orchestrator/plans.py" line="172"/>
         <source>%n step(s) did not run — the reasons are in the plan above.</source>
         <translation>
             <numerusform>%n шаг не выполнился — причины в плане выше.</numerusform>
@@ -178,6 +178,15 @@
             <numerusform>%n значение</numerusform>
             <numerusform>%n значения</numerusform>
             <numerusform>%n значений</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="ai_agent/ui/legend.py" line="65"/>
+        <source>+%n more item(s)</source>
+        <translation>
+            <numerusform>ещё %n элемент</numerusform>
+            <numerusform>ещё %n элемента</numerusform>
+            <numerusform>ещё %n элементов</numerusform>
         </translation>
     </message>
     <message>
@@ -757,7 +766,7 @@
         <translation>Выполни план.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/plans.py" line="181"/>
+        <location filename="ai_agent/core/orchestrator/plans.py" line="182"/>
         <source>Changes applied.</source>
         <translation>Изменения применены.</translation>
     </message>
@@ -862,7 +871,7 @@
         <translation>Раскрась районы по численности населения</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/style/set_categories.py" line="104"/>
+        <location filename="ai_agent/qgis_tools/style/set_categories.py" line="105"/>
         <source>Colouring '{0}' by field '{1}'.</source>
         <translation>Раскрашиваю «{0}» по полю «{1}».</translation>
     </message>
@@ -977,7 +986,7 @@
         <translation>Копировать строки как CSV</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/conversation.py" line="441"/>
+        <location filename="ai_agent/ui/conversation.py" line="443"/>
         <source>Copy the whole conversation</source>
         <translation>Скопировать весь разговор</translation>
     </message>
@@ -1140,7 +1149,7 @@
         <translation>Готово за {0}</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/core/orchestrator/plans.py" line="178"/>
+        <location filename="ai_agent/core/orchestrator/plans.py" line="179"/>
         <source>Done: %n step(s) applied.{0}</source>
         <translation>
             <numerusform>Применён %n шаг.{0}</numerusform>
@@ -1456,7 +1465,7 @@
         <translation>Немецкий</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/style/set_graduated.py" line="98"/>
+        <location filename="ai_agent/qgis_tools/style/set_graduated.py" line="99"/>
         <source>Graduating '{0}' by '{1}', classes: {2}.</source>
         <translation>Строю градации «{0}» по «{1}», классов: {2}.</translation>
     </message>
@@ -1975,7 +1984,7 @@
         <translation>Своих навыков пока нет.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/plans.py" line="176"/>
+        <location filename="ai_agent/core/orchestrator/plans.py" line="177"/>
         <source>Not all changes were applied.</source>
         <translation>Применились не все изменения.</translation>
     </message>
@@ -2952,7 +2961,7 @@
         <translation>Оформляю слой «{0}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/style/set_raster_style.py" line="127"/>
+        <location filename="ai_agent/qgis_tools/style/set_raster_style.py" line="128"/>
         <source>Styling raster '{0}': {1}.</source>
         <translation>Оформляю растр «{0}»: {1}.</translation>
     </message>

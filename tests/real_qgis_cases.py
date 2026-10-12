@@ -71,6 +71,20 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertTrue(results[0].ok, results[0].payload)
         return queued, results[0].payload
 
+    def test_a_graduated_style_brings_its_legend_for_the_feed_only(self):
+        batch = WriteBatch(ToolExecutor())
+        arguments = {"layer_name": self.layer.name(), "field": "count", "classes": 2}
+        batch.add(ToolCall("graduate", "set_graduated", arguments))
+        result = self._applied(batch)[0]
+        self.assertTrue(result.ok, result.payload)
+        self.assertNotIn("visual_for_user", result.payload, "the legend reached the model's payload")
+        legend = result.visual
+        self.assertEqual((legend["type"], legend["kind"], legend["title"]), ("legend", "ranges", self.layer.name()))
+        self.assertEqual(len(legend["items"]), 2)
+        ranges = self.layer.renderer().ranges()
+        self.assertEqual(legend["items"][0]["color"], ranges[0].symbol().color().name())
+        self.assertEqual(legend["items"][-1]["high"], ranges[-1].upperValue())
+
     def test_symbol_changes_are_visible_in_the_actual_renderer(self):
         self._run("set_symbol", layer_name=self.layer.name(), properties={"color": "#123456", "size": 4})
         symbol = self.layer.renderer().symbol()

@@ -155,6 +155,12 @@ MID_LIGHTNESS = 128
 
 class _Colour:
     def __init__(self, red=0, green=0, blue=0, *rest):
+        # A name ("#1b9e77") reads as Qt reads it; anything else unreadable is an invalid colour.
+        self._valid = True
+        if isinstance(red, str):
+            name = red.strip()
+            self._valid = len(name) == 7 and name.startswith("#")
+            red, green, blue = (int(name[at : at + 2], 16) for at in (1, 3, 5)) if self._valid else (0, 0, 0)
         self._parts = (int(red), int(green), int(blue))
 
     def red(self):
@@ -179,7 +185,7 @@ class _Colour:
         return _Colour(*[part * 100 // max(1, factor) for part in self._parts])
 
     def isValid(self):
-        return True
+        return self._valid
 
 
 class _Brush:

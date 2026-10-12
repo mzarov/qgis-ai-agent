@@ -1136,3 +1136,8 @@ These verify the agent solves everyday tasks without wandering through search.
      ■ while it runs: the step and the ones after it are cancelled, no new
      layer. Download cafes from OpenStreetMap: QGIS stays usable while
      Overpass answers.
+237. **A legend after a restyle.** “Colour the districts by population in 5
+     classes” → Apply → under “Done” a strip of five cells, palest to darkest,
+     with “20k–35k”-style bounds under them, no wider than a narrow panel;
+     colour by a text field → a list of swatches, “+N more items” past twelve.
+     Reopen the conversation: the legend is still there.
