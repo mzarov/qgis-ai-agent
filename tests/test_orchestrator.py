@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from types import SimpleNamespace
 
+from ai_agent.core.llm.retry import RetryNotice
 from ai_agent.core.orchestrator import notices
 from ai_agent.core.orchestrator import orchestrator as orchestrator_module
 from ai_agent.core.orchestrator.orchestrator import CoreOrchestrator
@@ -533,6 +534,14 @@ class OrchestratorSessionTest(unittest.TestCase):
         contents = [message["content"] for message in self.orchestrator.conversation.messages]
         self.assertIn("Half an answer", contents)
         self.assertEqual(restored, ["сделай реки синими"])
+
+    def test_a_failed_run_shows_its_error_as_an_error_not_a_note(self):
+        errors = []
+        self.dock.add_error_message = errors.append
+        self.orchestrator.on_prompt("сделай реки синими")
+        self.orchestrator.on_failed("The API returned 429: overloaded")
+        self.assertEqual(errors, ["Error: The API returned 429: overloaded"])
+        self.assertFalse(any("429" in text for text in self.dock.system))
 
     def test_a_stopped_run_leaves_the_box_empty(self):
         restored = []
@@ -1080,6 +1089,13 @@ class StatusOutcomeTest(unittest.TestCase):
         self.orchestrator.on_failed("HTTP 500")
         self.orchestrator.on_aborted()
         self.assertEqual(self.dock.outcomes, [notices.STATUS_FAILED, notices.STATUS_HIDDEN])
+
+    def test_a_retry_the_loop_announces_reaches_the_status_line(self):
+        retries = []
+        self.dock.show_retry = lambda *args: retries.append(args)
+        orchestrator = CoreOrchestrator(Iface(), self.dock)
+        orchestrator.agent.retrying.emit(RetryNotice(14.0, 2, 5, True))
+        self.assertEqual(retries, [(14.0, 2, 5, True)])
 
     def test_a_plan_card_takes_over_and_its_apply_reports(self):
         self.orchestrator.on_confirm_needed([Call()], "")

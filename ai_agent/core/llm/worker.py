@@ -9,6 +9,8 @@ class ModelTurnThread(QThread):
     finished_turn = pyqtSignal(object)
     chunk = pyqtSignal(str)
     thinking = pyqtSignal(str)
+    # A RetryNotice: the request failed and waits before its next attempt.
+    retrying = pyqtSignal(object)
     error = pyqtSignal(str)
 
     def __init__(self, messages, tool_schemas, overrides, timeout=DEFAULT_TIMEOUT, parent=None):
@@ -32,6 +34,10 @@ class ModelTurnThread(QThread):
         if not self.isInterruptionRequested():
             self.thinking.emit(text)
 
+    def _emit_retry(self, notice: object) -> None:
+        if not self.isInterruptionRequested():
+            self.retrying.emit(notice)
+
     def run(self) -> None:
         try:
             turn = call_model(
@@ -41,6 +47,7 @@ class ModelTurnThread(QThread):
                 timeout=self._timeout,
                 on_chunk=self._emit_chunk,
                 on_thinking=self._emit_thinking,
+                on_retry=self._emit_retry,
             )
         except Exception as err:
             if not self.isInterruptionRequested():

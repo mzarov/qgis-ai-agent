@@ -192,16 +192,19 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     directory, the rescan and the example file — the `skills/` layer never
     touches `qgis`.
 17. **The transport retries, but only what is worth retrying.** `llm/retry.py`
-    wraps every `_dispatch` in `call_model`: three attempts, backoff 1.5 s then
-    4 s or the server's `Retry-After` (capped at 30 s), on 408/425/429 and every
+    wraps every `_dispatch` in `call_model`: three attempts, five for an
+    overloaded model (429, 503, 529 — waiting is what cures it), backoff 1.5, 4,
+    10, 20 s or the server's `Retry-After` (capped at 30 s), on 408/425/429 and every
     status ≥ 500 (529 is Anthropic's overload), never on a 429 for an exhausted
     quota, and on connection failures that came back **fast**
     (under `FAST_FAILURE_SECONDS`) — a fast failure is a reset or a refusal, a
     slow one is a timeout that would only time out again. Never after a stream
     has delivered chunks (the draft would be duplicated), never after the user
     cancelled (the pause polls the feedback every quarter second); streamed
-    reasoning counts as delivered too. Retries are logged to the QGIS message
-    log, not shown in the feed. Blocking calls wait `blocking_timeout` — five
+    reasoning counts as delivered too. Each pause is logged to the QGIS message
+    log and announced as a `RetryNotice` (`on_retry` → `ModelTurnThread.retrying`
+    → `AgentLoop.retrying`) to the status line, which counts down until the feed
+    moves on; it never becomes a feed message. Blocking calls wait `blocking_timeout` — five
     times the stream idle limit — because a non-streamed answer arrives only
     when the model is done.
 18. **The prefix never moves; the state rides at the end.** Everything that

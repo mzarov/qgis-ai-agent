@@ -227,6 +227,9 @@ class AgentDockWidget(QDockWidget):
     def add_system_message(self, text: str) -> int:
         return self.conversation.add_system_message(text)
 
+    def add_error_message(self, text: str) -> int:
+        return self.conversation.add_error_message(text)
+
     def add_result_message(self, text: str) -> int:
         return self.conversation.add_assistant_message(text)
 
@@ -295,6 +298,9 @@ class AgentDockWidget(QDockWidget):
 
     def show_outcome(self, kind: str) -> None:
         self.progress.show_outcome(kind)
+
+    def show_retry(self, seconds: float, attempt: int, total: int, busy: bool) -> None:
+        self.progress.show_retry(seconds, attempt, total, busy)
 
     def set_busy(self, busy: bool) -> None:
         self.composer.set_busy(busy)

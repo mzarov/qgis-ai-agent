@@ -25,6 +25,7 @@ class TurnThreadOwner:
         on_error: Callable[[str], None],
         on_chunk: Callable[[str], None] | None = None,
         on_thinking: Callable[[str], None] | None = None,
+        on_retry: Callable[[Any], None] | None = None,
     ) -> None:
         thread = ModelTurnThread(messages, tool_schemas, overrides)
         thread.finished_turn.connect(on_turn)
@@ -33,6 +34,8 @@ class TurnThreadOwner:
             thread.chunk.connect(on_chunk)
         if on_thinking is not None:
             thread.thinking.connect(on_thinking)
+        if on_retry is not None:
+            thread.retrying.connect(on_retry)
         thread.finished.connect(thread.deleteLater)
         self._thread = thread
         thread.start()
@@ -49,6 +52,7 @@ class TurnThreadOwner:
         on_error: Callable[[str], None],
         on_chunk: Callable[[str], None] | None = None,
         on_thinking: Callable[[str], None] | None = None,
+        on_retry: Callable[[Any], None] | None = None,
     ) -> None:
         thread = self._thread
         self._thread = None
@@ -59,6 +63,8 @@ class TurnThreadOwner:
             pairs.append((thread.chunk, on_chunk))
         if on_thinking is not None:
             pairs.append((thread.thinking, on_thinking))
+        if on_retry is not None:
+            pairs.append((thread.retrying, on_retry))
         for signal, slot in pairs:
             try:
                 signal.disconnect(slot)

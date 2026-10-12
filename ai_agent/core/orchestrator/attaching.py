@@ -29,7 +29,7 @@ def files_attached(dock: DockWidgetContract, paths: list[str]) -> None:
     for path in outcome.images:
         dock.add_attachment(path)
     for path, reason in outcome.failed:
-        dock.add_system_message(NOT_ATTACHED.format(os.path.basename(path), reason))
+        dock.add_error_message(NOT_ATTACHED.format(os.path.basename(path), reason))
     for path, reason in outcome.plain_tables:
         dock.add_system_message(PLAIN_TABLE.format(os.path.basename(path), reason))
 
@@ -48,7 +48,7 @@ def take_pictures(dock: DockWidgetContract) -> Pictures:
         try:
             pictures.encoded.append(encode_picture(path))
         except ValueError as error:
-            dock.add_system_message(NOT_ATTACHED.format(name, error))
+            dock.add_error_message(NOT_ATTACHED.format(name, error))
             continue
         pictures.names.append(name)
     return pictures

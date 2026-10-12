@@ -55,6 +55,8 @@ the agent works:
    connection ends the run with an error; `core/llm/client.py` and
    `stream_runner.py` make exactly one attempt. Bounded retry with backoff on
    429/5xx and connection resets, with a "retrying…" line in the feed.
+   2026-10-12: the wait shows in the status line with a countdown, and an
+   overloaded model (429, 503, 529) gets five attempts instead of three.
 2. **Done 2026-09-03 — prompt caching on Anthropic.** The system prompt and the tool schemas
    are identical between the turns of one run and are billed again every turn.
    Mark the static prefix with `cache_control` in `llm/anthropic.py`; keep the

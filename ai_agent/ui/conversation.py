@@ -211,6 +211,10 @@ class ConversationView(QScrollArea):
         self._close_activity()
         return self._append(SystemMessage(text))
 
+    def add_error_message(self, text: str) -> int:
+        self._close_activity()
+        return self._append(SystemMessage(text, error=True))
+
     def add_visual(self, spec: dict[str, Any]) -> int:
         """A chart, a table or a legend a tool drew; it closes the activity group like any message."""
         self._close_activity()
@@ -221,6 +225,7 @@ class ConversationView(QScrollArea):
     def append_thinking(self, delta: str) -> None:
         if self._thinking is None:
             self._drop_draft()
+            self.progress.resume()
             if self._activity is None:
                 self._new_activity()
             block = ThinkingBlock()
@@ -275,6 +280,7 @@ class ConversationView(QScrollArea):
     def add_activity_step(self, text: str) -> int:
         self._drop_draft()
         self._close_thinking()
+        self.progress.resume()
         activity = self._activity or self._new_activity()
         step = activity.add_step(text)
         self._scroll_when_pinned()
@@ -447,6 +453,8 @@ class ConversationView(QScrollArea):
     def _append(self, widget: QWidget) -> int:
         self._drop_draft()
         self._close_thinking()
+        # A retry's countdown lasts until the feed moves on: whatever arrives is the request coming back.
+        self.progress.resume()
         self._drop_welcome()
         self._insert(widget)
         self._scroll_when_pinned()

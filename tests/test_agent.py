@@ -254,8 +254,8 @@ class AbortReentrancyTest(unittest.TestCase):
             def is_running(self):
                 return False
 
-            def start(self, messages, schemas, overrides, on_turn, on_error, on_chunk, on_thinking):
-                self.callbacks.append((on_turn, on_error, on_chunk, on_thinking))
+            def start(self, messages, schemas, overrides, on_turn, on_error, on_chunk, on_thinking, on_retry):
+                self.callbacks.append((on_turn, on_error, on_chunk, on_thinking, on_retry))
 
             def release(self):
                 return None
@@ -271,8 +271,10 @@ class AbortReentrancyTest(unittest.TestCase):
         loop._turn = turns
         finished = []
         chunks = []
+        retries = []
         loop.finished.connect(finished.append)
         loop.answer_chunk.connect(chunks.append)
+        loop.retrying.connect(retries.append)
 
         with mock.patch.object(
             loop_module,
@@ -294,8 +296,11 @@ class AbortReentrancyTest(unittest.TestCase):
             new_callbacks = turns.callbacks[-1]
 
         old_callbacks[2]("old chunk")
+        old_callbacks[4]("old retry")
         old_callbacks[0](ModelTurn(text="old answer"))
-        self.assertEqual(chunks, [])
+        self.assertEqual((chunks, retries), ([], []))
+        new_callbacks[4]("new retry")
+        self.assertEqual(retries, ["new retry"])
         self.assertEqual(finished, [])
         users = [entry["text"] for entry in loop._transcript.entries if entry["kind"] == "user"]
         self.assertEqual(users, ["new"])

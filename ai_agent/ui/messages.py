@@ -139,7 +139,9 @@ class AssistantMessage(QWidget):
 
 
 class SystemMessage(QWidget):
-    def __init__(self, text: str, parent=None):
+    """The plugin's note in the feed; an error wears the danger colour so it is not read past as a remark."""
+
+    def __init__(self, text: str, parent=None, *, error: bool = False):
         super().__init__(parent)
         palette = self.palette()
         row = QHBoxLayout(self)
@@ -149,11 +151,12 @@ class SystemMessage(QWidget):
         label.setWordWrap(True)
         label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         style.scale_font(label, SYSTEM_FONT_SCALE)
+        ink = style.danger(palette) if error else style.muted(palette)
+        rule = style.danger(palette) if error else style.hairline(palette)
         label.setStyleSheet(
-            f"color: {style.css_color(style.muted(palette))};"
-            f"border-left: 2px solid {style.css_color(style.hairline(palette))};"
-            "padding: 2px 0 2px 9px;"
+            f"color: {style.css_color(ink)};border-left: 2px solid {style.css_color(rule)};padding: 2px 0 2px 9px;"
         )
+        self.error = error
         row.addWidget(label, 1)
         self._label = label
 

@@ -986,7 +986,7 @@
         <translation>Копировать строки как CSV</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/conversation.py" line="443"/>
+        <location filename="ai_agent/ui/conversation.py" line="449"/>
         <source>Copy the whole conversation</source>
         <translation>Скопировать весь разговор</translation>
     </message>
@@ -1144,7 +1144,7 @@
         <translation>Не добавляйте учётные данные в URL API. Сохраните секрет провайдера в поле API-ключа.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/progress.py" line="31"/>
+        <location filename="ai_agent/ui/progress.py" line="33"/>
         <source>Done in {0}</source>
         <translation>Готово за {0}</translation>
     </message>
@@ -2595,6 +2595,11 @@
         <translation>Вернуть план</translation>
     </message>
     <message>
+        <location filename="ai_agent/ui/progress.py" line="36"/>
+        <source>Retrying… ({0}/{1})</source>
+        <translation>Повторяю запрос… ({0}/{1})</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="118"/>
         <source>Return limits, modes, connectors, skills, geocoding and personalisation choices to their defaults? The connection, keys, your own texts and skills stay.</source>
         <translation>Вернуть пределы, режимы, коннекторы, навыки, геокодирование и выбор в персонализации к значениям по умолчанию? Подключение, ключи, ваши тексты и навыки сохранятся.</translation>
@@ -2946,7 +2951,7 @@
         </translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/progress.py" line="32"/>
+        <location filename="ai_agent/ui/progress.py" line="37"/>
         <source>Stopped by an error — the reason is above</source>
         <translation>Остановился из-за ошибки — причина выше</translation>
     </message>
@@ -3150,6 +3155,11 @@
         <translation>Карта, которую рисует весь мир. Агент запрашивает у сервиса Overpass ровно те объекты, которые вы назвали, — школы, кафе, тропинки, контуры зданий — в пределах вида карты и добавляет их редактируемыми слоями. В комплекте — обычная подложка OpenStreetMap и спутниковые подложки.</translation>
     </message>
     <message>
+        <location filename="ai_agent/ui/progress.py" line="34"/>
+        <source>The model is busy · retrying in {0} ({1}/{2})</source>
+        <translation>Модель перегружена · повтор через {0} ({1}/{2})</translation>
+    </message>
+    <message>
         <location filename="ai_agent/core/orchestrator/run_events.py" line="123"/>
         <source>The model returned nothing. Try rephrasing.</source>
         <translation>Модель ничего не вернула. Попробуйте переформулировать.</translation>
@@ -3183,6 +3193,11 @@
         <location filename="ai_agent/core/orchestrator/rewind.py" line="29"/>
         <source>The project is back to how it was before this message.</source>
         <translation>Проект возвращён к состоянию до этого сообщения.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/progress.py" line="35"/>
+        <source>The request failed · retrying in {0} ({1}/{2})</source>
+        <translation>Запрос не прошёл · повтор через {0} ({1}/{2})</translation>
     </message>
     <message>
         <location filename="ai_agent/core/orchestrator/presentation.py" line="22"/>
@@ -3366,7 +3381,7 @@
         <translation>Превращает названия мест в координаты — например, когда вы пишете «школы в Казани».</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="142"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="147"/>
         <source>Type a request.</source>
         <translation>Введите запрос.</translation>
     </message>
@@ -3466,7 +3481,7 @@
         <translation>Дождитесь окончания текущей задачи.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/progress.py" line="30"/>
+        <location filename="ai_agent/ui/progress.py" line="32"/>
         <source>Waiting for your answer</source>
         <translation>Жду вашего ответа</translation>
     </message>
@@ -3521,7 +3536,7 @@
         <translation>Работаю · шаг {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/progress.py" line="29"/>
+        <location filename="ai_agent/ui/progress.py" line="31"/>
         <source>Working…</source>
         <translation>Работаю…</translation>
     </message>

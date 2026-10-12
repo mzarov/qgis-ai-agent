@@ -17,6 +17,7 @@ Runs inside `real_qgis_workflows.py` against the extracted plugin ZIP.
 """
 
 import json
+import math
 from typing import Any
 
 import token_ceilings
@@ -24,10 +25,13 @@ from e2e_harness import ARTIFACTS, PluginCase, process, pump
 from e2e_model import USAGE, ScriptedModel, call, calls, fail, say, think
 from qgis.core import QgsFeature, QgsGeometry, QgsProject, QgsVectorLayer
 
+from ai_agent.core.llm import retry
 from ai_agent.core.orchestrator.notices import CHECKED_BY_READING, STATUS_DONE, STATUS_WAITING
 from ai_agent.core.settings import get_auto_apply, set_reasoning_enabled, set_supports_images, set_work_mode
+from ai_agent.ui import progress
 from ai_agent.ui.chart import ChartCard
 from ai_agent.ui.composer_parts import MODES
+from ai_agent.ui.durations import format_seconds
 from ai_agent.ui.legend import LegendCard
 from ai_agent.ui.messages import SystemMessage
 from ai_agent.ui.plan import PlanCard
@@ -480,6 +484,26 @@ class FailureScenario(ScenarioCase):
         self.apply()
         self.assertAlmostEqual(self.layer("districts").opacity(), 0.5)
         self.shot("failure_keeps_plan")
+
+
+class RetryScenario(ScenarioCase):
+    def test_an_overloaded_model_is_retried_and_the_status_line_says_so(self) -> None:
+        said: list[str] = []
+        line = self.dock.progress
+        announce = line.show_retry
+
+        def spy(*args: Any) -> None:
+            announce(*args)
+            said.append(line.step_text)
+
+        line.show_retry = spy
+        self.model.script(fail(429, "model deepseek-v4-flash is overloaded"), say("Two layers."))
+        self.ask("Which layers are there?")
+        countdown = math.ceil(retry.BACKOFF_SECONDS[0])
+        busy = progress.RETRY_BUSY.format(format_seconds(countdown, decimals=0), 2, retry.MAX_OVERLOAD_ATTEMPTS)
+        self.assertEqual(said, [busy], "the pause before the second attempt was not shown")
+        self.assertEqual(self.last(), "Two layers.")
+        self.assertEqual(line.state, STATUS_DONE)
 
 
 class ChartScenario(ScenarioCase):

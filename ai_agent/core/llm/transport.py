@@ -54,6 +54,7 @@ def call_model(
     timeout: int = 120,
     on_chunk: Any = None,
     on_thinking: Any = None,
+    on_retry: Any = None,
 ) -> ModelTurn:
     overrides = dict(overrides or {})
     url = resolve_endpoint(overrides.get("url_override"))
@@ -69,6 +70,7 @@ def call_model(
             lambda: _dispatch(payload, tool_schemas, overrides, timeout, url, chunks, thoughts),
             feedback,
             lambda: guard.delivered,
+            on_retry=on_retry,
         )
 
     try:
