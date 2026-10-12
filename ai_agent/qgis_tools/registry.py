@@ -5,6 +5,7 @@ from ai_agent.qgis_tools.annotations import ANNOTATIONS_TOOLS
 from ai_agent.qgis_tools.base import BaseTool
 from ai_agent.qgis_tools.call_summary import CallSummary
 from ai_agent.qgis_tools.charts import CHARTS_TOOLS
+from ai_agent.qgis_tools.common.layers import with_layer_names
 from ai_agent.qgis_tools.common.validation import validate_parameters
 from ai_agent.qgis_tools.data import DATA_TOOLS
 from ai_agent.qgis_tools.draw import DRAW_TOOLS
@@ -84,12 +85,16 @@ def validate_tool_arguments(tool_name: str, params: dict[str, Any]) -> None:
 
 
 def summarize_tool_call(tool_name: str, params: dict[str, Any]) -> CallSummary:
-    """The user-facing label of a call, with the spans that repeat its arguments marked."""
+    """The user-facing label of a call, with the spans that repeat its arguments marked.
+
+    Layer ids the call was pinned to read as the layers' current names.
+    """
     tool = get_tool_by_name(tool_name)
     if not tool:
         return CallSummary.marking(f"{tool_name}: {params}", {})
+    shown = with_layer_names(params)
     try:
-        summary = CallSummary.marking(tool.summarize_call(params), params if isinstance(params, dict) else {})
+        summary = CallSummary.marking(tool.summarize_call(shown), shown if isinstance(shown, dict) else {})
     except Exception:
         summary = CallSummary.marking(tool.name, {})
     summary.skill = tool.skill
@@ -102,7 +107,7 @@ def summarize_tool_result(tool_name: str, params: dict[str, Any], payload: dict[
     if not tool:
         return ""
     try:
-        return str(tool.summarize_result(params, payload) or "")
+        return str(tool.summarize_result(with_layer_names(params), payload) or "")
     except Exception:
         return ""
 

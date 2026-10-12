@@ -2,6 +2,7 @@ from typing import Any
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
+from ai_agent.qgis_tools.common.layers import with_layer_names
 from ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call
 
 EFFECT_EXTERNAL = tr("writes outside the project; Undo does not restore it")
@@ -54,7 +55,7 @@ def destructive_lines(calls: list[Any]) -> tuple[list[str], str]:
             continue
         lines.append(summarize_tool_call(call.name, call.arguments))
         try:
-            detail = tool.detail_call(call.arguments)
+            detail = tool.detail_call(with_layer_names(call.arguments))
         except Exception:
             detail = ""
         if detail:

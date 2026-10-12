@@ -10,6 +10,7 @@ from ai_agent.qgis_tools.common.layers import (
     layer_pin_error,
     pin_layer_references,
     utm_authid,
+    with_layer_names,
 )
 
 
@@ -212,6 +213,59 @@ class LayerIdentityTest(unittest.TestCase):
         project.layers.pop("rivers")
 
         self.assertIn("rivers", layer_pin_error(prepared))
+
+
+class LayerNamesShownTest(unittest.TestCase):
+    def setUp(self):
+        self.project = LayerProject(
+            [NamedLayer("stations_98c97027", "stations"), NamedLayer("roads_1", "roads"), NamedLayer("blank_1", " ")]
+        )
+        self.saved = layers_module.QgsProject
+        layers_module.QgsProject = type("ProjectHolder", (), {"instance": staticmethod(lambda: self.project)})
+
+    def tearDown(self):
+        layers_module.QgsProject = self.saved
+
+    def test_pinned_ids_read_as_current_names_at_any_depth(self):
+        params = {
+            "algorithm_id": "native:buffer",
+            "parameters": {"INPUT": "stations_98c97027", "LAYERS": ["roads_1", "stations_98c97027"], "DISTANCE": 5},
+            "layer_id": "roads_1",
+        }
+        shown = with_layer_names(params)
+        self.assertEqual(shown["parameters"], {"INPUT": "stations", "LAYERS": ["roads", "stations"], "DISTANCE": 5})
+        self.assertEqual(shown["layer_id"], "roads")
+        self.assertEqual(shown["algorithm_id"], "native:buffer")
+        self.assertEqual(params["parameters"]["INPUT"], "stations_98c97027", "the queued call must keep its ids")
+
+    def test_a_rename_shows_the_new_name(self):
+        self.project.layers["stations_98c97027"] = NamedLayer("stations_98c97027", "metro stations")
+        self.assertEqual(
+            with_layer_names({"parameters": {"INPUT": "stations_98c97027"}})["parameters"]["INPUT"], "metro stations"
+        )
+
+    def test_ids_stay_where_a_name_would_not_identify_the_layer(self):
+        self.project.layers["roads_2"] = NamedLayer("roads_2", "roads")
+        shown = with_layer_names(
+            {"a": "roads_1", "b": "gone_7", "c": "blank_1", "d": "TEMPORARY_OUTPUT", "e": "x roads_1"}
+        )
+        self.assertEqual(
+            shown, {"a": "roads_1", "b": "gone_7", "c": "blank_1", "d": "TEMPORARY_OUTPUT", "e": "x roads_1"}
+        )
+
+    def test_private_keys_keep_their_ids(self):
+        params = pin_layer_references({"layer_name": "stations"})
+        self.assertEqual(with_layer_names(params)[LAYER_PINS_KEY], [{"name": "stations", "id": "stations_98c97027"}])
+
+    def test_a_failing_project_leaves_the_arguments_as_they_are(self):
+        class Broken:
+            def name(self):
+                raise RuntimeError("wrapped C++ object has been deleted")
+
+        self.project.layers["broken"] = Broken()
+        params = {"INPUT": "stations_98c97027"}
+        self.assertIs(with_layer_names(params), params)
+        self.assertEqual(with_layer_names("not a dict"), "not a dict")
 
 
 class GeometryNameTest(unittest.TestCase):

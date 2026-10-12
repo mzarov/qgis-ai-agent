@@ -1,3 +1,4 @@
+from collections import Counter
 from contextlib import suppress
 from typing import Any
 
@@ -380,6 +381,44 @@ def follow_batch_renames(params: dict[str, Any], names_at_start: dict[str, str])
     if isinstance(params.get("layer_names"), (list, tuple)):
         followed["layer_names"] = [renames.get(str(item or "").strip(), item) for item in params["layer_names"]]
     return followed
+
+
+def with_layer_names(params: dict[str, Any]) -> dict[str, Any]:
+    """A copy of a call's arguments for a person to read: every layer id among the values becomes the layer's name.
+
+    Queued calls are pinned to layer ids (`pin_layer_references`, Processing's
+    layer parameters), and an id on a plan card means nothing to the user. Only
+    a whole value equal to a project layer's id is replaced, and only when no
+    other layer has the same name: then the id is the one thing that tells them
+    apart. Private keys stay as they are. The copy is for summaries only; the
+    call itself, as executed and as the model sees it, keeps its ids.
+    """
+    if not isinstance(params, dict):
+        return params
+    try:
+        names = _distinct_names_by_id()
+        if not names:
+            return params
+        return {key: value if str(key).startswith("_") else _named(value, names) for key, value in params.items()}
+    except Exception:
+        # A summary must never fail: the ids are still the truth to show.
+        return params
+
+
+def _distinct_names_by_id() -> dict[str, str]:
+    names = layer_names_by_id()
+    uses = Counter(names.values())
+    return {identifier: name for identifier, name in names.items() if name and uses[name] == 1}
+
+
+def _named(value: Any, names: dict[str, str]) -> Any:
+    if isinstance(value, str):
+        return names.get(value.strip(), value)
+    if isinstance(value, dict):
+        return {key: _named(item, names) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_named(item, names) for item in value]
+    return value
 
 
 def pinned_ids(params: dict[str, Any]) -> list[str]:

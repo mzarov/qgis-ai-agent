@@ -1,6 +1,11 @@
 import unittest
+from unittest.mock import patch
 
+from ai_agent.core.agent.batch import _model_line
+from ai_agent.core.llm.turns import ToolCall
+from ai_agent.core.orchestrator.planning import destructive_lines, plan_line
 from ai_agent.qgis_tools.call_summary import CallSummary
+from ai_agent.qgis_tools.common import layers as layers_module
 from ai_agent.qgis_tools.registry import summarize_tool_call
 from ai_agent.ui.activity import StepRow, step_markup
 from ai_agent.ui.conversation import ConversationView
@@ -46,6 +51,64 @@ class RegistryTest(unittest.TestCase):
 
     def test_an_unknown_tool_still_gets_a_label(self):
         self.assertIsInstance(summarize_tool_call("no_such_tool", {}), CallSummary)
+
+
+class _Layer:
+    def __init__(self, identifier, name):
+        self._identifier, self._name = identifier, name
+
+    def id(self):
+        return self._identifier
+
+    def name(self):
+        return self._name
+
+
+class _Project:
+    layers = {"stations_98c97027_113b": _Layer("stations_98c97027_113b", "stations")}
+
+    @classmethod
+    def instance(cls):
+        return cls
+
+    @classmethod
+    def mapLayers(cls):
+        return dict(cls.layers)
+
+
+class PinnedLayerNamesTest(unittest.TestCase):
+    """A queued call carries layer ids; every line a person reads names the layer instead."""
+
+    STATION = "stations_98c97027_113b"
+
+    def setUp(self):
+        patcher = patch.object(layers_module, "QgsProject", _Project)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def queued(self, algorithm_id="native:buffer", **extra):
+        arguments = {"algorithm_id": algorithm_id, "parameters": {"INPUT": self.STATION, "DISTANCE": 5}, **extra}
+        return ToolCall("c", "run_processing", arguments)
+
+    def test_the_plan_line_names_the_layer_and_marks_it(self):
+        call = self.queued()
+        line = plan_line(call)
+        self.assertIn("INPUT=stations, DISTANCE=5", line)
+        self.assertNotIn(self.STATION, line)
+        self.assertIn("stations", marked(summarize_tool_call(call.name, call.arguments)))
+
+    def test_the_destructive_confirmation_names_the_layer(self):
+        lines, detail = destructive_lines([self.queued(overwrite_outputs=True)])
+        self.assertIn("INPUT=stations", lines[0])
+        self.assertIn("INPUT = stations", detail)
+        self.assertNotIn(self.STATION, detail)
+
+    def test_what_runs_and_what_the_model_reads_keep_the_id(self):
+        call = self.queued()
+        plan_line(call)
+        destructive_lines([call])
+        self.assertEqual(call.arguments["parameters"]["INPUT"], self.STATION)
+        self.assertIn(self.STATION, _model_line(call))
 
 
 class StepMarkupTest(unittest.TestCase):
