@@ -5,6 +5,7 @@ from qgis.core import Qgis
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.context.project import layer_choices
 from ai_agent.core.llm.client import is_local
+from ai_agent.core.llm.retry import RetryNotice
 from ai_agent.core.local_skills import register_local_skills
 from ai_agent.core.orchestrator import attaching
 from ai_agent.core.orchestrator.compacting import SessionCompaction
@@ -107,6 +108,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.agent.turn_counted.connect(self.on_turn_counted)
         self.agent.answer_chunk.connect(self.on_answer_chunk)
         self.agent.thinking_chunk.connect(self.on_thinking_chunk)
+        self.agent.retrying.connect(self.on_retrying)
 
     def on_busy(self, busy: bool) -> None:
         self.dock_widget.set_busy(busy)
@@ -128,6 +130,9 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
     def on_thinking_chunk(self, text: str) -> None:
         self.dock_widget.add_thinking_chunk(text)
         self.conversation.trace.thinking(text)
+
+    def on_retrying(self, notice: RetryNotice) -> None:
+        self.dock_widget.show_retry(notice.seconds, notice.attempt, notice.total, notice.busy)
 
     def on_stop(self) -> None:
         if self.compaction.is_running:

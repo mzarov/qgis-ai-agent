@@ -132,7 +132,7 @@ class RewindMixin:
         try:
             result = restore_snapshot(checkpoint.snapshot)
         except Exception as failure:
-            self.dock_widget.add_system_message(REWIND_FAILED.format(failure))
+            self.dock_widget.add_error_message(REWIND_FAILED.format(failure))
             return ""
         finally:
             self._restoring_snapshot = False

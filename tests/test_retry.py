@@ -43,16 +43,50 @@ class WithRetriesTest(unittest.TestCase):
         self.assertAlmostEqual(sum(self.slept), retry.BACKOFF_SECONDS[0])
 
     def test_two_server_errors_then_success(self):
-        attempt, seen = scripted(ApiResponseError(500, "x"), ApiResponseError(503, "y"), "ok")
+        attempt, seen = scripted(ApiResponseError(500, "x"), ApiResponseError(502, "y"), "ok")
         self.assertEqual(self.run_retries(attempt), "ok")
         self.assertEqual(len(seen), 3)
-        self.assertAlmostEqual(sum(self.slept), sum(retry.BACKOFF_SECONDS))
+        self.assertAlmostEqual(sum(self.slept), sum(retry.BACKOFF_SECONDS[:2]))
 
     def test_the_last_allowed_attempt_raises(self):
-        attempt, seen = scripted(*[ApiResponseError(429, "x")] * retry.MAX_ATTEMPTS)
+        attempt, seen = scripted(*[ApiResponseError(500, "x")] * retry.MAX_ATTEMPTS)
         with self.assertRaises(ApiResponseError):
             self.run_retries(attempt)
         self.assertEqual(len(seen), retry.MAX_ATTEMPTS)
+
+    def test_an_overloaded_model_gets_more_attempts_than_a_failing_one(self):
+        for status in sorted(retry.OVERLOAD_STATUSES):
+            self.slept = []
+            attempt, seen = scripted(*[ApiResponseError(status, "overloaded")] * retry.MAX_OVERLOAD_ATTEMPTS)
+            with self.assertRaises(ApiResponseError):
+                self.run_retries(attempt)
+            self.assertEqual(len(seen), retry.MAX_OVERLOAD_ATTEMPTS, status)
+        self.assertAlmostEqual(sum(self.slept), sum(retry.BACKOFF_SECONDS))
+
+    def test_an_exhausted_quota_is_not_an_overload(self):
+        attempt, seen = scripted(ApiResponseError(429, '{"error": "insufficient_quota"}'), "never")
+        with self.assertRaises(ApiResponseError):
+            self.run_retries(attempt)
+        self.assertEqual(len(seen), 1)
+
+    def test_every_pause_is_announced_before_it_starts(self):
+        busy = ApiResponseError(429, "overloaded", retry_after=14)
+        attempt, _ = scripted(busy, ConnectionError("reset"), "ok")
+        notices = []
+        announced = []
+
+        def sleep(seconds):
+            announced.append(len(notices))
+
+        self.assertEqual(retry.with_retries(attempt, sleep=sleep, clock=lambda: 0.0, on_retry=notices.append), "ok")
+        self.assertEqual((announced[0], announced[-1]), (1, 2))
+        self.assertEqual(
+            notices,
+            [
+                retry.RetryNotice(14.0, 2, retry.MAX_OVERLOAD_ATTEMPTS, True),
+                retry.RetryNotice(retry.BACKOFF_SECONDS[1], 3, retry.MAX_ATTEMPTS, False),
+            ],
+        )
 
     def test_client_errors_are_never_retried(self):
         attempt, seen = scripted(ApiResponseError(400, "bad"), "never")
@@ -132,9 +166,16 @@ class CallModelRetryTest(unittest.TestCase):
             raise ApiResponseError(503, "down")
 
         transport._dispatch = fake
+        notices = []
         with self.assertRaises(ApiResponseError):
-            transport.call_model([{"role": "user", "content": "hi"}], [], {"url_override": "https://api.example/v1"})
-        self.assertEqual(self.calls, retry.MAX_ATTEMPTS)
+            transport.call_model(
+                [{"role": "user", "content": "hi"}],
+                [],
+                {"url_override": "https://api.example/v1"},
+                on_retry=notices.append,
+            )
+        self.assertEqual(self.calls, retry.MAX_OVERLOAD_ATTEMPTS)
+        self.assertEqual([notice.attempt for notice in notices], list(range(2, retry.MAX_OVERLOAD_ATTEMPTS + 1)))
 
 
 if __name__ == "__main__":

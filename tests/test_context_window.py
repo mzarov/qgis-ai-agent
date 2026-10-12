@@ -69,11 +69,15 @@ class CompactorTest(unittest.TestCase):
 class Dock:
     def __init__(self):
         self.system: list[str] = []
+        self.errors: list[str] = []
         self.context: tuple[int, int, int] | None = None
         self.busy: list[bool] = []
 
     def add_system_message(self, text):
         self.system.append(text)
+
+    def add_error_message(self, text):
+        self.errors.append(text)
 
     def add_tool_message(self, _text):
         return 0
@@ -130,7 +134,7 @@ class SessionCompactionTest(unittest.TestCase):
         self.compaction.start(after=lambda: ran.append(True))
         self.compaction._on_failed("boom")
         self.assertEqual(ran, [True])
-        self.assertIn("boom", self.dock.system[-1])
+        self.assertIn("boom", self.dock.errors[-1])
 
 
 class MeterTest(unittest.TestCase):

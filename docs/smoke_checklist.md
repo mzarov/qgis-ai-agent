@@ -1141,3 +1141,14 @@ These verify the agent solves everyday tasks without wandering through search.
      with “20k–35k”-style bounds under them, no wider than a narrow panel;
      colour by a text field → a list of swatches, “+N more items” past twelve.
      Reopen the conversation: the legend is still there.
+238. **A retry is shown, an error is red.** Set the address to
+     `http://localhost:9/v1` (nothing listens there) and send anything → the
+     status line reads “The request failed · retrying in 2 s (2/3)”, counting
+     down, then “Retrying… (2/3)”, then the same for 3/3 → the run ends with a
+     red “Error: …” line and the shaking compass. Notes such as “Run stopped.
+     Pending work was cancelled.” stay grey.
+239. **A busy model is retried longer.** On a provider answering 429
+     “overloaded” the line reads “The model is busy · retrying in N s (2/5)”,
+     N being the server's Retry-After (30 s at most); as soon as the answer
+     streams in, the line says “Working…” again. The QGIS message log lists
+     every pause.

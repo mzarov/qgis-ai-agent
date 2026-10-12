@@ -1,6 +1,7 @@
 """The status line at the foot of the conversation: the panel's one live compass and a few words.
 
-Working: the needle searches, "Working…", the time runs. Waiting for the user:
+Working: the needle searches, "Working…", the time runs. A model request that
+waits to be retried says so, counting down, until the feed moves on. Waiting for the user:
 it tilts slowly, "Waiting for your answer". Done: it settles north once,
 "Done in 7 s". Failed: a short shake with a red tip. A stop hides the line.
 
@@ -10,6 +11,7 @@ It lives in the feed under the last message, so it scrolls with the
 conversation instead of sitting on the composer.
 """
 
+import math
 import time
 from typing import Any
 
@@ -29,6 +31,9 @@ RUNNING = "running"
 WORKING = tr("Working…")
 WAITING = tr("Waiting for your answer")
 DONE_IN = tr("Done in {0}")
+RETRY_BUSY = tr("The model is busy · retrying in {0} ({1}/{2})")
+RETRY_FAILED = tr("The request failed · retrying in {0} ({1}/{2})")
+RETRYING = tr("Retrying… ({0}/{1})")
 FAILED = tr("Stopped by an error — the reason is above")
 OUTCOMES = {
     STATUS_WAITING: (compass.ASK, WAITING),
@@ -53,6 +58,9 @@ class ProgressLine(QWidget):
         self._elapsed.setWordWrap(False)
         line.addWidget(self._elapsed)
         self._shown_second = -1
+        # (wording, deadline, attempt, total) while a request waits to be retried.
+        self._retry: tuple[str, float, int, int] | None = None
+        self._retry_second = -1
         self.state = STATUS_HIDDEN
         self._timer = QTimer(self)
         self._timer.setInterval(TICK_MS)
@@ -66,8 +74,8 @@ class ProgressLine(QWidget):
     def start(self) -> None:
         self.state = RUNNING
         self._started = time.monotonic()
-        self._step.setText(WORKING)
-        self._step.setToolTip(WORKING)
+        self._retry = None
+        self._say(WORKING)
         self._shown_second = 0
         self._elapsed.setText(format_seconds(0, decimals=0))
         self._elapsed.setVisible(True)
@@ -89,6 +97,7 @@ class ProgressLine(QWidget):
     def show_outcome(self, kind: str) -> None:
         """Say how the run stopped working: waiting, done, failed — or hide the line."""
         self._timer.stop()
+        self._retry = None
         outcome = OUTCOMES.get(kind)
         if outcome is None:
             self.state = STATUS_HIDDEN
@@ -99,11 +108,43 @@ class ProgressLine(QWidget):
         took = format_seconds(time.monotonic() - self._started, decimals=0) if self._started else ""
         shown = text.format(took) if kind == STATUS_DONE else text
         self.state = kind
-        self._step.setText(shown)
-        self._step.setToolTip(shown)
+        self._say(shown)
         self._elapsed.setVisible(False)
         self.compass.set_state(state)
         self.show()
+
+    def show_retry(self, seconds: float, attempt: int, total: int, busy: bool) -> None:
+        """The model request waits `seconds` before attempt `attempt` of `total`: say so, counting down."""
+        if self.state != RUNNING:
+            return
+        self._retry = (RETRY_BUSY if busy else RETRY_FAILED, time.monotonic() + seconds, attempt, total)
+        self._retry_second = -1
+        self._show_retry()
+
+    def resume(self) -> None:
+        """Something reached the feed: a retry's note gives way to the plain "Working…"."""
+        if self._retry is None:
+            return
+        self._retry = None
+        if self.state == RUNNING:
+            self._say(WORKING)
+
+    def _show_retry(self) -> None:
+        if self._retry is None:
+            return
+        wording, deadline, attempt, total = self._retry
+        left = max(0, math.ceil(deadline - time.monotonic()))
+        if left == self._retry_second:
+            return
+        self._retry_second = left
+        if left:
+            self._say(wording.format(format_seconds(left, decimals=0), attempt, total))
+        else:
+            self._say(RETRYING.format(attempt, total))
+
+    def _say(self, text: str) -> None:
+        self._step.setText(text)
+        self._step.setToolTip(text)
 
     def _tick(self) -> None:
         elapsed = time.monotonic() - self._started
@@ -111,3 +152,4 @@ class ProgressLine(QWidget):
         if int(elapsed) != self._shown_second:
             self._shown_second = int(elapsed)
             self._elapsed.setText(format_seconds(elapsed, decimals=0))
+        self._show_retry()

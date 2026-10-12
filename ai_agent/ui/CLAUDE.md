@@ -54,7 +54,7 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `dock_widget.py`  | the shell: title bar, toolbar, feed, composer; the history menu; the orchestrator contract |
 | `chrome.py`       | the dock's own title bar (still mark, name, float, close) and the toolbar (conversation title opening the history, + new, settings); `IconButton` paints hover and a turn |
 | `conversation.py` | a `QScrollArea` with one widget per message, autoscroll, action grouping |
-| `messages.py`     | the user message, the agent reply, the service message |
+| `messages.py`     | the user message, the agent reply, the service message (an error in the danger colour) |
 | `activity.py`     | the work trace: a fold header ("Working · step N", then "Activity · N steps" and the time) over a timeline of calls, reasoning and the user's choice |
 | `thinking.py`     | a reasoning row's content: "Thinking"/"Thought" with its time, opening a sunken box with the text |
 | `folding.py`      | the feed's folding: a chevron that turns, a body that opens to its height on the handoff's curve |
@@ -76,7 +76,7 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `chart_scale.py`  | axis arithmetic: round ticks, compact numbers, which bar layout fits |
 | `table_card.py`   | a table in the feed: painted rows, natural column widths, elided cells with tips, copy CSV |
 | `question.py`     | the agent's question card: up to three answers (the first recommended, a why after " — "), a fourth row to type one's own, number keys |
-| `progress.py`     | the status line, the feed's last row: the live compass and a few words — working with the time, waiting for an answer, done in N s, stopped by an error |
+| `progress.py`     | the status line, the feed's last row: the live compass and a few words — working with the time, a retry's countdown until the feed moves, waiting for an answer, done in N s, stopped by an error |
 | `compass.py`      | the brand mark: open-ring compass painted on a 24-unit grid; needle rotation per state (rest, search, done, error, ask, arrive), keyframed with per-segment easing |
 | `controls.py`     | custom controls: `Segmented` keeps the combo-box API, `Chips`, `RoundedFrame` (every state-dependent box), `HoverFrame` (a lit row that clicks), glyphs, icon buttons and tiles, badges, keycaps, `ElidedLabel`, menus |
 | `connection_widgets.py` | provider tiles (Local, Cloud · key, Any compatible server) and the connection test's line |
@@ -524,6 +524,10 @@ Stop and errors keep the half-streamed answer (`keep_draft`) instead of
 dropping it. After an error the orchestrator puts the request back into an
 empty composer (`restore`) so a retry is one key; after a stop it does not —
 stopping is deliberate, and the request stays visible in the chat.
+The error itself is a service line in the danger colour
+(`add_error_message`), as is every failure the orchestrator reports — a
+compaction, a restore, an attachment. Notes stay muted: a grey error read as a
+remark and was missed.
 
 ## The brand mark
 

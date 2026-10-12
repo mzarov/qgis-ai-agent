@@ -140,7 +140,7 @@ class RunEventsMixin:
         self._plan_message_id = None
         self._keep_partial_answer()
         self.dock_widget.show_outcome(STATUS_FAILED)
-        self.dock_widget.add_system_message(tr("Error: {0}").format(message))
+        self.dock_widget.add_error_message(tr("Error: {0}").format(message))
         self._push_message(message, Qgis.MessageLevel.Critical)
         self._offer_request_again()
 

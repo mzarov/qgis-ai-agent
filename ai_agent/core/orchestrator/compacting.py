@@ -116,7 +116,7 @@ class SessionCompaction:
         if self._conversation().session_identifier != self._scope:
             self._abandon()
             return
-        self._dock.add_system_message(NOT_COMPACTED.format(message))
+        self._dock.add_error_message(NOT_COMPACTED.format(message))
         self._finish()
 
     def _finish(self) -> None:

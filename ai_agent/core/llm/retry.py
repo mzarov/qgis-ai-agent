@@ -1,5 +1,6 @@
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
 from qgis.core import Qgis, QgsMessageLog
@@ -8,16 +9,30 @@ from ai_agent.core.llm.client import ApiResponseError
 
 LOG_TAG = "AI Agent"
 RETRYABLE_STATUSES = frozenset({408, 425, 429})
+# A busy model, not a broken request: rate limited, unavailable, Anthropic's overloaded.
+OVERLOAD_STATUSES = frozenset({429, 503, 529})
 SERVER_ERROR = 500
 MAX_RETRY_AFTER_SECONDS = 30.0
 QUOTA_MARKERS = ("insufficient_quota", "billing", "credit balance")
 MAX_ATTEMPTS = 3
-BACKOFF_SECONDS = (1.5, 4.0)
+# An overload passes in a minute or two; five attempts at the 30 s cap wait two minutes at most.
+MAX_OVERLOAD_ATTEMPTS = 5
+BACKOFF_SECONDS = (1.5, 4.0, 10.0, 20.0)
 POLL_SECONDS = 0.25
 FAST_FAILURE_SECONDS = 5.0
 RETRY_LOG = "Model request failed ({reason}); retrying in {delay:.1f} s, attempt {attempt} of {total}."
 SLEEP = time.sleep
 CLOCK = time.monotonic
+
+
+@dataclass(frozen=True)
+class RetryNotice:
+    """A pause before the next attempt, for the status line: how long, which attempt of how many."""
+
+    seconds: float
+    attempt: int
+    total: int
+    busy: bool
 
 
 class ChunkGuard:
@@ -49,7 +64,12 @@ def with_retries(
     delivered: Callable[[], int] = lambda: 0,
     sleep: Callable[[float], None] | None = None,
     clock: Callable[[], float] | None = None,
+    on_retry: Callable[[RetryNotice], None] | None = None,
 ) -> Any:
+    """Run `attempt`, again after a pause when the failure is worth it; `on_retry` hears of each pause.
+
+    Called on the request's own thread: `on_retry` must only hand the notice on, e.g. emit a signal.
+    """
     pause = sleep or SLEEP
     now = clock or CLOCK
     attempts = 0
@@ -59,15 +79,18 @@ def with_retries(
         try:
             return attempt()
         except (ApiResponseError, ConnectionError) as error:
-            exhausted = attempts >= MAX_ATTEMPTS
+            total = attempts_for(error)
+            exhausted = attempts >= total
             if exhausted or delivered() or is_cancelled(feedback) or not is_retryable(error, now() - started):
                 raise
             delay = retry_delay(error, attempts)
             QgsMessageLog.logMessage(
-                RETRY_LOG.format(reason=_reason(error), delay=delay, attempt=attempts + 1, total=MAX_ATTEMPTS),
+                RETRY_LOG.format(reason=_reason(error), delay=delay, attempt=attempts + 1, total=total),
                 LOG_TAG,
                 Qgis.MessageLevel.Warning,
             )
+            if on_retry is not None:
+                on_retry(RetryNotice(delay, attempts + 1, total, is_overload(error)))
             _pause(delay, feedback, pause)
 
 
@@ -77,6 +100,15 @@ def retry_delay(error: Exception, attempts: int) -> float:
     if isinstance(hinted, (int, float)) and hinted > 0:
         return min(float(hinted), MAX_RETRY_AFTER_SECONDS)
     return BACKOFF_SECONDS[min(attempts - 1, len(BACKOFF_SECONDS) - 1)]
+
+
+def is_overload(error: Exception) -> bool:
+    return isinstance(error, ApiResponseError) and error.status_code in OVERLOAD_STATUSES
+
+
+def attempts_for(error: Exception) -> int:
+    """An overloaded model gets more attempts than a failing one: waiting is what cures it."""
+    return MAX_OVERLOAD_ATTEMPTS if is_overload(error) else MAX_ATTEMPTS
 
 
 def is_retryable(error: Exception, elapsed: float) -> bool:

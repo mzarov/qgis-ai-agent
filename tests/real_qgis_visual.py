@@ -64,6 +64,9 @@ PLAN = [
 ]
 CHECKING = "Checking the applied changes…"
 FAILED_STEPS = "%n step(s) did not run — the reasons are in the plan above."
+RUN_ERROR = "Error: {0}"
+API_ERROR = "The API returned {0}: {1}"
+OVERLOADED = '{"error":"model deepseek-v4-flash is overloaded","request_id":"1791819735292003-15416037050477550884"}'
 STEP = ("query_layer", {"layer_name": "districts", "aggregate": "max", "expression": "pop2020"})
 # The calls before the answer, with what each found: the open activity list as a person sees it.
 READS = (
@@ -260,6 +263,17 @@ class StateScreens(ScreenCase):
         finally:
             self.dock.set_busy(False)
 
+    def test_retrying(self) -> None:
+        self.dock.add_user_message(REQUEST)
+        self.dock.set_busy(True)
+        self.reads()
+        self.dock.show_retry(14.0, 2, 5, True)
+        self.dock.progress._timer.stop()
+        try:
+            self.check("dock_retrying", self.dock)
+        finally:
+            self.dock.set_busy(False)
+
     def test_failed_apply(self) -> None:
         self.dock.add_user_message(REQUEST)
         plan = self.dock.add_plan_message(PLAN)
@@ -270,6 +284,13 @@ class StateScreens(ScreenCase):
         self.dock.mark_plan_failed(plan)
         self.dock.add_system_message(i18n.tr_n(FAILED_STEPS, 1))
         self.check("dock_failed_apply", self.dock)
+
+    def test_run_failed(self) -> None:
+        self.dock.add_user_message(REQUEST)
+        self.reads()
+        self.dock.add_error_message(i18n.tr(RUN_ERROR).format(i18n.tr(API_ERROR).format(429, OVERLOADED)))
+        self.dock.show_outcome(notices.STATUS_FAILED)
+        self.check("dock_run_failed", self.dock)
 
     def test_plan_offer(self) -> None:
         self.dock.set_work_mode("plan")

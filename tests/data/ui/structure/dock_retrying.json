@@ -1,0 +1,215 @@
+[
+ {
+  "depth": 0,
+  "type": "AgentDockWidget"
+ },
+ {
+  "depth": 1,
+  "type": "DockTitleBar"
+ },
+ {
+  "depth": 2,
+  "type": "Compass"
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "AI Agent"
+ },
+ {
+  "depth": 2,
+  "type": "IconButton"
+ },
+ {
+  "depth": 2,
+  "type": "IconButton"
+ },
+ {
+  "depth": 1,
+  "type": "QWidget",
+  "name": "agentBody"
+ },
+ {
+  "depth": 2,
+  "type": "Toolbar"
+ },
+ {
+  "depth": 3,
+  "type": "TitleButton"
+ },
+ {
+  "depth": 4,
+  "type": "ElidedLabel",
+  "text": "New conversation"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel"
+ },
+ {
+  "depth": 3,
+  "type": "IconButton"
+ },
+ {
+  "depth": 3,
+  "type": "IconButton"
+ },
+ {
+  "depth": 2,
+  "type": "ConversationView"
+ },
+ {
+  "depth": 3,
+  "type": "QWidget",
+  "name": "feed"
+ },
+ {
+  "depth": 4,
+  "type": "ProgressLine"
+ },
+ {
+  "depth": 5,
+  "type": "Compass"
+ },
+ {
+  "depth": 5,
+  "type": "ElidedLabel",
+  "text": "The model is busy · retrying in <duration> (2/5)"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "<duration>"
+ },
+ {
+  "depth": 4,
+  "type": "UserMessage"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Colour districts by pop2020 in 5 classes"
+ },
+ {
+  "depth": 4,
+  "type": "ActivityGroup"
+ },
+ {
+  "depth": 5,
+  "type": "TraceHeader"
+ },
+ {
+  "depth": 6,
+  "type": "Chevron"
+ },
+ {
+  "depth": 6,
+  "type": "ElidedLabel",
+  "text": "Activity · 2 steps"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "<duration>"
+ },
+ {
+  "depth": 5,
+  "type": "ClipBox"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "StepRow"
+ },
+ {
+  "depth": 8,
+  "type": "QWidget"
+ },
+ {
+  "depth": 9,
+  "type": "QLabel",
+  "text": "<span style=\"color: rgb(83, 91, 103);\">Reading layer </span><span style=\"color: rgb(20, 24, 31); font-weight: 500;\">dist"
+ },
+ {
+  "depth": 9,
+  "type": "QLabel",
+  "text": "12 features"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "StepRow"
+ },
+ {
+  "depth": 8,
+  "type": "QWidget"
+ },
+ {
+  "depth": 9,
+  "type": "QLabel",
+  "text": "<span style=\"color: rgb(83, 91, 103);\">Reading values of field </span><span style=\"color: rgb(20, 24, 31); font-weight: "
+ },
+ {
+  "depth": 9,
+  "type": "QLabel",
+  "text": "12 values"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel"
+ },
+ {
+  "depth": 2,
+  "type": "QWidget"
+ },
+ {
+  "depth": 3,
+  "type": "Composer"
+ },
+ {
+  "depth": 4,
+  "type": "RoundedFrame",
+  "name": "composerFrame"
+ },
+ {
+  "depth": 5,
+  "type": "PromptEdit",
+  "text": "Type to correct me…"
+ },
+ {
+  "depth": 5,
+  "type": "ComposerControls"
+ },
+ {
+  "depth": 6,
+  "type": "IconButton"
+ },
+ {
+  "depth": 6,
+  "type": "MenuButton",
+  "text": "Ask"
+ },
+ {
+  "depth": 6,
+  "type": "ElidedLabel",
+  "text": "qwen3"
+ },
+ {
+  "depth": 6,
+  "type": "ContextMeter"
+ },
+ {
+  "depth": 7,
+  "type": "ContextRing"
+ },
+ {
+  "depth": 6,
+  "type": "SendButton"
+ }
+]

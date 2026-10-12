@@ -101,6 +101,7 @@ class Dock:
     def __init__(self, pictures=()):
         self.pictures = list(pictures)
         self.system: list[str] = []
+        self.errors: list[str] = []
         self.mentioned: list[str] = []
         self.waiting: list[str] = []
 
@@ -110,6 +111,9 @@ class Dock:
 
     def add_system_message(self, text):
         self.system.append(text)
+
+    def add_error_message(self, text):
+        self.errors.append(text)
 
     def mention_layers(self, names):
         self.mentioned.extend(names)
@@ -130,9 +134,9 @@ class AttachingTest(unittest.TestCase):
         with mock.patch.object(attaching, "attach", return_value=outcome):
             attaching.files_attached(dock, ["whatever"])
         self.assertEqual((dock.mentioned, dock.waiting), (["roads", "grid"], ["/tmp/a.png"]))
-        self.assertIn("x.shp", dock.system[0])
-        self.assertIn("grid.csv", dock.system[1])
-        self.assertIn("Pass crs", dock.system[1])
+        self.assertIn("x.shp", dock.errors[0])
+        self.assertIn("grid.csv", dock.system[0])
+        self.assertIn("Pass crs", dock.system[0])
 
     def test_pictures_are_encoded_and_named_in_the_chat(self):
         dock = Dock(["/tmp/map.png"])

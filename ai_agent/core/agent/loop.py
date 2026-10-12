@@ -48,6 +48,8 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
     turn_counted = pyqtSignal(int, int, bool)
     answer_chunk = pyqtSignal(str)
     thinking_chunk = pyqtSignal(str)
+    # A RetryNotice: the model request waits before trying again.
+    retrying = pyqtSignal(object)
     applied = pyqtSignal(object)
     stage_applied = pyqtSignal(object)
     apply_interrupted = pyqtSignal(object)
@@ -282,6 +284,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
             lambda message, current=generation: self._fail(message, current),
             lambda text, current=generation: self._on_chunk(text, current),
             lambda text, current=generation: self._on_thinking(text, current),
+            lambda notice, current=generation: self._on_retry(notice, current),
         )
         self._turn_callbacks = callbacks
         self._turn.start(
@@ -303,6 +306,10 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
             return
         self._streamed_thinking = True
         self.thinking_chunk.emit(text)
+
+    def _on_retry(self, notice: object, generation: int | None = None) -> None:
+        if self._is_current(generation):
+            self.retrying.emit(notice)
 
     def _replay_thinking(self, turn: ModelTurn) -> None:
         if turn.thinking and not self._streamed_thinking:

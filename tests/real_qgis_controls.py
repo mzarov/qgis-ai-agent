@@ -14,12 +14,12 @@ from qgis.PyQt.QtCore import QEvent, QPoint, Qt
 from qgis.PyQt.QtGui import QColor, QKeyEvent
 from qgis.PyQt.QtWidgets import QLabel, QLineEdit, QWidget
 
-from ai_agent.ui import compass, controls, progress, settings_fields
+from ai_agent.ui import compass, controls, progress, settings_fields, style
 from ai_agent.ui.activity import ActivityGroup
 from ai_agent.ui.composer_parts import LAYER_TOKEN, SKILL_TOKEN
 from ai_agent.ui.conversation import ConversationView
 from ai_agent.ui.dropdown import Dropdown
-from ai_agent.ui.messages import AssistantMessage
+from ai_agent.ui.messages import AssistantMessage, SystemMessage
 from ai_agent.ui.settings_dialog import SettingsDialog
 from ai_agent.ui.thinking import ThinkingBlock
 
@@ -173,6 +173,19 @@ class TraceSpacingTest(unittest.TestCase):
         thought_line = reasoning.findChildren(ThinkingBlock)[0]._line
         self.assertLessEqual(abs(gap(thought_line, second) - gap(trace._header, first)), 3)
         view.hide()
+        view.deleteLater()
+
+
+class ErrorNoteTest(unittest.TestCase):
+    def test_an_error_wears_the_danger_colour_and_a_note_does_not(self) -> None:
+        view = ConversationView()
+        view.add_system_message("Run stopped.")
+        view.add_error_message("Error: The API returned 429: overloaded")
+        note, error = view.widget().findChildren(SystemMessage)
+        danger = style.css_color(style.danger(view.palette()))
+        sheets = [message.findChild(QLabel).styleSheet() for message in (note, error)]
+        self.assertNotIn(danger, sheets[0])
+        self.assertIn(f"color: {danger}", sheets[1])
         view.deleteLater()
 
 
