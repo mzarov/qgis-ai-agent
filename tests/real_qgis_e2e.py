@@ -238,6 +238,10 @@ class UndoScenario(ScenarioCase):
             say("The buffer is built."),
         )
         self.ask("Buffer Main rivers by 500 m")
+        # The queued step is pinned to the river's layer id; the card names the layer.
+        step = self.dock.conversation.findChildren(PlanCard)[-1]._steps[0].label.text()
+        self.assertIn("INPUT=Main rivers", step)
+        self.assertNotIn(self.layer("Main rivers").id(), step)
         self.apply()
         buffer = self.layer("river buffer")
         self.assertEqual(buffer.featureCount(), 1)

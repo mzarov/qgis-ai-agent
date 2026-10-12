@@ -89,6 +89,9 @@ the schema by hand. Supported `type`s: `string`, `number`, `integer`, `boolean`,
    did not give as “auto” — never substitute invented defaults. Put argument
    values in **verbatim**: the registry marks the spans that repeat them
    (`call_summary.py`) and the feed shows them bright, the wording muted.
+   A queued call is pinned to layer ids; `summarize_call`, `summarize_result`
+   and `detail_call` receive a copy whose ids read as the layers' current
+   names (`common.layers.with_layer_names`), so never resolve ids yourself.
    Its counterpart after the call is the optional `summarize_result(params,
    payload)`: a few translated words under the row saying what the call found
    ("12 features matched", a geocoded place). Read the payload only; return ""
