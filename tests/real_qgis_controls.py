@@ -12,7 +12,7 @@ import unittest
 from e2e_harness import PluginCase, pump
 from qgis.PyQt.QtCore import QEvent, QPoint, Qt
 from qgis.PyQt.QtGui import QColor, QKeyEvent
-from qgis.PyQt.QtWidgets import QLineEdit, QWidget
+from qgis.PyQt.QtWidgets import QLabel, QLineEdit, QWidget
 
 from ai_agent.ui import compass, controls, progress, settings_fields
 from ai_agent.ui.activity import ActivityGroup
@@ -325,6 +325,23 @@ class SettingsBehaviourTest(PluginCase):
         self.assertEqual(stepper.value(), limits.MAX_STEPS)
         self.assertFalse(stepper.plus.isEnabled())
         self.assertTrue(self.dialog.save_btn.isEnabled())
+
+    def test_a_chosen_group_sits_under_the_chips(self) -> None:
+        from ai_agent.ui import connectors_settings
+
+        # The groups above a chosen one once left their air behind: a band of empty page under the chips.
+        connectors = self.dialog.connectors
+        self.dialog._nav_buttons[5].click()
+        chips = connectors.chips[0][0].parentWidget()
+        under_chips = chips.mapTo(connectors.list, QPoint(0, chips.height())).y()
+        for _chip, key in connectors.chips[1:]:
+            connectors._choose(key)
+            pump(0.05)
+            title = connectors_settings.CATEGORY_TITLES[key]
+            caption = next(label for label in connectors.list.findChildren(QLabel) if label.text() == title)
+            self.assertTrue(caption.isVisible(), key)
+            top = caption.mapTo(connectors.list, QPoint(0, 0)).y()
+            self.assertEqual(top - under_chips, connectors_settings.GROUP_GAP, key)
 
 
 class ComposerBehaviourTest(PluginCase):

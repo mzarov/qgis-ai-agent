@@ -158,7 +158,7 @@ class ConnectorsSettings(QObject):
         column.addSpacing(SEARCH_TO_CHIPS)
         column.addWidget(self._chips(palette))
         self.cards: list[ConnectorCard] = []
-        self._groups: list[tuple[QLabel, QWidget, list[ConnectorCard]]] = []
+        self._groups: list[tuple[QWidget, CardGrid, list[ConnectorCard]]] = []
         rows = connector_rows()
         for category in categories():
             members = [ConnectorCard(row, palette) for row in rows if row["category"] == category]
@@ -167,14 +167,11 @@ class ConnectorsSettings(QObject):
             for card in members:
                 card.switch.toggled.connect(lambda _on: self.changed.emit())
                 card.opened.connect(lambda chosen=card: self.open(chosen.identifier))
-            title = fields.heading(CATEGORY_TITLES.get(category, category), palette)
-            column.addSpacing(GROUP_GAP)
-            column.addWidget(title)
-            column.addSpacing(TITLE_TO_CARDS)
             grid = CardGrid(members)
-            column.addWidget(grid)
+            group = _group(fields.heading(CATEGORY_TITLES.get(category, category), palette), grid)
+            column.addWidget(group)
             self.cards.extend(members)
-            self._groups.append((title, grid, members))
+            self._groups.append((group, grid, members))
         self._empty = fields.hint(NOTHING, palette)
         self._empty.setVisible(False)
         column.addWidget(self._empty)
@@ -243,7 +240,7 @@ class ConnectorsSettings(QObject):
     def _filter(self, text: str) -> None:
         words = text.lower().split()
         shown = 0
-        for title, grid, members in self._groups:
+        for group, grid, members in self._groups:
             in_group = 0
             for card in members:
                 match = (not self._category or card.category == self._category) and all(
@@ -252,11 +249,21 @@ class ConnectorsSettings(QObject):
                 card.matched = bool(match)
                 card.setVisible(match)
                 in_group += match
-            title.setVisible(bool(in_group))
-            grid.setVisible(bool(in_group))
+            group.setVisible(bool(in_group))
             grid.rearrange()
             shown += in_group
         self._empty.setVisible(shown == 0)
+
+
+def _group(title: QLabel, grid: QWidget) -> QWidget:
+    """A group's caption and cards with the air above them, one widget so a hidden group leaves no gap."""
+    group = QWidget()
+    column = QVBoxLayout(group)
+    column.setContentsMargins(0, GROUP_GAP, 0, 0)
+    column.setSpacing(TITLE_TO_CARDS)
+    column.addWidget(title)
+    column.addWidget(grid)
+    return group
 
 
 class CardGrid(QWidget):
