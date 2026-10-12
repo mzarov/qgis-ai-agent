@@ -115,6 +115,21 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertTrue(tool.has_external_effect(prepared))
         self.assertEqual(self.layer.featureCount(), 2)
 
+    def test_an_algorithm_past_the_tool_timeout_is_cancelled_with_the_limit_named(self):
+        tool = RunProcessingTool()
+        arguments = {
+            "algorithm_id": "native:buffer",
+            "parameters": {"INPUT": self.layer.id(), "DISTANCE": 10, "OUTPUT": "memory:"},
+            "load_output": False,
+        }
+        prepared = tool.prepare(arguments)
+        # Already past the deadline: the algorithm's first progress report cancels it.
+        with patch("ai_agent.config.limits.tool_seconds", return_value=0), self.assertRaises(TimeoutError) as caught:
+            tool.execute(prepared)
+        self.assertIn("0 s tool timeout", str(caught.exception))
+        _queued, payload = self._run("run_processing", **arguments)
+        self.assertEqual(payload["algorithm_id"], "native:buffer", "with the usual limit it runs")
+
     def test_snapshot_restores_styling_and_keeps_file_backed_features(self):
         path = self.root / "points.gpkg"
         self._run("export_layer", layer_name=self.layer.name(), path=str(path))

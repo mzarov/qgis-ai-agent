@@ -1,6 +1,7 @@
 from qgis.core import Qgis, QgsMessageLog
 from qgis.PyQt.QtCore import QObject, pyqtSignal
 
+from ai_agent.config import limits
 from ai_agent.core.agent import notices
 from ai_agent.core.agent.auto_apply import applies_itself
 from ai_agent.core.agent.batch import WriteBatch
@@ -21,7 +22,6 @@ from ai_agent.qgis_tools.web.http import cancel_active_requests
 from ai_agent.skills.registry import SKILL_REGISTRY
 
 LOG_TAG = "AI Agent"
-MAX_ITERATIONS = 40
 PRELOADED_SKILLS = ("inspect",)
 
 
@@ -64,6 +64,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._invoked_skills: list[str] = []
         self._batch = WriteBatch(self._executor)
         self._iteration = 0
+        self._max_steps = limits.DEFAULT_STEPS
         self._turn = TurnThreadOwner()
         self._prompt_protocol = PROTOCOL_NATIVE
         self._overrides: dict = {}
@@ -157,6 +158,8 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._is_verification = verification
         self._verification_round = verification_round
         self._budget.reset(get_token_budget())
+        # The step limit from Settings, fixed for this run: a change mid-run waits for the next one.
+        self._max_steps = limits.max_steps()
         self._plan_steps = []
         self._plan_done = 0
         self._staged = False
@@ -235,7 +238,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         generation = self._generation
         if not self._is_current(generation) or self._batch.is_applying:
             return
-        if self._iteration >= MAX_ITERATIONS:
+        if self._iteration >= self._max_steps:
             self._finish_on_limit(generation)
             return
         if self._budget.exhausted:
@@ -409,7 +412,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
 
     def _finish_on_limit(self, generation: int | None = None) -> None:
         self.ended_on_limit = True
-        QgsMessageLog.logMessage(f"Reached the limit of {MAX_ITERATIONS} turns.", LOG_TAG, Qgis.MessageLevel.Warning)
+        QgsMessageLog.logMessage(f"Reached the limit of {self._max_steps} turns.", LOG_TAG, Qgis.MessageLevel.Warning)
         self._complete(notices.LIMIT_REACHED_MESSAGE, generation)
 
     def _finish_on_budget(self, generation: int | None = None) -> None:

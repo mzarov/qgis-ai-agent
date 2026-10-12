@@ -10,8 +10,21 @@
  },
  {
   "depth": 2,
+  "type": "SettingsSearch"
+ },
+ {
+  "depth": 3,
+  "type": "QLineEdit",
+  "text": "Find a setting"
+ },
+ {
+  "depth": 4,
+  "type": "QToolButton"
+ },
+ {
+  "depth": 2,
   "type": "QLabel",
-  "text": "Settings"
+  "text": "Model"
  },
  {
   "depth": 2,
@@ -49,6 +62,11 @@
   "checked": false
  },
  {
+  "depth": 3,
+  "type": "QLabel",
+  "text": "17"
+ },
+ {
   "depth": 2,
   "type": "QLabel",
   "text": "Data"
@@ -64,6 +82,11 @@
   "type": "QPushButton",
   "text": "Geocoding",
   "checked": true
+ },
+ {
+  "depth": 2,
+  "type": "QLabel",
+  "text": "AI Agent 0.2.0 · QGIS 4.0"
  },
  {
   "depth": 1,
@@ -95,53 +118,82 @@
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "Turns place names into coordinates for OpenStreetMap downloads."
+  "text": "Turns place names into coordinates, as when you ask for schools in Kazan."
  },
  {
   "depth": 5,
-  "type": "QWidget"
- },
- {
-  "depth": 6,
-  "type": "QWidget"
- },
- {
-  "depth": 7,
   "type": "QLabel",
   "text": "Service"
  },
  {
-  "depth": 7,
-  "type": "QLabel",
-  "text": "Only names OpenStreetMap already knows will be found."
+  "depth": 5,
+  "type": "TileGrid"
  },
  {
   "depth": 6,
-  "type": "Segmented",
-  "name": "segmented"
+  "type": "ChoiceTile",
+  "name": "choiceTile"
  },
  {
   "depth": 7,
-  "type": "QPushButton",
-  "text": "Off",
-  "checked": true
+  "type": "ElidedLabel",
+  "text": "Turned off"
  },
  {
   "depth": 7,
-  "type": "QPushButton",
-  "text": "Photon",
-  "checked": false
+  "type": "QLabel",
+  "text": "The agent asks for coordinates or a selection on the map"
  },
  {
   "depth": 7,
-  "type": "QPushButton",
-  "text": "Nominatim",
-  "checked": false
+  "type": "Radio"
+ },
+ {
+  "depth": 6,
+  "type": "ChoiceTile",
+  "name": "choiceTile"
+ },
+ {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "Photon"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "No key, for occasional lookups; forgives typos"
+ },
+ {
+  "depth": 7,
+  "type": "Radio"
+ },
+ {
+  "depth": 6,
+  "type": "ChoiceTile",
+  "name": "choiceTile"
+ },
+ {
+  "depth": 7,
+  "type": "ElidedLabel",
+  "text": "Your own server"
+ },
+ {
+  "depth": 7,
+  "type": "QLabel",
+  "text": "A Nominatim on your network, or a public one you may use"
+ },
+ {
+  "depth": 7,
+  "type": "Radio"
  },
  {
   "depth": 2,
   "type": "QFrame",
   "name": "settingsSeparator"
+ },
+ {
+  "depth": 2,
+  "type": "PaintedDot"
  },
  {
   "depth": 2,

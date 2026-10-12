@@ -23,17 +23,30 @@ class SkillRegistry:
         self._local_root: str | None = None
         self._local: dict[str, Skill] = {}
         self._local_problems: list[str] = []
+        # Built-in skills the user switched off: the agent neither sees nor loads them.
+        self._disabled: frozenset[str] = frozenset()
 
     def all_skills(self) -> list[Skill]:
-        merged = {**self._local, **self._load()}
+        merged = {**self._local, **self._enabled()}
         return [merged[name] for name in sorted(merged)]
 
     def get(self, name: str) -> Skill | None:
         key = (name or "").strip()
-        return self._load().get(key) or self._local.get(key)
+        return self._enabled().get(key) or self._local.get(key)
 
     def names(self) -> list[str]:
-        return sorted({*self._load(), *self._local})
+        return sorted({*self._enabled(), *self._local})
+
+    def builtin_skills(self) -> list[Skill]:
+        """Every built-in skill, switched off or not: the settings page lists them all."""
+        builtin = self._load()
+        return [builtin[name] for name in sorted(builtin)]
+
+    def set_disabled(self, names: Iterable[str]) -> None:
+        self._disabled = frozenset(name for name in names if name in self._load())
+
+    def is_disabled(self, name: str) -> bool:
+        return name in self._disabled
 
     def drop_local(self, name: str) -> None:
         self._local.pop(name, None)
@@ -77,6 +90,9 @@ class SkillRegistry:
             self._skills = self._discover()
         return self._skills
 
+    def _enabled(self) -> dict[str, Skill]:
+        return {name: skill for name, skill in self._load().items() if name not in self._disabled}
+
     def _discover(self) -> dict[str, Skill]:
         skills: dict[str, Skill] = {}
         for entry in self._entries(self._root):
@@ -96,6 +112,7 @@ class SkillRegistry:
                 self._local_problems.append(problem)
                 continue
             skill.origin = LOCAL
+            skill.path = os.path.join(self._local_root or "", entry, SKILL_FILENAME)
             self._local[skill.name] = skill
 
     def _local_problem(self, entry: str, skill: Skill, builtin: dict[str, Skill]) -> str:

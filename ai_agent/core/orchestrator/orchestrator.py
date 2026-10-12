@@ -5,6 +5,7 @@ from qgis.core import Qgis
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.context.project import layer_choices
 from ai_agent.core.llm.client import is_local
+from ai_agent.core.local_skills import register_local_skills
 from ai_agent.core.orchestrator import attaching
 from ai_agent.core.orchestrator.compacting import SessionCompaction
 from ai_agent.core.orchestrator.contracts import DockWidgetContract
@@ -67,6 +68,9 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.refresh_configured()
 
     def refresh_configured(self) -> None:
+        # Settings may have switched skills off or shortened how long conversations are kept.
+        register_local_skills()
+        self.conversation.prune_history()
         self.dock_widget.set_project_line(project_line())
         self.dock_widget.set_configured(_is_configured())
         self.dock_widget.set_model(get_model() if _is_configured() else "")

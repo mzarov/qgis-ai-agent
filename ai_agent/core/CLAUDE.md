@@ -45,6 +45,9 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    remembers the choice in `QgsSettings` under a hash of the URL. All paths
    normalise into `ModelTurn` — the loop does not know which one worked.
    Never add provider SDKs: a dialect is a shape of HTTP, not a library.
+   The user's extra headers (`llm/extra_headers.py`, Settings → Advanced) ride
+   on every model request through `build_request`; the transport's own headers
+   always win, and names that would carry a key are refused on save.
    Streaming and web redirects are the two exceptions to
    `QgsBlockingNetworkRequest`; both use `QgsNetworkAccessManager` with a nested
    `QEventLoop`. Streaming needs a body as it arrives. The web runner resolves
@@ -96,9 +99,13 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    (`llm/reasoning.py`); a refusal is retried once without it and remembered
    as `supports_thinking = false`, checked before the streaming and tools
    refusals. Rationale: docs/core_architecture.md.
-7. **`MAX_ITERATIONS`** guards against endless loops, and a token budget from
-   the settings guards the user's wallet. Both end the run through `_complete`
-   with a plain explanation — never by silently stopping. A failed run
+7. **A step limit** (`config/limits.max_steps`, Settings → Advanced, read when
+   a run starts) guards against endless loops, and a token budget from the
+   settings guards the user's wallet. Both end the run through `_complete`
+   with a plain explanation — never by silently stopping. A Processing
+   algorithm runs with a `DeadlineFeedback` that cancels it past the tool
+   timeout (`config/limits`); it can only stop an algorithm that reports
+   progress, which nearly all do. A failed run
    (`_fail`) keeps its prepared batch and offers it after the error: a transport
    error at turn thirty must not throw away validated work. Only Stop clears it.
    A run that ends — completed or failed — is never left staged.

@@ -20,6 +20,7 @@ import pathlib
 import time
 import unittest
 from typing import Any
+from unittest import mock
 
 import ui_snapshot
 from e2e_harness import ARTIFACTS, WINDOW_HEIGHT, WINDOW_WIDTH, PluginCase, pump
@@ -44,6 +45,9 @@ NARROW_WIDTH = 380
 SETTINGS_WIDTH = 900
 SETTINGS_HEIGHT = 640
 SETTINGS_PAGES = ("connection", "privacy", "skills", "geocoding", "advanced", "connectors", "personalisation")
+# The versions the sidebar's foot shows in the goldens, whatever the release and the QGIS image.
+PINNED_PLUGIN_VERSION = "0.2.0"
+PINNED_QGIS_VERSION = "4.0"
 PROFILE_MARKER = "ai-agent-integration-"
 # A real profile path is long; a short stand-in once hid a skills page that overflowed on a real Mac.
 LONG_PROFILE = "/Users/someone-with-a-long-name/Library/Application Support/QGIS/QGIS4/profiles/default"
@@ -440,7 +444,13 @@ class ComposerScreens(ScreenCase):
 
 class SettingsScreens(ScreenCase):
     def test_every_settings_page(self) -> None:
-        dialog = SettingsDialog(self.dock)
+        # What the profile holds depends on the tests run before, the versions on the build: all pinned.
+        with (
+            mock.patch("ai_agent.core.history.usage", return_value=(12, 2_200_000)),
+            mock.patch("ai_agent.ui.settings_layout.plugin_version", return_value=PINNED_PLUGIN_VERSION),
+            mock.patch("ai_agent.ui.settings_layout.qgis_version", return_value=PINNED_QGIS_VERSION),
+        ):
+            dialog = SettingsDialog(self.dock)
         dialog.resize(SETTINGS_WIDTH, SETTINGS_HEIGHT)
         dialog.show()
         try:

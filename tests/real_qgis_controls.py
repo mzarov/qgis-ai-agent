@@ -12,7 +12,7 @@ import unittest
 from e2e_harness import PluginCase, pump
 from qgis.PyQt.QtCore import QEvent, QPoint, Qt
 from qgis.PyQt.QtGui import QColor, QKeyEvent
-from qgis.PyQt.QtWidgets import QLineEdit, QWidget
+from qgis.PyQt.QtWidgets import QLabel, QLineEdit, QWidget
 
 from ai_agent.ui import compass, controls, progress, settings_fields
 from ai_agent.ui.activity import ActivityGroup
@@ -247,19 +247,19 @@ class SettingsBehaviourTest(PluginCase):
         self.assertFalse(dot.isHidden())
 
     def test_a_provider_tile_fills_the_endpoint(self) -> None:
-        tile = next(tile for tile in self.dialog.provider_tiles._tiles if tile.title == "LM Studio")
-        tile.clicked.emit(tile.title)
+        tile = next(tile for tile in self.dialog.provider_tiles.tiles if tile.key == "LM Studio")
+        tile.clicked.emit(tile.key)
         self.assertEqual(self.dialog.url_edit.text(), "http://localhost:1234/v1")
         self.assertEqual(self.dialog.preset_combo.currentText(), "LM Studio")
         self.assertTrue(self.dialog.save_btn.isEnabled())
 
     def test_typing_an_address_selects_its_tile(self) -> None:
         self.dialog.url_edit.setText("https://api.openai.com/v1")
-        selected = [tile.title for tile in self.dialog.provider_tiles._tiles if tile.selected]
+        selected = [tile.key for tile in self.dialog.provider_tiles.tiles if tile.selected]
         self.assertEqual(selected, ["OpenAI"])
 
     def test_only_the_main_providers_get_a_tile_and_they_carry_logos(self) -> None:
-        titles = [tile.title for tile in self.dialog.provider_tiles._tiles]
+        titles = [tile.key for tile in self.dialog.provider_tiles.tiles]
         self.assertEqual(len(titles), 7)
         self.assertNotIn("DeepSeek", titles)
         from ai_agent.ui import logos
@@ -271,6 +271,97 @@ class SettingsBehaviourTest(PluginCase):
         self.dialog._probe_started = 0.0
         self.dialog._on_probe_completed(False, "boom")
         self.assertEqual((self.dialog.status_card.state, self.dialog.status_card.detail.text()), ("bad", "boom"))
+
+    def test_finding_a_setting_opens_its_page_at_the_row(self) -> None:
+        from ai_agent.ui import settings_advanced
+
+        self.dialog.search.field.setText(settings_advanced.TIMEOUT_LABEL)
+        pump(0.05)
+        results = [row for row in self.dialog.search._results.findChildren(controls.HoverFrame) if row.isVisible()]
+        self.assertTrue(results, "the row is found by its title")
+        results[0].clicked.emit()
+        self.assertEqual(self.dialog.pages.currentIndex(), 4, "Advanced")
+        self.dialog.search.field.clear()
+        self.assertFalse(self.dialog._nav_buttons[0].isHidden(), "an empty box brings the page list back")
+
+    def test_where_data_goes_follows_the_address(self) -> None:
+        from ai_agent.ui import settings_advanced
+
+        self.dialog.url_edit.setText("http://localhost:11434/v1")
+        self.assertEqual(self.dialog.privacy_status.title.text(), settings_advanced.LOCAL_TITLE)
+        self.dialog.url_edit.setText("https://api.openai.com/v1")
+        self.assertEqual(self.dialog.privacy_status.title.text(), settings_advanced.REMOTE_TITLE)
+
+    def test_a_skill_switched_off_marks_the_page_and_is_saved(self) -> None:
+        from ai_agent.core.settings import get_disabled_skills, set_disabled_skills
+
+        self.addCleanup(set_disabled_skills, [])
+        self.dialog.skills.switches["charts"].setChecked(False)
+        self.assertTrue(self.dialog.save_btn.isEnabled())
+        self.dialog._save()
+        self.assertEqual(get_disabled_skills(), ["charts"])
+
+    def test_a_header_that_would_carry_a_key_is_refused_on_save(self) -> None:
+        self.dialog.headers_edit.setPlainText("Authorization: Bearer sentinel")
+        self.dialog._save()
+        self.assertTrue(self.dialog.isVisible(), "nothing saved, the window stays")
+        self.assertIn("1", self.dialog._status.text())
+
+    def test_your_own_geocoder_takes_an_address_the_others_do_not(self) -> None:
+        from ai_agent.core.settings import GEOCODER_NOMINATIM, GEOCODER_PHOTON
+
+        geocoder = self.dialog.geocoder
+        geocoder._choose(GEOCODER_PHOTON)
+        self.assertFalse(geocoder.url_edit.isEnabled())
+        geocoder._choose(GEOCODER_NOMINATIM)
+        self.assertTrue(geocoder.url_edit.isEnabled())
+        self.assertTrue(self.dialog.save_btn.isEnabled())
+
+    def test_the_steppers_stay_in_their_range(self) -> None:
+        from ai_agent.config import limits
+
+        stepper = self.dialog.steps_stepper
+        stepper.setValue(1000)
+        self.assertEqual(stepper.value(), limits.MAX_STEPS)
+        self.assertFalse(stepper.plus.isEnabled())
+        self.assertTrue(self.dialog.save_btn.isEnabled())
+
+    def test_no_page_shows_a_window_of_its_own(self) -> None:
+        # Thirty hint labels were once shown before their rows took them: each became a window,
+        # and making those windows was most of the second the settings took to open.
+        for index in range(self.dialog.pages.count()):
+            self.dialog.show_page(index)
+        self.dialog.search.field.setText("a")
+        pump(0.05)
+        self.assertEqual(self.window_spy.strays, [])
+
+    def test_a_setting_on_a_page_not_yet_opened_is_found(self) -> None:
+        from ai_agent.ui import personalisation_settings, settings_layout
+
+        self.assertIn(settings_layout.PERSONALISATION, self.dialog._unbuilt_pages)
+        self.dialog.search.field.setText(personalisation_settings.UNITS)
+        pump(0.05)
+        results = [row for row in self.dialog.search._results.findChildren(controls.HoverFrame) if row.isVisible()]
+        shown = [label.text() for row in results for label in row.findChildren(QLabel)]
+        self.assertIn("Personalisation", shown, "the page is built for the search")
+        self.assertEqual(self.dialog._unbuilt_pages, {})
+
+    def test_a_chosen_group_sits_under_the_chips(self) -> None:
+        from ai_agent.ui import connectors_settings, settings_layout
+
+        # The groups above a chosen one once left their air behind: a band of empty page under the chips.
+        self.dialog._nav_buttons[settings_layout.CONNECTORS].click()
+        connectors = self.dialog.connectors
+        chips = connectors.chips[0][0].parentWidget()
+        under_chips = chips.mapTo(connectors.list, QPoint(0, chips.height())).y()
+        for _chip, key in connectors.chips[1:]:
+            connectors._choose(key)
+            pump(0.05)
+            title = connectors_settings.CATEGORY_TITLES[key]
+            caption = next(label for label in connectors.list.findChildren(QLabel) if label.text() == title)
+            self.assertTrue(caption.isVisible(), key)
+            top = caption.mapTo(connectors.list, QPoint(0, 0)).y()
+            self.assertEqual(top - under_chips, connectors_settings.GROUP_GAP, key)
 
 
 class ComposerBehaviourTest(PluginCase):

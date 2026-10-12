@@ -27,10 +27,10 @@ from ai_agent.ui import settings_fields as fields
 from ai_agent.ui.connector_detail import ConnectorDetail, monogram
 
 TITLE = tr("Connectors")
-INTRO = tr(
-    "Where the agent gets data you do not have: ask for a satellite picture, boundaries or an aerial "
-    "photo and it loads them from these sources. A source you switch off is hidden from it."
-)
+LEAD = tr("Data sources the agent turns to by itself. A connector switched off is hidden from it.")
+ENABLED = tr("Connected")
+DISABLED = tr("Switched off")
+OPEN_MARK = "›"
 SEARCH = tr("Search connectors")
 NOTHING = tr("No connector matches.")
 ALL = tr("All")
@@ -38,12 +38,13 @@ CARD_NAME = "connectorCard"
 CARD_MIN_WIDTH = 280
 CARD_GAP = 12
 # The page had everything touching: the search, the chips, a group title and its cards each get air.
-INTRO_TO_SEARCH = 14
 SEARCH_TO_CHIPS = 12
-GROUP_GAP = 28
-TITLE_TO_CARDS = 12
+GROUP_GAP = 22
+TITLE_TO_CARDS = 8
 CARD_HEIGHT = 72
 MAX_COLUMNS = 2
+STATUS_DOT = 6
+CARD_MARGINS = (12, 12, 12, 10)
 # Chips need short words: the full group titles in a row did not fit the page in Russian.
 CHIP_TITLES = {
     "world": tr("World"),
@@ -62,7 +63,7 @@ CATEGORY_TITLES = {
 
 
 class ConnectorCard(controls.RoundedFrame):
-    """One source: monogram, name and count, what it offers, a switch; dimmed while off. A click opens it."""
+    """One source: monogram, name, what it offers, a switch; under a hairline its state, size and the way in."""
 
     opened = pyqtSignal()
 
@@ -80,16 +81,17 @@ class ConnectorCard(controls.RoundedFrame):
         summary = tr_data(str(row["summary"]))
         searchable = (row["title"], row["summary"], summary, row["description"], tr_data(str(row["description"])))
         self.haystack = " ".join(str(text) for text in searchable).lower()
-        line = QHBoxLayout(self)
-        line.setContentsMargins(14, 12, 14, 12)
+        column = QVBoxLayout(self)
+        column.setContentsMargins(*CARD_MARGINS)
+        column.setSpacing(10)
+        line = QHBoxLayout()
         line.setSpacing(12)
         line.addWidget(monogram(row, palette), 0, Qt.AlignmentFlag.AlignTop)
         text = QVBoxLayout()
         text.setSpacing(2)
         self.name = controls.ElidedLabel(str(row["title"]))
+        style.scale_font(self.name, 1.0, bold=True)
         text.addWidget(self.name)
-        # The count rides with the summary: beside the name it squeezed names to an ellipsis in two columns.
-        summary = f"{summary} · {tr_n('%n dataset(s)', int(row['count']))}"
         self.summary = controls.small(summary, palette)
         self.summary.setToolTip(", ".join(row["hosts"]))
         text.addWidget(self.summary)
@@ -97,7 +99,25 @@ class ConnectorCard(controls.RoundedFrame):
         self.switch = fields.switch(palette)
         self.switch.setChecked(bool(row["enabled"]))
         self.switch.toggled.connect(self._shade)
-        line.addWidget(self.switch, 0, Qt.AlignmentFlag.AlignVCenter)
+        line.addWidget(self.switch, 0, Qt.AlignmentFlag.AlignTop)
+        column.addLayout(line)
+        column.addWidget(fields.separator(palette))
+        state = QHBoxLayout()
+        state.setSpacing(6)
+        self._dot = controls.PaintedDot(STATUS_DOT)
+        state.addWidget(self._dot, 0, Qt.AlignmentFlag.AlignVCenter)
+        self.state = controls.small("", palette)
+        self.state.setWordWrap(False)
+        state.addWidget(self.state)
+        state.addStretch(1)
+        meta = controls.small(tr_n("%n dataset(s)", int(row["count"])), palette)
+        meta.setWordWrap(False)
+        style.ink(meta, style.faint(palette))
+        state.addWidget(meta)
+        arrow = QLabel(OPEN_MARK)
+        style.ink(arrow, style.faint(palette))
+        state.addWidget(arrow)
+        column.addLayout(state)
         self._shade(self.switch.isChecked())
 
     def mouseReleaseEvent(self, event: Any) -> None:
@@ -109,6 +129,10 @@ class ConnectorCard(controls.RoundedFrame):
     def _shade(self, enabled: bool) -> None:
         palette = self._palette
         style.ink(self.name, style.text(palette) if enabled else style.faint(palette))
+        colour = style.success(palette) if enabled else style.border_strong(palette)
+        self._dot.set_colour(colour.name())
+        self.state.setText(ENABLED if enabled else DISABLED)
+        style.ink(self.state, style.success(palette) if enabled else style.faint(palette))
         self.set_look(style.panel(palette).name(), style.hairline(palette).name())
 
 
@@ -122,9 +146,8 @@ class ConnectorsSettings(QObject):
         super().__init__()
         self._palette = palette
         self.details: dict[str, ConnectorDetail] = {}
-        self.list, column = fields.page()
-        fields.section(column, TITLE, palette, INTRO)
-        column.addSpacing(INTRO_TO_SEARCH)
+        self.list, column = fields.page(TITLE, LEAD, palette)
+        column.addSpacing(fields.SECTION_GAP)
         self.search = QLineEdit()
         self.search.setPlaceholderText(SEARCH)
         self.search.setClearButtonEnabled(True)
@@ -135,7 +158,7 @@ class ConnectorsSettings(QObject):
         column.addSpacing(SEARCH_TO_CHIPS)
         column.addWidget(self._chips(palette))
         self.cards: list[ConnectorCard] = []
-        self._groups: list[tuple[QLabel, QWidget, list[ConnectorCard]]] = []
+        self._groups: list[tuple[QWidget, CardGrid, list[ConnectorCard]]] = []
         rows = connector_rows()
         for category in categories():
             members = [ConnectorCard(row, palette) for row in rows if row["category"] == category]
@@ -144,14 +167,11 @@ class ConnectorsSettings(QObject):
             for card in members:
                 card.switch.toggled.connect(lambda _on: self.changed.emit())
                 card.opened.connect(lambda chosen=card: self.open(chosen.identifier))
-            title = fields.heading(CATEGORY_TITLES.get(category, category), palette)
-            column.addSpacing(GROUP_GAP)
-            column.addWidget(title)
-            column.addSpacing(TITLE_TO_CARDS)
             grid = CardGrid(members)
-            column.addWidget(grid)
+            group = _group(fields.heading(CATEGORY_TITLES.get(category, category), palette), grid)
+            column.addWidget(group)
             self.cards.extend(members)
-            self._groups.append((title, grid, members))
+            self._groups.append((group, grid, members))
         self._empty = fields.hint(NOTHING, palette)
         self._empty.setVisible(False)
         column.addWidget(self._empty)
@@ -220,7 +240,7 @@ class ConnectorsSettings(QObject):
     def _filter(self, text: str) -> None:
         words = text.lower().split()
         shown = 0
-        for title, grid, members in self._groups:
+        for group, grid, members in self._groups:
             in_group = 0
             for card in members:
                 match = (not self._category or card.category == self._category) and all(
@@ -229,11 +249,21 @@ class ConnectorsSettings(QObject):
                 card.matched = bool(match)
                 card.setVisible(match)
                 in_group += match
-            title.setVisible(bool(in_group))
-            grid.setVisible(bool(in_group))
+            group.setVisible(bool(in_group))
             grid.rearrange()
             shown += in_group
         self._empty.setVisible(shown == 0)
+
+
+def _group(title: QLabel, grid: QWidget) -> QWidget:
+    """A group's caption and cards with the air above them, one widget so a hidden group leaves no gap."""
+    group = QWidget()
+    column = QVBoxLayout(group)
+    column.setContentsMargins(0, GROUP_GAP, 0, 0)
+    column.setSpacing(TITLE_TO_CARDS)
+    column.addWidget(title)
+    column.addWidget(grid)
+    return group
 
 
 class CardGrid(QWidget):

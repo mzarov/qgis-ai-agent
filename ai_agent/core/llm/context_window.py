@@ -72,6 +72,7 @@ def detect(overrides: dict[str, Any]) -> int:
             overrides.get("auth_type_override"),
             overrides.get("model_override"),
             overrides.get("dialect_override"),
+            overrides.get("extra_headers_override"),
         )
     except Exception:
         return 0

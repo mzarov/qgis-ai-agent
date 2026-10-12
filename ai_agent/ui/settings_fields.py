@@ -1,7 +1,7 @@
 from typing import Any
 
-from qgis.PyQt.QtCore import QRectF, QSize, Qt
-from qgis.PyQt.QtGui import QPainter
+from qgis.PyQt.QtCore import QEvent, QRectF, QSize, Qt, pyqtSignal
+from qgis.PyQt.QtGui import QIcon, QPainter
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -16,34 +16,44 @@ from qgis.PyQt.QtWidgets import (
 
 from ai_agent.ui import controls, style
 
-HINT_SCALE = 0.88
+# The handoff's type scale against the 13 px body: notes and captions 12, a page title 18.
+HINT_SCALE = 12 / 13
+CAPTION_SCALE = 12 / 13
+TITLE_SCALE = 18 / 13
 SEPARATOR_NAME = "settingsSeparator"
+SEARCH_PROPERTY = "settingsSearch"
+STEPPER_NAME = "settingsStepper"
+STEPPER_HEIGHT = 30
+STEPPER_VALUE_WIDTH = 64
+STEPPER_PADDING = 16
+WIDE_GAP = 6
+DISABLED_OPACITY = 0.45
 INPUT_RADIUS = 6
-INPUT_PADDING = "6px 10px"
-INPUT_MIN_HEIGHT = 20
+INPUT_PADDING = "5px 10px"
+INPUT_MIN_HEIGHT = 18
 FIELD_SPACING = 2
-PAGE_MARGINS = (32, 24, 32, 24)
+PAGE_MARGINS = (28, 22, 28, 28)
 PAGE_SPACING = 0
-LEAD_GAP = 5
-SECTION_GAP = 36
-SECTION_TO_CARD = 10
-NAV_WIDTH = 210
-NAV_MARGINS = (12, 14, 12, 14)
+LEAD_GAP = 4
+# Between the page's title block and each section: the handoff's 22 px column gap.
+SECTION_GAP = 22
+SECTION_TO_CARD = 2
+NAV_WIDTH = 216
+NAV_MARGINS = (8, 12, 8, 12)
 NAV_SPACING = 2
-NAV_RADIUS = 7
-NAV_PADDING = "8px 10px"
+NAV_RADIUS = 6
+NAV_PADDING = "0px 8px"
+NAV_HEIGHT = 30
 NAV_ICON = 16
-FLAT_ROW_PADDING = (0, 13, 0, 13)
-SECTION_TITLE_SCALE = 1.12
-FIRST_SECTION_GAP = 2
-ROW_MIN_HEIGHT = 56
-ROW_GAP = 16
+FLAT_ROW_PADDING = (0, 11, 0, 11)
+FIRST_SECTION_GAP = 0
+ROW_MIN_HEIGHT = 40
+ROW_GAP = 20
 CONTROL_WIDTH = 300
-SWITCH_WIDTH = 38
-SWITCH_HEIGHT = 22
+SWITCH_WIDTH = 30
+SWITCH_HEIGHT = 18
 SWITCH_KNOB_MARGIN = 3
 BUTTON_RADIUS = 6
-DISABLED_OPACITY = 0.45
 
 
 class Switch(QCheckBox):
@@ -59,21 +69,110 @@ class Switch(QCheckBox):
         return True
 
     def paintEvent(self, _event: Any) -> None:
+        """The handoff's toggle: an accent track with a light knob when on, a sunken outlined one when off."""
+        palette = self._palette
+        on = self.isChecked()
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(self._track_colour())
-        painter.drawRoundedRect(QRectF(0, 0, SWITCH_WIDTH, SWITCH_HEIGHT), SWITCH_HEIGHT / 2, SWITCH_HEIGHT / 2)
+        if not self.isEnabled():
+            painter.setOpacity(DISABLED_OPACITY)
+        track = QRectF(0.5, 0.5, SWITCH_WIDTH - 1, SWITCH_HEIGHT - 1)
+        painter.setPen(style.accent(palette) if on else style.border_strong(palette))
+        painter.setBrush(style.accent(palette) if on else style.sunken(palette))
+        painter.drawRoundedRect(track, track.height() / 2, track.height() / 2)
         knob = SWITCH_HEIGHT - 2 * SWITCH_KNOB_MARGIN
-        x = SWITCH_WIDTH - knob - SWITCH_KNOB_MARGIN if self.isChecked() else SWITCH_KNOB_MARGIN
-        painter.setBrush(self._palette.highlightedText().color())
+        x = SWITCH_WIDTH - knob - SWITCH_KNOB_MARGIN if on else SWITCH_KNOB_MARGIN
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(style.on_accent(palette) if on else style.faint(palette))
         painter.drawEllipse(QRectF(x, SWITCH_KNOB_MARGIN, knob, knob))
         painter.end()
 
-    def _track_colour(self) -> Any:
-        if not self.isEnabled():
-            return style.card(self._palette)
-        return style.accent(self._palette) if self.isChecked() else style.hairline(self._palette)
+
+class Stepper(QFrame):
+    """A whole number between a minus and a plus, moving by a fixed step within its range."""
+
+    valueChanged = pyqtSignal(int)
+
+    def __init__(self, palette: Any, value: int, low: int, high: int, step: int, suffix: str = ""):
+        super().__init__()
+        # Set before anything can restyle the frame: a style change calls changeEvent mid-construction.
+        self._shown: QWidget | None = None
+        self._low, self._high, self._step = low, high, step
+        self._value = max(low, min(high, value))
+        self.setObjectName(STEPPER_NAME)
+        border = style.css_color(style.border_strong(palette))
+        self.setStyleSheet(
+            f"QFrame#{STEPPER_NAME} {{ background: {style.css_color(style.field(palette))};"
+            f"border: {style.HAIRLINE}px solid {border}; border-radius: {INPUT_RADIUS}px; }}"
+        )
+        line = QHBoxLayout(self)
+        line.setContentsMargins(0, 0, 0, 0)
+        line.setSpacing(0)
+        self.minus = self._button("−", -step, palette)
+        line.addWidget(self.minus)
+        # The number and its unit apart: "120 s" is a setting, not a timing, and stays one word per label.
+        shown = QWidget()
+        middle = QHBoxLayout(shown)
+        middle.setContentsMargins(0, 0, 0, 0)
+        middle.setSpacing(0)
+        middle.addStretch(1)
+        self._number = QLabel()
+        style.ink(self._number, style.text(palette))
+        middle.addWidget(self._number)
+        self._unit = QLabel(suffix)
+        style.ink(self._unit, style.text(palette))
+        middle.addWidget(self._unit)
+        self._unit.setVisible(bool(suffix))
+        middle.addStretch(1)
+        self._shown = shown
+        line.addWidget(shown)
+        self.plus = self._button("+", step, palette)
+        line.addWidget(self.plus)
+        self.setFixedHeight(STEPPER_HEIGHT)
+        self._fit()
+        self._show()
+
+    def value(self) -> int:
+        return self._value
+
+    def setValue(self, value: int) -> None:
+        clamped = max(self._low, min(self._high, int(value)))
+        if clamped != self._value:
+            self._value = clamped
+            self._show()
+            self.valueChanged.emit(clamped)
+
+    def changeEvent(self, event: Any) -> None:
+        # The font it shows in is known only once the window's own reaches it: measure again then.
+        if event.type() in (QEvent.Type.FontChange, QEvent.Type.StyleChange, QEvent.Type.Polish):
+            self._fit()
+        super().changeEvent(event)
+
+    def _fit(self) -> None:
+        """Room for the longest value it can show, so the box never changes width as the value does."""
+        if self._shown is None:
+            return
+        metrics = self._number.fontMetrics()
+        widest = metrics.horizontalAdvance(f"{self._high}{self._unit.text()}") + STEPPER_PADDING
+        self._shown.setFixedWidth(max(STEPPER_VALUE_WIDTH, widest))
+
+    def _button(self, text: str, delta: int, palette: Any) -> QPushButton:
+        button = QPushButton(text)
+        button.setFixedSize(STEPPER_HEIGHT, STEPPER_HEIGHT - 2)
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        button.setStyleSheet(
+            f"QPushButton {{ background: transparent; border: {style.HAIRLINE}px solid transparent;"
+            f"color: {style.css_color(style.muted(palette))}; }}"
+            f"QPushButton:hover {{ color: {style.css_color(style.text(palette))}; }}"
+            f"QPushButton:disabled {{ color: {style.css_color(style.faint(palette))}; }}"
+        )
+        button.clicked.connect(lambda _checked=False: self.setValue(self._value + delta))
+        return button
+
+    def _show(self) -> None:
+        self._number.setText(str(self._value))
+        self.minus.setEnabled(self._value > self._low)
+        self.plus.setEnabled(self._value < self._high)
 
 
 def switch(palette: Any) -> Switch:
@@ -99,24 +198,30 @@ def sidebar() -> tuple[QWidget, QVBoxLayout]:
     return holder, column
 
 
-def sidebar_button(title: str, palette: Any, icon: Any = None) -> QPushButton:
+def sidebar_button(title: str, palette: Any, glyphs: tuple[Any, Any] | None = None) -> QPushButton:
+    """A sidebar entry: muted at rest, the chosen one lifted with a hairline, its icon in the accent."""
     button = QPushButton(title)
     button.setCheckable(True)
     button.setCursor(Qt.CursorShape.PointingHandCursor)
-    if icon is not None:
+    button.setFixedHeight(NAV_HEIGHT)
+    if glyphs is not None and glyphs[0] is not None:
+        rest, chosen = glyphs
+        icon = QIcon()
+        icon.addPixmap(rest.pixmap(NAV_ICON, NAV_ICON), QIcon.Mode.Normal, QIcon.State.Off)
+        icon.addPixmap((chosen or rest).pixmap(NAV_ICON, NAV_ICON), QIcon.Mode.Normal, QIcon.State.On)
         button.setIcon(icon)
         button.setIconSize(QSize(NAV_ICON, NAV_ICON))
     button.setStyleSheet(
         "QPushButton {"
-        f"background: transparent; color: {style.css_color(style.text(palette))};"
+        f"background: transparent; color: {style.css_color(style.muted(palette))};"
         f"border: {style.HAIRLINE}px solid transparent; border-radius: {NAV_RADIUS}px;"
         f"padding: {NAV_PADDING}; text-align: left; }}"
         "QPushButton:hover:!checked {"
-        f"background: {style.css_color(style.nav_hover(palette))};"
-        f"color: {style.css_color(style.text(palette))}; }}"
+        f"background: {style.css_color(style.card(palette))}; }}"
         "QPushButton:checked {"
-        f"background: {style.css_color(style.nav_selected(palette))};"
-        f"color: {style.css_color(style.text(palette))}; }}"
+        f"background: {style.css_color(style.card(palette))};"
+        f"border-color: {style.css_color(style.hairline(palette))};"
+        f"color: {style.css_color(style.text(palette))}; font-weight: 500; }}"
     )
     return button
 
@@ -133,20 +238,36 @@ def pages() -> QStackedWidget:
     return QStackedWidget()
 
 
-def page() -> tuple[QWidget, QVBoxLayout]:
+def page(title: str = "", lead: str = "", palette: Any = None) -> tuple[QWidget, QVBoxLayout]:
+    """A settings page: its title in 18/600 and one sentence under it, then whatever the caller adds."""
     holder = QWidget()
     column = QVBoxLayout(holder)
     column.setContentsMargins(*PAGE_MARGINS)
     column.setSpacing(PAGE_SPACING)
+    if title and palette is not None:
+        column.addWidget(page_title(title, palette))
+        if lead:
+            column.addSpacing(LEAD_GAP)
+            note = QLabel(lead)
+            note.setWordWrap(True)
+            style.ink(note, style.muted(palette))
+            column.addWidget(note)
     return holder, column
 
 
-def section(column: QVBoxLayout, title: str, palette: Any, note: str = "") -> None:
-    """A bold heading that opens a group of rows, with an optional muted sentence under it."""
-    column.addSpacing(SECTION_GAP if column.count() else FIRST_SECTION_GAP)
-    label = heading(title, palette)
+def page_title(title: str, palette: Any) -> QLabel:
+    label = QLabel(title)
     label.setWordWrap(True)
-    column.addWidget(label)
+    style.scale_font(label, TITLE_SCALE, bold=True)
+    style.ink(label, style.text(palette))
+    return label
+
+
+def section(column: QVBoxLayout, title: str, palette: Any, note: str = "") -> None:
+    """A small caption that opens a group of rows, with an optional muted sentence under it."""
+    column.addSpacing(SECTION_GAP if column.count() else FIRST_SECTION_GAP)
+    if title:
+        column.addWidget(heading(title, palette))
     if note:
         column.addSpacing(LEAD_GAP)
         column.addWidget(hint(note, palette))
@@ -154,9 +275,11 @@ def section(column: QVBoxLayout, title: str, palette: Any, note: str = "") -> No
 
 
 def heading(title: str, palette: Any) -> QLabel:
+    """A section caption: 12/600 in the secondary ink, as the handoff's group titles."""
     label = QLabel(title)
-    style.scale_font(label, SECTION_TITLE_SCALE, bold=True)
-    label.setStyleSheet(f"color: {style.css_color(style.text(palette))};")
+    label.setWordWrap(True)
+    style.scale_font(label, CAPTION_SCALE, bold=True)
+    style.ink(label, style.muted(palette))
     return label
 
 
@@ -175,6 +298,25 @@ def custom_row(title: str, widget: QWidget, note: str, palette: Any, tooltip: st
     return _row(title, widget, note, palette, tooltip)
 
 
+def wide_row(title: str, widget: QWidget, note: str, palette: Any) -> QWidget:
+    """A row whose control needs the full width, under its title and hint: a text area."""
+    holder = QWidget()
+    column = QVBoxLayout(holder)
+    column.setContentsMargins(*FLAT_ROW_PADDING)
+    column.setSpacing(FIELD_SPACING)
+    name = QLabel(title)
+    name.setWordWrap(True)
+    style.ink(name, style.text(palette))
+    column.addWidget(name)
+    holder.setProperty(SEARCH_PROPERTY, f"{title} {note}".strip())
+    holder.hint = hint(note, palette)
+    column.addWidget(holder.hint)
+    holder.hint.setVisible(bool(note))
+    column.addSpacing(WIDE_GAP)
+    column.addWidget(widget)
+    return holder
+
+
 def _row(title: str, widget: QWidget, note: str, palette: Any, tooltip: str) -> QWidget:
     holder = QWidget()
     holder.setMinimumHeight(ROW_MIN_HEIGHT)
@@ -188,11 +330,16 @@ def _row(title: str, widget: QWidget, note: str, palette: Any, tooltip: str) -> 
     # Keep title and hint together, centred against a tall control, instead of spread apart.
     text.addStretch(1)
     name = QLabel(title)
-    name.setStyleSheet(f"color: {style.css_color(style.text(palette))};")
+    name.setWordWrap(True)
+    style.ink(name, style.text(palette))
     text.addWidget(name)
+    # What the sidebar's search matches: the row's title and its hint.
+    holder.setProperty(SEARCH_PROPERTY, f"{title} {note}".strip())
     holder.hint = hint(note, palette)
-    holder.hint.setVisible(bool(note))
+    # Shown only once it has a parent: a parentless widget shown becomes a window of its own,
+    # and thirty such windows were most of the second the settings took to open.
     text.addWidget(holder.hint)
+    holder.hint.setVisible(bool(note))
     text.addStretch(1)
     line.addWidget(caption, 1)
     line.addWidget(widget, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
@@ -290,21 +437,27 @@ def input_style(palette: Any) -> str:
 
 
 def accent_button(palette: Any) -> str:
+    """The primary button: accent while there is something to do, a quiet sunken one until then."""
     fill = style.css_color(style.accent(palette))
     return (
         f"QPushButton {{ background: {fill};"
         f"color: {style.css_color(style.on_accent(palette))};"
         f"border: {style.HAIRLINE}px solid {fill}; border-radius: {BUTTON_RADIUS}px;"
-        "padding: 6px 18px; font-weight: 600; }"
+        "padding: 5px 16px; font-weight: 600; }"
         f"QPushButton:hover {{ background: {style.css_color(style.accent_hover(palette))}; }}"
-        f"QPushButton:disabled {{ background: {style.css_color(_faded(style.accent(palette), palette))};"
-        f"border-color: transparent; color: {style.css_color(_faded(style.on_accent(palette), palette))}; }}"
+        f"QPushButton:disabled {{ background: {style.css_color(style.sunken(palette))};"
+        f"border-color: {style.css_color(style.hairline(palette))}; color: {style.css_color(style.faint(palette))}; }}"
     )
 
 
-def _faded(colour: Any, palette: Any) -> Any:
-    """A disabled primary button: the mockup's 45 % opacity, mixed onto the surface."""
-    return style.blend(style.surface(palette), colour, DISABLED_OPACITY)
+def danger_button(palette: Any) -> str:
+    """An outlined button in the danger colour, for what cannot be undone."""
+    bad = style.css_color(style.danger(palette))
+    return (
+        f"QPushButton {{ background: {style.css_color(style.surface(palette))}; color: {bad};"
+        f"border: {style.HAIRLINE}px solid {bad}; border-radius: {BUTTON_RADIUS}px; padding: 5px 12px; }}"
+        f"QPushButton:hover {{ background: {style.css_color(style.soft(palette, style.danger(palette)))}; }}"
+    )
 
 
 def plain_button(palette: Any) -> str:
@@ -312,9 +465,9 @@ def plain_button(palette: Any) -> str:
     return (
         f"QPushButton {{ background: {style.css_color(style.panel(palette))};"
         f"color: {style.css_color(style.text(palette))};"
-        f"border: {style.HAIRLINE}px solid {border}; border-radius: {BUTTON_RADIUS}px; padding: 6px 14px; }}"
+        f"border: {style.HAIRLINE}px solid {border}; border-radius: {BUTTON_RADIUS}px; padding: 5px 12px; }}"
         f"QPushButton:hover {{ background: {style.css_color(style.card(palette))}; }}"
-        "QPushButton:disabled { color: palette(mid); }"
+        f"QPushButton:disabled {{ color: {style.css_color(style.faint(palette))}; }}"
     )
 
 
@@ -328,4 +481,7 @@ def ghost_button(palette: Any) -> str:
 
 
 def hint(text: str, palette: Any) -> QLabel:
-    return controls.small(text, palette, HINT_SCALE)
+    """A row's note: 12 px in the tertiary ink, wrapping."""
+    label = controls.small(text, palette, HINT_SCALE)
+    style.ink(label, style.faint(palette))
+    return label

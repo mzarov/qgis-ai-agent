@@ -1087,3 +1087,42 @@ These verify the agent solves everyday tasks without wandering through search.
      box → every name in both lists is dark and readable, selected or not;
      the welcome, the trace, the plan and question cards, the mode and history
      menus read the same.
+225. **The settings window after the handoff.** Open the settings: the sidebar
+     has *Find a setting* on top, groups MODEL, CUSTOMIZE and DATA in small
+     capitals, the chosen page lifted with its icon in the accent, the number of
+     skills beside *Skills* and the plugin's and QGIS's versions at the foot.
+     Every page opens with its title and one sentence. The footer's dot is
+     green with *All changes saved*; edit anything → it turns amber, the page
+     gets a dot and *Save* turns blue.
+226. **Finding a setting.** Type *timeout* in *Find a setting* → the page list
+     gives way to *Tool timeout · Advanced*; click it → Advanced opens with the
+     row in view. Clear the box → the page list is back.
+227. **Connection tiles.** Each provider tile says *Local*, *Cloud · key* or
+     *Any compatible server* under its name, with a radio on the right; the
+     chosen one is in the accent. Pick Ollama → the key field greys out with
+     *Not required*; the section under the tiles is named after the provider.
+     *Test connection* answers on its own line, green with a check or red with
+     a cross and the reason.
+228. **Privacy says where data goes.** With a local address the card reads
+     *Data stays on this computer*; type a cloud address on the Connection page
+     → it reads *Data goes to the provider* with the host. *Connection* on the
+     card opens that page.
+229. **History is kept as chosen, and erased on request.** Keep conversations
+     *7 days*, Save → conversations untouched for longer are gone from the
+     history, the open one stays. *Delete…* under *Delete history and journals*
+     asks first; yes → the history is empty, the journals folder too, and the
+     panel starts a fresh conversation once the settings close.
+230. **Limits and headers.** Advanced → *Steps per run* and *Tool timeout* move
+     by 5 and by 15 s and stop at their ends. *Extra headers*: `x-folder-id:
+     abc` saves; `Authorization: Bearer x` is refused on Save with the line
+     named, and nothing is saved.
+231. **A skill switched off.** Skills → switch *charts* off, Save → `/ch` in the
+     box no longer offers it and *draw a chart of the districts* gets no chart
+     tool. The built-in list shows eight skills and *Show 9 more*; *Find a
+     skill* narrows it.
+232. **Reset.** Advanced → *Reset…* → confirm → the window closes; open it again
+     → limits, modes, connectors, skills, geocoding and personalisation choices
+     are back to their defaults, while the address, the key, your name, your
+     texts and your own skills stayed.
+233. **Geocoding tiles.** *Turned off*, *Photon*, *Your own server* as tiles;
+     Photon shows its public address greyed out, your own server takes yours.

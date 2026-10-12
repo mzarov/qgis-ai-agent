@@ -1,4 +1,5 @@
 import os
+import time
 
 from ai_agent.core.state.session import Session
 from ai_agent.qgis_tools.common.persistence import atomic_write_json, backup_path, read_json
@@ -7,6 +8,7 @@ from ai_agent.qgis_tools.common.project_identity import project_identity
 FOLDER_NAME = "ai_agent_sessions"
 SUFFIX = ".json"
 MAX_SESSIONS = 60
+DAY_SECONDS = 86400
 
 
 class SessionStore:
@@ -36,6 +38,34 @@ class SessionStore:
                 os.remove(candidate)
             except OSError:
                 continue
+
+    def prune(self, days: int, keep: str = "") -> int:
+        """Delete conversations untouched for `days` days, never the one `keep` names; 0 days keeps all."""
+        if days <= 0:
+            return 0
+        cutoff = time.time() - days * DAY_SECONDS
+        stale = [session for session in self._all() if session.updated < cutoff and session.identifier != keep]
+        for session in stale:
+            self.delete(session.identifier)
+        return len(stale)
+
+    def usage(self) -> tuple[int, int]:
+        """How many conversations are kept, and their size on disk in bytes, backups included."""
+        names = self._names()
+        size = 0
+        for name in names:
+            path = os.path.join(self._root, name)
+            for candidate in (path, backup_path(path)):
+                try:
+                    size += os.path.getsize(candidate)
+                except OSError:
+                    continue
+        return len(names), size
+
+    def erase(self) -> None:
+        """Delete every kept conversation, of every project."""
+        for name in self._names():
+            self.delete(name[: -len(SUFFIX)])
 
     def recent(self, project: str, limit: int = 20) -> list[Session]:
         sessions = [item for item in self._all() if item.project == project]

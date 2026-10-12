@@ -3,6 +3,7 @@ from typing import Any
 
 from qgis.core import QgsApplication
 
+from ai_agent.core.settings import get_disabled_skills
 from ai_agent.qgis_tools.registry import ALL_TOOLS
 from ai_agent.skills.base import parse_skill_markdown
 from ai_agent.skills.registry import SKILL_FILENAME, SKILL_REGISTRY
@@ -49,6 +50,8 @@ def local_skills_dir() -> str:
 
 
 def register_local_skills(path: str | None = None) -> list[str]:
+    """Rescan the user's skills folder and apply the switches from Settings → Skills; returns the problems."""
+    SKILL_REGISTRY.set_disabled(get_disabled_skills())
     root = path if path is not None else local_skills_dir()
     problems = SKILL_REGISTRY.set_local_root(root or None)
     known = {tool.name for tool in ALL_TOOLS}
@@ -80,7 +83,14 @@ def describe_local_skills(path: str | None = None) -> dict[str, Any]:
     for name in SKILL_REGISTRY.local_names():
         skill = SKILL_REGISTRY.get(name)
         if skill is not None:
-            skills.append({"name": skill.name, "description": skill.description, "tools": list(skill.tool_names)})
+            skills.append(
+                {
+                    "name": skill.name,
+                    "description": skill.description,
+                    "tools": list(skill.tool_names),
+                    "path": skill.path,
+                }
+            )
     return {
         "path": root,
         "skills": skills,
@@ -125,3 +135,9 @@ def write_example_skill(path: str | None = None) -> str:
 def skill_choices() -> list[tuple[str, str, str]]:
     register_local_skills()
     return [(skill.name, skill.description, skill.origin) for skill in SKILL_REGISTRY.all_skills()]
+
+
+def builtin_skills() -> list[tuple[str, str, bool]]:
+    """Every built-in skill with its description and whether it is switched on."""
+    disabled = set(get_disabled_skills())
+    return [(skill.name, skill.description, skill.name not in disabled) for skill in SKILL_REGISTRY.builtin_skills()]

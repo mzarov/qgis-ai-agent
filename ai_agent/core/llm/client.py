@@ -8,6 +8,7 @@ from qgis.core import QgsBlockingNetworkRequest
 from qgis.PyQt.QtCore import QByteArray, QUrl
 from qgis.PyQt.QtNetwork import QNetworkRequest, QSslSocket
 
+from ai_agent.core.llm import extra_headers
 from ai_agent.core.llm.dialects import (
     headers_for,
     host_of,
@@ -23,6 +24,7 @@ from ai_agent.core.settings import (
     get_auth_type,
     get_credential_store_error,
     get_dialect,
+    get_extra_headers,
     get_model,
     get_verify_ssl,
 )
@@ -177,6 +179,7 @@ def build_request(
     auth_type_override: str | None = None,
     model_override: str | None = None,
     dialect_override: str | None = None,
+    extra_headers_override: str | None = None,
 ) -> tuple[str, dict[str, str], str]:
     url = resolve_endpoint(url_override)
     chosen = dialect_override if dialect_override is not None else get_dialect()
@@ -187,7 +190,9 @@ def build_request(
             raise RuntimeError(credential_store_failure_message())
         raise ValueError(MISSING_KEY_MSG)
     auth_type = auth_type_override if auth_type_override is not None else get_auth_type()
-    headers = headers_for(dialect, key, auth_type, url)
+    extra = extra_headers_override if extra_headers_override is not None else get_extra_headers()
+    # The user's headers come first: whatever the transport sets itself always wins.
+    headers = {**extra_headers.lenient(extra), **headers_for(dialect, key, auth_type, url)}
     model = (model_override if model_override is not None else get_model()) or ""
     return url + path_for(dialect), headers, model
 
@@ -309,6 +314,7 @@ def post_chat_completion(
         overrides.get("auth_type_override"),
         overrides.get("model_override"),
         overrides.get("dialect_override"),
+        overrides.get("extra_headers_override"),
     )
     body = {"model": model, "messages": messages, "stream": False}
     if extra_body:

@@ -19,13 +19,15 @@ from ai_agent.ui import settings_fields as fields
 from ai_agent.ui.dropdown import Dropdown
 from ai_agent.ui.memory_settings import MemoryNotes
 
+PAGE_TITLE = tr("Personalisation")
+PAGE_LEAD = tr("How the agent talks to you and what it shows in the conversation. Applies in every project.")
+TALKING = tr("Talking")
+CONVERSATION = tr("In the conversation")
 TITLE = tr("Instructions for the agent")
 INTRO = tr("Followed in every conversation: tone, units, naming, the rules of your organisation.")
 PLACEHOLDER = tr(
     "For example: answer briefly. Use metres and EPSG:3857 for web maps. Name new layers in English with underscores."
 )
-WHO = tr("Who you are")
-WHO_NOTE = tr("The agent reads this at the start of every conversation.")
 NAME = tr("How to address you")
 NAME_NOTE = tr("Used in answers. Empty: no name.")
 NAME_PLACEHOLDER = tr("Your name")
@@ -38,14 +40,12 @@ ABOUT_PLACEHOLDER = tr(
     "For example: hydrologist at a regional water agency; I mostly work with river basins and gauging "
     "stations in EPSG:32637."
 )
-HOW = tr("How you work")
 EXPERIENCE = tr("GIS experience")
 EXPERIENCE_NOTE = tr("How much the agent explains.")
 UNITS = tr("Units")
 UNITS_NOTE = tr("Kilometres and hectares, or miles and acres.")
 LAYER_NAMES = tr("Layer names")
 LAYER_NAMES_NOTE = tr("How the agent names the layers it creates.")
-ANSWERS = tr("Answers")
 LANGUAGE = tr("Answer language")
 LANGUAGE_NOTE = tr("The language the agent writes in.")
 SAME_AS_QGIS = tr("Same as QGIS")
@@ -116,14 +116,51 @@ class PersonalisationSettings(QObject):
         super().__init__()
         self._palette = palette
         profile = personal.load()
-        holder, column = fields.page()
-        fields.section(column, WHO, palette, WHO_NOTE)
+        holder, column = fields.page(PAGE_TITLE, PAGE_LEAD, palette)
         self.name = self._line(profile.name, NAME_PLACEHOLDER, personal.MAX_NAME)
         self.role = self._line(profile.role, ROLE_PLACEHOLDER, personal.MAX_ROLE)
-        fields.add_rows(
-            column,
-            palette,
-            [fields.row(NAME, self.name, NAME_NOTE, palette), fields.row(ROLE, self.role, ROLE_NOTE, palette)],
+        self.language = self._languages(profile.language)
+        self.style = self._choice(personal.STYLES, profile.style)
+        self.units = self._choice(personal.UNITS, profile.units)
+        self.experience = self._choice(personal.EXPERIENCE, profile.experience)
+        self.layer_names = self._choice(personal.LAYER_NAMES, profile.layer_names)
+        fields.section(column, TALKING, palette)
+        column.addWidget(
+            fields.card_rows(
+                palette,
+                [
+                    fields.row(NAME, self.name, NAME_NOTE, palette),
+                    fields.row(ROLE, self.role, ROLE_NOTE, palette),
+                    fields.custom_row(LANGUAGE, self.language, LANGUAGE_NOTE, palette),
+                    fields.custom_row(STYLE, self.style, STYLE_NOTE, palette),
+                    fields.custom_row(UNITS, self.units, UNITS_NOTE, palette),
+                    fields.custom_row(EXPERIENCE, self.experience, EXPERIENCE_NOTE, palette),
+                    fields.custom_row(LAYER_NAMES, self.layer_names, LAYER_NAMES_NOTE, palette),
+                ],
+            )
+        )
+        self.panel_theme = self._choice(personal.PANEL_THEMES, profile.panel_theme, THEME_TITLES)
+        fields.section(column, APPEARANCE, palette)
+        column.addWidget(
+            fields.card_rows(palette, [fields.custom_row(PANEL_THEME, self.panel_theme, PANEL_THEME_NOTE, palette)])
+        )
+        self.questions = self._choice(personal.QUESTIONS, profile.questions)
+        self.auto_answer = self._choice(personal.AUTO_ANSWER, profile.auto_answer, AUTO_TITLES)
+        self.explain = self._switch(profile.explain_after)
+        self.show_steps = self._switch(profile.show_steps)
+        self.follow = self._switch(profile.follow_changes)
+        fields.section(column, CONVERSATION, palette)
+        column.addWidget(
+            fields.card_rows(
+                palette,
+                [
+                    fields.switch_row(SHOW_STEPS, self.show_steps, SHOW_STEPS_NOTE, palette),
+                    fields.switch_row(EXPLAIN, self.explain, EXPLAIN_NOTE, palette),
+                    fields.switch_row(FOLLOW, self.follow, FOLLOW_NOTE, palette),
+                    fields.custom_row(QUESTIONS, self.questions, QUESTIONS_NOTE, palette),
+                    fields.custom_row(AUTO_ANSWER, self.auto_answer, AUTO_ANSWER_NOTE, palette),
+                ],
+            )
         )
         fields.section(column, ABOUT, palette, ABOUT_NOTE)
         self.about, self.about_counter = self._text_area(
@@ -133,50 +170,16 @@ class PersonalisationSettings(QObject):
         self.editor, self.counter = self._text_area(
             column, get_custom_instructions(), PLACEHOLDER, EDITOR_HEIGHT, MAX_CUSTOM_INSTRUCTIONS
         )
-        fields.section(column, HOW, palette)
-        self.experience = self._choice(personal.EXPERIENCE, profile.experience)
-        self.units = self._choice(personal.UNITS, profile.units)
-        self.layer_names = self._choice(personal.LAYER_NAMES, profile.layer_names)
-        fields.add_rows(
-            column,
-            palette,
-            [
-                fields.custom_row(EXPERIENCE, self.experience, EXPERIENCE_NOTE, palette),
-                fields.custom_row(UNITS, self.units, UNITS_NOTE, palette),
-                fields.custom_row(LAYER_NAMES, self.layer_names, LAYER_NAMES_NOTE, palette),
-            ],
-        )
-        fields.section(column, ANSWERS, palette)
-        self.language = self._languages(profile.language)
-        self.style = self._choice(personal.STYLES, profile.style)
-        self.questions = self._choice(personal.QUESTIONS, profile.questions)
-        self.auto_answer = self._choice(personal.AUTO_ANSWER, profile.auto_answer, AUTO_TITLES)
-        self.explain = self._switch(profile.explain_after)
-        self.show_steps = self._switch(profile.show_steps)
-        self.follow = self._switch(profile.follow_changes)
-        fields.add_rows(
-            column,
-            palette,
-            [
-                fields.custom_row(LANGUAGE, self.language, LANGUAGE_NOTE, palette),
-                fields.custom_row(STYLE, self.style, STYLE_NOTE, palette),
-                fields.custom_row(QUESTIONS, self.questions, QUESTIONS_NOTE, palette),
-                fields.custom_row(AUTO_ANSWER, self.auto_answer, AUTO_ANSWER_NOTE, palette),
-                fields.switch_row(EXPLAIN, self.explain, EXPLAIN_NOTE, palette),
-                fields.switch_row(SHOW_STEPS, self.show_steps, SHOW_STEPS_NOTE, palette),
-                fields.switch_row(FOLLOW, self.follow, FOLLOW_NOTE, palette),
-            ],
-        )
-        fields.section(column, APPEARANCE, palette)
-        self.panel_theme = self._choice(personal.PANEL_THEMES, profile.panel_theme, THEME_TITLES)
-        fields.add_rows(column, palette, [fields.custom_row(PANEL_THEME, self.panel_theme, PANEL_THEME_NOTE, palette)])
         fields.section(column, MEMORY, palette, MEMORY_NOTE)
         self.memory = MemoryNotes(palette)
         self.memory.changed.connect(self.changed.emit)
+        column.addSpacing(EDITOR_GAP)
         column.addWidget(self.memory.widget)
         self.own_notes = self._switch(profile.own_notes)
         column.addSpacing(EDITOR_GAP)
-        fields.add_rows(column, palette, [fields.switch_row(OWN_NOTES, self.own_notes, OWN_NOTES_NOTE, palette)])
+        column.addWidget(
+            fields.card_rows(palette, [fields.switch_row(OWN_NOTES, self.own_notes, OWN_NOTES_NOTE, palette)])
+        )
         column.addStretch(1)
         self.widget = holder
 

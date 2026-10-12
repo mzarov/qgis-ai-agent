@@ -2,9 +2,11 @@ from typing import Any
 
 from qgis.core import Qgis
 
+from ai_agent.config import limits
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_DESTRUCTIVE, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.paths import check_overwrite
+from ai_agent.qgis_tools.processing.deadline import DeadlineFeedback
 from ai_agent.qgis_tools.processing.effects import contacts_network, sends_network_data, writes_external_data
 from ai_agent.qgis_tools.processing.units import check_distance_units
 from ai_agent.qgis_tools.processing.utils import (
@@ -131,8 +133,15 @@ class RunProcessingTool(BaseTool):
         _check_destinations(prepared, bool(params.get("overwrite_outputs")), destination_names)
         load_output = self._resolve_load_output(params)
         runner = self._get_runner(load_output)
-
-        result = runner(algorithm.id(), prepared)
+        feedback = DeadlineFeedback(limits.tool_seconds())
+        try:
+            result = runner(algorithm.id(), prepared, feedback=feedback)
+        except Exception:
+            if feedback.timed_out:
+                raise TimeoutError(feedback.timeout_message()) from None
+            raise
+        if feedback.timed_out:
+            raise TimeoutError(feedback.timeout_message())
         layer_name = apply_output_name(result, params.get("output_name") or "") if load_output else ""
         payload = {
             "algorithm_id": algorithm.id(),

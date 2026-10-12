@@ -56,8 +56,8 @@ def panel(palette: QPalette) -> QColor:
 
 
 def content(palette: QPalette) -> QColor:
-    """The settings page background."""
-    return _token(palette, "surface")
+    """The settings page background: the window's own, so fields and cards stand out on it."""
+    return _token(palette, "bg")
 
 
 def card(palette: QPalette) -> QColor:
