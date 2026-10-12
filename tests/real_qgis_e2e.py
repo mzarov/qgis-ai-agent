@@ -615,6 +615,34 @@ class PlanUndoScenario(ScenarioCase):
         self.shot("plan_undone")
 
 
+class PlanRestoreScenario(ScenarioCase):
+    def test_a_cancelled_plan_comes_back_and_applies(self) -> None:
+        from ai_agent.ui import plan as plan_module
+
+        self.model.script(
+            call("load_skill", names=["style"]),
+            call("set_opacity", layer_name="districts", opacity=0.5),
+            say("I suggest making districts half transparent."),
+            say("Checked: districts is at 50 %."),
+        )
+        self.ask("Make districts half transparent")
+        card = self.dock.conversation.findChildren(PlanCard)[-1]
+        self.assertEqual(card.layer.text(), plan_module.LAYER.format("districts"))
+        card.cancelled.emit()
+        pump(0.05)
+        self.assertFalse(self.agent.has_pending_writes)
+        self.assertFalse(card._restore.isHidden(), "a cancelled plan is not offered back")
+        self.shot("plan_cancelled")
+        card._restore.click()
+        pump(0.05)
+        self.assertTrue(self.agent.has_pending_writes, "the restored plan is not queued again")
+        self.assertFalse(card._buttons.isHidden(), "the restored card has no Apply")
+        self.apply()
+        self.assertAlmostEqual(self.layer("districts").opacity(), 0.5)
+        self.assertEqual(card._mark.text(), plan_module.APPLIED_MARK)
+        self.shot("plan_restored_and_applied")
+
+
 class QuestionScenario(ScenarioCase):
     def test_a_picked_answer_resumes_the_same_run(self) -> None:
         self.model.script(

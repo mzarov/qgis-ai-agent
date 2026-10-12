@@ -72,6 +72,12 @@ class WriteBatch:
         self._calls.append(queued)
         return queued
 
+    def restore(self, calls: list[ToolCall]) -> None:
+        """Queue again calls this batch held before, as they were: they were checked and pinned when added."""
+        if self._applying:
+            raise ValueError("Wait for the current plan to finish before adding another change.")
+        self._calls = list(calls)
+
     def _same_call(self, queued: ToolCall) -> ToolCall | None:
         signature = _signature(queued)
         for call in self._calls:

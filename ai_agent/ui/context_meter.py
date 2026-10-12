@@ -118,15 +118,7 @@ class ContextPopup(controls.RoundedFrame):
 
     def __init__(self, palette: Any, parent: QWidget | None = None):
         super().__init__(POPUP_RADIUS, parent)
-        try:
-            flags = Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint | Qt.WindowType.NoDropShadowWindowHint
-        except TypeError:
-            flags = None
-        if flags is not None:
-            self.setWindowFlags(flags)
-        # A popup is a window of its own: it does not inherit the panel's palette, so it takes the theme's.
-        style.apply_palette(self)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        controls.as_popup(self)
         self.set_look(style.surface(palette).name(), style.hairline(palette).name())
         self.setFixedWidth(POPUP_WIDTH)
         column = QVBoxLayout(self)

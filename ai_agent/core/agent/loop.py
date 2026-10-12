@@ -85,6 +85,9 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._question = ""
         self._question_options: list[str] = []
         self._stage_call: ToolCall | None = None
+        # The plan the user cancelled last, for "Restore plan", and the project it was meant for.
+        self._declined: list[ToolCall] = []
+        self._declined_project = ""
         self._generation = 0
         self._turn_callbacks: tuple | None = None
         self._active_apply_call: ToolCall | None = None
@@ -171,6 +174,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
             if SKILL_REGISTRY.get(name):
                 extend_loaded(self._loaded_skills, name)
         self._batch.clear()
+        self._declined = []
         self._iteration = 0
         self._protocol_retried = False
         self._nudged = False
@@ -194,6 +198,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         else:
             self._turn.stop()
         self._batch.clear()
+        self._declined = []
         if not applying:
             self._write_journal("Run stopped; completed changes remain.")
         self.busy_changed.emit(False)

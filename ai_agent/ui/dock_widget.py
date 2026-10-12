@@ -35,6 +35,7 @@ class AgentDockWidget(QDockWidget):
     plan_run_requested = pyqtSignal(str)
     rewind_requested = pyqtSignal(int)
     plan_undo_requested = pyqtSignal(int)
+    plan_restore_requested = pyqtSignal(int)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -122,6 +123,7 @@ class AgentDockWidget(QDockWidget):
         self.conversation.plan_run_requested.connect(self.plan_run_requested.emit)
         self.conversation.rewind_requested.connect(self.rewind_requested.emit)
         self.conversation.plan_undo_requested.connect(self.plan_undo_requested.emit)
+        self.conversation.plan_restore_requested.connect(self.plan_restore_requested.emit)
         # A picked answer travels like a typed one: the orchestrator routes it to the waiting run.
         self.conversation.question_answered.connect(self.prompt_submitted.emit)
         self.conversation.cancel_requested.connect(self.cancel_plan_clicked.emit)
@@ -252,8 +254,8 @@ class AgentDockWidget(QDockWidget):
     def mark_tool_done(self, message_id: int, ok: bool = True, note: str = "") -> None:
         self.conversation.mark_activity_step(message_id, ok, note)
 
-    def add_plan_message(self, plan_lines: list[str], applies_itself: bool = False) -> int:
-        return self.conversation.add_plan_card(plan_lines, applies_itself)
+    def add_plan_message(self, plan_lines: list[str], applies_itself: bool = False, layer: str = "") -> int:
+        return self.conversation.add_plan_card(plan_lines, applies_itself, layer)
 
     def set_work_mode(self, mode: str) -> None:
         self.composer.set_mode(mode)
@@ -279,8 +281,14 @@ class AgentDockWidget(QDockWidget):
     def mark_plan_step(self, message_id: int, index: int, state: str, note: str = "") -> None:
         self.conversation.mark_plan_step(message_id, index, state, note)
 
-    def mark_plan_cancelled(self, message_id: int) -> None:
-        self.conversation.mark_plan_cancelled(message_id)
+    def mark_plan_cancelled(self, message_id: int, restorable: bool = False) -> None:
+        self.conversation.mark_plan_cancelled(message_id, restorable)
+
+    def mark_plan_restored(self, message_id: int) -> None:
+        self.conversation.mark_plan_restored(message_id)
+
+    def forget_plan_restore(self, message_id: int) -> None:
+        self.conversation.forget_plan_restore(message_id)
 
     def show_outcome(self, kind: str) -> None:
         self.progress.show_outcome(kind)

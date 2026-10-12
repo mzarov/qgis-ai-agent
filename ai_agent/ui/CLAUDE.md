@@ -123,7 +123,10 @@ circle when pressed. Icon buttons are painted (`IconButton`), not styled.
 
 Every popup menu comes from `controls.menu`: frameless and translucent (so
 the rounded corners are not drawn over a square system frame), a strong
-hairline edge, 30 px rows and a quiet highlight, as in the handoff. Group
+hairline edge, 30 px rows and a quiet highlight, as in the handoff. The
+custom popups (history, modes, context) take the same window through
+`controls.as_popup`. Every one drops in on show: 4 px from above, fading in,
+140 ms (`transitions.DropIn`); the window moves, not a snapshot of it. Group
 captions are `controls.caption` (small, bold, upper case through the font,
 so translations stay plain text); a menu takes one with `menu_caption`.
 Menus open where there is room: the history left-aligned under the title,
@@ -254,6 +257,12 @@ While the plan applies, each step shows its progress at the end of its line
 it, in plain words (`core/agent/failures.explain_failure`); the model keeps the
 exact English error. Apply-phase tool events go to the card, not to feed rows,
 which only repeated its lines.
+
+The header names the layer the steps work on, on the right, when they name
+one (`planning.plan_layer`). A cancelled card offers **Restore plan** until
+anything else happens — a new request, an undo, another conversation: the
+agent keeps the cancelled calls as they were queued (`restore_declined`) and
+the same card goes back to Apply and Cancel.
 
 Once applied the card says "Applied · N changes" with the time and offers
 **Undo** when its apply took a snapshot: the orchestrator keeps the snapshot

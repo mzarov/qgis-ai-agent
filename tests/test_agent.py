@@ -173,6 +173,24 @@ class BatchTest(unittest.TestCase):
         self.loop.cancel_pending()
         self.assertFalse(self.loop.has_pending_writes)
 
+    def test_a_cancelled_plan_comes_back_once_while_nothing_else_happened(self):
+        self.loop._batch._calls = [call("run_processing")]
+        self.loop.cancel_pending()
+        self.assertTrue(self.loop.restore_declined())
+        self.assertEqual([queued.name for queued in self.loop.pending_writes()], ["run_processing"])
+        self.loop.cancel_pending()
+        self.loop.forget_declined()
+        self.assertFalse(self.loop.restore_declined())
+        self.assertFalse(self.loop.has_pending_writes)
+
+    def test_a_cancelled_plan_is_not_restored_into_another_project(self):
+        self.loop._batch._calls = [call("run_processing")]
+        with mock.patch.object(batch_apply_module, "project_identity", return_value="first"):
+            self.loop.cancel_pending()
+        with mock.patch.object(batch_apply_module, "project_identity", return_value="second"):
+            self.assertFalse(self.loop.restore_declined())
+        self.assertFalse(self.loop.has_pending_writes)
+
     def test_confirm_on_empty_queue_does_nothing(self):
         self.loop.confirm_pending()
         self.assertEqual(self.executor.ran, [])

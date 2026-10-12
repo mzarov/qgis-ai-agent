@@ -416,6 +416,21 @@ class FailedPlanCardTest(unittest.TestCase):
             step = plan_module.PlanStep(1, "<b>weather</b><!-- hidden -->", QWidget().palette())
         self.assertEqual(step.label.textFormat(), Qt.TextFormat.PlainText)
 
+    def test_a_cancelled_plan_is_offered_back_and_restored_to_apply_and_cancel(self):
+        from ai_agent.ui import plan as plan_module
+
+        card = plan_module.PlanCard(["Colouring districts."], layer="Districts")
+        self.assertEqual(card.layer.text(), plan_module.LAYER.format("Districts"))
+        card.mark_cancelled(restorable=True)
+        self.assertFalse(card._restore.isHidden())
+        self.assertTrue(card._buttons.isHidden())
+        card.restore()
+        self.assertFalse(card._buttons.isHidden())
+        self.assertTrue(card._status.isHidden())
+        self.assertEqual(card._mark.text(), plan_module.PENDING_MARK)
+        card.mark_cancelled()
+        self.assertTrue(card._restore.isHidden(), "a plan the conversation moved past is not offered back")
+
     def test_a_failed_step_shows_its_mark_and_reason_and_a_done_one_only_its_mark(self):
         from ai_agent.ui import plan as plan_module
 

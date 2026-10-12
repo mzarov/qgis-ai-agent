@@ -9,13 +9,14 @@ conversation 120 ms behind), the first message on the welcome (the chat
 arrives), and a conversation opened from the history. What arrives moves inside
 a graphics effect, not through its layout, so nothing reflows while it plays.
 Every animation is owned by its widget and ticks a bound method, so a widget
-deleted mid-play takes its ticks with it.
+deleted mid-play takes its ticks with it. Menus and popups drop in: from 4 px
+above, fading in, over 140 ms (`DropIn`).
 """
 
 from collections.abc import Callable
 from typing import Any
 
-from qgis.PyQt.QtCore import QObject, QPoint, QRect, QRectF, Qt, QVariantAnimation, pyqtSignal
+from qgis.PyQt.QtCore import QEvent, QObject, QPoint, QRect, QRectF, Qt, QVariantAnimation, pyqtSignal
 from qgis.PyQt.QtGui import QPainter, QPixmap, QRegion
 from qgis.PyQt.QtWidgets import QGraphicsEffect, QWidget
 
@@ -29,6 +30,10 @@ ARRIVE_MS = 320
 ARRIVE_DROP = 10
 LAG_MS = 120
 ARRIVE_EASING = (0.2, 0.7, 0.3, 1.0)
+MENU_MS = 140
+MENU_DROP = 4
+# CSS ease, the default curve of the handoff's menu animation.
+MENU_EASING = (0.25, 0.1, 0.25, 1.0)
 
 
 def animation(
@@ -171,6 +176,44 @@ class Arrival(QObject):
             # Without the effect the target paints directly again; Qt deletes the effect itself.
             self._target.setGraphicsEffect(None)
         self.deleteLater()
+
+
+class DropIn(QObject):
+    """Plays a popup window's appearance every time it is shown: from MENU_DROP px above, fading in.
+
+    The window itself moves: a menu's rows are drawn by Qt's style, and a graphics effect over them
+    would show a snapshot instead. Qt sends Show before the window reaches the screen, so the first
+    frame is already the raised, transparent one.
+    """
+
+    def __init__(self, window: QWidget):
+        super().__init__(window)
+        self._window = window
+        self._target = QPoint()
+        self._animation = animation(self, MENU_MS, self._tick, self._settle)
+        window.installEventFilter(self)
+
+    def eventFilter(self, watched: Any, event: Any) -> bool:
+        if watched is self._window:
+            kind = event.type()
+            if kind == QEvent.Type.Show:
+                self._target = self._window.pos()
+                self._animation.stop()
+                self._tick(0.0)
+                self._animation.start()
+            elif kind == QEvent.Type.Hide:
+                self._animation.stop()
+                self._window.setWindowOpacity(1.0)
+        return False
+
+    def _tick(self, value: Any) -> None:
+        progress = cubic_bezier(MENU_EASING, min(max(float(value), 0.0), 1.0))
+        self._window.setWindowOpacity(progress)
+        self._window.move(self._target.x(), self._target.y() - round(MENU_DROP * (1.0 - progress)))
+
+    def _settle(self) -> None:
+        self._window.setWindowOpacity(1.0)
+        self._window.move(self._target)
 
 
 def leave(snapshot: QPixmap, viewport: QWidget, then: Callable[[], None]) -> None:

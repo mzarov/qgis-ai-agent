@@ -40,6 +40,7 @@ class ConversationView(QScrollArea):
     plan_run_requested = pyqtSignal(str)
     rewind_requested = pyqtSignal(int)
     plan_undo_requested = pyqtSignal(int)
+    plan_restore_requested = pyqtSignal(int)
     question_answered = pyqtSignal(str)
     suggestion_chosen = pyqtSignal(str)
     settings_requested = pyqtSignal()
@@ -311,7 +312,7 @@ class ConversationView(QScrollArea):
     def add_recorded_plan(self, record: dict[str, Any]) -> None:
         """A reopened plan card, settled as it ended; never undoable, the snapshots died with that session."""
         lines = [str(line) for line in record.get("lines") or ()]
-        entry_id = self.add_plan_card(lines)
+        entry_id = self.add_plan_card(lines, layer=str(record.get("layer") or ""))
         card = self._entries.get(entry_id)
         if not isinstance(card, PlanCard):
             return
@@ -329,13 +330,14 @@ class ConversationView(QScrollArea):
             # Never applied before the conversation was closed: the batch is gone with that session.
             card.mark_cancelled()
 
-    def add_plan_card(self, steps: list[str], applies_itself: bool = False) -> int:
+    def add_plan_card(self, steps: list[str], applies_itself: bool = False, layer: str = "") -> int:
         self._close_activity()
-        card = PlanCard(steps, applies_itself)
+        card = PlanCard(steps, applies_itself, layer)
         card.confirmed.connect(self.confirm_requested.emit)
         card.cancelled.connect(self.cancel_requested.emit)
         entry_id = self._append(card)
         card.undo_requested.connect(lambda: self.plan_undo_requested.emit(entry_id))
+        card.restore_requested.connect(lambda: self.plan_restore_requested.emit(entry_id))
         return entry_id
 
     def add_plan_offer(self) -> int:
@@ -387,10 +389,20 @@ class ConversationView(QScrollArea):
         if isinstance(card, PlanCard):
             card.mark_step(index, state, note)
 
-    def mark_plan_cancelled(self, entry_id: int) -> None:
+    def mark_plan_cancelled(self, entry_id: int, restorable: bool = False) -> None:
         card = self._entries.get(entry_id)
         if isinstance(card, PlanCard):
-            card.mark_cancelled()
+            card.mark_cancelled(restorable)
+
+    def mark_plan_restored(self, entry_id: int) -> None:
+        card = self._entries.get(entry_id)
+        if isinstance(card, PlanCard):
+            card.restore()
+
+    def forget_plan_restore(self, entry_id: int) -> None:
+        card = self._entries.get(entry_id)
+        if isinstance(card, PlanCard):
+            card.forget_restore()
 
     def clear(self) -> None:
         for index in reversed(range(self._column.count())):
