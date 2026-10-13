@@ -1,4 +1,7 @@
+import json
 import unittest
+from pathlib import Path
+from unittest import mock
 
 from ai_agent.core.context import project as context
 
@@ -94,6 +97,38 @@ class ProjectContextTest(unittest.TestCase):
             context.get_project_context(),
             "Project CRS: EPSG:3857.\nActive layer: cafes.\nLayers: cafes (point, EPSG:4326, 17 features).",
         )
+
+    def test_measurements_name_the_ellipsoid_and_unit_codes(self):
+        class Measured:
+            def __init__(self, ellipsoid):
+                self._ellipsoid = ellipsoid
+
+            def ellipsoid(self):
+                return self._ellipsoid
+
+            def distanceUnits(self):
+                return "distance"
+
+            def areaUnits(self):
+                return "area"
+
+        class Units:
+            @staticmethod
+            def encodeUnit(unit):
+                return {"distance": "meters", "area": "m2"}[unit]
+
+        with mock.patch.object(context, "QgsUnitTypes", Units):
+            self.assertEqual(
+                context.measurement_line(Measured("EPSG:7030")),
+                "Measurements: ellipsoid EPSG:7030; $length in meters, $area in m2, even on layers in degrees.",
+            )
+            self.assertEqual(context.measurement_line(Measured("NONE")), context.UNMEASURED)
+        self.assertEqual(context.measurement_line(object()), "", "a project that cannot say adds no line")
+
+    def test_the_eval_fixture_describes_measurements_like_the_plugin(self):
+        fixture = json.loads((Path(__file__).resolve().parent.parent / "evals" / "fixture.json").read_text())
+        line = next(item for item in fixture["project_context"].splitlines() if item.startswith("Measurements:"))
+        self.assertEqual(line, context.MEASURED.format("EPSG:7030", "meters", "m2"))
 
     def test_an_empty_project_is_one_line(self):
         self.use(Project([], crs=""))

@@ -83,11 +83,12 @@ same layer makes the first call pointless. Queue only the call you actually mean
 
 ### Choosing between categories and graduations
 
-Text field with a handful of distinct values — `set_categories`. Numeric field
-with a continuous spread — `set_graduated`. If you do not know which, call
-`get_field_values` from the `inspect` skill first: it shows both the type and how
-many distinct values there are. Categorising a field with hundreds of values
-produces an unreadable map, and the tool refuses past 60.
+Text field — `set_categories`. Numeric field with a continuous spread —
+`set_graduated`. The field's type is in `describe_layer`; do not read its values
+first just to choose a tool or to count them. `set_categories` refuses a field
+with more than 60 distinct values and says so — only then is another approach
+needed. Read the values when the request depends on them: a colour named for a
+particular value, or only some values to show.
 
 ### Colours and ramps
 

@@ -17,8 +17,8 @@
     }
   },
   "scripted": {
-    "system_chars": 23900,
-    "tools_chars": 25100,
-    "base_chars": 23400
+    "system_chars": 26000,
+    "tools_chars": 26900,
+    "base_chars": 25800
   }
 }

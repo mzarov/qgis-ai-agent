@@ -41,10 +41,11 @@ go looking for a length column.
 
 - Field names are case-sensitive; string literals take single quotes:
   `highway = 'motorway'`.
-- `$length` and `$area` follow the project: with an `ellipsoid` in
-  `get_project_info` they come back in its `distance_units` / `area_units` —
-  usually metres, even for a layer in degrees. With no ellipsoid they are raw CRS
-  units, which on a geographic layer means degrees. Check once and state the unit.
+- `$length` and `$area` follow the project, and the project context's
+  `Measurements:` line says how: with an ellipsoid they come back in its units —
+  usually metres, even for a layer in degrees; with none they are raw CRS units,
+  which on a geographic layer means degrees. State the unit in the answer; no
+  `get_project_info` call is needed for it.
 - `aggregate="count"` counts features regardless of nulls; add
   `filter="field is not null"` to count values.
 
