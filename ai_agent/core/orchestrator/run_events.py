@@ -2,13 +2,13 @@
 
 from qgis.core import Qgis, QgsMessageLog
 
+from ai_agent.core.agent.run_failure import explain_run_failure
 from ai_agent.core.orchestrator.notices import (
     APPLY_STOPPED,
     AWAITING_ANSWER,
     LOG_TAG,
     RUN_STOPPED,
     STATUS_DONE,
-    STATUS_FAILED,
     STATUS_HIDDEN,
     STATUS_WAITING,
     STEP_DONE,
@@ -22,6 +22,7 @@ from ai_agent.qgis_tools.call_summary import CallSummary
 
 # The feed's icon for a skill being loaded; tool calls carry their own skill.
 KNOWLEDGE = "knowledge"
+RUN_FAILED_LOG = "The model request failed: {0}"
 
 
 class RunEventsMixin:
@@ -72,10 +73,10 @@ class RunEventsMixin:
         self._active_tool_message_id = self.dock_widget.add_tool_message(summary)
         self.conversation.trace.call(summary)
 
-    def on_tool_progressed(self, percent: float) -> None:
+    def on_tool_progressed(self, percent: float, done: int = 0) -> None:
         """A plan step working off the main thread says how far it is; its line on the card shows it."""
         if self._applying_plan() and self._plan_step >= 0:
-            self.dock_widget.mark_plan_progress(self._plan_message_id, self._plan_step, percent)
+            self.dock_widget.mark_plan_progress(self._plan_message_id, self._plan_step, percent, done)
 
     def on_tool_finished(self, tool_name: str, ok: bool, note: str = "") -> None:
         if self._applying_plan() and self._plan_step >= 0:
@@ -139,9 +140,25 @@ class RunEventsMixin:
         self.conversation.keep_trace()
         self._plan_message_id = None
         self._keep_partial_answer()
-        self.dock_widget.show_outcome(STATUS_FAILED)
-        self.dock_widget.add_error_message(tr("Error: {0}").format(message))
-        self._push_message(message, Qgis.MessageLevel.Critical)
+        overrides = getattr(self.agent, "overrides", None) or {}
+        failure = explain_run_failure(
+            str(getattr(self.agent, "failure_kind", "") or ""),
+            message,
+            str(overrides.get("url_override") or ""),
+            str(overrides.get("model_override") or ""),
+        )
+        # Retry only where it can help: a wrong path or key fails the same way until the settings change.
+        retryable = self._retry_args is not None and not getattr(self.agent, "is_verification", False)
+        self.dock_widget.add_run_failure(
+            failure.title,
+            failure.detail,
+            str(message),
+            failure.kind,
+            failure.fixed_in_settings,
+            retryable and failure.retry_helps,
+        )
+        # The card is the run's outcome: no status line under it, no banner over the map repeating it.
+        QgsMessageLog.logMessage(RUN_FAILED_LOG.format(message), LOG_TAG, Qgis.MessageLevel.Critical)
         self._offer_request_again()
 
     def _keep_partial_answer(self) -> None:

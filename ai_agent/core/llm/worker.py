@@ -2,6 +2,7 @@ from qgis.core import QgsFeedback
 from qgis.PyQt.QtCore import QThread, pyqtSignal
 
 from ai_agent.core.llm.client import DEFAULT_TIMEOUT
+from ai_agent.core.llm.failure_kinds import turn_failure
 from ai_agent.core.llm.transport import call_model
 
 
@@ -11,7 +12,8 @@ class ModelTurnThread(QThread):
     thinking = pyqtSignal(str)
     # A RetryNotice: the request failed and waits before its next attempt.
     retrying = pyqtSignal(object)
-    error = pyqtSignal(str)
+    # A TurnFailure: the message, a str still, with the kind of failure attached.
+    error = pyqtSignal(object)
 
     def __init__(self, messages, tool_schemas, overrides, timeout=DEFAULT_TIMEOUT, parent=None):
         super().__init__(parent)
@@ -51,7 +53,7 @@ class ModelTurnThread(QThread):
             )
         except Exception as err:
             if not self.isInterruptionRequested():
-                self.error.emit(str(err))
+                self.error.emit(turn_failure(err))
             return
         if not self.isInterruptionRequested():
             self.finished_turn.emit(turn)

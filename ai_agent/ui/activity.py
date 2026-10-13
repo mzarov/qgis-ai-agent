@@ -23,6 +23,7 @@ from qgis.PyQt.QtGui import QBrush, QPainter, QPen
 from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from ai_agent.config import personal
+from ai_agent.core.orchestrator.notices import RUN_CHECK, RUN_LOOK_INTO
 from ai_agent.i18n import tr, tr_n
 from ai_agent.ui import controls, folding, icons, style
 from ai_agent.ui.durations import format_seconds
@@ -33,6 +34,8 @@ FAILED = "✕"
 REJECTED = "⊘"
 CLOSING = {"'": "'", '"': '"', "«": "»", "“": "”"}
 WORKING = tr("Working · step {0}")
+CHECKING = tr("Checking the changes · step {0}")
+LOOKING_INTO = tr("Looking into the failure · step {0}")
 SKILL_TAG = tr("skill")
 CHOSE = tr("You chose")
 CHOICE = "choice"
@@ -270,8 +273,10 @@ class StepRow(TraceRow):
 
 
 class ActivityGroup(QFrame):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, kind: str = ""):
         super().__init__(parent)
+        # What the run was for: the user's request (""), the check after an apply, or a look into a failure.
+        self.kind = kind
         # Taken before the style sheet: "background: transparent" turns the widget's own palette
         # base transparent, which the theme reads as dark and paints the rows in near-white text.
         palette = self._palette = self.palette()
@@ -408,7 +413,7 @@ class ActivityGroup(QFrame):
         if self.only_thoughts and self._rows_holder.isHidden():
             self._rows_holder.set_open(True, animate=False)
         working = self._pending and not self._closed
-        title = WORKING.format(count) if working else tr_n("Activity · %n step(s)", count)
+        title = self._working_title(count) if working else self._title(count)
         self._header.title.setText(title)
         if self._recorded is not None:
             self._header.time.setText(format_seconds(self._recorded) if self._recorded >= SHORTEST_SHOWN else "")
@@ -419,6 +424,20 @@ class ActivityGroup(QFrame):
             self._header.status.setText("· " + tr_n("%n failed", self._failures))
             style.ink(self._header.status, style.danger(self._palette))
         self.update()
+
+    def _working_title(self, count: int) -> str:
+        if self.kind == RUN_CHECK:
+            return CHECKING.format(count)
+        if self.kind == RUN_LOOK_INTO:
+            return LOOKING_INTO.format(count)
+        return WORKING.format(count)
+
+    def _title(self, count: int) -> str:
+        if self.kind == RUN_CHECK:
+            return tr_n("Changes checked · %n step(s)", count)
+        if self.kind == RUN_LOOK_INTO:
+            return tr_n("Failure looked into · %n step(s)", count)
+        return tr_n("Activity · %n step(s)", count)
 
     def _on_toggled(self, expanded: bool) -> None:
         self._rows_holder.set_open(expanded or self.only_thoughts, animate=not self.quiet)

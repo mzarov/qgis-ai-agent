@@ -611,8 +611,10 @@ These verify the agent solves everyday tasks without wandering through search.
     vision → the first request is retried without the image, the run finishes
     with a text note instead of an error, and later runs skip images at once.
 94. **Verification runs after Apply.** “Make the rivers blue” → Apply → the
-    feed shows “Checking the applied changes…”, then describe_style or
-    render_map, then a short verdict that the rivers are now blue.
+    status line reads “Checking the changes…”, describe_style or render_map
+    gather under their own “Checking the changes · step N” trace (folding to
+    “Changes checked · N steps”, no note above it; the title survives a
+    reopen), then a short verdict that the rivers are now blue.
 95. **Verification fixes a failure.** Force one step to fail (e.g. rename the
     layer between queueing and applying) → the verification run sees the
     failure and queues a corrected call; a new plan card appears.
@@ -952,7 +954,7 @@ These verify the agent solves everyday tasks without wandering through search.
 200. **A simple step is checked by reading.** *Rename districts to "Districts
      2020" and hide it* → Apply → the feed says *Checked: every step is in
      place.* and no second model run starts. *Colour districts by population*
-     → Apply → the usual *Checking the applied changes…* run follows.
+     → Apply → the usual *Checking the changes* run follows.
 201. **Open data loads.** *Find a cloud-free Sentinel-2 image of the current
      view from this summer* → a consent prompt names the Planetary Computer,
      the answer lists scenes with dates and cloud cover; *load the clearest* →
@@ -998,7 +1000,8 @@ These verify the agent solves everyday tasks without wandering through search.
 209. **Failures in plain words.** Disconnect the network; *download the roads
      here from OSM* → Apply → the plan step ✕ with *Could not reach the
      service…* under it, no feed row repeating it, no English error text,
-     then *Looking into what went wrong…*. *Rename the roads layer to Roads and
+     then a trace of its own, *Looking into the failure · step N*, and no
+     note announcing it. *Rename the roads layer to Roads and
      colour it orange* → Apply → both steps ✓.
 210. **Personalisation.** Settings → Personalisation: name *Masha*, units
      *Imperial*, answer length *Concise* → Save; *how long is the longest
@@ -1135,7 +1138,9 @@ These verify the agent solves everyday tasks without wandering through search.
      “NN %” growing → the layer arrives and the line shows ✓. Again, and press
      ■ while it runs: the step and the ones after it are cancelled, no new
      layer. Download cafes from OpenStreetMap: QGIS stays usable while
-     Overpass answers.
+     Overpass answers, the step's bar sweeps and its mark counts the
+     download (“840 KB”, “2.4 MB”). QGIS's own task bar at the bottom of
+     the window shows none of these steps.
 237. **A legend after a restyle.** “Colour the districts by population in 5
      classes” → Apply → under “Done” a strip of five cells, palest to darkest,
      with “20k–35k”-style bounds under them, no wider than a narrow panel;
@@ -1144,9 +1149,17 @@ These verify the agent solves everyday tasks without wandering through search.
 238. **A retry is shown, an error is red.** Set the address to
      `http://localhost:9/v1` (nothing listens there) and send anything → the
      status line reads “The request failed · retrying in 2 s (2/3)”, counting
-     down, then “Retrying… (2/3)”, then the same for 3/3 → the run ends with a
-     red “Error: …” line and the shaking compass. Notes such as “Run stopped.
-     Pending work was cancelled.” stay grey.
+     down, then “Retrying… (2/3)”, then the same for 3/3 → the run ends on a
+     card: an unplugged icon on a pink tile, “No connection to the model”,
+     one sentence naming `localhost:9`, the error itself in a faint monospace
+     line, **Retry** and **Connection**; no status line under the card and no
+     red banner over the map. **Connection** opens the settings; set the
+     address back, then **Retry** → the card leaves the feed and the same
+     request runs again, not repeated in the feed. Now break only the path
+     (`…/v` instead of `…/v1`) → “Model or address not found” names the
+     address with its path and the model, and offers only **Connection**
+     (outlined); fix the path, Save → **Retry** appears on the card. Notes
+     such as “Run stopped. Pending work was cancelled.” stay grey.
 239. **A busy model is retried longer.** On a provider answering 429
      “overloaded” the line reads “The model is busy · retrying in N s (2/5)”,
      N being the server's Retry-After (30 s at most); as soon as the answer

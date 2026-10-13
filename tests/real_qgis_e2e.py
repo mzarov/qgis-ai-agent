@@ -25,16 +25,19 @@ from e2e_harness import ARTIFACTS, PluginCase, process, pump
 from e2e_model import USAGE, ScriptedModel, call, calls, fail, say, think
 from qgis.core import QgsFeature, QgsGeometry, QgsProject, QgsVectorLayer
 
-from ai_agent.core.llm import retry
-from ai_agent.core.orchestrator.notices import CHECKED_BY_READING, STATUS_DONE, STATUS_WAITING
+from ai_agent.core.agent.run_failure import RUN_FAILURES
+from ai_agent.core.llm import failure_kinds, retry
+from ai_agent.core.orchestrator.notices import CHECKED_BY_READING, RUN_CHECK, STATUS_DONE, STATUS_WAITING
 from ai_agent.core.settings import get_auto_apply, set_reasoning_enabled, set_supports_images, set_work_mode
 from ai_agent.ui import progress
+from ai_agent.ui.activity import ActivityGroup
 from ai_agent.ui.chart import ChartCard
 from ai_agent.ui.composer_parts import MODES
 from ai_agent.ui.durations import format_seconds
+from ai_agent.ui.failure_card import FailureCard
 from ai_agent.ui.legend import LegendCard
 from ai_agent.ui.messages import SystemMessage
-from ai_agent.ui.plan import PlanCard
+from ai_agent.ui.plan import RUNNING_MARK, PlanCard
 from ai_agent.ui.question import QuestionCard
 from ai_agent.ui.transitions import LeavingFeed
 
@@ -126,6 +129,10 @@ class StyleScenario(ScenarioCase):
         self.assertTrue(legends[0].as_strip)
         self.assertEqual(len(legends[0].items), 5)
         self.assertNotIn("visual_for_user", self.model.sent_text(4), "the legend reached the model")
+        checks = [group for group in self.dock.conversation.findChildren(ActivityGroup) if group.kind == RUN_CHECK]
+        self.assertEqual(len(checks), 1, "the check after Apply is not its own trace")
+        notes = [message.plain_text() for message in self.dock.conversation.findChildren(SystemMessage)]
+        self.assertFalse(any("Checking" in note for note in notes), notes)
 
         verification = self.model.tool_names(4)
         self.assertIn("describe_style", verification, "verification started without the applying run's skills")
@@ -484,10 +491,37 @@ class FailureScenario(ScenarioCase):
         self.ask("Make districts half transparent")
         self.assertTrue(self.agent.has_pending_writes, "the prepared step was thrown away by the error")
         self.assertEqual(self.dock.composer._edit.toPlainText(), "Make districts half transparent")
+        card = self.dock.conversation.findChildren(FailureCard)[-1]
+        self.assertEqual(card.title.text(), RUN_FAILURES[failure_kinds.AUTH][0])
+        self.assertFalse(card.settings.isHidden(), "a refused key is fixed in the Connection settings")
         self.model.script(say("Opacity applied."))
         self.apply()
         self.assertAlmostEqual(self.layer("districts").opacity(), 0.5)
         self.shot("failure_keeps_plan")
+
+
+class FailureCardScenario(ScenarioCase):
+    def test_a_wrong_address_offers_retry_once_the_settings_are_saved(self) -> None:
+        self.model.script(fail(404, '{"detail":"Not Found"}'))
+        self.ask("Which layers are there?")
+        card = self.dock.conversation.findChildren(FailureCard)[-1]
+        self.assertEqual(card.title.text(), RUN_FAILURES[failure_kinds.NOT_FOUND][0])
+        self.assertTrue(card.retry.isHidden(), "the same request would hit the same wrong address")
+        self.assertFalse(card.settings.isHidden())
+        self.assertIn("404", card.technical.text(), "the server's own words are not on the card")
+        self.assertTrue(self.dock.progress.isHidden(), "the status line repeats the card under it")
+        self.shot("failure_card")
+        self.orchestrator.on_settings_saved()
+        self.assertFalse(card.retry.isHidden(), "Retry did not come back after the settings were saved")
+        self.model.script(say("Two layers."))
+        card.retry.click()
+        self.wait_idle()
+        self.assertEqual(self.last(), "Two layers.")
+        self.assertEqual(self.dock.conversation.findChildren(FailureCard), [], "the retried failure stayed")
+        self.assertEqual(self.dock.progress.state, STATUS_DONE)
+        users = [message for message in self.orchestrator.conversation.messages if message["role"] == "user"]
+        self.assertEqual(len(users), 1, "the retried request was written twice")
+        self.assertEqual(self.dock.composer._edit.toPlainText(), "", "the box still holds the retried request")
 
 
 class RetryScenario(ScenarioCase):
@@ -714,7 +748,9 @@ class BackgroundStepScenario(ScenarioCase):
                     ARTIFACTS.mkdir(parents=True, exist_ok=True)
                     self.dock.grab().save(str(ARTIFACTS / "background_step_progress.png"))
         self.assertTrue(shown, "the running step never showed its progress")
-        self.assertTrue(all(text.endswith("%") for text in shown), shown)
+        # The bar runs before the algorithm says how far it is; from then on, its percent.
+        self.assertTrue(all(text.endswith("%") for text in shown if text != RUNNING_MARK), shown)
+        self.assertTrue(any(text.endswith("%") for text in shown), shown)
         self.wait_idle()
         self.assertEqual(self.layer("Station zones").featureCount(), self.STATIONS)
         self.assertTrue(card._steps[0].bar.isHidden(), "the bar stays after the step ended")

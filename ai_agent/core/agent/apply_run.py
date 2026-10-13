@@ -29,6 +29,7 @@ PROJECT_CHANGED_ERROR = (
     "The QGIS project changed while this plan was being applied. This step and every later step were stopped."
 )
 CANCELLED_ERROR = "The run was stopped. This pending step and every later step were cancelled."
+UNKNOWN = -1.0
 
 
 class ApplyRun:
@@ -42,7 +43,7 @@ class ApplyRun:
         on_finish: Callable[[ToolCall, ToolResult], Any],
         done: Callable[[list[ToolResult]], Any],
         expected_project_identity: str,
-        on_progress: Callable[[float], Any] | None = None,
+        on_progress: Callable[[float, int], Any] | None = None,
     ) -> None:
         self._batch = batch
         self._calls = list(calls)
@@ -54,9 +55,12 @@ class ApplyRun:
         self._names_at_start = layer_names_by_id()
         self._results: list[ToolResult] = []
         self._failed: ToolResult | None = None
-        # The step working off the main thread, while it works.
+        # The step working off the main thread, while it works, and how far it is: a percent (-1 while
+        # the whole is unknown) and what is done so far, bytes of a download.
         self._work: Any = None
         self._call: ToolCall | None = None
+        self._percent = UNKNOWN
+        self._done_count = 0
         self._detached = False
 
     def advance(self) -> None:
@@ -72,8 +76,11 @@ class ApplyRun:
                     work = self._batch._executor.start(call, self._ended)
                     if work is not None:
                         self._work, self._call = work, call
-                        if self._on_progress is not None:
-                            work.progressed.connect(self._on_progress)
+                        self._percent, self._done_count = UNKNOWN, 0
+                        work.progressed.connect(self._progressed)
+                        work.counted.connect(self._counted)
+                        # The step is under way before it says how far: its line shows it working at once.
+                        self._tell_progress()
                         return
                     try:
                         result = self._batch._executor.run(call)
@@ -85,6 +92,18 @@ class ApplyRun:
             raise
         if not self._detached:
             self._finish()
+
+    def _progressed(self, percent: float) -> None:
+        self._percent = float(percent)
+        self._tell_progress()
+
+    def _counted(self, done: int) -> None:
+        self._done_count = int(done)
+        self._tell_progress()
+
+    def _tell_progress(self) -> None:
+        if self._on_progress is not None and not self._detached:
+            self._on_progress(self._percent, self._done_count)
 
     def cancel(self) -> None:
         """Stop the step working in the background; its result comes back as a failure, as usual."""

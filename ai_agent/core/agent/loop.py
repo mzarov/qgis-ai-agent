@@ -16,6 +16,7 @@ from ai_agent.core.agent.run_journal import RunJournal
 from ai_agent.core.agent.skills import extend_loaded
 from ai_agent.core.agent.transcript import ToolResult, Transcript
 from ai_agent.core.agent.turn_thread import TurnThreadOwner
+from ai_agent.core.llm.failure_kinds import OTHER
 from ai_agent.core.llm.turns import PROTOCOL_JSON, PROTOCOL_NATIVE, ModelTurn, ToolCall
 from ai_agent.core.settings import get_token_budget
 from ai_agent.qgis_tools.web.http import cancel_active_requests
@@ -30,8 +31,8 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
     tool_started = pyqtSignal(object)
     # Tool name, success, and the user-facing line about what the call found (may be empty).
     tool_finished = pyqtSignal(str, bool, str)
-    # A step working off the main thread: how far it is, 0–100.
-    tool_progressed = pyqtSignal(float)
+    # A step working off the main thread: a percent (-1 while the whole is unknown) and the bytes done.
+    tool_progressed = pyqtSignal(float, int)
     tool_queued = pyqtSignal(str)
     tool_rejected = pyqtSignal(object)
     skill_loaded = pyqtSignal(str)
@@ -84,6 +85,8 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._plan_done = 0
         self._staged = False
         self._pending_protocol = PROTOCOL_NATIVE
+        # The kind of the last failure (core/llm/failure_kinds), for the chat's wording.
+        self.failure_kind = ""
         self._verification_round = 0
         self._streamed_thinking = False
         self._question = ""
@@ -444,6 +447,8 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
     def _fail(self, message: str, generation: int | None = None) -> None:
         if not self._is_current(generation):
             return
+        # How the chat words it; a failure raised here, not in the request, has no kind.
+        self.failure_kind = str(getattr(message, "kind", "") or OTHER)
         self._turn.release()
         self._turn_callbacks = None
         self._staged = False

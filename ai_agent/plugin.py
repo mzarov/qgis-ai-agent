@@ -79,6 +79,7 @@ class QgisAiAgentPlugin:
         self.dock_widget.rewind_requested.connect(self._orchestrator.on_rewind)
         self.dock_widget.plan_undo_requested.connect(self._orchestrator.on_undo_plan)
         self.dock_widget.plan_restore_requested.connect(self._orchestrator.on_restore_plan)
+        self.dock_widget.retry_requested.connect(self._orchestrator.on_retry)
         self.dock_widget.confirm_plan_clicked.connect(self._orchestrator.on_confirm_plan)
         self.dock_widget.cancel_plan_clicked.connect(self._orchestrator.on_cancel_plan)
         self.dock_widget.new_session_clicked.connect(self._orchestrator.on_new_session)
@@ -109,6 +110,7 @@ class QgisAiAgentPlugin:
         if self._orchestrator:
             self._orchestrator.refresh_configured()
         if accepted:
+            self._orchestrator.on_settings_saved()
             self._follow_theme()
 
     def _follow_theme(self) -> None:

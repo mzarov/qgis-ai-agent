@@ -98,13 +98,13 @@ class WriteBatch:
         on_finish: Callable[[ToolCall, ToolResult], Any],
         expected_project_identity: str | None = None,
         done: Callable[[list[ToolResult]], Any] | None = None,
-        on_progress: Callable[[float], Any] | None = None,
+        on_progress: Callable[[float, int], Any] | None = None,
     ) -> list[ToolResult] | None:
         """Apply the queued calls in order; `done` gets their results once the last step has ended.
 
         When no step went off the main thread that happens before this returns, and the results are
-        returned too; otherwise this returns None and `done` follows. `on_progress` hears 0–100 from a
-        step working in the background.
+        returned too; otherwise this returns None and `done` follows. `on_progress` hears how far a step
+        working in the background is: a percent, -1 while unknown, and the bytes or items done.
         """
         if self._applying:
             raise RuntimeError("This plan is already being applied.")

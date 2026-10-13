@@ -25,6 +25,7 @@ from qgis.core import (
     QgsProcessingParameterRasterDestination,
     QgsProcessingParameterVectorDestination,
     QgsProject,
+    QgsTask,
 )
 
 from ai_agent.qgis_tools.common.background import Background
@@ -85,7 +86,9 @@ class ProcessingInBackground(Background):
         ok, message = self._algorithm.checkParameterValues(self._parameters, self._context)
         if not ok:
             raise ValueError(f"Unable to execute algorithm: {message}")
-        task = QgsProcessingAlgRunnerTask(self._algorithm, self._parameters, self._context, self._feedback)
+        # Hidden from QGIS's own task bar: the step's line in the chat shows how far it is.
+        flags = QgsTask.Flag.CanCancel | QgsTask.Flag.Hidden
+        task = QgsProcessingAlgRunnerTask(self._algorithm, self._parameters, self._context, self._feedback, flags)
         if task.isCanceled():
             # prepare() refused the parameters; the feedback holds why.
             raise ValueError(FAILED.format(self._feedback.reason()))

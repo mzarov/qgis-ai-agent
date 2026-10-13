@@ -60,6 +60,8 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self._plan_marks: list[list[str]] = []
         # The cancelled plan card that may still be restored, until anything else happens.
         self._restorable_plan_id: int | None = None
+        # The last request's start, for Retry on its failure card.
+        self._retry_args: tuple[Any, ...] | None = None
         self._snapshot_before_apply = ""
         self._invalidated_scope: tuple[str, str] | None = None
         self._deferred_interrupted_outcome = ""
@@ -113,6 +115,8 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
     def on_busy(self, busy: bool) -> None:
         self.dock_widget.set_busy(busy)
         if not busy:
+            # A check's trace is drawn; the next run is the user's again.
+            self.dock_widget.set_run_kind("")
             # A run may have edited the active layer: the chip's count follows.
             self.on_active_layer_changed()
 
@@ -197,6 +201,8 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
             self.conversation.add("user", shown)
             self._show_title()
             self._last_request = request
+            # What Retry on a failure card sends again: the request is on screen and in the conversation.
+            self._retry_args = (shown, prompt, request, skills, images, planning)
             self.agent.start(prompt, history, skills=skills, images=images, planning=planning)
 
         # The new request is not part of what gets compacted: it rides on the summary.
@@ -206,6 +212,27 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
 
         if not (self.compaction.needed() and self.compaction.start(after=begin, cancelled=stopped)):
             begin()
+
+    def on_retry(self) -> None:
+        """Send the failed request again, as it was: the chat and the conversation already hold it."""
+        if not self.is_idle:
+            self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
+            return
+        if self._retry_args is None:
+            return
+        shown, prompt, request, skills, images, planning = self._retry_args
+        self.dock_widget.clear_prompt()
+        history = self.conversation.window()
+        if history and history[-1].get("role") == "user" and history[-1].get("content") == shown:
+            history = history[:-1]
+        self._last_request = request
+        self.dock_widget.drop_failures()
+        self.agent.start(prompt, history, skills=skills, images=images, planning=planning)
+
+    def on_settings_saved(self) -> None:
+        """The connection may be fixed now: a failure card that held Retry back offers it."""
+        if self._retry_args is not None and self.is_idle:
+            self.dock_widget.offer_retry()
 
     @property
     def is_idle(self) -> bool:

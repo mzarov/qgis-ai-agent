@@ -391,6 +391,39 @@ class ActivityTitleTest(unittest.TestCase):
             self.assertTrue(0 <= top < bottom <= activity.GLYPH_BOX)
 
 
+class FailureCardTest(unittest.TestCase):
+    def test_a_card_without_retry_offers_it_later_and_names_the_servers_words(self):
+        from ai_agent.ui.failure_card import FailureCard
+
+        card = FailureCard(
+            "Not found", "Check the address.", "The API returned 404: Not Found", "not_found", True, False
+        )
+        self.assertTrue(card.retry.isHidden())
+        self.assertIn("404", card.technical.text())
+        card.offer_retry()
+        self.assertFalse(card.retry.isHidden())
+        card.retire()
+        self.assertTrue(card.retry.isHidden())
+
+    def test_retrying_takes_the_failed_cards_out_of_the_feed(self):
+        view = ConversationView()
+        view.add_user_message("Which layers?")
+        view.add_run_failure("No connection", "The server does not answer.", "refused", "connection", True, True)
+        self.assertEqual(len(view._failures), 1)
+        view.drop_failures()
+        self.assertEqual(view._failures, [])
+        self.assertFalse(any(type(entry).__name__ == "FailureCard" for entry in view._entries.values()))
+
+    def test_a_new_request_retires_retry_but_keeps_the_card(self):
+        view = ConversationView()
+        view.add_run_failure("No connection", "The server does not answer.", "refused", "connection", True, True)
+        card = view._failures[0]
+        view.add_user_message("Something else")
+        self.assertTrue(card.retry.isHidden())
+        view.offer_retry()
+        self.assertTrue(card.retry.isHidden(), "a retired card came back to life")
+
+
 class FailedPlanCardTest(unittest.TestCase):
     def test_a_failed_apply_still_settles_the_card(self):
         from ai_agent.ui.plan import PlanCard
@@ -445,6 +478,24 @@ class FailedPlanCardTest(unittest.TestCase):
         card.mark_step(0, "done")
         self.assertTrue(step.bar.isHidden())
         self.assertEqual(step.mark.text(), plan_module.APPLIED_MARK)
+
+    def test_a_download_of_unknown_size_runs_its_bar_and_counts_its_bytes(self):
+        from ai_agent.ui import plan as plan_module
+        from ai_agent.ui import sizes
+
+        card = plan_module.PlanCard(["Downloading cafes."])
+        card.mark_step(0, "running")
+        card.mark_progress(0, -1.0, 0)
+        step = card._steps[0]
+        self.assertTrue(step.bar.running)
+        self.assertEqual(step.mark.text(), plan_module.RUNNING_MARK)
+        locale = mock.Mock(toString=lambda value, *_format: f"{value:.1f}")
+        with mock.patch.object(sizes, "QLocale", return_value=locale):
+            card.mark_progress(0, -1.0, 3 * 1024 * 1024)
+        self.assertEqual(step.mark.text(), "3.0 MB")
+        card.mark_progress(0, 50.0, 3 * 1024 * 1024)
+        self.assertFalse(step.bar.running)
+        self.assertEqual(step.mark.text(), "50 %")
 
     def test_a_failed_step_shows_its_mark_and_reason_and_a_done_one_only_its_mark(self):
         from ai_agent.ui import plan as plan_module

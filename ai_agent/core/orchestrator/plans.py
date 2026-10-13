@@ -12,10 +12,11 @@ from ai_agent.core.agent.verification import plan_verification
 from ai_agent.core.orchestrator.notices import (
     CHECKED_BY_READING,
     DESTRUCTIVE_DECLINED,
-    LOOKING_INTO_FAILURE,
     MODE_NEXT_REQUEST,
     PLAN_DROPPED,
     PLAN_GONE,
+    RUN_CHECK,
+    RUN_LOOK_INTO,
     RUN_THE_PLAN,
     RUN_THE_PLAN_FOR,
     RUN_THE_PLAN_MODEL,
@@ -26,7 +27,6 @@ from ai_agent.core.orchestrator.notices import (
     STEP_FAILED,
     STEP_SKIPPED,
     SWITCH_WHILE_RUNNING,
-    VERIFYING,
 )
 from ai_agent.core.orchestrator.planning import destructive_lines, plan_layer, plan_line
 from ai_agent.core.orchestrator.presentation import where_to_look
@@ -202,7 +202,10 @@ class PlanMixin:
         if start is None:
             return
         failed = any(not result.ok for result in results)
-        self.dock_widget.add_system_message(LOOKING_INTO_FAILURE if failed else VERIFYING)
+        # No note in the feed: the run's own trace and the status line say what it is doing.
+        kind = RUN_LOOK_INTO if failed else RUN_CHECK
+        self.dock_widget.set_run_kind(kind)
+        self.conversation.trace.kind = kind
         self.agent.start(
             start.prompt,
             self.conversation.window(),

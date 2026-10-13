@@ -5,7 +5,7 @@ from qgis.core import QgsNetworkAccessManager
 from qgis.PyQt.QtCore import QByteArray, QEventLoop, QObject, Qt, QTimer, pyqtSlot
 from qgis.PyQt.QtNetwork import QNetworkRequest
 
-from ai_agent.core.llm.client import ApiResponseError, build_network_request, retry_after_of
+from ai_agent.core.llm.client import ApiResponseError, ModelTimeout, build_network_request, retry_after_of
 from ai_agent.core.llm.dialects import safe_endpoint_label
 from ai_agent.core.llm.stream import SseAccumulator
 
@@ -115,7 +115,7 @@ def post_stream(
     if cancellation.cancelled:
         raise ConnectionError(STREAM_CANCELLED.format(endpoint=safe_endpoint_label(endpoint)))
     if timed_out:
-        raise ConnectionError(STREAM_TIMED_OUT.format(endpoint=safe_endpoint_label(endpoint)))
+        raise ModelTimeout(STREAM_TIMED_OUT.format(endpoint=safe_endpoint_label(endpoint)))
     if status >= 400:
         text = b"".join(error_tail).decode("utf-8", errors="replace")
         raise ApiResponseError(status, text[:ERROR_BODY_LIMIT] or f"HTTP {status}", retry_after=retry_after)

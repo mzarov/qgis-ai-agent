@@ -79,11 +79,15 @@ class TraceLog:
         self._end_thought()
         if not self._steps:
             return None
-        record = {"steps": self._steps, "seconds": round(max(0.0, self._last - self._first), 2)}
+        record: dict[str, Any] = {"steps": self._steps, "seconds": round(max(0.0, self._last - self._first), 2)}
+        if self.kind:
+            record["kind"] = self.kind
         self.drop()
         return record
 
     def drop(self) -> None:
+        # What the turn's run was for ("check" after an apply); "" for the user's own request.
+        self.kind = ""
         self._steps: list[dict[str, Any]] = []
         self._open: dict[str, Any] | None = None
         self._thought: dict[str, Any] | None = None

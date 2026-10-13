@@ -107,7 +107,8 @@ class _Observer(QObject):
         self._record_thread()
         self.turns.append(turn)
 
-    @pyqtSlot(str)
+    # A TurnFailure: the message as a str, with its kind.
+    @pyqtSlot(object)
     def on_error(self, message):
         self._record_thread()
         self.errors.append(message)

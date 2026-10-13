@@ -154,7 +154,10 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 12. **The orchestrator only renders.** Decisions belong to the loop and to
    `agent/verification.py` (when and how the check after Apply starts);
    `CoreOrchestrator` subscribes to signals and draws them into the chat.
-   Do not add branching logic there.
+   Do not add branching logic there. A run started by the orchestrator itself
+   says what it is for (`RUN_CHECK`, `RUN_LOOK_INTO` in `orchestrator/notices.py`,
+   through `set_run_kind`): the feed names its trace and status line by it, and
+   the trace record keeps it for the replay — no note announces it.
 13. **A message is written with one call.** `ConversationState.add` writes the
    session; the model's window is derived from it (summary, then the messages
    after `summary_index`, `user` and `assistant` only, role and content). What
@@ -206,7 +209,16 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     → `AgentLoop.retrying`) to the status line, which counts down until the feed
     moves on; it never becomes a feed message. Blocking calls wait `blocking_timeout` — five
     times the stream idle limit — because a non-streamed answer arrives only
-    when the model is done.
+    when the model is done. A failure that survives the retries leaves the
+    worker as a `TurnFailure` (`llm/failure_kinds.py`): the message plus its
+    kind — connection, timeout, key, quota, busy, not found, setup. The loop
+    keeps the kind (`failure_kind`), `explain_run_failure`
+    (`agent/run_failure.py`) turns it into a title, one sentence and whether
+    sending again can help, for the feed's failure card. Retry
+    (`CoreOrchestrator.on_retry`) sends the failed request again over the same
+    history without adding the user message a second time; a wrong path or a
+    refused key is offered Retry only after the settings are saved
+    (`on_settings_saved`).
 18. **The prefix never moves; the state rides at the end.** Everything that
     changes during a run — notes, plan, queued steps, project context — is one
     state message appended after the transcript (`llm/live.py`), never part of
@@ -267,6 +279,8 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `llm/stream_runner.py`   | the streaming request itself: NAM, nested event loop |
 | `llm/refusals.py`        | telling an unsupported feature from a broken request |
 | `llm/retry.py`           | bounded retries around a model call, cancellation-aware |
+| `llm/failure_kinds.py`   | what kind of failure ended a model call: `TurnFailure` carries it to the loop |
+| `agent/run_failure.py`   | a failed run in words: title, sentence, the address it names, whether Retry helps |
 | `llm/live.py`            | the per-turn state message and how each dialect receives it |
 | `llm/images.py`          | finding and stripping image blocks in messages       |
 | `llm/thinking.py`        | cutting `<think>` out of content, across chunks      |

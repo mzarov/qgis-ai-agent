@@ -18,7 +18,14 @@ from typing import Any
 from qgis.PyQt.QtCore import Qt, QTimer
 from qgis.PyQt.QtWidgets import QHBoxLayout, QWidget
 
-from ai_agent.core.orchestrator.notices import STATUS_DONE, STATUS_FAILED, STATUS_HIDDEN, STATUS_WAITING
+from ai_agent.core.orchestrator.notices import (
+    RUN_CHECK,
+    RUN_LOOK_INTO,
+    STATUS_DONE,
+    STATUS_FAILED,
+    STATUS_HIDDEN,
+    STATUS_WAITING,
+)
 from ai_agent.i18n import tr
 from ai_agent.ui import compass, controls, style
 from ai_agent.ui.durations import format_seconds
@@ -29,6 +36,8 @@ MARK = 18
 # The line's own state while a run is busy; the outcomes come from the orchestrator.
 RUNNING = "running"
 WORKING = tr("Working…")
+CHECKING = tr("Checking the changes…")
+LOOKING_INTO = tr("Looking into the failure…")
 WAITING = tr("Waiting for your answer")
 DONE_IN = tr("Done in {0}")
 RETRY_BUSY = tr("The model is busy · retrying in {0} ({1}/{2})")
@@ -42,10 +51,14 @@ OUTCOMES = {
 }
 
 
+WORKING_BY_KIND = {RUN_CHECK: CHECKING, RUN_LOOK_INTO: LOOKING_INTO}
+
+
 class ProgressLine(QWidget):
     def __init__(self, palette: Any, parent: QWidget | None = None):
         super().__init__(parent)
         self._started = 0.0
+        self._working = WORKING
         line = QHBoxLayout(self)
         line.setContentsMargins(2, 4, 2, 4)
         line.setSpacing(10)
@@ -71,11 +84,13 @@ class ProgressLine(QWidget):
     def step_text(self) -> str:
         return self._step.text()
 
-    def start(self) -> None:
+    def start(self, kind: str = "") -> None:
+        """The agent works; `kind` says what for, when it is a check after an apply or a look into a failure."""
         self.state = RUNNING
         self._started = time.monotonic()
         self._retry = None
-        self._say(WORKING)
+        self._working = WORKING_BY_KIND.get(kind, WORKING)
+        self._say(self._working)
         self._shown_second = 0
         self._elapsed.setText(format_seconds(0, decimals=0))
         self._elapsed.setVisible(True)
@@ -127,7 +142,7 @@ class ProgressLine(QWidget):
             return
         self._retry = None
         if self.state == RUNNING:
-            self._say(WORKING)
+            self._say(self._working)
 
     def _show_retry(self) -> None:
         if self._retry is None:
