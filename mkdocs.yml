@@ -53,6 +53,7 @@ plugins:
             Development: Разработка
             Translations: Переводы
             Smoke checklist: Смоук-чеклист
+            Skill evals: Эвалы навыков
             Releasing: Выпуск версии
             Roadmap: План развития
 
@@ -65,5 +66,6 @@ nav:
   - Development:
       - Translations: translations.md
       - Smoke checklist: smoke_checklist.md
+      - Skill evals: skill_evals.md
       - Releasing: releasing.md
   - Roadmap: roadmap.md

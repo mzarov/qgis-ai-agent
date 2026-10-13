@@ -1,0 +1,50 @@
+# fields: with the skill loaded and the layer read, the model's schema change.
+# `reads` are the calls it already made; `expect` is checked by evals/checks.py.
+
+- description: Area in hectares is a virtual field on $area
+  vars:
+    request: Add a virtual field with each district's area in hectares
+    reads: districts
+    expect:
+      call: add_field
+      args: {layer_name: districts, expression: "re:\\$area\\s*/\\s*10000"}
+
+- description: A plain text field
+  vars:
+    request: Add a text field called status to the schools
+    reads: schools
+    expect:
+      call: add_field
+      args: {layer_name: schools, name: status, type: text}
+
+- description: An integer field
+  vars:
+    request: Add an integer field rank to the districts
+    reads: districts
+    expect:
+      call: add_field
+      args: {layer_name: districts, name: rank, type: integer}
+
+- description: Renaming keeps the exact old name
+  vars:
+    request: Rename pop2020 to population in the districts
+    reads: districts
+    expect:
+      call: rename_field
+      args: {layer_name: districts, name: pop2020, new_name: population}
+
+- description: Deleting a column
+  vars:
+    request: Delete the maxspeed column from the roads
+    reads: roads
+    expect:
+      call: delete_field
+      args: {layer_name: roads, name: maxspeed}
+
+- description: A density from two fields
+  vars:
+    request: Add a field with the population density per square kilometre
+    reads: districts
+    expect:
+      call: add_field
+      args: {layer_name: districts, expression: "re:pop2020.*(area_km2|\\$area)"}

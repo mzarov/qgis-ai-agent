@@ -66,13 +66,15 @@ the agent works:
    so nearly every run spends its first turn on `list_layers`. Add CRS, the
    selected-feature count and, where cheap, feature counts; stay within
    metadata-class data.
-4. **Skill loading cost a turn per domain.** Shipped now: the prompt asks for
-   one-turn loading and `/skill` preloads before the first turn. Next: let
-   `load_skill` take a list of names.
-5. **No evaluation harness.** Prompt and skill edits are judged by feel.
-   Record real transcripts (tool calls with their results) and replay them
-   against the loop with a scripted model — a regression suite for the agent's
-   behaviour, and the biggest single lever for "it must work well".
+4. **Done — skill loading cost a turn per domain.** The prompt asks for
+   one-turn loading, `/skill` preloads before the first turn, and `load_skill`
+   takes a list of names.
+5. **Evaluation harness — the skill level is done (2026-10-13).** Prompt and
+   skill edits were judged by feel. The [skill bench](skill_evals.md) runs
+   promptfoo against a real model with the plugin's own prompts. It checks which
+   skills the model loads for a request and which call it makes once a skill is
+   loaded. Next: the whole agent against a live project, with outcomes checked
+   in QGIS, through a provider that runs the plugin.
 6. **Done 2026-10-05 — verification always ran the full round.** A trivial
    non-visual change cost a 3–4-turn verification. Write tools now confirm
    their own step by one read (`confirm_applied`); a batch whose every step
@@ -80,8 +82,9 @@ the agent works:
 7. **Compaction drops, never summarises.** After `KEEP_FULL_RESULTS` older
    results shrink to one-line notes; a summary of the dropped span would keep
    forty-turn runs coherent.
-8. **The journal has no numbers.** It records steps, not tokens or wall time
-   per turn — the two figures that show where a slow run went.
+8. **Done 2026-10-13 — the journal has numbers.** Every model request's input
+   and output tokens and seconds, then the run's totals: the two figures that
+   show where a slow run went.
 9. **Done 2026-09-28 — token cost of a run** (issue #74: a statistics map cost
    ~0.7M tokens). The per-turn state moved out of the system prompt into a
    trailing message, so the cached prefix no longer breaks on every queued step;

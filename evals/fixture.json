@@ -1,0 +1,569 @@
+{
+  "project_context": "Project CRS: EPSG:3857.\nActive layer: districts.\nLayers: districts (polygon, EPSG:4326, 12 features), roads (line, EPSG:4326, 340 features), schools (point, EPSG:4326, 58 features), stations (point, EPSG:32637, 9 features), dem (raster, EPSG:32637), OpenStreetMap (raster, EPSG:3857).",
+  "describe_layer": {
+    "districts": {
+      "name": "districts",
+      "kind": "vector",
+      "geometry": "polygon",
+      "crs": "EPSG:4326",
+      "crs_is_geographic": true,
+      "crs_units": "degrees",
+      "feature_count": 12,
+      "fields": [
+        {
+          "name": "fid",
+          "type": "Integer64"
+        },
+        {
+          "name": "name",
+          "type": "String"
+        },
+        {
+          "name": "okrug",
+          "type": "String"
+        },
+        {
+          "name": "pop2020",
+          "type": "Integer64"
+        },
+        {
+          "name": "area_km2",
+          "type": "Real"
+        }
+      ],
+      "field_count": 5,
+      "sample": [
+        {
+          "fid": 1,
+          "name": "Arbat",
+          "okrug": "Central",
+          "pop2020": 36257,
+          "area_km2": 2.11
+        },
+        {
+          "fid": 2,
+          "name": "Basmanny",
+          "okrug": "Central",
+          "pop2020": 112512,
+          "area_km2": 8.38
+        }
+      ]
+    },
+    "roads": {
+      "name": "roads",
+      "kind": "vector",
+      "geometry": "line",
+      "crs": "EPSG:4326",
+      "crs_is_geographic": true,
+      "crs_units": "degrees",
+      "feature_count": 340,
+      "fields": [
+        {
+          "name": "fid",
+          "type": "Integer64"
+        },
+        {
+          "name": "name",
+          "type": "String"
+        },
+        {
+          "name": "highway",
+          "type": "String"
+        },
+        {
+          "name": "lanes",
+          "type": "Integer"
+        },
+        {
+          "name": "maxspeed",
+          "type": "Integer"
+        }
+      ],
+      "field_count": 5,
+      "sample": [
+        {
+          "fid": 1,
+          "name": "Tverskaya",
+          "highway": "primary",
+          "lanes": 6,
+          "maxspeed": 60
+        },
+        {
+          "fid": 2,
+          "name": "Kozikhinsky",
+          "highway": "residential",
+          "lanes": 1,
+          "maxspeed": 20
+        }
+      ]
+    },
+    "schools": {
+      "name": "schools",
+      "kind": "vector",
+      "geometry": "point",
+      "crs": "EPSG:4326",
+      "crs_is_geographic": true,
+      "crs_units": "degrees",
+      "feature_count": 58,
+      "fields": [
+        {
+          "name": "fid",
+          "type": "Integer64"
+        },
+        {
+          "name": "name",
+          "type": "String"
+        },
+        {
+          "name": "kind",
+          "type": "String"
+        },
+        {
+          "name": "capacity",
+          "type": "Integer"
+        }
+      ],
+      "field_count": 4,
+      "sample": [
+        {
+          "fid": 1,
+          "name": "School 57",
+          "kind": "school",
+          "capacity": 1200
+        },
+        {
+          "fid": 2,
+          "name": "Lyceum 1535",
+          "kind": "lyceum",
+          "capacity": 900
+        }
+      ]
+    },
+    "stations": {
+      "name": "stations",
+      "kind": "vector",
+      "geometry": "point",
+      "crs": "EPSG:32637",
+      "crs_is_geographic": false,
+      "crs_units": "meters",
+      "feature_count": 9,
+      "fields": [
+        {
+          "name": "fid",
+          "type": "Integer64"
+        },
+        {
+          "name": "name",
+          "type": "String"
+        },
+        {
+          "name": "line",
+          "type": "String"
+        },
+        {
+          "name": "passengers",
+          "type": "Integer"
+        }
+      ],
+      "field_count": 4,
+      "sample": [
+        {
+          "fid": 1,
+          "name": "Okhotny Ryad",
+          "line": "Red",
+          "passengers": 41000
+        }
+      ]
+    },
+    "dem": {
+      "name": "dem",
+      "kind": "raster",
+      "crs": "EPSG:32637",
+      "crs_is_geographic": false,
+      "crs_units": "meters",
+      "band_count": 1,
+      "bands": [
+        {
+          "band": 1,
+          "name": "elevation",
+          "min": 112.0,
+          "max": 254.0,
+          "no_data": -9999.0
+        }
+      ],
+      "width": 2000,
+      "height": 1600
+    }
+  },
+  "get_field_values": {
+    "roads/highway": {
+      "field": "highway",
+      "unique_values": [
+        "footway",
+        "primary",
+        "residential",
+        "secondary",
+        "service",
+        "tertiary"
+      ],
+      "count": 6
+    },
+    "schools/kind": {
+      "field": "kind",
+      "unique_values": [
+        "gymnasium",
+        "lyceum",
+        "school"
+      ],
+      "count": 3
+    },
+    "districts/okrug": {
+      "field": "okrug",
+      "unique_values": [
+        "Central",
+        "North",
+        "South"
+      ],
+      "count": 3
+    }
+  },
+  "describe_processing": {
+    "native:buffer": {
+      "id": "native:buffer",
+      "name": "Buffer",
+      "group": "Vector geometry",
+      "help": "Computes a buffer area for all the features in an input layer, using a fixed or data defined distance. The distance is in the units of the layer's CRS.",
+      "parameters": [
+        {
+          "name": "INPUT",
+          "description": "Input layer",
+          "type": "source",
+          "optional": false
+        },
+        {
+          "name": "DISTANCE",
+          "description": "Distance",
+          "type": "distance",
+          "optional": false,
+          "default": 10.0
+        },
+        {
+          "name": "SEGMENTS",
+          "description": "Segments",
+          "type": "number",
+          "optional": false,
+          "default": 5
+        },
+        {
+          "name": "END_CAP_STYLE",
+          "description": "End cap style",
+          "type": "enum",
+          "optional": false,
+          "default": 0,
+          "options": [
+            {
+              "value": 0,
+              "label": "Round"
+            },
+            {
+              "value": 1,
+              "label": "Flat"
+            },
+            {
+              "value": 2,
+              "label": "Square"
+            }
+          ],
+          "value_hint": "Pass the number from the value field, not the text from label."
+        },
+        {
+          "name": "JOIN_STYLE",
+          "description": "Join style",
+          "type": "enum",
+          "optional": false,
+          "default": 0,
+          "options": [
+            {
+              "value": 0,
+              "label": "Round"
+            },
+            {
+              "value": 1,
+              "label": "Miter"
+            },
+            {
+              "value": 2,
+              "label": "Bevel"
+            }
+          ],
+          "value_hint": "Pass the number from the value field, not the text from label."
+        },
+        {
+          "name": "MITER_LIMIT",
+          "description": "Miter limit",
+          "type": "number",
+          "optional": false,
+          "default": 2.0
+        },
+        {
+          "name": "DISSOLVE",
+          "description": "Dissolve result",
+          "type": "boolean",
+          "optional": false,
+          "default": false
+        },
+        {
+          "name": "OUTPUT",
+          "description": "Buffered",
+          "type": "sink",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "description": "Buffered"
+        }
+      ]
+    },
+    "native:reprojectlayer": {
+      "id": "native:reprojectlayer",
+      "name": "Reproject layer",
+      "group": "Vector general",
+      "help": "Reprojects a vector layer in a different CRS.",
+      "parameters": [
+        {
+          "name": "INPUT",
+          "description": "Input layer",
+          "type": "source",
+          "optional": false
+        },
+        {
+          "name": "TARGET_CRS",
+          "description": "Target CRS",
+          "type": "crs",
+          "optional": false,
+          "default": "EPSG:4326"
+        },
+        {
+          "name": "CONVERT_CURVED_GEOMETRIES",
+          "description": "Convert curved geometries to straight segments",
+          "type": "boolean",
+          "optional": true,
+          "default": false
+        },
+        {
+          "name": "OPERATION",
+          "description": "Coordinate operation",
+          "type": "coordinateoperation",
+          "optional": true
+        },
+        {
+          "name": "OUTPUT",
+          "description": "Reprojected",
+          "type": "sink",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "description": "Reprojected"
+        }
+      ]
+    },
+    "native:countpointsinpolygon": {
+      "id": "native:countpointsinpolygon",
+      "name": "Count points in polygon",
+      "group": "Vector analysis",
+      "help": "Takes a points layer and a polygon layer and counts the number of points from the first one in each polygon of the second one.",
+      "parameters": [
+        {
+          "name": "POLYGONS",
+          "description": "Polygons",
+          "type": "source",
+          "optional": false
+        },
+        {
+          "name": "POINTS",
+          "description": "Points",
+          "type": "source",
+          "optional": false
+        },
+        {
+          "name": "WEIGHT",
+          "description": "Weight field",
+          "type": "field",
+          "optional": true
+        },
+        {
+          "name": "CLASSFIELD",
+          "description": "Class field",
+          "type": "field",
+          "optional": true
+        },
+        {
+          "name": "FIELD",
+          "description": "Count field name",
+          "type": "string",
+          "optional": false,
+          "default": "NUMPOINTS"
+        },
+        {
+          "name": "OUTPUT",
+          "description": "Count",
+          "type": "sink",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "description": "Count"
+        }
+      ]
+    },
+    "native:fieldcalculator": {
+      "id": "native:fieldcalculator",
+      "name": "Field calculator",
+      "group": "Vector table",
+      "help": "Opens the field calculator and creates a new layer with the result.",
+      "parameters": [
+        {
+          "name": "INPUT",
+          "description": "Input layer",
+          "type": "source",
+          "optional": false
+        },
+        {
+          "name": "FIELD_NAME",
+          "description": "Field name",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "FIELD_TYPE",
+          "description": "Result field type",
+          "type": "enum",
+          "optional": false,
+          "default": 0,
+          "options": [
+            {
+              "value": 0,
+              "label": "Decimal (double)"
+            },
+            {
+              "value": 1,
+              "label": "Integer (32 bit)"
+            },
+            {
+              "value": 2,
+              "label": "Text (string)"
+            },
+            {
+              "value": 3,
+              "label": "Date"
+            },
+            {
+              "value": 4,
+              "label": "Time"
+            },
+            {
+              "value": 5,
+              "label": "Date & Time"
+            },
+            {
+              "value": 6,
+              "label": "Boolean"
+            },
+            {
+              "value": 7,
+              "label": "Binary Object (BLOB)"
+            },
+            {
+              "value": 8,
+              "label": "String List"
+            },
+            {
+              "value": 9,
+              "label": "Integer List"
+            },
+            {
+              "value": 10,
+              "label": "Decimal (double) List"
+            },
+            {
+              "value": 11,
+              "label": "Integer (64 bit)"
+            }
+          ],
+          "value_hint": "Pass the number from the value field, not the text from label."
+        },
+        {
+          "name": "FIELD_LENGTH",
+          "description": "Result field length",
+          "type": "number",
+          "optional": false,
+          "default": 0
+        },
+        {
+          "name": "FIELD_PRECISION",
+          "description": "Result field precision",
+          "type": "number",
+          "optional": false,
+          "default": 3
+        },
+        {
+          "name": "FORMULA",
+          "description": "Formula",
+          "type": "expression",
+          "optional": false
+        },
+        {
+          "name": "OUTPUT",
+          "description": "Calculated",
+          "type": "sink",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "description": "Calculated"
+        }
+      ]
+    },
+    "native:clip": {
+      "id": "native:clip",
+      "name": "Clip",
+      "group": "Vector overlay",
+      "help": "Clips a vector layer using the features of an additional polygon layer.",
+      "parameters": [
+        {
+          "name": "INPUT",
+          "description": "Input layer",
+          "type": "source",
+          "optional": false
+        },
+        {
+          "name": "OVERLAY",
+          "description": "Overlay layer",
+          "type": "source",
+          "optional": false
+        },
+        {
+          "name": "OUTPUT",
+          "description": "Clipped",
+          "type": "sink",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "description": "Clipped"
+        }
+      ]
+    }
+  }
+}

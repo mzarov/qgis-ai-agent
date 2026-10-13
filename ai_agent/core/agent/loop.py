@@ -290,6 +290,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
             lambda notice, current=generation: self._on_retry(notice, current),
         )
         self._turn_callbacks = callbacks
+        self._journal.asked()
         self._turn.start(
             request.messages,
             request.tool_schemas,
@@ -430,6 +431,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         if self._budget.add(turn):
             self.usage_changed.emit(self._budget.spent)
         prompt = max(0, int(turn.input_tokens)) or self._request_estimate
+        self._journal.answered(prompt, max(0, int(turn.output_tokens)))
         self.turn_counted.emit(prompt, max(0, int(turn.output_tokens)), self._budget.requests == 1)
 
     def _finish_on_limit(self, generation: int | None = None) -> None:

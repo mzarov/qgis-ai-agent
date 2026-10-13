@@ -1,0 +1,127 @@
+# Which skills the model loads for a request, on its first turn.
+#
+# Only `inspect` is loaded up front; everything else depends on the one-line
+# skill descriptions in the system prompt. A case passes when the load_skill
+# call names at least the skills in `loads` (extra skills are allowed unless
+# `not_loads` lists them). Requests are plain English and Russian, as users
+# write them.
+
+- description: Colour by category is a style task
+  vars:
+    request: Colour the roads by their type
+    expect: {loads: [style], not_loads: [processing, python]}
+
+- description: Labels are a style task
+  vars:
+    request: Label the districts with their names
+    expect: {loads: [style]}
+
+- description: A metric buffer is Processing
+  vars:
+    request: Make a 500 m buffer around the stations
+    expect: {loads: [processing]}
+
+- description: A computed column is the fields skill
+  vars:
+    request: Add a column with each district's area in hectares
+    expect: {any_of: [{loads: [fields]}, {loads: [processing]}]}
+
+- description: Renaming a column is the fields skill
+  vars:
+    request: Rename the field pop2020 to population in districts
+    expect: {loads: [fields]}
+
+- description: Deleting features is the edit skill
+  vars:
+    request: Delete the schools with a capacity below 100
+    expect: {loads: [edit], not_loads: [python]}
+
+- description: Changing attribute values is the edit skill
+  vars:
+    request: Set the capacity to 0 for every lyceum
+    expect: {loads: [edit], not_loads: [python]}
+
+- description: Downloading from OpenStreetMap is the osm skill
+  vars:
+    request: Download all the cafes in the current view from OpenStreetMap
+    expect: {loads: [osm]}
+
+- description: A basemap is a project task
+  vars:
+    request: Add a satellite basemap
+    expect: {any_of: [{loads: [project]}, {loads: [data]}]}
+
+- description: Saving is a project task
+  vars:
+    request: Save the project
+    expect: {loads: [project]}
+
+- description: Exporting a layer is a project task
+  vars:
+    request: Export the roads to a GeoPackage in my home folder
+    expect: {loads: [project]}
+
+- description: A count from the project context needs no extra skill
+  vars:
+    request: How many schools are there?
+    expect: {not: [load_skill]}
+
+- description: Drawing a point from coordinates is the draw skill
+  vars:
+    request: Put a point at 55.7539, 37.6208 and call it Red Square
+    expect: {any_of: [{loads: [draw]}, {loads: [annotations]}]}
+
+- description: A chart in the chat is the charts skill
+  vars:
+    request: Make a bar chart of the population by district
+    expect: {loads: [charts]}
+
+- description: A print layout is the layout skill
+  vars:
+    request: Create a print layout with the map, a legend and a scale bar, and export it to PDF
+    expect: {loads: [layout]}
+
+- description: A 3D view is the three_d skill
+  vars:
+    request: Show the DEM in 3D
+    expect: {loads: [three_d]}
+
+- description: A map note is the annotations skill
+  vars:
+    request: Add a note on the map next to the Kremlin saying "start here"
+    expect: {loads: [annotations]}
+
+- description: Satellite imagery search is the data skill
+  vars:
+    request: Find a cloud-free Sentinel-2 image of this area from last summer
+    expect: {loads: [data]}
+
+- description: Points from a CSV are the tables skill
+  vars:
+    request: Load /data/stops.csv as points, it has lon and lat columns
+    expect: {loads: [tables]}
+
+- description: A web lookup is the web skill
+  vars:
+    request: Search the web for the official opening hours of the Tretyakov Gallery
+    expect: {loads: [web]}
+
+- description: A chain needs both skills at once
+  vars:
+    request: Count the schools in each district and colour the districts by that count
+    expect: {loads: [processing, style]}
+
+- description: Russian — graduated colours
+  vars:
+    request: Покрась районы по населению в 5 классов
+    expect: {loads: [style]}
+
+- description: Russian — a buffer
+  vars:
+    request: Сделай буфер 1 км вокруг школ
+    expect: {loads: [processing]}
+
+- description: Russian — OSM and a buffer
+  vars:
+    request: Скачай аптеки из OSM в текущем экстенте и построй вокруг них зоны 300 м
+    expect: {loads: [osm, processing]}

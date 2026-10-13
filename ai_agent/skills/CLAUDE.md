@@ -57,6 +57,12 @@ dependency and will not become one. `key: value` pairs and inline lists
 1. `qgis_tools/<domain>/` — tool classes with `skill = "<domain>"`
 2. `skills/<domain>/SKILL.md` — frontmatter and rules
 3. one line in `qgis_tools/registry.py`
+4. `skills/<domain>/evals/cases.yaml` — the skill bench's cases (the requests the
+   skill exists for, a pitfall its rules warn about, one in Russian) and a
+   routing case in `evals/routing.yaml`; see `docs/skill_evals.md`
+
+A rule added to a `SKILL.md` because the model kept getting something wrong
+gets a case that catches the mistake: the bench then shows whether the rule works.
 
 The loop, the orchestrator and the prompt core stay untouched. If you had to
 edit them — the abstraction leaked; find out why.

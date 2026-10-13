@@ -1,0 +1,71 @@
+# project: with the skill loaded, the model's workspace call.
+# `expect` is checked by evals/checks.py.
+
+- description: A dark basemap preset
+  vars:
+    request: Add a dark basemap
+    expect:
+      call: add_basemap
+      args: {preset: carto-dark}
+
+- description: Satellite imagery preset
+  vars:
+    request: Put satellite imagery under my layers
+    expect:
+      call: add_basemap
+      args: {preset: esri-imagery}
+
+- description: Saving
+  vars:
+    request: Save the project
+    expect:
+      call: save_project
+
+- description: Exporting to a file
+  vars:
+    request: Export the roads to /tmp/roads.gpkg
+    expect:
+      call: export_layer
+      args: {layer_name: roads, path: /tmp/roads.gpkg}
+
+- description: Removing a layer
+  vars:
+    request: Remove the OpenStreetMap layer
+    expect:
+      call: remove_layer
+      args: {layer_name: OpenStreetMap}
+
+- description: Zooming to a layer
+  vars:
+    request: Zoom to the schools
+    expect:
+      call: zoom_to_layer
+      args: {layer_name: schools}
+
+- description: Hiding is a layer property
+  vars:
+    request: Hide the DEM
+    expect:
+      call: configure_layer
+      args: {layer_name: dem, properties: {visible: false}}
+
+- description: The project CRS
+  vars:
+    request: Switch the project to UTM zone 37N
+    expect:
+      call: configure_project
+      args: {properties: {crs: "re:32637"}}
+
+- description: Layer order in one call
+  vars:
+    request: Put the stations on top, then the roads, then the districts
+    expect:
+      call: reorder_layers
+      args: {layer_names: [stations, roads, districts]}
+
+- description: A fact about the project is remembered
+  vars:
+    request: Remember that the population figures come from the 2020 census
+    expect:
+      call: remember
+      args: {note: "re:2020"}

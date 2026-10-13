@@ -1,0 +1,179 @@
+"""The skill bench: its request is the plugin's own, its cases name real tools, its check reads calls right."""
+
+import json
+import re
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+from unittest import mock
+
+EVALS = Path(__file__).resolve().parent.parent / "evals"
+sys.path.insert(0, str(EVALS))
+
+import checks  # noqa: E402
+import context as agent_request  # noqa: E402
+import prompt as prompt_function  # noqa: E402
+import run as runner  # noqa: E402
+
+from ai_agent.skills.registry import SKILL_REGISTRY  # noqa: E402
+
+CALL_LINE = re.compile(r"^\s*(?:-\s*)?call:\s*(\[[^\]]*\]|[A-Za-z_]+)", re.MULTILINE)
+LOADS = re.compile(r"(?:loads|not_loads):\s*\[([^\]]*)\]")
+
+
+def names_in(value: str) -> list[str]:
+    return [item.strip() for item in value.strip("[]").split(",") if item.strip()]
+
+
+class RequestTest(unittest.TestCase):
+    def test_a_loaded_skill_brings_its_body_tools_and_load_call(self):
+        messages, schemas = agent_request.build("style", "Colour the roads by type", ["roads", "roads/highway"])
+        tools = [schema["function"]["name"] for schema in schemas]
+        self.assertIn("set_categories", tools)
+        self.assertIn(SKILL_REGISTRY.get("style").body.strip()[:80], messages[0]["content"])
+        calls = [message["tool_calls"][0]["function"]["name"] for message in messages if message.get("tool_calls")]
+        self.assertEqual(calls, ["load_skill", "describe_layer", "get_field_values"])
+        self.assertIn("highway", json.dumps(messages))
+        self.assertIn("Project context", messages[-1]["content"], "the per-turn state is not folded in")
+
+    def test_the_first_turn_offers_every_skill_but_the_preloaded_one(self):
+        messages, schemas = agent_request.build("", "Save the project")
+        load = next(schema for schema in schemas if schema["function"]["name"] == "load_skill")
+        offered = load["function"]["parameters"]["properties"]["names"]["items"]["enum"]
+        self.assertNotIn("inspect", offered)
+        self.assertIn("project", offered)
+        self.assertEqual([message["role"] for message in messages], ["system", "user"])
+
+    def test_an_algorithm_read_comes_from_the_fixture(self):
+        messages, _ = agent_request.build("processing", "Buffer the stations", ["native:buffer"])
+        self.assertIn("DISTANCE", messages[-1]["content"] + json.dumps(messages))
+
+    def test_reads_are_a_string_or_steps_never_a_list(self):
+        self.assertEqual(prompt_function.reads("roads, roads/highway"), ["roads", "roads/highway"])
+        step = {"tool": "describe_style", "args": {"layer_name": "roads"}, "result": {"renderer": "single"}}
+        self.assertEqual(prompt_function.reads({"steps": [step]}), [step])
+
+    def test_the_prompt_function_returns_a_chat(self):
+        text = prompt_function.build({"vars": {"skill": "fields", "request": "Add a field", "reads": "districts"}})
+        self.assertEqual(json.loads(text)[0]["role"], "system")
+
+
+class CasesTest(unittest.TestCase):
+    def test_every_case_calls_a_tool_its_skill_offers(self):
+        for suite, cases in runner.suites().items():
+            skill = "" if suite == runner.ROUTING else suite
+            offered = {schema["function"]["name"] for schema in agent_request.tool_schemas(skill)}
+            for match in CALL_LINE.finditer(cases.read_text(encoding="utf-8")):
+                for name in names_in(match.group(1)):
+                    with self.subTest(suite=suite, tool=name):
+                        self.assertIn(name, offered, "a case names a tool this skill does not have")
+
+    def test_every_skill_a_case_expects_exists(self):
+        known = set(SKILL_REGISTRY.names())
+        for cases in runner.suites().values():
+            for match in LOADS.finditer(cases.read_text(encoding="utf-8")):
+                for name in names_in(match.group(1)):
+                    with self.subTest(skill=name):
+                        self.assertIn(name, known)
+
+    def test_the_main_skills_have_cases(self):
+        self.assertTrue({"routing", "inspect", "style", "processing", "fields", "project"} <= set(runner.suites()))
+
+    def test_no_case_uses_a_list_for_its_reads(self):
+        for suite, cases in runner.suites().items():
+            with self.subTest(suite=suite):
+                self.assertNotRegex(cases.read_text(encoding="utf-8"), r"reads:\s*\[")
+
+
+class ChecksTest(unittest.TestCase):
+    def call(self, name, **arguments):
+        return {"id": "c", "type": "function", "function": {"name": name, "arguments": json.dumps(arguments)}}
+
+    def test_a_call_with_the_expected_arguments_passes_leniently(self):
+        output = [self.call("set_graduated", layer_name="Districts ", field="pop2020", classes="5")]
+        expect = {"call": "set_graduated", "args": {"layer_name": "districts", "classes": 5}}
+        self.assertTrue(checks.expected(output, {"vars": {"expect": expect}})["pass"])
+
+    def test_a_wrong_argument_fails_and_says_what_the_model_did(self):
+        result = checks.expected(
+            [self.call("set_categories", layer_name="roads", field="name")],
+            {"vars": {"expect": {"call": "set_categories", "args": {"field": "highway"}}}},
+        )
+        self.assertFalse(result["pass"])
+        self.assertIn('set_categories({"layer_name": "roads", "field": "name"})', result["reason"])
+
+    def test_nested_parameters_regexes_and_presence(self):
+        arguments = {"algorithm_id": "native:buffer", "parameters": {"INPUT": "stations", "DISTANCE": 500.0}}
+        self.assertTrue(checks.matches({"parameters": {"DISTANCE": 500}, "algorithm_id": "re:buffer"}, arguments))
+        self.assertTrue(checks.matches({"parameters": "*"}, arguments))
+        self.assertFalse(checks.matches({"parameters": {"DISTANCE": 1000}}, arguments))
+
+    def test_a_list_is_at_least_these_against_a_list_and_any_of_against_a_value(self):
+        self.assertTrue(checks.matches(["osm", "processing"], ["processing", "style", "osm"]))
+        self.assertFalse(checks.matches(["osm", "processing"], ["osm"]))
+        self.assertTrue(checks.matches(["native:buffer", "qgis:buffer"], "qgis:buffer"))
+
+    def test_loads_and_forbidden_tools(self):
+        output = [self.call("load_skill", names=["osm"]), self.call("update_plan", steps=["a"])]
+        self.assertIsNone(checks.mismatch({"loads": ["osm"], "not": ["run_python"]}, checks.tool_calls(output)))
+        self.assertIn("processing", checks.mismatch({"loads": ["osm", "processing"]}, checks.tool_calls(output)))
+        self.assertIsNotNone(checks.mismatch({"not_loads": ["osm"]}, checks.tool_calls(output)))
+
+    def test_any_of_and_an_answer_in_words(self):
+        calls = checks.tool_calls([self.call("describe_processing", algorithm_id="native:reprojectlayer")])
+        options = {"any_of": [{"call": "run_processing"}, {"call": "describe_processing"}]}
+        self.assertIsNone(checks.mismatch(options, calls))
+        self.assertIsNone(checks.mismatch({"answer": True}, checks.tool_calls("Fifty-eight schools.")))
+        self.assertIsNotNone(checks.mismatch({"answer": True}, calls))
+
+    def test_outputs_in_every_shape_promptfoo_gives(self):
+        call = self.call("save_project")
+        for output in ([call], {"content": "", "tool_calls": [call]}, json.dumps([call])):
+            with self.subTest(output=type(output).__name__):
+                self.assertEqual(checks.tool_calls(output), [("save_project", {})])
+
+
+class RunnerTest(unittest.TestCase):
+    def test_a_config_points_at_the_suites_tools_cases_and_check(self):
+        with tempfile.TemporaryDirectory() as folder, mock.patch.object(runner, "OUT", Path(folder)):
+            path = runner.write_config("style", runner.suites()["style"], ["m1", "m2"], "http://127.0.0.1:9/v1", "ru")
+            config = json.loads(path.read_text(encoding="utf-8"))
+            tools = json.loads((Path(folder) / "style.tools.json").read_text(encoding="utf-8"))
+        self.assertEqual([provider["label"] for provider in config["providers"]], ["m1", "m2"])
+        self.assertFalse(config["providers"][0]["config"]["apiKeyRequired"], "a local server needs no key")
+        self.assertEqual(config["defaultTest"]["vars"], {"skill": "style", "locale": "ru"})
+        self.assertTrue(config["tests"].endswith("skills/style/evals/cases.yaml"))
+        self.assertIn("set_categories", [schema["function"]["name"] for schema in tools])
+
+    def test_an_oauth_gateway_gets_its_header_without_the_key_on_disk(self):
+        with tempfile.TemporaryDirectory() as folder, mock.patch.object(runner, "OUT", Path(folder)):
+            path = runner.write_config(
+                "fields", runner.suites()["fields"], ["m"], "https://gw.example/v1", "en", "OAuth"
+            )
+            text = path.read_text(encoding="utf-8")
+        self.assertIn('"Authorization": "OAuth {{ env.EVAL_API_KEY }}"', text)
+
+    def test_the_summary_counts_and_names_failures(self):
+        rows = [
+            {"success": True, "response": {"tokenUsage": {"total": 100}}, "latencyMs": 1000},
+            {
+                "success": False,
+                "testCase": {"description": "Labels"},
+                "provider": {"label": "m1"},
+                "gradingResult": {"reason": "did not call set_labels"},
+                "response": {"tokenUsage": {"total": 50}},
+                "latencyMs": 3000,
+            },
+        ]
+        with tempfile.TemporaryDirectory() as folder:
+            results = Path(folder) / "style.results.json"
+            results.write_text(json.dumps({"results": {"results": rows}}), encoding="utf-8")
+            summary = runner.summarise("style", results)
+        self.assertEqual((summary["passed"], summary["total"], summary["tokens"]), (1, 2, 150))
+        self.assertEqual(summary["failures"], ["Labels [m1]: did not call set_labels"])
+        self.assertIn("| style | 1/2 | 150 | 2.0 s |", runner.report([summary]))
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,79 @@
+# style: with the skill loaded and the layer read, the model's styling call.
+# `reads` are the calls it already made; `expect` is checked by evals/checks.py.
+
+- description: Categories by a named field
+  vars:
+    request: Colour the roads by the highway field
+    reads: roads
+    expect:
+      call: set_categories
+      args: {layer_name: roads, field: highway}
+
+- description: Categories by a field the model has to pick
+  vars:
+    request: Colour the roads by their type
+    reads: roads
+    expect:
+      call: set_categories
+      args: {layer_name: roads, field: highway}
+
+- description: Graduated classes with a count
+  vars:
+    request: Colour the districts by population in 5 classes
+    reads: districts
+    expect:
+      call: set_graduated
+      args: {layer_name: districts, field: pop2020, classes: 5}
+
+- description: Natural breaks are jenks
+  vars:
+    request: Colour the districts by population, 7 classes, natural breaks
+    reads: districts
+    expect:
+      call: set_graduated
+      args: {layer_name: districts, field: pop2020, classes: 7, mode: jenks}
+
+- description: Labels by a field
+  vars:
+    request: Label the schools with their names
+    reads: schools
+    expect:
+      call: set_labels
+      args: {layer_name: schools, properties: {field: name}}
+
+- description: Half transparent is opacity 0.5
+  vars:
+    request: Make the districts half transparent
+    expect:
+      call: set_opacity
+      args: {layer_name: districts, opacity: 0.5}
+
+- description: A hillshade is a raster style
+  vars:
+    request: Show the DEM as a hillshade
+    reads: dem
+    expect:
+      call: set_raster_style
+      args: {layer_name: dem, mode: hillshade}
+
+- description: Specific colours per category
+  vars:
+    request: "Colour the schools by kind: schools blue, lyceums green, gymnasiums orange"
+    reads: schools, schools/kind
+    expect:
+      call: set_categories
+      args: {layer_name: schools, field: kind, colors: "*"}
+
+- description: Explaining a style reads it first
+  vars:
+    request: How is the roads layer styled at the moment?
+    expect:
+      call: describe_style
+      args: {layer_name: roads}
+
+- description: Russian — a single colour
+  vars:
+    request: Сделай дороги красными
+    expect:
+      call: set_symbol
+      args: {layer_name: roads, properties: {color: "re:red|#f00|#ff0000|255,\\s*0,\\s*0"}}

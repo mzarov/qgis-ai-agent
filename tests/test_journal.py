@@ -35,6 +35,15 @@ class RenderTest(unittest.TestCase):
         self.assertIn("**Applied steps:** 2", text)
         self.assertIn("**Outcome:** Готово", text)
 
+    def test_every_model_request_shows_its_tokens_and_seconds(self):
+        text = render_journal("request", [], "done", 1, [(12000, 300, 4.25), (15000, 120, 2.0)])
+        self.assertIn("| 1 | 12000 | 300 | 4.2 |", text)
+        self.assertIn("| 2 | 15000 | 120 | 2.0 |", text)
+        self.assertIn("**Total:** 2 requests, 27000 input and 420 output tokens, 6.2 s", text)
+
+    def test_a_journal_without_requests_has_no_table(self):
+        self.assertNotIn("Model requests", render_journal("request", [], "done", 1))
+
     def test_long_texts_are_shortened(self):
         text = render_journal("x" * 1000, [], "y" * 1000, 0)
         self.assertEqual(text.count("…"), 2)
@@ -128,8 +137,9 @@ class LoopJournalTest(unittest.TestCase):
         self.outcomes = []
         self.saved = run_journal_module.record_run
 
-        def record(prompt, entries, outcome, applied):
+        def record(prompt, entries, outcome, applied, requests=()):
             self.paths.append((prompt, applied))
+            self.requests = list(requests)
             self.outcomes.append(outcome)
             return "/tmp/run_x.md"
 
@@ -153,6 +163,15 @@ class LoopJournalTest(unittest.TestCase):
         self.loop._write_journal("готово")
         self.assertEqual(self.paths, [("скачай кафе", 3)])
         self.assertEqual(self.emitted, ["/tmp/run_x.md"])
+
+    def test_the_loop_times_each_request_it_sends(self):
+        clock = iter([100.0, 103.5])
+        with mock.patch.object(run_journal_module, "CLOCK", lambda: next(clock)):
+            self.loop._journal.asked()
+            self.loop._track_usage(ModelTurn(text="ok", input_tokens=900, output_tokens=40))
+        self.loop._journal.applied = 1
+        self.loop._write_journal("готово")
+        self.assertEqual(self.requests, [(900, 40, 3.5)])
 
     def test_a_journal_is_announced_only_once(self):
         self.loop._journal.applied = 1

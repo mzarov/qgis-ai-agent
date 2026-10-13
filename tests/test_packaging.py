@@ -95,6 +95,8 @@ class BuildTest(unittest.TestCase):
             or name.endswith(".pyc")
             or "/tests/" in name
             or "/docs/" in name
+            # A skill's eval cases sit beside its SKILL.md but are for the bench, not for QGIS.
+            or "/evals/" in name
         ]
         self.assertEqual(unwanted, [])
 
@@ -107,6 +109,7 @@ class BuildTest(unittest.TestCase):
         self.assertFalse(build_plugin.is_package_file_allowed("skills/CLAUDE.md"))
         self.assertTrue(build_plugin.is_package_file_allowed("core/agent/loop.py"))
         self.assertTrue(build_plugin.is_package_file_allowed("skills/inspect/SKILL.md"))
+        self.assertFalse(build_plugin.is_package_file_allowed("skills/inspect/evals/cases.yaml"))
         self.assertTrue(build_plugin.is_package_file_allowed("qgis_tools/data/sources/pdok.json"))
         self.assertFalse(build_plugin.is_package_file_allowed("core/settings.json"))
 
