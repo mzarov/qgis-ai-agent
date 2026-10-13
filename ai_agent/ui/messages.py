@@ -14,6 +14,7 @@ BUBBLE_TAIL_RADIUS = 3
 BROWSER_EXTRA_HEIGHT = 6
 WRAP_SLACK = 10
 SYSTEM_FONT_SCALE = 0.92
+SYSTEM_VERTICAL_PADDING = 2
 REPAINT_INTERVAL_MS = 80
 REWIND_ICON = 14
 REWIND_BUTTON = 24
@@ -139,23 +140,22 @@ class AssistantMessage(QWidget):
 
 
 class SystemMessage(QWidget):
-    """The plugin's note in the feed; an error wears the danger colour so it is not read past as a remark."""
+    """The plugin's own note: smaller text in the reply's column, with no frame and no rule beside it.
+
+    An error wears the danger colour so it is not read past as a remark.
+    """
 
     def __init__(self, text: str, parent=None, *, error: bool = False):
         super().__init__(parent)
         palette = self.palette()
         row = QHBoxLayout(self)
-        row.setContentsMargins(0, 0, 0, 0)
+        row.setContentsMargins(0, SYSTEM_VERTICAL_PADDING, 0, SYSTEM_VERTICAL_PADDING)
 
         label = QLabel(text)
         label.setWordWrap(True)
         label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         style.scale_font(label, SYSTEM_FONT_SCALE)
-        ink = style.danger(palette) if error else style.muted(palette)
-        rule = style.danger(palette) if error else style.hairline(palette)
-        label.setStyleSheet(
-            f"color: {style.css_color(ink)};border-left: 2px solid {style.css_color(rule)};padding: 2px 0 2px 9px;"
-        )
+        style.ink(label, style.danger(palette) if error else style.muted(palette))
         self.error = error
         row.addWidget(label, 1)
         self._label = label

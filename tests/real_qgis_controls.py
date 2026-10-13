@@ -189,6 +189,25 @@ class ErrorNoteTest(unittest.TestCase):
         view.deleteLater()
 
 
+class NoteColumnTest(unittest.TestCase):
+    def test_a_note_starts_in_the_reply_column(self) -> None:
+        view = ConversationView()
+        view.resize(560, 400)
+        view.show()
+        view.add_assistant_message("Two layers.")
+        view.add_system_message("Run stopped.")
+        pump(0.2)
+        feed = view.widget()
+        answer = feed.findChildren(AssistantMessage)[0]._browser
+        label = feed.findChildren(SystemMessage)[0]._label
+        # A style sheet's lone border-left once reserved its width and padding but never painted (Qt takes
+        # the whole border's style from the top edge), so the note sat 11 px in beside nothing.
+        text = label.mapTo(feed, label.contentsRect().topLeft())
+        self.assertEqual(text.x(), answer.mapTo(feed, QPoint(0, 0)).x())
+        view.hide()
+        view.deleteLater()
+
+
 class DropdownPlacementTest(unittest.TestCase):
     """Near the bottom of the screen the menu opens above the field instead of sliding over it."""
 

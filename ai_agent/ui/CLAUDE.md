@@ -441,6 +441,14 @@ focus and state looks are painted (`controls.RoundedFrame` for the composer,
 provider tiles and popup rows; `Compass`, `PaintedDot`), and a style
 sheet is set only when its text actually changed.
 
+**A one-sided style-sheet border never paints.** Qt takes the whole border's
+style from the top edge, so a lone `border-left` on a widget without a
+background counts as the native border: nothing paints, yet the box keeps
+its width.
+The feed's notes carried such a rule and stood 11 px in beside nothing on
+every screen; the handoff draws no rule for them, so they now sit plain in
+the reply's column. An edge that must show is painted.
+
 **Nothing that cannot shrink may sit in a grid.** A pill badge or an unelided
 name in the provider tiles widened the whole page in Russian; tile captions are
 wrapping text and names elide. The screen checks' overflow detector found it.
