@@ -15,10 +15,14 @@
       steps:
         - tool: preview_table
           args: {path: /data/stops.csv}
+          # The shape preview_table returns: rows are lists of cells, in column order.
           result:
-            delimiter: ","
+            path: /data/stops.csv
+            delimiter: comma
+            encoding: utf-8
+            row_count: 214
             columns: [{name: stop_id, type: integer}, {name: name, type: string}, {name: lon, type: real}, {name: lat, type: real}]
-            rows: [{stop_id: 1, name: Tverskaya, lon: 37.6056, lat: 55.7647}]
+            rows: [["1", Tverskaya, "37.6056", "55.7647"], ["2", Pushkinskaya, "37.6043", "55.7656"], ["3", Okhotny Ryad, "37.6153", "55.7576"]]
     expect:
       call: load_table
       args: {path: /data/stops.csv, x_field: lon, y_field: lat}
@@ -31,9 +35,12 @@
         - tool: preview_table
           args: {path: /data/wells.csv}
           result:
-            delimiter: ";"
+            path: /data/wells.csv
+            delimiter: semicolon
+            encoding: utf-8
+            row_count: 38
             columns: [{name: well, type: string}, {name: x, type: real}, {name: y, type: real}]
-            rows: [{well: W-1, x: 412345.0, y: 6178123.0}]
+            rows: [[W-1, "412345.0", "6178123.0"], [W-2, "412910.5", "6177804.2"], [W-3, "413377.0", "6178650.9"]]
     expect:
       call: load_table
       args: {x_field: x, y_field: y, crs: "re:32637"}
@@ -45,10 +52,14 @@
       steps:
         - tool: preview_table
           args: {path: /data/population.csv}
+          # Enough rows to compare the names with the layer's: a single row sent the model back for more.
           result:
-            delimiter: ","
+            path: /data/population.csv
+            delimiter: comma
+            encoding: utf-8
+            row_count: 12
             columns: [{name: district, type: string}, {name: population_2024, type: integer}]
-            rows: [{district: Arbat, population_2024: 37010}]
+            rows: [[Arbat, "37010"], [Basmanny, "113420"], [Khamovniki, "110660"], [Meshchansky, "59750"], [Presnensky, "128510"], [Tagansky, "122830"]]
         - tool: describe_layer
           args: {layer_name: districts}
           result: {name: districts, kind: vector, geometry: polygon, fields: [{name: name, type: String}, {name: pop2020, type: Integer64}]}
