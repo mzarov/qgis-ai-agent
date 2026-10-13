@@ -1021,10 +1021,14 @@ These verify the agent solves everyday tasks without wandering through search.
      agent works → a message says it applies once the agent has finished.
 213. **Status line outcomes.** Ask a question → the compass under the feed
      swings beside *Working…* and the time; the answer arrives → *Done in N s*
-     with the needle settling north. A question card → *Waiting for your
-     answer*, the needle tilting slowly. Break the key mid-run → *Stopped by an
-     error — the reason is above*, a red needle tip. Press ■ → the line goes.
-     A new conversation → no old outcome under the welcome.
+     with the needle settling north. *Colour the districts by population* →
+     Apply → after the check, *Done in N s · Layer “districts” redrawn*; a
+     buffer → *… · New layer “…”*; the next question → plain *Done in N s*
+     again. A question card → *Waiting for your answer*, the needle tilting
+     slowly. A step that fails on Apply → *Stopped by an error — the reason is
+     above*, a red needle tip; a failed model request leaves no line under its
+     card. Press ■ → the line goes. A new conversation → no old outcome under
+     the welcome.
 214. **Undo from the plan card.** *Colour the rivers blue* → *Plan · 1 change*,
      the step numbered with its kind under it → Apply → *Applied · 1 change*,
      the time and **Undo** → press it → the rivers are back as before, the card

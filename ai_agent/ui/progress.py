@@ -44,6 +44,7 @@ RETRY_BUSY = tr("The model is busy · retrying in {0} ({1}/{2})")
 RETRY_FAILED = tr("The request failed · retrying in {0} ({1}/{2})")
 RETRYING = tr("Retrying… ({0}/{1})")
 FAILED = tr("Stopped by an error — the reason is above")
+SUMMARY = "{0} · {1}"
 OUTCOMES = {
     STATUS_WAITING: (compass.ASK, WAITING),
     STATUS_DONE: (compass.DONE, DONE_IN),
@@ -109,8 +110,8 @@ class ProgressLine(QWidget):
         if self.state != RUNNING:
             self.show_outcome(STATUS_HIDDEN)
 
-    def show_outcome(self, kind: str) -> None:
-        """Say how the run stopped working: waiting, done, failed — or hide the line."""
+    def show_outcome(self, kind: str, summary: str = "") -> None:
+        """Say how the run stopped working: waiting, done (with what changed, if anything), failed — or hide it."""
         self._timer.stop()
         self._retry = None
         outcome = OUTCOMES.get(kind)
@@ -122,6 +123,8 @@ class ProgressLine(QWidget):
         state, text = outcome
         took = format_seconds(time.monotonic() - self._started, decimals=0) if self._started else ""
         shown = text.format(took) if kind == STATUS_DONE else text
+        if kind == STATUS_DONE and summary:
+            shown = SUMMARY.format(shown, summary)
         self.state = kind
         self._say(shown)
         self._elapsed.setVisible(False)

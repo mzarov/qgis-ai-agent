@@ -124,7 +124,8 @@ class RunEventsMixin:
             self.dock_widget.add_system_message(tr("The model returned nothing. Try rephrasing."))
             return
         self._render_answer(message)
-        self.dock_widget.show_outcome(STATUS_DONE)
+        # A check after an apply ends the request: the line still says what the apply changed.
+        self.dock_widget.show_outcome(STATUS_DONE, self._done_summary)
         self.naming.after_answer()
         if getattr(self.agent, "is_planning", False) and not getattr(self.agent, "ended_on_limit", False):
             # Plan mode ends on a plan: offer to run it, as Claude Code does.

@@ -1093,9 +1093,11 @@ class OutcomeDock(PlanDock):
     def __init__(self):
         super().__init__()
         self.outcomes = []
+        self.summaries = []
 
-    def show_outcome(self, kind):
+    def show_outcome(self, kind, summary=""):
         self.outcomes.append(kind)
+        self.summaries.append(summary)
 
 
 class AppliedVisualTest(unittest.TestCase):
@@ -1141,6 +1143,18 @@ class StatusOutcomeTest(unittest.TestCase):
         self.assertEqual(self.dock.outcomes, [], "the failure card is the outcome; the line would repeat it")
         self.orchestrator.on_aborted()
         self.assertEqual(self.dock.outcomes, [notices.STATUS_HIDDEN])
+
+    def test_a_done_request_says_what_its_apply_changed_through_the_check(self):
+        self.orchestrator.on_confirm_needed([Call()], "")
+        applied = Result(name="set_graduated")
+        applied.call.arguments = {"layer_name": "districts"}
+        self.orchestrator.on_applied([applied])
+        self.orchestrator.on_finished("Checked: the districts are graduated.")
+        self.assertEqual(self.dock.outcomes[-2:], [notices.STATUS_DONE, notices.STATUS_DONE])
+        self.assertEqual(self.dock.summaries[-1], "Layer “districts” redrawn", "the check's answer lost the summary")
+        self.orchestrator.on_prompt("And now?")
+        self.orchestrator.on_finished("Nothing else to do.")
+        self.assertEqual(self.dock.summaries[-1], "", "a new request kept the last apply's summary")
 
     def test_a_retry_the_loop_announces_reaches_the_status_line(self):
         retries = []

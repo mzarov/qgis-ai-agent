@@ -62,6 +62,8 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self._restorable_plan_id: int | None = None
         # The last request's start, for Retry on its failure card.
         self._retry_args: tuple[Any, ...] | None = None
+        # What the last apply of this request changed, for the status line once the request is done.
+        self._done_summary = ""
         self._snapshot_before_apply = ""
         self._invalidated_scope: tuple[str, str] | None = None
         self._deferred_interrupted_outcome = ""
@@ -201,6 +203,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
             self.conversation.add("user", shown)
             self._show_title()
             self._last_request = request
+            self._done_summary = ""
             # What Retry on a failure card sends again: the request is on screen and in the conversation.
             self._retry_args = (shown, prompt, request, skills, images, planning)
             self.agent.start(prompt, history, skills=skills, images=images, planning=planning)

@@ -319,8 +319,8 @@ class AgentDockWidget(QDockWidget):
     def forget_plan_restore(self, message_id: int) -> None:
         self.conversation.forget_plan_restore(message_id)
 
-    def show_outcome(self, kind: str) -> None:
-        self.progress.show_outcome(kind)
+    def show_outcome(self, kind: str, summary: str = "") -> None:
+        self.progress.show_outcome(kind, summary)
 
     def show_retry(self, seconds: float, attempt: int, total: int, busy: bool) -> None:
         self.progress.show_retry(seconds, attempt, total, busy)
