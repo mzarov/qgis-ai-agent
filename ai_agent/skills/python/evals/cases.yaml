@@ -1,0 +1,35 @@
+# python: with the escape hatch loaded, does the model still reach for a real
+# tool first, and write a snippet only for what no tool covers?
+
+- description: Blend modes have no tool
+  vars:
+    request: Set the blend mode of the districts layer to multiply
+    expect:
+      call: run_python
+      args: {code: "re:setBlendMode|blendMode"}
+
+- description: Opacity has a tool in style
+  vars:
+    request: Make the districts half transparent
+    expect:
+      not: [run_python]
+
+- description: The QGIS version has a tool in inspect
+  vars:
+    request: Which QGIS version is this?
+    expect:
+      not: [run_python]
+
+- description: Map rotation has no tool
+  vars:
+    request: Rotate the map view by 30 degrees
+    expect:
+      call: run_python
+      args: {code: "re:setRotation|rotation", intent: "*"}
+
+- description: Russian — a canvas setting with no tool
+  vars:
+    request: Сделай фон карты тёмно-серым
+    expect:
+      call: run_python
+      args: {code: "re:setCanvasColor|backgroundColor|setBackgroundColor"}

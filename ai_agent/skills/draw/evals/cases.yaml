@@ -1,0 +1,47 @@
+# draw: with the skill loaded, the features the model draws.
+# Coordinates are [longitude, latitude]: people write latitude first, so the
+# order is checked with a pattern over the features.
+
+- description: Typed latitude first becomes longitude first
+  vars:
+    request: Put a point at 55.7539, 37.6208 and call it Red Square
+    expect:
+      call: draw_features
+      args: {geometry: point, features: "re:\\[\\s*37\\.6208\\s*,\\s*55\\.7539\\s*\\]"}
+
+- description: A line is one feature through its points
+  vars:
+    request: Draw a line from 55.75, 37.62 to 55.76, 37.64
+    expect:
+      call: draw_features
+      args: {geometry: line, features: "re:37\\.62\\s*,\\s*55\\.75.*37\\.64\\s*,\\s*55\\.76"}
+
+- description: A polygon from corner coordinates
+  vars:
+    request: "Draw a polygon with corners at lon/lat 37.60 55.74, 37.63 55.74 and 37.63 55.76"
+    expect:
+      call: draw_features
+      args: {geometry: polygon, features: "re:37\\.6\\d*\\s*,\\s*55\\.74"}
+
+- description: A place without coordinates is geocoded, never guessed
+  vars:
+    request: Mark the Bolshoi Theatre with a point
+    expect:
+      not: [draw_features]
+      any_of:
+        - loads: [web]
+        - call: ask_user
+
+- description: Projected coordinates keep their CRS
+  vars:
+    request: Add a point at x 412000, y 6178000 in UTM zone 37N
+    expect:
+      call: draw_features
+      args: {geometry: point, crs: "re:32637"}
+
+- description: Russian — a named point
+  vars:
+    request: Поставь точку 59.9386, 30.3141 и назови её Эрмитаж
+    expect:
+      call: draw_features
+      args: {geometry: point, features: "re:\\[\\s*30\\.3141\\s*,\\s*59\\.9386\\s*\\]"}

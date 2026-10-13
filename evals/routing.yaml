@@ -125,3 +125,18 @@
   vars:
     request: Скачай аптеки из OSM в текущем экстенте и построй вокруг них зоны 300 м
     expect: {loads: [osm, processing]}
+
+- description: A plugin question is the plugins skill
+  vars:
+    request: Is there a plugin for image segmentation installed?
+    expect: {loads: [plugins]}
+
+- description: A setting no tool covers is the python skill
+  vars:
+    request: Set the blend mode of the districts layer to multiply
+    expect: {loads: [python], not_loads: [processing]}
+
+- description: Old-style labels are not annotations
+  vars:
+    request: Show the school names on the map
+    expect: {loads: [style], not_loads: [annotations]}

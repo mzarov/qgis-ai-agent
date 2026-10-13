@@ -18,7 +18,7 @@ import run as runner  # noqa: E402
 
 from ai_agent.skills.registry import SKILL_REGISTRY  # noqa: E402
 
-CALL_LINE = re.compile(r"^\s*(?:-\s*)?call:\s*(\[[^\]]*\]|[A-Za-z_]+)", re.MULTILINE)
+CALL_LINE = re.compile(r"^\s*(?:-\s*)?call:\s*(\[[^\]]*\]|[A-Za-z0-9_]+)", re.MULTILINE)
 LOADS = re.compile(r"(?:loads|not_loads):\s*\[([^\]]*)\]")
 
 

@@ -1,0 +1,36 @@
+# web: with the skill loaded, the model's lookup.
+# `expect` is checked by evals/checks.py; see docs/skill_evals.md.
+
+- description: A place is geocoded
+  vars:
+    request: Where is the Tretyakov Gallery? Zoom there
+    expect:
+      call: geocode
+      args: {place: "re:tretyakov"}
+
+- description: A fact is searched
+  vars:
+    request: Search the web for the official opening hours of the Tretyakov Gallery
+    expect:
+      call: search_web
+      args: {query: "re:tretyakov"}
+
+- description: A pasted link is read
+  vars:
+    request: Read https://qgis.org/resources/roadmap/ and tell me when the next LTR is due
+    expect:
+      call: fetch_url
+      args: {url: "re:^https://qgis\\.org/resources/roadmap"}
+
+- description: The project's own data needs no web
+  vars:
+    request: How many schools are in the project?
+    expect:
+      not: [search_web, fetch_url, geocode]
+
+- description: Russian — coordinates of a place
+  vars:
+    request: Найди координаты Эрмитажа
+    expect:
+      call: geocode
+      args: {place: "re:эрмитаж|hermitage"}

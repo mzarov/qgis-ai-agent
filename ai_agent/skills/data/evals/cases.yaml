@@ -1,0 +1,43 @@
+# data: with the skill loaded, the model's open-data call.
+# `expect` is checked by evals/checks.py; see docs/skill_evals.md.
+
+- description: World countries are Natural Earth
+  vars:
+    request: Add the countries of the world
+    expect:
+      call: load_dataset
+      args: {dataset: natural-earth, layer: countries}
+
+- description: A country's regions are geoBoundaries ADM1
+  vars:
+    request: Load the regions of Kenya
+    expect:
+      call: load_dataset
+      args: {dataset: geoboundaries, country: KEN, level: ADM1}
+
+- description: A country's districts are ADM2
+  vars:
+    request: Add the districts of France
+    expect:
+      call: load_dataset
+      args: {dataset: geoboundaries, country: FRA, level: ADM2}
+
+- description: Imagery is searched, not invented
+  vars:
+    request: Find a cloud-free Sentinel-2 image of the current view from last summer
+    expect:
+      call: [search_imagery, find_open_data]
+      not: [load_imagery]
+
+- description: Unsure what fits — the catalogue
+  vars:
+    request: Where can I get elevation data for this area?
+    expect:
+      call: [find_open_data, search_imagery]
+
+- description: Russian — rivers of the world
+  vars:
+    request: Добавь реки мира
+    expect:
+      call: load_dataset
+      args: {dataset: natural-earth, layer: rivers}

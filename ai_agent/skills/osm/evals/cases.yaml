@@ -1,0 +1,47 @@
+# osm: with the skill loaded, the model's Overpass download.
+# `expect` is checked by evals/checks.py; see docs/skill_evals.md.
+
+- description: Here is the current view
+  vars:
+    request: Download all the cafes in the current view from OpenStreetMap
+    expect:
+      call: download_osm
+      args: {key: amenity, value: cafe, bbox: canvas}
+
+- description: A named place is an area
+  vars:
+    request: Get the primary roads of Kyoto from OpenStreetMap
+    expect:
+      call: download_osm
+      args: {key: highway, value: primary, area: "re:kyoto"}
+
+- description: A key without a value
+  vars:
+    request: Download the buildings here
+    expect:
+      call: download_osm
+      args: {key: building, bbox: canvas}
+
+- description: Parks are polygons
+  vars:
+    request: Download the parks in the current view as polygons
+    expect:
+      call: download_osm
+      args: {key: leisure, value: park, bbox: canvas, geometry: polygons}
+
+- description: Two tags at once
+  vars:
+    request: Download the pharmacies and the hospitals in the current view
+    expect:
+      any_of:
+        - call: download_osm
+          args: {selectors: "re:pharmacy", bbox: canvas}
+        - call: download_osm
+          args: {key: amenity, bbox: canvas}
+
+- description: Russian — pharmacies in the current extent
+  vars:
+    request: Скачай аптеки из OSM в текущем экстенте
+    expect:
+      call: download_osm
+      args: {key: amenity, value: pharmacy, bbox: canvas}
