@@ -228,6 +228,19 @@ class ConversationView(QScrollArea):
         self._failures.append(card)
         return self._append(card)
 
+    def add_recorded_failure(self, record: dict[str, Any]) -> int:
+        """A failure from a reopened conversation: what happened, no buttons — its moment has passed."""
+        self._close_activity()
+        card = FailureCard(
+            str(record.get("title") or ""),
+            str(record.get("detail") or ""),
+            str(record.get("message") or ""),
+            str(record.get("kind") or ""),
+            False,
+            False,
+        )
+        return self._append(card)
+
     def retire_failures(self) -> None:
         for card in self._failures:
             card.retire()

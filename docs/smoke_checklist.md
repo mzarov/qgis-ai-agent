@@ -1158,8 +1158,10 @@ These verify the agent solves everyday tasks without wandering through search.
      request runs again, not repeated in the feed. Now break only the path
      (`…/v` instead of `…/v1`) → “Model or address not found” names the
      address with its path and the model, and offers only **Connection**
-     (outlined); fix the path, Save → **Retry** appears on the card. Notes
-     such as “Run stopped. Pending work was cancelled.” stay grey.
+     (outlined); fix the path, Save → **Retry** appears on the card. Break
+     it again, send, then open another conversation and come back: the card
+     is still under the request, without buttons. Notes such as “Run
+     stopped. Pending work was cancelled.” stay grey.
 239. **A busy model is retried longer.** On a provider answering 429
      “overloaded” the line reads “The model is busy · retrying in N s (2/5)”,
      N being the server's Retry-After (30 s at most); as soon as the answer

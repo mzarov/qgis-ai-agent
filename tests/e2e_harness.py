@@ -6,6 +6,7 @@ model behind it is up to the subclass: `real_qgis_e2e` points it at the
 scripted model, `real_qgis_live` at a real provider.
 """
 
+import faulthandler
 import os
 import pathlib
 import tempfile
@@ -35,6 +36,9 @@ from ai_agent.core.settings import (
 from ai_agent.plugin import QgisAiAgentPlugin
 
 SETTLE_S = 0.4
+# A test that has not ended by then is stuck, not slow: every thread's stack goes to stderr and
+# the process exits, so a hang names its place instead of eating the CI job's whole timeout.
+HANG_S = 300
 WINDOW_WIDTH = 1100
 WINDOW_HEIGHT = 760
 ARTIFACTS = pathlib.Path(os.environ.get("E2E_ARTIFACTS", "build/e2e"))
@@ -136,6 +140,8 @@ class PluginCase(unittest.TestCase):
     idle_timeout_s = 60
 
     def setUp(self) -> None:
+        faulthandler.dump_traceback_later(HANG_S, exit=True)
+        self.addCleanup(faulthandler.cancel_dump_traceback_later)
         set_api_url(self.api_url)
         set_model(self.model_name)
         set_dialect("openai")

@@ -57,6 +57,8 @@ jobs:
 
   real-qgis-smoke:
     runs-on: ubuntu-latest
+    # A run takes minutes; a stuck test dumps its stacks and exits after five (tests/e2e_harness.py).
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -87,6 +89,7 @@ jobs:
     # QGIS image pinned by digest. After an intended UI change, or a new pin,
     # copy the ui-actual images of the artifact into tests/data/ui/pixels.
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     container:
       image: qgis/qgis@sha256:23c12670e69909e8659a5c098aa307996735a5763b9ff9c3268bdeeee1a10916  # 4.0-trixie
     env:

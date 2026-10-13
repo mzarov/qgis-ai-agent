@@ -214,6 +214,8 @@ class AgentDockWidget(QDockWidget):
                 self.conversation.add_trace(message["trace"])
             elif isinstance(message.get("plan"), dict):
                 self.conversation.add_recorded_plan(message["plan"])
+            elif isinstance(message.get("failure"), dict):
+                self.conversation.add_recorded_failure(message["failure"])
             else:
                 self.conversation.add_assistant_message(message.get("content", ""))
         if self._switching is not None:
