@@ -1,0 +1,98 @@
+name: skill-evals
+
+# The skill bench (evals/run.py, docs/skill_evals.md) against a real model:
+# which skills the model loads for a request, and which call it makes once a
+# skill is loaded. Every case is one model request, about half a million tokens
+# for the whole bench, so it never runs on push: start it from the Actions tab,
+# or put the `skill-evals` label on a pull request that touches a skill, a tool
+# description or the prompt. Pull requests from forks get no secrets, so for
+# them the run is skipped; contributors run the bench locally with their own key.
+#
+# It uses the same provider as the live-model workflow. Repository settings:
+#   variable LIVE_MODEL_URL   base URL, e.g. https://api.deepseek.com/v1
+#   variable LIVE_MODEL       model id as the provider names it
+#   secret   LIVE_MODEL_KEY   API key
+#   variable LIVE_MODEL_AUTH  Authorization scheme when not Bearer, e.g. OAuth (optional)
+#
+# A suite fails when its pass rate drops below its floor in
+# evals/thresholds.json, measured on LIVE_MODEL. Until floors exist for that
+# model the run only reports; set them from a run with save_thresholds and
+# commit the file.
+
+on:
+  workflow_dispatch:
+    inputs:
+      suites:
+        description: "Suites to run, comma-separated (routing, style, …); empty runs all"
+        type: string
+        default: ""
+      repeat:
+        description: "Runs per case; 3 for a pass rate to set floors from"
+        type: number
+        default: 1
+      save_thresholds:
+        description: "Set the floors from this run (download evals/thresholds.json from the artifact and commit it)"
+        type: boolean
+        default: false
+  pull_request:
+    types: [labeled]
+
+concurrency:
+  group: skill-evals-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  skill-evals:
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'skill-evals'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      EVAL_API_URL: ${{ vars.LIVE_MODEL_URL }}
+      EVAL_MODEL: ${{ vars.LIVE_MODEL }}
+      EVAL_API_KEY: ${{ secrets.LIVE_MODEL_KEY }}
+      EVAL_AUTH: ${{ vars.LIVE_MODEL_AUTH || 'Bearer' }}
+      SUITES: ${{ inputs.suites }}
+      REPEAT: ${{ inputs.repeat || 1 }}
+      SAVE_THRESHOLDS: ${{ inputs.save_thresholds }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the configuration
+        id: configured
+        run: |
+          if [ -n "${EVAL_API_URL}" ] && [ -n "${EVAL_MODEL}" ] && [ -n "${EVAL_API_KEY}" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          elif [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            echo "::error::Set the LIVE_MODEL_URL and LIVE_MODEL variables and the LIVE_MODEL_KEY secret."
+            exit 1
+          else
+            echo "::notice::No model is configured for this repository, or this pull request comes from a fork; the skill evals are skipped."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-python@v5
+        if: steps.configured.outputs.ready == 'true'
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        if: steps.configured.outputs.ready == 'true'
+        with:
+          node-version: "22"
+      - name: Skill evals
+        if: steps.configured.outputs.ready == 'true'
+        run: |
+          set -- --repeat "${REPEAT}" --fresh
+          if [ -n "${SUITES}" ]; then set -- "$@" --suites "${SUITES}"; fi
+          if [ "${SAVE_THRESHOLDS}" = "true" ]; then set -- "$@" --save-thresholds; else set -- "$@" --check; fi
+          python3 evals/run.py "$@"
+      - name: Upload the results
+        if: always() && steps.configured.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: skill-evals
+          path: |
+            build/evals/*.results.json
+            build/evals/summary.md
+            evals/thresholds.json
+          if-no-files-found: ignore

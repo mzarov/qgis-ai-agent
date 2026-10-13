@@ -13,9 +13,12 @@ The model is any OpenAI-compatible endpoint:
     EVAL_API_KEY   read by promptfoo itself; not needed for a local server
     EVAL_AUTH      the Authorization scheme, as in the plugin's settings (default Bearer, e.g. OAuth)
     EVAL_LOCALE    the UI language the prompt assumes (default en)
+    EVAL_REQUIRE_THRESHOLDS  1 fails --check for a suite or model without a floor (CI sets it once floors exist)
 
     python3 evals/run.py                      # every suite
     python3 evals/run.py --suites routing,style --repeat 3
+    python3 evals/run.py --repeat 3 --fresh --save-thresholds   # the floors CI holds a model to
+    python3 evals/run.py --check                                # fail below a floor (CI)
     npx promptfoo@<version> view              # the results, case by case
 
 Needs Node for `npx`; the plugin and its tests do not.
@@ -33,6 +36,7 @@ from urllib.parse import urlsplit
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import context as agent_request  # noqa: E402
+import thresholds  # noqa: E402
 
 REPO = agent_request.REPO
 EVALS = REPO / "evals"
@@ -213,6 +217,8 @@ def main() -> int:
     # measuring how much a model's answers vary.
     parser.add_argument("--fresh", action="store_true", help="ask the model again even for cached requests")
     parser.add_argument("--configs-only", action="store_true", help="write the configs and stop")
+    parser.add_argument("--check", action="store_true", help="fail when a suite falls below its floor")
+    parser.add_argument("--save-thresholds", action="store_true", help="set the floors from this run")
     options = parser.parse_args()
     url = os.environ.get("EVAL_API_URL", "").strip()
     models = [name.strip() for name in os.environ.get("EVAL_MODEL", "").split(",") if name.strip()]
@@ -246,11 +252,28 @@ def main() -> int:
             # Every request failed before the model answered: the endpoint or the key is wrong, not the skill.
             print(f"Every case of {suite} failed to reach the model, stopping: {row['first_error']}", file=sys.stderr)
             break
-    if rows:
-        summary = report(rows)
-        (OUT / "summary.md").write_text(summary, encoding="utf-8")
-        print(summary)
-    return 0
+    if not rows:
+        return 0
+    summary = report(rows)
+    problems = []
+    if options.save_thresholds or options.check:
+        if len(models) != 1:
+            summary += "\nFloors need exactly one model in EVAL_MODEL; nothing was saved or checked.\n"
+        elif options.save_thresholds:
+            saved = thresholds.save(rows, models[0])
+            summary += f"\nFloors for {models[0]} saved to evals/thresholds.json: {saved['suites']}\n"
+        else:
+            require = os.environ.get("EVAL_REQUIRE_THRESHOLDS", "") == "1"
+            problems = thresholds.check(rows, models[0], thresholds.load(), require)
+            verdict = "\n".join(f"- {problem}" for problem in problems) or "Every suite is at or above its floor."
+            summary += f"\n### Floors\n\n{verdict}\n"
+    (OUT / "summary.md").write_text(summary, encoding="utf-8")
+    print(summary)
+    step_summary = os.environ.get("GITHUB_STEP_SUMMARY", "")
+    if step_summary:
+        with open(step_summary, "a", encoding="utf-8") as handle:
+            handle.write(f"## Skill evals\n\n{summary}")
+    return 1 if problems else 0
 
 
 if __name__ == "__main__":
