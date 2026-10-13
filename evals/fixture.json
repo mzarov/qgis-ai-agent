@@ -47,7 +47,13 @@
           "pop2020": 112512,
           "area_km2": 8.38
         }
-      ]
+      ],
+      "extent": {
+        "xmin": 37.32,
+        "ymin": 55.49,
+        "xmax": 37.94,
+        "ymax": 55.96
+      }
     },
     "roads": {
       "name": "roads",
@@ -95,7 +101,13 @@
           "lanes": 1,
           "maxspeed": 20
         }
-      ]
+      ],
+      "extent": {
+        "xmin": 37.35,
+        "ymin": 55.55,
+        "xmax": 37.88,
+        "ymax": 55.92
+      }
     },
     "schools": {
       "name": "schools",
@@ -137,7 +149,13 @@
           "kind": "lyceum",
           "capacity": 900
         }
-      ]
+      ],
+      "extent": {
+        "xmin": 37.4,
+        "ymin": 55.6,
+        "xmax": 37.85,
+        "ymax": 55.9
+      }
     },
     "stations": {
       "name": "stations",
@@ -173,7 +191,13 @@
           "line": "Red",
           "passengers": 41000
         }
-      ]
+      ],
+      "extent": {
+        "xmin": 404200.0,
+        "ymin": 6168300.0,
+        "xmax": 418900.0,
+        "ymax": 6185200.0
+      }
     },
     "dem": {
       "name": "dem",
@@ -192,7 +216,13 @@
         }
       ],
       "width": 2000,
-      "height": 1600
+      "height": 1600,
+      "extent": {
+        "xmin": 395000.0,
+        "ymin": 6155000.0,
+        "xmax": 435000.0,
+        "ymax": 6187000.0
+      }
     }
   },
   "get_field_values": {

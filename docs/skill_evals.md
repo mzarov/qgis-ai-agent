@@ -92,7 +92,8 @@ python3 evals/run.py
 
 The runner writes a promptfoo config per suite to `build/evals/`. It runs
 them, then prints a table of passed cases, tokens and latency per suite, with
-every failure and what the model did instead. The same table goes to
+every failure and what the model did instead. A case that never reached the
+model (a timeout, a refused request) is counted apart, not as a failure. The same table goes to
 `build/evals/summary.md`. To see the cases one by one, run `npx promptfoo
 view`. Telemetry, update checks and sharing are switched off for the run.
 

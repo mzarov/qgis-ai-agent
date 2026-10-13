@@ -171,14 +171,19 @@ def summarise(suite: str, results: Path) -> dict[str, Any]:
 
 
 def report(rows: list[dict[str, Any]]) -> str:
-    lines = ["| suite | passed | tokens | mean latency |", "| --- | --- | --- | --- |"]
+    # A case that never reached the model (a timeout, a refused request) says nothing about the skill:
+    # it is counted apart, not as a failure.
+    lines = ["| suite | passed | not reached | tokens | mean latency |", "| --- | --- | --- | --- | --- |"]
     for row in rows:
+        graded = row["total"] - row["errors"]
         lines.append(
-            f"| {row['suite']} | {row['passed']}/{row['total']} | {row['tokens']:,} | {row['latency']:.1f} s |"
+            f"| {row['suite']} | {row['passed']}/{graded} | {row['errors']} | {row['tokens']:,} "
+            f"| {row['latency']:.1f} s |"
         )
     passed = sum(row["passed"] for row in rows)
-    total = sum(row["total"] for row in rows)
-    lines.append(f"| **all** | **{passed}/{total}** | {sum(row['tokens'] for row in rows):,} | |")
+    graded = sum(row["total"] - row["errors"] for row in rows)
+    errors = sum(row["errors"] for row in rows)
+    lines.append(f"| **all** | **{passed}/{graded}** | {errors} | {sum(row['tokens'] for row in rows):,} | |")
     for row in rows:
         if row["failures"]:
             lines.append(f"\n### {row['suite']}: failed\n")
