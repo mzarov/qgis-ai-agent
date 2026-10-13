@@ -271,7 +271,9 @@ to its `SKILL.md`, plus a routing case in `evals/routing.yaml`. The skill bench
 (`python3 evals/run.py`, promptfoo against a real model) measures whether the
 model loads the skill and calls its tools right, with the plugin's own prompts.
 Run the touched suite after editing a `SKILL.md`, a tool description or the
-prompt core; the cases never reach the zip. Details:
+prompt core; the cases never reach the zip. In CI it is the `skill-evals`
+workflow (by hand or the `skill-evals` label, never on push), failing a suite
+only below its floor in `evals/thresholds.json`. Details:
 [docs/skill_evals.md](docs/skill_evals.md).
 
 `tests/real_qgis_smoke.py` checks the installed ZIP, and

@@ -100,6 +100,38 @@ model (a timeout, a refused request) is counted apart, not as a failure. The sam
 `build/evals/summary.md`. To see the cases one by one, run `npx promptfoo
 view`. Telemetry, update checks and sharing are switched off for the run.
 
+## In CI
+
+The `skill-evals` workflow runs the bench on GitHub. It never runs on push,
+because every run spends tokens. There are two ways to start it:
+
+- from the Actions tab (**skill-evals → Run workflow**), optionally with a
+  list of suites, a repeat count, or `save_thresholds`;
+- by putting the `skill-evals` label on a pull request that touches a skill, a
+  tool description or the prompt.
+
+It uses the same provider as the live-model workflow: the `LIVE_MODEL_URL` and
+`LIVE_MODEL` variables, the `LIVE_MODEL_KEY` secret, and `LIVE_MODEL_AUTH` when
+the gateway wants something other than Bearer. Pull requests from forks get no
+secrets, so their run is skipped with a notice. Contributors run the bench
+locally with their own key or a local model.
+
+A model's answers vary, so CI does not demand every case. Each suite has a
+floor in `evals/thresholds.json`: the pass rate of a baseline run less ten
+points, rounded down to five. The run fails only when a suite drops below its
+floor. Floors belong to the model they were measured on; with another model
+the run just reports.
+
+Setting the floors, once per model:
+
+1. Run the workflow with `repeat` 3 and `save_thresholds` ticked, or locally
+   `python3 evals/run.py --repeat 3 --fresh --save-thresholds`.
+2. Take `evals/thresholds.json` from the `skill-evals` artifact and commit it.
+
+Until then, `--check` only reports. `EVAL_REQUIRE_THRESHOLDS=1` makes a suite
+or a model without a floor fail too. The table and the floors' verdict also go
+to the run's summary page, and the raw results to the `skill-evals` artifact.
+
 ## When to run it
 
 - After editing a `SKILL.md`, a tool description or the prompt core: run that

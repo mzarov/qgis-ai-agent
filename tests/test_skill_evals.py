@@ -15,6 +15,7 @@ import checks  # noqa: E402
 import context as agent_request  # noqa: E402
 import prompt as prompt_function  # noqa: E402
 import run as runner  # noqa: E402
+import thresholds  # noqa: E402
 
 from ai_agent.skills.registry import SKILL_REGISTRY  # noqa: E402
 
@@ -204,6 +205,53 @@ class RunnerTest(unittest.TestCase):
             summary = runner.summarise("project", results)
         self.assertEqual(summary["errors"], 1, "a failed check was counted as unreached")
         self.assertIn("| project | 1/2 | 1 |", runner.report([summary]))
+
+
+def row(suite, passed, total, errors=0):
+    return {"suite": suite, "passed": passed, "total": total, "errors": errors}
+
+
+class ThresholdsTest(unittest.TestCase):
+    def test_a_floor_is_the_measured_rate_less_the_margin_rounded_down(self):
+        self.assertEqual(thresholds.floor_for(0.95), 0.85)
+        self.assertEqual(thresholds.floor_for(22 / 24), 0.8)
+        self.assertEqual(thresholds.floor_for(0.05), 0.0)
+
+    def test_saving_keeps_other_suites_of_the_same_model_only(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "thresholds.json"
+            thresholds.save([row("routing", 22, 24), row("style", 10, 10)], "m1", path)
+            thresholds.save([row("style", 9, 10)], "m1", path)
+            self.assertEqual(thresholds.load(path)["suites"], {"routing": 0.8, "style": 0.8})
+            thresholds.save([row("fields", 6, 6)], "m2", path)
+            self.assertEqual(thresholds.load(path), {"model": "m2", "margin": 0.1, "suites": {"fields": 0.9}})
+
+    def test_a_suite_below_its_floor_fails_and_unreached_cases_do_not_count(self):
+        data = {"model": "m1", "suites": {"routing": 0.8, "style": 0.9}}
+        problems = thresholds.check([row("routing", 18, 24), row("style", 9, 12, errors=2)], "m1", data)
+        self.assertEqual(problems, ["routing: 75% passed, below its floor of 80%"])
+
+    def test_floors_of_another_model_only_report_unless_required(self):
+        data = {"model": "m1", "suites": {"routing": 0.8}}
+        self.assertEqual(thresholds.check([row("routing", 1, 24)], "m2", data), [])
+        self.assertTrue(thresholds.check([row("routing", 1, 24)], "m2", data, require=True))
+        self.assertEqual(thresholds.check([row("charts", 0, 6)], "m1", data, require=True), ["charts: no floor yet"])
+
+    def test_a_suite_whose_cases_never_reached_the_model_fails_its_floor(self):
+        data = {"model": "m1", "suites": {"routing": 0.8}}
+        self.assertEqual(
+            thresholds.check([row("routing", 0, 24, errors=24)], "m1", data),
+            ["routing: no case reached the model"],
+        )
+
+
+class WorkflowTest(unittest.TestCase):
+    def test_the_ci_workflow_runs_the_bench_with_the_check_and_the_shared_provider(self):
+        text = (EVALS.parent / ".github" / "workflows" / "skill-evals.yml").read_text(encoding="utf-8")
+        self.assertIn("python3 evals/run.py", text)
+        self.assertIn("--check", text)
+        self.assertIn("secrets.LIVE_MODEL_KEY", text)
+        self.assertNotRegex(text, r"(?m)^  push:", "the bench spends tokens; it must not run on every push")
 
 
 if __name__ == "__main__":
