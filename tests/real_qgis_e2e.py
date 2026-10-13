@@ -138,6 +138,10 @@ class StyleScenario(ScenarioCase):
         self.assertIn("describe_style", verification, "verification started without the applying run's skills")
         self.assertIn("Message from the plugin", self.model.sent_text(4))
         self.assertEqual(self.answers()[-1], "Checked: districts is coloured in 5 classes.")
+        self.assertTrue(
+            self.dock.progress.step_text.endswith(" · Layer “districts” redrawn"),
+            f"the status line does not say what the apply changed: {self.dock.progress.step_text!r}",
+        )
         # The live-model token report reads these counters: the verification run's two requests.
         expected = {"prompt_tokens": 2 * USAGE["prompt_tokens"], "completion_tokens": 2 * USAGE["completion_tokens"]}
         self.assertEqual(self.agent.usage, {**expected, "requests": 2})

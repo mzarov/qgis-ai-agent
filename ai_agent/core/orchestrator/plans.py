@@ -29,7 +29,7 @@ from ai_agent.core.orchestrator.notices import (
     SWITCH_WHILE_RUNNING,
 )
 from ai_agent.core.orchestrator.planning import destructive_lines, plan_layer, plan_line
-from ai_agent.core.orchestrator.presentation import where_to_look
+from ai_agent.core.orchestrator.presentation import applied_summary, where_to_look
 from ai_agent.core.orchestrator.scope import conversation_scope
 from ai_agent.core.settings import get_verify_after_apply, set_work_mode
 from ai_agent.core.state.trace import APPLIED, CANCELLED, FAILED, PENDING
@@ -165,7 +165,8 @@ class PlanMixin:
     def on_applied(self, results: list) -> None:
         failed = [result for result in results if not result.ok]
         self._close_plan_card(results, bool(failed))
-        self.dock_widget.show_outcome(STATUS_FAILED if failed else STATUS_DONE)
+        self._done_summary = "" if failed else applied_summary(results)
+        self.dock_widget.show_outcome(STATUS_FAILED if failed else STATUS_DONE, self._done_summary)
         if failed:
             # The reasons stand under the failed steps in the card; the model reads the exact errors
             # in the tool results and the check's prompt.

@@ -78,7 +78,7 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `chart_scale.py`  | axis arithmetic: round ticks, compact numbers, which bar layout fits |
 | `table_card.py`   | a table in the feed: painted rows, natural column widths, elided cells with tips, copy CSV |
 | `question.py`     | the agent's question card: up to three answers (the first recommended, a why after " — "), a fourth row to type one's own, number keys |
-| `progress.py`     | the status line, the feed's last row: the live compass and a few words — working (or checking the changes) with the time, a retry's countdown until the feed moves, waiting for an answer, done in N s, a failed apply |
+| `progress.py`     | the status line, the feed's last row: the live compass and a few words — working (or checking the changes) with the time, a retry's countdown until the feed moves, waiting for an answer, done in N s (with what the request's apply changed), a failed apply |
 | `compass.py`      | the brand mark: open-ring compass painted on a 24-unit grid; needle rotation per state (rest, search, done, error, ask, arrive), keyframed with per-segment easing |
 | `controls.py`     | custom controls: `Segmented` keeps the combo-box API, `Chips`, `RoundedFrame` (every state-dependent box), `HoverFrame` (a lit row that clicks), `ThinBar` (a 2 px fraction or a sweep), glyphs, icon buttons and tiles, badges, keycaps, `ElidedLabel`, menus |
 | `connection_widgets.py` | provider tiles (Local, Cloud · key, Any compatible server) and the connection test's line |

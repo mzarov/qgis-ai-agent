@@ -79,6 +79,7 @@ READS = (
 )
 TOKENS = "/style colour @districts by pop2020 in 5 classes"
 DONE = "Done: %n step(s) applied.{0}"
+REDRAWN = "Layer “{0}” redrawn"
 BAR_CHART = {
     "type": "chart",
     "kind": "bar",
@@ -312,6 +313,15 @@ class StateScreens(ScreenCase):
             failure.title, failure.detail, message, failure.kind, failure.fixed_in_settings, False
         )
         self.check("dock_run_failed_not_found", self.dock)
+
+    def test_done_with_a_summary(self) -> None:
+        """A request that applied a change ends saying what changed, after how long."""
+        self.dock.add_user_message(REQUEST)
+        self.dock.add_result_message(i18n.tr_n(DONE, 1).format(""))
+        # A run that took six seconds: the time on the line must not depend on the machine.
+        self.dock.progress._started = time.monotonic() - 6.2
+        self.dock.show_outcome(notices.STATUS_DONE, i18n.tr(REDRAWN).format("districts"))
+        self.check("dock_done_summary", self.dock)
 
     def test_downloading(self) -> None:
         """A download of unknown size: the step's bar sweeps and its mark counts the bytes so far."""
