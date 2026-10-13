@@ -154,6 +154,12 @@ class RunnerTest(unittest.TestCase):
             text = path.read_text(encoding="utf-8")
         self.assertIn('"Authorization": "OAuth {{ env.EVAL_API_KEY }}"', text)
 
+    def test_a_key_typed_in_a_cyrillic_layout_is_caught_before_the_run(self):
+        self.assertEqual(runner.key_problem("sk-abc123"), "")
+        problem = runner.key_problem("abcКey")
+        self.assertIn("position 4", problem)
+        self.assertNotIn("abc", problem, "the message repeats the key")
+
     def test_the_summary_counts_and_names_failures(self):
         rows = [
             {"success": True, "response": {"tokenUsage": {"total": 100}}, "latencyMs": 1000},
@@ -171,6 +177,7 @@ class RunnerTest(unittest.TestCase):
             results.write_text(json.dumps({"results": {"results": rows}}), encoding="utf-8")
             summary = runner.summarise("style", results)
         self.assertEqual((summary["passed"], summary["total"], summary["tokens"]), (1, 2, 150))
+        self.assertEqual(summary["errors"], 0)
         self.assertEqual(summary["failures"], ["Labels [m1]: did not call set_labels"])
         self.assertIn("| style | 1/2 | 150 | 2.0 s |", runner.report([summary]))
 

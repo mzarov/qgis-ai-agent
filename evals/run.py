@@ -120,13 +120,34 @@ def run_suite(config: Path, results: Path, repeat: int) -> None:
     subprocess.run(command, cwd=REPO, env=environment, check=False)
 
 
+def key_problem(key: str) -> str:
+    """Why the key cannot go into an HTTP header, or "" — a key typed in a non-Latin layout is the usual case."""
+    position = next((index for index, character in enumerate(key) if not character.isascii()), None)
+    if position is None:
+        return ""
+    return (
+        f"{KEY_VARIABLE} has a non-Latin character at position {position + 1}: an HTTP header cannot carry it. "
+        "Was the key typed with a Cyrillic keyboard layout? Paste it, or switch the layout and enter it again."
+    )
+
+
 def summarise(suite: str, results: Path) -> dict[str, Any]:
     """Passed and total cases, tokens, mean latency and the failures of one suite's run."""
     if not results.is_file():
-        return {"suite": suite, "passed": 0, "total": 0, "tokens": 0, "latency": 0.0, "failures": ["no results"]}
+        return {
+            "suite": suite,
+            "passed": 0,
+            "total": 0,
+            "errors": 0,
+            "first_error": "",
+            "tokens": 0,
+            "latency": 0.0,
+            "failures": ["no results"],
+        }
     data = json.loads(results.read_text(encoding="utf-8"))
     rows = (data.get("results") or {}).get("results") or []
     passed = sum(1 for row in rows if row.get("success"))
+    errors = [str(row.get("error")) for row in rows if row.get("error") and not row.get("success")]
     tokens = sum(int(((row.get("response") or {}).get("tokenUsage") or {}).get("total") or 0) for row in rows)
     latency = sum(float(row.get("latencyMs") or 0) for row in rows) / max(1, len(rows)) / 1000
     failures = []
@@ -141,6 +162,8 @@ def summarise(suite: str, results: Path) -> dict[str, Any]:
         "suite": suite,
         "passed": passed,
         "total": len(rows),
+        "errors": len(errors),
+        "first_error": errors[0] if errors else "",
         "tokens": tokens,
         "latency": latency,
         "failures": failures,
@@ -174,6 +197,10 @@ def main() -> int:
     if not options.configs_only and (not url or not models):
         print("Set EVAL_API_URL and EVAL_MODEL (and EVAL_API_KEY for a non-local endpoint).", file=sys.stderr)
         return 2
+    problem = key_problem(os.environ.get(KEY_VARIABLE, ""))
+    if problem and not options.configs_only:
+        print(problem, file=sys.stderr)
+        return 2
     available = suites()
     chosen = [name.strip() for name in options.suites.split(",") if name.strip()] or list(available)
     unknown = [name for name in chosen if name not in available]
@@ -191,7 +218,12 @@ def main() -> int:
         results = OUT / f"{suite}.results.json"
         results.unlink(missing_ok=True)
         run_suite(config, results, max(1, options.repeat))
-        rows.append(summarise(suite, results))
+        row = summarise(suite, results)
+        rows.append(row)
+        if row["total"] and row["errors"] == row["total"]:
+            # Every request failed before the model answered: the endpoint or the key is wrong, not the skill.
+            print(f"Every case of {suite} failed to reach the model, stopping: {row['first_error']}", file=sys.stderr)
+            break
     if rows:
         summary = report(rows)
         (OUT / "summary.md").write_text(summary, encoding="utf-8")
