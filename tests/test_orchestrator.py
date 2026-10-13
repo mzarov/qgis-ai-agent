@@ -580,11 +580,14 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.orchestrator.on_prompt("сделай реки синими")
         self.orchestrator.on_failed("Could not reach http://localhost:9")
         users_before = [m for m in self.orchestrator.conversation.messages if m["role"] == "user"]
+        self.assertEqual(self.orchestrator.conversation.messages[-1]["role"], "failure", "the failure was not kept")
         self.orchestrator.agent.started = None
         dropped = []
         self.dock.drop_failures = lambda: dropped.append(True)
         self.orchestrator.on_retry()
         self.assertEqual(dropped, [True], "the retried failure's card stays in the feed")
+        roles = [m["role"] for m in self.orchestrator.conversation.messages]
+        self.assertNotIn("failure", roles, "the retried failure would come back when the conversation reopens")
         prompt, history = self.orchestrator.agent.started
         self.assertEqual(prompt, "сделай реки синими")
         self.assertNotIn({"role": "user", "content": "сделай реки синими"}, history)

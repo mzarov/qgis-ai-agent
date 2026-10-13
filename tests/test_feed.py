@@ -414,6 +414,17 @@ class FailureCardTest(unittest.TestCase):
         self.assertEqual(view._failures, [])
         self.assertFalse(any(type(entry).__name__ == "FailureCard" for entry in view._entries.values()))
 
+    def test_a_reopened_failure_shows_what_happened_without_buttons(self):
+        view = ConversationView()
+        view.add_recorded_failure(
+            {"title": "No connection", "detail": "The server does not answer.", "kind": "connection"}
+        )
+        cards = [entry for entry in view._entries.values() if type(entry).__name__ == "FailureCard"]
+        self.assertEqual(len(cards), 1)
+        self.assertTrue(cards[0].retry.isHidden())
+        self.assertTrue(cards[0].settings.isHidden())
+        self.assertEqual(view._failures, [], "a card from the past would take Retry after Settings")
+
     def test_a_new_request_retires_retry_but_keeps_the_card(self):
         view = ConversationView()
         view.add_run_failure("No connection", "The server does not answer.", "refused", "connection", True, True)

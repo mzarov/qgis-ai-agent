@@ -524,6 +524,21 @@ class FailureCardScenario(ScenarioCase):
         self.assertEqual(self.dock.composer._edit.toPlainText(), "", "the box still holds the retried request")
 
 
+class ReopenedFailureScenario(ScenarioCase):
+    def test_a_failure_comes_back_when_the_conversation_reopens(self) -> None:
+        self.model.script(fail(404, '{"detail":"Not Found"}'))
+        self.ask("Which layers are there?")
+        identifier = self.orchestrator.conversation.session_identifier
+        self.orchestrator.on_new_session()
+        self.orchestrator.on_session_chosen(identifier)
+        pump(0.8)
+        cards = [card for card in self.dock.conversation.findChildren(FailureCard) if card.isVisibleTo(self.dock)]
+        self.assertEqual(len(cards), 1, "the reopened conversation looks as if the model said nothing")
+        self.assertEqual(cards[0].title.text(), RUN_FAILURES[failure_kinds.NOT_FOUND][0])
+        self.assertTrue(cards[0].retry.isHidden() and cards[0].settings.isHidden(), "a past failure offers actions")
+        self.assertEqual([m["role"] for m in self.orchestrator.conversation.window()], ["user"])
+
+
 class RetryScenario(ScenarioCase):
     def test_an_overloaded_model_is_retried_and_the_status_line_says_so(self) -> None:
         said: list[str] = []

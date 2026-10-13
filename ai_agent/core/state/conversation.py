@@ -14,9 +14,11 @@ SUMMARY_ACK = "Understood. I will continue from this summary."
 KEEP_AFTER_COMPACTION = 2
 # A chart or table the feed drew, kept so a reopened conversation shows it again; the model never gets it.
 VISUAL_ROLE = "visual"
+# A failed run's card as it was shown, so a reopened conversation does not look as if the model said nothing.
+FAILURE_ROLE = "failure"
 MODEL_ROLES = frozenset({"user", "assistant"})
 # Display-only entries, each coming back for the chat under its role as the key; the model's window skips them.
-DISPLAY_ROLES = frozenset({VISUAL_ROLE, TRACE_ROLE, PLAN_ROLE})
+DISPLAY_ROLES = frozenset({VISUAL_ROLE, TRACE_ROLE, PLAN_ROLE, FAILURE_ROLE})
 # A user message the user picked on a question card: the chat shows it as "You chose …" again.
 CHOSEN = "chosen"
 
@@ -78,6 +80,22 @@ class ConversationState:
 
     def add_visual(self, spec: dict[str, Any]) -> None:
         self.add(VISUAL_ROLE, json.dumps(spec, ensure_ascii=False))
+
+    def add_failure(self, record: dict[str, Any]) -> None:
+        self.add(FAILURE_ROLE, json.dumps(record, ensure_ascii=False))
+
+    def drop_failures(self) -> None:
+        """The failed request goes again: the failures kept since it leave the record, as their cards leave the chat."""
+        messages = self._session.messages
+        index = len(messages) - 1
+        dropped = False
+        while index >= 0 and messages[index].get("role") != "user":
+            if messages[index].get("role") == FAILURE_ROLE:
+                del messages[index]
+                dropped = True
+            index -= 1
+        if dropped:
+            self._store.save(self._session)
 
     def replayable(self) -> list[dict[str, Any]]:
         """The messages for the chat, each saved chart, table, turn trace or plan card decoded back."""

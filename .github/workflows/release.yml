@@ -30,6 +30,7 @@ jobs:
     # layer workflows and the scripted-model end-to-end scenarios that drive
     # the dock the way a user does. Nothing is published unless it passes.
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     if: github.ref == 'refs/heads/main'
     container:
       image: qgis/qgis:stable-trixie

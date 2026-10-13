@@ -542,8 +542,9 @@ settings — Connection. The first action shown is outlined, a second one a
 link. The card is the run's outcome: no status line under it, no banner over
 the map. Retry is offered only where sending again can help; a wrong path or
 a refused key gets it once the settings are saved (`offer_retry`). Retrying
-takes the card out of the feed (`drop_failures`); a new request only hides
-its Retry. Every other failure the orchestrator reports — a compaction, a
+takes the card out of the feed and out of the saved conversation
+(`drop_failures`); a new request only hides its Retry. A reopened
+conversation shows the card again, without buttons. Every other failure the orchestrator reports — a compaction, a
 restore, an attachment — stays a service line in the danger colour
 (`add_error_message`). Notes stay muted: a grey error read as a remark and
 was missed.

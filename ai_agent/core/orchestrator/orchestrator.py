@@ -227,6 +227,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
             history = history[:-1]
         self._last_request = request
         self.dock_widget.drop_failures()
+        self.conversation.drop_failures()
         self.agent.start(prompt, history, skills=skills, images=images, planning=planning)
 
     def on_settings_saved(self) -> None:

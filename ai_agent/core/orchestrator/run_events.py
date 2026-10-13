@@ -157,6 +157,9 @@ class RunEventsMixin:
             failure.fixed_in_settings,
             retryable and failure.retry_helps,
         )
+        self.conversation.add_failure(
+            {"title": failure.title, "detail": failure.detail, "message": str(message), "kind": failure.kind}
+        )
         # The card is the run's outcome: no status line under it, no banner over the map repeating it.
         QgsMessageLog.logMessage(RUN_FAILED_LOG.format(message), LOG_TAG, Qgis.MessageLevel.Critical)
         self._offer_request_again()

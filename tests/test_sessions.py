@@ -208,6 +208,22 @@ class ConversationStateTest(unittest.TestCase):
         self.state.add("user", "вопрос")
         self.assertEqual(self.store.recent(current_project_key())[0].title, "вопрос")
 
+    def test_a_failure_is_kept_for_the_chat_and_left_out_of_the_window(self):
+        record = {"title": "No connection", "detail": "The server does not answer.", "message": "refused"}
+        self.state.add("user", "Which layers?")
+        self.state.add_failure(record)
+        self.assertEqual(self.state.replayable()[-1], {"role": "failure", "failure": record})
+        self.assertEqual([m["role"] for m in self.state.window()], ["user"])
+
+    def test_retrying_drops_only_the_failures_since_the_last_request(self):
+        self.state.add("user", "first")
+        self.state.add_failure({"title": "old"})
+        self.state.add("user", "second")
+        self.state.add_failure({"title": "new"})
+        self.state.drop_failures()
+        roles = [m["role"] for m in self.state.messages]
+        self.assertEqual(roles, ["user", "failure", "user"], "the earlier request's failure went too")
+
     def test_the_window_holds_the_whole_conversation_until_compacted(self):
         for index in range(10):
             self.state.add("user" if index % 2 == 0 else "assistant", f"сообщение {index}")
