@@ -184,14 +184,26 @@ class RunnerTest(unittest.TestCase):
     def test_a_case_that_never_reached_the_model_is_not_a_failure(self):
         rows = [
             {"success": True, "latencyMs": 1000},
-            {"success": False, "error": "Connect Timeout Error", "testCase": {"description": "Hide"}},
+            {
+                "success": False,
+                "error": "Connect Timeout Error",
+                "failureReason": 2,
+                "testCase": {"description": "Hide"},
+            },
+            {
+                "success": False,
+                "error": "did not call save_project",
+                "failureReason": 1,
+                "gradingResult": {"pass": False, "reason": "did not call save_project"},
+                "testCase": {"description": "Save"},
+            },
         ]
         with tempfile.TemporaryDirectory() as folder:
             results = Path(folder) / "project.results.json"
             results.write_text(json.dumps({"results": {"results": rows}}), encoding="utf-8")
             summary = runner.summarise("project", results)
-        self.assertEqual(summary["errors"], 1)
-        self.assertIn("| project | 1/1 | 1 |", runner.report([summary]))
+        self.assertEqual(summary["errors"], 1, "a failed check was counted as unreached")
+        self.assertIn("| project | 1/2 | 1 |", runner.report([summary]))
 
 
 if __name__ == "__main__":

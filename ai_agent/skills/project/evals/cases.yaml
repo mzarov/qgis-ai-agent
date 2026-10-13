@@ -18,8 +18,9 @@
 - description: Saving
   vars:
     request: Save the project
+    # The context does not say whether the project has a file yet; asking first is fair.
     expect:
-      call: save_project
+      call: [save_project, get_project_info]
 
 - description: Exporting to a file
   vars:

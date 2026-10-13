@@ -47,6 +47,8 @@ BEARER = "Bearer"
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
 MAX_CONCURRENCY = 2
 MAX_TOKENS = 4096
+# promptfoo's ResultFailureReason: 1 is a failed assertion, 2 an error before any grading.
+FAILURE_ERROR = 2
 
 
 def suites() -> dict[str, Path]:
@@ -147,7 +149,7 @@ def summarise(suite: str, results: Path) -> dict[str, Any]:
     data = json.loads(results.read_text(encoding="utf-8"))
     rows = (data.get("results") or {}).get("results") or []
     passed = sum(1 for row in rows if row.get("success"))
-    errors = [str(row.get("error")) for row in rows if row.get("error") and not row.get("success")]
+    errors = [str(row.get("error") or "") for row in rows if _unreached(row)]
     tokens = sum(int(((row.get("response") or {}).get("tokenUsage") or {}).get("total") or 0) for row in rows)
     latency = sum(float(row.get("latencyMs") or 0) for row in rows) / max(1, len(rows)) / 1000
     failures = []
@@ -168,6 +170,16 @@ def summarise(suite: str, results: Path) -> dict[str, Any]:
         "latency": latency,
         "failures": failures,
     }
+
+
+def _unreached(row: dict[str, Any]) -> bool:
+    """A case whose request failed before the model answered; promptfoo also fills `error` for a failed check."""
+    if row.get("success"):
+        return False
+    reason = row.get("failureReason")
+    if reason is not None:
+        return reason == FAILURE_ERROR
+    return bool(row.get("error")) and not row.get("gradingResult")
 
 
 def report(rows: list[dict[str, Any]]) -> str:
