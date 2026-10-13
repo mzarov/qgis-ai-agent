@@ -15,6 +15,7 @@ from ai_agent.core.llm.turns import ToolCall
 
 class FakeWork(QObject):
     progressed = pyqtSignal(float)
+    counted = pyqtSignal(int)
     finished = pyqtSignal(object)
 
     def __init__(self):
@@ -72,7 +73,7 @@ class ApplyRunTest(unittest.TestCase):
             lambda call, result: None,
             "project",
             self.finished.append,
-            self.progress.append,
+            lambda percent, done: self.progress.append((percent, done)),
         )
 
     def test_the_batch_waits_for_a_background_step_and_then_goes_on(self):
@@ -80,8 +81,10 @@ class ApplyRunTest(unittest.TestCase):
         self.assertEqual(self.executor.ran, ["set_opacity"])
         self.assertTrue(self.batch.is_applying)
         self.assertEqual(self.batch.executing_tool, "run_processing")
+        self.assertEqual(self.progress, [(-1.0, 0)], "the step shows it works before it says how far")
+        self.executor.works[0].counted.emit(2048)
         self.executor.works[0].progressed.emit(40.0)
-        self.assertEqual(self.progress, [40.0])
+        self.assertEqual(self.progress[1:], [(-1.0, 2048), (40.0, 2048)])
         self.executor.finish()
         self.assertEqual(self.executor.ran, ["set_opacity", "run_processing", "set_symbol"])
         self.assertEqual([result.ok for result in self.finished[0]], [True, True, True])
@@ -120,7 +123,7 @@ class LoopBackgroundTest(unittest.TestCase):
         loop._batch._executor = executor
         loop._batch._calls = calls("run_processing")
         progress, applied, busy = [], [], []
-        loop.tool_progressed.connect(progress.append)
+        loop.tool_progressed.connect(lambda percent, done: progress.append(percent))
         loop.applied.connect(applied.append)
         loop.busy_changed.connect(busy.append)
         with (
@@ -133,7 +136,7 @@ class LoopBackgroundTest(unittest.TestCase):
             self.assertEqual((applied, busy), ([], [True]))
             executor.works[0].progressed.emit(64.0)
             executor.finish()
-        self.assertEqual(progress, [64.0])
+        self.assertEqual(progress, [-1.0, 64.0])
         self.assertEqual(len(applied), 1)
         self.assertEqual(busy, [True, False])
         self.assertFalse(loop.is_applying)

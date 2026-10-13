@@ -51,7 +51,7 @@ class BatchApplyMixin:
                 lambda call, result: self._on_apply_finish(call, result, generation),
                 expected_project_identity,
                 lambda results: self._after_apply(results, generation, staged),
-                lambda percent: self._on_apply_progress(percent, generation),
+                lambda percent, done: self._on_apply_progress(percent, done, generation),
             )
         except Exception:
             self._active_apply_call = None
@@ -140,9 +140,9 @@ class BatchApplyMixin:
         if self._is_current(generation):
             self._request_step()
 
-    def _on_apply_progress(self, percent: float, generation: int) -> None:
+    def _on_apply_progress(self, percent: float, done: int, generation: int) -> None:
         if self._is_current(generation):
-            self.tool_progressed.emit(percent)
+            self.tool_progressed.emit(percent, done)
 
     def _on_apply_start(self, call: ToolCall, generation: int | None = None) -> None:
         if not self._is_current(generation):

@@ -446,6 +446,24 @@ class FailedPlanCardTest(unittest.TestCase):
         self.assertTrue(step.bar.isHidden())
         self.assertEqual(step.mark.text(), plan_module.APPLIED_MARK)
 
+    def test_a_download_of_unknown_size_runs_its_bar_and_counts_its_bytes(self):
+        from ai_agent.ui import plan as plan_module
+        from ai_agent.ui import sizes
+
+        card = plan_module.PlanCard(["Downloading cafes."])
+        card.mark_step(0, "running")
+        card.mark_progress(0, -1.0, 0)
+        step = card._steps[0]
+        self.assertTrue(step.bar.running)
+        self.assertEqual(step.mark.text(), plan_module.RUNNING_MARK)
+        locale = mock.Mock(toString=lambda value, *_format: f"{value:.1f}")
+        with mock.patch.object(sizes, "QLocale", return_value=locale):
+            card.mark_progress(0, -1.0, 3 * 1024 * 1024)
+        self.assertEqual(step.mark.text(), "3.0 MB")
+        card.mark_progress(0, 50.0, 3 * 1024 * 1024)
+        self.assertFalse(step.bar.running)
+        self.assertEqual(step.mark.text(), "50 %")
+
     def test_a_failed_step_shows_its_mark_and_reason_and_a_done_one_only_its_mark(self):
         from ai_agent.ui import plan as plan_module
 

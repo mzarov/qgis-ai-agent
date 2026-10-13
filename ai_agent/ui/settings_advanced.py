@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from qgis.PyQt.QtCore import QLocale, Qt, QUrl
+from qgis.PyQt.QtCore import Qt, QUrl
 from qgis.PyQt.QtGui import QDesktopServices, QFontDatabase
 from qgis.PyQt.QtWidgets import (
     QHBoxLayout,
@@ -42,6 +42,7 @@ from ai_agent.core.settings import (
 from ai_agent.i18n import tr, tr_n
 from ai_agent.ui import controls, icons, style
 from ai_agent.ui import settings_fields as fields
+from ai_agent.ui.sizes import format_bytes
 
 PRIVACY_TITLE = tr("Privacy")
 PRIVACY_LEAD = tr("Everything the agent reads goes to the model you chose. Here: where it goes and what stays on disk.")
@@ -129,8 +130,6 @@ STATUS_RADIUS = 8
 STATUS_MARGINS = (14, 12, 14, 12)
 SHIELD_TILE = 30
 SHIELD = 16
-BYTES_IN_MB = 1024 * 1024
-BYTES_IN_KB = 1024
 
 
 def build_privacy(owner: Any, palette: Any) -> QWidget:
@@ -279,7 +278,7 @@ def select_data(choice: Any, value: Any) -> None:
 
 def show_history_size(owner: Any) -> None:
     conversations, size = history.usage()
-    note = ERASE_NOTE.format(tr_n("%n conversation(s)", conversations), _size(size)) if size else ERASE_EMPTY
+    note = ERASE_NOTE.format(tr_n("%n conversation(s)", conversations), format_bytes(size)) if size else ERASE_EMPTY
     fields.set_row_hint(owner.erase_row, note)
     owner.erase_btn.setEnabled(bool(size))
 
@@ -361,13 +360,6 @@ def _folder(path: str, palette: Any) -> QWidget:
     button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(path)))
     line.addWidget(button)
     return holder
-
-
-def _size(size: int) -> str:
-    locale = QLocale()
-    if size >= BYTES_IN_MB:
-        return tr("{0} MB").format(locale.toString(size / BYTES_IN_MB, "f", 1))
-    return tr("{0} KB").format(locale.toString(max(1, round(size / BYTES_IN_KB))))
 
 
 def _budget_control(edit: QLineEdit, palette: Any) -> QWidget:

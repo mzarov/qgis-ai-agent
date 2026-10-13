@@ -160,7 +160,7 @@ class GisWorkflowsTest(unittest.TestCase):
                 {"algorithm_id": "native:buffer", "parameters": {"INPUT": "many", "DISTANCE": 5, "SEGMENTS": 32}},
             )
         )
-        results = self._applied(batch, progress.append)
+        results = self._applied(batch, lambda percent, done: progress.append(percent))
         timer.stop()
         self.assertTrue(results[0].ok, results[0].payload)
         self.assertTrue(progress, "the algorithm's progress never reached the batch")

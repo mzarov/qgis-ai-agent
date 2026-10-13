@@ -36,12 +36,15 @@ class AgentDockWidget(QDockWidget):
     rewind_requested = pyqtSignal(int)
     plan_undo_requested = pyqtSignal(int)
     plan_restore_requested = pyqtSignal(int)
+    retry_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
         # Before any child is built: children read the panel's palette, which must already be the theme's.
         style.apply_palette(self)
         self.setWindowTitle(TITLE)
+        # What the current run is for; the status line and the run's trace are named by it.
+        self._run_kind = ""
         palette = self.palette()
         self.title_bar = chrome.DockTitleBar(self, palette)
         self.setTitleBarWidget(self.title_bar)
@@ -129,6 +132,8 @@ class AgentDockWidget(QDockWidget):
         self.conversation.cancel_requested.connect(self.cancel_plan_clicked.emit)
         self.conversation.suggestion_chosen.connect(self._on_suggestion)
         self.conversation.settings_requested.connect(self.open_settings_clicked.emit)
+        self.conversation.connection_settings_requested.connect(self.open_settings_clicked.emit)
+        self.conversation.retry_requested.connect(self.retry_requested.emit)
         self.conversation.history_requested.connect(self._show_sessions)
         self.conversation.emptied.connect(self._on_emptied)
         return self.conversation
@@ -230,6 +235,16 @@ class AgentDockWidget(QDockWidget):
     def add_error_message(self, text: str) -> int:
         return self.conversation.add_error_message(text)
 
+    def add_run_failure(
+        self, title: str, detail: str, message: str, kind: str, fixed_in_settings: bool, retryable: bool
+    ) -> int:
+        return self.conversation.add_run_failure(title, detail, message, kind, fixed_in_settings, retryable)
+
+    def set_run_kind(self, kind: str) -> None:
+        """What the next run is for — a check after an apply, a look into a failure — or "" for the user's."""
+        self._run_kind = kind
+        self.conversation.set_run_kind(kind)
+
     def add_result_message(self, text: str) -> int:
         return self.conversation.add_assistant_message(text)
 
@@ -284,8 +299,8 @@ class AgentDockWidget(QDockWidget):
     def mark_plan_step(self, message_id: int, index: int, state: str, note: str = "") -> None:
         self.conversation.mark_plan_step(message_id, index, state, note)
 
-    def mark_plan_progress(self, message_id: int, index: int, percent: float) -> None:
-        self.conversation.mark_plan_progress(message_id, index, percent)
+    def mark_plan_progress(self, message_id: int, index: int, percent: float, done: int = 0) -> None:
+        self.conversation.mark_plan_progress(message_id, index, percent, done)
 
     def mark_plan_cancelled(self, message_id: int, restorable: bool = False) -> None:
         self.conversation.mark_plan_cancelled(message_id, restorable)
@@ -305,7 +320,7 @@ class AgentDockWidget(QDockWidget):
     def set_busy(self, busy: bool) -> None:
         self.composer.set_busy(busy)
         if busy:
-            self.progress.start()
+            self.progress.start(self._run_kind)
         else:
             self.progress.stop()
 

@@ -48,6 +48,9 @@ KEY_EXTRA_HEIGHT = 4
 KEY_EDGE_TINT = 0.35
 SMALL_SCALE = 0.85
 BAR_HEIGHT = 2
+SWEEP_MS = 1200
+SWEEP_SHARE = 0.3
+REST_PHASE = 0.5
 SWATCH_RADIUS = 2
 
 
@@ -342,20 +345,60 @@ class PaintedSwatch(QWidget):
 
 
 class ThinBar(QWidget):
-    """How far a long step has come: a 2 px accent line over a hairline track, painted."""
+    """How far a long step has come: a 2 px accent line over a hairline track, painted.
+
+    While the whole is unknown (`set_running`) a short segment sweeps along the track instead;
+    a fraction stops it.
+    """
 
     def __init__(self, palette: Any, parent: QWidget | None = None):
         super().__init__(parent)
         self._track = style.hairline(palette)
         self._fill = style.accent(palette)
         self.fraction = 0.0
+        self.running = False
+        self._phase = 0.0
+        self._sweep: QVariantAnimation | None = None
         self.setFixedHeight(BAR_HEIGHT)
 
     def set_fraction(self, value: float) -> None:
+        self._stop_sweep()
         value = min(max(float(value), 0.0), 1.0)
         if value != self.fraction:
             self.fraction = value
             self.update()
+
+    def set_running(self) -> None:
+        if self._sweep is None:
+            self._sweep = QVariantAnimation(self)
+            self._sweep.setStartValue(0.0)
+            self._sweep.setEndValue(1.0)
+            self._sweep.setDuration(SWEEP_MS)
+            self._sweep.setLoopCount(-1)
+            self._sweep.valueChanged.connect(self._swept)
+        self.running = True
+        if self._sweep.state() != QVariantAnimation.State.Running:
+            self._sweep.start()
+
+    def rest(self) -> None:
+        """A still frame of the sweep, its segment mid-track: a screen grab must not depend on the moment."""
+        if self._sweep is not None:
+            self._sweep.stop()
+        self._swept(REST_PHASE)
+
+    def hideEvent(self, event: Any) -> None:
+        # Nobody sees it: no timer ticks for a hidden bar.
+        self._stop_sweep()
+        super().hideEvent(event)
+
+    def _stop_sweep(self) -> None:
+        self.running = False
+        if self._sweep is not None:
+            self._sweep.stop()
+
+    def _swept(self, value: Any) -> None:
+        self._phase = float(value)
+        self.update()
 
     def paintEvent(self, _event: Any) -> None:
         painter = QPainter(self)
@@ -364,8 +407,12 @@ class ThinBar(QWidget):
         radius = self.height() / 2
         painter.setBrush(self._track)
         painter.drawRoundedRect(QRectF(self.rect()), radius, radius)
-        if self.fraction > 0:
-            painter.setBrush(self._fill)
+        painter.setBrush(self._fill)
+        if self.running:
+            segment = self.width() * SWEEP_SHARE
+            left = self._phase * (self.width() + segment) - segment
+            painter.drawRoundedRect(QRectF(left, 0, segment, self.height()), radius, radius)
+        elif self.fraction > 0:
             painter.drawRoundedRect(QRectF(0, 0, self.width() * self.fraction, self.height()), radius, radius)
         painter.end()
 

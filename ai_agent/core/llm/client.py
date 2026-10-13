@@ -111,6 +111,14 @@ def scrub_secrets(text: str) -> str:
     return text
 
 
+class ModelTimeout(ConnectionError):
+    """The model did not answer in time; a ConnectionError still, so retries treat it as before."""
+
+
+class SetupError(ValueError):
+    """The connection is not set up: no address, a malformed one, no key."""
+
+
 class ApiResponseError(RuntimeError):
     def __init__(self, status_code: int, body: str, message: str | None = None, retry_after: float | None = None):
         shown = scrub_secrets(body[:ERROR_BODY_LIMIT])
@@ -145,29 +153,29 @@ def retry_after_of(reply: Any) -> float | None:
 def resolve_endpoint(url_override: str | None = None) -> str:
     url = (url_override or get_api_url() or "").strip().rstrip("/")
     if not url:
-        raise ValueError(tr("No API URL. Set one in Settings."))
+        raise SetupError(tr("No API URL. Set one in Settings."))
     try:
         parsed = urlsplit(url)
     except ValueError:
-        raise ValueError(tr("The API URL is malformed. Check its host, brackets and port.")) from None
+        raise SetupError(tr("The API URL is malformed. Check its host, brackets and port.")) from None
     scheme = parsed.scheme.lower()
     if scheme not in ("http", "https"):
-        raise ValueError(tr("The API URL must use http or https."))
+        raise SetupError(tr("The API URL must use http or https."))
     try:
         host = parsed.hostname
         _ = parsed.port
     except ValueError:
-        raise ValueError(tr("The API URL is malformed. Check its host, brackets and port.")) from None
+        raise SetupError(tr("The API URL is malformed. Check its host, brackets and port.")) from None
     if not host:
-        raise ValueError(tr("The API URL is malformed. Check its host, brackets and port."))
+        raise SetupError(tr("The API URL is malformed. Check its host, brackets and port."))
     if scheme == "http" and not is_local(url):
-        raise ValueError(
+        raise SetupError(
             tr("A non-local model endpoint must use HTTPS. Use an SSH tunnel to localhost for a trusted LAN server.")
         )
     query_keys = {key.strip().lower() for key, _ in parse_qsl(parsed.query, keep_blank_values=True)}
     has_query_secret = any(key in URL_SECRET_KEYS or key.endswith(URL_SECRET_SUFFIXES) for key in query_keys)
     if parsed.username is not None or has_query_secret:
-        raise ValueError(
+        raise SetupError(
             tr("Do not put credentials in the API URL. Store the provider secret in the API key field instead.")
         )
     return url
@@ -188,7 +196,7 @@ def build_request(
     if not key and not is_local(url):
         if get_credential_store_error():
             raise RuntimeError(credential_store_failure_message())
-        raise ValueError(MISSING_KEY_MSG)
+        raise SetupError(MISSING_KEY_MSG)
     auth_type = auth_type_override if auth_type_override is not None else get_auth_type()
     extra = extra_headers_override if extra_headers_override is not None else get_extra_headers()
     # The user's headers come first: whatever the transport sets itself always wins.
@@ -222,7 +230,7 @@ def post_json(
     if error_code != QgsBlockingNetworkRequest.ErrorCode.NoError:
         cancelled = feedback is not None and bool(feedback.isCanceled())
         if not cancelled and time.monotonic() - started >= timeout * TIMEOUT_TOLERANCE:
-            raise ConnectionError(MODEL_TIMED_OUT.format(endpoint=safe_endpoint_label(endpoint), seconds=int(timeout)))
+            raise ModelTimeout(MODEL_TIMED_OUT.format(endpoint=safe_endpoint_label(endpoint), seconds=int(timeout)))
         raise ConnectionError(TRANSPORT_FAILED.format(endpoint=safe_endpoint_label(endpoint), reason=_reason(caller)))
     text = bytes(reply.content()).decode("utf-8", errors="replace")
     return _decoded(text, status)

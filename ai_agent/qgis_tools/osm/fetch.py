@@ -4,6 +4,7 @@ from qgis.core import QgsBlockingNetworkRequest
 from qgis.PyQt.QtCore import QByteArray, QUrl
 from qgis.PyQt.QtNetwork import QNetworkRequest
 
+from ai_agent.qgis_tools.common.background import download_progress
 from ai_agent.qgis_tools.osm.overpass import endpoint
 
 CONTENT_TYPE = "application/x-www-form-urlencoded"
@@ -24,6 +25,8 @@ def fetch(query: str, url: str = "", feedback: Any = None) -> str:
     request.setRawHeader(b"User-Agent", USER_AGENT.encode("utf-8"))
 
     caller = QgsBlockingNetworkRequest()
+    if feedback is not None:
+        caller.downloadProgress.connect(download_progress(feedback))
     code = caller.post(request, QByteArray(f"data={query}".encode()), False, feedback)
     if code != QgsBlockingNetworkRequest.ErrorCode.NoError:
         raise ValueError(_failure(caller))

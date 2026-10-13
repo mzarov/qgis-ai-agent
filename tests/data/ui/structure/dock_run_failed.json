@@ -65,19 +65,6 @@
  },
  {
   "depth": 4,
-  "type": "ProgressLine"
- },
- {
-  "depth": 5,
-  "type": "Compass"
- },
- {
-  "depth": 5,
-  "type": "ElidedLabel",
-  "text": "Stopped by an error — the reason is above"
- },
- {
-  "depth": 4,
   "type": "UserMessage"
  },
  {
@@ -109,12 +96,31 @@
  },
  {
   "depth": 4,
-  "type": "SystemMessage"
+  "type": "FailureCard",
+  "name": "failureCard"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QPushButton",
+  "text": "Retry"
  },
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "Error: The API returned 429: {\"error\":\"model deepseek-v4-flash is overloaded\",\"request_id\":\"1791819735292003-15416037050"
+  "text": "The model is overloaded"
+ },
+ {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "It stayed busy through every retry. Try again in a minute."
  },
  {
   "depth": 2,

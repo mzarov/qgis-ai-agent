@@ -16,6 +16,7 @@ from ai_agent.core.settings import WORK_MODE_ASK, WORK_MODE_AUTO
 from ai_agent.i18n import tr, tr_n
 from ai_agent.ui import controls, style
 from ai_agent.ui.choice_popup import Choice, ChoiceRow
+from ai_agent.ui.sizes import format_bytes
 
 SUB_SCALE = 0.92
 BUTTON_HEIGHT = 32
@@ -207,9 +208,9 @@ class PlanCard(controls.RoundedFrame):
         if 0 <= index < len(self._steps):
             self._steps[index].set_state(state, note)
 
-    def mark_progress(self, index: int, percent: float) -> None:
+    def mark_progress(self, index: int, percent: float, done: int = 0) -> None:
         if 0 <= index < len(self._steps):
-            self._steps[index].set_progress(percent)
+            self._steps[index].set_progress(percent, done)
 
     def mark_applied(self, undoable: bool = False, at: str = "") -> None:
         """Applied; `at` is a saved card's time, a live one takes the clock's."""
@@ -306,11 +307,16 @@ class PlanStep(QWidget):
         self.bar.setVisible(False)
         grid.setColumnStretch(1, 1)
 
-    def set_progress(self, percent: float) -> None:
-        """A running step that reports how far it is."""
-        self.bar.set_fraction(percent / 100)
+    def set_progress(self, percent: float, done: int = 0) -> None:
+        """A step working in the background: its percent and bar, or, while the whole is unknown, a running
+        bar and the bytes so far."""
         self.bar.setVisible(True)
-        self.mark.setText(PERCENT.format(int(percent)))
+        if percent >= 0:
+            self.bar.set_fraction(percent / 100)
+            self.mark.setText(PERCENT.format(int(percent)))
+        else:
+            self.bar.set_running()
+            self.mark.setText(format_bytes(done) if done > 0 else RUNNING_MARK)
         self.mark.setVisible(True)
 
     def set_state(self, state: str, note: str = "") -> None:

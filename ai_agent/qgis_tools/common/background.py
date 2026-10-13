@@ -29,14 +29,16 @@ _RUNNING: set["Background"] = set()
 class Background(QObject):
     """One step's work in a QGIS task.
 
-    `progressed` carries 0–100 and `finished` the step's payload, or the exception
-    that ended it; both arrive on the main thread, `finished` exactly once. A
+    `progressed` carries 0–100, `counted` how many bytes or items are done when
+    the whole is unknown, and `finished` the step's payload, or the exception that
+    ended it; all arrive on the main thread, `finished` exactly once. A
     subclass builds its task in `_launch` and calls `_end` when the task is over;
     `cancel` and the time limit, when there is one, make it end with the reason
     instead.
     """
 
     progressed = pyqtSignal(float)
+    counted = pyqtSignal(int)
     finished = pyqtSignal(object)
 
     def __init__(self, seconds: float | None, timeout_message: str = TIMED_OUT) -> None:
@@ -87,6 +89,10 @@ class Background(QObject):
         if not self._over:
             self.progressed.emit(float(percent))
 
+    def _count(self, done: int) -> None:
+        if not self._over:
+            self.counted.emit(int(done))
+
     def _end(self, outcome: object) -> None:
         """The step's payload or the exception that ended it; a stop's reason outranks both."""
         if self._over:
@@ -122,6 +128,7 @@ class InTask(Background):
     def _launch(self) -> None:
         self._task = _Worker(self._description, self._work, self._finished)
         self._task.progressChanged.connect(self._report)
+        self._task.feedback.processedCountChanged.connect(self._count)
         QgsApplication.taskManager().addTask(self._task)
 
     def _halt(self) -> None:
@@ -140,6 +147,18 @@ class InTask(Background):
             self._end(err)
 
 
+def download_progress(feedback: Any) -> Callable[[int, int], None]:
+    """A QgsBlockingNetworkRequest's downloadProgress, told to a step's feedback: bytes always, a percent
+    once the server names the size."""
+
+    def report(received: int, total: int) -> None:
+        feedback.setProcessedCount(max(0, int(received)))
+        if total > 0:
+            feedback.setProgress(min(100.0, 100.0 * received / total))
+
+    return report
+
+
 class _Worker(QgsTask):
     """Runs `work` off the main thread; `finished` hands the value back on the main thread."""
 
@@ -149,24 +168,26 @@ class _Worker(QgsTask):
         work: Callable[[QgsFeedback], Any],
         done: Callable[[Any, BaseException | None], None],
     ) -> None:
-        super().__init__(description, QgsTask.Flag.CanCancel)
+        # Hidden from QGIS's own task bar: the step's line in the chat shows how far it is.
+        super().__init__(description, QgsTask.Flag.CanCancel | QgsTask.Flag.Hidden)
         self._work = work
         self._done = done
-        self._feedback = QgsFeedback()
+        self.feedback = QgsFeedback()
+        self.feedback.progressChanged.connect(self.setProgress)
         self._value: Any = None
         self._error: BaseException | None = None
 
     def run(self) -> bool:
         try:
-            self._value = self._work(self._feedback)
+            self._value = self._work(self.feedback)
         except BaseException as err:
             # Never out of run(): an exception crossing back into C++ would take QGIS down.
             self._error = err
             return False
-        return not self._feedback.isCanceled()
+        return not self.feedback.isCanceled()
 
     def cancel(self) -> None:
-        self._feedback.cancel()
+        self.feedback.cancel()
         super().cancel()
 
     def finished(self, result: bool) -> None:

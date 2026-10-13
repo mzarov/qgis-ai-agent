@@ -13,8 +13,9 @@ RUN_STOPPED = tr("Run stopped. Pending work was cancelled.")
 APPLY_STOPPED = tr("Run stopped during apply. Pending steps were cancelled; any completed changes remain.")
 SWITCH_WHILE_RUNNING = tr("Wait for the current task to finish.")
 SWITCH_WHILE_APPLYING = tr("Changes are being applied — wait for that to finish.")
-VERIFYING = tr("Checking the applied changes…")
-LOOKING_INTO_FAILURE = tr("Looking into what went wrong…")
+# What a run is for, when it is not the user's request: the feed names its trace and the status line by it.
+RUN_CHECK = "check"
+RUN_LOOK_INTO = "look_into"
 # States of a plan card step, shared with the card through the dock contract.
 STEP_RUNNING = "running"
 STEP_DONE = "done"

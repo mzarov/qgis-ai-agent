@@ -15,6 +15,7 @@ from ai_agent.i18n import tr
 from ai_agent.ui import controls, style, transitions
 from ai_agent.ui.activity import ActivityGroup
 from ai_agent.ui.chart import ChartCard
+from ai_agent.ui.failure_card import FailureCard
 from ai_agent.ui.legend import LegendCard
 from ai_agent.ui.messages import AssistantMessage, SystemMessage, UserMessage
 from ai_agent.ui.plan import PlanCard, PlanOffer
@@ -42,6 +43,8 @@ class ConversationView(QScrollArea):
     rewind_requested = pyqtSignal(int)
     plan_undo_requested = pyqtSignal(int)
     plan_restore_requested = pyqtSignal(int)
+    retry_requested = pyqtSignal()
+    connection_settings_requested = pyqtSignal()
     question_answered = pyqtSignal(str)
     suggestion_chosen = pyqtSignal(str)
     settings_requested = pyqtSignal()
@@ -76,6 +79,8 @@ class ConversationView(QScrollArea):
         bar.valueChanged.connect(self._on_value_changed)
 
         self._activity: ActivityGroup | None = None
+        self._run_kind = ""
+        self._failures: list[FailureCard] = []
         # The answer just picked on a question card, until it comes back as the user's message.
         self._pending_choice: str | None = None
         self._plan_offers: list[PlanOffer] = []
@@ -177,9 +182,10 @@ class ConversationView(QScrollArea):
         return entry
 
     def _add_user_message(self, text: str) -> int:
-        # Any new message makes an earlier plan offer or question card stale.
+        # Any new message makes an earlier plan offer, question card or failed request stale.
         self._retire_plan_offers()
         self._retire_questions()
+        self.retire_failures()
         self._close_activity()
         if self._pending_choice is not None and text == self._pending_choice:
             # Picked on a question card: the trace says "You chose …" instead of drawing a bubble.
@@ -210,6 +216,22 @@ class ConversationView(QScrollArea):
     def add_system_message(self, text: str) -> int:
         self._close_activity()
         return self._append(SystemMessage(text))
+
+    def add_run_failure(
+        self, title: str, detail: str, message: str, kind: str, fixed_in_settings: bool, retryable: bool
+    ) -> int:
+        """The run ended on a failure: a card with what happened, and Retry where sending again may help."""
+        self._close_activity()
+        card = FailureCard(title, detail, message, kind, fixed_in_settings, retryable)
+        card.retry_requested.connect(self.retry_requested.emit)
+        card.settings_requested.connect(self.connection_settings_requested.emit)
+        self._failures.append(card)
+        return self._append(card)
+
+    def retire_failures(self) -> None:
+        for card in self._failures:
+            card.retire()
+        self._failures = []
 
     def add_error_message(self, text: str) -> int:
         self._close_activity()
@@ -304,7 +326,7 @@ class ConversationView(QScrollArea):
         if not steps:
             return
         self._close_activity()
-        group = ActivityGroup()
+        group = ActivityGroup(kind=str(record.get("kind") or ""))
         group.quiet = True
         self._append(group)
         for step in steps:
@@ -397,10 +419,10 @@ class ConversationView(QScrollArea):
         if isinstance(card, PlanCard):
             card.mark_step(index, state, note)
 
-    def mark_plan_progress(self, entry_id: int, index: int, percent: float) -> None:
+    def mark_plan_progress(self, entry_id: int, index: int, percent: float, done: int = 0) -> None:
         card = self._entries.get(entry_id)
         if isinstance(card, PlanCard):
-            card.mark_progress(index, percent)
+            card.mark_progress(index, percent, done)
 
     def mark_plan_cancelled(self, entry_id: int, restorable: bool = False) -> None:
         card = self._entries.get(entry_id)
@@ -428,6 +450,7 @@ class ConversationView(QScrollArea):
         self._thinking = None
         self._plan_offers = []
         self._questions = []
+        self._failures = []
         self._entries.clear()
         self._empty = None
         self._saved_shown = False
@@ -469,8 +492,12 @@ class ConversationView(QScrollArea):
         self._entries[entry_id] = entry
         return entry_id
 
+    def set_run_kind(self, kind: str) -> None:
+        """What the next run is for; its activity group is named by it ("" is the user's own request)."""
+        self._run_kind = kind
+
     def _new_activity(self) -> ActivityGroup:
-        self._activity = ActivityGroup()
+        self._activity = ActivityGroup(kind=self._run_kind)
         self._append(self._activity)
         return self._activity
 

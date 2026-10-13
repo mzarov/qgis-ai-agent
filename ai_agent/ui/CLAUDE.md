@@ -55,14 +55,15 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `chrome.py`       | the dock's own title bar (still mark, name, float, close) and the toolbar (conversation title opening the history, + new, settings); `IconButton` paints hover and a turn |
 | `conversation.py` | a `QScrollArea` with one widget per message, autoscroll, action grouping |
 | `messages.py`     | the user message, the agent reply, the service message (an error in the danger colour) |
-| `activity.py`     | the work trace: a fold header ("Working · step N", then "Activity · N steps" and the time) over a timeline of calls, reasoning and the user's choice |
+| `activity.py`     | the work trace: a fold header ("Working · step N", then "Activity · N steps" and the time; a check after Apply is "Changes checked · N steps") over a timeline of calls, reasoning and the user's choice |
 | `thinking.py`     | a reasoning row's content: "Thinking"/"Thought" with its time, opening a sunken box with the text |
 | `folding.py`      | the feed's folding: a chevron that turns, a body that opens to its height on the handoff's curve |
-| `plan.py`         | the plan card: numbered steps with their kind, Apply and Cancel inside, the outcome with the time and Undo |
+| `plan.py`         | the plan card: numbered steps with their kind, Apply and Cancel inside, a long step's thin bar (its percent, or a sweep and the bytes so far while the size is unknown), the outcome with the time and Undo |
 | `welcome.py`      | the empty conversation: the arriving compass, the deal in one sentence, the open project, four examples |
 | `transitions.py`  | the feed's transitions: what leaves is a snapshot that fades and rises, what arrives fades in and settles from below (`Arrival`) |
 | `confirmations.py` | the modal questions: share data with a provider, run destructive steps |
 | `durations.py`    | `3.4 s`, `2 min 5 s` — one formatter for the feed and the settings |
+| `sizes.py`        | `840 KB`, `2.4 MB` — the same for sizes |
 | `composer.py`     | the input box after the handoff: context chips, the text (two lines at least), the row of controls inside; Enter sends, Esc stops a run, Ctrl+N starts over; `/` and `@` open the popup |
 | `composer_parts.py` | the editor, `/skill` and `@layer` parsing, token highlighting, the modes |
 | `composer_controls.py` | the box's bottom row: + (add to context), the mode button, the model's name (said, not a button), the context ring, the round send/stop button |
@@ -72,13 +73,14 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `choice_popup.py` | the mode menu: caption, rows with a note and a number key, the current one lit (no check), the Shift+Tab footer; as wide as its text |
 | `attachments.py`  | the + file pickers, drag-and-drop paths, the picture chips waiting in the composer |
 | `chart.py`        | a chart in the feed: bars, rows, lines, donut, histogram, scatter; painted, hover tips, copy image/CSV |
+| `failure_card.py` | a failed run: kind icon, title, one sentence, Retry and Connection, the raw error as the tooltip |
 | `legend.py`       | a restyled layer's legend under the outcome: ordered classes as one strip of 10 px cells with compact bounds, categories as swatch rows |
 | `chart_scale.py`  | axis arithmetic: round ticks, compact numbers, which bar layout fits |
 | `table_card.py`   | a table in the feed: painted rows, natural column widths, elided cells with tips, copy CSV |
 | `question.py`     | the agent's question card: up to three answers (the first recommended, a why after " — "), a fourth row to type one's own, number keys |
-| `progress.py`     | the status line, the feed's last row: the live compass and a few words — working with the time, a retry's countdown until the feed moves, waiting for an answer, done in N s, stopped by an error |
+| `progress.py`     | the status line, the feed's last row: the live compass and a few words — working (or checking the changes) with the time, a retry's countdown until the feed moves, waiting for an answer, done in N s, stopped by an error |
 | `compass.py`      | the brand mark: open-ring compass painted on a 24-unit grid; needle rotation per state (rest, search, done, error, ask, arrive), keyframed with per-segment easing |
-| `controls.py`     | custom controls: `Segmented` keeps the combo-box API, `Chips`, `RoundedFrame` (every state-dependent box), `HoverFrame` (a lit row that clicks), glyphs, icon buttons and tiles, badges, keycaps, `ElidedLabel`, menus |
+| `controls.py`     | custom controls: `Segmented` keeps the combo-box API, `Chips`, `RoundedFrame` (every state-dependent box), `HoverFrame` (a lit row that clicks), `ThinBar` (a 2 px fraction or a sweep), glyphs, icon buttons and tiles, badges, keycaps, `ElidedLabel`, menus |
 | `connection_widgets.py` | provider tiles (Local, Cloud · key, Any compatible server) and the connection test's line |
 | `choice_tiles.py` | exclusive choices as tiles after the handoff: logo, name, a quiet line, a radio; the grid fills its width |
 | `settings_search.py` | the sidebar's Find a setting: matching rows of every page in place of the page list |
@@ -532,10 +534,14 @@ Stop and errors keep the half-streamed answer (`keep_draft`) instead of
 dropping it. After an error the orchestrator puts the request back into an
 empty composer (`restore`) so a retry is one key; after a stop it does not —
 stopping is deliberate, and the request stays visible in the chat.
-The error itself is a service line in the danger colour
-(`add_error_message`), as is every failure the orchestrator reports — a
-compaction, a restore, an attachment. Notes stay muted: a grey error read as a
-remark and was missed.
+A failed run ends on a failure card (`failure_card.py`), not a line: an icon
+on a soft danger tile naming the kind (no connection, a refused key, a busy
+model…), a title, one sentence on what to do, Retry and — when the fix is in
+the settings — Connection. The raw error is the card's tooltip. Retry hides
+once the request moved on (sent again, or a new message). Every other failure
+the orchestrator reports — a compaction, a restore, an attachment — stays a
+service line in the danger colour (`add_error_message`). Notes stay muted: a
+grey error read as a remark and was missed.
 
 ## The brand mark
 

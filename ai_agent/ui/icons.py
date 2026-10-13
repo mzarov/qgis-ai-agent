@@ -35,6 +35,12 @@ NAMES = {
     "connectors": "globe",
     "personalisation": "user",
     "rewind": "undo-2",
+    # A failed request's card: what kind of failure it was.
+    "unplugged": "unplug",
+    "key": "key-round",
+    "busy": "hourglass",
+    "late": "clock",
+    "alert": "circle-alert",
     # A tool call's row wears its skill's icon; "knowledge" is a skill being loaded. Reading wears the
     # layers and Processing a square with a play mark, as the handoff draws the trace.
     "inspect": "layers",

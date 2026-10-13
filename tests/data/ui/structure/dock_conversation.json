@@ -186,21 +186,86 @@
  },
  {
   "depth": 4,
-  "type": "SystemMessage"
- },
- {
-  "depth": 5,
-  "type": "QLabel",
-  "text": "Checking the applied changes…"
- },
- {
-  "depth": 4,
   "type": "AssistantMessage"
  },
  {
   "depth": 5,
   "type": "QTextBrowser",
   "text": "Done: 2 steps applied."
+ },
+ {
+  "depth": 4,
+  "type": "ActivityGroup"
+ },
+ {
+  "depth": 5,
+  "type": "TraceHeader"
+ },
+ {
+  "depth": 6,
+  "type": "Chevron"
+ },
+ {
+  "depth": 6,
+  "type": "ElidedLabel",
+  "text": "Changes checked · 2 steps"
+ },
+ {
+  "depth": 6,
+  "type": "QLabel",
+  "text": "<duration>"
+ },
+ {
+  "depth": 5,
+  "type": "ClipBox"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "StepRow"
+ },
+ {
+  "depth": 8,
+  "type": "QWidget"
+ },
+ {
+  "depth": 9,
+  "type": "QLabel",
+  "text": "<span style=\"color: rgb(83, 91, 103);\">Reading layer </span><span style=\"color: rgb(20, 24, 31); font-weight: 500;\">dist"
+ },
+ {
+  "depth": 9,
+  "type": "QLabel",
+  "text": "12 features"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel"
+ },
+ {
+  "depth": 7,
+  "type": "StepRow"
+ },
+ {
+  "depth": 8,
+  "type": "QWidget"
+ },
+ {
+  "depth": 9,
+  "type": "QLabel",
+  "text": "<span style=\"color: rgb(83, 91, 103);\">Reading values of field </span><span style=\"color: rgb(20, 24, 31); font-weight: "
+ },
+ {
+  "depth": 9,
+  "type": "QLabel",
+  "text": "12 values"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel"
  },
  {
   "depth": 2,

@@ -161,7 +161,7 @@ class PlanDock(Dock):
     def mark_plan_restored(self, message_id):
         self.restored_plans.append(message_id)
 
-    def mark_plan_progress(self, message_id, index, percent):
+    def mark_plan_progress(self, message_id, index, percent, done=0):
         self.progress.append((message_id, index, percent))
 
     def forget_plan_restore(self, message_id):
@@ -535,13 +535,34 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.assertIn("Half an answer", contents)
         self.assertEqual(restored, ["сделай реки синими"])
 
-    def test_a_failed_run_shows_its_error_as_an_error_not_a_note(self):
-        errors = []
-        self.dock.add_error_message = errors.append
+    def test_a_failed_run_ends_on_a_failure_card_not_a_note(self):
+        from ai_agent.core.agent.failures import RUN_FAILURES
+        from ai_agent.core.llm import failure_kinds
+
+        cards = []
+        self.dock.add_run_failure = lambda *args: cards.append(args) or 1
         self.orchestrator.on_prompt("сделай реки синими")
+        self.orchestrator.agent.failure_kind = failure_kinds.BUSY
         self.orchestrator.on_failed("The API returned 429: overloaded")
-        self.assertEqual(errors, ["Error: The API returned 429: overloaded"])
+        title, _detail, message, kind, fixed_in_settings, retryable = cards[0]
+        self.assertEqual(title, RUN_FAILURES[failure_kinds.BUSY][0])
+        self.assertEqual(
+            (message, kind, fixed_in_settings, retryable),
+            ("The API returned 429: overloaded", failure_kinds.BUSY, False, True),
+        )
         self.assertFalse(any("429" in text for text in self.dock.system))
+
+    def test_retry_sends_the_failed_request_again_without_repeating_it(self):
+        self.orchestrator.on_prompt("сделай реки синими")
+        self.orchestrator.on_failed("Could not reach http://localhost:9")
+        users_before = [m for m in self.orchestrator.conversation.messages if m["role"] == "user"]
+        self.orchestrator.agent.started = None
+        self.orchestrator.on_retry()
+        prompt, history = self.orchestrator.agent.started
+        self.assertEqual(prompt, "сделай реки синими")
+        self.assertNotIn({"role": "user", "content": "сделай реки синими"}, history)
+        users_after = [m for m in self.orchestrator.conversation.messages if m["role"] == "user"]
+        self.assertEqual(users_after, users_before, "the request was written twice")
 
     def test_a_stopped_run_leaves_the_box_empty(self):
         restored = []

@@ -7,6 +7,8 @@ from qgis.core import QgsBlockingNetworkRequest
 from qgis.PyQt.QtCore import QByteArray, QUrl
 from qgis.PyQt.QtNetwork import QNetworkRequest
 
+from ai_agent.qgis_tools.common.background import download_progress
+
 USER_AGENT = b"AI Agent (QGIS plugin)"
 JSON_TYPE = "application/json"
 MAX_JSON_BYTES = 8 * 1024 * 1024
@@ -35,6 +37,8 @@ def _send(url: str, body: bytes | None = None, feedback: Any = None) -> bytes:
     request = QNetworkRequest(QUrl(url))
     request.setRawHeader(b"User-Agent", USER_AGENT)
     caller = QgsBlockingNetworkRequest()
+    if feedback is not None:
+        caller.downloadProgress.connect(download_progress(feedback))
     if body is None:
         code = caller.get(request, False, feedback)
     else:
