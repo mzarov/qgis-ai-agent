@@ -233,6 +233,19 @@ class ConversationView(QScrollArea):
             card.retire()
         self._failures = []
 
+    def drop_failures(self) -> None:
+        """The failed request goes again: its cards leave the feed, the new run takes their place."""
+        dropped = {id(card) for card in self._failures}
+        for card in self._failures:
+            self._discard(card)
+        self._entries = {key: entry for key, entry in self._entries.items() if id(entry) not in dropped}
+        self._failures = []
+
+    def offer_retry(self) -> None:
+        """The settings changed: the last failure may go through now, so its card offers Retry."""
+        if self._failures:
+            self._failures[-1].offer_retry()
+
     def add_error_message(self, text: str) -> int:
         self._close_activity()
         return self._append(SystemMessage(text, error=True))

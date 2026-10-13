@@ -226,7 +226,13 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         if history and history[-1].get("role") == "user" and history[-1].get("content") == shown:
             history = history[:-1]
         self._last_request = request
+        self.dock_widget.drop_failures()
         self.agent.start(prompt, history, skills=skills, images=images, planning=planning)
+
+    def on_settings_saved(self) -> None:
+        """The connection may be fixed now: a failure card that held Retry back offers it."""
+        if self._retry_args is not None and self.is_idle:
+            self.dock_widget.offer_retry()
 
     @property
     def is_idle(self) -> bool:

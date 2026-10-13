@@ -25,7 +25,7 @@ from e2e_harness import ARTIFACTS, PluginCase, process, pump
 from e2e_model import USAGE, ScriptedModel, call, calls, fail, say, think
 from qgis.core import QgsFeature, QgsGeometry, QgsProject, QgsVectorLayer
 
-from ai_agent.core.agent.failures import RUN_FAILURES
+from ai_agent.core.agent.run_failure import RUN_FAILURES
 from ai_agent.core.llm import failure_kinds, retry
 from ai_agent.core.orchestrator.notices import CHECKED_BY_READING, RUN_CHECK, STATUS_DONE, STATUS_WAITING
 from ai_agent.core.settings import get_auto_apply, set_reasoning_enabled, set_supports_images, set_work_mode
@@ -501,17 +501,24 @@ class FailureScenario(ScenarioCase):
 
 
 class FailureCardScenario(ScenarioCase):
-    def test_retry_on_the_failure_card_sends_the_request_once_more(self) -> None:
-        self.model.script(fail(401, "invalid api key"))
+    def test_a_wrong_address_offers_retry_once_the_settings_are_saved(self) -> None:
+        self.model.script(fail(404, '{"detail":"Not Found"}'))
         self.ask("Which layers are there?")
         card = self.dock.conversation.findChildren(FailureCard)[-1]
-        self.assertFalse(card.retry.isHidden())
+        self.assertEqual(card.title.text(), RUN_FAILURES[failure_kinds.NOT_FOUND][0])
+        self.assertTrue(card.retry.isHidden(), "the same request would hit the same wrong address")
+        self.assertFalse(card.settings.isHidden())
+        self.assertIn("404", card.technical.text(), "the server's own words are not on the card")
+        self.assertTrue(self.dock.progress.isHidden(), "the status line repeats the card under it")
         self.shot("failure_card")
+        self.orchestrator.on_settings_saved()
+        self.assertFalse(card.retry.isHidden(), "Retry did not come back after the settings were saved")
         self.model.script(say("Two layers."))
         card.retry.click()
         self.wait_idle()
         self.assertEqual(self.last(), "Two layers.")
-        self.assertTrue(card.retry.isHidden(), "Retry stays on a card whose request went again")
+        self.assertEqual(self.dock.conversation.findChildren(FailureCard), [], "the retried failure stayed")
+        self.assertEqual(self.dock.progress.state, STATUS_DONE)
         users = [message for message in self.orchestrator.conversation.messages if message["role"] == "user"]
         self.assertEqual(len(users), 1, "the retried request was written twice")
         self.assertEqual(self.dock.composer._edit.toPlainText(), "", "the box still holds the retried request")

@@ -1,4 +1,4 @@
-"""A failed call or run in words a person reads: the model keeps the exact English error, the feed shows its meaning.
+"""A failed call in words a person reads: the model keeps the exact English error, the feed shows its meaning.
 
 Tool errors are written for the model — "Error transferring https://… server
 replied: Gateway Timeout" with a recovery hint. Shown as they are, they read as
@@ -7,10 +7,8 @@ plain sentence, anything else a generic one; the model still reads the original.
 """
 
 import re
-from dataclasses import dataclass
 from typing import Any
 
-from ai_agent.core.llm import failure_kinds as kinds
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.registry import summarize_tool_result
 
@@ -45,56 +43,3 @@ def outcome_note(call: Any, result: Any) -> str:
     if result.ok:
         return summarize_tool_result(call.name, call.arguments, result.payload)
     return explain_failure(str(result.payload.get("error", "")))
-
-
-@dataclass(frozen=True)
-class RunFailure:
-    """A failed run as the chat shows it: a title, one sentence, and whether Settings can fix it."""
-
-    kind: str
-    title: str
-    detail: str
-    fixed_in_settings: bool
-
-
-# By failure_kinds: the title, the sentence (with {endpoint}), whether the Connection page can fix it.
-RUN_FAILURES = {
-    kinds.CONNECTION: (
-        tr("No connection to the model"),
-        tr("{endpoint} does not answer. Check that the server is running and the address is right."),
-        True,
-    ),
-    kinds.TIMEOUT: (
-        tr("The model took too long"),
-        tr("No answer from {endpoint} in time. Try again, or pick a faster model."),
-        False,
-    ),
-    kinds.AUTH: (tr("The key was not accepted"), tr("{endpoint} refused the API key. Check it in Settings."), True),
-    kinds.QUOTA: (
-        tr("The quota ran out"),
-        tr("The provider refused: the account's limit or balance is used up."),
-        False,
-    ),
-    kinds.BUSY: (
-        tr("The model is overloaded"),
-        tr("It stayed busy through every retry. Try again in a minute."),
-        False,
-    ),
-    kinds.NOT_FOUND: (
-        tr("Model or address not found"),
-        tr("{endpoint} does not know this model or path. Check them in Settings."),
-        True,
-    ),
-}
-RUN_FAILED = tr("The request failed")
-NOT_SET_UP = tr("The connection is not set up")
-
-
-def explain_run_failure(kind: str, message: str, endpoint: str) -> RunFailure:
-    """A failed run in plain words; a kind without its own sentence shows the message itself."""
-    if kind == kinds.SETUP:
-        return RunFailure(kind, NOT_SET_UP, str(message), True)
-    if kind not in RUN_FAILURES:
-        return RunFailure(kinds.OTHER, RUN_FAILED, str(message), False)
-    title, detail, fixed_in_settings = RUN_FAILURES[kind]
-    return RunFailure(kind, title, detail.format(endpoint=endpoint), fixed_in_settings)

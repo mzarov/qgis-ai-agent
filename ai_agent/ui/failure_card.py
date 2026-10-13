@@ -3,12 +3,14 @@
 The model's request failing is not a remark in the margin but the end of the
 turn, so it is a card like the plan's: an icon on a soft danger tile naming the
 kind of failure (no connection, a refused key, a busy model…), the title, the
-sentence, and the buttons. The exact technical text stays one hover away.
+sentence, the server's own words in one quiet monospace line, and the buttons.
+The first button shown is the outlined one; the second is a link.
 """
 
 from typing import Any
 
 from qgis.PyQt.QtCore import Qt, pyqtSignal
+from qgis.PyQt.QtGui import QFontDatabase
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from ai_agent.core.llm.failure_kinds import AUTH, BUSY, CONNECTION, NOT_FOUND, SETUP, TIMEOUT
@@ -21,6 +23,7 @@ CARD_MARGINS = (12, 10, 12, 10)
 TILE = 28
 GLYPH = 16
 BUTTON_HEIGHT = 26
+TECHNICAL_SCALE = 11 / 13
 RETRY = tr("Retry")
 CONNECTION_PAGE = tr("Connection")
 # The glyph by the kind of failure; any other kind wears the plain alert.
@@ -54,14 +57,14 @@ class FailureCard(controls.RoundedFrame):
         palette = self.palette()
         self.setObjectName(CARD_NAME)
         self.set_look(style.surface(palette).name(), style.hairline(palette).name())
-        # The words the model and the log got, for whoever wants them: the card itself says it plainly.
-        self.setToolTip(message)
         line = QHBoxLayout(self)
         line.setContentsMargins(*CARD_MARGINS)
         line.setSpacing(10)
         line.addWidget(_tile(GLYPHS.get(kind, ALERT), palette), 0, Qt.AlignmentFlag.AlignTop)
         column = QVBoxLayout()
         column.setSpacing(2)
+        # In the card before anything joins it: a widget shown while still an orphan opens as a window.
+        line.addLayout(column, 1)
         self.title = QLabel(title)
         self.title.setWordWrap(True)
         style.scale_font(self.title, 1.0, bold=True)
@@ -70,41 +73,52 @@ class FailureCard(controls.RoundedFrame):
         self.detail = controls.small(detail, palette)
         style.ink(self.detail, style.muted(palette))
         column.addWidget(self.detail)
-        # Parented now: the column joins the card only at the end, and showing an orphan opens a window.
-        self._actions = QWidget(self)
+        # What the server itself said, for whoever asks for help with it; the whole of it on hover.
+        self.technical = controls.ElidedLabel(" ".join(message.split()))
+        self.technical.setToolTip(message)
+        mono = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
+        mono.setPointSizeF(max(1.0, self.font().pointSizeF() * TECHNICAL_SCALE))
+        self.technical.setFont(mono)
+        style.ink(self.technical, style.faint(palette))
+        column.addWidget(self.technical)
+        self.technical.setVisible(bool(message.strip()) and message.strip() != detail.strip())
+        self._actions = QWidget()
         buttons = QHBoxLayout(self._actions)
         buttons.setContentsMargins(0, 6, 0, 0)
         buttons.setSpacing(6)
         self.retry = QPushButton(RETRY)
         self.retry.setFixedHeight(BUTTON_HEIGHT)
         self.retry.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.retry.setStyleSheet(_plain_button(palette))
-        self.retry.clicked.connect(self._retry)
+        self.retry.clicked.connect(self.retry_requested.emit)
         buttons.addWidget(self.retry)
         self.settings = QPushButton(CONNECTION_PAGE)
         self.settings.setFixedHeight(BUTTON_HEIGHT)
         self.settings.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.settings.setStyleSheet(_link_button(palette))
         self.settings.clicked.connect(self.settings_requested.emit)
         buttons.addWidget(self.settings)
         buttons.addStretch(1)
         column.addWidget(self._actions)
-        self.retry.setVisible(retryable)
         self.settings.setVisible(fixed_in_settings)
-        self._actions.setVisible(retryable or fixed_in_settings)
-        line.addLayout(column, 1)
+        self._palette = palette
+        self._show_retry(retryable)
 
     def plain_text(self) -> str:
         return f"{self.title.text()} {self.detail.text()}"
 
-    def retire(self) -> None:
-        """The request moved on — sent again or replaced: Retry would send something stale."""
-        self.retry.setVisible(False)
-        self._actions.setVisible(not self.settings.isHidden())
+    def offer_retry(self) -> None:
+        """The settings changed since: the same request may go through now."""
+        self._show_retry(True)
 
-    def _retry(self) -> None:
-        self.retire()
-        self.retry_requested.emit()
+    def retire(self) -> None:
+        """The request moved on — replaced by a new one: Retry would send something stale."""
+        self._show_retry(False)
+
+    def _show_retry(self, shown: bool) -> None:
+        self.retry.setVisible(shown)
+        self._actions.setVisible(shown or not self.settings.isHidden())
+        # The first action is the outlined button, a second one a link beside it.
+        self.retry.setStyleSheet(_plain_button(self._palette))
+        self.settings.setStyleSheet(_link_button(self._palette) if shown else _plain_button(self._palette))
 
 
 def _tile(role: str, palette: Any) -> QLabel:

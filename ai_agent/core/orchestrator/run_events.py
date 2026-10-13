@@ -2,21 +2,19 @@
 
 from qgis.core import Qgis, QgsMessageLog
 
-from ai_agent.core.agent.failures import explain_run_failure
+from ai_agent.core.agent.run_failure import explain_run_failure
 from ai_agent.core.orchestrator.notices import (
     APPLY_STOPPED,
     AWAITING_ANSWER,
     LOG_TAG,
     RUN_STOPPED,
     STATUS_DONE,
-    STATUS_FAILED,
     STATUS_HIDDEN,
     STATUS_WAITING,
     STEP_DONE,
     STEP_FAILED,
     STEP_RUNNING,
 )
-from ai_agent.core.privacy import endpoint_label
 from ai_agent.core.state.trace import CANCELLED as PLAN_CANCELLED
 from ai_agent.core.state.trace import FAILED as PLAN_FAILED
 from ai_agent.i18n import tr
@@ -24,6 +22,7 @@ from ai_agent.qgis_tools.call_summary import CallSummary
 
 # The feed's icon for a skill being loaded; tool calls carry their own skill.
 KNOWLEDGE = "knowledge"
+RUN_FAILED_LOG = "The model request failed: {0}"
 
 
 class RunEventsMixin:
@@ -141,15 +140,25 @@ class RunEventsMixin:
         self.conversation.keep_trace()
         self._plan_message_id = None
         self._keep_partial_answer()
-        self.dock_widget.show_outcome(STATUS_FAILED)
-        verification = bool(getattr(self.agent, "is_verification", False))
-        endpoint = endpoint_label(str(getattr(self.agent, "endpoint", "") or ""))
-        failure = explain_run_failure(str(getattr(self.agent, "failure_kind", "") or ""), message, endpoint)
-        retryable = self._retry_args is not None and not verification
-        self.dock_widget.add_run_failure(
-            failure.title, failure.detail, str(message), failure.kind, failure.fixed_in_settings, retryable
+        overrides = getattr(self.agent, "overrides", None) or {}
+        failure = explain_run_failure(
+            str(getattr(self.agent, "failure_kind", "") or ""),
+            message,
+            str(overrides.get("url_override") or ""),
+            str(overrides.get("model_override") or ""),
         )
-        self._push_message(message, Qgis.MessageLevel.Critical)
+        # Retry only where it can help: a wrong path or key fails the same way until the settings change.
+        retryable = self._retry_args is not None and not getattr(self.agent, "is_verification", False)
+        self.dock_widget.add_run_failure(
+            failure.title,
+            failure.detail,
+            str(message),
+            failure.kind,
+            failure.fixed_in_settings,
+            retryable and failure.retry_helps,
+        )
+        # The card is the run's outcome: no status line under it, no banner over the map repeating it.
+        QgsMessageLog.logMessage(RUN_FAILED_LOG.format(message), LOG_TAG, Qgis.MessageLevel.Critical)
         self._offer_request_again()
 
     def _keep_partial_answer(self) -> None:

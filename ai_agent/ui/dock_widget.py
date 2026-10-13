@@ -240,6 +240,12 @@ class AgentDockWidget(QDockWidget):
     ) -> int:
         return self.conversation.add_run_failure(title, detail, message, kind, fixed_in_settings, retryable)
 
+    def drop_failures(self) -> None:
+        self.conversation.drop_failures()
+
+    def offer_retry(self) -> None:
+        self.conversation.offer_retry()
+
     def set_run_kind(self, kind: str) -> None:
         """What the next run is for — a check after an apply, a look into a failure — or "" for the user's."""
         self._run_kind = kind

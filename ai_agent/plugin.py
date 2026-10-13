@@ -110,6 +110,7 @@ class QgisAiAgentPlugin:
         if self._orchestrator:
             self._orchestrator.refresh_configured()
         if accepted:
+            self._orchestrator.on_settings_saved()
             self._follow_theme()
 
     def _follow_theme(self) -> None:

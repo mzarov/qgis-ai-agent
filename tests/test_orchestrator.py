@@ -39,11 +39,14 @@ class Dock:
 
 
 class Iface:
+    def __init__(self):
+        self.pushed = []
+
     def messageBar(self):
         return self
 
     def pushMessage(self, *args, **kwargs):
-        return None
+        self.pushed.append(args)
 
 
 class Agent:
@@ -536,7 +539,7 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.assertEqual(restored, ["сделай реки синими"])
 
     def test_a_failed_run_ends_on_a_failure_card_not_a_note(self):
-        from ai_agent.core.agent.failures import RUN_FAILURES
+        from ai_agent.core.agent.run_failure import RUN_FAILURES
         from ai_agent.core.llm import failure_kinds
 
         cards = []
@@ -551,13 +554,37 @@ class OrchestratorSessionTest(unittest.TestCase):
             ("The API returned 429: overloaded", failure_kinds.BUSY, False, True),
         )
         self.assertFalse(any("429" in text for text in self.dock.system))
+        self.assertEqual(self.orchestrator.iface.pushed, [], "a banner over the map would repeat the card")
+
+    def test_a_failure_settings_must_fix_offers_retry_only_once_they_are_saved(self):
+        from ai_agent.core.llm import failure_kinds
+
+        cards, offers = [], []
+        self.dock.add_run_failure = lambda *args: cards.append(args) or 1
+        self.dock.offer_retry = lambda: offers.append(True)
+        self.orchestrator.on_prompt("сделай реки синими")
+        self.orchestrator.agent.failure_kind = failure_kinds.NOT_FOUND
+        self.orchestrator.agent.overrides = {
+            "url_override": "https://api.example.com/raw/v",
+            "model_override": "deepseek",
+        }
+        self.orchestrator.on_failed('The API returned 404: {"detail":"Not Found"}')
+        _title, detail, _message, _kind, fixed_in_settings, retryable = cards[0]
+        self.assertIn("api.example.com/raw/v", detail, "the path is where the typo hides")
+        self.assertIn("deepseek", detail)
+        self.assertEqual((fixed_in_settings, retryable), (True, False), "the same request would fail the same way")
+        self.orchestrator.on_settings_saved()
+        self.assertEqual(offers, [True])
 
     def test_retry_sends_the_failed_request_again_without_repeating_it(self):
         self.orchestrator.on_prompt("сделай реки синими")
         self.orchestrator.on_failed("Could not reach http://localhost:9")
         users_before = [m for m in self.orchestrator.conversation.messages if m["role"] == "user"]
         self.orchestrator.agent.started = None
+        dropped = []
+        self.dock.drop_failures = lambda: dropped.append(True)
         self.orchestrator.on_retry()
+        self.assertEqual(dropped, [True], "the retried failure's card stays in the feed")
         prompt, history = self.orchestrator.agent.started
         self.assertEqual(prompt, "сделай реки синими")
         self.assertNotIn({"role": "user", "content": "сделай реки синими"}, history)
@@ -1106,10 +1133,11 @@ class StatusOutcomeTest(unittest.TestCase):
         self.orchestrator.on_finished("Three layers.")
         self.assertEqual(self.dock.outcomes, [notices.STATUS_DONE])
 
-    def test_an_error_is_failed_and_a_stop_hides_the_line(self):
+    def test_a_failed_run_ends_on_its_card_not_the_line_and_a_stop_hides_the_line(self):
         self.orchestrator.on_failed("HTTP 500")
+        self.assertEqual(self.dock.outcomes, [], "the failure card is the outcome; the line would repeat it")
         self.orchestrator.on_aborted()
-        self.assertEqual(self.dock.outcomes, [notices.STATUS_FAILED, notices.STATUS_HIDDEN])
+        self.assertEqual(self.dock.outcomes, [notices.STATUS_HIDDEN])
 
     def test_a_retry_the_loop_announces_reaches_the_status_line(self):
         retries = []

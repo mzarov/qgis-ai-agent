@@ -931,7 +931,7 @@
         <translation>Подключение есть, но модель вернула пустой ответ.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/failure_card.py" line="25"/>
+        <location filename="ai_agent/ui/failure_card.py" line="28"/>
         <location filename="ai_agent/ui/settings_advanced.py" line="53"/>
         <location filename="ai_agent/ui/settings_dialog.py" line="64"/>
         <location filename="ai_agent/ui/settings_layout.py" line="47"/>
@@ -1001,7 +1001,7 @@
         <translation>Копировать строки как CSV</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/conversation.py" line="472"/>
+        <location filename="ai_agent/ui/conversation.py" line="485"/>
         <source>Copy the whole conversation</source>
         <translation>Скопировать весь разговор</translation>
     </message>
@@ -1021,7 +1021,7 @@
         <translation>Не удалось создать страховочный снимок проекта. Запланированные изменения не применены.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/agent/failures.py" line="19"/>
+        <location filename="ai_agent/core/agent/failures.py" line="17"/>
         <source>Could not reach the service — check the internet connection or the QGIS proxy.</source>
         <translation>Сервис недоступен — проверьте подключение к интернету или прокси в QGIS.</translation>
     </message>
@@ -1579,7 +1579,7 @@
         <translation>Инструкции, которые агент подгружает под задачу сам. Наберите / в чате, чтобы вызвать навык вручную.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/agent/failures.py" line="80"/>
+        <location filename="ai_agent/core/agent/run_failure.py" line="62"/>
         <source>It stayed busy through every retry. Try again in a minute.</source>
         <translation>Модель была занята при всех повторах. Попробуйте через минуту.</translation>
     </message>
@@ -1847,7 +1847,7 @@
         <translation>Модель</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/agent/failures.py" line="84"/>
+        <location filename="ai_agent/core/agent/run_failure.py" line="67"/>
         <source>Model or address not found</source>
         <translation>Модель или адрес не найдены</translation>
     </message>
@@ -1958,12 +1958,12 @@
         <translation>Не задан ключ API. Укажите его в настройках — или подключитесь к локальной модели: адресу на localhost ключ не нужен.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/agent/failures.py" line="69"/>
+        <location filename="ai_agent/core/agent/run_failure.py" line="44"/>
         <source>No answer from {endpoint} in time. Try again, or pick a faster model.</source>
         <translation>{endpoint} не ответил вовремя. Повторите или выберите модель побыстрее.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/agent/failures.py" line="63"/>
+        <location filename="ai_agent/core/agent/run_failure.py" line="37"/>
         <source>No connection to the model</source>
         <translation>Нет связи с моделью</translation>
     </message>
@@ -2252,7 +2252,7 @@
         <translation>План отменён</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="106"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="105"/>
         <source>Plan {0}/{1}: {2}</source>
         <translation>План {0}/{1}: {2}</translation>
     </message>
@@ -2539,7 +2539,7 @@
         <translation>Опытный</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="100"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="99"/>
         <source>Rejected: {0}</source>
         <translation>Отклонено: {0}</translation>
     </message>
@@ -2639,7 +2639,7 @@
         <translation>Вернуть план</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/failure_card.py" line="24"/>
+        <location filename="ai_agent/ui/failure_card.py" line="27"/>
         <source>Retry</source>
         <translation>Повторить</translation>
     </message>
@@ -2684,7 +2684,7 @@
         <translation>Журнал прогона</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="120"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="119"/>
         <source>Run journal: {0}</source>
         <translation>Журнал прогона: {0}</translation>
     </message>
@@ -3169,12 +3169,17 @@
         <translation>Агент обращается к языковой модели на ваш выбор, поэтому ему нужен адрес и ключ — либо вообще ничего, если модель работает локально на localhost.</translation>
     </message>
     <message>
+        <location filename="ai_agent/core/agent/run_failure.py" line="15"/>
+        <source>The configured server</source>
+        <translation>Сервер из настроек</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/settings_probe.py" line="19"/>
         <source>The connection failed</source>
         <translation>Подключиться не удалось</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/agent/failures.py" line="90"/>
+        <location filename="ai_agent/core/agent/run_failure.py" line="74"/>
         <source>The connection is not set up</source>
         <translation>Подключение не настроено</translation>
     </message>
@@ -3199,7 +3204,7 @@
         <translation>Разговор возвращён к моменту до этого сообщения; само сообщение — в поле ввода.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/agent/failures.py" line="72"/>
+        <location filename="ai_agent/core/agent/run_failure.py" line="49"/>
         <source>The key was not accepted</source>
         <translation>Ключ не подошёл</translation>
     </message>
@@ -3219,12 +3224,12 @@
         <translation>Модель перегружена · повтор через {0} ({1}/{2})</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/agent/failures.py" line="79"/>
+        <location filename="ai_agent/core/agent/run_failure.py" line="61"/>
         <source>The model is overloaded</source>
         <translation>Модель перегружена</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="125"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="124"/>
         <source>The model returned nothing. Try rephrasing.</source>
         <translation>Модель ничего не вернула. Попробуйте переформулировать.</translation>
     </message>
@@ -3234,7 +3239,7 @@
         <translation>Модель работает на {0}, на этом устройстве.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/agent/failures.py" line="68"/>
+        <location filename="ai_agent/core/agent/run_failure.py" line="43"/>
         <source>The model took too long</source>
         <translation>Модель отвечала слишком долго</translation>
     </message>
@@ -3264,17 +3269,17 @@
         <translation>Проект возвращён к состоянию до этого сообщения.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/agent/failures.py" line="75"/>
+        <location filename="ai_agent/core/agent/run_failure.py" line="56"/>
         <source>The provider refused: the account's limit or balance is used up.</source>
         <translation>Провайдер отказал: лимит или баланс аккаунта исчерпан.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/agent/failures.py" line="74"/>
+        <location filename="ai_agent/core/agent/run_failure.py" line="55"/>
         <source>The quota ran out</source>
         <translation>Лимит исчерпан</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/agent/failures.py" line="89"/>
+        <location filename="ai_agent/core/agent/run_failure.py" line="73"/>
         <source>The request failed</source>
         <translation>Запрос не выполнен</translation>
     </message>
@@ -3289,22 +3294,27 @@
         <translation>Результат — на панели слоёв.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/agent/failures.py" line="17"/>
+        <location filename="ai_agent/core/agent/run_failure.py" line="68"/>
+        <source>The server knows no such path or model. Check the address {address} and the model “{model}” in Settings.</source>
+        <translation>Сервер не знает такого пути или модели. Проверьте адрес {address} и модель «{model}» в настройках.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/agent/failures.py" line="15"/>
         <source>The service did not answer in time — it is busy. Try again in a minute or with a smaller area.</source>
         <translation>Сервис не ответил вовремя — он перегружен. Попробуйте через минуту или для области поменьше.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/agent/failures.py" line="21"/>
+        <location filename="ai_agent/core/agent/failures.py" line="19"/>
         <source>The service is having trouble right now. Try again later.</source>
         <translation>У сервиса сейчас сбой. Попробуйте позже.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/agent/failures.py" line="18"/>
+        <location filename="ai_agent/core/agent/failures.py" line="16"/>
         <source>The service is limiting requests. Wait a minute and try again.</source>
         <translation>Сервис ограничивает запросы. Подождите минуту и попробуйте снова.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/agent/failures.py" line="20"/>
+        <location filename="ai_agent/core/agent/failures.py" line="18"/>
         <source>The service refused access.</source>
         <translation>Сервис отказал в доступе.</translation>
     </message>
@@ -3314,7 +3324,7 @@
         <translation>Папка навыков недоступна в этом профиле QGIS.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/agent/failures.py" line="22"/>
+        <location filename="ai_agent/core/agent/failures.py" line="20"/>
         <source>The step did not run — the agent sees why and can try another way.</source>
         <translation>Шаг не выполнился — агент видит причину и может попробовать иначе.</translation>
     </message>
@@ -3540,7 +3550,7 @@
         <translation>Используется в ответах. Пусто — без имени.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/run_events.py" line="109"/>
+        <location filename="ai_agent/core/orchestrator/run_events.py" line="108"/>
         <source>Using {0}</source>
         <translation>Использую {0}</translation>
     </message>
@@ -3891,17 +3901,12 @@
         <translation>{endpoint} не ответил за {seconds} с. Возможно, модель ещё работает; попробуйте снова или выберите модель побыстрее.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/agent/failures.py" line="64"/>
+        <location filename="ai_agent/core/agent/run_failure.py" line="38"/>
         <source>{endpoint} does not answer. Check that the server is running and the address is right.</source>
         <translation>{endpoint} не отвечает. Проверьте, что сервер запущен и адрес верный.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/agent/failures.py" line="85"/>
-        <source>{endpoint} does not know this model or path. Check them in Settings.</source>
-        <translation>{endpoint} не знает такой модели или пути. Проверьте их в настройках.</translation>
-    </message>
-    <message>
-        <location filename="ai_agent/core/agent/failures.py" line="72"/>
+        <location filename="ai_agent/core/agent/run_failure.py" line="50"/>
         <source>{endpoint} refused the API key. Check it in Settings.</source>
         <translation>{endpoint} не принял ключ API. Проверьте его в настройках.</translation>
     </message>

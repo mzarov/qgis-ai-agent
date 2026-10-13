@@ -30,7 +30,7 @@ from qgis.PyQt.QtWidgets import QApplication, QLabel, QPushButton, QScrollArea, 
 
 import ai_agent
 from ai_agent import i18n
-from ai_agent.core.agent import failures
+from ai_agent.core.agent import failures, run_failure
 from ai_agent.core.llm import failure_kinds
 from ai_agent.core.orchestrator import notices
 from ai_agent.qgis_tools.registry import summarize_tool_call, summarize_tool_result
@@ -65,7 +65,10 @@ PLAN = [
 ]
 FAILED_STEPS = "%n step(s) did not run — the reasons are in the plan above."
 API_ERROR = "The API returned {0}: {1}"
-ENDPOINT = "api.deepseek.com"
+ENDPOINT = "https://api.deepseek.com/v1"
+WRONG_ADDRESS = "https://api.deepseek.com/v"
+MODEL = "deepseek-v4-flash"
+NOT_FOUND_BODY = '{"detail":"Not Found"}'
 DOWNLOADED = 2_516_582
 OVERLOADED = '{"error":"model deepseek-v4-flash is overloaded","request_id":"1791819735292003-15416037050477550884"}'
 STEP = ("query_layer", {"layer_name": "districts", "aggregate": "max", "expression": "pop2020"})
@@ -296,9 +299,19 @@ class StateScreens(ScreenCase):
         self.dock.add_user_message(REQUEST)
         self.reads()
         message = i18n.tr(API_ERROR).format(429, OVERLOADED)
-        failure = failures.explain_run_failure(failure_kinds.BUSY, message, ENDPOINT)
+        failure = run_failure.explain_run_failure(failure_kinds.BUSY, message, ENDPOINT)
         self.dock.add_run_failure(failure.title, failure.detail, message, failure.kind, failure.fixed_in_settings, True)
         self.check("dock_run_failed", self.dock)
+
+    def test_run_failed_on_a_wrong_address(self) -> None:
+        """Settings must fix it: no Retry yet, Connection is the outlined button, the path is named."""
+        self.dock.add_user_message(REQUEST)
+        message = i18n.tr(API_ERROR).format(404, NOT_FOUND_BODY)
+        failure = run_failure.explain_run_failure(failure_kinds.NOT_FOUND, message, WRONG_ADDRESS, MODEL)
+        self.dock.add_run_failure(
+            failure.title, failure.detail, message, failure.kind, failure.fixed_in_settings, False
+        )
+        self.check("dock_run_failed_not_found", self.dock)
 
     def test_downloading(self) -> None:
         """A download of unknown size: the step's bar sweeps and its mark counts the bytes so far."""

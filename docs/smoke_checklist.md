@@ -1151,11 +1151,15 @@ These verify the agent solves everyday tasks without wandering through search.
      status line reads “The request failed · retrying in 2 s (2/3)”, counting
      down, then “Retrying… (2/3)”, then the same for 3/3 → the run ends on a
      card: an unplugged icon on a pink tile, “No connection to the model”,
-     one sentence naming `localhost:9`, **Retry** and **Connection**; the raw
-     error is its tooltip. **Connection** opens the settings; set the address
-     back, then **Retry** → the same request runs again, not repeated in the
-     feed, and the button is gone. Notes such as “Run stopped. Pending work
-     was cancelled.” stay grey.
+     one sentence naming `localhost:9`, the error itself in a faint monospace
+     line, **Retry** and **Connection**; no status line under the card and no
+     red banner over the map. **Connection** opens the settings; set the
+     address back, then **Retry** → the card leaves the feed and the same
+     request runs again, not repeated in the feed. Now break only the path
+     (`…/v` instead of `…/v1`) → “Model or address not found” names the
+     address with its path and the model, and offers only **Connection**
+     (outlined); fix the path, Save → **Retry** appears on the card. Notes
+     such as “Run stopped. Pending work was cancelled.” stay grey.
 239. **A busy model is retried longer.** On a provider answering 429
      “overloaded” the line reads “The model is busy · retrying in N s (2/5)”,
      N being the server's Retry-After (30 s at most); as soon as the answer
