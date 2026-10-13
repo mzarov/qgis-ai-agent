@@ -94,7 +94,7 @@ def write_config(suite: str, cases: Path, models: list[str], url: str, locale: s
     return path
 
 
-def run_suite(config: Path, results: Path, repeat: int) -> None:
+def run_suite(config: Path, results: Path, repeat: int, fresh: bool = False) -> None:
     command = [
         "npx",
         "--yes",
@@ -110,6 +110,8 @@ def run_suite(config: Path, results: Path, repeat: int) -> None:
         str(repeat),
         "--no-progress-bar",
     ]
+    if fresh:
+        command.append("--no-cache")
     environment = {
         **os.environ,
         # The same Python builds the prompts and runs the checks; nothing about the run leaves the machine.
@@ -207,6 +209,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run the skill evals through promptfoo.")
     parser.add_argument("--suites", default="", help="comma-separated suites (default: all)")
     parser.add_argument("--repeat", type=int, default=1, help="runs per case, for a pass rate")
+    # promptfoo answers an unchanged request from its cache: right for a suite nobody touched, wrong for
+    # measuring how much a model's answers vary.
+    parser.add_argument("--fresh", action="store_true", help="ask the model again even for cached requests")
     parser.add_argument("--configs-only", action="store_true", help="write the configs and stop")
     options = parser.parse_args()
     url = os.environ.get("EVAL_API_URL", "").strip()
@@ -234,7 +239,7 @@ def main() -> int:
             continue
         results = OUT / f"{suite}.results.json"
         results.unlink(missing_ok=True)
-        run_suite(config, results, max(1, options.repeat))
+        run_suite(config, results, max(1, options.repeat), options.fresh)
         row = summarise(suite, results)
         rows.append(row)
         if row["total"] and row["errors"] == row["total"]:

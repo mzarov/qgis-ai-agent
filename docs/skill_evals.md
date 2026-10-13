@@ -86,7 +86,10 @@ python3 evals/run.py
 ```
 
 - `--suites routing,style` runs only those suites.
-- `--repeat 3` runs every case three times and reports the pass rate.
+- `--repeat 3 --fresh` runs every case three times and reports the pass rate.
+  promptfoo answers an unchanged request from its cache, so an untouched suite
+  costs nothing on a rerun; `--fresh` asks the model again, which is what a
+  pass rate needs.
 - Several comma-separated models in `EVAL_MODEL` are compared side by side.
 - `EVAL_LOCALE=ru` builds the prompt as for the Russian interface.
 
@@ -101,7 +104,7 @@ view`. Telemetry, update checks and sharing are switched off for the run.
 
 - After editing a `SKILL.md`, a tool description or the prompt core: run that
   skill's suite, and the routing suite when a skill description changed.
-- Before a release: run everything, with `--repeat 3` for the cases that
+- Before a release: run everything, with `--repeat 3 --fresh` for the cases that
   wobble.
 - With a new skill: add `evals/cases.yaml` next to its `SKILL.md`. Cover the
   requests it exists for, a pitfall its rules warn about, and one request in
