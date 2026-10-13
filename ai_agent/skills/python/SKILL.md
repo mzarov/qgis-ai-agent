@@ -47,6 +47,12 @@ and the `Qgs*` / Qt classes — no imports needed for those.
 Errors come back with the traceback — fix the snippet and queue a corrected
 one instead of asking the user what went wrong.
 
+Never guess a method name. QGIS 4 is not the QGIS you may remember, and a
+plausible name that does not exist (`mapCanvas().rotate`, where the method is
+`setRotation`) costs a failed run and a second confirmation from the user. When
+you are not certain a method exists, read the class's page first — `fetch_url`
+from the `web` skill on `https://qgis.org/pyqgis/master/<module>/<Class>.html`.
+
 ## After it works
 
 A snippet that solved a real task is a missing tool. Say so to the user in
