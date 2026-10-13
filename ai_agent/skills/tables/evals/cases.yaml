@@ -52,6 +52,10 @@
         - tool: describe_layer
           args: {layer_name: districts}
           result: {name: districts, kind: vector, geometry: polygon, fields: [{name: name, type: String}, {name: pop2020, type: Integer64}]}
+        # The skill compares name keys before joining; the case starts after that comparison.
+        - tool: get_field_values
+          args: {layer_name: districts, field_name: name}
+          result: {field: name, unique_values: [Arbat, Basmanny, Khamovniki, Meshchansky, Presnensky, Tagansky], count: 12}
     expect:
       call: join_table
       args: {layer_name: districts, layer_field: name, table: /data/population.csv, table_field: district}

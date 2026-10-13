@@ -255,6 +255,24 @@
         "South"
       ],
       "count": 3
+    },
+    "districts/name": {
+      "field": "name",
+      "unique_values": [
+        "Arbat",
+        "Basmanny",
+        "Khamovniki",
+        "Meshchansky",
+        "Presnensky",
+        "Tagansky",
+        "Tverskoy",
+        "Yakimanka",
+        "Zamoskvorechye",
+        "Krasnoselsky",
+        "Ostankinsky",
+        "Sokolniki"
+      ],
+      "count": 12
     }
   },
   "describe_processing": {

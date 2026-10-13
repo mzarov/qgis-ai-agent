@@ -15,8 +15,11 @@ the plugin's job; yours is to make the steps precise and small.
 
 Editing blind is how data gets ruined. Before queueing:
 
-- confirm the field and its values with `get_field_values` or `query_layer` —
-  the filter you write must match what is really in the data;
+- know the field and the values your filter names — the filter you write must
+  match what is really in the data. Read values with `get_field_values` or
+  `query_layer` when the filter depends on a spelling you have not seen yet (a
+  name, a label, a category); a numeric condition, a value already in a result
+  you read, or a standard vocabulary such as OSM tags needs no extra read;
 - if the request points at the screen (“these”, “the selected ones”), read
   `get_selection` first and turn it into a filter the user can see, such as
   `id in (…)` or the attribute the selection shares.

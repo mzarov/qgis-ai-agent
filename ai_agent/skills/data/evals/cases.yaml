@@ -15,9 +15,10 @@
       call: load_dataset
       args: {dataset: geoboundaries, country: KEN, level: ADM1}
 
-- description: A country's districts are ADM2
+- description: A country's departments are ADM2
   vars:
-    request: Add the districts of France
+    # Not "districts": the project has a layer of that name, and checking it first is fair.
+    request: Add the departments of France as a layer
     expect:
       call: load_dataset
       args: {dataset: geoboundaries, country: FRA, level: ADM2}

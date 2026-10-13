@@ -108,7 +108,8 @@ than guessing further spellings.
 
 `bbox` takes `"west,south,east,north"` in degrees, or the literal `"canvas"` for
 whatever the user is currently looking at. **`"canvas"` is the right answer to
-"here", "in this area", "in the current view"** — do not invent coordinates for it.
+"here", "in this area", "in the current view"** — do not invent coordinates for it,
+and do not read the extent first: the tool resolves `canvas` itself.
 
 A bbox wider than five degrees is refused before anything is sent: Overpass does
 not serve requests that size, and a refusal now is better than a timeout later.

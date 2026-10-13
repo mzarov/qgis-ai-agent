@@ -30,7 +30,8 @@ class AddAnnotationTool(BaseTool):
         "Put a note directly on the map: a text label or a marker at given "
         "coordinates. Annotations live in the project's annotation layer, above "
         "all data layers, and are not features — use them to point at things, "
-        "not to store data."
+        "not to store data. x is the longitude, y the latitude: a person's "
+        "'55.75, 37.62' is latitude first, so x=37.62, y=55.75."
     )
     skill = "annotations"
     safety = SAFETY_WRITE

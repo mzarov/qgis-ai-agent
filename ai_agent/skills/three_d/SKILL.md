@@ -19,7 +19,9 @@ terrain with a short `run_python` snippet built around
 (`https://qgis.org/pyqgis/master/3d/Qgs3DMapSettings.html`) when unsure,
 rather than writing from memory. Terrain needs a DEM raster in the project, and
 a project in a geographic CRS gives a flat scene: switch the project to a
-projected CRS with `configure_project` first.
+projected CRS with `configure_project` first. The project CRS and the DEM layer
+are in the project context — when the CRS is projected, open the view at once,
+without reading the project or the DEM first.
 
 A 3D view is presentation, not data: it changes nothing in the layers, so a
 failed attempt costs nothing but the window.

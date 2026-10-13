@@ -17,11 +17,12 @@
 - description: An item goes into the named layout
   vars:
     request: Add a legend to the City map layout
+    # Placing needs the page and the free space: the case starts after describe_layout.
     reads:
       steps:
-        - tool: list_layouts
-          args: {}
-          result: {layouts: [{name: City map, page: a4, orientation: landscape, items: [{id: map1, type: map}]}]}
+        - tool: describe_layout
+          args: {layout_name: City map}
+          result: {name: City map, page_mm: [297, 210], items: [{id: map1, type: map, x: 10, y: 10, width: 220, height: 190}], item_count: 1}
     expect:
       call: add_layout_item
       args: {layout_name: City map, item_type: legend}
