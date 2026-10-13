@@ -1,6 +1,6 @@
 ---
 name: inspect
-description: Facts about the open project — layers, fields and their values, counts, lengths and areas via expressions, the user's selection, the current view, a rendered image of the map. Always loaded; read before you act.
+description: Facts about the open project — layers, fields and their values, counts, lengths and areas via expressions, the user's selection, the current view, a rendered image of the map. Always loaded; read before you change anything, in the same turn as any load_skill call.
 tools: [get_project_info, list_layers, describe_layer, get_field_values, sample_features, query_layer, get_selection, select_features, get_canvas_extent, render_map, get_qgis_info]
 ---
 
