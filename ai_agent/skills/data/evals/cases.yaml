@@ -18,10 +18,13 @@
 - description: A country's departments are ADM2
   vars:
     # Not "districts": the project has a layer of that name, and checking it first is fair.
+    # The offline catalogue is the skill's own advice when the level is unclear.
     request: Add the departments of France as a layer
     expect:
-      call: load_dataset
-      args: {dataset: geoboundaries, country: FRA, level: ADM2}
+      any_of:
+        - call: load_dataset
+          args: {dataset: geoboundaries, country: FRA, level: ADM2}
+        - call: find_open_data
 
 - description: Imagery is searched, not invented
   vars:

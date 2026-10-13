@@ -25,7 +25,9 @@ Editing blind is how data gets ruined. Before queueing:
   `id in (…)` or the attribute the selection shares.
 
 `prepare` re-counts the matches at queue time and refuses a filter that matches
-nothing — that usually means a typo in a value, not an empty layer.
+nothing — that usually means a typo in a value, not an empty layer. The user sees
+that count in the confirmation before anything changes, so do not count the
+matches with `query_layer` first.
 
 ## update_attributes
 
