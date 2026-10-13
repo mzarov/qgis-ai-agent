@@ -1,0 +1,51 @@
+# edit: with the skill loaded and the layer read, the model's in-place edit.
+# `expect` is checked by evals/checks.py; see docs/skill_evals.md.
+
+- description: Deleting by a condition
+  vars:
+    request: Delete the schools with a capacity below 100
+    reads: schools
+    expect:
+      call: delete_features
+      args: {layer_name: schools, filter: "re:capacity\"?\\s*<\\s*100"}
+
+- description: A constant value on a filtered set
+  vars:
+    request: Set the capacity to 0 for every lyceum
+    reads: schools, schools/kind
+    expect:
+      call: update_attributes
+      args: {layer_name: schools, values: {capacity: 0}, filter: "re:kind.*lyceum"}
+
+- description: Correcting a text value
+  vars:
+    request: In the roads, rename Tverskaya to Tverskaya Street
+    reads: roads
+    expect:
+      call: update_attributes
+      args: {layer_name: roads, values: {name: Tverskaya Street}, filter: "re:name.*Tverskaya"}
+
+- description: Everything takes the explicit word
+  vars:
+    request: Delete all the roads
+    reads: roads
+    expect:
+      any_of:
+        - call: delete_features
+          args: {layer_name: roads, filter: all}
+        - call: ask_user
+
+- description: A computed value is not a constant edit
+  vars:
+    request: Double the capacity of every school
+    reads: schools
+    expect:
+      not: [update_attributes]
+
+- description: Russian — deleting by type
+  vars:
+    request: Удали из дорог все footway
+    reads: roads
+    expect:
+      call: delete_features
+      args: {layer_name: roads, filter: "re:highway.*footway"}

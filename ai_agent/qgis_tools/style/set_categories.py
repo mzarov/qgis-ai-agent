@@ -25,7 +25,9 @@ class SetCategoriesTool(BaseTool):
     name = "set_categories"
     description = (
         "Colour a layer by categories: every value of a field gets its own colour. "
-        "Colours come from a QGIS ramp or from a list. Replaces the styling of the layer."
+        "Colours come from a QGIS ramp or from a list. Replaces the styling of the layer. "
+        "The values are read from the layer here, so there is no need to read them first; "
+        f"a field with more than {MAX_CATEGORIES} distinct values is refused with its count."
     )
     skill = "style"
     safety = SAFETY_WRITE

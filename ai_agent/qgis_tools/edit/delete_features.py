@@ -18,7 +18,9 @@ class DeleteFeaturesTool(BaseTool):
     description = (
         "Delete features from a vector layer permanently. Requires a filter "
         "expression choosing what to delete; deleting everything needs the "
-        "literal filter 'all'. This removes data from the underlying source."
+        "literal filter 'all'. This removes data from the underlying source. "
+        "The matches are counted when the step is queued and the user sees the count before "
+        "confirming, so there is no need to count them first."
     )
     skill = "edit"
     safety = SAFETY_DESTRUCTIVE

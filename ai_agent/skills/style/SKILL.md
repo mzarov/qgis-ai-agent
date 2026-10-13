@@ -83,11 +83,12 @@ same layer makes the first call pointless. Queue only the call you actually mean
 
 ### Choosing between categories and graduations
 
-Text field with a handful of distinct values — `set_categories`. Numeric field
-with a continuous spread — `set_graduated`. If you do not know which, call
-`get_field_values` from the `inspect` skill first: it shows both the type and how
-many distinct values there are. Categorising a field with hundreds of values
-produces an unreadable map, and the tool refuses past 60.
+Text field — `set_categories`. Numeric field with a continuous spread —
+`set_graduated`. The field's type is in `describe_layer`; do not read its values
+first just to choose a tool or to count them. `set_categories` refuses a field
+with more than 60 distinct values and says so — only then is another approach
+needed. Read the values when the request depends on them: a colour named for a
+particular value, or only some values to show.
 
 ### Colours and ramps
 
@@ -111,7 +112,9 @@ rotation, placement, shadow, background.
 what values they take and in what units. Pass `kind: "symbol"` or `kind: "labels"`.
 It is generated from the same catalogue the tools apply, so it cannot drift from
 what actually works. Call it when you are not certain of a key — guessing produces
-an error listing near matches, which costs a round trip.
+an error listing near matches, which costs a round trip. Labels by a field need no
+lookup: `set_labels` with `{"field": "name"}` is the whole call. Look keys up for
+the rest — fonts, halos, placement.
 
 Three keys are worth naming here because users describe them in words that do not
 match the key:

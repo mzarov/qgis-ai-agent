@@ -14,7 +14,12 @@ survive analysis belongs in a layer with attributes instead.
 ## Placing
 
 `add_annotation` takes lon/lat in EPSG:4326 by default and reprojects to the
-project CRS itself. Where do coordinates come from? Never invented:
+project CRS itself: **`x` is the longitude, `y` the latitude.** People and web
+maps write latitude first — "55.75, 37.62" means latitude 55.75, longitude
+37.62, so that is `x=37.62, y=55.75`. When both numbers are under 90 and the
+order is unclear, decide by the region of the project and say which you chose.
+
+Where do coordinates come from? Never invented:
 
 - a place the user named → `geocode` from the `web` skill first
 - "here" / the current view → `get_canvas_extent`, take the centre

@@ -1,6 +1,6 @@
 ---
 name: inspect
-description: Facts about the open project — layers, fields and their values, counts, lengths and areas via expressions, the user's selection, the current view, a rendered image of the map. Always loaded; read before you act.
+description: Facts about the open project — layers, fields and their values, counts, lengths and areas via expressions, the user's selection, the current view, a rendered image of the map. Always loaded; read before you change anything, in the same turn as any load_skill call.
 tools: [get_project_info, list_layers, describe_layer, get_field_values, sample_features, query_layer, get_selection, select_features, get_canvas_extent, render_map, get_qgis_info]
 ---
 
@@ -41,10 +41,11 @@ go looking for a length column.
 
 - Field names are case-sensitive; string literals take single quotes:
   `highway = 'motorway'`.
-- `$length` and `$area` follow the project: with an `ellipsoid` in
-  `get_project_info` they come back in its `distance_units` / `area_units` —
-  usually metres, even for a layer in degrees. With no ellipsoid they are raw CRS
-  units, which on a geographic layer means degrees. Check once and state the unit.
+- `$length` and `$area` follow the project, and the project context's
+  `Measurements:` line says how: with an ellipsoid they come back in its units —
+  usually metres, even for a layer in degrees; with none they are raw CRS units,
+  which on a geographic layer means degrees. State the unit in the answer; no
+  `get_project_info` call is needed for it.
 - `aggregate="count"` counts features regardless of nulls; add
   `filter="field is not null"` to count values.
 

@@ -1,0 +1,68 @@
+# tables: with the skill loaded, the model's CSV call.
+# `expect` is checked by evals/checks.py; see docs/skill_evals.md.
+
+- description: A file is looked at before loading
+  vars:
+    request: Load /data/stops.csv as points
+    expect:
+      call: [preview_table, load_table]
+      args: {path: /data/stops.csv}
+
+- description: Points from lon/lat columns
+  vars:
+    request: Load /data/stops.csv as points
+    reads:
+      steps:
+        - tool: preview_table
+          args: {path: /data/stops.csv}
+          result:
+            delimiter: ","
+            columns: [{name: stop_id, type: integer}, {name: name, type: string}, {name: lon, type: real}, {name: lat, type: real}]
+            rows: [{stop_id: 1, name: Tverskaya, lon: 37.6056, lat: 55.7647}]
+    expect:
+      call: load_table
+      args: {path: /data/stops.csv, x_field: lon, y_field: lat}
+
+- description: Projected columns keep their CRS
+  vars:
+    request: Load /data/wells.csv, the coordinates are x and y in UTM zone 37N
+    reads:
+      steps:
+        - tool: preview_table
+          args: {path: /data/wells.csv}
+          result:
+            delimiter: ";"
+            columns: [{name: well, type: string}, {name: x, type: real}, {name: y, type: real}]
+            rows: [{well: W-1, x: 412345.0, y: 6178123.0}]
+    expect:
+      call: load_table
+      args: {x_field: x, y_field: y, crs: "re:32637"}
+
+- description: A join by a shared key
+  vars:
+    request: Attach /data/population.csv to the districts by the district name
+    reads:
+      steps:
+        - tool: preview_table
+          args: {path: /data/population.csv}
+          result:
+            delimiter: ","
+            columns: [{name: district, type: string}, {name: population_2024, type: integer}]
+            rows: [{district: Arbat, population_2024: 37010}]
+        - tool: describe_layer
+          args: {layer_name: districts}
+          result: {name: districts, kind: vector, geometry: polygon, fields: [{name: name, type: String}, {name: pop2020, type: Integer64}]}
+        # The skill compares name keys before joining; the case starts after that comparison.
+        - tool: get_field_values
+          args: {layer_name: districts, field_name: name}
+          result: {field: name, unique_values: [Arbat, Basmanny, Khamovniki, Meshchansky, Presnensky, Tagansky], count: 12}
+    expect:
+      call: join_table
+      args: {layer_name: districts, layer_field: name, table: /data/population.csv, table_field: district}
+
+- description: Listing joins
+  vars:
+    request: Which tables are joined to the districts?
+    expect:
+      call: list_joins
+      args: {layer_name: districts}

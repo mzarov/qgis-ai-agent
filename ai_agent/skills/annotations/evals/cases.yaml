@@ -1,0 +1,38 @@
+# annotations: with the skill loaded, the model's note or marker.
+# Coordinates are lon/lat; people write latitude first.
+
+- description: A text note at given coordinates
+  vars:
+    request: Add a note "start here" at longitude 37.6175, latitude 55.7520
+    expect:
+      call: add_annotation
+      args: {kind: text, x: 37.6175, y: 55.752, text: "re:start here"}
+
+- description: Typed latitude first becomes y
+  vars:
+    request: Put a marker at 55.7520, 37.6175
+    expect:
+      call: add_annotation
+      args: {kind: marker, x: 37.6175, y: 55.752}
+
+- description: A place without coordinates is geocoded, never guessed
+  vars:
+    request: Add a note next to the Kremlin saying "start here"
+    expect:
+      not: [add_annotation]
+      any_of:
+        - loads: [web]
+        - call: ask_user
+
+- description: Listing notes
+  vars:
+    request: Which notes are on the map?
+    expect:
+      call: list_annotations
+
+- description: Russian — a marker
+  vars:
+    request: Поставь маркер в точке 59.9386, 30.3141
+    expect:
+      call: add_annotation
+      args: {kind: marker, x: 30.3141, y: 59.9386}

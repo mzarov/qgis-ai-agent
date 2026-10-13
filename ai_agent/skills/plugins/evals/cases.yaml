@@ -1,0 +1,28 @@
+# plugins: with the skill loaded, the model finds a plugin before using it.
+# `expect` is checked by evals/checks.py; see docs/skill_evals.md.
+
+- description: Listing installed plugins
+  vars:
+    request: Which plugins do I have?
+    expect:
+      call: list_plugins
+
+- description: Searching by task
+  vars:
+    request: Is there a plugin for image segmentation installed?
+    expect:
+      call: list_plugins
+      args: {query: "re:segment"}
+
+- description: A command path is read, never guessed
+  vars:
+    request: Run the qgis2web export
+    expect:
+      call: [list_plugins, describe_plugin]
+      not: [run_plugin_command]
+
+- description: Russian — what a plugin can do
+  vars:
+    request: Что умеет плагин QuickMapServices?
+    expect:
+      call: [describe_plugin, list_plugins]

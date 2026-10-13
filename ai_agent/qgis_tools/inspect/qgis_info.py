@@ -13,7 +13,8 @@ class GetQgisInfoTool(BaseTool):
     name = "get_qgis_info"
     description = (
         "Show the environment: QGIS version, interface language and the available "
-        "processing algorithm providers. Needed to avoid offering what is not installed."
+        "processing algorithm providers. Needed to avoid offering what is not installed. "
+        "Installed plugins and what they can do are the plugins skill's list_plugins."
     )
     skill = "inspect"
     safety = SAFETY_READ

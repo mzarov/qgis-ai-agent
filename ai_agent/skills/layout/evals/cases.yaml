@@ -1,0 +1,47 @@
+# layout: with the skill loaded, the model's print-layout call.
+# `expect` is checked by evals/checks.py; see docs/skill_evals.md.
+
+- description: Page size and orientation
+  vars:
+    request: Create an A4 landscape layout called City map
+    expect:
+      call: create_layout
+      args: {name: City map, page: a4, orientation: landscape}
+
+- description: A whole sheet starts with the layout
+  vars:
+    request: Make a print layout with the map, a legend and a scale bar
+    expect:
+      call: [create_layout, list_layouts]
+
+- description: An item goes into the named layout
+  vars:
+    request: Add a legend to the City map layout
+    # Placing needs the page and the free space: the case starts after describe_layout.
+    reads:
+      steps:
+        - tool: describe_layout
+          args: {layout_name: City map}
+          result: {name: City map, page_mm: [297, 210], items: [{id: map1, type: map, x: 10, y: 10, width: 220, height: 190}], item_count: 1}
+    expect:
+      call: add_layout_item
+      args: {layout_name: City map, item_type: legend}
+
+- description: Export to a file
+  vars:
+    request: Export the City map layout to /tmp/city.pdf
+    reads:
+      steps:
+        - tool: list_layouts
+          args: {}
+          result: {layouts: [{name: City map, page: a4, orientation: landscape, items: [{id: map1, type: map}]}]}
+    expect:
+      call: export_layout
+      args: {layout_name: City map, path: /tmp/city.pdf}
+
+- description: Russian — an A3 portrait sheet
+  vars:
+    request: Создай макет A3 книжной ориентации
+    expect:
+      call: create_layout
+      args: {page: a3, orientation: portrait}

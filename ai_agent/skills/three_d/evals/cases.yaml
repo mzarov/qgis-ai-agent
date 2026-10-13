@@ -1,0 +1,19 @@
+# three_d: with the skill loaded, the model opens the view.
+
+- description: A DEM in 3D opens the view
+  vars:
+    request: Show the DEM in 3D
+    expect:
+      call: open_3d_view
+
+- description: Tilting the map is a 3D view
+  vars:
+    request: Tilt the map so I can see the terrain
+    expect:
+      call: open_3d_view
+
+- description: Russian — relief in 3D
+  vars:
+    request: Покажи рельеф в 3D
+    expect:
+      call: open_3d_view

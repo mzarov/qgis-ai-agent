@@ -266,6 +266,14 @@ missing branches as evidence for targeted regression work, not a percentage quot
 survived all the way to live QGIS precisely because nobody called the tool code:
 `compileall` and import checks do not catch that.
 
+**A new skill also brings eval cases:** `skills/<domain>/evals/cases.yaml` next
+to its `SKILL.md`, plus a routing case in `evals/routing.yaml`. The skill bench
+(`python3 evals/run.py`, promptfoo against a real model) measures whether the
+model loads the skill and calls its tools right, with the plugin's own prompts.
+Run the touched suite after editing a `SKILL.md`, a tool description or the
+prompt core; the cases never reach the zip. Details:
+[docs/skill_evals.md](docs/skill_evals.md).
+
 `tests/real_qgis_smoke.py` checks the installed ZIP, and
 `tests/real_qgis_workflows.py` exercises live layer and Qt lifecycle workflows
 in QGIS CI, including `tests/real_qgis_e2e.py`: whole-plugin scenarios against

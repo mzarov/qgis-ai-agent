@@ -260,7 +260,7 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `agent/loop.py`          | the run state machine                               |
 | `agent/turn_thread.py`   | background-thread ownership: start, detach, stop    |
 | `agent/notices.py`       | the texts the loop hands outwards                   |
-| `agent/run_journal.py`   | the optional Markdown record of one run             |
+| `agent/run_journal.py`   | the optional Markdown record of one run, with each model request's tokens and seconds |
 | `agent/budget.py`        | run tokens vs the Settings budget, usage split      |
 | `agent/verification.py`  | what the check after Apply starts with, and the round cap |
 | `agent/quick_check.py`   | the check by reading: a batch whose steps all confirm themselves skips the model |

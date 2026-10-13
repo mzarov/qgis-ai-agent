@@ -1,0 +1,71 @@
+# processing: with the skill loaded, the model's next step towards an algorithm.
+# `reads` are the calls it already made ("native:buffer" is describe_processing);
+# `expect` is checked by evals/checks.py.
+
+- description: An algorithm is discovered before it is run
+  vars:
+    request: Make a 500 m buffer around the stations
+    # Checking the layer's CRS first is fair: metres need a metric CRS. Running from memory is not.
+    expect:
+      call: [search_processing, describe_processing, describe_layer]
+      not: [run_processing]
+
+- description: Once described, a buffer runs with the exact parameters
+  vars:
+    request: Make a 500 m buffer around the stations
+    reads: stations, native:buffer
+    expect:
+      call: run_processing
+      args: {algorithm_id: "native:buffer", parameters: {INPUT: stations, DISTANCE: 500}}
+
+- description: Metres on a layer in degrees are reprojected first
+  vars:
+    request: Make a 500 m buffer around the schools
+    reads: schools, native:buffer
+    expect:
+      any_of:
+        - call: run_processing
+          args: {algorithm_id: "native:reprojectlayer", parameters: {INPUT: schools}}
+        - call: describe_processing
+          args: {algorithm_id: native:reprojectlayer}
+
+- description: Points in polygons
+  vars:
+    request: Count the schools in each district
+    reads: native:countpointsinpolygon
+    expect:
+      call: run_processing
+      args: {algorithm_id: "native:countpointsinpolygon", parameters: {POLYGONS: districts, POINTS: schools}}
+
+- description: Clipping by another layer
+  vars:
+    request: Clip the roads by the district boundaries
+    reads: native:clip
+    expect:
+      call: run_processing
+      args: {algorithm_id: "native:clip", parameters: {INPUT: roads, OVERLAY: districts}}
+
+- description: An area is an expression, not an algorithm
+  vars:
+    request: What is the area of each district?
+    expect:
+      not: [run_processing, search_processing, describe_processing]
+
+- description: A hillshade algorithm from the map
+  vars:
+    request: Build a hillshade from the DEM
+    reads: dem
+    expect:
+      any_of:
+        - call: describe_processing
+          args: {algorithm_id: native:hillshade}
+        - call: search_processing
+          args: {query: "re:hillshade"}
+
+- description: Russian — kilometres become metres
+  vars:
+    request: Сделай буфер 1 км вокруг станций
+    reads: stations, native:buffer
+    expect:
+      call: run_processing
+      args: {algorithm_id: "native:buffer", parameters: {INPUT: stations, DISTANCE: 1000}}

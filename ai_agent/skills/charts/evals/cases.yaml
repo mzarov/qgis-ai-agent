@@ -1,0 +1,49 @@
+# charts: with the skill loaded and the layer read, the model's chart call.
+# `expect` is checked by evals/checks.py; see docs/skill_evals.md.
+
+- description: Values per category from a layer
+  vars:
+    request: Make a bar chart of the population by district
+    reads: districts
+    expect:
+      call: chart_layer
+      args: {layer_name: districts, value: "re:pop2020", group_by: "re:name"}
+
+- description: A histogram is a value without groups
+  vars:
+    request: Show a histogram of school capacity
+    reads: schools
+    expect:
+      call: chart_layer
+      args: {layer_name: schools, value: "re:capacity"}
+
+- description: A pie of counts
+  vars:
+    request: A pie chart of the schools by kind
+    reads: schools
+    expect:
+      call: chart_layer
+      args: {layer_name: schools, group_by: "re:kind", kind: pie}
+
+- description: Rows to read are a table
+  vars:
+    request: Show me a table of the five most populated districts
+    reads: districts
+    expect:
+      call: show_table
+      args: {layer_name: districts, order_by: "re:pop2020.*desc", limit: 5}
+
+- description: Numbers the user gave are drawn directly
+  vars:
+    request: "Chart these numbers over time: 2019 — 120, 2020 — 135, 2021 — 150"
+    expect:
+      call: show_chart
+      args: {series: "*"}
+
+- description: Russian — counts by type
+  vars:
+    request: Построй диаграмму числа школ по типам
+    reads: schools
+    expect:
+      call: chart_layer
+      args: {layer_name: schools, group_by: "re:kind"}

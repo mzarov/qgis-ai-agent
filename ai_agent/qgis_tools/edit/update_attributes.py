@@ -20,7 +20,9 @@ class UpdateAttributesTool(BaseTool):
         "Change attribute values of existing features in place: set the listed "
         "fields to new constant values on every feature matching the filter. "
         "This edits the underlying data — for computed values use "
-        "native:fieldcalculator instead."
+        "native:fieldcalculator instead. "
+        "The matches are counted when the step is queued and the user sees the count before "
+        "confirming, so there is no need to count them first."
     )
     skill = "edit"
     safety = SAFETY_DESTRUCTIVE

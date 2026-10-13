@@ -1,0 +1,65 @@
+# inspect: with the project described (evals/fixture.json), the model's next read.
+# `reads` are the calls it already made; `expect` is checked by evals/checks.py.
+
+- description: A count by condition is one query
+  vars:
+    request: How many primary roads are there?
+    reads: roads
+    expect:
+      call: query_layer
+      args: {layer_name: roads, aggregate: count, filter: "re:highway.*primary"}
+
+- description: A total is a sum aggregate
+  vars:
+    request: What is the total population of all districts?
+    reads: districts
+    expect:
+      call: query_layer
+      args: {layer_name: districts, aggregate: sum, expression: "re:pop2020"}
+
+- description: A top N is ordered features, not an aggregate
+  vars:
+    request: Which three districts have the most people?
+    reads: districts
+    expect:
+      call: query_layer
+      args: {layer_name: districts, order_by: "re:pop2020.*desc", limit: 3}
+
+- description: Length comes from the geometry, not a field
+  vars:
+    request: What is the total length of the roads?
+    reads: roads
+    expect:
+      call: query_layer
+      args: {layer_name: roads, aggregate: sum, expression: "re:\\$length"}
+
+- description: A grouped average
+  vars:
+    request: What is the average school capacity for each kind of school?
+    reads: schools
+    expect:
+      call: query_layer
+      args: {layer_name: schools, aggregate: mean, expression: "re:capacity", group_by: "re:kind"}
+
+- description: Showing features is a selection
+  vars:
+    request: Show me the residential roads on the map
+    reads: roads, roads/highway
+    expect:
+      call: select_features
+      args: {layer_name: roads, filter: "re:highway.*residential"}
+
+- description: Unknown fields are read first
+  vars:
+    request: What attributes do the stations have?
+    expect:
+      call: [describe_layer, sample_features]
+      args: {layer_name: stations}
+
+- description: Russian — a count
+  vars:
+    request: Сколько школ вместимостью больше 1000?
+    reads: schools
+    expect:
+      call: query_layer
+      args: {layer_name: schools, aggregate: count, filter: "re:capacity\"?\\s*>\\s*1000"}

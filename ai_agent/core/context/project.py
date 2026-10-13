@@ -1,7 +1,7 @@
 from contextlib import suppress
 from typing import Any
 
-from qgis.core import QgsProject
+from qgis.core import QgsProject, QgsUnitTypes
 
 from ai_agent.qgis_tools.common.layers import (
     active_layer_name,
@@ -13,6 +13,9 @@ from ai_agent.qgis_tools.common.layers import (
 
 MAX_LISTED = 12
 NO_LAYERS = "Layers: none."
+NO_ELLIPSOID = "NONE"
+MEASURED = "Measurements: ellipsoid {0}; $length in {1}, $area in {2}, even on layers in degrees."
+UNMEASURED = "Measurements: no ellipsoid; $length and $area are in layer CRS units (degrees on a geographic layer)."
 
 
 def get_project_context() -> str:
@@ -25,8 +28,26 @@ def get_project_context() -> str:
     if active:
         lines.append(f"Active layer: {active}.")
     layers = [describe_layer_line(layer) for layer in project.mapLayers().values()]
+    if layers:
+        # How sizes come out, so a question about lengths or areas needs no get_project_info first.
+        measurement = measurement_line(project)
+        if measurement:
+            lines.append(measurement)
     lines.append("Layers: " + _join_capped(layers) + "." if layers else NO_LAYERS)
     return "\n".join(lines)
+
+
+def measurement_line(project: Any) -> str:
+    """The ellipsoid and units $length and $area use, in unit codes the model reads (not translated names)."""
+    try:
+        ellipsoid = str(project.ellipsoid() or "").strip()
+        if not ellipsoid or ellipsoid.upper() == NO_ELLIPSOID:
+            return UNMEASURED
+        distance = QgsUnitTypes.encodeUnit(project.distanceUnits())
+        area = QgsUnitTypes.encodeUnit(project.areaUnits())
+    except Exception:
+        return ""
+    return MEASURED.format(ellipsoid, distance, area)
 
 
 def project_crs(project: Any) -> str:

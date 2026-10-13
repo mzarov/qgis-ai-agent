@@ -4,6 +4,7 @@ import tempfile
 import time
 import unicodedata
 import uuid
+from collections.abc import Sequence
 from typing import Any
 
 FOLDER = "ai_agent_runs"
@@ -17,16 +18,49 @@ FILE_MODE = 0o600
 MARKDOWN_PUNCTUATION = "\\`*_{}[]()#+!|~"
 
 
-def record_run(prompt: str, entries: list[dict[str, Any]], outcome: str, applied: int) -> str:
-    return write_journal(render_journal(prompt, entries, outcome, applied))
+def record_run(
+    prompt: str,
+    entries: list[dict[str, Any]],
+    outcome: str,
+    applied: int,
+    requests: Sequence[tuple[int, int, float]] = (),
+) -> str:
+    return write_journal(render_journal(prompt, entries, outcome, applied, requests))
 
 
-def render_journal(prompt: str, entries: list[dict[str, Any]], outcome: str, applied: int) -> str:
+def render_journal(
+    prompt: str,
+    entries: list[dict[str, Any]],
+    outcome: str,
+    applied: int,
+    requests: Sequence[tuple[int, int, float]] = (),
+) -> str:
     lines = ["# Run journal", "", f"**Request:** {_safe_text(prompt)}", ""]
     for entry in entries:
         lines.extend(_entry_lines(entry))
     lines.extend(["", f"**Applied steps:** {applied}", "", f"**Outcome:** {_safe_text(outcome)}"])
+    lines.extend(_request_lines(requests))
     return "\n".join(lines)
+
+
+def _request_lines(requests: Sequence[tuple[int, int, float]]) -> list[str]:
+    """Each model request's tokens and seconds, then the run's totals: where a slow or costly run went."""
+    if not requests:
+        return []
+    lines = ["", "## Model requests", "", "| # | input tokens | output tokens | seconds |", "| --- | --- | --- | --- |"]
+    for index, (prompt, completion, seconds) in enumerate(requests, start=1):
+        lines.append(f"| {index} | {prompt} | {completion} | {seconds:.1f} |")
+    prompt_total = sum(item[0] for item in requests)
+    completion_total = sum(item[1] for item in requests)
+    seconds_total = sum(item[2] for item in requests)
+    lines.extend(
+        [
+            "",
+            f"**Total:** {len(requests)} requests, {prompt_total} input and {completion_total} output tokens, "
+            f"{seconds_total:.1f} s waiting for the model",
+        ]
+    )
+    return lines
 
 
 def write_journal(markdown: str, folder: str | None = None) -> str:

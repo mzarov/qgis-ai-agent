@@ -108,9 +108,9 @@ Area, length, perimeter and coordinates are **expressions**, not algorithms:
 | area in hectares | `$area / 10000` |
 
 `$area`, `$length` and `$perimeter` follow the project, not the layer: with an
-ellipsoid set (`get_project_info`) they come back in the project's area and
-distance units — usually metres, even on a layer in degrees — so no reprojection
-is needed to measure. Algorithm distance *parameters* (`DISTANCE`, `RADIUS`) are
+ellipsoid set (the project context's `Measurements:` line) they come back in
+the project's area and distance units — usually metres, even on a layer in
+degrees — so no reprojection is needed to measure. Algorithm distance *parameters* (`DISTANCE`, `RADIUS`) are
 different: they always use layer-CRS units, see below.
 
 NDVI and other band arithmetic is not a separate algorithm either, but
