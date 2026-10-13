@@ -112,7 +112,9 @@ rotation, placement, shadow, background.
 what values they take and in what units. Pass `kind: "symbol"` or `kind: "labels"`.
 It is generated from the same catalogue the tools apply, so it cannot drift from
 what actually works. Call it when you are not certain of a key — guessing produces
-an error listing near matches, which costs a round trip.
+an error listing near matches, which costs a round trip. Labels by a field need no
+lookup: `set_labels` with `{"field": "name"}` is the whole call. Look keys up for
+the rest — fonts, halos, placement.
 
 Three keys are worth naming here because users describe them in words that do not
 match the key:
