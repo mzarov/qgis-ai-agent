@@ -89,8 +89,9 @@ class GetProjectInfoTool(BaseTool):
 
     @staticmethod
     def _units(project: QgsProject, getter: str) -> str:
+        # encodeUnit gives stable codes ("meters", "m2"); toString follows the UI language.
         try:
-            return QgsUnitTypes.toString(getattr(project, getter)())
+            return QgsUnitTypes.encodeUnit(getattr(project, getter)())
         except Exception:
             return ""
 
