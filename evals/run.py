@@ -37,6 +37,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import context as agent_request  # noqa: E402
 import thresholds  # noqa: E402
+from agent import bench  # noqa: E402
 
 REPO = agent_request.REPO
 EVALS = REPO / "evals"
@@ -98,7 +99,14 @@ def write_config(suite: str, cases: Path, models: list[str], url: str, locale: s
     return path
 
 
-def run_suite(config: Path, results: Path, repeat: int, fresh: bool = False) -> None:
+def run_suite(
+    config: Path,
+    results: Path,
+    repeat: int,
+    fresh: bool = False,
+    concurrency: int = MAX_CONCURRENCY,
+    extra_env: dict[str, str] | None = None,
+) -> None:
     command = [
         "npx",
         "--yes",
@@ -109,7 +117,7 @@ def run_suite(config: Path, results: Path, repeat: int, fresh: bool = False) -> 
         "--output",
         str(results),
         "--max-concurrency",
-        str(MAX_CONCURRENCY),
+        str(concurrency),
         "--repeat",
         str(repeat),
         "--no-progress-bar",
@@ -123,6 +131,7 @@ def run_suite(config: Path, results: Path, repeat: int, fresh: bool = False) -> 
         "PROMPTFOO_DISABLE_TELEMETRY": "1",
         "PROMPTFOO_DISABLE_UPDATE": "1",
         "PROMPTFOO_DISABLE_SHARING": "1",
+        **(extra_env or {}),
     }
     # promptfoo exits non-zero when a case fails; failures are the point of a bench, not an error here.
     subprocess.run(command, cwd=REPO, env=environment, check=False)
@@ -219,6 +228,8 @@ def main() -> int:
     parser.add_argument("--configs-only", action="store_true", help="write the configs and stop")
     parser.add_argument("--check", action="store_true", help="fail when a suite falls below its floor")
     parser.add_argument("--save-thresholds", action="store_true", help="set the floors from this run")
+    parser.add_argument("--agent", action="store_true", help="run the agent bench (whole tasks in QGIS) instead")
+    parser.add_argument("--agent-url", default="", help="an agent bench server already running; else one is started")
     options = parser.parse_args()
     url = os.environ.get("EVAL_API_URL", "").strip()
     models = [name.strip() for name in os.environ.get("EVAL_MODEL", "").split(",") if name.strip()]
@@ -229,6 +240,19 @@ def main() -> int:
     if problem and not options.configs_only:
         print(problem, file=sys.stderr)
         return 2
+    if options.agent:
+        if options.configs_only:
+            print(
+                bench.write_config(OUT, (models or ["model"])[0], options.agent_url or f"http://127.0.0.1:{bench.PORT}")
+            )
+            return 0
+        if len(models) != 1:
+            print("The agent bench runs one model at a time: set one model in EVAL_MODEL.", file=sys.stderr)
+            return 2
+        rows = run_agent(models[0], options.agent_url, max(1, options.repeat))
+        if rows is None:
+            return 2
+        return finish(rows, models, options)
     available = suites()
     chosen = [name.strip() for name in options.suites.split(",") if name.strip()] or list(available)
     unknown = [name for name in chosen if name not in available]
@@ -252,6 +276,37 @@ def main() -> int:
             # Every request failed before the model answered: the endpoint or the key is wrong, not the skill.
             print(f"Every case of {suite} failed to reach the model, stopping: {row['first_error']}", file=sys.stderr)
             break
+    return finish(rows, models, options)
+
+
+def run_agent(model: str, server: str, repeat: int) -> list[dict[str, Any]] | None:
+    """The agent suite's row, with a server started for it unless one is given; None when none came up."""
+    started = not server
+    server = server or f"http://127.0.0.1:{bench.PORT}"
+    if started:
+        print("Starting QGIS with the plugin for the agent bench…", flush=True)
+        bench.start_server(REPO)
+    try:
+        if not bench.wait_ready(server):
+            print(
+                f"The agent bench server at {server} never became ready; see build/evals/agent-server.log.",
+                file=sys.stderr,
+            )
+            return None
+        results = OUT / f"{bench.AGENT}.results.json"
+        results.unlink(missing_ok=True)
+        config = bench.write_config(OUT, model, server)
+        timeout = {"REQUEST_TIMEOUT_MS": str(bench.REQUEST_TIMEOUT_MS)}
+        # One task at a time: QGIS runs on one main thread, and a cached run would measure nothing.
+        run_suite(config, results, repeat, fresh=True, concurrency=1, extra_env=timeout)
+        return [summarise(bench.AGENT, results)]
+    finally:
+        if started:
+            bench.stop_server(OUT)
+
+
+def finish(rows: list[dict[str, Any]], models: list[str], options: argparse.Namespace) -> int:
+    """Print and keep the summary; set or check the floors when asked. 1 when a suite falls below its floor."""
     if not rows:
         return 0
     summary = report(rows)

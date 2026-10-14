@@ -34,6 +34,10 @@ on:
         description: "Set the floors from this run (download evals/thresholds.json from the artifact and commit it)"
         type: boolean
         default: false
+      agent:
+        description: "Also run the agent bench: whole tasks in QGIS (Docker), about a million tokens"
+        type: boolean
+        default: false
   pull_request:
     types: [labeled]
 
@@ -48,7 +52,7 @@ jobs:
   skill-evals:
     if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'skill-evals'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
     env:
       EVAL_API_URL: ${{ vars.LIVE_MODEL_URL }}
       EVAL_MODEL: ${{ vars.LIVE_MODEL }}
@@ -57,6 +61,7 @@ jobs:
       SUITES: ${{ inputs.suites }}
       REPEAT: ${{ inputs.repeat || 1 }}
       SAVE_THRESHOLDS: ${{ inputs.save_thresholds }}
+      AGENT: ${{ inputs.agent }}
     steps:
       - uses: actions/checkout@v4
       - name: Check the configuration
@@ -86,6 +91,12 @@ jobs:
           if [ -n "${SUITES}" ]; then set -- "$@" --suites "${SUITES}"; fi
           if [ "${SAVE_THRESHOLDS}" = "true" ]; then set -- "$@" --save-thresholds; else set -- "$@" --check; fi
           python3 evals/run.py "$@"
+      - name: Agent bench
+        if: steps.configured.outputs.ready == 'true' && env.AGENT == 'true'
+        run: |
+          set -- --agent --repeat "${REPEAT}"
+          if [ "${SAVE_THRESHOLDS}" = "true" ]; then set -- "$@" --save-thresholds; else set -- "$@" --check; fi
+          python3 evals/run.py "$@"
       - name: Upload the results
         if: always() && steps.configured.outputs.ready == 'true'
         uses: actions/upload-artifact@v4
@@ -94,5 +105,6 @@ jobs:
           path: |
             build/evals/*.results.json
             build/evals/summary.md
+            build/evals/agent-server.log
             evals/thresholds.json
           if-no-files-found: ignore

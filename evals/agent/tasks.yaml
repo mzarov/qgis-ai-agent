@@ -1,0 +1,155 @@
+# The agent bench: whole requests against the fixture project (evals/agent/fixture.py),
+# run by the plugin in a headless QGIS (evals/agent/server.py), checked by their outcome
+# in the project (evals/agent/outcome.py), never by the route the model took.
+#
+# The fixture's numbers: 12 districts (population 993 209), 30 roads (5 footways),
+# 24 schools (3 under 100 places, 5 over 1000, 8 lyceums holding 5485 places of
+# 15 910), 9 stations in UTM 37N, a DEM, population.csv and stops.csv. `{folder}`
+# in a request is the task's own folder.
+
+- description: Graduated colours by a field
+  vars:
+    request: Colour the districts by population in 5 classes
+    expect:
+      layers: {districts: {renderer: graduatedSymbol, class_attribute: pop2020, classes: 5}}
+
+- description: Categories by a field the agent picks
+  vars:
+    request: Colour the roads by their type
+    expect:
+      layers: {roads: {renderer: categorizedSymbol, class_attribute: highway}}
+
+- description: Labels by a field
+  vars:
+    request: Label the schools with their names
+    expect:
+      layers: {schools: {labels: true, label_field: name}}
+
+- description: Half transparent
+  vars:
+    request: Make the districts half transparent
+    expect:
+      layers: {districts: {opacity: 0.5}}
+
+- description: A metric buffer on a metric layer
+  vars:
+    request: Make a 500 m buffer around the stations
+    expect:
+      new_layers: [{geometry: polygon, feature_count: 9}]
+
+- description: A metric buffer on a layer in degrees
+  vars:
+    request: Make a 500 m buffer around the schools
+    expect:
+      new_layers: [{geometry: polygon, feature_count: 24, crs: "re:^(?!EPSG:4326$)"}]
+
+- description: Points in polygons as a new layer
+  vars:
+    request: Add a layer with the number of schools in each district
+    expect:
+      new_layers: [{geometry: polygon, feature_count: 12, sums: "re:\"[^\"]+\": 24\\.0"}]
+
+- description: A computed column
+  vars:
+    request: Add a field with each district's area in hectares
+    expect:
+      layers: {districts: {fields: ["re:(^|_)ha$|hect"]}}
+
+- description: Renaming a column
+  vars:
+    request: Rename the field pop2020 to population in the districts
+    expect:
+      layers: {districts: {fields: [population]}}
+
+- description: Deleting by a condition
+  vars:
+    request: Delete the schools with a capacity below 100
+    expect:
+      layers: {schools: {feature_count: 21}}
+
+- description: A constant on a filtered set
+  vars:
+    request: Set the capacity of every lyceum to 0
+    expect:
+      layers: {schools: {feature_count: 24, sums: {capacity: 10425}}}
+
+- description: A count answered from the data
+  vars:
+    request: How many schools have a capacity above 1000?
+    expect:
+      answer: "re:\\b5\\b|\\bfive\\b"
+
+- description: A total answered from the data
+  vars:
+    request: What is the total population of all districts?
+    expect:
+      answer: "re:993[\\s,.]?209"
+
+- description: A point from coordinates typed latitude first
+  vars:
+    request: Put a point at 55.7539, 37.6208 and call it Red Square
+    expect:
+      new_layers: [{geometry: point, feature_count: 1, points_wgs84: "re:\\[37\\.62\\d*, 55\\.75\\d*\\]"}]
+
+- description: A note on the map
+  vars:
+    request: Add a note "start here" at 55.7520, 37.6175
+    expect:
+      project: {annotations: 1}
+
+- description: Exporting a layer to a file
+  vars:
+    request: Export the roads to {folder}/roads.gpkg
+    expect:
+      files: [roads.gpkg]
+
+- description: A print layout exported to PDF
+  vars:
+    request: Create an A4 landscape layout with the map and a legend and export it to {folder}/map.pdf
+    expect:
+      files: [map.pdf]
+      project: {layouts: ["*"]}
+
+- description: A CSV joined by name
+  vars:
+    request: Attach {folder}/population.csv to the districts by the district name
+    expect:
+      layers: {districts: {fields: ["re:population_2024"]}}
+
+- description: A CSV as points
+  vars:
+    request: Load {folder}/stops.csv as points
+    expect:
+      new_layers: [{geometry: point, feature_count: 5}]
+
+- description: The project CRS
+  vars:
+    request: Switch the project to UTM zone 37N
+    expect:
+      project: {crs: EPSG:32637}
+
+- description: Hiding a layer
+  vars:
+    request: Hide the DEM
+    expect:
+      layers: {dem: {visible: false}}
+
+- description: A chart in the chat
+  vars:
+    request: Make a bar chart of the population by district
+    expect:
+      calls: [chart_layer]
+
+- description: A chain across skills
+  vars:
+    request: Count the schools in each district and colour the districts by that count
+    expect:
+      any_of:
+        - new_layers: [{geometry: polygon, feature_count: 12, renderer: "re:graduated|categorized"}]
+        - layers: {districts: {renderer: "re:graduated|categorized", class_attribute: "re:count|num|school"}}
+
+- description: Russian — categories by type
+  vars:
+    request: Покрась школы по типу
+    expect:
+      layers: {schools: {renderer: categorizedSymbol, class_attribute: kind}}

@@ -100,6 +100,59 @@ model (a timeout, a refused request) is counted apart, not as a failure. The sam
 `build/evals/summary.md`. To see the cases one by one, run `npx promptfoo
 view`. Telemetry, update checks and sharing are switched off for the run.
 
+## The agent bench
+
+The skill bench checks one decision. The agent bench checks a whole request.
+The plugin runs in a headless QGIS against a real model, with the real tools,
+through Apply and the check after it. The bench then looks at what the request
+left in the project, never at the route the model took.
+
+- **The project** (`evals/agent/fixture.py`) is the city the skill bench
+  describes, as real layers: 12 districts, 30 roads, 24 schools, 9 stations in
+  UTM 37N, a DEM, and two CSV files. Every value is fixed, so a task can name
+  its exact outcome: 3 schools hold fewer than 100 places, 5 hold more than
+  1000, the districts hold 993 209 people.
+- **The tasks** (`evals/agent/tasks.yaml`): styles, buffers, points in polygons,
+  fields, edits, questions answered from the data, drawing, notes, exports, a
+  print layout, joins, CSV points, the project CRS, a chart, and a chain across
+  skills.
+- **The provider** (`evals/agent/server.py`): promptfoo's HTTP provider posts
+  each task to a server inside QGIS. The server builds the project in a fresh
+  folder, sends the request, presses Apply for every prepared batch (a
+  destructive step is confirmed), waits for the check after Apply, and answers
+  with the final answer, the tools that ran, tokens, requests, seconds and a
+  snapshot of the project (`evals/agent/state.py`).
+- **The check** (`evals/agent/outcome.py`) matches the snapshot against the task's
+  `expect`. It looks at the answer, the state of existing layers, new layers,
+  written files, the project and the tools that ran. A run that asks a
+  question, leaves a batch unapplied or never reaches the model fails and says
+  why.
+
+```yaml
+- description: A metric buffer on a layer in degrees
+  vars:
+    request: Make a 500 m buffer around the schools
+    expect:
+      new_layers: [{geometry: polygon, feature_count: 24, crs: "re:^(?!EPSG:4326$)"}]
+```
+
+`{folder}` in a request is the task's own folder, for exports.
+
+```bash
+python3 evals/run.py --agent
+```
+
+The same `EVAL_*` variables apply. The runner starts the server in the pinned
+QGIS image with Docker, runs the tasks one at a time and stops it; the
+server's log lands in `build/evals/agent-server.log`. The key reaches the
+container by name only. A run of all the tasks takes some tens of minutes and
+about a million tokens. `--agent-url` points at a server that is already
+running.
+
+`tests/real_qgis_agent_bench.py` runs the server's parts in live QGIS against
+the scripted model on every CI run. It covers the fixture's numbers, Apply and
+the snapshot, so the bench's plumbing cannot rot between real runs.
+
 ## In CI
 
 The `skill-evals` workflow runs the bench on GitHub. It never runs on push,
@@ -109,6 +162,9 @@ because every run spends tokens. There are two ways to start it:
   list of suites, a repeat count, or `save_thresholds`;
 - by putting the `skill-evals` label on a pull request that touches a skill, a
   tool description or the prompt.
+
+Tick `agent` on a manual run to add the agent bench; its suite has a floor like
+the others.
 
 It uses the same provider as the live-model workflow: the `LIVE_MODEL_URL` and
 `LIVE_MODEL` variables, the `LIVE_MODEL_KEY` secret, and `LIVE_MODEL_AUTH` when
