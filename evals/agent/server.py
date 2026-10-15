@@ -38,7 +38,7 @@ REPO = HERE.parent.parent
 sys.path[:0] = [str(HERE), str(REPO / "tests")]
 
 import qgis  # noqa: E402
-from qgis.core import QgsApplication, QgsProject  # noqa: E402
+from qgis.core import QgsApplication, QgsMessageLog, QgsProject  # noqa: E402
 from real_qgis_smoke import _build_and_extract, qgis_application  # noqa: E402
 
 PORT = 8765
@@ -118,6 +118,8 @@ class Runner:
         manager = QgsApplication.authManager()
         if not manager.masterPasswordIsSet():
             manager.setMasterPassword(PROFILE_MASTER_PASSWORD, True)
+        self.log: list[str] = []
+        _record_plugin_log(self.log)
 
     def run(self, body: dict[str, Any]) -> dict[str, Any]:
         folder = tempfile.mkdtemp(prefix="ai-agent-eval-")
@@ -193,13 +195,7 @@ class Runner:
         agent = orchestrator.agent
         calls: list[dict[str, Any]] = []
         agent.tool_finished.connect(lambda name, ok, note: calls.append({"name": name, "ok": bool(ok)}))
-        log: list[str] = []
-
-        def logged(message: str, tag: str, level: object) -> None:
-            if tag == LOG_TAG:
-                log.append(message)
-
-        QgsApplication.messageLog().messageReceived.connect(logged)
+        self.log.clear()
         usage = {"prompt_tokens": 0, "completion_tokens": 0, "requests": 0, "runs": 0}
         start = agent.start
 
@@ -223,13 +219,12 @@ class Runner:
             orchestrator.on_confirm_plan()
             self._wait(orchestrator, deadline)
         _add(usage, dict(agent.usage))
-        QgsApplication.messageLog().messageReceived.disconnect(logged)
         messages = orchestrator.conversation.messages
         answers = [str(m["content"]) for m in messages if m.get("role") == "assistant"]
         failures = [_failure(m.get("content")) for m in messages if m.get("role") == FAILURE_ROLE]
         return {
             "failures": failures,
-            "log": log[-LOG_LINES:],
+            "log": self.log[-LOG_LINES:],
             "answer": answers[-1] if answers else "",
             "asked": bool(agent.is_awaiting_answer),
             "pending": bool(agent.has_pending_writes),
@@ -262,6 +257,30 @@ class Runner:
             elif time.monotonic() - quiet_since >= SETTLE_S:
                 return
             time.sleep(0.01)
+
+
+def _progress(body: dict[str, Any], result: dict[str, Any], seconds: float) -> str:
+    """One line per task in the server's log: what was asked, how it ended, at what cost."""
+    usage = result.get("usage") or {}
+    ending = "server error" if result.get("error") else ("asked a question" if result.get("asked") else "done")
+    request = " ".join(str(body.get("request") or "").split())[:70]
+    return f"{request} → {ending} in {seconds:.0f} s, {usage.get('requests', 0)} requests"
+
+
+def _record_plugin_log(lines: list[str]) -> None:
+    """Keep the plugin's log lines for the task's answer.
+
+    The message log's own signal stays silent in a QGIS without its main
+    window, so the call itself is wrapped; every message still reaches QGIS.
+    """
+    original = QgsMessageLog.logMessage
+
+    def recording(message: str, tag: str = "", *args: Any, **kwargs: Any) -> Any:
+        if tag == LOG_TAG:
+            lines.append(str(message))
+        return original(message, tag, *args, **kwargs)
+
+    QgsMessageLog.logMessage = staticmethod(recording)
 
 
 def _failure(content: Any) -> str:
@@ -308,7 +327,9 @@ def serve(port: int) -> None:
                     task = TASKS.get(timeout=0.05)
                 except queue.Empty:
                     continue
+                began = time.monotonic()
                 task.result = runner.run(task.body)
+                print(_progress(task.body, task.result, time.monotonic() - began), flush=True)
                 task.done.set()
 
 

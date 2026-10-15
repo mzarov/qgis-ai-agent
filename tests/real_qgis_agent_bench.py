@@ -34,6 +34,7 @@ class AgentBenchServerTest(unittest.TestCase):
         layers = result["state"]["layers"]
         self.assertEqual(layers["schools"]["feature_count"], 24)
         self.assertEqual(layers["schools"]["sums"]["capacity"], 15910)
+        self.assertEqual(layers["schools"]["sums"]["fid"], 300, "the schools are not the 24 the tasks count on")
         self.assertEqual(layers["districts"]["sums"]["pop2020"], 993209)
         self.assertEqual(layers["roads"]["feature_count"], 30)
         self.assertEqual((layers["stations"]["crs"], layers["stations"]["feature_count"]), ("EPSG:32637", 9))
@@ -54,6 +55,7 @@ class AgentBenchServerTest(unittest.TestCase):
         self.assertIn("set_opacity", [item["name"] for item in result["calls"]])
         self.assertEqual(problems_in(result, {"layers": {"districts": {"opacity": 0.5}}}), [])
         self.assertGreaterEqual(result["usage"]["requests"], 3)
+        self.assertTrue(result["log"], "the plugin's log lines did not reach the task's answer")
         self.assertIn("districts is", " ".join(problems_in(result, {"layers": {"districts": {"opacity": 0.3}}})))
 
     def test_a_new_layer_is_seen_with_its_points(self) -> None:

@@ -85,7 +85,7 @@ export EVAL_AUTH=OAuth    # only for a gateway that wants OAuth instead of Beare
 python3 evals/run.py
 ```
 
-- `--suites routing,style` runs only those suites.
+- `--suites routing,style` runs only those suites; `--only "Labels|Buffer"` only the cases whose description matches.
 - `--repeat 3 --fresh` runs every case three times and reports the pass rate.
   promptfoo answers an unchanged request from its cache, so an untouched suite
   costs nothing on a rerun; `--fresh` asks the model again, which is what a

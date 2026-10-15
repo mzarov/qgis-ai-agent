@@ -39,11 +39,13 @@ APPLICATIONS = Path("/Applications")
 NATIVE = "native"
 DOCKER = "docker"
 LOG_NAME = "agent-server.log"
-# The server's whole answer is the output the check reads; its usage feeds promptfoo's token columns,
-# and a server failure is an error (not reached), not a failed task.
+# The server's whole answer is the output the check reads; its usage feeds promptfoo's token columns.
+# A server failure or a failed model request (a busy, unreachable or refusing provider) is an error —
+# not reached — rather than a failed task: it says nothing about the agent.
 TRANSFORM = (
     "({output: JSON.stringify(json),"
-    " error: json.error ? String(json.error).trim().split('\\n').slice(-3).join(' | ') : undefined,"
+    " error: json.error ? String(json.error).trim().split('\\n').slice(-3).join(' | ')"
+    " : ((json.failures || []).length ? 'the model provider failed: ' + json.failures.join('; ') : undefined),"
     " tokenUsage: {prompt: (json.usage || {}).prompt_tokens || 0,"
     " completion: (json.usage || {}).completion_tokens || 0,"
     " total: ((json.usage || {}).prompt_tokens || 0) + ((json.usage || {}).completion_tokens || 0)}})"

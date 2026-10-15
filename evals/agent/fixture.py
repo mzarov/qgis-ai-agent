@@ -2,8 +2,10 @@
 
 Districts, roads, schools and stations in GeoPackages, a DEM in a GeoTIFF and
 two CSV files beside them. Every value is fixed, so a task can name the exact
-outcome: 3 schools hold fewer than 100 pupils, 5 more than 1000, 8 are lyceums,
-each district holds 2 schools. The task cases in tasks.yaml rely on these numbers.
+outcome: 3 schools hold fewer than 100 pupils, 5 more than 1000, 8 are lyceums.
+The schools spread unevenly, 0 to 4 per district, as real ones do: an even 2
+everywhere once made the model doubt its own count. The task cases in tasks.yaml
+rely on these numbers.
 """
 
 import csv
@@ -38,6 +40,8 @@ ROAD_COUNT = 30
 SCHOOL_KINDS = ["school", "lyceum", "gymnasium"]
 CAPACITIES = [1200, 85, 640, 720, 1100, 450, 95, 880, 530, 1350, 600, 60, 410, 760, 1050, 390, 820, 470, 1500, 680,
               350, 910, 560, 300]  # fmt: skip
+# Schools per district, in district order: 24 in all, one district without any.
+SCHOOLS_PER_DISTRICT = [4, 1, 3, 2, 0, 2, 3, 1, 2, 4, 1, 1]
 STATION_LINES = ["Red", "Green", "Blue"]
 STATION_COUNT = 9
 UTM_37N = "EPSG:32637"
@@ -115,11 +119,12 @@ def _schools() -> QgsVectorLayer:
     layer = QgsVectorLayer(
         "Point?crs=EPSG:4326&field=name:string&field=kind:string&field=capacity:integer", "schools", "memory"
     )
+    # Each school inside its district's cell, spread along the diagonal and away from the edges.
+    places = [(district, slot, count) for district, count in enumerate(SCHOOLS_PER_DISTRICT) for slot in range(count)]
     features = []
-    for index, capacity in enumerate(CAPACITIES):
-        # Two schools inside every district cell, away from its edges.
-        x, y = _cell(index // 2)
-        offset = 0.25 if index % 2 == 0 else 0.7
+    for index, (capacity, (district, slot, count)) in enumerate(zip(CAPACITIES, places, strict=True)):
+        x, y = _cell(district)
+        offset = (slot + 1) / (count + 1)
         point = QgsGeometry.fromPointXY(QgsPointXY(x + CELL[0] * offset, y + CELL[1] * offset))
         kind = SCHOOL_KINDS[index % len(SCHOOL_KINDS)]
         features.append(_feature(layer, [f"{kind.title()} {index + 1}", kind, capacity], point))

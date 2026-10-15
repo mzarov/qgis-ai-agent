@@ -106,6 +106,8 @@ def run_suite(
     fresh: bool = False,
     concurrency: int = MAX_CONCURRENCY,
     extra_env: dict[str, str] | None = None,
+    progress: bool = False,
+    only: str = "",
 ) -> None:
     command = [
         "npx",
@@ -120,8 +122,11 @@ def run_suite(
         str(concurrency),
         "--repeat",
         str(repeat),
-        "--no-progress-bar",
     ]
+    if not progress:
+        command.append("--no-progress-bar")
+    if only:
+        command += ["--filter-pattern", only]
     if fresh:
         command.append("--no-cache")
     environment = {
@@ -228,6 +233,7 @@ def main() -> int:
     parser.add_argument("--configs-only", action="store_true", help="write the configs and stop")
     parser.add_argument("--check", action="store_true", help="fail when a suite falls below its floor")
     parser.add_argument("--save-thresholds", action="store_true", help="set the floors from this run")
+    parser.add_argument("--only", default="", help="run only the cases whose description matches this pattern")
     parser.add_argument("--agent", action="store_true", help="run the agent bench (whole tasks in QGIS) instead")
     parser.add_argument("--agent-url", default="", help="an agent bench server already running; else one is started")
     parser.add_argument(
@@ -255,7 +261,7 @@ def main() -> int:
         if len(models) != 1:
             print("The agent bench runs one model at a time: set one model in EVAL_MODEL.", file=sys.stderr)
             return 2
-        rows = run_agent(models[0], options.agent_url, max(1, options.repeat), options.agent_server)
+        rows = run_agent(models[0], options.agent_url, max(1, options.repeat), options.agent_server, options.only)
         if rows is None:
             return 2
         return finish(rows, models, options)
@@ -275,7 +281,7 @@ def main() -> int:
             continue
         results = OUT / f"{suite}.results.json"
         results.unlink(missing_ok=True)
-        run_suite(config, results, max(1, options.repeat), options.fresh)
+        run_suite(config, results, max(1, options.repeat), options.fresh, only=options.only)
         row = summarise(suite, results)
         rows.append(row)
         if row["total"] and row["errors"] == row["total"]:
@@ -285,7 +291,7 @@ def main() -> int:
     return finish(rows, models, options)
 
 
-def run_agent(model: str, server: str, repeat: int, mode: str = "") -> list[dict[str, Any]] | None:
+def run_agent(model: str, server: str, repeat: int, mode: str = "", only: str = "") -> list[dict[str, Any]] | None:
     """The agent suite's row, with a server started for it unless one is given; None when none came up."""
     started = not server
     server = server or f"http://127.0.0.1:{bench.PORT}"
@@ -313,7 +319,8 @@ def run_agent(model: str, server: str, repeat: int, mode: str = "") -> list[dict
         config = bench.write_config(OUT, model, server)
         timeout = {"REQUEST_TIMEOUT_MS": str(bench.REQUEST_TIMEOUT_MS)}
         # One task at a time: QGIS runs on one main thread, and a cached run would measure nothing.
-        run_suite(config, results, repeat, fresh=True, concurrency=1, extra_env=timeout)
+        # A task takes minutes, so the progress bar is the only sign that the run is alive.
+        run_suite(config, results, repeat, fresh=True, concurrency=1, extra_env=timeout, progress=True, only=only)
         return [summarise(bench.AGENT, results)]
     finally:
         if process is not None:

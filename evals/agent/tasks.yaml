@@ -3,9 +3,9 @@
 # in the project (evals/agent/outcome.py), never by the route the model took.
 #
 # The fixture's numbers: 12 districts (population 993 209), 30 roads (5 footways),
-# 24 schools (3 under 100 places, 5 over 1000, 8 lyceums holding 5485 places of
-# 15 910), 9 stations in UTM 37N, a DEM, population.csv and stops.csv. `{folder}`
-# in a request is the task's own folder.
+# 24 schools (0 to 4 per district; 3 under 100 places, 5 over 1000, 8 lyceums
+# holding 5485 places of 15 910), 9 stations in UTM 37N, a DEM, population.csv and
+# stops.csv. `{folder}` in a request is the task's own folder.
 
 - description: Graduated colours by a field
   vars:
@@ -47,7 +47,7 @@
   vars:
     request: Add a layer with the number of schools in each district
     expect:
-      new_layers: [{geometry: polygon, feature_count: 12, sums: "re:\"[^\"]+\": 24\\.0"}]
+      new_layers: [{geometry: polygon, feature_count: 12, sums: "re:\": 24(\\.0)?[,}]"}]
 
 - description: A computed column
   vars:
@@ -99,9 +99,10 @@
 
 - description: Exporting a layer to a file
   vars:
-    request: Export the roads to {folder}/roads.gpkg
+    # Not roads.gpkg: that is the layer's own source in the fixture, which no export may overwrite.
+    request: Export the roads to {folder}/roads_copy.gpkg
     expect:
-      files: [roads.gpkg]
+      files: [roads_copy.gpkg]
 
 - description: A print layout exported to PDF
   vars:
