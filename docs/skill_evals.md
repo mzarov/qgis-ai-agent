@@ -128,7 +128,10 @@ left in the project, never at the route the model took.
   Apply for every prepared batch (a
   destructive step is confirmed), waits for the check after Apply, and answers
   with the final answer, the tools that ran, tokens, requests, seconds and a
-  snapshot of the project (`evals/agent/state.py`).
+  snapshot of the project (`evals/agent/state.py`). Its `steps` list every
+  call the model made, with the arguments and what came back, and what Apply
+  did with each queued one, so a run that went the long way can be read
+  afterwards in `build/evals/agent.results.json`.
 - **The check** (`evals/agent/outcome.py`) matches the snapshot against the task's
   `expect`. It looks at the answer, the state of existing layers, new layers,
   written files, the project and the tools that ran. A run that asks a

@@ -57,14 +57,22 @@ class AgentBenchServerTest(unittest.TestCase):
         self.assertIn("set_opacity", [item["name"] for item in result["calls"]])
         self.assertEqual(problems_in(result, {"layers": {"districts": {"opacity": 0.5}}}), [])
         self.assertGreaterEqual(result["usage"]["requests"], 3)
+        steps = [step for step in result["steps"] if step["name"] == "set_opacity"]
+        self.assertEqual(steps[0]["result"], "queued")
+        self.assertIn('"opacity": 0.5', steps[0]["args"])
+        self.assertEqual(steps[1], {"name": "set_opacity", "applied": "ok"}, "what Apply did is not recorded")
         self.assertTrue(result["log"], "the plugin's log lines did not reach the task's answer")
         self.assertIn("districts is", " ".join(problems_in(result, {"layers": {"districts": {"opacity": 0.3}}})))
 
     def test_the_map_renders_for_the_agents_look(self) -> None:
-        self.model.script(call("render_map"), say("The map shows the districts."))
+        self.model.script(
+            call("describe_layer", layer_name="nowhere"), call("render_map"), say("The map shows the districts.")
+        )
         result = self.runner.run({"request": "Show me the map"})
         self.assertNotIn("error", result, result.get("error"))
-        self.assertEqual(result["calls"], [{"name": "render_map", "ok": True}], result["log"])
+        self.assertEqual(result["calls"][-1], {"name": "render_map", "ok": True}, result["log"])
+        self.assertTrue(result["steps"][0]["result"].startswith("error: "), "the error the model read is not kept")
+        self.assertIn("nowhere", result["steps"][0]["result"] + result["steps"][0]["args"])
 
     def test_a_virtual_field_is_summed_with_the_others(self) -> None:
         self.model.script(
