@@ -54,6 +54,9 @@ PROFILE_MASTER_PASSWORD = "ai-agent-eval-profile"  # pragma: allowlist secret
 FOLDER_MARKER = "{folder}"
 LOG_TAG = "AI Agent"
 LOG_LINES = 20
+# A busy or flaky provider can drop the one picture request; an unknown answer would leave the
+# picture tools on for a model that may not see, so one more try before giving up.
+IMAGE_PROBE_TRIES = 2
 FAILURE_ROLE = "failure"
 TASKS: "queue.Queue[Task]" = queue.Queue()
 READY = threading.Event()
@@ -200,7 +203,10 @@ class Runner:
         """Ask once per server, then restore it after every task's reset, like a tested connection."""
         if self._images_pending:
             self._images_pending = False
-            self.sees_images = self.probe_images(self.build_overrides())
+            for _ in range(IMAGE_PROBE_TRIES):
+                self.sees_images = self.probe_images(self.build_overrides())
+                if self.sees_images is not None:
+                    break
             print(f"Sees pictures: {self.sees_images}", flush=True)
         if self.sees_images is not None:
             self.settings.set_supports_images(self.url, self.sees_images, self.model, self.dialect)

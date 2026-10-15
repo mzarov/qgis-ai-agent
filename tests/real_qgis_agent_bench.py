@@ -42,6 +42,13 @@ class AgentBenchServerTest(unittest.TestCase):
         self.assertEqual(result["state"]["new_layers"], [])
         self.assertEqual(problems_in(result, {"answer": "re:\\bfive\\b"}), [])
 
+    def test_an_unanswered_picture_check_is_asked_once_more(self) -> None:
+        answers = iter([None, False])
+        self.runner._images_pending = True
+        self.runner.probe_images = lambda overrides: next(answers)
+        self.runner._check_images()
+        self.assertIs(self.runner.sees_images, False, "a dropped picture request left the answer unknown")
+
     def test_a_task_is_applied_and_its_outcome_read_back(self) -> None:
         self.model.script(
             call("load_skill", names=["style"]),
