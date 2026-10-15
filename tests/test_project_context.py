@@ -130,6 +130,36 @@ class ProjectContextTest(unittest.TestCase):
         line = next(item for item in fixture["project_context"].splitlines() if item.startswith("Measurements:"))
         self.assertEqual(line, context.MEASURED.format("EPSG:7030", "meters", "m2"))
 
+    def test_the_model_reads_each_layers_fields_with_their_types(self):
+        class Field:
+            def __init__(self, name, kind):
+                self._name, self._kind = name, kind
+
+            def name(self):
+                return self._name
+
+            def typeName(self):
+                return self._kind
+
+        class Fielded(Layer):
+            def __init__(self, name, fields):
+                super().__init__(name)
+                self._fields = fields
+
+            def fields(self):
+                return self._fields
+
+        cafes = Fielded("cafes", [Field("name", "String"), Field("seats", "Integer")])
+        self.assertEqual(
+            context.context_line(cafes), "cafes (point, EPSG:4326, 17 features; fields: name:String, seats:Integer)"
+        )
+        wide = Fielded("census", [Field(f"c{index}", "Real") for index in range(context.MAX_CONTEXT_FIELDS + 4)])
+        self.assertTrue(context.context_line(wide).endswith("c14:Real and 4 more)"))
+        self.assertEqual(context.context_line(Layer("bare")), "bare (point, EPSG:4326, 17 features)")
+        self.use(Project([cafes]))
+        context.active_layer_name = lambda: ""
+        self.assertIn("fields: name:String", context.get_project_context())
+
     def test_an_empty_project_is_one_line(self):
         self.use(Project([], crs=""))
         self.assertEqual(context.get_project_context(), context.NO_LAYERS)

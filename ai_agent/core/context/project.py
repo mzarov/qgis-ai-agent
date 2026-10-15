@@ -7,6 +7,7 @@ from ai_agent.qgis_tools.common.layers import (
     active_layer_name,
     crs_authid,
     feature_count_if_cheap,
+    field_type_name,
     geometry_type_name,
     layer_kind,
 )
@@ -16,6 +17,8 @@ NO_LAYERS = "Layers: none."
 NO_ELLIPSOID = "NONE"
 MEASURED = "Measurements: ellipsoid {0}; $length in {1}, $area in {2}, even on layers in degrees."
 UNMEASURED = "Measurements: no ellipsoid; $length and $area are in layer CRS units (degrees on a geographic layer)."
+# Field names in the context spare most tasks their first describe_layer turn; a wide table lists its first ones.
+MAX_CONTEXT_FIELDS = 15
 
 
 def get_project_context() -> str:
@@ -27,7 +30,7 @@ def get_project_context() -> str:
     active = active_layer_name()
     if active:
         lines.append(f"Active layer: {active}.")
-    layers = [describe_layer_line(layer) for layer in project.mapLayers().values()]
+    layers = [context_line(layer) for layer in project.mapLayers().values()]
     if layers:
         # How sizes come out, so a question about lengths or areas needs no get_project_info first.
         measurement = measurement_line(project)
@@ -55,6 +58,26 @@ def project_crs(project: Any) -> str:
         authid = project.crs().authid()
         return authid.strip() if isinstance(authid, str) else ""
     return ""
+
+
+def context_line(layer: Any) -> str:
+    """The layer's line for the model: the facts of describe_layer_line plus its fields and their types."""
+    line = describe_layer_line(layer)
+    fields = field_list(layer)
+    return f"{line[:-1]}; fields: {fields})" if fields and line.endswith(")") else line
+
+
+def field_list(layer: Any) -> str:
+    """`name:String, pop2020:Integer64` — the first MAX_CONTEXT_FIELDS fields, and how many more there are."""
+    if layer_kind(layer) == "raster":
+        return ""
+    try:
+        fields = list(layer.fields())
+    except Exception:
+        return ""
+    shown = ", ".join(f"{field.name()}:{field_type_name(field)}" for field in fields[:MAX_CONTEXT_FIELDS])
+    hidden = len(fields) - MAX_CONTEXT_FIELDS
+    return f"{shown} and {hidden} more" if hidden > 0 else shown
 
 
 def describe_layer_line(layer: Any) -> str:

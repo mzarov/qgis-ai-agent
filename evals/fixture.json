@@ -1,5 +1,5 @@
 {
-  "project_context": "Project CRS: EPSG:3857.\nActive layer: districts.\nMeasurements: ellipsoid EPSG:7030; $length in meters, $area in m2, even on layers in degrees.\nLayers: districts (polygon, EPSG:4326, 12 features), roads (line, EPSG:4326, 340 features), schools (point, EPSG:4326, 58 features), stations (point, EPSG:32637, 9 features), dem (raster, EPSG:32637), OpenStreetMap (raster, EPSG:3857).",
+  "project_context": "Project CRS: EPSG:3857.\nActive layer: districts.\nMeasurements: ellipsoid EPSG:7030; $length in meters, $area in m2, even on layers in degrees.\nLayers: districts (polygon, EPSG:4326, 12 features; fields: fid:Integer64, name:String, okrug:String, pop2020:Integer64, area_km2:Real), roads (line, EPSG:4326, 340 features; fields: fid:Integer64, name:String, highway:String, lanes:Integer, maxspeed:Integer), schools (point, EPSG:4326, 58 features; fields: fid:Integer64, name:String, kind:String, capacity:Integer), stations (point, EPSG:32637, 9 features; fields: fid:Integer64, name:String, line:String, passengers:Integer), dem (raster, EPSG:32637), OpenStreetMap (raster, EPSG:3857).",
   "describe_layer": {
     "districts": {
       "name": "districts",

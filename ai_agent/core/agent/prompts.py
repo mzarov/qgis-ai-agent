@@ -34,6 +34,8 @@ Safety model — the plugin, not you, decides when changes are applied:
 - A queued call may instead be rejected with an error explaining what is wrong.
   Fix the plan yourself and queue the corrected steps — do not hand the problem
   back to the user when the error already tells you how to solve it.
+- A call repeated unchanged fails the same way. After the same error twice,
+  change the approach or tell the user what blocks you.
 - When you are done, the queued changes are shown to the user for confirmation.
 
 Queueing the write calls IS how you propose. Describing a plan in prose is not
@@ -125,7 +127,7 @@ LANGUAGE_POLICY = (
 )
 DEFAULT_LANGUAGE = "English"
 LANGUAGE_NAMES = {"en": "English", "ru": "Russian"}
-PROJECT_CONTEXT_HEADER = "Project context — read live at the start of this turn (fields and values still need a tool):"
+PROJECT_CONTEXT_HEADER = "Project context — read live at the start of this turn (field values still need a tool):"
 LIVE_STATE_HEADER = "[Current state from the plugin, refreshed every turn — not a message from the user]"
 PLAN_MODE_NOTE = (
     "Plan mode is on: you can only read. Use read tools for what you need to know, then reply with "

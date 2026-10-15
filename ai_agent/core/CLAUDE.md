@@ -238,7 +238,10 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     providers are never asked to count: `COUNT(*)` on a big table would stall
     the main thread before the first turn. The rule and the provider list live
     in `qgis_tools/common/layers.py::feature_count_if_cheap`, shared with the
-    tools. The briefing stays metadata; values come from tools.
+    tools. Each vector layer also lists its fields with their types, the first
+    `MAX_CONTEXT_FIELDS` of them (`context_line`): most tasks need them, and a
+    `describe_layer` turn for them cost far more than the line. The briefing
+    stays metadata; values come from tools.
 20. **Anthropic thinking follows the model generation.** `anthropic.thinking_config`:
     Fable, Mythos and Opus 5.5 always think (no `disabled`, no `budget_tokens`);
     the 4.6+ generation takes only `adaptive`; older models keep
@@ -250,7 +253,11 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     and compaction edit history every turn, so a mismatched block is dropped
     instead of failing the request. A turn cut off by `max_tokens` with tool
     calls runs none of them and tells the model to resend.
-21. **Imports** — all at the top, absolute. Use concise contract docstrings and
+21. **The same failure twice gets a note.** `agent/repeats.py` counts failures
+    by tool and error within a run; the second identical one carries a note in
+    its result telling the model to change course or tell the user. A prompt
+    rule alone did not stop a model retrying a refused export five times.
+22. **Imports** — all at the top, absolute. Use concise contract docstrings and
     comments for non-obvious reasons — see the root CLAUDE.md.
 
 ## What lives where
@@ -260,6 +267,7 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `agent/loop.py`          | the run state machine                               |
 | `agent/turn_thread.py`   | background-thread ownership: start, detach, stop    |
 | `agent/notices.py`       | the texts the loop hands outwards                   |
+| `agent/repeats.py`       | the same failure twice in a run: a note to change course |
 | `agent/run_journal.py`   | the optional Markdown record of one run, with each model request's tokens and seconds |
 | `agent/budget.py`        | run tokens vs the Settings budget, usage split      |
 | `agent/verification.py`  | what the check after Apply starts with, and the round cap |

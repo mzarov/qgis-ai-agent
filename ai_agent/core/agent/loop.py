@@ -11,6 +11,7 @@ from ai_agent.core.agent.compaction import estimated_tokens
 from ai_agent.core.agent.dispatch import DispatchMixin
 from ai_agent.core.agent.executor import ToolExecutor
 from ai_agent.core.agent.prompts import render_queued_steps, render_task_plan
+from ai_agent.core.agent.repeats import FailureMemory
 from ai_agent.core.agent.request import build_overrides, build_step_request
 from ai_agent.core.agent.run_journal import RunJournal
 from ai_agent.core.agent.skills import extend_loaded
@@ -99,6 +100,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._turn_callbacks: tuple | None = None
         self._active_apply_call: ToolCall | None = None
         self._journal = RunJournal()
+        self._failures = FailureMemory()
 
     @property
     def is_running(self) -> bool:
@@ -164,6 +166,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         # Set when the turn or token limit, not the model, ended the run: its last words are no plan.
         self.ended_on_limit = False
         self._journal.begin(prompt)
+        self._failures.reset()
         self._history = list(history or [])
         self._is_verification = verification
         self._verification_round = verification_round
@@ -359,7 +362,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         for call in turn.tool_calls:
             if not self._is_current(generation):
                 return
-            results.append(self._dispatch(call))
+            results.append(self._failures.note(self._dispatch(call)))
             if not self._is_current(generation):
                 return
         self._transcript.add_results(results, turn.protocol)

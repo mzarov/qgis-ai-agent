@@ -8,10 +8,12 @@ from unittest.mock import patch
 from osgeo import gdal
 from qgis.core import (
     QgsCoordinateReferenceSystem,
+    QgsCoordinateTransformContext,
     QgsFeature,
     QgsGeometry,
     QgsProject,
     QgsRasterLayer,
+    QgsVectorFileWriter,
     QgsVectorLayer,
 )
 from qgis.PyQt.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer
@@ -77,6 +79,21 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual(len(results), 1)
         self.assertTrue(results[0].ok, results[0].payload)
         return queued, results[0].payload
+
+    def test_an_export_onto_a_layers_own_file_is_refused(self):
+        source = self.root / "roads.gpkg"
+        options = QgsVectorFileWriter.SaveVectorOptions()
+        options.driverName = "GPKG"
+        QgsVectorFileWriter.writeAsVectorFormatV3(self.layer, str(source), QgsCoordinateTransformContext(), options)
+        roads = QgsVectorLayer(str(source), "roads", "ogr")
+        self.project.addMapLayer(roads)
+        batch = WriteBatch(ToolExecutor())
+        for overwrite in (False, True):
+            with self.subTest(overwrite=overwrite):
+                arguments = {"layer_name": "roads", "path": str(source), "overwrite": overwrite}
+                with self.assertRaisesRegex(ValueError, "holds the data of layer 'roads'"):
+                    batch.add(ToolCall("export", "export_layer", arguments))
+        self.assertEqual(roads.featureCount(), 2)
 
     def test_a_text_note_and_a_marker_land_on_the_map(self):
         # QGIS 4.2 refused the text item a QgsPoint ("argument 2 has unexpected type 'QgsPoint'"): only markers worked.
