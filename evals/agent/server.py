@@ -6,6 +6,9 @@ the composer does, presses Apply for every prepared batch (destructive steps are
 confirmed), waits for the check after Apply, and answers with what happened: the
 final answer, the tools that ran, the skills, tokens, requests and seconds, and
 a snapshot of the project (state.py). A question the agent asks ends the task.
+Before the first task the server asks the model about a picture, as the
+connection test in the settings does, so a model that cannot see one checks
+its work by reading, as it would for a user.
 
 Qt and PyQGIS live on the main thread, so the HTTP server only queues tasks; the
 main thread runs them between rounds of event processing.
@@ -102,15 +105,29 @@ class Handler(BaseHTTPRequestHandler):
 class Runner:
     """Runs one task at a time on the main thread, with the plugin installed from the built zip."""
 
-    def __init__(self, url: str, model: str, key: str = "", auth: str = "Bearer", dialect: str = "openai") -> None:
+    def __init__(
+        self,
+        url: str,
+        model: str,
+        key: str = "",
+        auth: str = "Bearer",
+        dialect: str = "openai",
+        check_images: bool = True,
+    ) -> None:
         import e2e_harness
         import fixture
         import state
 
         from ai_agent.core import settings
+        from ai_agent.core.agent.request import build_overrides
+        from ai_agent.core.llm.probe import sees_images
         from ai_agent.plugin import QgisAiAgentPlugin
 
         self.harness, self.fixture, self.state, self.settings = e2e_harness, fixture, state, settings
+        self.build_overrides, self.probe_images = build_overrides, sees_images
+        # None until asked, and after an answer that never came; a scripted model has no picture turn.
+        self.sees_images: bool | None = None
+        self._images_pending = check_images
         self.plugin_class = QgisAiAgentPlugin
         self.url, self.model, self.key = url, model, key
         self.auth = auth or "Bearer"
@@ -177,6 +194,16 @@ class Runner:
         settings.set_token_budget(RUN_TOKENS)
         settings.set_verify_after_apply(True)
         settings.set_work_mode("ask")
+        self._check_images()
+
+    def _check_images(self) -> None:
+        """Ask once per server, then restore it after every task's reset, like a tested connection."""
+        if self._images_pending:
+            self._images_pending = False
+            self.sees_images = self.probe_images(self.build_overrides())
+            print(f"Sees pictures: {self.sees_images}", flush=True)
+        if self.sees_images is not None:
+            self.settings.set_supports_images(self.url, self.sees_images, self.model, self.dialect)
 
     def _start_plugin(self) -> Any:
         interface = self.harness._Interface()
@@ -231,6 +258,7 @@ class Runner:
             "timed_out": time.monotonic() > deadline,
             "calls": calls,
             "skills": list(agent.loaded_skills),
+            "sees_images": self.sees_images,
             "usage": usage,
             "seconds": round(time.monotonic() - began, 1),
             "state": self._state(folder, before),

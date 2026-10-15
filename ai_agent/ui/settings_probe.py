@@ -8,7 +8,7 @@ import time
 from typing import Any
 
 from ai_agent.core.llm.probe_worker import ProbeThread
-from ai_agent.core.settings import reset_capabilities, set_detected_context_window
+from ai_agent.core.settings import reset_capabilities, set_detected_context_window, set_supports_images
 from ai_agent.i18n import tr
 from ai_agent.ui import style
 from ai_agent.ui.connection_widgets import STATE_BAD, STATE_IDLE, STATE_OK
@@ -22,6 +22,7 @@ TESTING = tr("Testing the connection…")
 CANCELLING = tr("Cancelling the connection test…")
 CANCELLED = tr("Connection test cancelled.")
 MODEL_REQUIRED = tr("Enter a model name from the provider.")
+TEXT_ONLY = tr("This model does not see pictures: the agent checks the map by reading the data instead.")
 
 
 class ConnectionProbeMixin:
@@ -33,6 +34,7 @@ class ConnectionProbeMixin:
     test_btn: Any
     status_card: Any
     _probe_scope: tuple[str, str, str | None]
+    _probe_report: tuple[str, str]
 
     def _stop_probe_now(self) -> None:
         thread = self._probe_thread
@@ -63,6 +65,7 @@ class ConnectionProbeMixin:
         thread = ProbeThread(overrides, self)
         thread.completed.connect(self._on_probe_completed)
         thread.window_found.connect(self._on_window_found)
+        thread.images_checked.connect(self._on_images_checked)
         thread.finished.connect(lambda: self._on_probe_finished(thread))
         self._probe_thread = thread
         thread.start()
@@ -74,11 +77,19 @@ class ConnectionProbeMixin:
         reset_capabilities(*self._probe_scope)
         seconds = time.monotonic() - self._probe_started
         summary = CONNECTED.format(self.model_edit.text().strip(), format_seconds(seconds))
+        self._probe_report = (summary, message)
         self.status_card.show_state(STATE_OK, summary, message)
 
     def _on_window_found(self, tokens: int) -> None:
         url, model, dialect = self._probe_scope
         set_detected_context_window(tokens, url, model, dialect)
+
+    def _on_images_checked(self, sees: bool) -> None:
+        url, model, dialect = self._probe_scope
+        set_supports_images(url, sees, model, dialect)
+        if not sees:
+            summary, message = self._probe_report
+            self.status_card.show_state(STATE_OK, summary, f"{message}\n{TEXT_ONLY}")
 
     def _show_untested(self) -> None:
         self.status_card.show_state(STATE_IDLE, NOT_TESTED_DETAIL, "")

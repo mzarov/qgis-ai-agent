@@ -98,6 +98,7 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         self.setMinimumWidth(MIN_WIDTH)
         self.setMinimumHeight(MIN_HEIGHT)
         self._probe_started = 0.0
+        self._probe_report = ("", "")
         # An example request picked on a connector page, for the chat box once the dialog closes.
         self.chosen_prompt = ""
         # What happened here that the plugin acts on once the dialog closes.

@@ -304,6 +304,23 @@ class SettingsBehaviourTest(PluginCase):
         self.dialog._on_probe_completed(False, "boom")
         self.assertEqual((self.dialog.status_card.state, self.dialog.status_card.detail.text()), ("bad", "boom"))
 
+    def test_a_model_that_does_not_see_pictures_is_remembered_and_said(self) -> None:
+        from ai_agent.core.settings import get_supports_images, reset_capabilities
+        from ai_agent.ui import settings_probe
+
+        scope = ("http://probe.invalid/v1", "text-only", "openai")
+        self.addCleanup(reset_capabilities, *scope)
+        self.dialog._probe_scope = scope
+        self.dialog._probe_started = 0.0
+        self.dialog._on_probe_completed(True, "Model replied: ok")
+        self.dialog._on_images_checked(False)
+        self.assertIs(get_supports_images(*scope), False)
+        self.assertEqual(self.dialog.status_card.state, "ok")
+        self.assertIn(settings_probe.TEXT_ONLY, self.dialog.status_card.detail.text())
+        self.assertIn("Model replied: ok", self.dialog.status_card.detail.text())
+        self.dialog._on_images_checked(True)
+        self.assertIs(get_supports_images(*scope), True)
+
     def test_finding_a_setting_opens_its_page_at_the_row(self) -> None:
         from ai_agent.ui import settings_advanced
 

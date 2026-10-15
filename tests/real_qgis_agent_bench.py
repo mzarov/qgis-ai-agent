@@ -22,7 +22,7 @@ MODEL = "agent-bench-fixture"
 class AgentBenchServerTest(unittest.TestCase):
     def setUp(self) -> None:
         self.model = ScriptedModel().start()
-        self.runner = server.Runner(self.model.url, MODEL)
+        self.runner = server.Runner(self.model.url, MODEL, check_images=False)
 
     def tearDown(self) -> None:
         self.model.stop()
