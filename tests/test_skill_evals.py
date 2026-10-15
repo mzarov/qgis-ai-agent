@@ -17,6 +17,10 @@ import prompt as prompt_function  # noqa: E402
 import run as runner  # noqa: E402
 import thresholds  # noqa: E402
 
+sys.path.insert(0, str(EVALS / "agent"))
+import outcome  # noqa: E402
+from agent import bench  # noqa: E402
+
 from ai_agent.skills.registry import SKILL_REGISTRY  # noqa: E402
 
 CALL_LINE = re.compile(r"^\s*(?:-\s*)?call:\s*(\[[^\]]*\]|[A-Za-z0-9_]+)", re.MULTILINE)
@@ -252,6 +256,113 @@ class WorkflowTest(unittest.TestCase):
         self.assertIn("--check", text)
         self.assertIn("secrets.LIVE_MODEL_KEY", text)
         self.assertNotRegex(text, r"(?m)^  push:", "the bench spends tokens; it must not run on every push")
+
+
+def run_result(**changes):
+    result = {
+        "answer": "There are five.",
+        "asked": False,
+        "pending": False,
+        "timed_out": False,
+        "calls": [{"name": "query_layer", "ok": True}],
+        "usage": {"prompt_tokens": 9000, "completion_tokens": 100, "requests": 2, "runs": 1},
+        "seconds": 12.5,
+        "failures": [],
+        "state": {
+            "project": {"crs": "EPSG:3857", "layouts": [], "annotations": 0},
+            "layers": {"districts": {"renderer": "graduatedSymbol", "class_attribute": "pop2020", "classes": 5}},
+            "new_layers": [{"name": "Buffered", "geometry": "polygon", "feature_count": 9, "crs": "EPSG:32637"}],
+            "files": ["roads.gpkg"],
+        },
+    }
+    result.update(changes)
+    return result
+
+
+class AgentOutcomeTest(unittest.TestCase):
+    def test_an_outcome_that_matches_passes_with_its_cost(self):
+        expect = {
+            "answer": "re:\\bfive\\b",
+            "layers": {"districts": {"renderer": "graduatedSymbol", "classes": 5}},
+            "new_layers": [{"geometry": "polygon", "feature_count": 9}],
+            "files": ["roads.gpkg"],
+            "calls": ["query_layer"],
+        }
+        graded = outcome.outcome(json.dumps(run_result()), {"vars": {"expect": expect}})
+        self.assertTrue(graded["pass"], graded["reason"])
+        self.assertIn("12.5 s, 2 requests", graded["reason"])
+
+    def test_a_wrong_layer_state_reads_as_a_comparison(self):
+        problems = outcome.problems_in(run_result(), {"layers": {"districts": {"classes": 7}}})
+        self.assertEqual(problems, ['districts is {"classes": 5}, expected {"classes": 7}'])
+
+    def test_a_missing_new_layer_names_what_was_added(self):
+        problems = outcome.problems_in(run_result(), {"new_layers": [{"geometry": "point"}]})
+        self.assertIn("Buffered", problems[0])
+
+    def test_asking_an_unapplied_batch_and_a_timeout_fail_unless_expected(self):
+        self.assertEqual(outcome.problems_in(run_result(asked=True), {}), ["the agent stopped to ask"])
+        self.assertEqual(outcome.problems_in(run_result(asked=True), {"asked": True}), [])
+        self.assertIn("a prepared batch was left unapplied", outcome.problems_in(run_result(pending=True), {}))
+        self.assertIn("the run did not finish in time", outcome.problems_in(run_result(timed_out=True), {}))
+
+    def test_no_request_names_the_failure_instead_of_blaming_the_agent(self):
+        result = run_result(usage={"requests": 0}, failures=["The key was not accepted: 401"])
+        problems = outcome.problems_in(result, {"answer": "re:five"})
+        self.assertEqual(len(problems), 1)
+        self.assertIn("The key was not accepted", problems[0])
+
+    def test_any_of_and_a_server_error(self):
+        options = {"any_of": [{"project": {"crs": "EPSG:4326"}}, {"files": ["roads.gpkg"]}]}
+        self.assertEqual(outcome.problems_in(run_result(), options), [])
+        failed = outcome.problems_in({"error": "Traceback\n  line\nValueError: broken"}, {})
+        self.assertIn("ValueError: broken", failed[0])
+
+
+class AgentBenchConfigTest(unittest.TestCase):
+    def test_the_config_posts_each_task_to_the_server_and_checks_its_outcome(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = bench.write_config(Path(folder), "deepseek", "http://127.0.0.1:8765")
+            config = json.loads(path.read_text(encoding="utf-8"))
+        provider = config["providers"][0]
+        self.assertEqual((provider["id"], provider["label"]), ("http", "deepseek"))
+        self.assertEqual(provider["config"]["url"], "http://127.0.0.1:8765/run")
+        self.assertEqual(provider["config"]["maxRetries"], 0, "a task costs a whole agent run; never retried")
+        self.assertIn("tokenUsage", provider["config"]["transformResponse"])
+        self.assertTrue(config["defaultTest"]["assert"][0]["value"].endswith("outcome.py:outcome"))
+
+    def test_an_installed_qgis_4_is_found_and_given_its_own_python(self):
+        with tempfile.TemporaryDirectory() as folder:
+            applications = Path(folder)
+            old = applications / "QGIS-LTR.app" / "Contents"
+            (old / "MacOS" / "bin").mkdir(parents=True)
+            new = applications / "QGIS-final-4_2_1.app" / "Contents"
+            (new / "Resources" / "python3.12" / "site-packages" / "qgis").mkdir(parents=True)
+            (new / "MacOS").mkdir(parents=True)
+            (new / "MacOS" / "python3.12").write_text("", encoding="utf-8")
+            app = bench.find_qgis_app(applications)
+            self.assertEqual(app.name, "QGIS-final-4_2_1.app", "a QGIS without PyQGIS in its bundle was taken")
+            python, environment = bench.native_python(app)
+        self.assertEqual(python.name, "python3.12")
+        self.assertTrue(environment["PYTHONHOME"].endswith("Resources/python3.12"))
+        self.assertIn("site-packages", environment["PYTHONPATH"])
+        self.assertTrue(environment["PROJ_DATA"].endswith("qgis/proj"))
+        self.assertEqual(environment["QT_QPA_PLATFORM"], "offscreen")
+
+    def test_no_installed_qgis_means_docker(self):
+        with tempfile.TemporaryDirectory() as folder:
+            self.assertIsNone(bench.find_qgis_app(Path(folder)))
+
+    def test_the_key_reaches_the_server_by_name_only(self):
+        self.assertIn("EVAL_API_KEY", bench.PASSED_ENV)
+        self.assertNotIn("=", "".join(bench.PASSED_ENV))
+
+    def test_every_task_has_a_request_and_an_expectation(self):
+        text = bench.TASKS.read_text(encoding="utf-8")
+        cases = text.count("- description:")
+        self.assertGreaterEqual(cases, 20)
+        self.assertEqual(text.count("    request:"), cases)
+        self.assertEqual(text.count("    expect:"), cases)
 
 
 if __name__ == "__main__":
