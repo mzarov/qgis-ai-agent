@@ -331,6 +331,28 @@ class AgentBenchConfigTest(unittest.TestCase):
         self.assertIn("tokenUsage", provider["config"]["transformResponse"])
         self.assertTrue(config["defaultTest"]["assert"][0]["value"].endswith("outcome.py:outcome"))
 
+    def test_an_installed_qgis_4_is_found_and_given_its_own_python(self):
+        with tempfile.TemporaryDirectory() as folder:
+            applications = Path(folder)
+            old = applications / "QGIS-LTR.app" / "Contents"
+            (old / "MacOS" / "bin").mkdir(parents=True)
+            new = applications / "QGIS-final-4_2_1.app" / "Contents"
+            (new / "Resources" / "python3.12" / "site-packages" / "qgis").mkdir(parents=True)
+            (new / "MacOS").mkdir(parents=True)
+            (new / "MacOS" / "python3.12").write_text("", encoding="utf-8")
+            app = bench.find_qgis_app(applications)
+            self.assertEqual(app.name, "QGIS-final-4_2_1.app", "a QGIS without PyQGIS in its bundle was taken")
+            python, environment = bench.native_python(app)
+        self.assertEqual(python.name, "python3.12")
+        self.assertTrue(environment["PYTHONHOME"].endswith("Resources/python3.12"))
+        self.assertIn("site-packages", environment["PYTHONPATH"])
+        self.assertTrue(environment["PROJ_DATA"].endswith("qgis/proj"))
+        self.assertEqual(environment["QT_QPA_PLATFORM"], "offscreen")
+
+    def test_no_installed_qgis_means_docker(self):
+        with tempfile.TemporaryDirectory() as folder:
+            self.assertIsNone(bench.find_qgis_app(Path(folder)))
+
     def test_the_key_reaches_the_server_by_name_only(self):
         self.assertIn("EVAL_API_KEY", bench.PASSED_ENV)
         self.assertNotIn("=", "".join(bench.PASSED_ENV))

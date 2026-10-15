@@ -230,6 +230,12 @@ def main() -> int:
     parser.add_argument("--save-thresholds", action="store_true", help="set the floors from this run")
     parser.add_argument("--agent", action="store_true", help="run the agent bench (whole tasks in QGIS) instead")
     parser.add_argument("--agent-url", default="", help="an agent bench server already running; else one is started")
+    parser.add_argument(
+        "--agent-server",
+        choices=[bench.NATIVE, bench.DOCKER],
+        default="",
+        help="start the server in an installed QGIS (macOS) or in Docker; default: native when QGIS 4 is installed",
+    )
     options = parser.parse_args()
     url = os.environ.get("EVAL_API_URL", "").strip()
     models = [name.strip() for name in os.environ.get("EVAL_MODEL", "").split(",") if name.strip()]
@@ -249,7 +255,7 @@ def main() -> int:
         if len(models) != 1:
             print("The agent bench runs one model at a time: set one model in EVAL_MODEL.", file=sys.stderr)
             return 2
-        rows = run_agent(models[0], options.agent_url, max(1, options.repeat))
+        rows = run_agent(models[0], options.agent_url, max(1, options.repeat), options.agent_server)
         if rows is None:
             return 2
         return finish(rows, models, options)
@@ -279,13 +285,22 @@ def main() -> int:
     return finish(rows, models, options)
 
 
-def run_agent(model: str, server: str, repeat: int) -> list[dict[str, Any]] | None:
+def run_agent(model: str, server: str, repeat: int, mode: str = "") -> list[dict[str, Any]] | None:
     """The agent suite's row, with a server started for it unless one is given; None when none came up."""
     started = not server
     server = server or f"http://127.0.0.1:{bench.PORT}"
+    mode = mode or bench.default_mode()
+    process = None
     if started:
-        print("Starting QGIS with the plugin for the agent bench…", flush=True)
-        bench.start_server(REPO)
+        app = bench.find_qgis_app() if mode == bench.NATIVE else None
+        if mode == bench.NATIVE and app is None:
+            print("No QGIS 4 app found in /Applications; use --agent-server docker.", file=sys.stderr)
+            return None
+        print(f"Starting QGIS with the plugin for the agent bench ({app or 'docker'})…", flush=True)
+        if app is not None:
+            process = bench.start_native(REPO, OUT, app)
+        else:
+            bench.start_server(REPO)
     try:
         if not bench.wait_ready(server):
             print(
@@ -301,7 +316,9 @@ def run_agent(model: str, server: str, repeat: int) -> list[dict[str, Any]] | No
         run_suite(config, results, repeat, fresh=True, concurrency=1, extra_env=timeout)
         return [summarise(bench.AGENT, results)]
     finally:
-        if started:
+        if process is not None:
+            bench.stop_native(process)
+        elif started:
             bench.stop_server(OUT)
 
 

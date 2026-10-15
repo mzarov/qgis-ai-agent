@@ -142,12 +142,15 @@ left in the project, never at the route the model took.
 python3 evals/run.py --agent
 ```
 
-The same `EVAL_*` variables apply. The runner starts the server in the pinned
-QGIS image with Docker, runs the tasks one at a time and stops it; the
-server's log lands in `build/evals/agent-server.log`. The key reaches the
-container by name only. A run of all the tasks takes some tens of minutes and
-about a million tokens. `--agent-url` points at a server that is already
-running.
+The same `EVAL_*` variables apply. The runner starts the server, runs the
+tasks one at a time and stops it; the server's log lands in
+`build/evals/agent-server.log`. On macOS with QGIS 4 installed, the server runs
+in that QGIS's own Python, at full speed and on the machine's own network, so a
+model behind a VPN or on an internal IPv6-only address is reachable. Elsewhere,
+or with `--agent-server docker`, it runs in the pinned QGIS image. A container
+on macOS is emulated and does not see a VPN's names; there the key reaches the
+container by name only. A run of all the tasks takes about a million tokens.
+`--agent-url` points at a server that is already running.
 
 `tests/real_qgis_agent_bench.py` runs the server's parts in live QGIS against
 the scripted model on every CI run. It covers the fixture's numbers, Apply and

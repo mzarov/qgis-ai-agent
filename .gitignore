@@ -29,3 +29,7 @@ secrets.json
 .DS_Store
 Thumbs.db
 site/
+
+# Core dumps: QGIS under QEMU (Docker on Apple silicon) leaves them in the working folder
+/core
+*.core
