@@ -110,7 +110,9 @@ Area, length, perimeter and coordinates are **expressions**, not algorithms:
 `$area`, `$length` and `$perimeter` follow the project, not the layer: with an
 ellipsoid set (the project context's `Measurements:` line) they come back in
 the project's area and distance units — usually metres, even on a layer in
-degrees — so no reprojection is needed to measure. Algorithm distance *parameters* (`DISTANCE`, `RADIUS`) are
+degrees — so no reprojection is needed to measure. Without an ellipsoid, transform
+the geometry to the CRS that line names; EPSG:3857 is never one to measure in.
+Algorithm distance *parameters* (`DISTANCE`, `RADIUS`) are
 different: they always use layer-CRS units, see below.
 
 NDVI and other band arithmetic is not a separate algorithm either, but

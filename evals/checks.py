@@ -13,8 +13,10 @@
 Values match leniently, the way a person reads them: strings ignore case and
 surrounding space, numbers compare as numbers ("500" is 500), a dict matches
 when its keys do, a list against a list means "at least these", a list against
-one value means "any of these", "re:<pattern>" searches, and "*" only asks
-for the argument to be there.
+one value means "any of these", "re:<pattern>" searches, "*" only asks
+for the argument to be there, and "~33580±1%" is a number within 1 % of 33580
+(within 1 % when the "±" part is left out) — for measured sizes, which differ
+in the last digits between ellipsoids, projections and buffer segments.
 """
 
 import json
@@ -25,6 +27,8 @@ LOAD_SKILL = "load_skill"
 REGEX_PREFIX = "re:"
 PRESENT = "*"
 TOLERANCE = 1e-6
+APPROXIMATE = re.compile(r"~\s*(-?\d+(?:\.\d+)?)\s*(?:±\s*(\d+(?:\.\d+)?)\s*%)?$")
+DEFAULT_PERCENT = 1.0
 
 
 def expected(output: Any, context: dict[str, Any]) -> dict[str, Any]:
@@ -112,9 +116,17 @@ def matches(expected_value: Any, actual: Any) -> bool:
         number = _number(actual)
         return number is not None and abs(number - expected_value) <= TOLERANCE * max(1.0, abs(expected_value))
     text = str(expected_value)
+    approximate = APPROXIMATE.match(text.strip())
+    if approximate:
+        return _near(actual, float(approximate.group(1)), float(approximate.group(2) or DEFAULT_PERCENT))
     if text.startswith(REGEX_PREFIX):
         return re.search(text[len(REGEX_PREFIX) :], _text(actual), re.IGNORECASE) is not None
     return text.strip().casefold() == _text(actual).strip().casefold()
+
+
+def _near(actual: Any, target: float, percent: float) -> bool:
+    number = _number(actual)
+    return number is not None and abs(number - target) <= abs(target) * percent / 100
 
 
 def _number(value: Any) -> float | None:

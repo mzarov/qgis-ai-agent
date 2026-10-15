@@ -44,7 +44,8 @@ go looking for a length column.
 - `$length` and `$area` follow the project, and the project context's
   `Measurements:` line says how: with an ellipsoid they come back in its units —
   usually metres, even for a layer in degrees; with none they are raw CRS units,
-  which on a geographic layer means degrees. State the unit in the answer; no
+  which on a geographic layer means degrees, and the line names the CRS to
+  transform to for metres. State the unit in the answer; no
   `get_project_info` call is needed for it.
 - `aggregate="count"` counts features regardless of nulls; add
   `filter="field is not null"` to count values.

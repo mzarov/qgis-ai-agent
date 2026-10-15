@@ -3,6 +3,8 @@ from contextlib import suppress
 from typing import Any
 
 from qgis.core import (
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
     QgsMapLayer,
     QgsProject,
     QgsRasterLayer,
@@ -15,6 +17,11 @@ from ai_agent.qgis_tools.common.renderers import style_block
 COORD_PRECISION = 6
 FALLBACK_EXTENT = (0.0, 0.0, 100.0, 100.0)
 FALLBACK_CRS = "EPSG:3857"
+WGS84 = "EPSG:4326"
+# World map projections keep shapes or the whole globe in view, not sizes: in Web Mercator a "metre" at 55° N
+# is 0.56 m on the ground and an area comes out three times too big. A project in one is no CRS to measure or
+# buffer in, however metric its units.
+WORLD_PROJECTIONS = frozenset({"merc", "eqc", "robin", "moll", "eck4", "natearth", "wintri", "igh"})
 GEOMETRY_NAMES = ("point", "line", "polygon")
 LAYER_PINS_KEY = "_ai_agent_layer_pins"
 # Providers whose featureCount() is a cheap local answer. Remote ones may run
@@ -90,13 +97,42 @@ def crs_units(layer: QgsMapLayer) -> str:
 
 
 def suggest_metric_crs(layer: QgsMapLayer) -> str:
+    """A CRS to measure or buffer the layer in: the project's when it is a local projected one, else the UTM zone."""
+    authid = local_project_crs(QgsProject.instance())
+    return authid or utm_authid(layer)
+
+
+def local_project_crs(project: Any) -> str:
+    """The project CRS when it is projected and keeps sizes (no world map projection), else ""."""
     with suppress(Exception):
-        project_crs = QgsProject.instance().crs()
-        if project_crs.isValid() and not project_crs.isGeographic():
-            authid = project_crs.authid()
-            if authid:
-                return authid
-    return utm_authid(layer)
+        crs = project.crs()
+        if crs.isValid() and not crs.isGeographic() and str(crs.projectionAcronym()).lower() not in WORLD_PROJECTIONS:
+            return str(crs.authid() or "")
+    return ""
+
+
+def project_metric_crs(project: Any) -> str:
+    """Where to measure in metres: the local project CRS, else the UTM zone at the first local layer, else ""."""
+    authid = local_project_crs(project)
+    if authid:
+        return authid
+    try:
+        layers = list(project.mapLayers().values())
+    except Exception:
+        return ""
+    # A basemap's extent is the whole world; only a layer of the user's own data says where the work is.
+    local = [layer for layer in layers if isinstance(layer, QgsVectorLayer)]
+    local += [layer for layer in layers if isinstance(layer, QgsRasterLayer) and layer.providerType() == "gdal"]
+    for layer in local:
+        with suppress(Exception):
+            extent = layer.extent()
+            # Null, not empty: one point's extent is empty and still says where the layer is.
+            if extent.isNull():
+                continue
+            transform = QgsCoordinateTransform(layer.crs(), QgsCoordinateReferenceSystem(WGS84), project)
+            centre = transform.transform(extent.center())
+            return utm_at(float(centre.x()), float(centre.y()))
+    return ""
 
 
 def utm_authid(layer: QgsMapLayer) -> str:
@@ -106,8 +142,13 @@ def utm_authid(layer: QgsMapLayer) -> str:
         latitude = (float(extent.yMinimum()) + float(extent.yMaximum())) / 2.0
     except Exception:
         return FALLBACK_CRS
+    return utm_at(longitude, latitude) or FALLBACK_CRS
+
+
+def utm_at(longitude: float, latitude: float) -> str:
+    """The WGS 84 UTM zone at a point in degrees, or "" when the numbers are no degrees."""
     if not (-180.0 <= longitude <= 180.0 and -90.0 <= latitude <= 90.0):
-        return FALLBACK_CRS
+        return ""
     zone = max(1, min(60, int((longitude + 180.0) / 6.0) + 1))
     return f"EPSG:{(32600 if latitude >= 0 else 32700) + zone}"
 

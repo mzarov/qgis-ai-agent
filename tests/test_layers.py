@@ -8,7 +8,9 @@ from ai_agent.qgis_tools.common.layers import (
     find_layer_by_id,
     find_layer_by_name,
     layer_pin_error,
+    local_project_crs,
     pin_layer_references,
+    utm_at,
     utm_authid,
     with_layer_names,
 )
@@ -56,6 +58,52 @@ class UtmZoneTest(unittest.TestCase):
 
     def test_broken_layer_falls_back(self):
         self.assertEqual(utm_authid(Layer()), "EPSG:3857")
+
+    def test_a_point_outside_degrees_has_no_zone(self):
+        self.assertEqual(utm_at(37.6, 55.7), "EPSG:32637")
+        self.assertEqual(utm_at(4_190_000.0, 7_500_000.0), "")
+
+
+class Crs:
+    def __init__(self, authid, acronym, geographic=False, valid=True):
+        self._authid, self._acronym, self._geographic, self._valid = authid, acronym, geographic, valid
+
+    def isValid(self):
+        return self._valid
+
+    def isGeographic(self):
+        return self._geographic
+
+    def projectionAcronym(self):
+        return self._acronym
+
+    def authid(self):
+        return self._authid
+
+
+class Project:
+    def __init__(self, crs):
+        self._crs = crs
+
+    def crs(self):
+        return self._crs
+
+
+class LocalProjectCrsTest(unittest.TestCase):
+    """The project CRS is offered for measuring only when it keeps sizes: never Web Mercator."""
+
+    def test_a_national_grid_is_kept(self):
+        self.assertEqual(local_project_crs(Project(Crs("EPSG:27700", "tmerc"))), "EPSG:27700")
+
+    def test_web_mercator_and_world_maps_are_not(self):
+        for authid, acronym in (("EPSG:3857", "merc"), ("EPSG:4087", "eqc"), ("ESRI:54030", "robin")):
+            with self.subTest(authid):
+                self.assertEqual(local_project_crs(Project(Crs(authid, acronym))), "")
+
+    def test_degrees_and_a_broken_crs_are_not(self):
+        self.assertEqual(local_project_crs(Project(Crs("EPSG:4326", "longlat", geographic=True))), "")
+        self.assertEqual(local_project_crs(Project(Crs("", "", valid=False))), "")
+        self.assertEqual(local_project_crs(object()), "")
 
 
 class SanitizeSourceTest(unittest.TestCase):

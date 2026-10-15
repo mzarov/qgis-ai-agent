@@ -59,6 +59,9 @@ in the same folder. The build packs only `SKILL.md` and Python files from
   A read with its own result goes under `{steps: [{tool, args, result}]}`.
   Never write a YAML list here: promptfoo turns a list in `vars` into one test
   per item.
+- `measurements: none` describes the project without an ellipsoid, with the
+  plugin's own `Measurements:` line. The fixture has one, as a new QGIS project
+  does.
 - `expect`: what counts as right. `evals/checks.py` explains every key:
   - `call` and `args`: the tool and the arguments it was called with;
   - `loads` and `not_loads`: the skills it loaded or must not load;
@@ -71,7 +74,9 @@ Matching is lenient, the way a person reads an answer:
 - `"500"` equals `500`;
 - a dict matches when its listed keys do;
 - `re:` starts a regular expression;
-- `*` only asks for the argument to be present.
+- `*` only asks for the argument to be present;
+- `"~33580±1%"` is a number within 1 % of 33580, for measured sizes (1 % when
+  the `±` part is left out).
 
 ## Running it
 
@@ -118,7 +123,9 @@ left in the project, never at the route the model took.
   skills.
 - **The provider** (`evals/agent/server.py`): promptfoo's HTTP provider posts
   each task to a server inside QGIS. The server builds the project in a fresh
-  folder, sends the request, presses Apply for every prepared batch (a
+  folder, opens the plugin in a main window with a map canvas, so the agent's
+  look at the rendered map works as on the desktop, sends the request, presses
+  Apply for every prepared batch (a
   destructive step is confirmed), waits for the check after Apply, and answers
   with the final answer, the tools that ran, tokens, requests, seconds and a
   snapshot of the project (`evals/agent/state.py`).
@@ -126,14 +133,16 @@ left in the project, never at the route the model took.
   `expect`. It looks at the answer, the state of existing layers, new layers,
   written files, the project and the tools that ran. A run that asks a
   question, leaves a batch unapplied or never reaches the model fails and says
-  why.
+  why. Checks name values, not only shapes: a polygon layer's area is measured
+  on the ellipsoid whatever its CRS, so a buffer drawn in Web Mercator "metres"
+  (0.56 m at Moscow's latitude) fails despite the right feature count.
 
 ```yaml
 - description: A metric buffer on a layer in degrees
   vars:
     request: Make a 500 m buffer around the schools
     expect:
-      new_layers: [{geometry: polygon, feature_count: 24, crs: "re:^(?!EPSG:4326$)"}]
+      new_layers: [{geometry: polygon, feature_count: 24, measured_km2: "~18.70±2%"}]
 ```
 
 `{folder}` in a request is the task's own folder, for exports.

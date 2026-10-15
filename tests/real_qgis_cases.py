@@ -21,10 +21,12 @@ from qgis.PyQt.QtWidgets import QMainWindow
 
 from ai_agent.core.agent.batch import WriteBatch
 from ai_agent.core.agent.executor import ToolExecutor
+from ai_agent.core.context.project import measurement_line
 from ai_agent.core.llm.turns import ToolCall
 from ai_agent.plugin import QgisAiAgentPlugin
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
 from ai_agent.qgis_tools.common.editing import edit_session
+from ai_agent.qgis_tools.common.layers import suggest_metric_crs
 from ai_agent.qgis_tools.draw.draw_features import DrawFeaturesTool
 from ai_agent.qgis_tools.processing.run_processing import RunProcessingTool
 from ai_agent.qgis_tools.project.snapshots import take_snapshot
@@ -94,6 +96,24 @@ class GisWorkflowsTest(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "holds the data of layer 'roads'"):
                     batch.add(ToolCall("export", "export_layer", arguments))
         self.assertEqual(roads.featureCount(), 2)
+
+    def test_a_project_in_web_mercator_never_offers_it_for_metres(self):
+        """A project begun on a basemap is in EPSG:3857; its 'metres' are 0.56 m at Moscow's latitude."""
+        schools = QgsVectorLayer("Point?crs=EPSG:4326", "schools", "memory")
+        feature = QgsFeature(schools.fields())
+        feature.setGeometry(QgsGeometry.fromWkt("POINT (37.62 55.75)"))
+        schools.dataProvider().addFeatures([feature])
+        schools.updateExtents()
+        self.project.removeAllMapLayers()
+        self.project.addMapLayer(schools)
+        self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:3857"))
+        self.project.setEllipsoid("NONE")
+        self.assertEqual(suggest_metric_crs(schools), "EPSG:32637")
+        self.assertIn("transform the geometry to EPSG:32637 first", measurement_line(self.project))
+        self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:32637"))
+        self.assertEqual(suggest_metric_crs(schools), "EPSG:32637", "a local projected project CRS is kept")
+        self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:2154"))
+        self.assertEqual(suggest_metric_crs(schools), "EPSG:2154")
 
     def test_a_text_note_and_a_marker_land_on_the_map(self):
         # QGIS 4.2 refused the text item a QgsPoint ("argument 2 has unexpected type 'QgsPoint'"): only markers worked.

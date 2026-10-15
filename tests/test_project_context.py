@@ -125,6 +125,17 @@ class ProjectContextTest(unittest.TestCase):
             self.assertEqual(context.measurement_line(Measured("NONE")), context.UNMEASURED)
         self.assertEqual(context.measurement_line(object()), "", "a project that cannot say adds no line")
 
+    def test_without_an_ellipsoid_the_line_names_where_to_measure_in_metres(self):
+        class Unmeasured:
+            def ellipsoid(self):
+                return "NONE"
+
+        with mock.patch.object(context, "project_metric_crs", lambda project: "EPSG:32637"):
+            line = context.measurement_line(Unmeasured())
+        self.assertTrue(line.startswith(context.UNMEASURED), line)
+        self.assertIn("transform the geometry to EPSG:32637 first", line)
+        self.assertIn("EPSG:3857 inflates", line)
+
     def test_the_eval_fixture_describes_measurements_like_the_plugin(self):
         fixture = json.loads((Path(__file__).resolve().parent.parent / "evals" / "fixture.json").read_text())
         line = next(item for item in fixture["project_context"].splitlines() if item.startswith("Measurements:"))

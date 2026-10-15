@@ -13,7 +13,7 @@ AGENT_BENCH = pathlib.Path(__file__).resolve().parent.parent / "evals" / "agent"
 sys.path.insert(0, str(AGENT_BENCH))
 
 import server  # noqa: E402
-from e2e_model import ScriptedModel, call, say  # noqa: E402
+from e2e_model import ScriptedModel, call, calls, say  # noqa: E402
 from outcome import problems_in  # noqa: E402
 
 MODEL = "agent-bench-fixture"
@@ -36,6 +36,8 @@ class AgentBenchServerTest(unittest.TestCase):
         self.assertEqual(layers["schools"]["sums"]["capacity"], 15910)
         self.assertEqual(layers["schools"]["sums"]["fid"], 300, "the schools are not the 24 the tasks count on")
         self.assertEqual(layers["districts"]["sums"]["pop2020"], 993209)
+        self.assertEqual(problems_in(result, {"layers": {"districts": {"measured_km2": "~335.8±0.1%"}}}), [])
+        self.assertEqual(result["state"]["project"]["layouts"], [])
         self.assertEqual(layers["roads"]["feature_count"], 30)
         self.assertEqual((layers["stations"]["crs"], layers["stations"]["feature_count"]), ("EPSG:32637", 9))
         self.assertEqual(layers["dem"]["kind"], "raster")
@@ -57,6 +59,24 @@ class AgentBenchServerTest(unittest.TestCase):
         self.assertGreaterEqual(result["usage"]["requests"], 3)
         self.assertTrue(result["log"], "the plugin's log lines did not reach the task's answer")
         self.assertIn("districts is", " ".join(problems_in(result, {"layers": {"districts": {"opacity": 0.3}}})))
+
+    def test_the_map_renders_for_the_agents_look(self) -> None:
+        self.model.script(call("render_map"), say("The map shows the districts."))
+        result = self.runner.run({"request": "Show me the map"})
+        self.assertNotIn("error", result, result.get("error"))
+        self.assertEqual(result["calls"], [{"name": "render_map", "ok": True}], result["log"])
+
+    def test_a_virtual_field_is_summed_with_the_others(self) -> None:
+        self.model.script(
+            call("load_skill", names=["fields"]),
+            calls(("add_field", {"layer_name": "districts", "name": "area_ha", "expression": "$area / 10000"})),
+            say("The field is ready."),
+            say("Checked."),
+        )
+        result = self.runner.run({"request": "Add a field area_ha with each district's area in hectares"})
+        self.assertNotIn("error", result, result.get("error"))
+        # The fixture's ellipsoid makes $area metres on the layer in degrees, as in a new desktop project.
+        self.assertEqual(problems_in(result, {"layers": {"districts": {"sums": {"area_ha": "~33580±1%"}}}}), [])
 
     def test_a_new_layer_is_seen_with_its_points(self) -> None:
         self.model.script(
