@@ -1,4 +1,5 @@
 import os
+from contextlib import suppress
 from typing import Any
 
 from qgis.core import (
@@ -19,7 +20,7 @@ from ai_agent.qgis_tools.common.layers import (
     find_layer_by_name,
     layer_reference,
 )
-from ai_agent.qgis_tools.common.paths import check_overwrites, outputs_safety, related_output_paths
+from ai_agent.qgis_tools.common.paths import check_overwrites, outputs_safety, related_output_paths, same_path
 
 FORMATS = {
     ".gpkg": "GPKG",
@@ -90,6 +91,7 @@ class ExportLayerTool(BaseTool):
         layer_id = str(params.get("layer_id") or "").strip()
         layer = _require_vector(layer_name, layer_id) if layer_id else _require_vector(layer_name)
         path = _checked_path(params.get("path") or "")
+        _refuse_a_layer_source(path)
         outputs = related_output_paths(path)
         check_overwrites(outputs, bool(params.get("overwrite")))
         selected_ids = _selected_ids(layer) if params.get("selected_only") else []
@@ -184,6 +186,24 @@ def _validate_selection(layer: Any, params: dict[str, Any]) -> None:
             "The selected features changed after this export was planned. "
             "Nothing was written; review the selection and plan the export again."
         )
+
+
+def _refuse_a_layer_source(path: str) -> None:
+    """An export onto the file a project layer reads from would destroy that layer's data, overwrite or not."""
+    for layer in QgsProject.instance().mapLayers().values():
+        source = _file_of(layer)
+        if source and same_path(source, path):
+            raise ValueError(
+                f"'{path}' holds the data of layer '{layer.name()}' in this project; exporting over it would "
+                "destroy that data, even with overwrite=true. Write to another path."
+            )
+
+
+def _file_of(layer: Any) -> str:
+    """The file a layer reads from, without the provider's `|layername=` suffix; "" when it has none."""
+    with suppress(Exception):
+        return str(layer.source() or "").split("|")[0]
+    return ""
 
 
 def _nothing_selected(layer: Any) -> str:

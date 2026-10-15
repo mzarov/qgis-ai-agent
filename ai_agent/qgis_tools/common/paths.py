@@ -54,7 +54,8 @@ def check_overwrites(paths: Iterable[str], overwrite: bool, exempt_paths: Iterab
         existing = [target for target in targets if os.path.lexists(target)]
         shown = ", ".join(f"'{target}'" for target in existing[:3])
         raise ValueError(
-            f"{shown} already exists. Refusing to replace output files unless overwrite=true is explicitly approved."
+            f"{shown} already exists. Refusing to replace output files unless overwrite=true is explicitly approved. "
+            "Write to another path, or ask the user before replacing it."
         )
     return targets
 
