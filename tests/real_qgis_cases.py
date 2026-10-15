@@ -6,7 +6,14 @@ import unittest
 from unittest.mock import patch
 
 from osgeo import gdal
-from qgis.core import QgsFeature, QgsGeometry, QgsProject, QgsRasterLayer, QgsVectorLayer
+from qgis.core import (
+    QgsCoordinateReferenceSystem,
+    QgsFeature,
+    QgsGeometry,
+    QgsProject,
+    QgsRasterLayer,
+    QgsVectorLayer,
+)
 from qgis.PyQt.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer
 from qgis.PyQt.QtWidgets import QMainWindow
 
@@ -70,6 +77,18 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual(len(results), 1)
         self.assertTrue(results[0].ok, results[0].payload)
         return queued, results[0].payload
+
+    def test_a_text_note_and_a_marker_land_on_the_map(self):
+        # QGIS 4.2 refused the text item a QgsPoint ("argument 2 has unexpected type 'QgsPoint'"): only markers worked.
+        self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:3857"))
+        _, note = self._run("add_annotation", kind="text", x=37.6175, y=55.752, text="start here")
+        _, marker = self._run("add_annotation", kind="marker", x=37.62, y=55.75)
+        items = self.project.mainAnnotationLayer().items()
+        self.assertIn(note["id"], items)
+        self.assertIn(marker["id"], items)
+        text = items[note["id"]]
+        self.assertEqual(text.text(), "start here")
+        self.assertAlmostEqual(text.point().y(), 7_509_000, delta=5_000, msg="the note is not where Moscow is")
 
     def test_a_graduated_style_brings_its_legend_for_the_feed_only(self):
         batch = WriteBatch(ToolExecutor())

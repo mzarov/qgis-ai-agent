@@ -95,7 +95,7 @@
   vars:
     request: Add a note "start here" at 55.7520, 37.6175
     expect:
-      project: {annotations: 1}
+      project: {annotations: 1, annotation_texts: ["re:start here"]}
 
 - description: Exporting a layer to a file
   vars:

@@ -34,6 +34,7 @@ def snapshot(folder: str, before: set[str]) -> dict[str, Any]:
             "crs": project.crs().authid(),
             "layouts": [layout.name() for layout in project.layoutManager().layouts()],
             "annotations": _annotations(project),
+            "annotation_texts": _annotation_texts(project),
         },
         "layers": layers,
         "files": sorted(_files(folder) - before),
@@ -117,6 +118,15 @@ def _annotations(project: QgsProject) -> int:
         return len(project.mainAnnotationLayer().items())
     except Exception:
         return 0
+
+
+def _annotation_texts(project: QgsProject) -> list[str]:
+    """The text notes' words: a marker in place of a note looked like success once (the text item crashed)."""
+    try:
+        items = project.mainAnnotationLayer().items().values()
+    except Exception:
+        return []
+    return [str(item.text()) for item in items if hasattr(item, "text")]
 
 
 def _files(folder: str) -> set[str]:
