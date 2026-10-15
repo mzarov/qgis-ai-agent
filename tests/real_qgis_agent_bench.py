@@ -47,7 +47,6 @@ class AgentBenchServerTest(unittest.TestCase):
             call("load_skill", names=["style"]),
             call("set_opacity", layer_name="districts", opacity=0.5),
             say("The districts will be half transparent."),
-            say("Checked: the districts are at 50 % opacity."),
         )
         result = self.runner.run({"request": "Make the districts half transparent"})
         self.assertNotIn("error", result, result.get("error"))

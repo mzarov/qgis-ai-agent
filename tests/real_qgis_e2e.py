@@ -190,16 +190,17 @@ class ShortCheckScenario(ScenarioCase):
 class TextOnlyScenario(ScenarioCase):
     def test_a_model_known_to_reject_images_verifies_by_reading(self) -> None:
         set_supports_images(self.api_url, False, MODEL, "openai")
+        # Bold labels are a look, not a fact a read proves: the model checks them.
         self.model.script(
             call("load_skill", names=["style"]),
-            call("set_opacity", layer_name="districts", opacity=0.5),
-            say("I suggest making districts half transparent."),
+            call("set_labels", layer_name="districts", properties={"field": "name", "bold": True}),
+            say("I suggest bold labels with the district names."),
             call("describe_style", layer_name="districts"),
-            say("Checked: districts is half transparent."),
+            say("Checked: districts is labelled in bold."),
         )
-        self.ask("Make districts half transparent")
+        self.ask("Label districts with their names in bold")
         self.apply()
-        self.assertAlmostEqual(self.layer("districts").opacity(), 0.5)
+        self.assertTrue(self.layer("districts").labelsEnabled())
 
         for index in range(len(self.model.requests)):
             offered = self.model.tool_names(index)
@@ -208,7 +209,7 @@ class TextOnlyScenario(ScenarioCase):
         verification = self.model.sent_text(3)
         self.assertIn("cannot see images", verification)
         self.assertNotIn("call render_map", verification)
-        self.assertEqual(self.answers()[-1], "Checked: districts is half transparent.")
+        self.assertEqual(self.answers()[-1], "Checked: districts is labelled in bold.")
 
 
 class StopScenario(ScenarioCase):
@@ -498,7 +499,7 @@ class FailureScenario(ScenarioCase):
         card = self.dock.conversation.findChildren(FailureCard)[-1]
         self.assertEqual(card.title.text(), RUN_FAILURES[failure_kinds.AUTH][0])
         self.assertFalse(card.settings.isHidden(), "a refused key is fixed in the Connection settings")
-        self.model.script(say("Opacity applied."))
+        # An opacity reads back after Apply: no model check, so no turn for one.
         self.apply()
         self.assertAlmostEqual(self.layer("districts").opacity(), 0.5)
         self.shot("failure_keeps_plan")
@@ -710,7 +711,6 @@ class PlanRestoreScenario(ScenarioCase):
             call("load_skill", names=["style"]),
             call("set_opacity", layer_name="districts", opacity=0.5),
             say("I suggest making districts half transparent."),
-            say("Checked: districts is at 50 %."),
         )
         self.ask("Make districts half transparent")
         card = self.dock.conversation.findChildren(PlanCard)[-1]
@@ -831,10 +831,11 @@ class AutoModeScenario(ScenarioCase):
             call("load_skill", names=["style"]),
             call("set_opacity", layer_name="districts", opacity=0.5),
             say("Made districts half transparent."),
-            say("Checked: districts is at 50 %."),
         )
         self.ask("Make districts half transparent")
         self.assertAlmostEqual(self.layer("districts").opacity(), 0.5)
+        notes = [message.plain_text() for message in self.dock.conversation.findChildren(SystemMessage)]
+        self.assertIn(CHECKED_BY_READING, notes, "an opacity reads back without asking the model")
         self.assertFalse(self.agent.has_pending_writes)
         self.assertEqual(self.destructive, [])
         self.shot("auto_mode_applied")
