@@ -7,6 +7,7 @@ from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsPoint,
+    QgsPointXY,
     QgsProject,
     QgsTextFormat,
 )
@@ -84,7 +85,8 @@ class AddAnnotationTool(BaseTool):
         if kind == KIND_MARKER:
             item = QgsAnnotationMarkerItem(point)
         else:
-            item = QgsAnnotationPointTextItem(str(params.get("text") or "").strip(), point)
+            # The text item takes a QgsPointXY: QGIS 4.2 refuses the QgsPoint the marker accepts.
+            item = QgsAnnotationPointTextItem(str(params.get("text") or "").strip(), QgsPointXY(point.x(), point.y()))
             _apply_text_look(item, params)
         item_id = layer.addItem(item)
         return {"id": str(item_id), "kind": kind, "note": "The annotation sits above every layer."}
