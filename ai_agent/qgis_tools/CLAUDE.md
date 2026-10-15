@@ -54,8 +54,9 @@ Raise clear English errors with a recovery hint. `summarize_call` handles invali
 input and uses translated text because it can run on an error path.
 `confirm_applied` is optional: one cheap read proving the applied step (True),
 disproving it (False), or `None` when only the model can judge — how the map
-looks (renderers, colours, fonts, placement), new data, values. A style step
-that is a plain fact reads back: opacity, labels on or off with their field. A
+looks (renderers, colours, fonts, placement), new data, values. A step that is
+a plain fact reads back: opacity, labels on or off with their field, an
+exported file with its feature count. A
 batch whose steps all return True skips the model's check, so never return True
 on a guess; read the layer through its pinned id (`common.layers.pinned_layer`),
 not by name.

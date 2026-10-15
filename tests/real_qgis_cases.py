@@ -28,6 +28,7 @@ from ai_agent.qgis_tools.common.editing import edit_session
 from ai_agent.qgis_tools.draw.draw_features import DrawFeaturesTool
 from ai_agent.qgis_tools.processing.run_processing import RunProcessingTool
 from ai_agent.qgis_tools.project.snapshots import take_snapshot
+from ai_agent.qgis_tools.registry import get_tool_by_name
 from ai_agent.ui.dock_widget import AgentDockWidget
 
 BACKGROUND_WAIT_S = 120
@@ -120,6 +121,15 @@ class GisWorkflowsTest(unittest.TestCase):
         ranges = self.layer.renderer().ranges()
         self.assertEqual(legend["items"][0]["color"], ranges[0].symbol().color().name())
         self.assertEqual(legend["items"][-1]["high"], ranges[-1].upperValue())
+
+    def test_a_class_count_other_than_asked_is_said_with_the_result(self):
+        # Natural breaks over two values make two classes; equal intervals always make exactly five.
+        _, jenks = self._run("set_graduated", layer_name=self.layer.name(), field="count", classes=5, mode="jenks")
+        self.assertLess(jenks["class_count"], 5)
+        self.assertIn("mode=equal", jenks["note"])
+        _, equal = self._run("set_graduated", layer_name=self.layer.name(), field="count", classes=5, mode="equal")
+        self.assertEqual(equal["class_count"], 5)
+        self.assertNotIn("note", equal)
 
     def test_symbol_changes_are_visible_in_the_actual_renderer(self):
         self._run("set_symbol", layer_name=self.layer.name(), properties={"color": "#123456", "size": 4})
@@ -386,6 +396,18 @@ class GisWorkflowsTest(unittest.TestCase):
         self._run("export_layer", layer_name=self.layer.name(), path=str(path))
         header = path.read_text(encoding="utf-8").splitlines()[0]
         self.assertIn("WKT", header)
+
+    def test_an_export_reads_back_from_the_file_it_wrote(self):
+        path = self.root / "points.gpkg"
+        queued, payload = self._run("export_layer", layer_name=self.layer.name(), path=str(path))
+        arguments = queued.arguments
+        tool = get_tool_by_name("export_layer")
+        self.assertTrue(tool.confirm_applied(arguments, payload))
+        self.layer.selectByIds([next(self.layer.getFeatures()).id()])
+        selected_only = {**payload, "selected_only": True}
+        self.assertFalse(tool.confirm_applied(arguments, selected_only), "one selected, two in the file")
+        path.write_bytes(b"")
+        self.assertFalse(tool.confirm_applied(arguments, payload), "an empty file is no export")
 
     def test_bookmarks_are_saved_into_the_project(self):
         before = len(self.project.bookmarkManager().bookmarks())

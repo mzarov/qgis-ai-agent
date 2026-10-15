@@ -212,6 +212,12 @@ class VerificationPromptTest(unittest.TestCase):
         self.assertIn("reorder_layers", prompt)
         self.assertIn("basemaps last", prompt)
 
+    def test_the_check_corrects_only_what_was_asked(self):
+        # A model that sees the render wanted to dim another layer and re-export a finished PDF.
+        prompt = build_verification_prompt([{"tool": "export_layout", "ok": True}], "make an A4 layout")
+        self.assertIn("Correct only what the user asked for and did not get", prompt)
+        self.assertIn("as a suggestion, not into the queue", prompt)
+
     def test_the_original_request_travels_with_the_verification(self):
         prompt = build_verification_prompt([{"tool": "set_symbol", "ok": True}], "make   rivers blue")
         self.assertIn("\nThe user's request was: make rivers blue\nThe queued changes", prompt)

@@ -9,6 +9,7 @@ from ai_agent.qgis_tools.fields import manage_fields
 from ai_agent.qgis_tools.project import (
     configure_layer,
     configure_project,
+    export_layer,
     remember,
     remove_layer,
     reorder_layers,
@@ -184,6 +185,37 @@ class StyleFactsTest(unittest.TestCase):
     def test_how_labels_look_is_for_the_model(self):
         self.assertIsNone(self.label_verdict(Labelled(True, "name"), {"field": "name", "bold": True}))
         self.assertIsNone(self.label_verdict(Labelled(True, "name"), {"placement": "around"}))
+
+
+class ExportStepTest(unittest.TestCase):
+    """The written file opens with the features the source holds; a remote source leaves it to the model."""
+
+    def verdict(self, written_count, source_count=2, selected=0, size=10, selected_only=False):
+        folder = tempfile.mkdtemp()
+        path = os.path.join(folder, "roads.gpkg")
+        with open(path, "wb") as handle:
+            handle.write(b"x" * size)
+        source = mock.Mock(selectedFeatureCount=lambda: selected)
+        written = mock.Mock(isValid=lambda: True, featureCount=lambda: written_count)
+        with (
+            mock.patch.object(export_layer, "pinned_layer", return_value=source),
+            mock.patch.object(export_layer, "feature_count_if_cheap", return_value=source_count),
+            mock.patch.object(export_layer, "QgsVectorLayer", return_value=written),
+        ):
+            payload = {"path": path, "selected_only": selected_only}
+            return export_layer.ExportLayerTool().confirm_applied(pinned(), payload)
+
+    def test_every_feature_in_the_file_reads_back(self):
+        self.assertTrue(self.verdict(written_count=2))
+        self.assertFalse(self.verdict(written_count=1))
+        self.assertTrue(self.verdict(written_count=1, selected=1, selected_only=True))
+
+    def test_an_empty_or_missing_file_is_not_an_export(self):
+        self.assertFalse(self.verdict(written_count=2, size=0))
+        self.assertFalse(export_layer.ExportLayerTool().confirm_applied(pinned(), {"path": "/nowhere/roads.gpkg"}))
+
+    def test_a_remote_source_leaves_the_count_to_the_model(self):
+        self.assertIsNone(self.verdict(written_count=2, source_count=None))
 
 
 class FieldStepsTest(unittest.TestCase):
