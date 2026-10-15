@@ -49,15 +49,15 @@ PORT = 8765
 TASK_TIMEOUT_S = 600
 SETTLE_S = 1.0
 MAX_APPLIES = 4
+# A busy or flaky provider can drop the one picture request; an unknown answer would leave the
+# picture tools on for a model that may not see, so one more try before giving up.
+IMAGE_PROBE_TRIES = 2
 RUN_TOKENS = int(os.environ.get("EVAL_RUN_TOKENS") or 200_000)
 # Only unlocks the throwaway authentication database of the server's temporary profile.
 PROFILE_MASTER_PASSWORD = "ai-agent-eval-profile"  # pragma: allowlist secret
 FOLDER_MARKER = "{folder}"
 LOG_TAG = "AI Agent"
 LOG_LINES = 20
-# A busy or flaky provider can drop the one picture request; an unknown answer would leave the
-# picture tools on for a model that may not see, so one more try before giving up.
-IMAGE_PROBE_TRIES = 2
 FAILURE_ROLE = "failure"
 TASKS: "queue.Queue[Task]" = queue.Queue()
 READY = threading.Event()
