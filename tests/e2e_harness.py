@@ -153,6 +153,7 @@ class PluginCase(unittest.TestCase):
         self.iface = _Interface()
         self.iface.window.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
         self.iface.window.show()
+        self.addCleanup(self._close_window)
         self.window_spy = WindowSpy()
         QCoreApplication.instance().installEventFilter(self.window_spy)
         self.plugin = QgisAiAgentPlugin(self.iface)
@@ -170,6 +171,14 @@ class PluginCase(unittest.TestCase):
         QgsProject.instance().clear()
         pump(0.1)
         self.assertEqual(self.window_spy.strays, [], "widgets shown before they had a parent")
+
+    def _close_window(self) -> None:
+        # Freed now, at a quiet moment. Left to Python's cycle collector, the window could go in the middle of
+        # a later test's focus change, while Qt still holds it as the previous focus window: a segfault in
+        # QApplicationPrivate::notifyActiveWindowChange on QGIS 4.2, whenever the collector happened to run.
+        self.iface.window.close()
+        self.iface.window.deleteLater()
+        pump(0.1)
 
     @property
     def agent(self):
