@@ -12,6 +12,9 @@ DEFAULT_WIDTH = 900
 MIN_WIDTH = 200
 MAX_WIDTH = 1600
 FALLBACK_RATIO = 0.75
+# Around one point, or points on one line, whose box has no width or height: about 500 m either way.
+POINT_MARGIN_DEGREES = 0.005
+POINT_MARGIN_METRES = 500.0
 LOOK_NOTE = "The rendered map is attached as an image. Look at it before judging colours, labels or layer visibility."
 
 
@@ -86,9 +89,14 @@ def _require_canvas() -> Any:
 def _frame_layer(canvas: Any, settings: Any, layer_name: str) -> None:
     layer = find_layer_by_name(layer_name)
     extent = safe_extent(layer)
-    if extent is None or extent.isEmpty():
+    if extent is None or extent.isNull():
         raise ValueError(f"Layer '{layer.name()}' has no extent — it may be empty.")
-    settings.setExtent(canvas.mapSettings().layerExtentToOutputExtent(layer, extent))
+    framed = canvas.mapSettings().layerExtentToOutputExtent(layer, extent)
+    if framed.width() <= 0 or framed.height() <= 0:
+        # One point is a box of no size: it frames nothing, so the image shows the area around it.
+        geographic = settings.destinationCrs().isGeographic()
+        framed.grow(POINT_MARGIN_DEGREES if geographic else POINT_MARGIN_METRES)
+    settings.setExtent(framed)
 
 
 def _clamped_width(raw: Any) -> int:

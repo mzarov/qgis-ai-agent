@@ -96,6 +96,29 @@ class GisWorkflowsTest(unittest.TestCase):
                     batch.add(ToolCall("export", "export_layer", arguments))
         self.assertEqual(roads.featureCount(), 2)
 
+    def test_a_one_point_layer_is_framed_with_the_area_around_it(self):
+        """One point has a box of no size; render_map once refused it as a layer with no extent."""
+        from types import SimpleNamespace
+
+        from qgis.gui import QgsMapCanvas
+
+        point = QgsVectorLayer("Point?crs=EPSG:4326", "Red Square", "memory")
+        feature = QgsFeature(point.fields())
+        feature.setGeometry(QgsGeometry.fromWkt("POINT (37.6208 55.7539)"))
+        point.dataProvider().addFeatures([feature])
+        point.updateExtents()
+        self.project.addMapLayer(point)
+        canvas = QgsMapCanvas()
+        self.addCleanup(canvas.deleteLater)
+        canvas.setDestinationCrs(QgsCoordinateReferenceSystem("EPSG:3857"))
+        canvas.resize(400, 300)
+        canvas.setLayers([point])
+        with patch("qgis.utils.iface", SimpleNamespace(mapCanvas=lambda: canvas)):
+            result = get_tool_by_name("render_map").execute({"layer_name": "Red Square", "width": 400})
+        extent = result["extent"]
+        self.assertAlmostEqual(extent["xmax"] - extent["xmin"], 1000, delta=1, msg="500 m either side of the point")
+        self.assertTrue(result["image_base64"])
+
     def test_a_text_note_and_a_marker_land_on_the_map(self):
         # QGIS 4.2 refused the text item a QgsPoint ("argument 2 has unexpected type 'QgsPoint'"): only markers worked.
         self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:3857"))

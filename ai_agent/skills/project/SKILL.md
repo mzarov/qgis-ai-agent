@@ -102,15 +102,16 @@ for credentials in chat.
 
 ## Finishing the job
 
-A styling or processing task is not done when the layer looks right — it is done
-when the user's project holds the result. If the run changed the project and the
-user did not ask you to keep it unsaved, **queue `save_project` as the last step**.
+Save the project only when the user asks you to. The file is theirs: a save they
+did not ask for overwrites the version they may still want. After a run that
+changed the project, end your reply with one line offering to save it.
 
 Saving the project does not save scratch layers: a processing result written to
 `TEMPORARY_OUTPUT` lives in memory and is gone when QGIS closes, leaving the saved
-project with a broken layer. When the user gave a folder, queue `export_layer` into it
-for every scratch layer they will want back before `save_project`; otherwise
-name those layers in your reply as temporary instead of inventing a path.
+project with a broken layer. When the user asks to save and gave a folder, queue
+`export_layer` into it for every scratch layer they will want back before
+`save_project`; otherwise name those layers in your reply as temporary instead of
+inventing a path.
 
 The exception is a project that has never been saved: there `save_project` needs
 an explicit `path`, and inventing a path for someone's disk is worse than asking.

@@ -20,6 +20,7 @@ from ai_agent.core.agent.transcript import (
     Transcript,
 )
 from ai_agent.core.llm.turns import PROTOCOL_JSON, ModelTurn, ToolCall, parse_usage
+from ai_agent.qgis_tools.registry import get_tool_by_name
 
 
 def _call(tool, **arguments):
@@ -336,6 +337,12 @@ class QueuedStepsInPromptTest(unittest.TestCase):
 
     def test_the_prompt_warns_that_context_lags_behind_the_queue(self):
         self.assertIn("not run yet", prompts.CORE_PROMPT)
+
+    def test_extras_nobody_asked_for_are_offered_not_queued(self):
+        # A model styled, labelled and saved a layer the user had only asked to count.
+        self.assertIn("Do what was asked, and no more", prompts.CORE_PROMPT)
+        self.assertIn("as an offer, not into the queue", prompts.CORE_PROMPT)
+        self.assertIn("Only when the user asks to save", get_tool_by_name("save_project").description)
 
     def test_the_loop_reports_what_it_has_queued(self):
         loop = AgentLoop()
