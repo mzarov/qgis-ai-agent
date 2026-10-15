@@ -6,12 +6,13 @@ the composer does, presses Apply for every prepared batch (destructive steps are
 confirmed), waits for the check after Apply, and answers with what happened: the
 final answer, the tools that ran, the skills, tokens, requests and seconds, and
 a snapshot of the project (state.py). A question the agent asks ends the task.
-Before the first task the server asks the model about a picture, as the
-connection test in the settings does, so a model that cannot see one checks
-its work by reading, as it would for a user.
 
 Qt and PyQGIS live on the main thread, so the HTTP server only queues tasks; the
 main thread runs them between rounds of event processing.
+
+Before the first task the server asks the model about a picture, as the
+connection test in the settings does, so a model that cannot see one checks
+its work by reading, as it would for a user.
 
 The model comes from the environment, like the skill bench: EVAL_API_URL,
 EVAL_MODEL, EVAL_API_KEY (kept in the throwaway profile's authentication
