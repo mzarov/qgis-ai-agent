@@ -1,11 +1,16 @@
 """The agent bench's provider: the whole plugin in a headless QGIS, one task per HTTP request.
 
 promptfoo posts a task — `{"request": "..."}` — to `/run`. The server builds the
-fixture project in a fresh folder, starts the plugin, sends the request the way
-the composer does, presses Apply for every prepared batch (destructive steps are
-confirmed), waits for the check after Apply, and answers with what happened: the
+fixture project in a fresh folder, starts the plugin in a main window with a map
+canvas (so the map renders for the agent's look, as in the desktop app), sends
+the request the way the composer does, presses Apply for every prepared batch
+(destructive steps are confirmed), waits for the check after Apply, and answers
+with what happened: the
 final answer, the tools that ran, the skills, tokens, requests and seconds, and
-a snapshot of the project (state.py). A question the agent asks ends the task.
+a snapshot of the project (state.py). `steps` lists every call the model made
+with its arguments and what came back (a result, "queued", or the error it
+read), and what Apply then did with each queued one: a run that went the long
+way can be read afterwards. A question the agent asks ends the task.
 
 Qt and PyQGIS live on the main thread, so the HTTP server only queues tasks; the
 main thread runs them between rounds of event processing.
@@ -23,6 +28,7 @@ starts it in the pinned QGIS image:
 """
 
 import argparse
+import contextlib
 import importlib
 import json
 import os
@@ -42,7 +48,9 @@ REPO = HERE.parent.parent
 sys.path[:0] = [str(HERE), str(REPO / "tests")]
 
 import qgis  # noqa: E402
+import qgis.utils  # noqa: E402
 from qgis.core import QgsApplication, QgsMessageLog, QgsProject  # noqa: E402
+from qgis.gui import QgsLayerTreeMapCanvasBridge, QgsMapCanvas  # noqa: E402
 from real_qgis_smoke import _build_and_extract, qgis_application  # noqa: E402
 
 PORT = 8765
@@ -58,6 +66,8 @@ PROFILE_MASTER_PASSWORD = "ai-agent-eval-profile"  # pragma: allowlist secret
 FOLDER_MARKER = "{folder}"
 LOG_TAG = "AI Agent"
 LOG_LINES = 20
+ARGUMENTS_CHARS = 400
+ERROR_CHARS = 300
 FAILURE_ROLE = "failure"
 TASKS: "queue.Queue[Task]" = queue.Queue()
 READY = threading.Event()
@@ -140,6 +150,7 @@ class Runner:
         if not manager.masterPasswordIsSet():
             manager.setMasterPassword(PROFILE_MASTER_PASSWORD, True)
         self.log: list[str] = []
+        self.interface: Any = None
         _record_plugin_log(self.log)
 
     def run(self, body: dict[str, Any]) -> dict[str, Any]:
@@ -157,6 +168,7 @@ class Runner:
         finally:
             if plugin is not None:
                 plugin.unload()
+            self._close_window()
             QgsProject.instance().clear()
             self.harness.pump(0.2)
             shutil.rmtree(folder, ignore_errors=True)
@@ -215,7 +227,11 @@ class Runner:
     def _start_plugin(self) -> Any:
         interface = self.harness._Interface()
         interface.window.resize(self.harness.WINDOW_WIDTH, self.harness.WINDOW_HEIGHT)
+        self._add_canvas(interface)
         interface.window.show()
+        self.interface = interface
+        # The tools reach the canvas through qgis.utils.iface, as in the desktop app.
+        qgis.utils.iface = interface
         plugin = self.plugin_class(interface)
         plugin.initGui()
         plugin.run()
@@ -224,11 +240,42 @@ class Runner:
         plugin._orchestrator.on_new_session()
         return plugin
 
+    @staticmethod
+    def _add_canvas(interface: Any) -> None:
+        """The main window's map: the project's layers, its CRS, the whole extent in view."""
+        project = QgsProject.instance()
+        canvas = QgsMapCanvas()
+        canvas.setDestinationCrs(project.crs())
+        interface.window.setCentralWidget(canvas)
+        bridge = QgsLayerTreeMapCanvasBridge(project.layerTreeRoot(), canvas, canvas)
+        bridge.setCanvasLayers()
+        canvas.zoomToFullExtent()
+
+        def follow_project_crs() -> None:
+            canvas.setDestinationCrs(project.crs())
+
+        project.crsChanged.connect(follow_project_crs)
+        interface.follow_project_crs = follow_project_crs
+        interface.mapCanvas = lambda: canvas
+
+    def _close_window(self) -> None:
+        """Free the window and its canvas now: left to the cycle collector they could go mid focus change."""
+        interface, self.interface = self.interface, None
+        qgis.utils.iface = None
+        if interface is None:
+            return
+        with contextlib.suppress(TypeError, RuntimeError):
+            QgsProject.instance().crsChanged.disconnect(interface.follow_project_crs)
+        interface.window.close()
+        interface.window.deleteLater()
+        self.harness.pump(0.1)
+
     def _drive(self, plugin: Any, request: str, folder: str, before: set[str]) -> dict[str, Any]:
         orchestrator = plugin._orchestrator
         agent = orchestrator.agent
         calls: list[dict[str, Any]] = []
         agent.tool_finished.connect(lambda name, ok, note: calls.append({"name": name, "ok": bool(ok)}))
+        steps = _record_steps(agent)
         self.log.clear()
         usage = {"prompt_tokens": 0, "completion_tokens": 0, "requests": 0, "runs": 0}
         start = agent.start
@@ -264,6 +311,7 @@ class Runner:
             "pending": bool(agent.has_pending_writes),
             "timed_out": time.monotonic() > deadline,
             "calls": calls,
+            "steps": steps,
             "skills": list(agent.loaded_skills),
             "sees_images": self.sees_images,
             "usage": usage,
@@ -292,6 +340,40 @@ class Runner:
             elif time.monotonic() - quiet_since >= SETTLE_S:
                 return
             time.sleep(0.01)
+
+
+def _record_steps(agent: Any) -> list[dict[str, Any]]:
+    """Every model call and every applied step, with arguments and outcome, kept in order as they happen.
+
+    The loop's own records end with each run, and the check after Apply is a run of its own; the two
+    methods every call passes through are wrapped on this one agent instead.
+    """
+    steps: list[dict[str, Any]] = []
+    dispatch, applied = agent._dispatch, agent._on_apply_finish
+
+    def recording_dispatch(call: Any) -> Any:
+        result = dispatch(call)
+        steps.append({"name": call.name, "args": _short_json(call.arguments), "result": _outcome(result)})
+        return result
+
+    def recording_apply(call: Any, result: Any, *args: Any, **kwargs: Any) -> Any:
+        steps.append({"name": call.name, "applied": _outcome(result)})
+        return applied(call, result, *args, **kwargs)
+
+    agent._dispatch, agent._on_apply_finish = recording_dispatch, recording_apply
+    return steps
+
+
+def _outcome(result: Any) -> str:
+    payload = getattr(result, "payload", None) or {}
+    if not getattr(result, "ok", False):
+        return "error: " + " ".join(str(payload.get("error") or "").split())[:ERROR_CHARS]
+    return "queued" if payload.get("status") == "queued" else "ok"
+
+
+def _short_json(value: Any) -> str:
+    text = json.dumps(value, ensure_ascii=False, default=str)
+    return text if len(text) <= ARGUMENTS_CHARS else text[:ARGUMENTS_CHARS] + "…"
 
 
 def _progress(body: dict[str, Any], result: dict[str, Any], seconds: float) -> str:

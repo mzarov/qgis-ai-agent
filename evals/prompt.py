@@ -18,6 +18,7 @@ def build(context: dict[str, Any]) -> str:
         reads=reads(variables.get("reads")),
         history=list((variables.get("history") or {}).get("messages") or []),
         locale=str(variables.get("locale") or "en"),
+        measurements=str(variables.get("measurements") or ""),
     )
     # A JSON array of messages is what promptfoo sends as a chat.
     return json.dumps(messages, ensure_ascii=False)

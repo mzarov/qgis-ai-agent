@@ -8,6 +8,7 @@
       "crs": "EPSG:4326",
       "crs_is_geographic": true,
       "crs_units": "degrees",
+      "suggested_metric_crs": "EPSG:32637",
       "feature_count": 12,
       "fields": [
         {
@@ -62,6 +63,7 @@
       "crs": "EPSG:4326",
       "crs_is_geographic": true,
       "crs_units": "degrees",
+      "suggested_metric_crs": "EPSG:32637",
       "feature_count": 340,
       "fields": [
         {
@@ -116,6 +118,7 @@
       "crs": "EPSG:4326",
       "crs_is_geographic": true,
       "crs_units": "degrees",
+      "suggested_metric_crs": "EPSG:32637",
       "feature_count": 58,
       "fields": [
         {

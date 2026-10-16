@@ -10,6 +10,7 @@ from ai_agent.qgis_tools.common.layers import (
     field_type_name,
     geometry_type_name,
     layer_kind,
+    project_metric_crs,
 )
 
 MAX_LISTED = 12
@@ -17,6 +18,8 @@ NO_LAYERS = "Layers: none."
 NO_ELLIPSOID = "NONE"
 MEASURED = "Measurements: ellipsoid {0}; $length in {1}, $area in {2}, even on layers in degrees."
 UNMEASURED = "Measurements: no ellipsoid; $length and $area are in layer CRS units (degrees on a geographic layer)."
+# Without the CRS named, a model reaches for EPSG:3857 to get metres, and its areas come out threefold at 55° N.
+METRIC_FALLBACK = " For metres, transform the geometry to {0} first; EPSG:3857 inflates sizes."
 # Field names in the context spare most tasks their first describe_layer turn; a wide table lists its first ones.
 MAX_CONTEXT_FIELDS = 15
 
@@ -45,7 +48,8 @@ def measurement_line(project: Any) -> str:
     try:
         ellipsoid = str(project.ellipsoid() or "").strip()
         if not ellipsoid or ellipsoid.upper() == NO_ELLIPSOID:
-            return UNMEASURED
+            metric = project_metric_crs(project)
+            return UNMEASURED + (METRIC_FALLBACK.format(metric) if metric else "")
         distance = QgsUnitTypes.encodeUnit(project.distanceUnits())
         area = QgsUnitTypes.encodeUnit(project.areaUnits())
     except Exception:

@@ -3,6 +3,8 @@
 Districts, roads, schools and stations in GeoPackages, a DEM in a GeoTIFF and
 two CSV files beside them. Every value is fixed, so a task can name the exact
 outcome: 3 schools hold fewer than 100 pupils, 5 more than 1000, 8 are lyceums.
+The project is in Web Mercator, as one that began on a basemap is. Each
+district is 0.08° × 0.05°, about 2798 ha on the ellipsoid.
 The schools spread unevenly, 0 to 4 per district, as real ones do: an even 2
 everywhere once made the model doubt its own count. The task cases in tasks.yaml
 rely on these numbers.
@@ -45,6 +47,8 @@ SCHOOLS_PER_DISTRICT = [4, 1, 3, 2, 0, 2, 3, 1, 2, 4, 1, 1]
 STATION_LINES = ["Red", "Green", "Blue"]
 STATION_COUNT = 9
 UTM_37N = "EPSG:32637"
+# What QGIS gives every new project: $area and $length measure on it, in metres, whatever a layer's CRS.
+ELLIPSOID = "EPSG:7030"
 DEM_SIZE = (80, 60)
 DEM_CELL = 250.0
 DEM_ORIGIN = (400000.0, 6190000.0)
@@ -59,6 +63,7 @@ def build(folder: str) -> None:
     """Write the layers and files into `folder` and add the layers to the open project."""
     project = QgsProject.instance()
     project.setCrs(project.crs().fromOgcWmsCrs("EPSG:3857"))
+    project.setEllipsoid(ELLIPSOID)
     for name, layer in (
         ("districts", _districts()),
         ("roads", _roads()),

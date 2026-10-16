@@ -9,6 +9,15 @@
       call: add_field
       args: {layer_name: districts, expression: "re:\\$area\\s*/\\s*10000"}
 
+- description: Without an ellipsoid, area goes through the local UTM zone, never Web Mercator
+  vars:
+    request: Add a virtual field with each district's area in hectares
+    measurements: none
+    reads: districts
+    expect:
+      call: add_field
+      args: {layer_name: districts, expression: "re:^(?!.*3857).*transform\\(.*EPSG:32637"}
+
 - description: A plain text field
   vars:
     request: Add a text field called status to the schools

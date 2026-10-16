@@ -114,6 +114,21 @@ class ChecksTest(unittest.TestCase):
         self.assertTrue(checks.matches({"parameters": "*"}, arguments))
         self.assertFalse(checks.matches({"parameters": {"DISTANCE": 1000}}, arguments))
 
+    def test_a_measured_size_matches_within_its_percent(self):
+        self.assertTrue(checks.matches({"area_ha": "~33580±1%"}, {"area_ha": 33612.4}))
+        self.assertFalse(checks.matches({"area_ha": "~33580±1%"}, {"area_ha": 106100.0}), "Web Mercator's threefold")
+        self.assertTrue(checks.matches("~7.0", 7.06), "1 % unless the case says otherwise")
+        self.assertFalse(checks.matches("~7.0", 7.1))
+        self.assertFalse(checks.matches("~7.0", None))
+        self.assertFalse(checks.matches("~7.0", "seven"))
+
+    def test_a_case_can_describe_a_project_without_an_ellipsoid(self):
+        messages, _ = agent_request.build("fields", "Add the area in hectares", ["districts"], measurements="none")
+        text = json.dumps(messages, ensure_ascii=False)
+        self.assertIn("Measurements: no ellipsoid", text)
+        self.assertIn("transform the geometry to EPSG:32637 first", text)
+        self.assertNotIn("ellipsoid EPSG:7030", text)
+
     def test_a_list_is_at_least_these_against_a_list_and_any_of_against_a_value(self):
         self.assertTrue(checks.matches(["osm", "processing"], ["processing", "style", "osm"]))
         self.assertFalse(checks.matches(["osm", "processing"], ["osm"]))

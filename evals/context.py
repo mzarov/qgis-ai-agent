@@ -11,6 +11,8 @@ A case names the skill under test (loaded the way the model loads it: a
 optionally the reads the agent already made — `"roads"` for `describe_layer`
 on that layer, `"roads/highway"` for the field's values, or an explicit
 `{"tool", "args", "result"}`. The model's next move is what the case checks.
+`measurements: none` describes the project without an ellipsoid, in the
+plugin's own words.
 """
 
 import json
@@ -28,6 +30,7 @@ from ai_agent.core.agent.loop import PRELOADED_SKILLS  # noqa: E402
 from ai_agent.core.agent.prompts import LOAD_SKILL_TOOL  # noqa: E402
 from ai_agent.core.agent.skills import load_skill  # noqa: E402
 from ai_agent.core.agent.transcript import ToolResult, Transcript  # noqa: E402
+from ai_agent.core.context import project as project_context  # noqa: E402
 from ai_agent.core.llm.live import fold_live  # noqa: E402
 from ai_agent.core.llm.reasoning import wire_messages  # noqa: E402
 from ai_agent.core.llm.turns import PROTOCOL_NATIVE, ModelTurn, ToolCall  # noqa: E402
@@ -47,6 +50,16 @@ FIELD_VALUES = "get_field_values"
 FIELD_SEPARATOR = "/"
 DESCRIBE_ALGORITHM = "describe_processing"
 ALGORITHM_SEPARATOR = ":"
+NO_MEASUREMENTS = "none"
+MEASUREMENTS = "Measurements:"
+# The fixture's layers lie in Moscow: the zone the plugin names for them.
+LOCAL_UTM = "EPSG:32637"
+
+
+def without_ellipsoid(context: str) -> str:
+    """The fixture's project context as the plugin writes it for a project with no ellipsoid."""
+    line = project_context.UNMEASURED + project_context.METRIC_FALLBACK.format(LOCAL_UTM)
+    return "\n".join(line if item.startswith(MEASUREMENTS) else item for item in context.splitlines())
 
 
 def fixture() -> dict[str, Any]:
@@ -59,9 +72,12 @@ def build(
     reads: list[Any] | None = None,
     history: list[dict[str, str]] | None = None,
     locale: str = "en",
+    measurements: str = "",
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """The messages and tool schemas of the agent's next request for this case."""
     data = fixture()
+    if measurements == NO_MEASUREMENTS:
+        data["project_context"] = without_ellipsoid(data["project_context"])
     loaded = list(PRELOADED_SKILLS)
     transcript = Transcript()
     transcript.add_user(request)

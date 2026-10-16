@@ -25,7 +25,7 @@
     expect:
       any_of:
         - call: run_processing
-          args: {algorithm_id: "native:reprojectlayer", parameters: {INPUT: schools}}
+          args: {algorithm_id: "native:reprojectlayer", parameters: {INPUT: schools, TARGET_CRS: "EPSG:32637"}}
         - call: describe_processing
           args: {algorithm_id: native:reprojectlayer}
 

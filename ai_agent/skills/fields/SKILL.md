@@ -37,8 +37,10 @@ the counts instead, `native:countpointsinpolygon` (processing) is the recipe.
 
 Length and area in a virtual field follow the project ellipsoid and units (the
 project context's `Measurements:` line), not the layer CRS: on a layer in degrees
-`$area` is still square metres when an ellipsoid is set. Only without one is it
-raw degrees.
+`$area` is still square metres when an ellipsoid is set. Without one it is in
+raw layer units; then measure in the CRS that line names,
+`area(transform($geometry, 'EPSG:4326', 'EPSG:32637')) / 10000`, and never in
+EPSG:3857: Web Mercator inflates areas by 1/cos²(latitude), threefold at 55° N.
 
 ## Types
 

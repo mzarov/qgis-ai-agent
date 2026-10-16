@@ -2,10 +2,16 @@
 # run by the plugin in a headless QGIS (evals/agent/server.py), checked by their outcome
 # in the project (evals/agent/outcome.py), never by the route the model took.
 #
-# The fixture's numbers: 12 districts (population 993 209), 30 roads (5 footways),
-# 24 schools (0 to 4 per district; 3 under 100 places, 5 over 1000, 8 lyceums
-# holding 5485 places of 15 910), 9 stations in UTM 37N, a DEM, population.csv and
-# stops.csv. `{folder}` in a request is the task's own folder.
+# The fixture's numbers: 12 districts (population 993 209, 33 580 ha on the
+# ellipsoid), 30 roads (6 highway types, 5 footways), 24 schools (0 to 4 per
+# district; 3 under 100 places holding 240, 5 over 1000, 8 lyceums holding 5485
+# places of 15 910), 9 stations in UTM 37N, a DEM, population.csv and stops.csv.
+# The project is in EPSG:3857 with the WGS 84 ellipsoid. `{folder}` in a request
+# is the task's own folder.
+#
+# A check names the outcome's values, not only its shape: a buffer of the right
+# count in the wrong units, or a column of the right name and the wrong numbers,
+# fails. A 500 m buffer is 0.7725 km² as QGIS's 20-gon, 0.7854 km² as a circle.
 
 - description: Graduated colours by a field
   vars:
@@ -17,7 +23,8 @@
   vars:
     request: Colour the roads by their type
     expect:
-      layers: {roads: {renderer: categorizedSymbol, class_attribute: highway}}
+      # Six types, and an optional "all other values" class.
+      layers: {roads: {renderer: categorizedSymbol, class_attribute: highway, classes: [6, 7]}}
 
 - description: Labels by a field
   vars:
@@ -29,19 +36,22 @@
   vars:
     request: Make the districts half transparent
     expect:
-      layers: {districts: {opacity: 0.5}}
+      any_of:
+        - layers: {districts: {opacity: 0.5}}
+        - layers: {districts: {symbol_opacity: 0.5}}
 
 - description: A metric buffer on a metric layer
   vars:
     request: Make a 500 m buffer around the stations
     expect:
-      new_layers: [{geometry: polygon, feature_count: 9}]
+      new_layers: [{geometry: polygon, feature_count: 9, measured_km2: "~7.01±2%"}]
 
 - description: A metric buffer on a layer in degrees
   vars:
     request: Make a 500 m buffer around the schools
     expect:
-      new_layers: [{geometry: polygon, feature_count: 24, crs: "re:^(?!EPSG:4326$)"}]
+      # Metres need a metric CRS, and Web Mercator's "metres" are 0.56 m here: its buffer is a third the size.
+      new_layers: [{geometry: polygon, feature_count: 24, measured_km2: "~18.70±2%"}]
 
 - description: Points in polygons as a new layer
   vars:
@@ -51,9 +61,9 @@
 
 - description: A computed column
   vars:
-    request: Add a field with each district's area in hectares
+    request: Add a field area_ha with each district's area in hectares
     expect:
-      layers: {districts: {fields: ["re:(^|_)ha$|hect"]}}
+      layers: {districts: {sums: {area_ha: "~33580±1%"}}}
 
 - description: Renaming a column
   vars:
@@ -65,7 +75,7 @@
   vars:
     request: Delete the schools with a capacity below 100
     expect:
-      layers: {schools: {feature_count: 21}}
+      layers: {schools: {feature_count: 21, sums: {capacity: 15670}}}
 
 - description: A constant on a filtered set
   vars:
@@ -109,7 +119,7 @@
     request: Create an A4 landscape layout with the map and a legend and export it to {folder}/map.pdf
     expect:
       files: [map.pdf]
-      project: {layouts: ["*"]}
+      project: {layouts: ["*"], layout_items: [map, legend]}
 
 - description: A CSV joined by name
   vars:
@@ -121,7 +131,7 @@
   vars:
     request: Load {folder}/stops.csv as points
     expect:
-      new_layers: [{geometry: point, feature_count: 5}]
+      new_layers: [{geometry: point, feature_count: 5, points_wgs84: "re:\\[37\\.6056, 55\\.7647\\]"}]
 
 - description: The project CRS
   vars:
