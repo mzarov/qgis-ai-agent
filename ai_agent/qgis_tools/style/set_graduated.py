@@ -27,6 +27,12 @@ DEFAULT_CLASSES = 5
 MIN_CLASSES = 2
 MAX_CLASSES = 20
 DEFAULT_RAMPS = ("Viridis", "Blues", "Spectral")
+EXACT_MODE = "equal"
+# Said with the result, so a count the user named is fixed in this turn rather than found in the check after Apply.
+CLASS_COUNT_NOTE = (
+    "{made} classes came out, not the {asked} asked for: the {mode} mode picks its own breaks. "
+    "Only mode=equal always makes exactly the number given."
+)
 
 
 class SetGraduatedTool(BaseTool):
@@ -117,13 +123,16 @@ class SetGraduatedTool(BaseTool):
             )
         layer.setRenderer(renderer)
         refresh(layer)
+        made = len(renderer.ranges())
         payload = {
             **layer_reference(layer),
             "renderer": "graduatedSymbol",
             "class_attribute": field,
-            "class_count": len(renderer.ranges()),
+            "class_count": made,
             "mode": mode,
         }
+        if made != classes and mode != EXACT_MODE:
+            payload["note"] = CLASS_COUNT_NOTE.format(made=made, asked=classes, mode=mode)
         return with_legend(payload, layer)
 
 

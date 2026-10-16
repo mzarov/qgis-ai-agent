@@ -5,7 +5,7 @@ from qgis.core import QgsVectorLayerSimpleLabeling
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common import params
-from ai_agent.qgis_tools.common.layers import layer_reference
+from ai_agent.qgis_tools.common.layers import layer_reference, pinned_layer
 from ai_agent.qgis_tools.common.properties import as_bool, properties_of, shown
 from ai_agent.qgis_tools.common.values import suggest_fields
 from ai_agent.qgis_tools.style.apply import (
@@ -18,6 +18,9 @@ from ai_agent.qgis_tools.style.label_build import addresses, build_settings, cur
 from ai_agent.qgis_tools.style.label_catalogue import LABELS, TARGET_BUFFER
 
 FIELD_NEEDED = "The labels are off, so switching them on needs the field property. {hint}"
+# Labels on or off and the field they show are facts one read proves. Fonts, colours, buffers and
+# placement are how the map looks, which only the model's look at it can judge.
+READ_BACK_PROPERTIES = frozenset({"enabled", "field"})
 
 
 class SetLabelsTool(BaseTool):
@@ -109,6 +112,19 @@ class SetLabelsTool(BaseTool):
         if base is None or addresses(properties, TARGET_BUFFER):
             result["buffer"] = wants(properties, TARGET_BUFFER)
         return result
+
+    def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
+        properties = params.get("properties") or {}
+        if not isinstance(properties, dict) or set(properties) - READ_BACK_PROPERTIES:
+            return None
+        layer = pinned_layer(params)
+        if layer is None:
+            return False
+        if not _is_enabled(properties):
+            return not layer.labelsEnabled()
+        settings = current_simple_settings(layer)
+        field = str(properties.get("field") or "").strip()
+        return bool(layer.labelsEnabled()) and settings is not None and (not field or settings.fieldName == field)
 
 
 def _is_enabled(properties: dict[str, Any]) -> bool:

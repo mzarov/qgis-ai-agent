@@ -16,9 +16,11 @@ from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.layers import (
     bind_layer_reference,
+    feature_count_if_cheap,
     find_layer_by_id,
     find_layer_by_name,
     layer_reference,
+    pinned_layer,
 )
 from ai_agent.qgis_tools.common.paths import check_overwrites, outputs_safety, related_output_paths, same_path
 
@@ -144,6 +146,26 @@ class ExportLayerTool(BaseTool):
         if spatial_csv:
             result["note"] = CSV_NOTE
         return result
+
+    def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
+        # The file is the whole result: it opens and holds the features that were written. Loading it as a
+        # layer to look, as a model does, costs several requests and a layer to tidy away afterwards.
+        path = str(payload.get("path") or "")
+        if not path or not os.path.isfile(path) or os.path.getsize(path) == 0:
+            return False
+        source = pinned_layer(params)
+        expected = _written_count(source, bool(payload.get("selected_only"))) if source is not None else None
+        if expected is None:
+            return None
+        written = QgsVectorLayer(path, "export check", "ogr")
+        return bool(written.isValid()) and written.featureCount() == expected
+
+
+def _written_count(source: Any, selected_only: bool) -> int | None:
+    """How many features the export wrote, when the source can say cheaply; None for a remote source."""
+    if selected_only:
+        return int(source.selectedFeatureCount())
+    return feature_count_if_cheap(source)
 
 
 def _require_vector(layer_name: str, layer_id: str = "") -> Any:

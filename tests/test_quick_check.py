@@ -9,6 +9,7 @@ from ai_agent.qgis_tools.fields import manage_fields
 from ai_agent.qgis_tools.project import (
     configure_layer,
     configure_project,
+    export_layer,
     remember,
     remove_layer,
     reorder_layers,
@@ -16,6 +17,7 @@ from ai_agent.qgis_tools.project import (
     views,
 )
 from ai_agent.qgis_tools.registry import get_tool_by_name
+from ai_agent.qgis_tools.style import set_labels, set_opacity
 from ai_agent.qgis_tools.tables import remove_join
 
 
@@ -64,7 +66,7 @@ class ConfirmedByReadingTest(unittest.TestCase):
         self.assertFalse(quick_check.confirmed_by_reading([]))
 
     def test_visual_and_data_tools_always_leave_the_check_to_the_model(self):
-        for name in ("set_symbol", "set_graduated", "set_labels", "run_processing", "add_layer", "draw_features"):
+        for name in ("set_symbol", "set_graduated", "set_categories", "run_processing", "add_layer", "draw_features"):
             self.assertIsNone(get_tool_by_name(name).confirm_applied({}, {}), name)
 
 
@@ -136,6 +138,84 @@ class LayerStepsTest(unittest.TestCase):
             self.assertTrue(tool.confirm_applied(params, {}))
             root.children.return_value = [Node(layer_id="B"), Node(layer_id="A")]
             self.assertFalse(tool.confirm_applied(params, {}))
+
+
+class Labelled:
+    def __init__(self, enabled, field=""):
+        self._enabled = enabled
+        self.settings = mock.Mock(fieldName=field) if field else None
+
+    def labelsEnabled(self):
+        return self._enabled
+
+    def opacity(self):
+        return 0.5
+
+
+class StyleFactsTest(unittest.TestCase):
+    """Opacity and labels on or off read back; how the labels look is left to the model's eye."""
+
+    def test_opacity_reads_back_as_asked(self):
+        tool = set_opacity.SetOpacityTool()
+        with mock.patch.object(set_opacity, "pinned_layer", return_value=Labelled(True)):
+            self.assertTrue(tool.confirm_applied(pinned(opacity=0.5), {}))
+            self.assertTrue(tool.confirm_applied(pinned(opacity=50), {}), "a percentage is read as one")
+            self.assertFalse(tool.confirm_applied(pinned(opacity=0.3), {}))
+        with mock.patch.object(set_opacity, "pinned_layer", return_value=None):
+            self.assertFalse(tool.confirm_applied(pinned(opacity=0.5), {}))
+
+    def label_verdict(self, layer, properties):
+        tool = set_labels.SetLabelsTool()
+        with (
+            mock.patch.object(set_labels, "pinned_layer", return_value=layer),
+            mock.patch.object(set_labels, "current_simple_settings", side_effect=lambda found: found.settings),
+        ):
+            return tool.confirm_applied(pinned(properties=properties), {})
+
+    def test_labels_switched_on_with_their_field_read_back(self):
+        self.assertTrue(self.label_verdict(Labelled(True, "name"), {"field": "name"}))
+        self.assertFalse(self.label_verdict(Labelled(True, "kind"), {"field": "name"}))
+        self.assertFalse(self.label_verdict(Labelled(False, "name"), {"field": "name"}))
+        self.assertTrue(self.label_verdict(Labelled(True, "name"), {}), "on again with the field it had")
+
+    def test_labels_switched_off_read_back(self):
+        self.assertTrue(self.label_verdict(Labelled(False), {"enabled": False}))
+        self.assertFalse(self.label_verdict(Labelled(True, "name"), {"enabled": False}))
+
+    def test_how_labels_look_is_for_the_model(self):
+        self.assertIsNone(self.label_verdict(Labelled(True, "name"), {"field": "name", "bold": True}))
+        self.assertIsNone(self.label_verdict(Labelled(True, "name"), {"placement": "around"}))
+
+
+class ExportStepTest(unittest.TestCase):
+    """The written file opens with the features the source holds; a remote source leaves it to the model."""
+
+    def verdict(self, written_count, source_count=2, selected=0, size=10, selected_only=False):
+        folder = tempfile.mkdtemp()
+        path = os.path.join(folder, "roads.gpkg")
+        with open(path, "wb") as handle:
+            handle.write(b"x" * size)
+        source = mock.Mock(selectedFeatureCount=lambda: selected)
+        written = mock.Mock(isValid=lambda: True, featureCount=lambda: written_count)
+        with (
+            mock.patch.object(export_layer, "pinned_layer", return_value=source),
+            mock.patch.object(export_layer, "feature_count_if_cheap", return_value=source_count),
+            mock.patch.object(export_layer, "QgsVectorLayer", return_value=written),
+        ):
+            payload = {"path": path, "selected_only": selected_only}
+            return export_layer.ExportLayerTool().confirm_applied(pinned(), payload)
+
+    def test_every_feature_in_the_file_reads_back(self):
+        self.assertTrue(self.verdict(written_count=2))
+        self.assertFalse(self.verdict(written_count=1))
+        self.assertTrue(self.verdict(written_count=1, selected=1, selected_only=True))
+
+    def test_an_empty_or_missing_file_is_not_an_export(self):
+        self.assertFalse(self.verdict(written_count=2, size=0))
+        self.assertFalse(export_layer.ExportLayerTool().confirm_applied(pinned(), {"path": "/nowhere/roads.gpkg"}))
+
+    def test_a_remote_source_leaves_the_count_to_the_model(self):
+        self.assertIsNone(self.verdict(written_count=2, source_count=None))
 
 
 class FieldStepsTest(unittest.TestCase):

@@ -3,13 +3,14 @@ from typing import Any
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common import params
-from ai_agent.qgis_tools.common.layers import find_layer_by_name, layer_reference
+from ai_agent.qgis_tools.common.layers import find_layer_by_name, layer_reference, pinned_layer
 from ai_agent.qgis_tools.style.apply import refresh
 
 PERCENT_THRESHOLD = 1.0
 PERCENT_MAX = 100.0
 MIN_OPACITY = 0.0
 MAX_OPACITY = 1.0
+OPACITY_TOLERANCE = 1e-3
 
 
 class SetOpacityTool(BaseTool):
@@ -56,6 +57,13 @@ class SetOpacityTool(BaseTool):
         layer.setOpacity(opacity)
         refresh(layer)
         return {**layer_reference(layer), "opacity": opacity}
+
+    def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
+        # A number, not a look: the layer's opacity reads back as what was asked, so no picture is needed.
+        layer = pinned_layer(params)
+        if layer is None:
+            return False
+        return abs(float(layer.opacity()) - _as_fraction(params.get("opacity"))) <= OPACITY_TOLERANCE
 
 
 def _as_fraction(value: Any) -> float:

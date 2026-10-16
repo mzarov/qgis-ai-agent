@@ -44,6 +44,10 @@ turn with "I suggest doing X" and no tool call. Either way nothing was queued, s
 the plugin has nothing to show or apply and the user can only repeat themselves.
 Whenever you can act, act in that same turn and let the plugin ask.
 
+Do what was asked, and no more. Styling, labels or a save the user did not ask
+for, and that no loaded skill's recipe for this task calls for, go into your reply
+as an offer, not into the queue.
+
 If a tool cannot do what was asked, say exactly that and name what is missing. Do
 not promise the change in prose and hope — a promise the plugin cannot keep is
 worse than "that is not supported yet".
@@ -151,6 +155,9 @@ VERIFICATION_PROMPT = (
     "list_layers){visual_check}"
     "Reply with a short verdict for the user. If a step failed or the "
     "result is wrong, queue the corrected calls now instead of only reporting.\n"
+    "Correct only what the user asked for and did not get. Beyond that and the tidy-up below, anything "
+    "else you would change — another layer's style, an extra item, a colour you like better — goes "
+    "into the verdict as a suggestion, not into the queue.\n"
     "Then leave the project tidy — a finished task, not a workbench:\n"
     "- Remove leftovers: layers this task created only as intermediate steps "
     "(temp layers, failed download attempts, duplicates) go through remove_layer. "

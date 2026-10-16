@@ -83,16 +83,21 @@ original request.
 
 After Apply the orchestrator checks the result. A full check is a model run:
 the agent re-reads what changed, looks at a render for visual changes, and
-queues fixes and tidy-up. That run costs several requests, each carrying the
+queues fixes and tidy-up. It fixes only what the request asked for and did not
+get: a model that sees the render tends to polish, and once dimmed a layer
+nobody mentioned and re-exported a finished PDF. Anything beyond the request
+is a suggestion in its verdict. That run costs several requests, each carrying the
 whole prompt and tool schemas, and for a rename or a new bookmark it cost more
 than the work itself. So a batch is checked by reading first
 (`agent/quick_check.py`): every write tool may answer `confirm_applied` with the
 one read that proves its own step — the layer has the new name, the field is
-there, the join is gone. When every step of a successful batch reads back as
-done, the chat says so and no model run starts. Anything else goes to the
-model as before: a failed step, a tool that returns `None` (styles, labels,
-Processing, new layers, virtual fields — results judged by eye or by their
-values), a step that does not read back, or a check that raises. A false
+there, the join is gone, the opacity is 50 %, the labels are on and show the
+`name` field, the exported file opens with every feature. When every step of a successful batch reads back as done, the
+chat says so and no model run starts. Anything else goes to the model as
+before: a failed step, a tool that returns `None` (renderers, colours, label
+fonts and placement, Processing, new layers, virtual fields — results judged by
+eye or by their values), a step that does not read back, or a check that
+raises. A false
 "done" is the one failure this must not have, so a tool that cannot be sure
 returns `None`.
 

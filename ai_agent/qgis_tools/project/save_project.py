@@ -13,7 +13,8 @@ class SaveProjectTool(BaseTool):
     name = "save_project"
     description = (
         "Save the QGIS project. Without a path it saves where the project was opened from; "
-        "with a path it saves as a new file."
+        "with a path it saves as a new file. Only when the user asks to save: after other "
+        "changes, offer it in your reply instead."
     )
     skill = "project"
     safety = SAFETY_WRITE
