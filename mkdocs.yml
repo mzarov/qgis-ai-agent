@@ -55,6 +55,7 @@ plugins:
             Smoke checklist: Смоук-чеклист
             Skill evals: Эвалы навыков
             Releasing: Выпуск версии
+            Metrics: Метрики
             Roadmap: План развития
 
 nav:
@@ -68,4 +69,5 @@ nav:
       - Smoke checklist: smoke_checklist.md
       - Skill evals: skill_evals.md
       - Releasing: releasing.md
+      - Metrics: metrics.md
   - Roadmap: roadmap.md
