@@ -203,7 +203,7 @@ conversation at once after a confirmation. See
 
 A skill is a knowledge package the agent loads when a task enters its domain:
 one `SKILL.md` with a name, a one-line description and the rules in Markdown.
-The seventeen built-in skills cover the QGIS domains; you can add your own.
+The eighteen built-in skills cover the QGIS domains; you can add your own.
 **Settings → Skills** lists them with a switch each: a skill switched off
 leaves the agent's prompt and cannot be loaded, not even through a skill of
 your own that names its tools.

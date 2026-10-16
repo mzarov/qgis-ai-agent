@@ -76,6 +76,15 @@
         </translation>
     </message>
     <message numerus="yes">
+        <location filename="ai_agent/qgis_tools/quality/check_layer.py" line="35"/>
+        <source>%n empty field(s)</source>
+        <translation>
+            <numerusform>%n пустое поле</numerusform>
+            <numerusform>%n пустых поля</numerusform>
+            <numerusform>%n пустых полей</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
         <location filename="ai_agent/ui/activity.py" line="424"/>
         <source>%n failed</source>
         <translation>
@@ -114,6 +123,33 @@
             <numerusform>выбран %n объект</numerusform>
             <numerusform>выбрано %n объекта</numerusform>
             <numerusform>выбрано %n объектов</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="ai_agent/qgis_tools/quality/check_layer.py" line="32"/>
+        <source>%n feature(s) with invalid geometry</source>
+        <translation>
+            <numerusform>%n объект с неверной геометрией</numerusform>
+            <numerusform>%n объекта с неверной геометрией</numerusform>
+            <numerusform>%n объектов с неверной геометрией</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="ai_agent/qgis_tools/quality/check_layer.py" line="33"/>
+        <source>%n feature(s) without geometry</source>
+        <translation>
+            <numerusform>%n объект без геометрии</numerusform>
+            <numerusform>%n объекта без геометрии</numerusform>
+            <numerusform>%n объектов без геометрии</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="ai_agent/qgis_tools/quality/check_layer.py" line="34"/>
+        <source>%n geometry duplicate(s)</source>
+        <translation>
+            <numerusform>%n дубликат геометрии</numerusform>
+            <numerusform>%n дубликата геометрии</numerusform>
+            <numerusform>%n дубликатов геометрии</numerusform>
         </translation>
     </message>
     <message numerus="yes">
@@ -242,7 +278,7 @@
         <translation>7 дней</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/skill_summaries.py" line="27"/>
+        <location filename="ai_agent/ui/skill_summaries.py" line="28"/>
         <source>A 3D view of the map and its terrain</source>
         <translation>Трёхмерный вид карты и рельефа</translation>
     </message>
@@ -759,7 +795,7 @@
         <translation>CC BY-SA, с указанием OpenTopoMap и OpenStreetMap</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/skill_summaries.py" line="26"/>
+        <location filename="ai_agent/ui/skill_summaries.py" line="27"/>
         <source>CSV preview, tables as points, table joins</source>
         <translation>Просмотр CSV, таблицы точками, соединения таблиц</translation>
     </message>
@@ -856,10 +892,42 @@
         <source>Check the result after Apply</source>
         <translation>Проверять результат после применения</translation>
     </message>
+    <message numerus="yes">
+        <location filename="ai_agent/qgis_tools/quality/check_layer.py" line="69"/>
+        <source>Checked %n band(s)</source>
+        <translation>
+            <numerusform>Проверен %n канал</numerusform>
+            <numerusform>Проверено %n канала</numerusform>
+            <numerusform>Проверено %n каналов</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="ai_agent/qgis_tools/quality/check_layer.py" line="73"/>
+        <source>Checked %n feature(s)</source>
+        <translation>
+            <numerusform>Проверен %n объект</numerusform>
+            <numerusform>Проверено %n объекта</numerusform>
+            <numerusform>Проверено %n объектов</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="ai_agent/qgis_tools/quality/check_layer.py" line="71"/>
+        <source>Checked the first %n feature(s)</source>
+        <translation>
+            <numerusform>Проверен первый %n объект</numerusform>
+            <numerusform>Проверены первые %n объекта</numerusform>
+            <numerusform>Проверены первые %n объектов</numerusform>
+        </translation>
+    </message>
     <message>
         <location filename="ai_agent/core/orchestrator/notices.py" line="29"/>
         <source>Checked: every step is in place.</source>
         <translation>Проверено: все шаги на месте.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/quality/check_layer.py" line="62"/>
+        <source>Checking layer '{0}' for data errors.</source>
+        <translation>Проверяю слой «{0}» на ошибки в данных.</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/activity.py" line="37"/>
@@ -870,6 +938,11 @@
         <location filename="ai_agent/ui/progress.py" line="39"/>
         <source>Checking the changes…</source>
         <translation>Проверяю изменения…</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/quality/check_layer.py" line="61"/>
+        <source>Checking the layer for data errors.</source>
+        <translation>Проверяю слой на ошибки в данных.</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/personalisation_settings.py" line="100"/>
@@ -1104,6 +1177,11 @@
         <translation>Данные</translation>
     </message>
     <message>
+        <location filename="ai_agent/ui/skill_summaries.py" line="25"/>
+        <source>Data checks: broken geometry, duplicates, empty fields, CRS</source>
+        <translation>Проверка данных: битая геометрия, дубликаты, пустые поля, СК</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="51"/>
         <source>Data goes to the provider</source>
         <translation>Данные уходят провайдеру</translation>
@@ -1325,7 +1403,7 @@
         <translation>Эксперт</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/export_layer.py" line="117"/>
+        <location filename="ai_agent/qgis_tools/project/export_layer.py" line="119"/>
         <source>Exporting layer '{0}' to {1}.</source>
         <translation>Экспортирую слой «{0}» в {1}.</translation>
     </message>
@@ -1364,7 +1442,7 @@
         <translation>Будет добавлено объектов: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="73"/>
+        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="81"/>
         <source>Features to change: {0}</source>
         <translation>Будет изменено объектов: {0}</translation>
     </message>
@@ -1384,13 +1462,13 @@
         <translation>Фильтр: all — удаляются все объекты</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="144"/>
+        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="190"/>
         <source>Filter: none, every feature is changed</source>
         <translation>Фильтр не задан — меняются все объекты</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/edit/delete_features.py" line="61"/>
-        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="145"/>
+        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="191"/>
         <source>Filter: {0}</source>
         <translation>Фильтр: {0}</translation>
     </message>
@@ -1511,7 +1589,7 @@
         <translation>Немецкий</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/style/set_graduated.py" line="99"/>
+        <location filename="ai_agent/qgis_tools/style/set_graduated.py" line="105"/>
         <source>Graduating '{0}' by '{1}', classes: {2}.</source>
         <translation>Строю градации «{0}» по «{1}», классов: {2}.</translation>
     </message>
@@ -1668,7 +1746,7 @@
     <message>
         <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="179"/>
         <location filename="ai_agent/qgis_tools/edit/delete_features.py" line="57"/>
-        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="68"/>
+        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="76"/>
         <source>Layer: {0}</source>
         <translation>Слой: {0}</translation>
     </message>
@@ -1980,7 +2058,7 @@
         <translation>Новые слои: {0}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="74"/>
+        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="82"/>
         <source>New values:</source>
         <translation>Новые значения:</translation>
     </message>
@@ -2203,12 +2281,12 @@
         <translation>Или ответьте, чтобы поправить план.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/save_project.py" line="69"/>
+        <location filename="ai_agent/qgis_tools/project/save_project.py" line="70"/>
         <source>Overwriting '{0}' with the current project.</source>
         <translation>Перезаписываю «{0}» текущим проектом.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/export_layer.py" line="116"/>
+        <location filename="ai_agent/qgis_tools/project/export_layer.py" line="118"/>
         <source>Overwriting {0} with exported layer '{1}'.</source>
         <translation>Перезаписываю {0} экспортированным слоем «{1}».</translation>
     </message>
@@ -2264,12 +2342,12 @@
         <translation>Места и границы</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/annotations/add_annotation.py" line="77"/>
+        <location filename="ai_agent/qgis_tools/annotations/add_annotation.py" line="79"/>
         <source>Placing a marker on the map.</source>
         <translation>Ставлю маркер на карту.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/annotations/add_annotation.py" line="78"/>
+        <location filename="ai_agent/qgis_tools/annotations/add_annotation.py" line="80"/>
         <source>Placing a note on the map: {0}</source>
         <translation>Ставлю заметку на карту: {0}</translation>
     </message>
@@ -2626,7 +2704,7 @@
         <translation>Убираю связь {0} со слоем «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/style/set_labels.py" line="84"/>
+        <location filename="ai_agent/qgis_tools/style/set_labels.py" line="87"/>
         <source>Removing the labels from layer '{0}'.</source>
         <translation>Убираю подписи со слоя «{0}».</translation>
     </message>
@@ -2641,7 +2719,7 @@
         <translation>Переименовываю поле «{0}» в «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/inspect/render_map.py" line="53"/>
+        <location filename="ai_agent/qgis_tools/inspect/render_map.py" line="56"/>
         <source>Rendering layer '{0}' to an image.</source>
         <translation>Делаю снимок слоя «{0}».</translation>
     </message>
@@ -2651,7 +2729,7 @@
         <translation>Делаю снимок макета «{0}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/inspect/render_map.py" line="52"/>
+        <location filename="ai_agent/qgis_tools/inspect/render_map.py" line="55"/>
         <source>Rendering the map to an image.</source>
         <translation>Делаю снимок карты.</translation>
     </message>
@@ -2816,12 +2894,12 @@
         <translation>Сохраняю текущий охват как закладку «{0}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/save_project.py" line="70"/>
+        <location filename="ai_agent/qgis_tools/project/save_project.py" line="71"/>
         <source>Saving the project as '{0}'.</source>
         <translation>Сохраняю проект как «{0}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/save_project.py" line="67"/>
+        <location filename="ai_agent/qgis_tools/project/save_project.py" line="68"/>
         <source>Saving the project.</source>
         <translation>Сохраняю проект.</translation>
     </message>
@@ -2892,17 +2970,17 @@
         <translation>Сервис</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/style/set_opacity.py" line="51"/>
+        <location filename="ai_agent/qgis_tools/style/set_opacity.py" line="52"/>
         <source>Setting opacity of '{0}' to {1}.</source>
         <translation>Ставлю «{0}» непрозрачность {1}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/style/set_labels.py" line="82"/>
+        <location filename="ai_agent/qgis_tools/style/set_labels.py" line="85"/>
         <source>Setting up labels for '{0}'.</source>
         <translation>Настраиваю подписи «{0}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/style/set_labels.py" line="85"/>
+        <location filename="ai_agent/qgis_tools/style/set_labels.py" line="88"/>
         <source>Setting up labels for '{0}': {1}.</source>
         <translation>Настраиваю подписи «{0}»: {1}.</translation>
     </message>
@@ -3078,7 +3156,7 @@
         <translation>Швейцария: национальная карта и аэрофото</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/skill_summaries.py" line="25"/>
+        <location filename="ai_agent/ui/skill_summaries.py" line="26"/>
         <source>Symbols, colours by category or class, labels</source>
         <translation>Символы, цвета по категориям и классам, подписи</translation>
     </message>
@@ -3582,12 +3660,12 @@
         <translation>Без названия</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="86"/>
+        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="97"/>
         <source>Updating features of '{0}': {1}.</source>
         <translation>Обновляю объекты «{0}»: {1}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="85"/>
+        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="96"/>
         <source>Updating {0} feature(s) of '{1}': {2}.</source>
         <translation>Обновляю объектов: {0} — в «{1}»: {2}.</translation>
     </message>
@@ -3632,7 +3710,7 @@
         <translation>Жду вашего ответа — прогон продолжится с него.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/skill_summaries.py" line="28"/>
+        <location filename="ai_agent/ui/skill_summaries.py" line="29"/>
         <source>Web search, reading pages, geocoding</source>
         <translation>Поиск в интернете, чтение страниц, геокодирование</translation>
     </message>
@@ -3782,6 +3860,11 @@
         <translation>обращается к внешнему сервису после подтверждения</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/quality/check_layer.py" line="30"/>
+        <source>coordinates do not fit the CRS</source>
+        <translation>координаты не соответствуют системе координат</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/common/properties.py" line="166"/>
         <source>defaults</source>
         <translation>по умолчанию</translation>
@@ -3790,6 +3873,11 @@
         <location filename="ai_agent/ui/skills_settings.py" line="33"/>
         <source>draft</source>
         <translation>черновик</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/quality/check_layer.py" line="31"/>
+        <source>empty extent</source>
+        <translation>пустой охват</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/skill_popup.py" line="20"/>
@@ -3812,9 +3900,19 @@
         <translation>операция может быть необратимой; требуется дополнительное подтверждение</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/quality/check_layer.py" line="75"/>
+        <source>no problems found</source>
+        <translation>проблем не найдено</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/osm/download_osm.py" line="165"/>
         <source>no tag</source>
         <translation>без тега</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/quality/check_layer.py" line="29"/>
+        <source>no valid CRS</source>
+        <translation>нет корректной системы координат</translation>
     </message>
     <message>
         <location filename="ai_agent/core/orchestrator/presentation.py" line="87"/>
@@ -3843,7 +3941,7 @@
         <translation>навык</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/style/set_opacity.py" line="50"/>
+        <location filename="ai_agent/qgis_tools/style/set_opacity.py" line="51"/>
         <source>the given amount</source>
         <translation>заданную величину</translation>
     </message>
@@ -3853,7 +3951,7 @@
         <translation>заданном охвате</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/style/set_opacity.py" line="46"/>
+        <location filename="ai_agent/qgis_tools/style/set_opacity.py" line="47"/>
         <source>the layer</source>
         <translation>слою</translation>
     </message>

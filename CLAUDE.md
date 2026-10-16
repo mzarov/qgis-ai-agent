@@ -20,9 +20,12 @@ reasoning is in [docs/core_architecture.md](docs/core_architecture.md)), and
 `annotations` (map notes and markers), `three_d` (opening a 3D map view), and
 `tables` (CSV preview and loading as points, live table joins), `charts`
 (charts and tables drawn in the chat feed; the spec rides beside the tool
-result and never reaches the model), and `plugins` (other installed plugins:
+result and never reaches the model), `plugins` (other installed plugins:
 their Processing algorithms and, after a destructive-class confirmation, their
-menu commands).
+menu commands), and `quality` (a data check of one layer — invalid, empty and
+repeated geometries, empty fields, coordinates against the CRS — with the fix
+route for each problem; fixes stay queued Processing steps that write new
+layers).
 After
 the user applies a batch, the orchestrator starts a verification run: the agent
 re-reads the result with read tools and, for visual changes, looks at a
