@@ -35,12 +35,13 @@
           args: {layer_name: roads, filter: all}
         - call: ask_user
 
-- description: A computed value is not a constant edit
+- description: A computed value goes into expressions, not values
   vars:
     request: Double the capacity of every school
     reads: schools
     expect:
-      not: [update_attributes]
+      call: update_attributes
+      args: {layer_name: schools, expressions: {capacity: "re:capacity\"?\\s*\\*\\s*2"}}
 
 - description: Russian — deleting by type
   vars:

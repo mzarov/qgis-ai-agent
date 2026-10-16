@@ -13,6 +13,13 @@ from ai_agent.qgis_tools.common.values import plain_value, suggest_fields
 DESCENDING_MARKERS = ("desc", "descending")
 ASCENDING_MARKERS = ("asc", "ascending")
 SPECIAL_COLUMNS = {"*", "$geometry", "$id", "$area", "$length", "$perimeter", "$x", "$y"}
+# QgsFeatureRequest.ALL_ATTRIBUTES: what an expression using @parent (aggregate over another layer) references.
+# It names no field, and refusing it refused every correct "count the points in each polygon" expression.
+ALL_ATTRIBUTES = "#!allattributes!#"
+QUOTED_EXPRESSION_HINT = (
+    "A name in double quotes is a field; an expression goes without quotes — inside aggregate, for one: "
+    "aggregate('schools', 'count', $id, intersects($geometry, geometry(@parent)))."
+)
 
 
 def build_context(layer) -> QgsExpressionContext:
@@ -40,14 +47,19 @@ def check_columns(expression: QgsExpression, layer, label: str, text: str) -> No
     except Exception:
         return
     available = set(layer.fields().names())
-    unknown = sorted(name for name in referenced if name and name not in SPECIAL_COLUMNS and name not in available)
+    skipped = SPECIAL_COLUMNS | {ALL_ATTRIBUTES}
+    unknown = sorted(name for name in referenced if name and name not in skipped and name not in available)
     if not unknown:
         return
+    quoted_call = any("(" in name for name in unknown)
     raise ValueError(
         f"The expression in '{label}' refers to fields that do not exist: {', '.join(unknown)}. "
         f"The expression was: {text}. {suggest_fields(unknown, sorted(available))} "
-        "If this was meant as a text value, write it in single quotes: "
-        "highway = 'motorway'."
+        + (
+            QUOTED_EXPRESSION_HINT
+            if quoted_call
+            else "If this was meant as a text value, write it in single quotes: highway = 'motorway'."
+        )
     )
 
 

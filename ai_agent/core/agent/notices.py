@@ -23,6 +23,10 @@ CONTINUE_TRUNCATED = (
     "stopped; do not repeat what you already wrote."
 )
 EMPTY_REPLY = "[Plugin note] Your last reply was empty. Call the tools you need or give the user your answer."
+ANNOUNCED_STEP = (
+    "[Plugin note] Your reply said what you would do next but called no tool, so nothing has happened and "
+    "the run would end here. Call the tool now; if the request is already answered, give the final answer."
+)
 TRUNCATED_REASONS = frozenset({"length", "max_tokens"})
 CALLS_CUT_OFF = (
     "This turn was cut off by the output limit before its tool calls were complete, so none of them ran. "

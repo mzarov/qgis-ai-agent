@@ -441,6 +441,7 @@ core = _mod(
         "QgsVectorLayerSimpleLabeling",
         "QgsCoordinateReferenceSystem",
         "QgsCoordinateTransform",
+        "QgsDistanceArea",
         "QgsBlockingNetworkRequest",
         "QgsMapSettings",
         "QgsProviderRegistry",

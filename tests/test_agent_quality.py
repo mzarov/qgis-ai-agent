@@ -2,8 +2,10 @@ import unittest
 
 from ai_agent.core.agent import loop as loop_module
 from ai_agent.core.agent import notices
+from ai_agent.core.agent.announcements import announces_a_step
 from ai_agent.core.agent.batch import MODEL_LINE_LIMIT, _model_line
 from ai_agent.core.agent.loop import AgentLoop
+from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.core.llm.turns import ModelTurn, ToolCall
 from ai_agent.skills.registry import SKILL_REGISTRY
 
@@ -77,6 +79,40 @@ class NudgeTest(unittest.TestCase):
     def test_a_normal_answer_ends_the_run(self):
         self.loop._on_turn(ModelTurn(text="Done.", finish_reason="stop"))
         self.assertEqual(self.finished, ["Done."])
+
+    def test_a_first_reply_that_only_announces_a_step_gets_one_more_turn(self):
+        # Qwen ended an export with this sentence and no call: no file, a promise for the user.
+        self.loop._on_turn(ModelTurn(text="This is an export, so I'll load the export tool.", finish_reason="stop"))
+        self.assertEqual(self.finished, [])
+        self.assertEqual(self.last_user_text(), notices.ANNOUNCED_STEP)
+        self.loop._on_turn(ModelTurn(text="Let me load it.", finish_reason="stop"))
+        self.assertEqual(self.finished, ["Let me load it."], "the nudge is given once")
+
+    def test_after_real_work_an_offer_ends_the_run(self):
+        call = ToolCall(id="c", name="list_layers", arguments={})
+        self.loop._dispatch = lambda tool_call: ToolResult(call=tool_call, payload={"layers": []})
+        self.loop._on_turn(ModelTurn(text="", tool_calls=[call]))
+        self.loop._on_turn(ModelTurn(text="Done. I'll save the project if you like.", finish_reason="stop"))
+        self.assertEqual(self.finished, ["Done. I'll save the project if you like."])
+
+
+class AnnouncementTest(unittest.TestCase):
+    def test_a_short_reply_announcing_its_next_step(self):
+        for text in ("I'll load the export tool.", "Let me check the layer first.", "Now I need the processing skill."):
+            with self.subTest(text):
+                self.assertTrue(announces_a_step(text))
+
+    def test_answers_offers_questions_and_long_texts_are_not(self):
+        for text in (
+            "Two layers.",
+            "Let me know if you want labels.",
+            "Shall I save the project?",
+            "Which layer？",
+            "I'll explain. " + "A projection flattens the Earth. " * 20,
+            "",
+        ):
+            with self.subTest(text):
+                self.assertFalse(announces_a_step(text))
 
 
 class SkillDescriptionTest(unittest.TestCase):

@@ -14,18 +14,26 @@ is the `edit` skill; computing a whole new derived layer is `processing`.
 `add_field` does two different things depending on `expression`:
 
 - **without it** — a real column written into the data source. It starts
-  empty; fill it with `update_attributes` or `native:fieldcalculator`.
+  empty; fill it with `update_attributes` (constants or expressions).
 - **with it** — a virtual field: the expression is evaluated on the fly and
   the definition lives in the project, not in the file.
 
 Prefer the virtual one when the value is derived — area, length, a formatted
 label, a ratio between columns. It cannot go stale, it does not touch the
 user's data, and it costs nothing to remove. Reach for a real field when the
-value has to survive export to a file or be edited by hand.
+value has to survive export to a file or be edited by hand. To fill a real
+field with computed values: `add_field` without an expression, `apply_now`, then
+`update_attributes` with `expressions` (the edit skill).
 
 ```
 add_field(layer_name="Districts", name="area_ha", expression="$area / 10000")
 ```
+
+A value from another layer, per feature — the schools in each district:
+`aggregate('schools', 'count', $id, intersects($geometry, geometry(@parent)))`.
+Inside `aggregate`, `$geometry` is the other layer's feature and `@parent` this
+one; the filter is an expression, never a string in quotes. For a new layer of
+the counts instead, `native:countpointsinpolygon` (processing) is the recipe.
 
 Length and area in a virtual field follow the project ellipsoid and units (the
 project context's `Measurements:` line), not the layer CRS: on a layer in degrees

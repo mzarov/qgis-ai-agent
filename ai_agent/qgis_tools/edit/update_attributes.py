@@ -1,13 +1,13 @@
 from contextlib import suppress
 from typing import Any
 
-from qgis.core import QgsFeatureRequest, QgsVectorLayer
+from qgis.core import QgsDistanceArea, QgsFeatureRequest, QgsProject, QgsVectorLayer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_DESTRUCTIVE, BaseTool
 from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.editing import edit_session
-from ai_agent.qgis_tools.common.expressions import build_request
+from ai_agent.qgis_tools.common.expressions import build_context, build_request, evaluate, prepared
 from ai_agent.qgis_tools.common.layers import bind_layer_reference, find_layer_by_id, find_layer_by_name
 from ai_agent.qgis_tools.common.values import suggest_fields
 
@@ -17,10 +17,10 @@ MAX_SCAN = 50000
 class UpdateAttributesTool(BaseTool):
     name = "update_attributes"
     description = (
-        "Change attribute values of existing features in place: set the listed "
-        "fields to new constant values on every feature matching the filter. "
-        "This edits the underlying data — for computed values use "
-        "native:fieldcalculator instead. "
+        "Change attribute values of existing features in place, on every feature matching "
+        "the filter: set fields to constants (values) or to a QGIS expression computed per "
+        "feature (expressions, e.g. $area / 10000; $area and $length measure on the project "
+        "ellipsoid). This edits the underlying data. "
         "The matches are counted when the step is queued and the user sees the count before "
         "confirming, so there is no need to count them first."
     )
@@ -31,7 +31,8 @@ class UpdateAttributesTool(BaseTool):
     external_effect = True
     constraints = [
         "The layer must be an editable vector layer",
-        "The fields must exist; values are constants, not expressions",
+        "The fields must exist when the step is queued: a field added in this run needs apply_now first",
+        "values holds constants; a computed value goes in expressions",
         "Without a filter every feature is touched — pass one whenever possible",
     ]
     examples = ["Set type to 'park' for the selected polygons", "Fix the misspelled city name"]
@@ -41,8 +42,14 @@ class UpdateAttributesTool(BaseTool):
         {
             "name": "values",
             "type": "object",
-            "description": 'New values per field, e.g. {"type": "park", "verified": 1}',
-            "required": True,
+            "description": 'Constant new values per field, e.g. {"type": "park", "verified": 1}',
+            "required": False,
+        },
+        {
+            "name": "expressions",
+            "type": "object",
+            "description": 'A QGIS expression per field, evaluated for each feature, e.g. {"area_ha": "$area / 10000"}',
+            "required": False,
         },
         {
             "name": "filter",
@@ -54,10 +61,11 @@ class UpdateAttributesTool(BaseTool):
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = _require_editable(params.get("layer_name") or "", params.get("layer_id") or "")
-        values = _checked_values(layer, params.get("values"))
+        values, expressions = _checked_changes(layer, params)
         feature_ids = _matched_ids(layer, (params.get("filter") or "").strip())
         prepared = bind_layer_reference(params, layer)
         prepared["values"] = values
+        prepared["expressions"] = expressions
         prepared["matched_estimate"] = len(feature_ids)
         prepared["_feature_ids"] = feature_ids
         return prepared
@@ -74,12 +82,15 @@ class UpdateAttributesTool(BaseTool):
         lines.append(tr("New values:"))
         if isinstance(values, dict):
             lines.extend(f"  {name} = {value!r}" for name, value in values.items())
+        expressions = params.get("expressions")
+        if isinstance(expressions, dict):
+            lines.extend(f"  {name} = {text}" for name, text in expressions.items())
         return "\n".join(lines)
 
     def summarize_call(self, params: dict[str, Any]) -> str:
         layer_name = (params.get("layer_name") or "").strip()
-        values = params.get("values") or {}
-        fields = ", ".join(sorted(values)) if isinstance(values, dict) else ""
+        changed = [*_names(params.get("values")), *_names(params.get("expressions"))]
+        fields = ", ".join(sorted(changed))
         matched = params.get("matched_estimate")
         if isinstance(matched, int):
             return tr("Updating {0} feature(s) of '{1}': {2}.").format(matched, layer_name, fields)
@@ -87,15 +98,22 @@ class UpdateAttributesTool(BaseTool):
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = _require_editable(params.get("layer_name") or "", params.get("layer_id") or "")
-        values = _checked_values(layer, params.get("values"))
-        indexes = {name: layer.fields().indexFromName(name) for name in values}
+        values, expressions = _checked_changes(layer, params)
+        indexes = {name: layer.fields().indexFromName(name) for name in [*values, *expressions]}
         features = _prepared_features(layer, params)
+        context = build_context(layer)
+        compiled = {name: _measuring(prepared(text, name, context, layer), layer) for name, text in expressions.items()}
+        # Every value is computed before the first write: an expression failing halfway leaves nothing changed.
+        rows = [
+            (feature.id(), {**values, **{name: evaluate(expr, context, feature) for name, expr in compiled.items()}})
+            for feature in features
+        ]
         with edit_session(layer, "the attribute edits"):
-            for feature in features:
-                for name, value in values.items():
-                    if not layer.changeAttributeValue(feature.id(), indexes[name], value):
-                        raise ValueError(f"QGIS refused to update field '{name}' on feature {feature.id()}.")
-        return {"layer": layer.name(), "updated": len(features), "fields": sorted(values)}
+            for feature_id, row in rows:
+                for name, value in row.items():
+                    if not layer.changeAttributeValue(feature_id, indexes[name], value):
+                        raise ValueError(f"QGIS refused to update field '{name}' on feature {feature_id}.")
+        return {"layer": layer.name(), "updated": len(features), "fields": sorted([*values, *expressions])}
 
 
 def _require_editable(layer_name: str, layer_id: str = "") -> QgsVectorLayer:
@@ -105,18 +123,46 @@ def _require_editable(layer_name: str, layer_id: str = "") -> QgsVectorLayer:
     return layer
 
 
-def _checked_values(layer: QgsVectorLayer, raw: Any) -> dict[str, Any]:
-    if not isinstance(raw, dict) or not raw:
-        raise ValueError("values must be a non-empty object of field-to-value pairs.")
+def _checked_changes(layer: QgsVectorLayer, params: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
+    """The constant values and the expressions, checked against the layer; at least one field changes."""
+    values, expressions = params.get("values") or {}, params.get("expressions") or {}
+    if not isinstance(values, dict) or not isinstance(expressions, dict) or not (values or expressions):
+        raise ValueError(
+            'Give values (constants, {"type": "park"}) or expressions (computed, {"area_ha": "$area / 10000"}).'
+        )
+    both = sorted(set(values) & set(expressions))
+    if both:
+        raise ValueError(f"Field(s) {', '.join(both)} are in both values and expressions; keep each in one.")
     names = layer.fields().names()
-    unknown = sorted(name for name in raw if name not in names)
+    unknown = sorted(name for name in [*values, *expressions] if name not in names)
     if unknown:
         raise ValueError(
-            f"Layer '{layer.name()}' has no field(s) {', '.join(unknown)}. {suggest_fields(unknown, names)}"
+            f"Layer '{layer.name()}' has no field(s) {', '.join(unknown)}. {suggest_fields(unknown, names)} "
+            "A field added in this run exists only once applied: call apply_now first."
         )
-    for name, value in raw.items():
+    for name, value in values.items():
         _check_convertible(layer, name, value)
-    return dict(raw)
+    context = build_context(layer)
+    for name, text in expressions.items():
+        prepared(str(text), name, context, layer)
+    return dict(values), {name: str(text) for name, text in expressions.items()}
+
+
+def _measuring(expression: Any, layer: QgsVectorLayer) -> Any:
+    """$area and $length on the project's ellipsoid and units, as a virtual field or the field calculator measures."""
+    project = QgsProject.instance()
+    with suppress(Exception):
+        calculator = QgsDistanceArea()
+        calculator.setSourceCrs(layer.crs(), project.transformContext())
+        calculator.setEllipsoid(project.ellipsoid())
+        expression.setGeomCalculator(calculator)
+        expression.setDistanceUnits(project.distanceUnits())
+        expression.setAreaUnits(project.areaUnits())
+    return expression
+
+
+def _names(raw: Any) -> list[str]:
+    return [str(name) for name in raw] if isinstance(raw, dict) else []
 
 
 def _check_convertible(layer: QgsVectorLayer, name: str, value: Any) -> None:

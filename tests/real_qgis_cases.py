@@ -108,6 +108,19 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual(text.text(), "start here")
         self.assertAlmostEqual(text.point().y(), 7_509_000, delta=5_000, msg="the note is not where Moscow is")
 
+    def test_a_note_reads_back_with_its_place_in_lon_lat(self):
+        """A model once ran Python four times to find where its note was: the list and the read-back say it."""
+        self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:3857"))
+        queued, note = self._run("add_annotation", kind="text", x=37.6175, y=55.752, text="start here")
+        tool = get_tool_by_name("add_annotation")
+        self.assertTrue(tool.confirm_applied(queued.arguments, note))
+        self.assertFalse(tool.confirm_applied({**queued.arguments, "text": "end here"}, note))
+        self.assertFalse(tool.confirm_applied({**queued.arguments, "x": 30.3}, note), "a note in the wrong place")
+        listed = get_tool_by_name("list_annotations").execute({})["annotations"]
+        place = next((item["lon"], item["lat"]) for item in listed if item["id"] == note["id"])
+        self.assertAlmostEqual(place[0], 37.6175, places=5)
+        self.assertAlmostEqual(place[1], 55.752, places=5)
+
     def test_a_graduated_style_brings_its_legend_for_the_feed_only(self):
         batch = WriteBatch(ToolExecutor())
         arguments = {"layer_name": self.layer.name(), "field": "count", "classes": 2}
@@ -153,6 +166,39 @@ class GisWorkflowsTest(unittest.TestCase):
         extent = result["extent"]
         self.assertAlmostEqual(extent["xmax"] - extent["xmin"], 1000, delta=1, msg="500 m either side of the point")
         self.assertTrue(result["image_base64"])
+
+    def test_a_computed_value_is_written_into_a_real_field_on_the_ellipsoid(self):
+        """update_attributes with expressions: hectares in a stored column, as a virtual field measures them."""
+        cell = QgsVectorLayer("Polygon?crs=EPSG:4326&field=area_ha:double", "cells", "memory")
+        feature = QgsFeature(cell.fields())
+        ring = "37.45 55.65, 37.53 55.65, 37.53 55.7, 37.45 55.7, 37.45 55.65"
+        feature.setGeometry(QgsGeometry.fromWkt(f"POLYGON (({ring}))"))
+        cell.dataProvider().addFeatures([feature])
+        self.project.addMapLayer(cell)
+        # As in a desktop project: an ellipsoid takes only once the project has a CRS.
+        self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:3857"))
+        self.project.setEllipsoid("EPSG:7030")
+        _, result = self._run("update_attributes", layer_name="cells", expressions={"area_ha": "$area / 10000"})
+        self.assertEqual(result["fields"], ["area_ha"])
+        self.assertAlmostEqual(next(cell.getFeatures())["area_ha"], 2801.9, delta=1.0)
+
+    def test_a_count_from_another_layer_is_a_virtual_field(self):
+        """The aggregate over @parent the fields skill gives; its all-attributes marker was once refused."""
+        district = QgsVectorLayer("Polygon?crs=EPSG:4326&field=name:string", "districts", "memory")
+        feature = QgsFeature(district.fields())
+        feature.setGeometry(QgsGeometry.fromWkt("POLYGON ((37 55, 38 55, 38 56, 37 56, 37 55))"))
+        district.dataProvider().addFeatures([feature])
+        schools = QgsVectorLayer("Point?crs=EPSG:4326", "schools", "memory")
+        points = []
+        for x in (37.5, 37.6, 39.0):
+            point = QgsFeature(schools.fields())
+            point.setGeometry(QgsGeometry.fromWkt(f"POINT ({x} 55.5)"))
+            points.append(point)
+        schools.dataProvider().addFeatures(points)
+        self.project.addMapLayers([district, schools])
+        expression = "aggregate('schools', 'count', $id, intersects($geometry, geometry(@parent)))"
+        self._run("add_field", layer_name="districts", name="schools_n", expression=expression)
+        self.assertEqual(next(district.getFeatures())["schools_n"], 2)
 
     def test_symbol_changes_are_visible_in_the_actual_renderer(self):
         self._run("set_symbol", layer_name=self.layer.name(), properties={"color": "#123456", "size": 4})

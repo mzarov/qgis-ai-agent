@@ -14,7 +14,7 @@ from qgis.core import (
 from qgis.PyQt.QtGui import QColor
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.annotations.store import annotation_layer
+from ai_agent.qgis_tools.annotations.store import annotation_layer, item_text
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 
 KIND_TEXT = "text"
@@ -23,6 +23,8 @@ KINDS = (KIND_TEXT, KIND_MARKER)
 DEFAULT_SIZE = 12.0
 MAX_SIZE = 72.0
 WGS84 = "EPSG:4326"
+# Relative: a point read back after a CRS round trip differs in the last digits, metres or degrees alike.
+POSITION_TOLERANCE = 1e-6
 
 
 class AddAnnotationTool(BaseTool):
@@ -90,6 +92,21 @@ class AddAnnotationTool(BaseTool):
             _apply_text_look(item, params)
         item_id = layer.addItem(item)
         return {"id": str(item_id), "kind": kind, "note": "The annotation sits above every layer."}
+
+    def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
+        # A note is a fact, not a look: it is on the map, with its words, where it was asked to be.
+        item = (annotation_layer().items() or {}).get(str(payload.get("id") or ""))
+        if item is None:
+            return False
+        if _checked_kind(params.get("kind")) == KIND_TEXT and item_text(item) != str(params.get("text") or "").strip():
+            return False
+        wanted = _to_project_point(*_checked_xy(params), _checked_crs(params.get("crs")))
+        centre = item.boundingBox().center()
+        return _near(centre.x(), wanted.x()) and _near(centre.y(), wanted.y())
+
+
+def _near(actual: float, wanted: float) -> bool:
+    return abs(actual - wanted) <= POSITION_TOLERANCE * max(1.0, abs(wanted))
 
 
 def _checked_kind(raw: Any) -> str:
