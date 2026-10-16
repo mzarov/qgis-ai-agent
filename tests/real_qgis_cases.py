@@ -472,6 +472,126 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual((count.payload["matched"], count.payload["value"]), (1, 1))
         self.assertEqual((total.payload["matched"], total.payload["value"]), (2, 3.0))
 
+    def _memory(self, uri, name, rows):
+        layer = QgsVectorLayer(uri, name, "memory")
+        self.assertTrue(layer.isValid())
+        features = []
+        for wkt, attributes in rows:
+            feature = QgsFeature(layer.fields())
+            feature.setGeometry(QgsGeometry.fromWkt(wkt))
+            feature.setAttributes(attributes)
+            features.append(feature)
+        self.assertTrue(layer.dataProvider().addFeatures(features)[0])
+        layer.updateExtents()
+        self.project.addMapLayer(layer)
+        return layer
+
+    def _districts_and_schools(self):
+        """Three square districts and four schools; s4 says district 2 but lies outside every district."""
+        square = "POLYGON(({0} 0, {1} 0, {1} 100, {0} 100, {0} 0))"
+        districts = self._memory(
+            "Polygon?crs=EPSG:3857&field=name:string&field=code:integer",
+            "districts",
+            [
+                (square.format(0, 100), ["North", 1]),
+                (square.format(200, 300), ["South", 2]),
+                (square.format(400, 500), ["East", 3]),
+            ],
+        )
+        schools = self._memory(
+            "Point?crs=EPSG:3857&field=name:string&field=district:integer&field=capacity:integer",
+            "schools",
+            [
+                ("POINT (10 10)", ["s1", 1, 300]),
+                ("POINT (50 50)", ["s2", 1, 500]),
+                ("POINT (250 50)", ["s3", 2, 200]),
+                ("POINT (900 900)", ["s4", 2, 100]),
+            ],
+        )
+        return districts, schools
+
+    def _query(self, sql):
+        return ToolExecutor().run(ToolCall("sql", "query_sql", {"sql": sql}))
+
+    def test_sql_groups_a_join_of_two_layers(self):
+        self._districts_and_schools()
+        result = self._query(
+            'SELECT d.name, count(s.name) AS schools, sum(s.capacity) AS seats FROM "districts" d '
+            'JOIN "schools" s ON s.district = d.code GROUP BY d.name ORDER BY d.name;'
+        )
+        self.assertTrue(result.ok, result.payload)
+        self.assertEqual(result.payload["columns"], ["name", "schools", "seats"])
+        self.assertEqual(result.payload["rows"], [["North", 2, 800], ["South", 2, 300]])
+        self.assertEqual(result.payload["row_count"], 2)
+
+    def test_sql_counts_points_in_polygons(self):
+        self._districts_and_schools()
+        result = self._query(
+            'SELECT d.name, count(s.geometry) AS inside FROM "districts" d LEFT JOIN "schools" s '
+            "ON ST_Contains(d.geometry, s.geometry) AND s._search_frame_ = d.geometry GROUP BY d.name ORDER BY d.name"
+        )
+        self.assertTrue(result.ok, result.payload)
+        self.assertEqual(result.payload["rows"], [["East", 0], ["North", 2], ["South", 1]])
+        areas = self._query('SELECT name, ST_Area(geometry) AS area, geometry FROM "districts" ORDER BY name')
+        self.assertEqual([row[1] for row in areas.payload["rows"]], [10000.0, 10000.0, 10000.0])
+        self.assertEqual((areas.payload["geometry"], areas.payload["crs"]), ("polygon", "EPSG:3857"))
+        self.assertEqual(areas.payload["columns"], ["name", "area"], "the geometry itself is never sent")
+
+    def test_sql_binds_a_shared_name_only_by_id(self):
+        self._districts_and_schools()
+        twin = self._memory("Point?crs=EPSG:3857&field=name:string", "schools", [("POINT (0 0)", ["twin"])])
+        refused = self._query('SELECT count(*) FROM "schools"')
+        self.assertFalse(refused.ok)
+        self.assertIn("ambiguous", refused.payload["error"])
+        chosen = self._query(f'SELECT name FROM "{twin.id()}"')
+        self.assertEqual(chosen.payload["rows"], [["twin"]])
+
+    def test_a_sql_layer_is_added_live_and_valid(self):
+        districts, schools = self._districts_and_schools()
+        sql = (
+            'SELECT d.name, count(s.geometry) AS inside, d.geometry FROM "districts" d LEFT JOIN "schools" s '
+            "ON ST_Contains(d.geometry, s.geometry) GROUP BY d.name"
+        )
+        queued, payload = self._run("create_sql_layer", sql=sql, name="school counts")
+        layer = self.project.mapLayer(payload["layer_id"])
+        self.assertTrue(layer.isValid())
+        self.assertEqual((layer.name(), layer.providerType(), layer.featureCount()), ("school counts", "virtual", 3))
+        self.assertEqual((payload["feature_count"], payload["geometry"]), (3, "polygon"))
+        self.assertIn("inside", payload["fields"])
+        self.assertTrue(get_tool_by_name("create_sql_layer").confirm_applied(queued.arguments, payload))
+        # A view, not a copy: a school added to the source shows up in the layer.
+        extra = QgsFeature(schools.fields())
+        extra.setGeometry(QgsGeometry.fromWkt("POINT (450 50)"))
+        extra.setAttributes(["s5", 3, 50])
+        schools.dataProvider().addFeatures([extra])
+        layer.reload()
+        counts = {feature["name"]: feature["inside"] for feature in layer.getFeatures()}
+        self.assertEqual(counts, {"North": 2, "South": 1, "East": 1})
+        with self.assertRaisesRegex(ValueError, "already in the project"):
+            WriteBatch(ToolExecutor()).add(ToolCall("again", "create_sql_layer", {"sql": sql, "name": "school counts"}))
+
+    def test_bad_sql_comes_back_as_a_clear_error(self):
+        self._districts_and_schools()
+        syntax = self._query('SELEC name FROM "districts"')
+        self.assertFalse(syntax.ok)
+        self.assertIn("Only a read-only SELECT", syntax.payload["error"])
+        column = self._query('SELECT nme FROM "districts"')
+        self.assertFalse(column.ok)
+        self.assertTrue(column.payload["error"].startswith("The query failed: no such column: nme."), column.payload)
+        self.assertNotIn("_tview", column.payload["error"])
+        broken = self._query("SELECT name FROM \"districts\" WHERE name = = 'North'")
+        self.assertIn('near "=": syntax error', broken.payload["error"])
+        missing = self._query('SELECT name FROM "distrcts"')
+        self.assertIn("distrcts", missing.payload["error"])
+        self.assertIn("named in double quotes:", missing.payload["error"])
+        for name in ('"districts"', '"schools"', '"points"'):
+            self.assertIn(name, missing.payload["error"])
+        with self.assertRaisesRegex(ValueError, "The query failed: no such column: nme"):
+            WriteBatch(ToolExecutor()).add(
+                ToolCall("bad", "create_sql_layer", {"sql": 'SELECT nme FROM "districts"', "name": "never"})
+            )
+        self.assertEqual(self.project.mapLayersByName("never"), [])
+
     def test_changing_live_labels_keeps_the_field_and_the_rest(self):
         self._run("set_labels", layer_name=self.layer.name(), properties={"field": "name", "size": 14})
         self._run("set_labels", layer_name=self.layer.name(), properties={"bold": True})

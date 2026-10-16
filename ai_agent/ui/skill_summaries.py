@@ -22,6 +22,7 @@ SUMMARIES = {
     "processing": tr("Geoprocessing: buffers, clipping, overlays, joins and more"),
     "project": tr("Layers, basemaps, web services, groups, bookmarks, saving"),
     "python": tr("PyQGIS code for what no tool covers, shown to you first"),
+    "sql": tr("SQL across your layers: joins, grouping, live query layers"),
     "style": tr("Symbols, colours by category or class, labels"),
     "tables": tr("CSV preview, tables as points, table joins"),
     "three_d": tr("A 3D view of the map and its terrain"),

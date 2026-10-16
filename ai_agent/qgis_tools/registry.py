@@ -18,6 +18,7 @@ from ai_agent.qgis_tools.plugins import PLUGINS_TOOLS
 from ai_agent.qgis_tools.processing import PROCESSING_TOOLS
 from ai_agent.qgis_tools.project import PROJECT_TOOLS
 from ai_agent.qgis_tools.python import PYTHON_TOOLS
+from ai_agent.qgis_tools.sql import SQL_TOOLS
 from ai_agent.qgis_tools.style import STYLE_TOOLS
 from ai_agent.qgis_tools.tables import TABLES_TOOLS
 from ai_agent.qgis_tools.three_d import THREE_D_TOOLS
@@ -39,6 +40,7 @@ ALL_TOOLS: list[BaseTool] = [
     *PYTHON_TOOLS,
     *FIELDS_TOOLS,
     *TABLES_TOOLS,
+    *SQL_TOOLS,
     *CHARTS_TOOLS,
     *PLUGINS_TOOLS,
 ]

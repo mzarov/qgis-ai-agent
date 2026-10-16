@@ -58,6 +58,7 @@ NAMES = {
     "annotations": "sticky-note",
     "three_d": "box",
     "tables": "table",
+    "sql": "database",
     "charts": "chart-column",
     "plugins": "puzzle",
     "knowledge": "book-open",

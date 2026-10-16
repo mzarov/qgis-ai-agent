@@ -264,6 +264,25 @@
  {
   "depth": 4,
   "type": "QLabel",
+  "text": "/sql"
+ },
+ {
+  "depth": 4,
+  "type": "ElidedLabel",
+  "text": "SQL across your layers: joins, grouping, live query layers"
+ },
+ {
+  "depth": 3,
+  "type": "SkillRow",
+  "name": "skillRow"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel"
+ },
+ {
+  "depth": 4,
+  "type": "QLabel",
   "text": "/style"
  },
  {
@@ -384,24 +403,5 @@
   "depth": 4,
   "type": "ElidedLabel",
   "text": "Your other plugins: their algorithms and menu commands"
- },
- {
-  "depth": 3,
-  "type": "SkillRow",
-  "name": "skillRow"
- },
- {
-  "depth": 4,
-  "type": "QLabel"
- },
- {
-  "depth": 4,
-  "type": "QLabel",
-  "text": "/processing"
- },
- {
-  "depth": 4,
-  "type": "ElidedLabel",
-  "text": "Geoprocessing: buffers, clipping, overlays, joins and more"
  }
 ]

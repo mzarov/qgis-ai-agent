@@ -13,7 +13,7 @@ confirms them.
 **Documentation:** <https://mzarov.github.io/qgis-ai-agent/> ·
 по-русски: <https://mzarov.github.io/qgis-ai-agent/ru/>
 
-**What it does** — seventeen domains, 83 tools:
+**What it does** — eighteen domains, 85 tools:
 
 | Domain | Example requests |
 | --- | --- |
@@ -32,6 +32,7 @@ confirms them.
 | `annotations` | “mark this place”, “add a note to the map”, “remove that annotation” |
 | `three_d` | “open a 3D view of this project” |
 | `tables` | “join this CSV to the districts by code”, “make points from this CSV with lon/lat” |
+| `sql` | “how many schools are in each district?”, “a layer of the districts with their school counts” |
 | `charts` | “chart population by district”, “histogram of the parcel areas”, “table of the ten largest towns” |
 | `plugins` | “which plugin can segment this image?”, “start the qgis2web export”, “use GeoAI on this raster” |
 
