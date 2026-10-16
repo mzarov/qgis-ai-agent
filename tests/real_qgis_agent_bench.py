@@ -42,6 +42,7 @@ class AgentBenchServerTest(unittest.TestCase):
         self.assertEqual((layers["stations"]["crs"], layers["stations"]["feature_count"]), ("EPSG:32637", 9))
         self.assertEqual(layers["dem"]["kind"], "raster")
         self.assertEqual(result["state"]["new_layers"], [])
+        self.assertEqual(layers["districts"]["symbol_opacity"], 1.0)
         self.assertEqual(problems_in(result, {"answer": "re:\\bfive\\b"}), [])
 
     def test_a_task_is_applied_and_its_outcome_read_back(self) -> None:

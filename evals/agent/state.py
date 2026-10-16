@@ -79,6 +79,11 @@ def _vector(layer: QgsVectorLayer) -> dict[str, Any]:
     renderer = layer.renderer()
     if renderer is not None:
         state["renderer"] = renderer.type()
+        symbol = renderer.symbol() if hasattr(renderer, "symbol") else None
+        if symbol is not None:
+            # A single symbol made half transparent is a half transparent layer to the eye, as the layer's
+            # own opacity is: a task about transparency accepts either.
+            state["symbol_opacity"] = round(float(symbol.opacity()), 3)
         if hasattr(renderer, "classAttribute"):
             state["class_attribute"] = renderer.classAttribute()
         if hasattr(renderer, "ranges"):

@@ -36,7 +36,9 @@
   vars:
     request: Make the districts half transparent
     expect:
-      layers: {districts: {opacity: 0.5}}
+      any_of:
+        - layers: {districts: {opacity: 0.5}}
+        - layers: {districts: {symbol_opacity: 0.5}}
 
 - description: A metric buffer on a metric layer
   vars:
