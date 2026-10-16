@@ -126,6 +126,11 @@
     request: Скачай аптеки из OSM в текущем экстенте и построй вокруг них зоны 300 м
     expect: {loads: [osm, processing]}
 
+- description: Saving steps as a reusable model is the processing skill
+  vars:
+    request: Turn the steps I just ran into a Processing model I can reuse
+    expect: {loads: [processing], not_loads: [python]}
+
 - description: A plugin question is the plugins skill
   vars:
     request: Is there a plugin for image segmentation installed?

@@ -6,16 +6,21 @@ import unittest
 from unittest.mock import patch
 
 from osgeo import gdal
+from processing.core.ProcessingConfig import ProcessingConfig
+from processing.modeler.ModelerUtils import ModelerUtils
 from qgis.core import (
+    QgsApplication,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransformContext,
     QgsFeature,
     QgsGeometry,
+    QgsProcessingContext,
     QgsProject,
     QgsRasterLayer,
     QgsVectorFileWriter,
     QgsVectorLayer,
 )
+from qgis.gui import QgsGui
 from qgis.PyQt.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer
 from qgis.PyQt.QtWidgets import QMainWindow
 
@@ -28,6 +33,7 @@ from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
 from ai_agent.qgis_tools.common.editing import edit_session
 from ai_agent.qgis_tools.common.layers import suggest_metric_crs
 from ai_agent.qgis_tools.draw.draw_features import DrawFeaturesTool
+from ai_agent.qgis_tools.processing import model_builder
 from ai_agent.qgis_tools.processing.run_processing import RunProcessingTool
 from ai_agent.qgis_tools.project.snapshots import take_snapshot
 from ai_agent.qgis_tools.registry import get_tool_by_name
@@ -35,6 +41,9 @@ from ai_agent.ui.dock_widget import AgentDockWidget
 
 BACKGROUND_WAIT_S = 120
 MANY_POINTS = 20000
+MODEL_NAME = "Buffer in UTM"
+# Two points near Moscow in degrees: the model must reproject them before a buffer in metres means anything.
+MOSCOW_POINTS = ("POINT (37.6 55.75)", "POINT (37.7 55.8)")
 
 
 class GisWorkflowsTest(unittest.TestCase):
@@ -347,6 +356,106 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertIn("0 s tool timeout", str(caught.exception))
         _queued, payload = self._run("run_processing", **arguments)
         self.assertEqual(payload["algorithm_id"], "native:buffer", "with the usual limit it runs")
+
+    def _models_folder(self):
+        """A temporary Models folder for the provider and the tool alike: a test never writes into a profile."""
+        folder = self.root / "models"
+        folder.mkdir()
+        saved = ProcessingConfig.getSetting(ModelerUtils.MODELS_FOLDER)
+        ProcessingConfig.setSettingValue(ModelerUtils.MODELS_FOLDER, str(folder))
+
+        def restore():
+            ProcessingConfig.setSettingValue(ModelerUtils.MODELS_FOLDER, saved)
+            QgsApplication.processingRegistry().providerById(model_builder.MODEL_PROVIDER_ID).refreshAlgorithms()
+
+        self.addCleanup(restore)
+        self.assertEqual(model_builder.models_folder(), str(folder))
+        return folder
+
+    def test_two_steps_become_a_model_that_runs_on_other_data(self):
+        """'Build a model from these steps': reproject to a metric CRS, then buffer by a distance input."""
+        folder = self._models_folder()
+        arguments = {
+            "name": MODEL_NAME,
+            "group": "AI Agent tests",
+            "inputs": [
+                {"name": "points", "type": "vector", "description": "Points"},
+                {"name": "distance", "type": "distance", "default": 100},
+            ],
+            "steps": [
+                {
+                    "id": "reproject",
+                    "algorithm_id": "native:reprojectlayer",
+                    "parameters": {"INPUT": {"input": "points"}, "TARGET_CRS": "EPSG:32637"},
+                },
+                {
+                    "id": "buffer",
+                    "algorithm_id": "native:buffer",
+                    "parameters": {
+                        "INPUT": {"step": "reproject", "output": "OUTPUT"},
+                        "DISTANCE": {"input": "distance"},
+                        "SEGMENTS": 8,
+                        "OUTPUT": "TEMPORARY_OUTPUT",
+                    },
+                },
+            ],
+            "outputs": [{"name": "Buffered", "step": "buffer"}],
+        }
+        queued, payload = self._run("create_processing_model", **arguments)
+        model_id = f"model:{MODEL_NAME}"
+        self.assertEqual(payload["algorithm_id"], model_id)
+        self.assertEqual(payload["path"], str(folder / f"{MODEL_NAME}.model3"))
+        self.assertTrue((folder / f"{MODEL_NAME}.model3").is_file())
+        self.assertIsNotNone(QgsApplication.processingRegistry().algorithmById(model_id))
+        tool = get_tool_by_name("create_processing_model")
+        self.assertTrue(tool.confirm_applied(queued.arguments, payload))
+
+        towns = QgsVectorLayer("Point?crs=EPSG:4326", "towns", "memory")
+        for wkt in MOSCOW_POINTS:
+            feature = QgsFeature(towns.fields())
+            feature.setGeometry(QgsGeometry.fromWkt(wkt))
+            towns.dataProvider().addFeatures([feature])
+        towns.updateExtents()
+        self.project.addMapLayer(towns)
+        self._run(
+            "run_processing",
+            algorithm_id=model_id,
+            parameters={"points": "towns", "distance": 500},
+            output_name="town buffers",
+        )
+        buffers = self.project.mapLayersByName("town buffers")[0]
+        self.assertEqual(buffers.featureCount(), len(MOSCOW_POINTS))
+        self.assertEqual(buffers.crs().authid(), "EPSG:32637")
+        for feature in buffers.getFeatures():
+            self.assertAlmostEqual(feature.geometry().area(), 3.14159 * 500**2, delta=0.02 * 3.14159 * 500**2)
+
+        batch = WriteBatch(ToolExecutor())
+        with self.assertRaisesRegex(ValueError, "already exists"):
+            batch.add(ToolCall("again", "create_processing_model", arguments))
+        replacing = batch.add(ToolCall("replace", "create_processing_model", {**arguments, "overwrite": True}))
+        self.assertEqual(tool.safety_for(replacing.arguments), SAFETY_DESTRUCTIVE)
+        broken = {**arguments, "steps": [{**arguments["steps"][1], "id": "buffer", "parameters": {}}]}
+        with self.assertRaisesRegex(ValueError, "INPUT"):
+            batch.add(ToolCall("broken", "create_processing_model", {**broken, "name": "Broken", "inputs": []}))
+
+    def test_a_run_from_the_processing_dialog_is_listed_with_its_layer_named(self):
+        """What the Processing dialog records — asMap() of the run — reads back with the project layer's name."""
+        algorithm = QgsApplication.processingRegistry().createAlgorithmById("native:buffer")
+        context = QgsProcessingContext()
+        context.setProject(self.project)
+        parameters = {"INPUT": self.layer.id(), "DISTANCE": 25, "OUTPUT": "TEMPORARY_OUTPUT"}
+        details = {"algorithm_id": algorithm.id(), "parameters": algorithm.asMap(parameters, context)}
+        entry_id, added = QgsGui.historyProviderRegistry().addEntry("processing", details)
+        self.assertTrue(added)
+        QgsGui.historyProviderRegistry().updateEntry(entry_id, {**details, "results": {"OUTPUT": self.layer.id()}})
+        payload = get_tool_by_name("list_processing_history").execute({"limit": 5})
+        self.assertTrue(payload["available"], payload)
+        latest = payload["entries"][-1]
+        self.assertEqual(latest["algorithm_id"], "native:buffer")
+        self.assertEqual(latest["parameters"]["DISTANCE"], 25)
+        self.assertEqual(latest["project_layers"], {"INPUT": "points"})
+        self.assertEqual(latest["result_layers"], {"OUTPUT": "points"})
+        self.assertTrue(latest["finished"])
 
     def test_snapshot_restores_styling_and_keeps_file_backed_features(self):
         path = self.root / "points.gpkg"

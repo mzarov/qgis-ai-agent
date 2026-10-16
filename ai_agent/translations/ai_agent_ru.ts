@@ -181,12 +181,30 @@
         </translation>
     </message>
     <message numerus="yes">
+        <location filename="ai_agent/qgis_tools/processing/list_processing_history.py" line="59"/>
+        <source>%n run(s)</source>
+        <translation>
+            <numerusform>%n запуск</numerusform>
+            <numerusform>%n запуска</numerusform>
+            <numerusform>%n запусков</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
         <location filename="ai_agent/qgis_tools/data/search_imagery.py" line="81"/>
         <source>%n scene(s)</source>
         <translation>
             <numerusform>%n сцена</numerusform>
             <numerusform>%n сцены</numerusform>
             <numerusform>%n сцен</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="ai_agent/qgis_tools/processing/create_processing_model.py" line="121"/>
+        <source>%n step(s)</source>
+        <translation>
+            <numerusform>%n шаг</numerusform>
+            <numerusform>%n шага</numerusform>
+            <numerusform>%n шагов</numerusform>
         </translation>
     </message>
     <message numerus="yes">
@@ -1325,7 +1343,7 @@
         <translation>Эксперт</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/export_layer.py" line="117"/>
+        <location filename="ai_agent/qgis_tools/project/export_layer.py" line="119"/>
         <source>Exporting layer '{0}' to {1}.</source>
         <translation>Экспортирую слой «{0}» в {1}.</translation>
     </message>
@@ -1364,7 +1382,7 @@
         <translation>Будет добавлено объектов: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="73"/>
+        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="81"/>
         <source>Features to change: {0}</source>
         <translation>Будет изменено объектов: {0}</translation>
     </message>
@@ -1379,18 +1397,23 @@
         <translation>Файл или таблица…</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/processing/create_processing_model.py" line="131"/>
+        <source>File: {0}</source>
+        <translation>Файл: {0}</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/edit/delete_features.py" line="59"/>
         <source>Filter: all, every feature is deleted</source>
         <translation>Фильтр: all — удаляются все объекты</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="144"/>
+        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="190"/>
         <source>Filter: none, every feature is changed</source>
         <translation>Фильтр не задан — меняются все объекты</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/edit/delete_features.py" line="61"/>
-        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="145"/>
+        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="191"/>
         <source>Filter: {0}</source>
         <translation>Фильтр: {0}</translation>
     </message>
@@ -1511,7 +1534,7 @@
         <translation>Немецкий</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/style/set_graduated.py" line="99"/>
+        <location filename="ai_agent/qgis_tools/style/set_graduated.py" line="105"/>
         <source>Graduating '{0}' by '{1}', classes: {2}.</source>
         <translation>Строю градации «{0}» по «{1}», классов: {2}.</translation>
     </message>
@@ -1524,6 +1547,11 @@
         <location filename="ai_agent/ui/settings_advanced.py" line="73"/>
         <source>History and journals deleted.</source>
         <translation>История и журналы удалены.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/processing/list_processing_history.py" line="58"/>
+        <source>History unavailable</source>
+        <translation>История недоступна</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/composer_controls.py" line="51"/>
@@ -1586,6 +1614,11 @@
         <translation>Имперские</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/processing/create_processing_model.py" line="148"/>
+        <source>In the Toolbox as {0}</source>
+        <translation>В панели Processing: {0}</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/personalisation_settings.py" line="25"/>
         <source>In the conversation</source>
         <translation>В разговоре</translation>
@@ -1594,6 +1627,11 @@
         <location filename="ai_agent/ui/connector_detail.py" line="24"/>
         <source>Information</source>
         <translation>Сведения</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/processing/create_processing_model.py" line="135"/>
+        <source>Inputs: {0}</source>
+        <translation>Входные данные: {0}</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/personalisation_settings.py" line="26"/>
@@ -1668,7 +1706,7 @@
     <message>
         <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="179"/>
         <location filename="ai_agent/qgis_tools/edit/delete_features.py" line="57"/>
-        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="68"/>
+        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="76"/>
         <source>Layer: {0}</source>
         <translation>Слой: {0}</translation>
     </message>
@@ -1894,6 +1932,11 @@
         <translation>Модель ответила: {0}</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/processing/create_processing_model.py" line="129"/>
+        <source>Model: {0}</source>
+        <translation>Модель: {0}</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/personalisation_settings.py" line="62"/>
         <source>Move the map to the changes</source>
         <translation>Двигать карту к изменениям</translation>
@@ -1980,7 +2023,7 @@
         <translation>Новые слои: {0}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="74"/>
+        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="82"/>
         <source>New values:</source>
         <translation>Новые значения:</translation>
     </message>
@@ -2203,12 +2246,12 @@
         <translation>Или ответьте, чтобы поправить план.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/save_project.py" line="69"/>
+        <location filename="ai_agent/qgis_tools/project/save_project.py" line="70"/>
         <source>Overwriting '{0}' with the current project.</source>
         <translation>Перезаписываю «{0}» текущим проектом.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/export_layer.py" line="116"/>
+        <location filename="ai_agent/qgis_tools/project/export_layer.py" line="118"/>
         <source>Overwriting {0} with exported layer '{1}'.</source>
         <translation>Перезаписываю {0} экспортированным слоем «{1}».</translation>
     </message>
@@ -2264,12 +2307,12 @@
         <translation>Места и границы</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/annotations/add_annotation.py" line="77"/>
+        <location filename="ai_agent/qgis_tools/annotations/add_annotation.py" line="79"/>
         <source>Placing a marker on the map.</source>
         <translation>Ставлю маркер на карту.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/annotations/add_annotation.py" line="78"/>
+        <location filename="ai_agent/qgis_tools/annotations/add_annotation.py" line="80"/>
         <source>Placing a note on the map: {0}</source>
         <translation>Ставлю заметку на карту: {0}</translation>
     </message>
@@ -2451,6 +2494,11 @@
         <translation>Смотрю файл таблицы {0}.</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/processing/list_processing_history.py" line="54"/>
+        <source>Reading the Processing history.</source>
+        <translation>Смотрю историю запусков Processing.</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/inspect/qgis_info.py" line="28"/>
         <source>Reading the QGIS version and environment.</source>
         <translation>Смотрю версию и окружение QGIS.</translation>
@@ -2626,7 +2674,7 @@
         <translation>Убираю связь {0} со слоем «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/style/set_labels.py" line="84"/>
+        <location filename="ai_agent/qgis_tools/style/set_labels.py" line="87"/>
         <source>Removing the labels from layer '{0}'.</source>
         <translation>Убираю подписи со слоя «{0}».</translation>
     </message>
@@ -2641,7 +2689,7 @@
         <translation>Переименовываю поле «{0}» в «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/inspect/render_map.py" line="53"/>
+        <location filename="ai_agent/qgis_tools/inspect/render_map.py" line="56"/>
         <source>Rendering layer '{0}' to an image.</source>
         <translation>Делаю снимок слоя «{0}».</translation>
     </message>
@@ -2651,9 +2699,14 @@
         <translation>Делаю снимок макета «{0}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/inspect/render_map.py" line="52"/>
+        <location filename="ai_agent/qgis_tools/inspect/render_map.py" line="55"/>
         <source>Rendering the map to an image.</source>
         <translation>Делаю снимок карты.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/processing/create_processing_model.py" line="125"/>
+        <source>Replace Processing model '{0}' ({1}).</source>
+        <translation>Заменить модель Processing «{0}» ({1}).</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/composer.py" line="116"/>
@@ -2806,6 +2859,11 @@
         <translation>Сохранить</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/processing/create_processing_model.py" line="126"/>
+        <source>Save Processing model '{0}' ({1}).</source>
+        <translation>Сохранить модель Processing «{0}» ({1}).</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/project/views.py" line="123"/>
         <source>Saving the current look as map theme '{0}'.</source>
         <translation>Сохраняю текущий вид как тему карты «{0}».</translation>
@@ -2816,14 +2874,19 @@
         <translation>Сохраняю текущий охват как закладку «{0}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/save_project.py" line="70"/>
+        <location filename="ai_agent/qgis_tools/project/save_project.py" line="71"/>
         <source>Saving the project as '{0}'.</source>
         <translation>Сохраняю проект как «{0}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/save_project.py" line="67"/>
+        <location filename="ai_agent/qgis_tools/project/save_project.py" line="68"/>
         <source>Saving the project.</source>
         <translation>Сохраняю проект.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/processing/create_processing_model.py" line="123"/>
+        <source>Saving the steps as a Processing model.</source>
+        <translation>Сохраняю шаги как модель Processing.</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/connector_detail.py" line="34"/>
@@ -2892,17 +2955,17 @@
         <translation>Сервис</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/style/set_opacity.py" line="51"/>
+        <location filename="ai_agent/qgis_tools/style/set_opacity.py" line="52"/>
         <source>Setting opacity of '{0}' to {1}.</source>
         <translation>Ставлю «{0}» непрозрачность {1}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/style/set_labels.py" line="82"/>
+        <location filename="ai_agent/qgis_tools/style/set_labels.py" line="85"/>
         <source>Setting up labels for '{0}'.</source>
         <translation>Настраиваю подписи «{0}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/style/set_labels.py" line="85"/>
+        <location filename="ai_agent/qgis_tools/style/set_labels.py" line="88"/>
         <source>Setting up labels for '{0}': {1}.</source>
         <translation>Настраиваю подписи «{0}»: {1}.</translation>
     </message>
@@ -3026,6 +3089,11 @@
         <location filename="ai_agent/ui/settings_advanced.py" line="81"/>
         <source>Steps per run, at most</source>
         <translation>Шагов за прогон, не больше</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/processing/create_processing_model.py" line="137"/>
+        <source>Steps:</source>
+        <translation>Шаги:</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/composer_controls.py" line="54"/>
@@ -3582,12 +3650,12 @@
         <translation>Без названия</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="86"/>
+        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="97"/>
         <source>Updating features of '{0}': {1}.</source>
         <translation>Обновляю объекты «{0}»: {1}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="85"/>
+        <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="96"/>
         <source>Updating {0} feature(s) of '{1}': {2}.</source>
         <translation>Обновляю объектов: {0} — в «{1}»: {2}.</translation>
     </message>
@@ -3843,7 +3911,7 @@
         <translation>навык</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/style/set_opacity.py" line="50"/>
+        <location filename="ai_agent/qgis_tools/style/set_opacity.py" line="51"/>
         <source>the given amount</source>
         <translation>заданную величину</translation>
     </message>
@@ -3853,7 +3921,7 @@
         <translation>заданном охвате</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/style/set_opacity.py" line="46"/>
+        <location filename="ai_agent/qgis_tools/style/set_opacity.py" line="47"/>
         <source>the layer</source>
         <translation>слою</translation>
     </message>
@@ -3876,6 +3944,11 @@
         <location filename="ai_agent/core/credentials.py" line="90"/>
         <source>unknown error</source>
         <translation>неизвестная ошибка</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/processing/create_processing_model.py" line="129"/>
+        <source>unnamed</source>
+        <translation>без имени</translation>
     </message>
     <message>
         <location filename="ai_agent/core/llm/providers.py" line="27"/>

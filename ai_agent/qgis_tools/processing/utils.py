@@ -138,7 +138,7 @@ def coerce_parameters(algorithm, arguments: dict[str, Any]) -> dict[str, Any]:
         name = parameter.name()
         param_type = str(parameter.type()).lower()
         if param_type == "enum" and name in result:
-            result[name] = _coerce_enum(parameter, result[name])
+            result[name] = coerce_enum(parameter, result[name])
         elif param_type in LAYER_PARAMETER_TYPES and name in result:
             result[name] = _coerce_layer_reference(result[name])
         elif param_type in DESTINATION_TYPES and name not in result and not is_optional(parameter):
@@ -177,7 +177,7 @@ def _coerce_layer_reference(value: Any) -> Any:
     return layer.id()
 
 
-def _coerce_enum(parameter, value: Any) -> Any:
+def coerce_enum(parameter: Any, value: Any) -> Any:
     options = parameter_options(parameter)
     if not options:
         return value
