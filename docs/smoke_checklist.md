@@ -975,7 +975,12 @@ These verify the agent solves everyday tasks without wandering through search.
      plugins can make a web map?* → the plugin is named; *start its export* →
      a destructive confirmation says it runs that plugin's code; agree → the
      plugin's window opens. A plugin with Processing algorithms (e.g. GeoAI)
-     → its algorithm runs through the plan.
+     → its algorithm runs through the plan. Without QNEAT installed: *build
+     walking isochrones from the stations* → a network confirmation for the
+     plugin search, then QNEAT proposed with its author and downloads; Apply →
+     a destructive confirmation says it installs someone else's code; agree →
+     it appears in Plugins → Manage and Install Plugins as installed and its
+     algorithms show in the Processing Toolbox.
 205. **Rewind.** *Make the rivers blue* → Apply; *now make them red* → Apply.
      Hover the second request → the curved arrow; click → three choices.
      **Conversation and project** → rivers blue again, the chat ends before

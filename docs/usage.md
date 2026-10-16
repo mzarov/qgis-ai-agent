@@ -383,14 +383,22 @@ the numbers as CSV. Charts and tables stay with the conversation and come back
 when you reopen it. They are drawn for you: the model gets only a short
 confirmation with the numbers, not the picture.
 
-## Other installed plugins
+## Other plugins
 
 The agent can use plugins you have installed. Ask “which plugin can segment
 this image?” or name one — “use GeoAI on this raster”. Algorithms a plugin
 adds to Processing run like any other step, inside the plan. A plugin's menu
 command (say, qgis2web's export) is started only after a confirmation that it
 runs that plugin's code, which the agent cannot undo; its window then opens for
-you. The agent cannot install or enable plugins.
+you.
+
+When nothing installed fits — “build 15-minute walking isochrones”, say — the
+agent searches the official QGIS plugin repository, the list the Plugin Manager
+shows, and proposes one plugin with its author and download count. Searching
+contacts plugins.qgis.org and asks first. Installing is confirmed on its own:
+it downloads the plugin and runs code that is not part of AI Agent, which undo
+cannot remove — uninstall it in **Plugins → Manage and Install Plugins**. A
+plugin that is installed but switched off is switched on the same way.
 
 ## When a run stops or fails
 

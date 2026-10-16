@@ -137,7 +137,9 @@ contact services such as Overpass, tile servers, WMS/WFS endpoints or databases
 selected by the user. The open-data tools contact the Microsoft Planetary
 Computer (scene search sends the search rectangle and dates; loaded imagery is
 read from its Azure storage through a short-lived signed link), GitHub (Natural
-Earth and geoBoundaries files) and the geoBoundaries API (the country code). Web map services from the
+Earth and geoBoundaries files) and the geoBoundaries API (the country code). Searching for a plugin
+and installing one contact plugins.qgis.org: the list of plugins for this QGIS version and the chosen
+plugin's archive; nothing about the project is sent. Web map services from the
 catalogue are drawn from their providers' servers, which receive the map
 extents being drawn: NASA GIBS, EOX, GEBCO, OpenTopoMap, IGN France
 (data.geopf.fr), PDOK, swisstopo, USGS and Geoscience Australia. Any of these

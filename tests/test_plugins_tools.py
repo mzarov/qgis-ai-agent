@@ -129,3 +129,147 @@ class DiscoveryTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+ORS = {
+    "key": "ORStools",
+    "name": "ORS Tools",
+    "version": "2.2.0",
+    "description": "openrouteservice routing, isochrones and matrix calculations for QGIS",
+    "about": "",
+    "tags": ["isochrones", "route", "openrouteservice"],
+    "author": "HeiGIT gGmbH",
+    "downloads": 415495,
+    "experimental": False,
+    "deprecated": False,
+    "trusted": True,
+    "homepage": "",
+    "download_url": "https://plugins.qgis.org/plugins/ORStools/version/2.2.0/download/",
+}
+QNEAT = {
+    **ORS,
+    "key": "QNEAT",
+    "name": "QNEAT",
+    "description": "QGIS Network Analysis Toolbox",
+    "tags": ["network analysis", "isochrones"],
+    "downloads": 786,
+}
+OLD = {**ORS, "key": "OldRoute", "name": "Old Route", "deprecated": True, "downloads": 10**7}
+
+
+def plugin_zip(files):
+    import io
+    import zipfile
+
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        for name, text in files.items():
+            archive.writestr(name, text)
+    return buffer.getvalue()
+
+
+class RepositoryTest(unittest.TestCase):
+    def setUp(self):
+        from ai_agent.qgis_tools.plugins import repository
+
+        self.repository = repository
+        self.addCleanup(repository._CACHE.update, {"entries": None, "fetched": 0.0})
+
+    def test_the_package_key_is_the_zip_name_without_its_version(self):
+        self.assertEqual(self.repository.plugin_key("ORStools.2.2.0.zip", "2.2.0"), "ORStools")
+        self.assertEqual(self.repository.plugin_key("qgis2web.3.24.0.zip", "3.24.0"), "qgis2web")
+        self.assertEqual(self.repository.plugin_key("Weird.zip", ""), "Weird")
+
+    def test_search_ranks_by_fit_then_downloads_and_hides_deprecated(self):
+        from ai_agent.qgis_tools.plugins import find_plugin
+
+        self.repository.remember([QNEAT, ORS, OLD])
+        with (
+            mock.patch.object(find_plugin, "installed_plugins", return_value={"QNEAT"}),
+            mock.patch.object(find_plugin, "active_plugins", return_value=[]),
+        ):
+            found = find_plugin.FindPluginTool().execute({"query": "isochrones"})["plugins"]
+        self.assertEqual([plugin["plugin"] for plugin in found], ["ORStools", "QNEAT"])
+        self.assertEqual((found[1]["installed"], found[1]["active"]), (True, False))
+
+    def test_an_empty_query_is_refused(self):
+        from ai_agent.qgis_tools.plugins import find_plugin
+
+        with self.assertRaisesRegex(ValueError, "query="):
+            find_plugin.FindPluginTool().execute({"query": "  "})
+
+    def test_a_zip_with_one_folder_is_unpacked_and_a_traversal_is_refused(self):
+        import os
+        import tempfile
+
+        folder = tempfile.mkdtemp()
+        key = self.repository.unpacked(plugin_zip({"demo/__init__.py": "", "demo/metadata.txt": "[general]"}), folder)
+        self.assertEqual(key, "demo")
+        self.assertTrue(os.path.isfile(os.path.join(folder, "demo", "metadata.txt")))
+        for files in ({"../evil.py": ""}, {"one/a.py": "", "two/b.py": ""}, {"/abs/a.py": ""}):
+            with self.subTest(files), self.assertRaisesRegex(ValueError, "one plugin folder"):
+                self.repository.unpacked(plugin_zip(files), folder)
+        with self.assertRaisesRegex(ValueError, "already exists"):
+            self.repository.unpacked(plugin_zip({"demo/__init__.py": ""}), folder)
+        with self.assertRaisesRegex(ValueError, "not a zip"):
+            self.repository.unpacked(b"<html>", folder)
+
+
+class InstallPluginTest(unittest.TestCase):
+    def setUp(self):
+        from ai_agent.qgis_tools.plugins import install_plugin, repository
+
+        self.module = install_plugin
+        self.tool = install_plugin.InstallPluginTool()
+        repository.remember([ORS, QNEAT, OLD])
+        self.addCleanup(repository._CACHE.update, {"entries": None, "fetched": 0.0})
+
+    def prepared(self, plugin, installed=(), active=()):
+        with (
+            mock.patch.object(self.module, "installed_plugins", return_value=set(installed)),
+            mock.patch.object(self.module, "active_plugins", return_value=list(active)),
+        ):
+            return self.tool.prepare({"plugin": plugin})
+
+    def test_install_needs_the_repository_list_first(self):
+        from ai_agent.qgis_tools.plugins import repository
+
+        repository._CACHE.update({"entries": None, "fetched": 0.0})
+        with self.assertRaisesRegex(ValueError, "find_plugin first"):
+            self.tool.prepare({"plugin": "ORStools"})
+
+    def test_a_plugin_is_found_by_key_or_name_and_carries_its_facts(self):
+        prepared = self.prepared("ors tools")
+        facts = (prepared["plugin"], prepared["version"], prepared["enable_only"])
+        self.assertEqual(facts, ("ORStools", "2.2.0", False))
+        detail = self.tool.detail_call(prepared)
+        self.assertIn("HeiGIT", detail)
+        self.assertIn("undo cannot remove it", detail)
+
+    def test_a_download_outside_the_official_repository_is_refused(self):
+        from ai_agent.qgis_tools.plugins import repository
+
+        repository.remember([{**ORS, "download_url": "http://example.com/ORStools.zip"}])
+        with self.assertRaisesRegex(ValueError, "not downloaded from plugins.qgis.org"):
+            self.prepared("ORStools")
+
+    def test_deprecated_active_and_unknown_plugins_are_refused(self):
+        with self.assertRaisesRegex(ValueError, "deprecated"):
+            self.prepared("OldRoute")
+        with self.assertRaisesRegex(ValueError, "already installed and active"):
+            self.prepared("QNEAT", installed={"QNEAT"}, active={"QNEAT"})
+        with self.assertRaisesRegex(ValueError, "No plugin 'Nope'"):
+            self.prepared("Nope")
+
+    def test_an_installed_but_switched_off_plugin_is_only_switched_on(self):
+        prepared = self.prepared("QNEAT", installed={"QNEAT"})
+        self.assertTrue(prepared["enable_only"])
+        self.assertIsNone(self.tool.start(prepared), "nothing to download")
+        enabled = []
+        with mock.patch.object(self.module, "enable", side_effect=enabled.append):
+            payload = self.tool.execute(prepared)
+        self.assertEqual((enabled, payload["enabled"]), (["QNEAT"], "QNEAT"))
+        with mock.patch.object(self.module, "active_plugins", return_value=["QNEAT"]):
+            self.assertTrue(self.tool.confirm_applied(prepared, payload))
+        with mock.patch.object(self.module, "active_plugins", return_value=[]):
+            self.assertFalse(self.tool.confirm_applied(prepared, payload))

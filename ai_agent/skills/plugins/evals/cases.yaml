@@ -26,3 +26,38 @@
     request: Что умеет плагин QuickMapServices?
     expect:
       call: [describe_plugin, list_plugins]
+
+- description: Nothing installed fits, so the repository is searched
+  vars:
+    request: I need 15-minute walking isochrones from the stations
+    reads:
+      steps:
+        - tool: list_plugins
+          args: {query: isochrones}
+          result: {plugins: [], count: 0}
+    expect:
+      call: find_plugin
+      args: {query: "re:isochron|network|routing|service area"}
+
+- description: A found plugin is proposed for install by its key
+  vars:
+    request: Install a plugin for network analysis
+    reads:
+      steps:
+        - tool: find_plugin
+          args: {query: network analysis}
+          result:
+            plugins:
+              - {plugin: QNEAT, name: QNEAT, version: "4.0", description: QGIS Network Analysis Toolbox, tags: [network analysis, isochrones], author: Clemens Raffler, downloads: 786, installed: false, active: false}
+            count: 1
+            repository: plugins.qgis.org
+    expect:
+      call: install_plugin
+      args: {plugin: QNEAT}
+
+- description: Russian — install a plugin by name
+  vars:
+    request: Поставь плагин QuickMapServices
+    expect:
+      call: [find_plugin, list_plugins]
+      not: [install_plugin]
