@@ -1,6 +1,10 @@
+from contextlib import suppress
 from typing import Any
 
-from qgis.core import QgsProject
+from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject
+
+WGS84 = "EPSG:4326"
+COORD_DECIMALS = 6
 
 
 def annotation_layer() -> Any:
@@ -11,10 +15,18 @@ def annotation_layer() -> Any:
 
 
 def list_items() -> list[dict[str, Any]]:
+    """Each item's id, kind, text and place in lon/lat: a model checking a note's position needs no Python."""
     layer = annotation_layer()
+    to_wgs84 = _to_wgs84()
     described = []
     for item_id, item in (layer.items() or {}).items():
-        described.append({"id": str(item_id), "kind": type(item).__name__, "text": _text_of(item)})
+        entry: dict[str, Any] = {"id": str(item_id), "kind": type(item).__name__, "text": item_text(item)}
+        with suppress(Exception):
+            centre = item.boundingBox().center()
+            if to_wgs84 is not None:
+                centre = to_wgs84.transform(centre)
+            entry["lon"], entry["lat"] = round(centre.x(), COORD_DECIMALS), round(centre.y(), COORD_DECIMALS)
+        described.append(entry)
     return described
 
 
@@ -30,8 +42,17 @@ def remove_item(item_id: str) -> None:
     annotation_layer().removeItem(item_id)
 
 
-def _text_of(item: Any) -> str:
+def item_text(item: Any) -> str:
     try:
         return str(item.text())
     except Exception:
         return ""
+
+
+def _to_wgs84() -> Any:
+    """Items sit in the project CRS; None when that is already lon/lat or unknown."""
+    project = QgsProject.instance()
+    crs = project.crs()
+    if not crs.isValid() or crs.authid() == WGS84:
+        return None
+    return QgsCoordinateTransform(crs, QgsCoordinateReferenceSystem(WGS84), project)

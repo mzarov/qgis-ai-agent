@@ -3,6 +3,7 @@ from qgis.PyQt.QtCore import QObject, pyqtSignal
 
 from ai_agent.config import limits
 from ai_agent.core.agent import notices
+from ai_agent.core.agent.announcements import announces_a_step
 from ai_agent.core.agent.auto_apply import applies_itself
 from ai_agent.core.agent.batch import WriteBatch
 from ai_agent.core.agent.batch_apply import BatchApplyMixin
@@ -76,6 +77,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._overrides: dict = {}
         self._protocol_retried = False
         self._nudged = False
+        self._tools_called = False
         self._aborted = False
         self._is_verification = False
         self._budget = TokenBudget()
@@ -188,6 +190,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._iteration = 0
         self._protocol_retried = False
         self._nudged = False
+        self._tools_called = False
         self._aborted = False
         self._overrides = build_overrides()
         self.busy_changed.emit(True)
@@ -342,7 +345,9 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         if not self._is_current(generation):
             return
         self._transcript.add_turn(turn)
-        if not turn.tool_calls and self._nudge_once(turn, generation):
+        if turn.tool_calls:
+            self._tools_called = True
+        elif self._nudge_once(turn, generation):
             return
         if turn.tool_calls and turn.finish_reason in notices.TRUNCATED_REASONS:
             self._transcript.add_results(
@@ -376,16 +381,22 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
             self._request_step()
 
     def _nudge_once(self, turn: ModelTurn, generation: int) -> bool:
-        """Give a cut-off or empty final reply one more turn instead of ending the run."""
+        """Give a cut-off, empty or merely announcing final reply one more turn instead of ending the run."""
         truncated = turn.finish_reason in notices.TRUNCATED_REASONS
-        if self._nudged or not (truncated or not turn.text.strip()):
+        text = turn.text.strip()
+        announced = not self._tools_called and announces_a_step(text)
+        if self._nudged or not (truncated or not text or announced):
             return False
         self._nudged = True
-        if turn.text.strip():
+        if text:
             self.preamble.emit(turn.text)
             if not self._is_current(generation):
                 return True
-        self._transcript.add_user(notices.CONTINUE_TRUNCATED if truncated else notices.EMPTY_REPLY)
+        if truncated:
+            note = notices.CONTINUE_TRUNCATED
+        else:
+            note = notices.ANNOUNCED_STEP if text else notices.EMPTY_REPLY
+        self._transcript.add_user(note)
         self._request_step()
         return True
 

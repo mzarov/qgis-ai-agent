@@ -257,7 +257,12 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     by tool and error within a run; the second identical one carries a note in
     its result telling the model to change course or tell the user. A prompt
     rule alone did not stop a model retrying a refused export five times.
-22. **Imports** — all at the top, absolute. Use concise contract docstrings and
+22. **A final reply gets one nudge at most** when it is cut off, empty, or —
+    before any tool was called in the run — only announces its next step
+    (`agent/announcements.py`: "I'll load the export tool." with no call;
+    English phrasing only, as the source stays English).
+    After real work a short reply is an answer or an offer, never nudged.
+23. **Imports** — all at the top, absolute. Use concise contract docstrings and
     comments for non-obvious reasons — see the root CLAUDE.md.
 
 ## What lives where
@@ -268,6 +273,7 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `agent/turn_thread.py`   | background-thread ownership: start, detach, stop    |
 | `agent/notices.py`       | the texts the loop hands outwards                   |
 | `agent/repeats.py`       | the same failure twice in a run: a note to change course |
+| `agent/announcements.py` | a first reply that only announces its next step       |
 | `agent/run_journal.py`   | the optional Markdown record of one run, with each model request's tokens and seconds |
 | `agent/budget.py`        | run tokens vs the Settings budget, usage split      |
 | `agent/verification.py`  | what the check after Apply starts with, and the round cap |

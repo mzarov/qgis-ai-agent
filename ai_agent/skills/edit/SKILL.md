@@ -31,10 +31,12 @@ matches with `query_layer` first.
 
 ## update_attributes
 
-Sets fields to **constant** values on every feature matching the filter:
-`{"type": "park"}`. It does not evaluate expressions — for a computed value
-(`upper(name)`, `$area`) use `native:fieldcalculator` from the processing
-skill, which writes a new layer instead of touching the source.
+Sets fields on every feature matching the filter, in place: `values` holds
+constants (`{"type": "park"}`), `expressions` a QGIS expression computed per
+feature (`{"name_upper": "upper(name)", "area_ha": "$area / 10000"}`).
+`$area` and `$length` measure as a virtual field does, on the project
+ellipsoid. A field must exist when the step is queued: a column added in the
+same run needs `apply_now` before it can be filled.
 
 All fields go in one call. Without a filter it touches every feature — pass one
 whenever the request allows.

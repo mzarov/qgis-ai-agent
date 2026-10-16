@@ -159,6 +159,22 @@ class UpdateAttributesTest(EditTestBase):
     def test_empty_values_are_rejected(self):
         with self.assertRaises(ValueError):
             self.tool.prepare({"layer_name": "Дороги", "values": {}})
+        with self.assertRaisesRegex(ValueError, "or expressions"):
+            self.tool.prepare({"layer_name": "Дороги", "values": {}, "expressions": {}})
+
+    def test_a_field_is_set_either_to_a_constant_or_to_an_expression(self):
+        with self.assertRaisesRegex(ValueError, "both values and expressions"):
+            self.tool.prepare({"layer_name": "Дороги", "values": {"type": "x"}, "expressions": {"type": "upper(name)"}})
+
+    def test_a_field_not_applied_yet_points_to_apply_now(self):
+        # A model added the column in the same run, then had nothing to fill it with but run_python.
+        with self.assertRaisesRegex(ValueError, "area_ha.*apply_now"):
+            self.tool.prepare({"layer_name": "Дороги", "expressions": {"area_ha": "$area / 10000"}})
+
+    def test_detail_and_summary_name_computed_fields(self):
+        params = {"layer_name": "Дороги", "expressions": {"type": "upper(name)"}, "matched_estimate": 2}
+        self.assertIn("type = upper(name)", self.tool.detail_call(params))
+        self.assertIn("type", self.tool.summarize_call(params))
 
     def test_prepare_counts_the_matches(self):
         prepared = self.tool.prepare({"layer_name": "Дороги", "values": {"type": "new"}})

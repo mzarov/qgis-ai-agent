@@ -7,7 +7,7 @@ from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, SAFETY_WRITE,
 
 class ListAnnotationsTool(BaseTool):
     name = "list_annotations"
-    description = "List the annotations on the map with their ids, kinds and texts."
+    description = "List the annotations on the map with their ids, kinds, texts and positions in lon/lat."
     skill = "annotations"
     safety = SAFETY_READ
     egress = EGRESS_METADATA

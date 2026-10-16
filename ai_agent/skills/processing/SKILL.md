@@ -97,7 +97,10 @@ somewhere else entirely. `search_processing("area")` returns
 
 Area, length, perimeter and coordinates are **expressions**, not algorithms:
 
-- to compute and store in a field — `native:fieldcalculator` with `FORMULA`
+- to keep it in the layer itself — a virtual field (`add_field` with an
+  expression, fields skill), or values written into an existing column
+  (`update_attributes` with `expressions`, edit skill)
+- to get a new layer that carries it — `native:fieldcalculator` with `FORMULA`
 - to just read the value, changing nothing — `query_layer` from the `inspect` skill
 
 | Wanted | Expression |
