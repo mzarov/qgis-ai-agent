@@ -296,7 +296,7 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `llm/dialects.py`        | dialect detection from the address, paths, headers  |
 | `llm/anthropic.py`       | messages and tool schemas in the Anthropic format   |
 | `llm/client.py`          | the HTTP layer, URL/key/header resolution           |
-| `llm/probe.py`           | the connection check for the settings dialog        |
+| `llm/probe.py`           | the connection check and the picture check for the settings dialog |
 | `llm/providers.py`       | provider presets for the settings dialog            |
 | `llm/context_window.py`  | the model's window: setting, detected, guessed; the 90 % mark |
 | `credentials.py`         | API keys in the QGIS authentication database        |

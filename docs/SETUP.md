@@ -44,6 +44,10 @@ press the gear icon:
 
 The **Test connection** button sends one short request and shows the model's
 reply — proof that the URL, the key and the model name agree with each other.
+It then asks the model to name the two colours of a small picture. Some
+endpoints accept a picture and drop it before the model; when the model cannot
+name them, the plugin remembers it and the agent checks the map by reading the
+data instead of rendering it. Test once after switching to a new model.
 
 Sending a request shares your prompt, project metadata and whatever the agent's
 tools read — attribute values, extents, styles, Processing results, rendered

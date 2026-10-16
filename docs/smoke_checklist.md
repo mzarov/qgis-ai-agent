@@ -610,6 +610,9 @@ These verify the agent solves everyday tasks without wandering through search.
 93. **A blind endpoint degrades gracefully.** Same question on a model without
     vision → the first request is retried without the image, the run finishes
     with a text note instead of an error, and later runs skip images at once.
+    Test connection on a text-only model that accepts images (DeepSeek through
+    an OpenAI-compatible gateway) → the result adds "This model does not see
+    pictures…", and the next run offers no render_map.
 94. **Verification runs after Apply.** “Make the rivers blue” → Apply → the
     status line reads “Checking the changes…”, describe_style or render_map
     gather under their own “Checking the changes · step N” trace (folding to

@@ -4,12 +4,13 @@ from qgis.core import QgsFeedback
 from qgis.PyQt.QtCore import QThread, pyqtSignal
 
 from ai_agent.core.llm.context_window import detect
-from ai_agent.core.llm.probe import probe
+from ai_agent.core.llm.probe import probe, sees_images
 
 
 class ProbeThread(QThread):
     completed = pyqtSignal(bool, str)
     window_found = pyqtSignal(int)
+    images_checked = pyqtSignal(bool)
 
     def __init__(self, overrides: dict[str, Any], parent: Any = None):
         super().__init__(parent)
@@ -23,12 +24,18 @@ class ProbeThread(QThread):
         self._feedback.cancel()
 
     def run(self) -> None:
-        ok, message = probe({**self._overrides, "feedback_override": self._feedback})
+        overrides = {**self._overrides, "feedback_override": self._feedback}
+        ok, message = probe(overrides)
         if self._cancelled:
             return
         self.completed.emit(ok, message)
-        if ok:
-            # A model that answers is worth asking how much it can read; stored on the main thread.
-            window = detect({**self._overrides, "feedback_override": self._feedback})
-            if window and not self._cancelled:
-                self.window_found.emit(window)
+        if not ok:
+            return
+        # A model that answers is worth asking how much it can read and whether it sees a picture. Both
+        # are stored on the main thread, after `completed` has reset what was known about the model.
+        window = detect(overrides)
+        if window and not self._cancelled:
+            self.window_found.emit(window)
+        sees = None if self._cancelled else sees_images(overrides)
+        if sees is not None and not self._cancelled:
+            self.images_checked.emit(sees)

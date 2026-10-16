@@ -431,10 +431,65 @@ class ProbeTest(unittest.TestCase):
         self.assertEqual(seen["timeout"], 60)
 
 
+class ImageProbeTest(unittest.TestCase):
+    """Whether the model sees a picture: an endpoint can take one and drop it before the model."""
+
+    def _replying(self, text, seen=None):
+        def fake(messages, schemas, overrides=None, timeout=0):
+            if seen is not None:
+                seen.extend(messages)
+            return transport.ModelTurn(text=text)
+
+        saved = transport.call_model
+        transport.call_model = fake
+        self.addCleanup(lambda: setattr(transport, "call_model", saved))
+
+    def test_naming_both_colours_means_it_sees(self):
+        seen = []
+        self._replying("Green, yellow.", seen)
+        self.assertTrue(settings_probe.sees_images({}))
+        blocks = seen[0]["content"]
+        self.assertEqual([block["type"] for block in blocks], ["text", "image_url"])
+        self.assertTrue(blocks[1]["image_url"]["url"].startswith("data:image/png;base64,"))
+
+    def test_a_model_without_the_picture_does_not(self):
+        for reply in ("I can't see any image.", "Red and blue", "green"):
+            with self.subTest(reply):
+                self._replying(reply)
+                self.assertFalse(settings_probe.sees_images({}))
+
+    def test_a_failed_request_tells_nothing(self):
+        def broken(*args, **kwargs):
+            raise TimeoutError()
+
+        saved = transport.call_model
+        transport.call_model = broken
+        self.addCleanup(lambda: setattr(transport, "call_model", saved))
+        self.assertIsNone(settings_probe.sees_images({}))
+
+    def test_the_picture_is_a_real_png_with_its_two_halves(self):
+        import struct
+        import zlib
+
+        data = settings_probe.two_halves_png((4, 2), (0, 160, 0), (255, 255, 0))
+        self.assertTrue(data.startswith(settings_probe.PNG_SIGNATURE))
+        width, height = struct.unpack(">II", data[16:24])
+        self.assertEqual((width, height), (4, 2))
+        start = data.index(b"IDAT") + 4
+        length = struct.unpack(">I", data[start - 8 : start - 4])[0]
+        rows = zlib.decompress(data[start : start + length])
+        self.assertEqual(rows[:13], b"\x00" + bytes((0, 160, 0)) * 2 + bytes((255, 255, 0)) * 2)
+
+
 class ProbeWorkerTest(unittest.TestCase):
     def setUp(self):
         self.saved_probe = probe_worker.probe
         self.addCleanup(lambda: setattr(probe_worker, "probe", self.saved_probe))
+        for name in ("detect", "sees_images"):
+            saved = getattr(probe_worker, name)
+            self.addCleanup(setattr, probe_worker, name, saved)
+        probe_worker.detect = lambda overrides: 0
+        probe_worker.sees_images = lambda overrides: None
 
     def test_feedback_reaches_the_probe_and_the_result_is_emitted(self):
         seen = {}
@@ -445,6 +500,29 @@ class ProbeWorkerTest(unittest.TestCase):
         worker.run()
         self.assertIn("feedback_override", seen)
         self.assertEqual(completed, [(True, "ok")])
+
+    def test_a_connected_model_is_asked_about_a_picture(self):
+        probe_worker.probe = lambda overrides: (True, "ok")
+        probe_worker.sees_images = lambda overrides: False
+        checked = []
+        worker = probe_worker.ProbeThread({})
+        worker.images_checked.connect(checked.append)
+        worker.run()
+        self.assertEqual(checked, [False])
+
+    def test_no_answer_about_the_picture_changes_nothing(self):
+        probe_worker.probe = lambda overrides: (True, "ok")
+        checked = []
+        worker = probe_worker.ProbeThread({})
+        worker.images_checked.connect(checked.append)
+        worker.run()
+        self.assertEqual(checked, [], "a failed picture request keeps what was known")
+
+    def test_a_failed_connection_asks_nothing_more(self):
+        probe_worker.probe = lambda overrides: (False, "refused")
+        probe_worker.sees_images = lambda overrides: self.fail("asked about a picture after a failure")
+        worker = probe_worker.ProbeThread({})
+        worker.run()
 
     def test_cancelled_probe_does_not_update_the_dialog(self):
         probe_worker.probe = lambda overrides: (True, "late")
