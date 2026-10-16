@@ -65,6 +65,8 @@ NAMES = {
     "sparkles": "sparkles",
     "check": "check",
     "image": "image",
+    "point": "map-pin",
+    "area": "square-dashed",
     "measure": "square-dashed",
     "search": "search",
 }

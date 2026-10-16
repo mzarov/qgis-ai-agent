@@ -232,6 +232,15 @@ type, ↑↓ or the mouse choose, Tab or Enter insert. The layer name goes into 
 request exactly as QGIS knows it — `@rivers`, or `@"Main roads"` when the name
 has spaces — so the agent does not have to guess which layer you meant.
 
+## Places on the map
+
+**+ → Point on the map…** or **Area on the map…** hands the map a one-time
+tool: click a point, or drag a rectangle, and the place goes into the request
+at the cursor as `@point(lon, lat)` or `@area(west, south, east, north)` in
+degrees — “buffer 500 m around @point(37.62080, 55.75390)”, “download the
+cafes in @area(…)”. The map gets its previous tool back afterwards; Esc in the
+chat box, or picking another tool in QGIS, gives the pick up.
+
 ## Attaching files
 
 The **+** under the chat box, or dropping files onto it, attaches them.

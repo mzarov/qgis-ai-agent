@@ -8,6 +8,7 @@ from qgis.PyQt.QtWidgets import QAction, QDialog
 
 from ai_agent import i18n
 from ai_agent.config import personal
+from ai_agent.core.orchestrator.map_pick import MapPicker
 from ai_agent.core.orchestrator.orchestrator import CoreOrchestrator
 from ai_agent.i18n import tr
 from ai_agent.ui import theme
@@ -27,6 +28,7 @@ class QgisAiAgentPlugin:
         self.dock_widget = None
         self.menu_action = None
         self._orchestrator = None
+        self._picker: MapPicker | None = None
         self._project_sync_pending = False
         self._project_reset_pending = False
 
@@ -42,6 +44,10 @@ class QgisAiAgentPlugin:
     def unload(self) -> None:
         self._disconnect_project_lifecycle()
         self._follow_active_layer(False)
+        if self._picker is not None:
+            # A pick still waiting on the map gives the canvas its tool back before the plugin goes.
+            self._picker.cancel()
+            self._picker = None
         if self._orchestrator:
             self._orchestrator.shutdown()
         self._orchestrator = None
@@ -67,6 +73,10 @@ class QgisAiAgentPlugin:
     def _build(self) -> None:
         self.dock_widget = AgentDockWidget(self.iface.mainWindow())
         self._orchestrator = CoreOrchestrator(self.iface, self.dock_widget)
+        # One picker for the plugin's life: a rebuilt panel finds it through these two slots.
+        self._picker = MapPicker(self.iface)
+        self._picker.picked.connect(self._on_place_picked)
+        self._picker.ended.connect(self._on_place_ended)
         self._connect_dock()
 
     def _connect_dock(self) -> None:
@@ -87,6 +97,17 @@ class QgisAiAgentPlugin:
         self.dock_widget.session_renamed.connect(self._orchestrator.on_session_renamed)
         self.dock_widget.session_deleted.connect(self._orchestrator.on_session_deleted)
         self.dock_widget.open_settings_clicked.connect(self._on_open_settings)
+        if self._picker is not None:
+            self.dock_widget.place_requested.connect(self._picker.start)
+            self.dock_widget.place_cancelled.connect(self._picker.cancel)
+
+    def _on_place_picked(self, text: str) -> None:
+        if self.dock_widget is not None:
+            self.dock_widget.insert_place(text)
+
+    def _on_place_ended(self) -> None:
+        if self.dock_widget is not None:
+            self.dock_widget.end_place()
 
     def _icon(self) -> QIcon:
         icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ICON_FILENAME)

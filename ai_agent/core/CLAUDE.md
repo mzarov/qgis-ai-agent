@@ -310,6 +310,7 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `attachments.py`         | attached files: data added as layers at once (the user's own act, not a queued write), pictures encoded for the request |
 | `orchestrator/compacting.py` | the context meter and compaction before a request or by hand |
 | `orchestrator/attaching.py` | attachments in the chat: mentions, waiting pictures, a blind model told so |
+| `orchestrator/map_pick.py` | a point or area picked on the map, as `@point(…)`/`@area(…)` text for the request |
 | `orchestrator/slash.py`  | `/skill` parsing and the skill list for the composer |
 | `orchestrator/orchestrator.py` | UI-to-loop wiring: prompts, stop, interjections, the conversation's title, the active layer's chip and its @mention in a new request; the mixins below |
 | `orchestrator/sessions.py` | new conversation (and the note that the old one is saved), a past one, rename, delete, what a switch cancels |
