@@ -182,6 +182,24 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual(result["fields"], ["area_ha"])
         self.assertAlmostEqual(next(cell.getFeatures())["area_ha"], 2801.9, delta=1.0)
 
+    def test_a_count_from_another_layer_is_a_virtual_field(self):
+        """The aggregate over @parent the fields skill gives; its all-attributes marker was once refused."""
+        district = QgsVectorLayer("Polygon?crs=EPSG:4326&field=name:string", "districts", "memory")
+        feature = QgsFeature(district.fields())
+        feature.setGeometry(QgsGeometry.fromWkt("POLYGON ((37 55, 38 55, 38 56, 37 56, 37 55))"))
+        district.dataProvider().addFeatures([feature])
+        schools = QgsVectorLayer("Point?crs=EPSG:4326", "schools", "memory")
+        points = []
+        for x in (37.5, 37.6, 39.0):
+            point = QgsFeature(schools.fields())
+            point.setGeometry(QgsGeometry.fromWkt(f"POINT ({x} 55.5)"))
+            points.append(point)
+        schools.dataProvider().addFeatures(points)
+        self.project.addMapLayers([district, schools])
+        expression = "aggregate('schools', 'count', $id, intersects($geometry, geometry(@parent)))"
+        self._run("add_field", layer_name="districts", name="schools_n", expression=expression)
+        self.assertEqual(next(district.getFeatures())["schools_n"], 2)
+
     def test_symbol_changes_are_visible_in_the_actual_renderer(self):
         self._run("set_symbol", layer_name=self.layer.name(), properties={"color": "#123456", "size": 4})
         symbol = self.layer.renderer().symbol()

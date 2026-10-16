@@ -29,6 +29,12 @@ field with computed values: `add_field` without an expression, `apply_now`, then
 add_field(layer_name="Districts", name="area_ha", expression="$area / 10000")
 ```
 
+A value from another layer, per feature — the schools in each district:
+`aggregate('schools', 'count', $id, intersects($geometry, geometry(@parent)))`.
+Inside `aggregate`, `$geometry` is the other layer's feature and `@parent` this
+one; the filter is an expression, never a string in quotes. For a new layer of
+the counts instead, `native:countpointsinpolygon` (processing) is the recipe.
+
 Length and area in a virtual field follow the project ellipsoid and units (the
 project context's `Measurements:` line), not the layer CRS: on a layer in degrees
 `$area` is still square metres when an ellipsoid is set. Only without one is it
