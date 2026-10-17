@@ -288,6 +288,38 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual(self.layer.featureCount(), 2)
         self.assertEqual(next(self.layer.getFeatures()).geometry().asWkt(), "Point (0 0)")
 
+    def test_a_file_output_takes_the_name_a_later_step_refers_to(self):
+        """A file output comes back as its path; the layer loaded from it still gets output_name."""
+        centres = {"INPUT": self.layer.id(), "OUTPUT": str(self.root / "centres.gpkg")}
+        zones = {"INPUT": "centres", "DISTANCE": 10, "OUTPUT": str(self.root / "zones.shp")}
+        batch = WriteBatch(ToolExecutor())
+        for algorithm_id, parameters, name in (
+            ("native:centroids", centres, "centres"),
+            ("native:buffer", zones, "zones"),
+        ):
+            batch.add(
+                ToolCall(
+                    name,
+                    "run_processing",
+                    {"algorithm_id": algorithm_id, "parameters": parameters, "output_name": name},
+                )
+            )
+        results = self._applied(batch)
+        self.assertTrue(all(result.ok for result in results), [result.payload for result in results])
+        self.assertEqual([result.payload["result_layer_name"] for result in results], ["centres", "zones"])
+        self.assertEqual(self.project.mapLayersByName("centres")[0].source(), centres["OUTPUT"])
+        self.assertEqual(self.project.mapLayersByName("zones")[0].featureCount(), 2)
+
+        tool = RunProcessingTool()
+        on_main = {
+            "algorithm_id": "native:buffer",
+            "parameters": {"INPUT": self.layer.id(), "DISTANCE": 10, "OUTPUT": str(self.root / "on_main.gpkg")},
+            "output_name": "on the main thread",
+        }
+        payload = tool.execute(tool.prepare(on_main))
+        self.assertEqual(payload["result_layer_name"], "on the main thread")
+        self.assertEqual(self.project.mapLayersByName("on the main thread")[0].featureCount(), 2)
+
     def test_a_long_algorithm_runs_off_the_main_thread_and_reports_progress(self):
         many = QgsVectorLayer("Point?crs=EPSG:3857", "many", "memory")
         features = []

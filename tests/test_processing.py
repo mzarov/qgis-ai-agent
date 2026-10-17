@@ -1,4 +1,5 @@
 import unittest
+from unittest import mock
 
 from ai_agent.qgis_tools.processing import utils
 from ai_agent.qgis_tools.processing.utils import (
@@ -93,6 +94,81 @@ class ProcessingParameterIdentityTest(unittest.TestCase):
     def test_destination_detection_uses_qgis_destination_contract(self):
         algorithm = _Algorithm(_Parameter("VECTOR", "vectorTileDestination", destination=True))
         self.assertEqual(destination_parameter_names(algorithm), ["VECTOR"])
+
+
+class _Loaded:
+    """A project layer: its id, the data source it reads and its name."""
+
+    def __init__(self, layer_id, source, name):
+        self._id, self._source, self._name = layer_id, source, name
+
+    def id(self):
+        return self._id
+
+    def source(self):
+        return self._source
+
+    def name(self):
+        return self._name
+
+    def setName(self, name):
+        self._name = name
+
+
+class _LoadedProject:
+    def __init__(self, *layers):
+        self._layers = {layer.id(): layer for layer in layers}
+
+    def mapLayers(self):
+        return dict(self._layers)
+
+    def mapLayer(self, identifier):
+        return self._layers.get(identifier)
+
+
+class OutputNameTest(unittest.TestCase):
+    """A file output comes back as its path: the name goes to the layer the run loaded from that file."""
+
+    PATH = "/data/centres.gpkg"
+
+    def setUp(self):
+        self.earlier = _Loaded("earlier-id", self.PATH, "old centres")
+        self.loaded = _Loaded("centres-id", self.PATH, "Centroids")
+        self.memory = _Loaded("buffered-id", "Polygon?crs=EPSG:3857&uid={1}", "Buffered")
+        project = _LoadedProject(self.earlier, self.loaded, self.memory)
+        self.saved = (utils.QgsProject, utils.find_layer_by_name)
+        utils.QgsProject = type("ProjectHolder", (), {"instance": staticmethod(lambda: project)})
+        utils.find_layer_by_name = _not_found
+
+    def tearDown(self):
+        utils.QgsProject, utils.find_layer_by_name = self.saved
+
+    def test_a_file_output_names_the_layer_loaded_from_it_not_an_earlier_one(self):
+        self.assertEqual(utils.apply_output_name({"OUTPUT": self.PATH}, "Desired", {"earlier-id"}), "Desired")
+        self.assertEqual((self.loaded.name(), self.earlier.name()), ("Desired", "old centres"))
+
+    def test_a_geopackage_layer_suffix_still_reads_as_the_file(self):
+        self.loaded._source = f"{self.PATH}|layername=centres"
+        self.assertIs(utils.output_layer(self.PATH, {"earlier-id"}), self.loaded)
+
+    def test_a_temporary_output_is_still_found_by_its_id(self):
+        self.assertEqual(utils.apply_output_name({"OUTPUT": "buffered-id"}, "Desired", {"earlier-id"}), "Desired")
+        self.assertEqual(self.memory.name(), "Desired")
+
+    def test_an_empty_file_output_is_warned_about_too(self):
+        with mock.patch.object(utils, "feature_count_if_cheap", return_value=0):
+            warnings = utils.empty_output_warnings({"OUTPUT": self.PATH}, {"earlier-id"})
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("'Centroids' has no features", warnings[0])
+
+    def test_a_file_no_layer_of_the_run_reads_is_not_named(self):
+        everything = {"earlier-id", "centres-id", "buffered-id"}
+        self.assertEqual(utils.apply_output_name({"OUTPUT": self.PATH}, "Desired", everything), "")
+        self.assertEqual(utils.output_layer("/data/elsewhere.gpkg"), None)
+
+
+def _not_found(name):
+    raise ValueError(f"Layer not found: '{name}'.")
 
 
 if __name__ == "__main__":
