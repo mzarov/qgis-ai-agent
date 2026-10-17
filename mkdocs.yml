@@ -56,6 +56,7 @@ plugins:
             Skill evals: Эвалы навыков
             Releasing: Выпуск версии
             Roadmap: План развития
+            Usage statistics: Статистика использования
 
 nav:
   - Home: index.md
@@ -69,3 +70,11 @@ nav:
       - Skill evals: skill_evals.md
       - Releasing: releasing.md
   - Roadmap: roadmap.md
+  - Usage statistics: usage-stats.md
+
+# The usage statistics page draws its charts with these; the script returns
+# at once on every other page.
+extra_css:
+  - assets/usage-stats.css
+extra_javascript:
+  - assets/usage-stats.js

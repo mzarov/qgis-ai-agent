@@ -1,0 +1,6 @@
+# Rendered from wrangler.toml.template at deploy time
+wrangler.toml
+deploy.log
+# Local wrangler state
+.wrangler/
+node_modules/

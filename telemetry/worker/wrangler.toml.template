@@ -1,0 +1,15 @@
+# Rendered into wrangler.toml by .github/workflows/usage-stats.yml, which
+# finds or creates the D1 database and substitutes its id below.
+name = "ai-agent-usage"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ai-agent-usage"
+database_id = "__DATABASE_ID__"
+
+# No request logs are kept: the pings are the only record.
+[observability]
+enabled = false
