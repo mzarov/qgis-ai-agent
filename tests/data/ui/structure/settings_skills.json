@@ -64,7 +64,7 @@
  {
   "depth": 3,
   "type": "QLabel",
-  "text": "17"
+  "text": "18"
  },
  {
   "depth": 2,
@@ -143,7 +143,7 @@
  {
   "depth": 5,
   "type": "QLabel",
-  "text": "Built in · 17"
+  "text": "Built in · 18"
  },
  {
   "depth": 5,
@@ -389,7 +389,7 @@
  {
   "depth": 8,
   "type": "QPushButton",
-  "text": "Show 9 more"
+  "text": "Show 10 more"
  },
  {
   "depth": 5,

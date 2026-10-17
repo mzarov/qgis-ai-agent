@@ -7,7 +7,7 @@ confirm them.
 
 ## What it does
 
-Seventeen domains, 85 tools:
+Eighteen domains, 84 tools:
 
 | Domain | Example requests |
 | --- | --- |
@@ -28,6 +28,7 @@ Seventeen domains, 85 tools:
 | `tables` | “join this CSV to the districts by code”, “make points from this CSV with lon/lat” |
 | `charts` | “chart population by district”, “histogram of the parcel areas”, “table of the ten largest towns” |
 | `plugins` | “which plugin can segment this image?”, “install a plugin for isochrones”, “start the qgis2web export” |
+| `quality` | “check my data for errors”, “are there broken geometries in the parcels?” |
 
 On a vision-capable model the agent **sees** the map: it renders the canvas or
 a print layout to an image and judges colours, labels and composition by eye.

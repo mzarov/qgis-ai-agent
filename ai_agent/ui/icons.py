@@ -60,6 +60,7 @@ NAMES = {
     "tables": "table",
     "charts": "chart-column",
     "plugins": "puzzle",
+    "quality": "shield-check",
     "knowledge": "book-open",
     "brain": "brain",
     "sparkles": "sparkles",

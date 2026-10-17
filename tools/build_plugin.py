@@ -30,6 +30,7 @@ REQUIRED_INSIDE = (
     "skills/processing/SKILL.md",
     "skills/project/SKILL.md",
     "skills/python/SKILL.md",
+    "skills/quality/SKILL.md",
     "skills/style/SKILL.md",
     "skills/tables/SKILL.md",
     "skills/three_d/SKILL.md",

@@ -136,6 +136,11 @@
     request: Is there a plugin for image segmentation installed?
     expect: {loads: [plugins]}
 
+- description: Checking data for errors is the quality skill
+  vars:
+    request: Check my data for errors
+    expect: {loads: [quality]}
+
 - description: A setting no tool covers is the python skill
   vars:
     request: Set the blend mode of the districts layer to multiply

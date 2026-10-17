@@ -1,3 +1,4 @@
+import json
 import pathlib
 import struct
 import tempfile
@@ -5,7 +6,7 @@ import time
 import unittest
 from unittest.mock import patch
 
-from osgeo import gdal
+from osgeo import gdal, osr
 from processing.core.ProcessingConfig import ProcessingConfig
 from processing.modeler.ModelerUtils import ModelerUtils
 from qgis.core import (
@@ -28,6 +29,7 @@ from ai_agent.core.agent.batch import WriteBatch
 from ai_agent.core.agent.executor import ToolExecutor
 from ai_agent.core.context.project import measurement_line
 from ai_agent.core.llm.turns import ToolCall
+from ai_agent.i18n import tr_n
 from ai_agent.plugin import QgisAiAgentPlugin
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
 from ai_agent.qgis_tools.common.editing import edit_session
@@ -36,6 +38,7 @@ from ai_agent.qgis_tools.draw.draw_features import DrawFeaturesTool
 from ai_agent.qgis_tools.processing import model_builder
 from ai_agent.qgis_tools.processing.run_processing import RunProcessingTool
 from ai_agent.qgis_tools.project.snapshots import take_snapshot
+from ai_agent.qgis_tools.quality import scan as quality_scan
 from ai_agent.qgis_tools.registry import get_tool_by_name
 from ai_agent.ui.dock_widget import AgentDockWidget
 
@@ -627,6 +630,119 @@ class GisWorkflowsTest(unittest.TestCase):
         self.project.addMapLayer(raster)
         _, result = self._run("set_raster_style", layer_name="dem", mode="gray", no_data_values=[-9999])
         self.assertEqual((result["min"], result["max"]), (1.0, 399.0))
+
+    def _shapes(self, name, uri, wkts, rows=None):
+        """A memory layer of these geometries and attribute rows; returns it with its feature ids in order."""
+        layer = QgsVectorLayer(uri, name, "memory")
+        self.assertTrue(layer.isValid())
+        features = []
+        for index, wkt in enumerate(wkts):
+            feature = QgsFeature(layer.fields())
+            feature.setGeometry(QgsGeometry.fromWkt(wkt))
+            if rows:
+                feature.setAttributes(rows[index])
+            features.append(feature)
+        self.assertTrue(layer.dataProvider().addFeatures(features)[0])
+        layer.updateExtents()
+        self.project.addMapLayer(layer)
+        return layer, [feature.id() for feature in layer.getFeatures()]
+
+    def _check(self, layer_name):
+        result = ToolExecutor().run(ToolCall("check", "check_layer", {"layer_name": layer_name}))
+        self.assertTrue(result.ok, result.payload)
+        json.dumps(result.payload, allow_nan=False)
+        return result.payload
+
+    def test_a_bow_tie_polygon_is_reported_invalid_with_its_id(self):
+        bow_tie = "POLYGON ((400000 6170000, 400010 6170010, 400010 6170000, 400000 6170010, 400000 6170000))"
+        square = "POLYGON ((400020 6170000, 400030 6170000, 400030 6170010, 400020 6170010, 400020 6170000))"
+        _, ids = self._shapes("parcels", "Polygon?crs=EPSG:32637", [bow_tie, square])
+        payload = self._check("parcels")
+        self.assertEqual(payload["problems"], {"invalid_geometry": 1})
+        (sample,) = payload["invalid_geometry"]
+        self.assertEqual(sample["id"], ids[0])
+        self.assertIn("intersection", sample["reason"].lower())
+        self.assertIn("native:fixgeometries", payload["suggestions"][0])
+
+    def test_a_repeated_geometry_is_found_whatever_its_start_vertex(self):
+        square = "POLYGON ((400000 6170000, 400010 6170000, 400010 6170010, 400000 6170010, 400000 6170000))"
+        shifted = "POLYGON ((400010 6170010, 400000 6170010, 400000 6170000, 400010 6170000, 400010 6170010))"
+        other = "POLYGON ((400020 6170000, 400030 6170000, 400030 6170010, 400020 6170000))"
+        _, ids = self._shapes("plots", "Polygon?crs=EPSG:32637", [square, other, shifted])
+        payload = self._check("plots")
+        self.assertEqual(payload["problems"], {"duplicate_geometry": 1})
+        self.assertEqual(payload["duplicate_geometry_groups"], [[ids[0], ids[2]]])
+
+    def test_a_field_without_values_is_reported_and_gaps_are_counted(self):
+        uri = "Point?crs=EPSG:32637&field=name:string&field=note:string&field=kind:string"
+        points = ["POINT (400000 6170000)", "POINT (400100 6170100)", "POINT (400200 6170200)"]
+        rows = [["a", None, "x"], ["b", None, ""], ["c", None, None]]
+        self._shapes("wells", uri, points, rows)
+        payload = self._check("wells")
+        self.assertEqual(payload["problems"], {"empty_fields": 1})
+        self.assertEqual(payload["empty_fields"], ["note"])
+        self.assertEqual(payload["missing_values"], {"kind": {"null": 1, "blank": 1}})
+        self.assertIn("delete_field", payload["suggestions"][0])
+
+    def test_metres_under_a_geographic_crs_are_suspicious(self):
+        points = ["POINT (4000000 6000000)", "POINT (4000100 6000100)"]
+        self._shapes("stations", "Point?crs=EPSG:4326", points)
+        payload = self._check("stations")
+        self.assertEqual(payload["problems"], {"suspicious_coordinates": 1})
+        self.assertEqual(payload["data_bounds"]["xmax"], 4000100.0)
+        self.assertIn("native:assignprojection", payload["suggestions"][0])
+        self.assertIn("Do not reproject", payload["suggestions"][0])
+
+    def test_a_clean_layer_reports_no_problems(self):
+        square = "POLYGON ((400000 6170000, 400010 6170000, 400010 6170010, 400000 6170010, 400000 6170000))"
+        self._shapes("clean", "Polygon?crs=EPSG:32637&field=name:string", [square], [["ok"]])
+        payload = self._check("clean")
+        self.assertEqual((payload["problems"], payload["suggestions"]), ({}, []))
+        self.assertEqual(
+            (payload["checked_features"], payload["geometry"], payload["crs"]), (1, "polygon", "EPSG:32637")
+        )
+        self.assertNotIn("partial", payload)
+        line = get_tool_by_name("check_layer").summarize_result({}, payload)
+        self.assertTrue(line.startswith(tr_n("Checked %n feature(s)", 1)), line)
+
+    def test_a_scan_past_the_cap_says_it_is_partial(self):
+        points = ["POINT (400000 6170000)", "POINT (400100 6170100)", "POINT (400200 6170200)"]
+        self._shapes("many", "Point?crs=EPSG:32637", points)
+        with patch.object(quality_scan, "MAX_FEATURES", 2):
+            payload = self._check("many")
+        self.assertEqual((payload["checked_features"], payload["partial"]), (2, True))
+        self.assertIn("of 3", payload["scan_note"])
+
+    def test_no_crs_and_a_project_in_many_crss_are_said(self):
+        layer, _ = self._shapes("lost", "Point?crs=EPSG:32637", ["POINT (400000 6170000)"])
+        layer.setCrs(QgsCoordinateReferenceSystem())
+        self._shapes("wgs", "Point?crs=EPSG:4326", ["POINT (37.6 55.7)"])
+        self._shapes("utm", "Point?crs=EPSG:32637", ["POINT (400000 6170000)"])
+        payload = self._check("lost")
+        self.assertEqual((payload["problems"], payload["crs"]), ({"invalid_crs": 1}, "unknown"))
+        self.assertIn("3 different CRSs", payload["project_crs"])
+        self.assertIn("native:reprojectlayer", payload["suggestions"][-1])
+
+    def test_a_raster_reports_its_nodata_or_its_absence(self):
+        srs = osr.SpatialReference()
+        srs.ImportFromEPSG(4326)
+        driver = gdal.GetDriverByName("GTiff")
+        for name, nodata in (("declared", -9999.0), ("bare", None)):
+            dataset = driver.Create(str(self.root / f"{name}.tif"), 4, 4, 1, gdal.GDT_Float32)
+            dataset.SetGeoTransform((37.5, 0.01, 0, 55.8, 0, -0.01))
+            dataset.SetProjection(srs.ExportToWkt())
+            dataset.GetRasterBand(1).Fill(1.0)
+            if nodata is not None:
+                dataset.GetRasterBand(1).SetNoDataValue(nodata)
+            dataset = None
+            self.project.addMapLayer(QgsRasterLayer(str(self.root / f"{name}.tif"), name))
+        declared = self._check("declared")
+        self.assertEqual((declared["kind"], declared["band_count"], declared["problems"]), ("raster", 1, {}))
+        self.assertEqual(declared["nodata_by_band"], [-9999.0])
+        self.assertNotIn("nodata_note", declared)
+        bare = self._check("bare")
+        self.assertEqual((bare["nodata_by_band"], bare["problems"]), ([None], {}))
+        self.assertIn("no_data_values", bare["suggestions"][0])
 
     def test_layout_export_produces_a_pdf_with_real_layout_items(self):
         self._run("create_layout", name="Sheet", page="a4", orientation="landscape")
