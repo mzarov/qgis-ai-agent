@@ -87,7 +87,7 @@ class SearchImageryTool(BaseTool):
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         entry = dataset(params.get("collection") or "", KIND_IMAGERY)
         bbox = region(params)
-        max_cloud = float(params.get("max_cloud") or DEFAULT_MAX_CLOUD) if entry.cloudy else None
+        max_cloud = _max_cloud(params.get("max_cloud")) if entry.cloudy else None
         limit = max(1, min(int(params.get("limit") or DEFAULT_LIMIT), MAX_LIMIT))
         scenes = search(entry.id, bbox, _dates(params), max_cloud, limit, bool(params.get("newest_first")))
         result: dict[str, Any] = {"collection": entry.id, "bbox": list(bbox), "scenes": scenes}
@@ -98,6 +98,11 @@ class SearchImageryTool(BaseTool):
                 f"load_imagery with collection={entry.id} and item_ids; default asset {entry.default_asset}"
             )
         return result
+
+
+def _max_cloud(raw: Any) -> float:
+    """The highest cloud cover in percent; 0 asks for cloud-free scenes, so only a missing value defaults."""
+    return DEFAULT_MAX_CLOUD if raw in (None, "") else float(raw)
 
 
 def _dates(params: dict[str, Any]) -> str:
