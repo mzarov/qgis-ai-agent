@@ -76,7 +76,7 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `failure_card.py` | a failed run: kind icon, title, one sentence, the server's words in monospace, Retry and Connection |
 | `legend.py`       | a restyled layer's legend under the outcome: ordered classes as one strip of 10 px cells with compact bounds, categories as swatch rows |
 | `chart_scale.py`  | axis arithmetic: round ticks, compact numbers, which bar layout fits |
-| `table_card.py`   | a table in the feed: painted rows, natural column widths, elided cells with tips, copy CSV |
+| `table_card.py`   | a table in the feed: painted rows, natural column widths, elided cells with tips, copy CSV; rows wider than the feed slide under a bar of their own |
 | `question.py`     | the agent's question card: up to three answers (the first recommended, a why after " — "), a fourth row to type one's own, number keys |
 | `progress.py`     | the status line, the feed's last row: the live compass and a few words — working (or checking the changes) with the time, a retry's countdown until the feed moves, waiting for an answer, done in N s (with what the request's apply changed), a failed apply |
 | `compass.py`      | the brand mark: open-ring compass painted on a 24-unit grid; needle rotation per state (rest, search, done, error, ask, arrive), keyframed with per-segment easing |

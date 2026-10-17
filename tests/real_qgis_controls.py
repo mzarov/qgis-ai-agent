@@ -10,9 +10,9 @@ Runs inside `real_qgis_workflows.py` against the extracted plugin ZIP.
 import unittest
 
 from e2e_harness import PluginCase, pump
-from qgis.PyQt.QtCore import QEvent, QPoint, Qt
-from qgis.PyQt.QtGui import QColor, QKeyEvent
-from qgis.PyQt.QtWidgets import QLabel, QLineEdit, QWidget
+from qgis.PyQt.QtCore import QEvent, QPoint, QPointF, Qt
+from qgis.PyQt.QtGui import QColor, QKeyEvent, QWheelEvent
+from qgis.PyQt.QtWidgets import QApplication, QLabel, QLineEdit, QScrollBar, QWidget
 
 from ai_agent.ui import compass, controls, progress, settings_fields, style
 from ai_agent.ui.activity import ActivityGroup
@@ -21,7 +21,19 @@ from ai_agent.ui.conversation import ConversationView
 from ai_agent.ui.dropdown import Dropdown
 from ai_agent.ui.messages import AssistantMessage, SystemMessage
 from ai_agent.ui.settings_dialog import SettingsDialog
+from ai_agent.ui.table_card import TableCard
 from ai_agent.ui.thinking import ThinkingBlock
+
+# A 360 px panel: ten columns (the most a table carries) cannot fit even at their narrowest.
+PANEL_WIDTH = 360
+LAST_CELL = "the last column holds a long value"
+WIDE_TABLE = {
+    "type": "table",
+    "title": "Every field of districts",
+    "columns": [f"field_{index}" for index in range(10)],
+    "rows": [[f"value {index}" for index in range(9)] + [LAST_CELL]] * 3,
+    "total": 3,
+}
 
 
 class SegmentedTest(unittest.TestCase):
@@ -206,6 +218,71 @@ class NoteColumnTest(unittest.TestCase):
         self.assertEqual(text.x(), answer.mapTo(feed, QPoint(0, 0)).x())
         view.hide()
         view.deleteLater()
+
+
+class WideTableTest(unittest.TestCase):
+    """A table wider than the feed slides under a bar of its own: its right columns were cut off, out of reach."""
+
+    def setUp(self) -> None:
+        self.view = ConversationView()
+        self.view.resize(PANEL_WIDTH, 600)
+        self.view.show()
+        self.view.add_visual(WIDE_TABLE)
+        pump(0.2)
+        self.card = self.view.widget().findChildren(TableCard)[0]
+
+    def tearDown(self) -> None:
+        self.view.hide()
+        self.view.deleteLater()
+
+    def _bar(self) -> QScrollBar:
+        bar = self.card.findChild(QScrollBar)
+        self.assertIsNotNone(bar, "a table wider than the feed has no way to show its right columns")
+        return bar
+
+    def _wheel(self, dx: int, dy: int) -> QWheelEvent:
+        at = QPointF(20, 40)
+        return QWheelEvent(
+            at,
+            QPointF(self.card.mapToGlobal(at.toPoint())),
+            QPoint(0, 0),
+            QPoint(dx, dy),
+            Qt.MouseButton.NoButton,
+            Qt.KeyboardModifier.NoModifier,
+            Qt.ScrollPhase.NoScrollPhase,
+            False,
+        )
+
+    def test_the_last_column_can_be_brought_into_view(self) -> None:
+        card = self.card
+        self.assertGreater(sum(card.column_widths(card.width())), card.width() + 1, "the table must overflow")
+        bar = self._bar()
+        self.assertTrue(bar.isVisible())
+        bar.setValue(bar.maximum())
+        card.grab()
+        boxes = [box for box, text in card._cells if text == LAST_CELL]
+        self.assertTrue(boxes, "the last column's long cell was not drawn")
+        self.assertGreaterEqual(boxes[0].left(), 0)
+        self.assertLessEqual(boxes[0].right(), card.width() + 1, "the last column is still cut off")
+        # The bar lies under the rows, inside the card: the card made room for it.
+        self.assertLessEqual(bar.geometry().bottom(), card.height())
+
+    def test_only_a_sideways_wheel_moves_the_table(self) -> None:
+        bar = self._bar()
+        upright = self._wheel(0, -120)
+        QApplication.sendEvent(self.card, upright)
+        self.assertFalse(upright.isAccepted(), "an upright wheel belongs to the feed")
+        self.assertEqual(bar.value(), 0)
+        QApplication.sendEvent(self.card, self._wheel(-120, 0))
+        self.assertGreater(bar.value(), 0, "a sideways wheel did not slide the table")
+
+    def test_a_table_that_fits_shows_no_bar(self) -> None:
+        self.view.resize(1400, 600)
+        pump(0.2)
+        bar = self._bar()
+        self.assertFalse(bar.isVisible())
+        rows = self.card._title_height() + self.card._row_height() * (len(self.card.rows) + 1)
+        self.assertLessEqual(self.card.height(), rows + 2, "the card kept room for a bar it does not show")
 
 
 class DropdownPlacementTest(unittest.TestCase):
