@@ -1,4 +1,7 @@
-"""Plain HTTPS calls to the catalogue's fixed hosts, on the QGIS network stack (proxy and SSL settings apply)."""
+"""Plain HTTPS calls to fixed hosts, the open-data catalogue and the QGIS plugin repository.
+
+They run on the QGIS network stack, so proxy and SSL settings apply.
+"""
 
 import json
 from typing import Any

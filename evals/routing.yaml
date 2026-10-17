@@ -140,3 +140,8 @@
   vars:
     request: Show the school names on the map
     expect: {loads: [style], not_loads: [annotations]}
+
+- description: Installing a plugin is the plugins skill
+  vars:
+    request: Find and install a plugin for routing and isochrones
+    expect: {loads: [plugins], not_loads: [python]}

@@ -144,7 +144,9 @@ Markdown-журнал аудита в каталог `ai_agent_runs` актив�
 открытых данных обращаются к Microsoft Planetary Computer (поиск снимков
 отправляет прямоугольник поиска и даты; загруженные снимки читаются из его
 хранилища Azure по короткоживущей подписанной ссылке), к GitHub (файлы Natural
-Earth и geoBoundaries) и к API geoBoundaries (код страны). Веб-сервисы карт из каталога
+Earth и geoBoundaries) и к API geoBoundaries (код страны). Поиск и установка плагина обращаются к
+plugins.qgis.org: за списком плагинов для этой версии QGIS и за архивом выбранного плагина; ничего о
+проекте не отправляется. Веб-сервисы карт из каталога
 рисуются с серверов их поставщиков, которые получают отображаемые охваты карты:
 NASA GIBS, EOX, GEBCO, OpenTopoMap, IGN Франция (data.geopf.fr), PDOK,
 swisstopo, USGS и Geoscience Australia. Любой из этих источников можно

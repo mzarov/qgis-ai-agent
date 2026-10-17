@@ -7,7 +7,7 @@ confirm them.
 
 ## What it does
 
-Seventeen domains, 83 tools:
+Seventeen domains, 85 tools:
 
 | Domain | Example requests |
 | --- | --- |
@@ -27,7 +27,7 @@ Seventeen domains, 83 tools:
 | `three_d` | “open a 3D view of this project” |
 | `tables` | “join this CSV to the districts by code”, “make points from this CSV with lon/lat” |
 | `charts` | “chart population by district”, “histogram of the parcel areas”, “table of the ten largest towns” |
-| `plugins` | “which plugin can segment this image?”, “start the qgis2web export”, “use GeoAI on this raster” |
+| `plugins` | “which plugin can segment this image?”, “install a plugin for isochrones”, “start the qgis2web export” |
 
 On a vision-capable model the agent **sees** the map: it renders the canvas or
 a print layout to an image and judges colours, labels and composition by eye.

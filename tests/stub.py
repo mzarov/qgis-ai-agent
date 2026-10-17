@@ -525,6 +525,7 @@ _qtcore = _mod(
         "QCoreApplication",
     ],
 )
+_mod("qgis.PyQt.QtXml", ["QDomDocument"])
 _mod(
     "qgis.PyQt.QtNetwork",
     [

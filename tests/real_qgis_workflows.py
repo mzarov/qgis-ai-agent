@@ -22,6 +22,7 @@ DEFAULT_MODULES = (
     "real_qgis_network",
     "real_qgis_e2e",
     "real_qgis_agent_bench",
+    "real_qgis_plugin_install",
     "real_qgis_controls",
     "real_qgis_visual",
 )
