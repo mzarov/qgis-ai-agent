@@ -29,6 +29,7 @@ from ai_agent.core.agent.run_failure import RUN_FAILURES
 from ai_agent.core.llm import failure_kinds, retry
 from ai_agent.core.orchestrator.notices import CHECKED_BY_READING, RUN_CHECK, STATUS_DONE, STATUS_WAITING
 from ai_agent.core.settings import get_auto_apply, set_reasoning_enabled, set_supports_images, set_work_mode
+from ai_agent.core.state.session import MAX_MESSAGES
 from ai_agent.ui import progress
 from ai_agent.ui.activity import ActivityGroup
 from ai_agent.ui.chart import ChartCard
@@ -36,7 +37,7 @@ from ai_agent.ui.composer_parts import MODES
 from ai_agent.ui.durations import format_seconds
 from ai_agent.ui.failure_card import FailureCard
 from ai_agent.ui.legend import LegendCard
-from ai_agent.ui.messages import SystemMessage
+from ai_agent.ui.messages import SystemMessage, UserMessage
 from ai_agent.ui.plan import RUNNING_MARK, PlanCard
 from ai_agent.ui.question import QuestionCard
 from ai_agent.ui.transitions import LeavingFeed
@@ -615,6 +616,60 @@ class RewindScenario(ScenarioCase):
         notes = [message.plain_text() for message in self.dock.conversation.findChildren(SystemMessage)]
         self.assertTrue(any("project is back" in note for note in notes), notes)
         self.shot("rewound")
+
+
+class LongRewindScenario(ScenarioCase):
+    """Past the message cap the head of the conversation is dropped; a rewind must still find its message."""
+
+    def rewind_from_bubble(self, text: str) -> None:
+        """Click the rewind button of the bubble saying `text`; the conversation must stop right before it."""
+        bubbles = [item for item in self.dock.conversation.findChildren(UserMessage) if item.plain_text() == text]
+        self.assertEqual(len(bubbles), 1, f"expected one bubble saying {text!r}")
+        place = bubbles[0].message
+        conversation = self.orchestrator.conversation
+        self.assertIsNotNone(place, "the bubble offers no rewind")
+        named = conversation.message_at(place) or {}
+        self.assertEqual(named.get("content"), text, "the bubble names another message")
+        bubbles[0].rewind.click()
+        pump(0.1)
+        self.assertEqual(conversation.next_place, place, "the conversation must end right before the message")
+        self.assertEqual(self.dock.composer._edit.toPlainText(), text)
+
+    def test_rewinding_from_a_bubble_after_the_cap_trimmed_the_head(self) -> None:
+        conversation = self.orchestrator.conversation
+        for number in range(MAX_MESSAGES // 2):
+            conversation.add("user", f"Earlier question {number}")
+            conversation.add("assistant", f"Earlier answer {number}")
+        self.model.script(
+            call("load_skill", names=["project"]),
+            call("configure_layer", layer_name="districts", properties={"name": "Districts A"}),
+            say("Renamed to Districts A."),
+            call("configure_layer", layer_name="Districts A", properties={"name": "Districts B"}),
+            say("Renamed to Districts B."),
+        )
+        self.ask("Rename districts to Districts A")
+        self.apply()
+        self.ask("Now rename it to Districts B")
+        self.apply()
+        self.layer("Districts B")
+        self.assertEqual(len(conversation.messages), MAX_MESSAGES, "the scenario must run past the cap")
+        self.dock.choose_rewind = lambda project_available: "both" if project_available else None
+
+        # The newest message's own bubble, drawn while the cap was dropping the head.
+        self.rewind_from_bubble("Now rename it to Districts B")
+        self.layer("Districts A")
+
+        # An earlier message's bubble, drawn again by the replay of the reopened conversation.
+        # The box is cleared first: a rewind puts its message back only into an empty one.
+        self.dock.clear_prompt()
+        identifier = conversation.session_identifier
+        self.orchestrator.on_new_session()
+        self.orchestrator.on_session_chosen(identifier)
+        pump(0.1)
+        self.rewind_from_bubble("Rename districts to Districts A")
+        self.layer("districts")
+        self.assertEqual(conversation.messages[-1]["content"], f"Earlier answer {MAX_MESSAGES // 2 - 1}")
+        self.shot("rewound_past_the_cap")
 
 
 class LayerChipScenario(ScenarioCase):

@@ -107,7 +107,10 @@ each new snapshot with the user message whose run applied it
 (`orchestrator/rewind.py`). Rewinding to a message restores the earliest
 snapshot tagged with that message or a later one and drops every later
 snapshot; the conversation side truncates the saved conversation before the
-message and puts the message back into the input box. A project read during a
+message and puts the message back into the input box. A message is named by
+its place — its index plus the messages the cap has dropped from the head
+(`Session.trimmed`) — so a long conversation losing its oldest messages moves
+neither a bubble's rewind point nor a checkpoint. A project read during a
 rewind is the same project, so the lifecycle handlers do not start a new
 conversation for it.
 

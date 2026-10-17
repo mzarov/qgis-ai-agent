@@ -20,6 +20,9 @@ class Session:
     created: float = 0.0
     updated: float = 0.0
     messages: list[dict[str, str]] = field(default_factory=list)
+    # Messages the cap dropped from the head. A message's place, `trimmed` plus its index, never changes:
+    # rewind points and checkpoints hold places, so trimming the head does not move them onto other messages.
+    trimmed: int = 0
     # Messages before `summary_index` reach the model only through `summary` (see compact()).
     summary: str = ""
     summary_index: int = 0
@@ -52,18 +55,29 @@ class Session:
         if len(self.messages) > MAX_MESSAGES:
             dropped = len(self.messages) - MAX_MESSAGES
             self.messages = self.messages[-MAX_MESSAGES:]
+            self.trimmed += dropped
             self.summary_index = max(0, self.summary_index - dropped)
         self.updated = time.time()
         if not self.title and role == "user":
             self.title = shorten(content)
 
-    def compact(self, summary: str, keep: int, upto: int | None = None) -> None:
-        """Let `summary` stand for the first `upto` messages but their last `keep`, starting at a user message.
+    @property
+    def end(self) -> int:
+        """The place the next message takes."""
+        return self.trimmed + len(self.messages)
 
-        `upto` is the length the summarised history had: messages added while the
+    def at(self, place: int) -> dict[str, str] | None:
+        """The message at `place`; None once the cap has dropped it, or past the end."""
+        index = place - self.trimmed
+        return self.messages[index] if 0 <= index < len(self.messages) else None
+
+    def compact(self, summary: str, keep: int, upto: int | None = None) -> None:
+        """Let `summary` stand for the messages before place `upto` but their last `keep`, starting at a user message.
+
+        `upto` is where the summarised history ended: messages added while the
         summary was being written stay in the window.
         """
-        covered = len(self.messages) if upto is None else min(max(0, upto), len(self.messages))
+        covered = len(self.messages) if upto is None else min(max(0, upto - self.trimmed), len(self.messages))
         start = max(0, covered - max(0, keep))
         while start < len(self.messages) and self.messages[start]["role"] != "user":
             start += 1
@@ -71,9 +85,9 @@ class Session:
         self.summary_index = start
         self.updated = time.time()
 
-    def truncate(self, index: int) -> None:
-        """Keep only the messages before `index`; a summary of anything later is dropped with them."""
-        self.messages = self.messages[: max(0, index)]
+    def truncate(self, place: int) -> None:
+        """Keep only the messages before `place`; a summary of anything later is dropped with them."""
+        self.messages = self.messages[: max(0, place - self.trimmed)]
         if self.summary_index > len(self.messages):
             self.summary = ""
             self.summary_index = 0
@@ -101,6 +115,7 @@ class Session:
             "created": self.created,
             "updated": self.updated,
             "messages": self.messages,
+            "trimmed": self.trimmed,
             "summary": self.summary,
             "summary_index": self.summary_index,
             "context_tokens": self.context_tokens,
@@ -129,6 +144,8 @@ class Session:
             created=_as_float(raw.get("created")),
             updated=_as_float(raw.get("updated")),
             messages=messages[-MAX_MESSAGES:],
+            # A file from before places were kept has no count: its messages start at place 0.
+            trimmed=_as_int(raw.get("trimmed")) + max(0, len(messages) - MAX_MESSAGES),
             summary=str(raw.get("summary") or ""),
             summary_index=min(_as_int(raw.get("summary_index")), len(messages[-MAX_MESSAGES:])),
             context_tokens=_as_int(raw.get("context_tokens")),
