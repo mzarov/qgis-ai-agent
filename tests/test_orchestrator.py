@@ -1242,6 +1242,9 @@ class ChromeFlowTest(unittest.TestCase):
             def name(self):
                 return "districts"
 
+            def providerType(self):
+                return "ogr"
+
             def featureCount(self):
                 return 12
 

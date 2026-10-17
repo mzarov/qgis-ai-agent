@@ -7,7 +7,7 @@ from ai_agent.core.llm.client import is_local
 from ai_agent.core.orchestrator.planning import LAYER_ARGUMENT
 from ai_agent.core.settings import get_api_key, get_api_url
 from ai_agent.i18n import tr, tr_n
-from ai_agent.qgis_tools.common.layers import with_layer_names
+from ai_agent.qgis_tools.common.layers import feature_count_if_cheap, with_layer_names
 from ai_agent.qgis_tools.registry import get_tool_by_name
 
 STYLE_SKILL = "style"
@@ -81,8 +81,9 @@ def active_layer_chip(iface: Any) -> tuple[str, str]:
             return "", ""
         name = str(layer.name())
         if isinstance(layer, QgsVectorLayer):
-            count = int(layer.featureCount())
-            return name, tr_n("%n feature(s)", count) if count >= 0 else ""
+            # Counting a remote layer is a server round trip on the main thread; its chip shows the name only.
+            count = feature_count_if_cheap(layer)
+            return name, tr_n("%n feature(s)", count) if count is not None else ""
         if isinstance(layer, QgsRasterLayer):
             return name, tr("raster")
     except Exception:
