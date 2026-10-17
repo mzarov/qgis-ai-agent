@@ -322,6 +322,10 @@ class AgentDockWidget(QDockWidget):
     def show_outcome(self, kind: str, summary: str = "") -> None:
         self.progress.show_outcome(kind, summary)
 
+    def begin_work(self) -> None:
+        """The user set work going: the status line's time counts from now."""
+        self.progress.begin()
+
     def show_retry(self, seconds: float, attempt: int, total: int, busy: bool) -> None:
         self.progress.show_retry(seconds, attempt, total, busy)
 
