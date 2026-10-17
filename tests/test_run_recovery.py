@@ -92,6 +92,18 @@ class BudgetParsingTest(unittest.TestCase):
             with self.subTest(raw=raw):
                 self.assertIsNone(settings_fields.parsed_budget(raw))
 
+    def test_infinite_and_overflowing_values_are_refused(self):
+        for raw in ("inf", "-inf", "nan", "1e309", "1e308m"):
+            with self.subTest(raw=raw):
+                self.assertIsNone(settings_fields.parsed_budget(raw))
+
+    def test_a_fraction_of_one_token_is_refused_rather_than_read_as_no_limit(self):
+        for raw in ("0.5", "0,4", "0.0001k"):
+            with self.subTest(raw=raw):
+                self.assertIsNone(settings_fields.parsed_budget(raw))
+        self.assertEqual(settings_fields.parsed_budget("0"), 0, "a typed zero still means no limit")
+        self.assertEqual(settings_fields.parsed_budget("0.5k"), 500)
+
 
 class EmptyOutputTest(unittest.TestCase):
     def test_an_empty_output_layer_is_named(self):
