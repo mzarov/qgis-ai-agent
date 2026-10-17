@@ -101,6 +101,11 @@
     request: Load /data/stops.csv as points, it has lon and lat columns
     expect: {loads: [tables]}
 
+- description: A statistic joining two layers is the sql skill
+  vars:
+    request: For each okrug, what is the average capacity of the schools inside its districts?
+    expect: {loads: [sql], not_loads: [python]}
+
 - description: A web lookup is the web skill
   vars:
     request: Search the web for the official opening hours of the Tretyakov Gallery
@@ -109,7 +114,8 @@
 - description: A chain needs both skills at once
   vars:
     request: Count the schools in each district and colour the districts by that count
-    expect: {loads: [processing, style]}
+    # A Processing count or a live SQL layer both give a field to colour by.
+    expect: {any_of: [{loads: [processing, style]}, {loads: [sql, style]}]}
 
 - description: Russian — graduated colours
   vars:

@@ -52,6 +52,7 @@ files = [
     "ai_agent/qgis_tools/processing/model_spec.py",
     "ai_agent/qgis_tools/quality/findings.py",
     "ai_agent/qgis_tools/quality/tally.py",
+    "ai_agent/qgis_tools/sql/statement.py",
     "ai_agent/qgis_tools/tables/coordinates.py",
     "ai_agent/qgis_tools/tables/delimited.py",
     "ai_agent/qgis_tools/tables/keys.py",

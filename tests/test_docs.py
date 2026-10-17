@@ -60,11 +60,11 @@ class NavTest(unittest.TestCase):
 class PublishedClaimsTest(unittest.TestCase):
     def test_tool_and_skill_counts_match_the_registries(self):
         claims = {
-            REPO_ROOT / "README.md": f"eighteen domains, {len(ALL_TOOLS)} tools",
-            DOCS / "index.md": f"Eighteen domains, {len(ALL_TOOLS)} tools",
-            DOCS / "index.ru.md": f"Восемнадцать доменов, {len(ALL_TOOLS)} инструмент",
+            REPO_ROOT / "README.md": f"nineteen domains, {len(ALL_TOOLS)} tools",
+            DOCS / "index.md": f"Nineteen domains, {len(ALL_TOOLS)} tools",
+            DOCS / "index.ru.md": f"Девятнадцать доменов, {len(ALL_TOOLS)} инструмент",
         }
-        self.assertEqual(len(SKILL_REGISTRY.names()), 18)
+        self.assertEqual(len(SKILL_REGISTRY.names()), 19)
         for path, phrase in claims.items():
             self.assertIn(phrase, path.read_text(encoding="utf-8"), path.name)
 

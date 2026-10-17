@@ -203,7 +203,7 @@ conversation at once after a confirmation. See
 
 A skill is a knowledge package the agent loads when a task enters its domain:
 one `SKILL.md` with a name, a one-line description and the rules in Markdown.
-The eighteen built-in skills cover the QGIS domains; you can add your own.
+The nineteen built-in skills cover the QGIS domains; you can add your own.
 **Settings → Skills** lists them with a switch each: a skill switched off
 leaves the agent's prompt and cannot be loaded, not even through a skill of
 your own that names its tools.
@@ -278,6 +278,23 @@ The `tables` skill handles CSV files and attribute joins:
 
 When the joined fields must become a separate layer or file, ask for that: the
 agent then uses the Processing algorithm `native:joinattributestable` instead.
+
+## SQL across layers
+
+The `sql` skill answers questions that combine layers with one SELECT (SQLite
+with SpatiaLite functions) through the QGIS virtual layer provider:
+
+- “How many schools are in each district?” — a spatial join and a grouping;
+  the agent reads the rows back and changes nothing, so there is nothing to
+  confirm.
+- “Make a layer of the districts with their school counts” — the same query
+  becomes a virtual layer in the plan: live like a view, it shows new numbers
+  after the source layers are edited.
+
+Only one reading statement runs: changes to the data, several statements in a
+row and functions that read or write files are refused before anything runs.
+Layers are named in the query as in the project; when two layers share a name,
+the agent addresses the right one by its id.
 
 ## Open data and satellite imagery
 

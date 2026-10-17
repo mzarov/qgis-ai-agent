@@ -7,7 +7,7 @@ confirm them.
 
 ## What it does
 
-Eighteen domains, 84 tools:
+Nineteen domains, 90 tools:
 
 | Domain | Example requests |
 | --- | --- |
@@ -26,6 +26,7 @@ Eighteen domains, 84 tools:
 | `annotations` | “mark this place”, “add a note to the map”, “remove that annotation” |
 | `three_d` | “open a 3D view of this project” |
 | `tables` | “join this CSV to the districts by code”, “make points from this CSV with lon/lat” |
+| `sql` | “how many schools are in each district?”, “a layer of the districts with their school counts” |
 | `charts` | “chart population by district”, “histogram of the parcel areas”, “table of the ten largest towns” |
 | `plugins` | “which plugin can segment this image?”, “install a plugin for isochrones”, “start the qgis2web export” |
 | `quality` | “check my data for errors”, “are there broken geometries in the parcels?” |

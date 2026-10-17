@@ -503,6 +503,7 @@ core = _mod(
         "QgsProcessingParameterRasterLayer",
         "QgsProcessingParameterString",
         "QgsProcessingParameterVectorLayer",
+        "QgsVirtualLayerDefinition",
     ],
 )
 pyqt = _mod("qgis.PyQt")

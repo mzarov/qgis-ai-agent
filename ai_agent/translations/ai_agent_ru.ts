@@ -99,6 +99,7 @@
         <location filename="ai_agent/qgis_tools/inspect/sample_features.py" line="51"/>
         <location filename="ai_agent/qgis_tools/osm/download_osm.py" line="132"/>
         <location filename="ai_agent/qgis_tools/osm/run_overpass.py" line="100"/>
+        <location filename="ai_agent/qgis_tools/sql/create_sql_layer.py" line="52"/>
         <source>%n feature(s)</source>
         <translation>
             <numerusform>%n объект</numerusform>
@@ -217,6 +218,7 @@
         </translation>
     </message>
     <message numerus="yes">
+        <location filename="ai_agent/qgis_tools/sql/query_sql.py" line="52"/>
         <location filename="ai_agent/qgis_tools/tables/preview_table.py" line="60"/>
         <source>%n row(s)</source>
         <translation>
@@ -305,7 +307,7 @@
         <translation>7 дней</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/skill_summaries.py" line="28"/>
+        <location filename="ai_agent/ui/skill_summaries.py" line="29"/>
         <source>A 3D view of the map and its terrain</source>
         <translation>Трёхмерный вид карты и рельефа</translation>
     </message>
@@ -497,6 +499,11 @@
         <location filename="ai_agent/qgis_tools/fields/manage_fields.py" line="89"/>
         <source>Adding field '{0}' to '{1}'.</source>
         <translation>Добавляю поле «{0}» в «{1}».</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/sql/create_sql_layer.py" line="48"/>
+        <source>Adding layer '{0}' from SQL: {1}</source>
+        <translation>Добавляю слой «{0}» из SQL: {1}</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/project/add_layer.py" line="91"/>
@@ -832,7 +839,7 @@
         <translation>CC BY-SA, с указанием OpenTopoMap и OpenStreetMap</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/skill_summaries.py" line="27"/>
+        <location filename="ai_agent/ui/skill_summaries.py" line="28"/>
         <source>CSV preview, tables as points, table joins</source>
         <translation>Просмотр CSV, таблицы точками, соединения таблиц</translation>
     </message>
@@ -2946,6 +2953,11 @@
         <translation>Выполняю Python: {0}</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/sql/query_sql.py" line="49"/>
+        <source>Running SQL: {0}</source>
+        <translation>Выполняю SQL: {0}</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/plugins/run_plugin_command.py" line="42"/>
         <source>Running a command of plugin '{0}': {1}</source>
         <translation>Запускаю команду плагина «{0}»: {1}</translation>
@@ -2969,6 +2981,11 @@
         <location filename="ai_agent/ui/personalisation_settings.py" line="90"/>
         <source>Russian</source>
         <translation>Русский</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/skill_summaries.py" line="26"/>
+        <source>SQL across your layers: joins, grouping, live query layers</source>
+        <translation>SQL по вашим слоям: объединения, группировка, живые слои-запросы</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/data/sources/swisstopo.json" line="48"/>
@@ -3288,7 +3305,7 @@
         <translation>Швейцария: национальная карта и аэрофото</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/skill_summaries.py" line="26"/>
+        <location filename="ai_agent/ui/skill_summaries.py" line="27"/>
         <source>Symbols, colours by category or class, labels</source>
         <translation>Символы, цвета по категориям и классам, подписи</translation>
     </message>
@@ -3852,7 +3869,7 @@
         <translation>Жду вашего ответа — прогон продолжится с него.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/skill_summaries.py" line="29"/>
+        <location filename="ai_agent/ui/skill_summaries.py" line="30"/>
         <source>Web search, reading pages, geocoding</source>
         <translation>Поиск в интернете, чтение страниц, геокодирование</translation>
     </message>

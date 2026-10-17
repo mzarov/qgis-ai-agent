@@ -1,0 +1,54 @@
+# sql: with the skill loaded, the model's SQL call over the fixture's layers.
+# `expect` is checked by evals/checks.py; see docs/skill_evals.md. Regexes run
+# with re.IGNORECASE; (?s) lets them span a query written over several lines.
+
+- description: Points per polygon is one spatial join
+  vars:
+    request: How many schools are in each district?
+    reads: districts, schools
+    expect:
+      call: query_sql
+      args: {sql: "re:(?s)^(?=.*\"?schools\"?)(?=.*\"?districts\"?)(?=.*st_(contains|within|intersects)\\()(?=.*group by)"}
+
+- description: A statistic across layers groups the joined rows
+  vars:
+    request: What is the average capacity of the schools in each okrug?
+    reads: districts, schools
+    expect:
+      call: query_sql
+      args: {sql: "re:(?s)^(?=.*avg\\()(?=.*capacity)(?=.*st_(contains|within|intersects)\\()(?=.*group by[^;]*okrug)"}
+
+# The pitfall the skill warns about: SQL ignores the ellipsoid, so lengths on EPSG:4326 come out in degrees.
+- description: Lengths are measured in the local UTM zone, not in degrees or Web Mercator
+  vars:
+    request: What is the total length of the roads in each district, in km?
+    reads: districts, roads
+    expect:
+      call: query_sql
+      args: {sql: "re:(?s)^(?=.*st_length\\()(?=.*st_transform\\([^;]*32637)(?!.*3857)"}
+
+- description: A result to colour becomes a live layer
+  vars:
+    request: Make a layer of the districts with the number of schools in each, so I can colour it
+    reads:
+      steps:
+        - tool: query_sql
+          args:
+            sql: >-
+              SELECT d.name, count(s.geometry) AS schools FROM "districts" d
+              LEFT JOIN "schools" s ON ST_Contains(d.geometry, s.geometry) GROUP BY d.name
+          result:
+            columns: [name, schools]
+            rows: [[Arbat, 3], [Basmanny, 7], [Khamovniki, 6], [Meshchansky, 4], [Presnensky, 9], [Tagansky, 5]]
+            row_count: 12
+    expect:
+      call: create_sql_layer
+      args: {name: "*", sql: "re:(?s)^(?=.*count\\()(?=.*geometry)"}
+
+- description: Russian — schools per okrug
+  vars:
+    request: Сколько школ в каждом округе?
+    reads: districts, schools
+    expect:
+      call: query_sql
+      args: {sql: "re:(?s)^(?=.*st_(contains|within|intersects)\\()(?=.*group by[^;]*okrug)"}
