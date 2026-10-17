@@ -54,6 +54,13 @@ class NativeRenderingTest(unittest.TestCase):
         self.assertEqual([item.id for item in turn.tool_calls], identifiers)
         self.assertEqual([result.call.id for result in results], identifiers)
 
+    def test_an_id_an_earlier_turn_used_is_not_handed_out_again(self):
+        transcript = Transcript()
+        turns = [ModelTurn(tool_calls=[ToolCall(id="call_0", name=name)]) for name in ("list_layers", "render_map")]
+        for turn in turns:
+            transcript.add_turn(turn)
+        self.assertEqual([turn.tool_calls[0].id for turn in turns], ["call_0", "call_0_2"])
+
     def test_staged_result_replaces_queued_acknowledgement(self):
         transcript = Transcript()
         queued = ToolResult(call=call(), payload={"status": "queued"})

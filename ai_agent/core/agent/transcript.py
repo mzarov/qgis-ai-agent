@@ -59,7 +59,9 @@ class Transcript:
         self.entries.append({"kind": "user", "text": text, "images": list(images or [])})
 
     def add_turn(self, turn: ModelTurn) -> None:
-        turn.tool_calls = _unique_tool_calls(turn.tool_calls)
+        # Apply puts results back by call id, so an id must be unique across the run, not just the turn:
+        # the JSON protocol numbers calls per answer, and some servers do the same with native ids.
+        turn.tool_calls = _unique_tool_calls(turn.tool_calls, self._call_ids())
         self.entries.append({"kind": "turn", "turn": turn})
 
     def add_results(self, results: list[ToolResult], protocol: str) -> None:
@@ -82,6 +84,15 @@ class Transcript:
                     entry["results"][index] = replacement
         if remaining:
             self.add_results(list(remaining.values()), protocol)
+
+    def _call_ids(self) -> set[str]:
+        identifiers: set[str] = set()
+        for entry in self.entries:
+            if entry["kind"] == "turn":
+                identifiers.update(call.id for call in entry["turn"].tool_calls)
+            elif entry["kind"] == "results":
+                identifiers.update(result.call.id for result in entry["results"])
+        return identifiers
 
     def build_messages(
         self,
@@ -239,8 +250,9 @@ class Transcript:
         }
 
 
-def _unique_tool_calls(calls: list[ToolCall]) -> list[ToolCall]:
-    used: set[str] = set()
+def _unique_tool_calls(calls: list[ToolCall], taken: set[str]) -> list[ToolCall]:
+    """Give each call an id no other call has: blank ones a fresh one, repeated ones a suffix."""
+    used = set(taken)
     prepared: list[ToolCall] = []
     for index, call in enumerate(calls, start=1):
         base = str(call.id or "").strip() or f"call_{index}"
