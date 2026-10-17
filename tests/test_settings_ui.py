@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 from qgis.PyQt.QtGui import QPalette
+from qgis.PyQt.QtWidgets import QDialog
 
 from ai_agent.config import geocoder as geocoder_config
 from ai_agent.core import settings
@@ -287,12 +288,6 @@ class CredentialUiContractTest(unittest.TestCase):
         self.assertIn("thread.cancel()", PROBE_SOURCE)
         self.assertNotIn("probe(self._overrides())", PROBE_SOURCE + DIALOG_SOURCE)
 
-    def test_closing_waits_for_a_running_probe_to_finish(self):
-        reject_body = PROBE_SOURCE.split("def reject(self)")[1].split("\n    def ")[0]
-        finished_body = PROBE_SOURCE.split("def _on_probe_finished")[1].split("\n    def ")[0]
-        self.assertIn("self._reject_after_probe = True", reject_body)
-        self.assertIn("super().reject()", finished_body)
-
     def test_geocoder_is_selected_in_settings_not_by_the_model(self):
         self.assertIn('(GEOCODER_PHOTON, "Photon"', GEOCODER_SOURCE)
         self.assertIn("(GEOCODER_NOMINATIM, tr(", GEOCODER_SOURCE)
@@ -532,6 +527,93 @@ class ProbeWorkerTest(unittest.TestCase):
         worker.cancel()
         worker.run()
         self.assertEqual(completed, [])
+
+
+class RunningProbe:
+    """A connection test still on its way: it runs until the test says it stopped."""
+
+    def __init__(self):
+        self.running = True
+        self.cancelled = False
+
+    def isRunning(self):
+        return self.running
+
+    def cancel(self):
+        self.cancelled = True
+
+    def wait(self, _milliseconds):
+        return not self.running
+
+    def deleteLater(self):
+        pass
+
+
+class ClosingDialog(SettingsDialog):
+    """The settings window, remembering the result it closed with."""
+
+    closed_with = None
+
+    def done(self, result):
+        self.closed_with = result
+
+
+class ClosingDuringAProbeTest(unittest.TestCase):
+    """Every way out of the window waits for a running connection test: its thread dies with the window."""
+
+    def setUp(self):
+        MemorySettings.values = {}
+        for module in (settings, geocoder_config):
+            patcher = mock.patch.object(module, "QgsSettings", MemorySettings)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.dialog = ClosingDialog()
+        self.probe = RunningProbe()
+        self.dialog._probe_thread = self.probe
+
+    def _probe_stops(self):
+        self.probe.running = False
+        self.dialog._on_probe_finished(self.probe)
+
+    def test_save_stores_at_once_and_closes_once_the_probe_stopped(self):
+        self.dialog.model_edit.setText("saved-model")
+        self.dialog._save()
+        self.assertEqual(settings.get_model(), "saved-model")
+        self.assertTrue(self.probe.cancelled)
+        self.assertIsNone(self.dialog.closed_with, "the window outlived the probe's thread")
+        self._probe_stops()
+        self.assertEqual(self.dialog.closed_with, QDialog.DialogCode.Accepted)
+
+    def test_reset_closes_once_the_probe_stopped(self):
+        yes = settings_advanced.QMessageBox.StandardButton.Yes
+        with (
+            mock.patch.object(settings_advanced.QMessageBox, "question", return_value=yes),
+            mock.patch.object(settings_advanced, "reset_preferences"),
+        ):
+            settings_advanced.reset_settings(self.dialog)
+        self.assertTrue(self.dialog.was_reset)
+        self.assertTrue(self.probe.cancelled)
+        self.assertIsNone(self.dialog.closed_with, "the window outlived the probe's thread")
+        self._probe_stops()
+        self.assertEqual(self.dialog.closed_with, QDialog.DialogCode.Accepted)
+
+    def test_cancel_closes_once_the_probe_stopped(self):
+        self.dialog.reject()
+        self.assertTrue(self.probe.cancelled)
+        self.assertIsNone(self.dialog.closed_with)
+        self._probe_stops()
+        self.assertEqual(self.dialog.closed_with, QDialog.DialogCode.Rejected)
+
+    def test_a_cancel_while_a_save_waits_still_reports_it_saved(self):
+        self.dialog._save()
+        self.dialog.reject()
+        self._probe_stops()
+        self.assertEqual(self.dialog.closed_with, QDialog.DialogCode.Accepted)
+
+    def test_with_no_probe_running_save_closes_at_once(self):
+        self.dialog._probe_thread = None
+        self.dialog._save()
+        self.assertEqual(self.dialog.closed_with, QDialog.DialogCode.Accepted)
 
 
 class ReasoningSwitchTest(unittest.TestCase):

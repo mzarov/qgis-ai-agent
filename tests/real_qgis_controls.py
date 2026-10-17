@@ -7,6 +7,11 @@ replaced, edits are tracked until saved, the composer's states follow the run.
 Runs inside `real_qgis_workflows.py` against the extracted plugin ZIP.
 """
 
+import os
+import pathlib
+import subprocess
+import sys
+import time
 import unittest
 
 from e2e_harness import PluginCase, pump
@@ -22,6 +27,20 @@ from ai_agent.ui.dropdown import Dropdown
 from ai_agent.ui.messages import AssistantMessage, SystemMessage
 from ai_agent.ui.settings_dialog import SettingsDialog
 from ai_agent.ui.thinking import ThinkingBlock
+
+# A connection test that ignores its cancel this long outlives any wait the main thread could afford.
+SLOW_TEST_S = 4.0
+CLOSE_WAIT_S = 20.0
+CHILD_TIMEOUT_S = 120
+# Each close runs in a child QGIS: a QThread destroyed while it runs aborts the whole process.
+CLOSE_CHILD = """
+import pathlib, sys, tempfile
+from real_qgis_smoke import qgis_application
+with tempfile.TemporaryDirectory() as root, qgis_application(pathlib.Path(root)):
+    import real_qgis_controls
+    code = real_qgis_controls.close_during_a_slow_test(sys.argv[1])
+sys.exit(code)
+"""
 
 
 class SegmentedTest(unittest.TestCase):
@@ -449,6 +468,73 @@ class SettingsBehaviourTest(PluginCase):
             self.assertTrue(caption.isVisible(), key)
             top = caption.mapTo(connectors.list, QPoint(0, 0)).y()
             self.assertEqual(top - under_chips, connectors_settings.GROUP_GAP, key)
+
+
+def close_during_a_slow_test(close: str) -> int:
+    """Save or reset while a connection test outlives its cancel; 0 once the window has closed and is gone.
+
+    Runs in a child QGIS started by `ClosingDuringATestTest`.
+    """
+    from unittest import mock
+
+    from qgis.PyQt.QtWidgets import QMainWindow, QMessageBox
+
+    from ai_agent.core.llm import probe_worker
+    from ai_agent.ui import settings_advanced
+
+    def slow_probe(_overrides: dict) -> tuple[bool, str]:
+        time.sleep(SLOW_TEST_S)
+        return False, "too late"
+
+    window = QMainWindow()
+    dialog = SettingsDialog(window)
+    dialog.url_edit.setText("http://localhost:11434/v1")
+    dialog.model_edit.setText("qwen3")
+    dialog.show()
+    with mock.patch.object(probe_worker, "probe", slow_probe):
+        dialog._test_connection()
+        if close == "save":
+            dialog.journal_cb.toggle()
+            dialog._save()
+        else:
+            yes = QMessageBox.StandardButton.Yes
+            with mock.patch.object(settings_advanced.QMessageBox, "question", return_value=yes):
+                settings_advanced.reset_settings(dialog)
+        deadline = time.monotonic() + CLOSE_WAIT_S
+        while dialog.isVisible() and time.monotonic() < deadline:
+            pump(0.05)
+    closed = not dialog.isVisible()
+    # What the plugin does once the window's exec() returns.
+    dialog.deleteLater()
+    pump(0.1)
+    return 0 if closed else 1
+
+
+class ClosingDuringATestTest(unittest.TestCase):
+    """Save and reset close the settings only once a running connection test has stopped."""
+
+    def _close_in_a_child(self, close: str) -> subprocess.CompletedProcess[str]:
+        import ai_agent
+
+        tests = pathlib.Path(__file__).resolve().parent
+        package_parent = pathlib.Path(ai_agent.__file__).resolve().parent.parent
+        paths = (os.fspath(tests), os.fspath(package_parent), os.environ.get("PYTHONPATH", ""))
+        return subprocess.run(
+            [sys.executable, "-c", CLOSE_CHILD, close],
+            cwd=tests,
+            env={**os.environ, "PYTHONPATH": os.pathsep.join(path for path in paths if path)},
+            capture_output=True,
+            text=True,
+            timeout=CHILD_TIMEOUT_S,
+        )
+
+    def test_save_waits_for_the_test_to_stop(self) -> None:
+        child = self._close_in_a_child("save")
+        self.assertEqual(child.returncode, 0, child.stderr[-2000:])
+
+    def test_reset_waits_for_the_test_to_stop(self) -> None:
+        child = self._close_in_a_child("reset")
+        self.assertEqual(child.returncode, 0, child.stderr[-2000:])
 
 
 class ComposerBehaviourTest(PluginCase):
