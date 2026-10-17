@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 from ai_agent.i18n import tr, tr_n
@@ -18,6 +19,16 @@ DESCRIPTION_CHARS = 200
 MAX_TAGS = 8
 # Where a word is found says how much it counts: a name is the plugin, a tag a topic, the text a mention.
 NAME_WEIGHT, TAG_WEIGHT, TEXT_WEIGHT = 3, 2, 1
+# The whole phrase in a tag or the description outweighs its words scattered over unrelated names.
+PHRASE_WEIGHT = 5
+MIN_VARIANT = 3
+# A name with its QGIS version (QNEAT3 for QGIS 3, QNEAT on QGIS 4) and a plural still find the plugin.
+VERSION_TAIL = re.compile(r"(?<=[a-z])\d+$")
+NOT_FOUND_NOTE = (
+    "Nothing matched '{query}' among the {listed} plugins listed for this QGIS version. That says nothing "
+    "about why: do not tell the user a reason you have not read. Try the task in other words (network "
+    "analysis, isochrones) or a shorter name, then say plainly that no plugin was found."
+)
 
 
 class FindPluginTool(BaseTool):
@@ -66,7 +77,15 @@ class FindPluginTool(BaseTool):
             reverse=True,
         )
         found = [_shown(entry, installed, active) for points, entry in ranked if points > 0][:MAX_RESULTS]
-        return {"plugins": found, "count": len(found), "repository": "plugins.qgis.org"}
+        result: dict[str, Any] = {
+            "plugins": found,
+            "count": len(found),
+            "listed": len(entries),
+            "repository": "plugins.qgis.org",
+        }
+        if not found:
+            result["note"] = NOT_FOUND_NOTE.format(query=" ".join(words), listed=len(entries))
+        return result
 
 
 def score(entry: dict[str, Any], words: list[str]) -> int:
@@ -75,8 +94,23 @@ def score(entry: dict[str, Any], words: list[str]) -> int:
     text = (entry["description"] + " " + entry["about"]).lower()
     points = 0
     for word in words:
-        points += NAME_WEIGHT * (word in name) + TAG_WEIGHT * (word in tags) + TEXT_WEIGHT * (word in text)
+        points += max(
+            NAME_WEIGHT * (variant in name) + TAG_WEIGHT * (variant in tags) + TEXT_WEIGHT * (variant in text)
+            for variant in variants(word)
+        )
+    phrase = " ".join(words)
+    if len(words) > 1 and (phrase in tags or phrase in text):
+        points += PHRASE_WEIGHT
     return points
+
+
+def variants(word: str) -> set[str]:
+    """The word, without a version number glued to its end, and without a plural ending."""
+    found = {word, VERSION_TAIL.sub("", word)}
+    for ending in ("es", "s"):
+        if word.endswith(ending):
+            found.add(word[: -len(ending)])
+    return {variant for variant in found if len(variant) >= MIN_VARIANT}
 
 
 def _shown(entry: dict[str, Any], installed: set[str], active: set[str]) -> dict[str, Any]:
