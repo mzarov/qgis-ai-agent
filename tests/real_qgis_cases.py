@@ -584,6 +584,29 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual((count.payload["matched"], count.payload["value"]), (1, 1))
         self.assertEqual((total.payload["matched"], total.payload["value"]), (2, 3.0))
 
+    def test_selected_only_answers_over_the_selected_features_the_filter_accepts(self):
+        # A real QgsFeatureRequest keeps one filter, and QgsVectorLayer.aggregate drops the ids beside a filter:
+        # rows and groups once answered over the whole selection, native aggregates over the whole filter.
+        numbers = self._memory(
+            "Point?crs=EPSG:3857&field=n:integer", "numbers", [(f"POINT ({n} 0)", [n]) for n in (1, 2, 3)]
+        )
+        numbers.selectByExpression("n <= 2")
+        executor = ToolExecutor()
+
+        def query(**arguments):
+            arguments = {"layer_name": "numbers", "selected_only": True, "filter": "n >= 2", **arguments}
+            result = executor.run(ToolCall("selected", "query_layer", arguments))
+            self.assertTrue(result.ok, result.payload)
+            return result.payload
+
+        self.assertEqual([row["n"] for row in query()["features"]], [2])
+        self.assertEqual(query(aggregate="count")["value"], 1)
+        self.assertEqual(query(aggregate="sum", expression="n")["value"], 2)
+        self.assertEqual(query(aggregate="concatenate", expression="n")["value"], "2")
+        grouped = query(aggregate="count", group_by="n")["groups"]
+        self.assertEqual([(group["group"], group["count"]) for group in grouped], [(2, 1)])
+        self.assertEqual(query(aggregate="count", filter="n = 3")["value"], 0)
+
     def _memory(self, uri, name, rows):
         layer = QgsVectorLayer(uri, name, "memory")
         self.assertTrue(layer.isValid())
