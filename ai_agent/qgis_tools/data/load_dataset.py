@@ -6,6 +6,7 @@ from qgis.core import QgsProject, QgsVectorLayer
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.background import Background, InTask
+from ai_agent.qgis_tools.common.http import get_bytes, get_json
 from ai_agent.qgis_tools.data.catalogue import (
     GEOBOUNDARIES_LEVELS,
     KIND_VECTOR,
@@ -14,7 +15,6 @@ from ai_agent.qgis_tools.data.catalogue import (
     NATURAL_EARTH_SCALES,
     dataset,
 )
-from ai_agent.qgis_tools.data.http import get_bytes, get_json
 from ai_agent.qgis_tools.data.storage import TEMP_NOTE, target_path
 
 NATURAL_EARTH_URL = (

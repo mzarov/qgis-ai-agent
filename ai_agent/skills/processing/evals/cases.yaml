@@ -69,3 +69,95 @@
     expect:
       call: run_processing
       args: {algorithm_id: "native:buffer", parameters: {INPUT: stations, DISTANCE: 1000}}
+
+- description: Steps run by hand are read from the Processing history first
+  vars:
+    request: Build a model from the steps I just ran
+    expect:
+      call: list_processing_history
+      not: [create_processing_model, run_processing]
+
+- description: Two runs from the history become a chained model with the layer as an input
+  vars:
+    request: Build a model from the steps I just ran
+    reads:
+      steps:
+        - tool: list_processing_history
+          args: {}
+          # The shape list_processing_history returns for two runs from the Processing dialogs.
+          result:
+            available: true
+            total_recent: 2
+            entries:
+              - when: "2026-10-16T10:02:11"
+                algorithm_id: native:reprojectlayer
+                parameters: {INPUT: "/data/moscow.gpkg|layername=schools", TARGET_CRS: "EPSG:32637", OUTPUT: TEMPORARY_OUTPUT}
+                project_layers: {INPUT: schools}
+                finished: true
+                results: {OUTPUT: Reprojected_5d1c}
+                result_layers: {OUTPUT: Reprojected}
+              - when: "2026-10-16T10:03:40"
+                algorithm_id: native:buffer
+                parameters: {INPUT: "memory://Point?crs=EPSG:32637&uid={5d1c}", DISTANCE: 300, SEGMENTS: 5, END_CAP_STYLE: 0, DISSOLVE: false, OUTPUT: TEMPORARY_OUTPUT}
+                project_layers: {INPUT: Reprojected}
+                finished: true
+                results: {OUTPUT: Buffered_88aa}
+                result_layers: {OUTPUT: Buffered}
+            note: "Runs started from Processing dialogs, oldest first. The agent's own run_processing calls are not recorded here: take those from this conversation."
+    expect:
+      call: create_processing_model
+      args:
+        inputs: [{type: vector}]
+        steps: [{algorithm_id: native:reprojectlayer}, {algorithm_id: native:buffer, parameters: {INPUT: {step: "*"}}}]
+
+- description: The agent's own runs in this conversation become the model, without the history
+  vars:
+    request: Now save these two steps as a model I can reuse
+    reads:
+      steps:
+        - tool: run_processing
+          args: {algorithm_id: native:reprojectlayer, parameters: {INPUT: schools, TARGET_CRS: "EPSG:32637"}, output_name: schools UTM}
+          result:
+            algorithm_id: native:reprojectlayer
+            loaded_to_project: true
+            result_layer_name: schools UTM
+            parameters_used: {INPUT: schools_8c1f, TARGET_CRS: "EPSG:32637", OUTPUT: TEMPORARY_OUTPUT}
+            outputs: {OUTPUT: {layer_name: schools UTM, layer_id: schools_UTM_41aa}}
+        - tool: run_processing
+          args: {algorithm_id: native:buffer, parameters: {INPUT: schools UTM, DISTANCE: 300}, output_name: schools 300 m}
+          result:
+            algorithm_id: native:buffer
+            loaded_to_project: true
+            result_layer_name: schools 300 m
+            parameters_used: {INPUT: schools_UTM_41aa, DISTANCE: 300, OUTPUT: TEMPORARY_OUTPUT}
+            outputs: {OUTPUT: {layer_name: schools 300 m, layer_id: schools_300_m_9b02}}
+    expect:
+      call: create_processing_model
+      not: [list_processing_history]
+      args:
+        steps: [{algorithm_id: native:reprojectlayer}, {algorithm_id: native:buffer, parameters: {INPUT: {step: "*"}}}]
+
+- description: Russian — one buffer from the history becomes a model
+  vars:
+    request: Собери модель из буфера, который я только что сделал
+    reads:
+      steps:
+        - tool: list_processing_history
+          args: {}
+          result:
+            available: true
+            total_recent: 1
+            entries:
+              - when: "2026-10-16T11:20:05"
+                algorithm_id: native:buffer
+                parameters: {INPUT: "/data/moscow.gpkg|layername=stations", DISTANCE: 1000, SEGMENTS: 5, DISSOLVE: false, OUTPUT: TEMPORARY_OUTPUT}
+                project_layers: {INPUT: stations}
+                finished: true
+                results: {OUTPUT: Buffered_1c2d}
+                result_layers: {OUTPUT: Buffered}
+            note: "Runs started from Processing dialogs, oldest first. The agent's own run_processing calls are not recorded here: take those from this conversation."
+    expect:
+      call: create_processing_model
+      args:
+        inputs: [{type: vector}]
+        steps: [{algorithm_id: native:buffer, parameters: {INPUT: {input: "*"}}}]

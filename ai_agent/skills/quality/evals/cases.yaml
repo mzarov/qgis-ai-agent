@@ -1,0 +1,56 @@
+# quality: with the skill loaded, the model checks the layer first and proposes fixes after the report.
+# `expect` is checked by evals/checks.py; see docs/skill_evals.md.
+
+- description: With no layer named, the active layer is checked
+  vars:
+    request: Check my data for errors
+    expect:
+      call: check_layer
+      args: {layer_name: districts}
+
+- description: Russian — a named layer is checked
+  vars:
+    request: Проверь слой школ на ошибки
+    expect:
+      call: check_layer
+      args: {layer_name: schools}
+
+- description: Found errors go to Processing, never fixed in place
+  vars:
+    request: Check the districts for errors and fix what you find
+    reads:
+      steps:
+        - tool: check_layer
+          args: {layer_name: districts}
+          # The shape check_layer returns: counts under problems, capped samples, one suggestion per problem.
+          result:
+            layer_name: districts
+            kind: vector
+            geometry: polygon
+            crs: EPSG:4326
+            checked_features: 12
+            problems: {invalid_geometry: 2, duplicate_geometry: 1}
+            invalid_geometry: [{id: 4, reason: "Self-intersection at 37.61, 55.74"}, {id: 9, reason: "Ring Self-intersection at 37.7, 55.8"}]
+            duplicate_geometry_groups: [[3, 11]]
+            suggestions:
+              - "Invalid geometries: native:fixgeometries (processing skill) repairs them into a new layer; the source stays as it is."
+              - "Repeated geometries: native:deleteduplicategeometries (processing skill) keeps one feature of each in a new layer; their attributes may differ, so show the user the sample ids first."
+    expect: {loads: [processing], not_loads: [edit, python]}
+
+- description: A clean layer is reported clean and nothing else is done
+  vars:
+    request: Is the schools layer clean?
+    reads:
+      steps:
+        - tool: check_layer
+          args: {layer_name: schools}
+          result:
+            layer_name: schools
+            kind: vector
+            geometry: point
+            crs: EPSG:4326
+            checked_features: 58
+            problems: {}
+            missing_values: {kind: {null: 2}}
+            suggestions: []
+    expect: {answer: true}

@@ -290,6 +290,11 @@ Additionally:
 
 - “find the buffer algorithm” → `search_processing` returns `native:buffer`
 - an enum passed as a label instead of an index → the tool coerces it itself
+- “make a model of these steps” after a buffer run from the Processing
+  Toolbox → `list_processing_history` names the run and its layer,
+  `create_processing_model` is queued; after Apply the model is in the Toolbox
+  under Models, opens in the Model Designer with its inputs, and runs on
+  another layer
 
 ## Transport
 
@@ -975,7 +980,12 @@ These verify the agent solves everyday tasks without wandering through search.
      plugins can make a web map?* → the plugin is named; *start its export* →
      a destructive confirmation says it runs that plugin's code; agree → the
      plugin's window opens. A plugin with Processing algorithms (e.g. GeoAI)
-     → its algorithm runs through the plan.
+     → its algorithm runs through the plan. Without QNEAT installed: *build
+     walking isochrones from the stations* → a network confirmation for the
+     plugin search, then QNEAT proposed with its author and downloads; Apply →
+     a destructive confirmation says it installs someone else's code; agree →
+     it appears in Plugins → Manage and Install Plugins as installed and its
+     algorithms show in the Processing Toolbox.
 205. **Rewind.** *Make the rivers blue* → Apply; *now make them red* → Apply.
      Hover the second request → the curved arrow; click → three choices.
      **Conversation and project** → rivers blue again, the chat ends before
@@ -1174,3 +1184,10 @@ These verify the agent solves everyday tasks without wandering through search.
      N being the server's Retry-After (30 s at most); as soon as the answer
      streams in, the line says “Working…” again. The QGIS message log lists
      every pause.
+240. **A place picked on the map.** Type *buffer 500 m around*, then **+ →
+     Point on the map…** → a muted line above the text says to click on the
+     map; click Red Square → `@point(37.62…, 55.75…)` lands at the cursor and
+     the map has its previous tool again. **+ → Area on the map…**, drag a
+     rectangle → `@area(west, south, east, north)`. Start again and press Esc
+     in the chat box → the line goes, the map tool is restored. Send a request
+     with a point → the agent uses those coordinates without asking.

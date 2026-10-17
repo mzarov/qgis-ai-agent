@@ -1,3 +1,4 @@
+import json
 import pathlib
 import struct
 import tempfile
@@ -5,17 +6,22 @@ import time
 import unittest
 from unittest.mock import patch
 
-from osgeo import gdal
+from osgeo import gdal, osr
+from processing.core.ProcessingConfig import ProcessingConfig
+from processing.modeler.ModelerUtils import ModelerUtils
 from qgis.core import (
+    QgsApplication,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransformContext,
     QgsFeature,
     QgsGeometry,
+    QgsProcessingContext,
     QgsProject,
     QgsRasterLayer,
     QgsVectorFileWriter,
     QgsVectorLayer,
 )
+from qgis.gui import QgsGui
 from qgis.PyQt.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer
 from qgis.PyQt.QtWidgets import QMainWindow
 
@@ -23,18 +29,24 @@ from ai_agent.core.agent.batch import WriteBatch
 from ai_agent.core.agent.executor import ToolExecutor
 from ai_agent.core.context.project import measurement_line
 from ai_agent.core.llm.turns import ToolCall
+from ai_agent.i18n import tr_n
 from ai_agent.plugin import QgisAiAgentPlugin
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
 from ai_agent.qgis_tools.common.editing import edit_session
 from ai_agent.qgis_tools.common.layers import suggest_metric_crs
 from ai_agent.qgis_tools.draw.draw_features import DrawFeaturesTool
+from ai_agent.qgis_tools.processing import model_builder
 from ai_agent.qgis_tools.processing.run_processing import RunProcessingTool
 from ai_agent.qgis_tools.project.snapshots import take_snapshot
+from ai_agent.qgis_tools.quality import scan as quality_scan
 from ai_agent.qgis_tools.registry import get_tool_by_name
 from ai_agent.ui.dock_widget import AgentDockWidget
 
 BACKGROUND_WAIT_S = 120
 MANY_POINTS = 20000
+MODEL_NAME = "Buffer in UTM"
+# Two points near Moscow in degrees: the model must reproject them before a buffer in metres means anything.
+MOSCOW_POINTS = ("POINT (37.6 55.75)", "POINT (37.7 55.8)")
 
 
 class GisWorkflowsTest(unittest.TestCase):
@@ -348,6 +360,106 @@ class GisWorkflowsTest(unittest.TestCase):
         _queued, payload = self._run("run_processing", **arguments)
         self.assertEqual(payload["algorithm_id"], "native:buffer", "with the usual limit it runs")
 
+    def _models_folder(self):
+        """A temporary Models folder for the provider and the tool alike: a test never writes into a profile."""
+        folder = self.root / "models"
+        folder.mkdir()
+        saved = ProcessingConfig.getSetting(ModelerUtils.MODELS_FOLDER)
+        ProcessingConfig.setSettingValue(ModelerUtils.MODELS_FOLDER, str(folder))
+
+        def restore():
+            ProcessingConfig.setSettingValue(ModelerUtils.MODELS_FOLDER, saved)
+            QgsApplication.processingRegistry().providerById(model_builder.MODEL_PROVIDER_ID).refreshAlgorithms()
+
+        self.addCleanup(restore)
+        self.assertEqual(model_builder.models_folder(), str(folder))
+        return folder
+
+    def test_two_steps_become_a_model_that_runs_on_other_data(self):
+        """'Build a model from these steps': reproject to a metric CRS, then buffer by a distance input."""
+        folder = self._models_folder()
+        arguments = {
+            "name": MODEL_NAME,
+            "group": "AI Agent tests",
+            "inputs": [
+                {"name": "points", "type": "vector", "description": "Points"},
+                {"name": "distance", "type": "distance", "default": 100},
+            ],
+            "steps": [
+                {
+                    "id": "reproject",
+                    "algorithm_id": "native:reprojectlayer",
+                    "parameters": {"INPUT": {"input": "points"}, "TARGET_CRS": "EPSG:32637"},
+                },
+                {
+                    "id": "buffer",
+                    "algorithm_id": "native:buffer",
+                    "parameters": {
+                        "INPUT": {"step": "reproject", "output": "OUTPUT"},
+                        "DISTANCE": {"input": "distance"},
+                        "SEGMENTS": 8,
+                        "OUTPUT": "TEMPORARY_OUTPUT",
+                    },
+                },
+            ],
+            "outputs": [{"name": "Buffered", "step": "buffer"}],
+        }
+        queued, payload = self._run("create_processing_model", **arguments)
+        model_id = f"model:{MODEL_NAME}"
+        self.assertEqual(payload["algorithm_id"], model_id)
+        self.assertEqual(payload["path"], str(folder / f"{MODEL_NAME}.model3"))
+        self.assertTrue((folder / f"{MODEL_NAME}.model3").is_file())
+        self.assertIsNotNone(QgsApplication.processingRegistry().algorithmById(model_id))
+        tool = get_tool_by_name("create_processing_model")
+        self.assertTrue(tool.confirm_applied(queued.arguments, payload))
+
+        towns = QgsVectorLayer("Point?crs=EPSG:4326", "towns", "memory")
+        for wkt in MOSCOW_POINTS:
+            feature = QgsFeature(towns.fields())
+            feature.setGeometry(QgsGeometry.fromWkt(wkt))
+            towns.dataProvider().addFeatures([feature])
+        towns.updateExtents()
+        self.project.addMapLayer(towns)
+        self._run(
+            "run_processing",
+            algorithm_id=model_id,
+            parameters={"points": "towns", "distance": 500},
+            output_name="town buffers",
+        )
+        buffers = self.project.mapLayersByName("town buffers")[0]
+        self.assertEqual(buffers.featureCount(), len(MOSCOW_POINTS))
+        self.assertEqual(buffers.crs().authid(), "EPSG:32637")
+        for feature in buffers.getFeatures():
+            self.assertAlmostEqual(feature.geometry().area(), 3.14159 * 500**2, delta=0.02 * 3.14159 * 500**2)
+
+        batch = WriteBatch(ToolExecutor())
+        with self.assertRaisesRegex(ValueError, "already exists"):
+            batch.add(ToolCall("again", "create_processing_model", arguments))
+        replacing = batch.add(ToolCall("replace", "create_processing_model", {**arguments, "overwrite": True}))
+        self.assertEqual(tool.safety_for(replacing.arguments), SAFETY_DESTRUCTIVE)
+        broken = {**arguments, "steps": [{**arguments["steps"][1], "id": "buffer", "parameters": {}}]}
+        with self.assertRaisesRegex(ValueError, "INPUT"):
+            batch.add(ToolCall("broken", "create_processing_model", {**broken, "name": "Broken", "inputs": []}))
+
+    def test_a_run_from_the_processing_dialog_is_listed_with_its_layer_named(self):
+        """What the Processing dialog records — asMap() of the run — reads back with the project layer's name."""
+        algorithm = QgsApplication.processingRegistry().createAlgorithmById("native:buffer")
+        context = QgsProcessingContext()
+        context.setProject(self.project)
+        parameters = {"INPUT": self.layer.id(), "DISTANCE": 25, "OUTPUT": "TEMPORARY_OUTPUT"}
+        details = {"algorithm_id": algorithm.id(), "parameters": algorithm.asMap(parameters, context)}
+        entry_id, added = QgsGui.historyProviderRegistry().addEntry("processing", details)
+        self.assertTrue(added)
+        QgsGui.historyProviderRegistry().updateEntry(entry_id, {**details, "results": {"OUTPUT": self.layer.id()}})
+        payload = get_tool_by_name("list_processing_history").execute({"limit": 5})
+        self.assertTrue(payload["available"], payload)
+        latest = payload["entries"][-1]
+        self.assertEqual(latest["algorithm_id"], "native:buffer")
+        self.assertEqual(latest["parameters"]["DISTANCE"], 25)
+        self.assertEqual(latest["project_layers"], {"INPUT": "points"})
+        self.assertEqual(latest["result_layers"], {"OUTPUT": "points"})
+        self.assertTrue(latest["finished"])
+
     def test_snapshot_restores_styling_and_keeps_file_backed_features(self):
         path = self.root / "points.gpkg"
         self._run("export_layer", layer_name=self.layer.name(), path=str(path))
@@ -472,6 +584,126 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual((count.payload["matched"], count.payload["value"]), (1, 1))
         self.assertEqual((total.payload["matched"], total.payload["value"]), (2, 3.0))
 
+    def _memory(self, uri, name, rows):
+        layer = QgsVectorLayer(uri, name, "memory")
+        self.assertTrue(layer.isValid())
+        features = []
+        for wkt, attributes in rows:
+            feature = QgsFeature(layer.fields())
+            feature.setGeometry(QgsGeometry.fromWkt(wkt))
+            feature.setAttributes(attributes)
+            features.append(feature)
+        self.assertTrue(layer.dataProvider().addFeatures(features)[0])
+        layer.updateExtents()
+        self.project.addMapLayer(layer)
+        return layer
+
+    def _districts_and_schools(self):
+        """Three square districts and four schools; s4 says district 2 but lies outside every district."""
+        square = "POLYGON(({0} 0, {1} 0, {1} 100, {0} 100, {0} 0))"
+        districts = self._memory(
+            "Polygon?crs=EPSG:3857&field=name:string&field=code:integer",
+            "districts",
+            [
+                (square.format(0, 100), ["North", 1]),
+                (square.format(200, 300), ["South", 2]),
+                (square.format(400, 500), ["East", 3]),
+            ],
+        )
+        schools = self._memory(
+            "Point?crs=EPSG:3857&field=name:string&field=district:integer&field=capacity:integer",
+            "schools",
+            [
+                ("POINT (10 10)", ["s1", 1, 300]),
+                ("POINT (50 50)", ["s2", 1, 500]),
+                ("POINT (250 50)", ["s3", 2, 200]),
+                ("POINT (900 900)", ["s4", 2, 100]),
+            ],
+        )
+        return districts, schools
+
+    def _query(self, sql):
+        return ToolExecutor().run(ToolCall("sql", "query_sql", {"sql": sql}))
+
+    def test_sql_groups_a_join_of_two_layers(self):
+        self._districts_and_schools()
+        result = self._query(
+            'SELECT d.name, count(s.name) AS schools, sum(s.capacity) AS seats FROM "districts" d '
+            'JOIN "schools" s ON s.district = d.code GROUP BY d.name ORDER BY d.name;'
+        )
+        self.assertTrue(result.ok, result.payload)
+        self.assertEqual(result.payload["columns"], ["name", "schools", "seats"])
+        self.assertEqual(result.payload["rows"], [["North", 2, 800], ["South", 2, 300]])
+        self.assertEqual(result.payload["row_count"], 2)
+
+    def test_sql_counts_points_in_polygons(self):
+        self._districts_and_schools()
+        result = self._query(
+            'SELECT d.name, count(s.geometry) AS inside FROM "districts" d LEFT JOIN "schools" s '
+            "ON ST_Contains(d.geometry, s.geometry) AND s._search_frame_ = d.geometry GROUP BY d.name ORDER BY d.name"
+        )
+        self.assertTrue(result.ok, result.payload)
+        self.assertEqual(result.payload["rows"], [["East", 0], ["North", 2], ["South", 1]])
+        areas = self._query('SELECT name, ST_Area(geometry) AS area, geometry FROM "districts" ORDER BY name')
+        self.assertEqual([row[1] for row in areas.payload["rows"]], [10000.0, 10000.0, 10000.0])
+        self.assertEqual((areas.payload["geometry"], areas.payload["crs"]), ("polygon", "EPSG:3857"))
+        self.assertEqual(areas.payload["columns"], ["name", "area"], "the geometry itself is never sent")
+
+    def test_sql_binds_a_shared_name_only_by_id(self):
+        self._districts_and_schools()
+        twin = self._memory("Point?crs=EPSG:3857&field=name:string", "schools", [("POINT (0 0)", ["twin"])])
+        refused = self._query('SELECT count(*) FROM "schools"')
+        self.assertFalse(refused.ok)
+        self.assertIn("ambiguous", refused.payload["error"])
+        chosen = self._query(f'SELECT name FROM "{twin.id()}"')
+        self.assertEqual(chosen.payload["rows"], [["twin"]])
+
+    def test_a_sql_layer_is_added_live_and_valid(self):
+        districts, schools = self._districts_and_schools()
+        sql = (
+            'SELECT d.name, count(s.geometry) AS inside, d.geometry FROM "districts" d LEFT JOIN "schools" s '
+            "ON ST_Contains(d.geometry, s.geometry) GROUP BY d.name"
+        )
+        queued, payload = self._run("create_sql_layer", sql=sql, name="school counts")
+        layer = self.project.mapLayer(payload["layer_id"])
+        self.assertTrue(layer.isValid())
+        self.assertEqual((layer.name(), layer.providerType(), layer.featureCount()), ("school counts", "virtual", 3))
+        self.assertEqual((payload["feature_count"], payload["geometry"]), (3, "polygon"))
+        self.assertIn("inside", payload["fields"])
+        self.assertTrue(get_tool_by_name("create_sql_layer").confirm_applied(queued.arguments, payload))
+        # A view, not a copy: a school added to the source shows up in the layer.
+        extra = QgsFeature(schools.fields())
+        extra.setGeometry(QgsGeometry.fromWkt("POINT (450 50)"))
+        extra.setAttributes(["s5", 3, 50])
+        schools.dataProvider().addFeatures([extra])
+        layer.reload()
+        counts = {feature["name"]: feature["inside"] for feature in layer.getFeatures()}
+        self.assertEqual(counts, {"North": 2, "South": 1, "East": 1})
+        with self.assertRaisesRegex(ValueError, "already in the project"):
+            WriteBatch(ToolExecutor()).add(ToolCall("again", "create_sql_layer", {"sql": sql, "name": "school counts"}))
+
+    def test_bad_sql_comes_back_as_a_clear_error(self):
+        self._districts_and_schools()
+        syntax = self._query('SELEC name FROM "districts"')
+        self.assertFalse(syntax.ok)
+        self.assertIn("Only a read-only SELECT", syntax.payload["error"])
+        column = self._query('SELECT nme FROM "districts"')
+        self.assertFalse(column.ok)
+        self.assertTrue(column.payload["error"].startswith("The query failed: no such column: nme."), column.payload)
+        self.assertNotIn("_tview", column.payload["error"])
+        broken = self._query("SELECT name FROM \"districts\" WHERE name = = 'North'")
+        self.assertIn('near "=": syntax error', broken.payload["error"])
+        missing = self._query('SELECT name FROM "distrcts"')
+        self.assertIn("distrcts", missing.payload["error"])
+        self.assertIn("named in double quotes:", missing.payload["error"])
+        for name in ('"districts"', '"schools"', '"points"'):
+            self.assertIn(name, missing.payload["error"])
+        with self.assertRaisesRegex(ValueError, "The query failed: no such column: nme"):
+            WriteBatch(ToolExecutor()).add(
+                ToolCall("bad", "create_sql_layer", {"sql": 'SELECT nme FROM "districts"', "name": "never"})
+            )
+        self.assertEqual(self.project.mapLayersByName("never"), [])
+
     def test_changing_live_labels_keeps_the_field_and_the_rest(self):
         self._run("set_labels", layer_name=self.layer.name(), properties={"field": "name", "size": 14})
         self._run("set_labels", layer_name=self.layer.name(), properties={"bold": True})
@@ -518,6 +750,119 @@ class GisWorkflowsTest(unittest.TestCase):
         self.project.addMapLayer(raster)
         _, result = self._run("set_raster_style", layer_name="dem", mode="gray", no_data_values=[-9999])
         self.assertEqual((result["min"], result["max"]), (1.0, 399.0))
+
+    def _shapes(self, name, uri, wkts, rows=None):
+        """A memory layer of these geometries and attribute rows; returns it with its feature ids in order."""
+        layer = QgsVectorLayer(uri, name, "memory")
+        self.assertTrue(layer.isValid())
+        features = []
+        for index, wkt in enumerate(wkts):
+            feature = QgsFeature(layer.fields())
+            feature.setGeometry(QgsGeometry.fromWkt(wkt))
+            if rows:
+                feature.setAttributes(rows[index])
+            features.append(feature)
+        self.assertTrue(layer.dataProvider().addFeatures(features)[0])
+        layer.updateExtents()
+        self.project.addMapLayer(layer)
+        return layer, [feature.id() for feature in layer.getFeatures()]
+
+    def _check(self, layer_name):
+        result = ToolExecutor().run(ToolCall("check", "check_layer", {"layer_name": layer_name}))
+        self.assertTrue(result.ok, result.payload)
+        json.dumps(result.payload, allow_nan=False)
+        return result.payload
+
+    def test_a_bow_tie_polygon_is_reported_invalid_with_its_id(self):
+        bow_tie = "POLYGON ((400000 6170000, 400010 6170010, 400010 6170000, 400000 6170010, 400000 6170000))"
+        square = "POLYGON ((400020 6170000, 400030 6170000, 400030 6170010, 400020 6170010, 400020 6170000))"
+        _, ids = self._shapes("parcels", "Polygon?crs=EPSG:32637", [bow_tie, square])
+        payload = self._check("parcels")
+        self.assertEqual(payload["problems"], {"invalid_geometry": 1})
+        (sample,) = payload["invalid_geometry"]
+        self.assertEqual(sample["id"], ids[0])
+        self.assertIn("intersection", sample["reason"].lower())
+        self.assertIn("native:fixgeometries", payload["suggestions"][0])
+
+    def test_a_repeated_geometry_is_found_whatever_its_start_vertex(self):
+        square = "POLYGON ((400000 6170000, 400010 6170000, 400010 6170010, 400000 6170010, 400000 6170000))"
+        shifted = "POLYGON ((400010 6170010, 400000 6170010, 400000 6170000, 400010 6170000, 400010 6170010))"
+        other = "POLYGON ((400020 6170000, 400030 6170000, 400030 6170010, 400020 6170000))"
+        _, ids = self._shapes("plots", "Polygon?crs=EPSG:32637", [square, other, shifted])
+        payload = self._check("plots")
+        self.assertEqual(payload["problems"], {"duplicate_geometry": 1})
+        self.assertEqual(payload["duplicate_geometry_groups"], [[ids[0], ids[2]]])
+
+    def test_a_field_without_values_is_reported_and_gaps_are_counted(self):
+        uri = "Point?crs=EPSG:32637&field=name:string&field=note:string&field=kind:string"
+        points = ["POINT (400000 6170000)", "POINT (400100 6170100)", "POINT (400200 6170200)"]
+        rows = [["a", None, "x"], ["b", None, ""], ["c", None, None]]
+        self._shapes("wells", uri, points, rows)
+        payload = self._check("wells")
+        self.assertEqual(payload["problems"], {"empty_fields": 1})
+        self.assertEqual(payload["empty_fields"], ["note"])
+        self.assertEqual(payload["missing_values"], {"kind": {"null": 1, "blank": 1}})
+        self.assertIn("delete_field", payload["suggestions"][0])
+
+    def test_metres_under_a_geographic_crs_are_suspicious(self):
+        points = ["POINT (4000000 6000000)", "POINT (4000100 6000100)"]
+        self._shapes("stations", "Point?crs=EPSG:4326", points)
+        payload = self._check("stations")
+        self.assertEqual(payload["problems"], {"suspicious_coordinates": 1})
+        self.assertEqual(payload["data_bounds"]["xmax"], 4000100.0)
+        self.assertIn("native:assignprojection", payload["suggestions"][0])
+        self.assertIn("Do not reproject", payload["suggestions"][0])
+
+    def test_a_clean_layer_reports_no_problems(self):
+        square = "POLYGON ((400000 6170000, 400010 6170000, 400010 6170010, 400000 6170010, 400000 6170000))"
+        self._shapes("clean", "Polygon?crs=EPSG:32637&field=name:string", [square], [["ok"]])
+        payload = self._check("clean")
+        self.assertEqual((payload["problems"], payload["suggestions"]), ({}, []))
+        self.assertEqual(
+            (payload["checked_features"], payload["geometry"], payload["crs"]), (1, "polygon", "EPSG:32637")
+        )
+        self.assertNotIn("partial", payload)
+        line = get_tool_by_name("check_layer").summarize_result({}, payload)
+        self.assertTrue(line.startswith(tr_n("Checked %n feature(s)", 1)), line)
+
+    def test_a_scan_past_the_cap_says_it_is_partial(self):
+        points = ["POINT (400000 6170000)", "POINT (400100 6170100)", "POINT (400200 6170200)"]
+        self._shapes("many", "Point?crs=EPSG:32637", points)
+        with patch.object(quality_scan, "MAX_FEATURES", 2):
+            payload = self._check("many")
+        self.assertEqual((payload["checked_features"], payload["partial"]), (2, True))
+        self.assertIn("of 3", payload["scan_note"])
+
+    def test_no_crs_and_a_project_in_many_crss_are_said(self):
+        layer, _ = self._shapes("lost", "Point?crs=EPSG:32637", ["POINT (400000 6170000)"])
+        layer.setCrs(QgsCoordinateReferenceSystem())
+        self._shapes("wgs", "Point?crs=EPSG:4326", ["POINT (37.6 55.7)"])
+        self._shapes("utm", "Point?crs=EPSG:32637", ["POINT (400000 6170000)"])
+        payload = self._check("lost")
+        self.assertEqual((payload["problems"], payload["crs"]), ({"invalid_crs": 1}, "unknown"))
+        self.assertIn("3 different CRSs", payload["project_crs"])
+        self.assertIn("native:reprojectlayer", payload["suggestions"][-1])
+
+    def test_a_raster_reports_its_nodata_or_its_absence(self):
+        srs = osr.SpatialReference()
+        srs.ImportFromEPSG(4326)
+        driver = gdal.GetDriverByName("GTiff")
+        for name, nodata in (("declared", -9999.0), ("bare", None)):
+            dataset = driver.Create(str(self.root / f"{name}.tif"), 4, 4, 1, gdal.GDT_Float32)
+            dataset.SetGeoTransform((37.5, 0.01, 0, 55.8, 0, -0.01))
+            dataset.SetProjection(srs.ExportToWkt())
+            dataset.GetRasterBand(1).Fill(1.0)
+            if nodata is not None:
+                dataset.GetRasterBand(1).SetNoDataValue(nodata)
+            dataset = None
+            self.project.addMapLayer(QgsRasterLayer(str(self.root / f"{name}.tif"), name))
+        declared = self._check("declared")
+        self.assertEqual((declared["kind"], declared["band_count"], declared["problems"]), ("raster", 1, {}))
+        self.assertEqual(declared["nodata_by_band"], [-9999.0])
+        self.assertNotIn("nodata_note", declared)
+        bare = self._check("bare")
+        self.assertEqual((bare["nodata_by_band"], bare["problems"]), ([None], {}))
+        self.assertIn("no_data_values", bare["suggestions"][0])
 
     def test_layout_export_produces_a_pdf_with_real_layout_items(self):
         self._run("create_layout", name="Sheet", page="a4", orientation="landscape")

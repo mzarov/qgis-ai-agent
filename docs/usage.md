@@ -203,7 +203,7 @@ conversation at once after a confirmation. See
 
 A skill is a knowledge package the agent loads when a task enters its domain:
 one `SKILL.md` with a name, a one-line description and the rules in Markdown.
-The seventeen built-in skills cover the QGIS domains; you can add your own.
+The nineteen built-in skills cover the QGIS domains; you can add your own.
 **Settings → Skills** lists them with a switch each: a skill switched off
 leaves the agent's prompt and cannot be loaded, not even through a skill of
 your own that names its tools.
@@ -231,6 +231,15 @@ Type `@` in the chat to pick a layer from the project: the list filters as you
 type, ↑↓ or the mouse choose, Tab or Enter insert. The layer name goes into the
 request exactly as QGIS knows it — `@rivers`, or `@"Main roads"` when the name
 has spaces — so the agent does not have to guess which layer you meant.
+
+## Places on the map
+
+**+ → Point on the map…** or **Area on the map…** hands the map a one-time
+tool: click a point, or drag a rectangle, and the place goes into the request
+at the cursor as `@point(lon, lat)` or `@area(west, south, east, north)` in
+degrees — “buffer 500 m around @point(37.62080, 55.75390)”, “download the
+cafes in @area(…)”. The map gets its previous tool back afterwards; Esc in the
+chat box, or picking another tool in QGIS, gives the pick up.
 
 ## Attaching files
 
@@ -269,6 +278,23 @@ The `tables` skill handles CSV files and attribute joins:
 
 When the joined fields must become a separate layer or file, ask for that: the
 agent then uses the Processing algorithm `native:joinattributestable` instead.
+
+## SQL across layers
+
+The `sql` skill answers questions that combine layers with one SELECT (SQLite
+with SpatiaLite functions) through the QGIS virtual layer provider:
+
+- “How many schools are in each district?” — a spatial join and a grouping;
+  the agent reads the rows back and changes nothing, so there is nothing to
+  confirm.
+- “Make a layer of the districts with their school counts” — the same query
+  becomes a virtual layer in the plan: live like a view, it shows new numbers
+  after the source layers are edited.
+
+Only one reading statement runs: changes to the data, several statements in a
+row and functions that read or write files are refused before anything runs.
+Layers are named in the query as in the project; when two layers share a name,
+the agent addresses the right one by its id.
 
 ## Open data and satellite imagery
 
@@ -383,14 +409,22 @@ the numbers as CSV. Charts and tables stay with the conversation and come back
 when you reopen it. They are drawn for you: the model gets only a short
 confirmation with the numbers, not the picture.
 
-## Other installed plugins
+## Other plugins
 
 The agent can use plugins you have installed. Ask “which plugin can segment
 this image?” or name one — “use GeoAI on this raster”. Algorithms a plugin
 adds to Processing run like any other step, inside the plan. A plugin's menu
 command (say, qgis2web's export) is started only after a confirmation that it
 runs that plugin's code, which the agent cannot undo; its window then opens for
-you. The agent cannot install or enable plugins.
+you.
+
+When nothing installed fits — “build 15-minute walking isochrones”, say — the
+agent searches the official QGIS plugin repository, the list the Plugin Manager
+shows, and proposes one plugin with its author and download count. Searching
+contacts plugins.qgis.org and asks first. Installing is confirmed on its own:
+it downloads the plugin and runs code that is not part of AI Agent, which undo
+cannot remove — uninstall it in **Plugins → Manage and Install Plugins**. A
+plugin that is installed but switched off is switched on the same way.
 
 ## When a run stops or fails
 

@@ -13,14 +13,14 @@ confirms them.
 **Documentation:** <https://mzarov.github.io/qgis-ai-agent/> ·
 по-русски: <https://mzarov.github.io/qgis-ai-agent/ru/>
 
-**What it does** — seventeen domains, 83 tools:
+**What it does** — nineteen domains, 90 tools:
 
 | Domain | Example requests |
 | --- | --- |
 | `inspect` | “what layers do I have?”, “what did I select?”, “show me the map” |
 | `project` | “load this file”, “add an OSM basemap”, “load a table from PostGIS” |
 | `style` | “make the rivers blue”, “colour by population”, “label with names” |
-| `processing` | “build a 500 m buffer”, “clip by the district boundary”, “compute NDVI” |
+| `processing` | “build a 500 m buffer”, “clip by the district boundary”, “compute NDVI”, “make a model from these steps” |
 | `osm` | “download the cafes in Tver”, “roads except unpaved ones from OSM” |
 | `data` | “find a cloud-free Sentinel-2 image of this area”, “add the regions of Kenya”, “load a DEM here” |
 | `draw` | “put a point at 55.75, 37.62”, “draw a line between these towns” |
@@ -32,8 +32,10 @@ confirms them.
 | `annotations` | “mark this place”, “add a note to the map”, “remove that annotation” |
 | `three_d` | “open a 3D view of this project” |
 | `tables` | “join this CSV to the districts by code”, “make points from this CSV with lon/lat” |
+| `sql` | “how many schools are in each district?”, “a layer of the districts with their school counts” |
 | `charts` | “chart population by district”, “histogram of the parcel areas”, “table of the ten largest towns” |
-| `plugins` | “which plugin can segment this image?”, “start the qgis2web export”, “use GeoAI on this raster” |
+| `plugins` | “which plugin can segment this image?”, “install a plugin for isochrones”, “start the qgis2web export” |
+| `quality` | “check my data for errors”, “are there broken geometries in the parcels?” |
 
 The agent can **see**: on a vision model it renders the map or the layout and
 judges the result by eye. After you press Apply it runs a **verification pass**

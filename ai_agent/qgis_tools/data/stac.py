@@ -8,8 +8,8 @@ import time
 from typing import Any
 from urllib.parse import quote, urlparse
 
+from ai_agent.qgis_tools.common.http import get_json, post_json
 from ai_agent.qgis_tools.data.coverage import FULL_COVER, covered_share
-from ai_agent.qgis_tools.data.http import get_json, post_json
 
 STAC_ROOT = "https://planetarycomputer.microsoft.com/api/stac/v1"
 # Tokens are per storage container, not per collection: one collection's token is refused by another account.

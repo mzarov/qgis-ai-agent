@@ -193,6 +193,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         images: list[str] | None = None,
     ) -> None:
         """Show `shown`, then run `prompt`; `request` is what the user asked, for the check after Apply."""
+        self.dock_widget.begin_work()
         self._show_user_message(shown)
         self._forget_restore()
         self._drop_pending_plan()
@@ -231,6 +232,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self._last_request = request
         self.dock_widget.drop_failures()
         self.conversation.drop_failures()
+        self.dock_widget.begin_work()
         self.agent.start(prompt, history, skills=skills, images=images, planning=planning)
 
     def on_settings_saved(self) -> None:
@@ -261,6 +263,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         if not self.is_idle:
             self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
             return
+        self.dock_widget.begin_work()
         self.compaction.start()
 
     def on_turn_counted(self, prompt_tokens: int, completion_tokens: int, opens_run: bool = True) -> None:
@@ -290,6 +293,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         # Picked on the question card, so a reopened chat says "You chose" again; typed the same is the same.
         chosen = text in list(getattr(self.agent, "question_options", None) or [])
         self.conversation.add("user", text, chosen=chosen)
+        self.dock_widget.begin_work()
         self.agent.answer(text)
 
     def _interject(self, text: str) -> None:

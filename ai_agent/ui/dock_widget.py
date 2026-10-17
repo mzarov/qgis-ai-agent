@@ -37,6 +37,8 @@ class AgentDockWidget(QDockWidget):
     plan_undo_requested = pyqtSignal(int)
     plan_restore_requested = pyqtSignal(int)
     retry_requested = pyqtSignal()
+    place_requested = pyqtSignal(str)
+    place_cancelled = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -152,6 +154,8 @@ class AgentDockWidget(QDockWidget):
         self.composer.mode_changed.connect(self.work_mode_changed.emit)
         self.composer.compact_requested.connect(self.compact_requested.emit)
         self.composer.new_requested.connect(self._start_new)
+        self.composer.place_requested.connect(self.place_requested.emit)
+        self.composer.place_cancelled.connect(self.place_cancelled.emit)
         layout.addWidget(self.composer)
         return holder
 
@@ -179,6 +183,12 @@ class AgentDockWidget(QDockWidget):
 
     def mention_layers(self, names: list[str]) -> None:
         self.composer.mention_layers(names)
+
+    def insert_place(self, text: str) -> None:
+        self.composer.insert_place(text)
+
+    def end_place(self) -> None:
+        self.composer.end_place()
 
     def add_attachment(self, path: str) -> None:
         self.composer.add_attachment(path)
@@ -321,6 +331,10 @@ class AgentDockWidget(QDockWidget):
 
     def show_outcome(self, kind: str, summary: str = "") -> None:
         self.progress.show_outcome(kind, summary)
+
+    def begin_work(self) -> None:
+        """The user set work going: the status line's time counts from now."""
+        self.progress.begin()
 
     def show_retry(self, seconds: float, attempt: int, total: int, busy: bool) -> None:
         self.progress.show_retry(seconds, attempt, total, busy)

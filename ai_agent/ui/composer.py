@@ -14,7 +14,7 @@ from qgis.PyQt.QtWidgets import (
 from ai_agent.i18n import tr
 from ai_agent.ui import controls, style
 from ai_agent.ui.attachments import DATA, PICTURE, AttachmentChips, choose_files
-from ai_agent.ui.composer_controls import ComposerControls
+from ai_agent.ui.composer_controls import AREA, ComposerControls
 from ai_agent.ui.composer_parts import (
     MENTION,
     MODES,
@@ -32,6 +32,8 @@ from ai_agent.ui.skill_summaries import summary
 PLACEHOLDER = tr("Ask about the project or ask to change the map…")
 PLACEHOLDER_BUSY = tr("Type to correct me…")
 PLACEHOLDER_OFFLINE = tr("Connect a model to start")
+PICK_POINT_HINT = tr("Click a point on the map · Esc cancels")
+PICK_AREA_HINT = tr("Drag a rectangle on the map · Esc cancels")
 FRAME_NAME = "composerFrame"
 FRAME_RADIUS = 8
 MIN_LINES = 2
@@ -52,6 +54,8 @@ class Composer(QWidget):
     mode_changed = pyqtSignal(str)
     compact_requested = pyqtSignal()
     new_requested = pyqtSignal()
+    place_requested = pyqtSignal(str)
+    place_cancelled = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -83,6 +87,7 @@ class Composer(QWidget):
         self.toolbar.picture_requested.connect(lambda: self._choose(PICTURE))
         self.toolbar.layer_requested.connect(self._start_mention)
         self.toolbar.skill_requested.connect(self._start_skill)
+        self.toolbar.place_requested.connect(self._start_place)
         self.toolbar.mode_chosen.connect(self._on_mode)
         self.toolbar.meter.compact_requested.connect(self.compact_requested.emit)
         self._send = self.toolbar.send
@@ -103,12 +108,18 @@ class Composer(QWidget):
         self.attachments = AttachmentChips(palette)
         self.attachments.changed.connect(self._sync_chips)
         row.addWidget(self.attachments, 0, Qt.AlignmentFlag.AlignVCenter)
+        # While a place is picked on the map: what to do there, and how to give up.
+        self.place_hint = controls.small("", palette)
+        style.ink(self.place_hint, style.muted(palette))
+        self.place_hint.setVisible(False)
+        row.addWidget(self.place_hint, 0, Qt.AlignmentFlag.AlignVCenter)
         row.addStretch(1)
         self._chips.setVisible(False)
         return self._chips
 
     def _sync_chips(self) -> None:
-        self._chips.setVisible(not self.layer_chip.isHidden() or not self.attachments.isHidden())
+        shown = (self.layer_chip, self.attachments, self.place_hint)
+        self._chips.setVisible(any(not widget.isHidden() for widget in shown))
 
     def _build_edit(self) -> QPlainTextEdit:
         self._edit = PromptEdit()
@@ -166,8 +177,31 @@ class Composer(QWidget):
         self._paint()
 
     def _on_escape(self) -> None:
-        if self._busy:
+        if not self.place_hint.isHidden():
+            self.place_cancelled.emit()
+            self.end_place()
+        elif self._busy:
             self.stopped.emit()
+
+    def _start_place(self, kind: str) -> None:
+        self.place_hint.setText(PICK_AREA_HINT if kind == AREA else PICK_POINT_HINT)
+        self.place_hint.setVisible(True)
+        self._sync_chips()
+        self.place_requested.emit(kind)
+
+    def end_place(self) -> None:
+        """The pick is over, done or given up: the hint goes."""
+        self.place_hint.setVisible(False)
+        self._sync_chips()
+
+    def insert_place(self, text: str) -> None:
+        """Put a place picked on the map at the cursor, as words of the request."""
+        cursor = self._edit.textCursor()
+        before = self._edit.toPlainText()[: cursor.position()]
+        lead = "" if not before or before[-1].isspace() else " "
+        cursor.insertText(f"{lead}{text} ")
+        self.end_place()
+        self._edit.setFocus()
 
     def set_configured(self, configured: bool) -> None:
         self._configured = configured
