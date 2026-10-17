@@ -149,7 +149,9 @@ The project side uses the snapshots taken before every Apply. They live as long
 as QGIS runs and only the newest ten are kept, so an older message may offer the
 conversation alone. Edits written into data sources (changed attributes,
 deleted features) are not undone; temporary layers too large to copy come back
-empty, and the agent says which.
+empty, and the agent says which. Temporary layers keep their feature ids, so a
+field computed from `$id` reads the same; only a layer missing more than
+200,000 ids between its features comes back renumbered.
 
 ### The context window
 

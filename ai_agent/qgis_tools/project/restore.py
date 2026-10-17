@@ -23,6 +23,11 @@ EMPTY_SCRATCH_NOTE = (
     "large to copy beside the snapshot or could not be refilled. Re-run the steps that produced "
     "them, and export scratch layers with export_layer when they must survive an undo."
 )
+RENUMBERED_NOTE = (
+    "These temporary (memory) layers came back with new feature ids: {layers}. Too many ids were missing "
+    "between their features to keep each one's own; a virtual field or anything else built on $id may now "
+    "read differently."
+)
 OTHER_PROJECT = (
     "The snapshot belongs to another project ('{expected}'), while "
     "the current project is '{current}'. Switch back before restoring it."
@@ -62,4 +67,8 @@ def restore_snapshot(path: str) -> dict[str, Any]:
     if empty:
         result["empty_scratch_layers"] = empty
         result["scratch_note"] = EMPTY_SCRATCH_NOTE.format(layers=", ".join(empty))
+    renumbered = [copy.name for copy in scratch.layers if not copy.keeps_ids and copy.name not in empty]
+    if renumbered:
+        result["renumbered_scratch_layers"] = renumbered
+        result["renumbered_note"] = RENUMBERED_NOTE.format(layers=", ".join(renumbered))
     return result

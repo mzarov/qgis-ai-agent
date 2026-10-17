@@ -8,6 +8,13 @@ MEMORY_PROVIDER = "memory"
 # Shared by all scratch layers of one snapshot: the copies stay in RAM for as
 # long as the snapshot is undoable.
 MAX_PRESERVED_FEATURES = 200_000
+# A memory provider numbers what it is given itself, from 1 and one up from the last. A refill hands every
+# id missing between the copied features to a stand-in, deleted at once, so each feature gets its own id
+# back: a virtual field on $id, and anything else bound to a feature id, reads the same after an undo.
+# Past this many missing ids in one layer the stand-ins would hold QGIS up: that layer is renumbered, and
+# the undo says so.
+FIRST_MEMORY_ID = 1
+MAX_STAND_INS = 200_000
 
 
 @dataclass(frozen=True)
@@ -16,6 +23,7 @@ class ScratchLayerCopy:
     name: str
     field_names: tuple[str, ...]
     features: list[Any]
+    keeps_ids: bool = True
 
 
 @dataclass(frozen=True)
@@ -60,7 +68,8 @@ def copy_scratch_layers(project: QgsProject) -> ScratchCopies:
             )
             not_copied.append(name)
             continue
-        copies.append(ScratchLayerCopy(str(layer.id()), name, field_names, features))
+        keeps_ids = _missing_ids(features) <= MAX_STAND_INS
+        copies.append(ScratchLayerCopy(str(layer.id()), name, field_names, features, keeps_ids))
     return ScratchCopies(tuple(copies), tuple(not_copied))
 
 
@@ -82,6 +91,11 @@ def restore_scratch_layers(project: QgsProject, copies: ScratchCopies) -> list[s
                 f"Could not refill scratch layer '{copy.name}': {failure}", LOG_TAG, Qgis.MessageLevel.Warning
             )
             failed.append(copy.name)
+            continue
+        if not copy.keeps_ids:
+            QgsMessageLog.logMessage(
+                f"Scratch layer '{copy.name}' came back with new feature ids.", LOG_TAG, Qgis.MessageLevel.Warning
+            )
     return failed
 
 
@@ -107,7 +121,13 @@ def _refill(layer: Any, copy: ScratchLayerCopy) -> None:
         for name in (str(item.name()) for item in target_fields)
     ]
     rebuilt = []
-    for source in copy.features:
+    stand_ins = []
+    next_id = FIRST_MEMORY_ID
+    for source in sorted(copy.features, key=lambda feature: feature.id()):
+        while copy.keeps_ids and next_id < source.id():
+            stand_ins.append(next_id)
+            rebuilt.append(QgsFeature(target_fields))
+            next_id += 1
         values = list(source.attributes())
         feature = QgsFeature(target_fields)
         if source.hasGeometry():
@@ -116,13 +136,23 @@ def _refill(layer: Any, copy: ScratchLayerCopy) -> None:
             [values[index] if index is not None and index < len(values) else None for index in positions]
         )
         rebuilt.append(feature)
+        next_id += 1
     added = provider.addFeatures(rebuilt)
     if isinstance(added, tuple):
         added = added[0]
     if not added:
         raise ValueError("the memory provider refused the features")
+    if stand_ins and not provider.deleteFeatures(stand_ins):
+        raise ValueError("the memory provider kept the stand-ins for the missing ids")
     layer.updateExtents()
     layer.triggerRepaint()
+
+
+def _missing_ids(features: list[Any]) -> int:
+    """How many stand-ins a refill needs to give each of `features` its own id back."""
+    if not features:
+        return 0
+    return max(feature.id() for feature in features) - FIRST_MEMORY_ID + 1 - len(features)
 
 
 def _feature_count(layer: Any) -> int:

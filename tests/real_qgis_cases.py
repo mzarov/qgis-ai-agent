@@ -547,6 +547,28 @@ class GisWorkflowsTest(unittest.TestCase):
             ],
         )
 
+    def test_undoing_a_style_change_keeps_a_scratch_layers_feature_ids(self):
+        """Ids 1 and 3 come back as 1 and 3, so a virtual field on $id reads the same after the undo."""
+        third = QgsFeature(self.layer.fields())
+        third.setGeometry(QgsGeometry.fromWkt("POINT (200 0)"))
+        third.setAttributes(["point-2", 2])
+        self.assertTrue(self.layer.dataProvider().addFeatures([third])[0])
+        self.assertTrue(self.layer.dataProvider().deleteFeatures([2]))
+        self._run("add_field", layer_name=self.layer.name(), name="row", expression="$id")
+        identifier = self.layer.id()
+        self.assertTrue(take_snapshot())
+        self._run("set_opacity", layer_name=self.layer.name(), opacity=0.5)
+        _, result = self._run("undo_last_apply")
+        restored = self.project.mapLayer(identifier)
+        self.assertNotIn("renumbered_scratch_layers", result)
+        rows = sorted((feature.id(), feature["name"], feature["row"]) for feature in restored.getFeatures())
+        self.assertEqual(rows, [(1, "point-0", 1), (3, "point-2", 3)])
+        self.assertEqual(restored.featureCount(), 2)
+        added = QgsFeature(restored.fields())
+        added.setAttributes(["point-3", 3])
+        ok, (fresh,) = restored.dataProvider().addFeatures([added])
+        self.assertEqual(fresh.id(), 4, "a feature added after the undo took an id that was in use")
+
     def test_a_drawn_utm_point_and_its_buffer_chain_in_one_batch(self):
         batch = WriteBatch(ToolExecutor())
         point = {
