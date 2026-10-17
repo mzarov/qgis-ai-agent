@@ -50,6 +50,9 @@ LOG_TAG = "AI Agent"
 OS_FAMILIES = (("darwin", "macos"), ("win", "windows"), ("linux", "linux"))
 DIALECTS = ("openai", "anthropic")
 OK_STATUSES = (200, 204)
+# The collector takes a day at most this far from its own date; an older pending day is dropped, not retried.
+MAX_DAY_AGE = 2
+REFUSED = 400
 
 
 def collector_url() -> str:
@@ -159,7 +162,7 @@ class UsageStats:
         self._roll_over()
         pending = _loaded(QgsSettings().value(PENDING_KEY, "", type=str))
         day, counts = str(pending.get("day") or ""), pending.get("counts") or {}
-        if not day or not has_counts(counts):
+        if not day or not has_counts(counts) or _too_old(day, self._today()):
             QgsSettings().remove(PENDING_KEY)
             return
         body = json.dumps(payload(self._install(), day, counts)).encode("utf-8")
@@ -187,6 +190,9 @@ class UsageStats:
         status = reply.attribute(QNetworkRequest.Attribute.HttpStatusCodeAttribute)
         if reply.error() == QNetworkReply.NetworkError.NoError and status in OK_STATUSES:
             QgsSettings().remove(PENDING_KEY)
+        elif status == REFUSED:
+            # Refused as malformed: sending the same counts again would be refused again.
+            QgsSettings().remove(PENDING_KEY)
         else:
             QgsMessageLog.logMessage(
                 f"Usage counts were not sent ({reply.errorString()}); they wait for the next try.",
@@ -203,6 +209,14 @@ class UsageStats:
             install = str(uuid.uuid4())
             settings.setValue(INSTALL_KEY, install)
         return install
+
+
+def _too_old(day: str, today: str) -> bool:
+    try:
+        age = datetime.date.fromisoformat(today) - datetime.date.fromisoformat(day)
+    except ValueError:
+        return True
+    return age.days > MAX_DAY_AGE
 
 
 def _loaded(text: Any) -> dict[str, Any]:

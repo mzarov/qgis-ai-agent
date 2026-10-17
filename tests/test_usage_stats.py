@@ -107,6 +107,22 @@ class UsageStatsTest(unittest.TestCase):
         self.stats._sent()
         self.assertIn(usage_stats.PENDING_KEY, MemorySettings.values)
 
+    def test_a_day_the_collector_would_refuse_is_dropped_not_retried(self):
+        usage_stats.set_consent(True)
+        self.stats.note("runs")
+        self.today = "2026-10-25"
+        self.stats.flush()
+        self.assertIsNone(self.stats._reply, "a week-old day went out")
+        self.assertNotIn(usage_stats.PENDING_KEY, MemorySettings.values)
+        self.today = "2026-10-26"
+        self.stats.note("runs")
+        self.today = "2026-10-27"
+        manager = mock.Mock(post=lambda request, body: Reply(status=400, error=302))
+        with mock.patch.object(usage_stats.QgsNetworkAccessManager, "instance", return_value=manager):
+            self.stats.flush()
+        self.stats._sent()
+        self.assertNotIn(usage_stats.PENDING_KEY, MemorySettings.values, "a refused day came back")
+
     def test_the_ping_carries_counts_and_versions_only(self):
         sent = usage_stats.payload("1f0e…", "2026-10-17", {"runs": 3, "applies": 1, "tools": {"query_layer": 2}})
         self.assertEqual(
