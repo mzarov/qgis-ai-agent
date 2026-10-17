@@ -14,7 +14,8 @@ from ai_agent.ui.attachments import local_files
 from ai_agent.ui.choice_popup import Choice
 
 SKILL_TOKEN = re.compile(r"^/\S+")
-LAYER_TOKEN = re.compile(r'(?:(?<=\s)|^)@(?:"[^"]*"?|\S+)')
+# A place picked on the map, @point(lon, lat) or @area(…), is one token with its spaces; then @"a name", @name.
+LAYER_TOKEN = re.compile(r'(?:(?<=\s)|^)@(?:(?:point|area)\([^)\n]*\)?|"[^"]*"?|\S+)')
 SLASH = "/"
 MENTION = "@"
 QUOTE = '"'
