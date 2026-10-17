@@ -210,14 +210,16 @@ class AgentDockWidget(QDockWidget):
 
     def replay(self, messages: list[dict[str, Any]]) -> None:
         self.conversation.clear()
-        for index, message in enumerate(messages):
+        for message in messages:
             if message.get("role") == "user":
                 text = message.get("content", "")
                 if message.get("chosen"):
                     entry = self.conversation.add_chosen(text)
                 else:
                     entry = self.conversation.add_user_message(text, animate=False)
-                self.conversation.mark_rewind_point(entry, index)
+                # Its place in the conversation: once the head is trimmed, no longer its index in this list.
+                if message.get("place") is not None:
+                    self.conversation.mark_rewind_point(entry, message["place"])
             elif isinstance(message.get("visual"), dict):
                 self.conversation.add_visual(message["visual"])
             elif isinstance(message.get("trace"), dict):

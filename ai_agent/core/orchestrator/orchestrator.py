@@ -316,7 +316,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         # The steps so far are written first: they come before the message, and so does its place.
         self.conversation.keep_trace()
         entry = self.dock_widget.add_user_message(text)
-        self.dock_widget.mark_rewind_point(entry, self.conversation.message_count)
+        self.dock_widget.mark_rewind_point(entry, self.conversation.next_place)
 
     def shutdown(self) -> None:
         self.conversation.save()

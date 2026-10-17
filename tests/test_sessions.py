@@ -75,6 +75,26 @@ class SessionTest(unittest.TestCase):
         self.assertEqual(len(session.messages), MAX_MESSAGES)
         self.assertIn(str(MAX_MESSAGES + 29), session.messages[-1]["content"])
 
+    def test_a_place_names_the_same_message_after_trimming_and_saving(self):
+        session = Session.create("/p")
+        session.add("user", "first")
+        place = session.end
+        session.add("user", "kept")
+        for index in range(MAX_MESSAGES - 2):
+            session.add("assistant", f"answer {index}")
+        self.assertEqual(session.at(place)["content"], "kept")
+        session.add("assistant", "one past the cap")
+        self.assertIsNone(session.at(place - 1), "the dropped message has no place any more")
+        self.assertEqual(session.at(place)["content"], "kept")
+        self.assertEqual(Session.from_dict(session.to_dict()).at(place)["content"], "kept")
+
+    def test_a_file_written_before_places_were_kept_starts_at_place_zero(self):
+        session = Session.create("/p")
+        session.add("user", "вопрос")
+        older = session.to_dict()
+        del older["trimmed"]
+        self.assertEqual(Session.from_dict(older).at(0)["content"], "вопрос")
+
     def test_round_trip(self):
         session = Session.create("/p.qgz")
         session.add("user", "вопрос")

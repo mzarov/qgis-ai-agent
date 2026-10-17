@@ -74,7 +74,7 @@ class SessionCompaction:
             return False
         self._running = True
         self._scope = conversation.session_identifier
-        self._upto = conversation.message_count
+        self._upto = conversation.next_place
         self._before = (conversation.context_tokens, estimated_tokens(history))
         self._after, self._cancelled = after, cancelled
         self._dock.set_busy(True)

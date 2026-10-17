@@ -7,8 +7,9 @@ from ai_agent.core.orchestrator import rewind
 from ai_agent.core.orchestrator.notices import REWIND_BOTH, REWIND_CONVERSATION, REWIND_PROJECT
 from ai_agent.core.orchestrator.orchestrator import CoreOrchestrator
 from ai_agent.core.state.conversation import ConversationState
-from ai_agent.core.state.session import Session
+from ai_agent.core.state.session import MAX_MESSAGES, Session
 from ai_agent.core.state.store import SessionStore
+from ai_agent.ui.dock_widget import AgentDockWidget
 from ai_agent.ui.messages import UserMessage
 from tests.test_orchestrator import Agent, Dock, Iface
 
@@ -120,6 +121,27 @@ class RewindTest(unittest.TestCase):
         self.assertEqual(self.restored, ["s1"])
         self.assertEqual(len(orchestrator.conversation.messages), 4)
 
+    def test_rewind_points_and_checkpoints_outlive_the_head_trimmed_past_the_cap(self):
+        orchestrator, dock = self.orchestrator(REWIND_BOTH)
+        turns = MAX_MESSAGES // 2 + 10
+        early, late = 15, turns - 1
+        for number in range(turns):
+            self._turn(orchestrator, f"request {number}", f"s{number}" if number in (early, late) else "")
+        conversation = orchestrator.conversation
+        self.assertEqual(len(conversation.messages), MAX_MESSAGES, "the cap dropped the head")
+        for checkpoint in orchestrator._checkpoints:
+            # Snapshot "s15" was taken by the run of "request 15".
+            tagged = conversation.message_at(checkpoint.message)
+            self.assertEqual(tagged["content"], f"request {checkpoint.snapshot[1:]}")
+
+        orchestrator.on_rewind(dock.marks[late])
+        self.assertEqual((self.restored, dock.restored), ([f"s{late}"], f"request {late}"))
+        self.assertEqual(conversation.messages[-1]["content"], f"done: request {late - 1}")
+
+        orchestrator.on_rewind(dock.marks[early])
+        self.assertEqual((self.restored, dock.restored), ([f"s{late}", f"s{early}"], f"request {early}"))
+        self.assertEqual(conversation.messages[-1]["content"], f"done: request {early - 1}")
+
     def test_nothing_rewinds_while_a_run_is_going(self):
         orchestrator, dock = self.orchestrator(REWIND_BOTH)
         self._turn(orchestrator, "first", "s1")
@@ -127,6 +149,23 @@ class RewindTest(unittest.TestCase):
         orchestrator.on_rewind(0)
         self.assertIsNone(dock.offered)
         self.assertEqual(self.restored, [])
+
+
+class ReplayPlaceTest(unittest.TestCase):
+    def test_a_reopened_long_conversation_offers_each_bubble_its_own_message(self):
+        root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, root, True)
+        state = ConversationState(store=SessionStore(root))
+        for number in range(MAX_MESSAGES // 2 + 10):
+            state.add("user", f"request {number}")
+            state.add("assistant", f"done: request {number}")
+        dock = AgentDockWidget()
+        dock.replay(state.replayable())
+
+        bubbles = [entry for entry in dock.conversation._entries.values() if isinstance(entry, UserMessage)]
+        self.assertEqual(len(bubbles), MAX_MESSAGES // 2)
+        for bubble in bubbles:
+            self.assertEqual(state.message_at(bubble.message)["content"], bubble.plain_text())
 
 
 class BubbleTest(unittest.TestCase):
