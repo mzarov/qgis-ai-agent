@@ -39,6 +39,7 @@ from ai_agent.core.settings import (
     set_extra_headers,
     set_history_days,
 )
+from ai_agent.core.usage_stats import CONSENT_YES, collector_url, consent
 from ai_agent.i18n import tr, tr_n
 from ai_agent.ui import controls, icons, style
 from ai_agent.ui import settings_fields as fields
@@ -59,6 +60,12 @@ KEEP_LABEL = tr("Keep conversations")
 KEEP_TITLES = {7: tr("7 days"), 30: tr("30 days"), 0: tr("Always")}
 JOURNAL_LABEL = tr("Run journal")
 JOURNAL_NOTE = tr("A Markdown file with the steps and calls after every Apply.")
+USAGE_SECTION = tr("Usage statistics")
+USAGE_LABEL = tr("Share anonymous usage counts")
+USAGE_NOTE = tr(
+    "Once a day: how many runs and applies, which tools, skills and errors, the versions. "
+    "Never what you wrote, the answers, your data or places. The totals are public."
+)
 JOURNAL_HINT = tr(
     "Each applied run leaves an unencrypted Markdown file in the QGIS profile with the request, "
     "the tool names and the outcome. Off by default; the files stay until you delete them."
@@ -166,6 +173,13 @@ def build_privacy(owner: Any, palette: Any) -> QWidget:
         )
     )
     show_history_size(owner)
+    # Only once a collector exists: a switch that sends nowhere would promise what it cannot do.
+    owner.usage_cb = fields.switch(palette)
+    owner.usage_cb.setChecked(consent() == CONSENT_YES)
+    if collector_url():
+        fields.section(column, USAGE_SECTION, palette)
+        row = fields.switch_row(USAGE_LABEL, owner.usage_cb, USAGE_NOTE, palette)
+        column.addWidget(fields.card_rows(palette, [row]))
     column.addStretch(1)
     return holder
 

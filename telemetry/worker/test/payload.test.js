@@ -1,0 +1,256 @@
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { describe, it } from "node:test";
+
+import {
+  MAX_MAP_KEYS,
+  MAX_VALUES_PER_FACET,
+  PING_COLUMNS,
+  PingError,
+  SERIES_DAYS,
+  fillDays,
+  hashInstall,
+  pingRow,
+  rankFacet,
+  shapeStats,
+  statsWindow,
+  validatePing,
+} from "../src/payload.js";
+
+const NOW = new Date("2026-10-17T12:00:00Z");
+const INSTALL = "3f2b8c1e-9a4d-4e6f-8b2a-1c3d5e7f9a0b";
+
+function ping(overrides = {}) {
+  return {
+    v: 1,
+    install: INSTALL,
+    day: "2026-10-17",
+    plugin: "0.4.0",
+    qgis: "4.2.1",
+    os: "macos",
+    locale: "en",
+    provider: "remote",
+    dialect: "openai",
+    runs: 3,
+    applies: 2,
+    failures: { timeout: 1 },
+    tools: { run_python: 1, inspect_project: 5 },
+    skills: { style: 2 },
+    ...overrides,
+  };
+}
+
+function without(field) {
+  const body = ping();
+  delete body[field];
+  return body;
+}
+
+function rejects(body, fragment) {
+  assert.throws(
+    () => validatePing(body, NOW),
+    (error) => error instanceof PingError && error.message.includes(fragment),
+    `expected an error mentioning ${JSON.stringify(fragment)}`,
+  );
+}
+
+describe("validatePing", () => {
+  it("accepts the contract example and normalizes it", () => {
+    const result = validatePing(ping({ install: INSTALL.toUpperCase() }), NOW);
+    assert.equal(result.install, INSTALL);
+    assert.deepEqual(Object.keys(result.tools), ["inspect_project", "run_python"]);
+    assert.equal(result.runs, 3);
+    assert.equal("v" in result, false);
+  });
+
+  it("lets an install that called nothing omit the counter maps", () => {
+    const body = ping();
+    delete body.tools;
+    delete body.skills;
+    delete body.failures;
+    const result = validatePing(body, NOW);
+    assert.deepEqual([result.tools, result.skills, result.failures], [{}, {}, {}]);
+  });
+
+  it("accepts every listed os, provider and dialect", () => {
+    for (const os of ["macos", "windows", "linux", "other"]) validatePing(ping({ os }), NOW);
+    for (const provider of ["local", "remote"]) validatePing(ping({ provider }), NOW);
+    for (const dialect of ["openai", "anthropic"]) validatePing(ping({ dialect }), NOW);
+  });
+
+  it("accepts days up to two days either side of the server date", () => {
+    for (const day of ["2026-10-15", "2026-10-19"]) validatePing(ping({ day }), NOW);
+  });
+
+  it("accepts the limits themselves", () => {
+    validatePing(ping({ plugin: "1".repeat(32), locale: "a".repeat(16), runs: 100000, applies: 0 }), NOW);
+    validatePing(ping({ tools: { [`a${"b".repeat(48)}`]: 0 } }), NOW);
+    const full = Object.fromEntries(Array.from({ length: MAX_MAP_KEYS }, (_, i) => [`tool_${i}`, 1]));
+    validatePing(ping({ tools: full }), NOW);
+  });
+
+  it("rejects a body that is not an object", () => {
+    for (const body of [null, [], "ping", 1]) rejects(body, "JSON object");
+  });
+
+  it("rejects unknown and missing fields", () => {
+    rejects(ping({ ip: "1.2.3.4" }), "unknown field");
+    for (const field of ["v", "install", "day", "plugin", "qgis", "os", "locale", "provider", "dialect", "runs"]) {
+      rejects(without(field), `missing field ${field}`);
+    }
+    rejects(without("applies"), "missing field applies");
+  });
+
+  it("rejects another contract version", () => {
+    for (const v of [2, "1", 0]) rejects(ping({ v }), "v must be 1");
+  });
+
+  it("rejects an install that is not a UUID", () => {
+    for (const install of ["install-1", INSTALL.replaceAll("-", ""), `${INSTALL}0`, 42]) {
+      rejects(ping({ install }), "install");
+    }
+  });
+
+  it("rejects days that are malformed, unreal or too far away", () => {
+    for (const day of ["2026-10-7", "17.10.2026", 20261017]) rejects(ping({ day }), "YYYY-MM-DD");
+    for (const day of ["2026-02-30", "2026-13-01", "2026-10-00"]) rejects(ping({ day }), "real date");
+    for (const day of ["2026-10-14", "2026-10-20", "2025-10-17"]) rejects(ping({ day }), "too far");
+  });
+
+  it("rejects malformed version strings and locales", () => {
+    for (const plugin of ["", "1".repeat(33), "0.4.0 beta", "0.4/0", 4]) rejects(ping({ plugin }), "plugin");
+    for (const qgis of ["", "4.2.1;drop", null]) rejects(ping({ qgis }), "qgis");
+    for (const locale of ["", "a".repeat(17), "en1", "ru.RU"]) rejects(ping({ locale }), "locale");
+  });
+
+  it("rejects values outside the listed sets", () => {
+    rejects(ping({ os: "MacOS" }), "os must be one of");
+    rejects(ping({ provider: "cloud" }), "provider must be one of");
+    rejects(ping({ dialect: "gemini" }), "dialect must be one of");
+  });
+
+  it("rejects counts that are not small non-negative integers", () => {
+    for (const runs of [-1, 1.5, 100001, "3", true, null]) rejects(ping({ runs }), "runs must be an integer");
+    rejects(ping({ applies: -2 }), "applies must be an integer");
+  });
+
+  it("rejects malformed counter maps", () => {
+    for (const tools of [[], null, "inspect"]) rejects(ping({ tools }), "tools must be an object");
+    for (const key of ["Inspect", "1tool", "_tool", "tool-name", `a${"b".repeat(49)}`, "__proto__"]) {
+      rejects(ping({ skills: JSON.parse(`{${JSON.stringify(key)}: 1}`) }), "skills has a malformed key");
+    }
+    rejects(ping({ failures: { timeout: -1 } }), "failures.timeout must be an integer");
+    rejects(ping({ failures: { timeout: 0.5 } }), "failures.timeout must be an integer");
+    const crowded = Object.fromEntries(Array.from({ length: MAX_MAP_KEYS + 1 }, (_, i) => [`tool_${i}`, 1]));
+    rejects(ping({ tools: crowded }), `more than ${MAX_MAP_KEYS} keys`);
+  });
+});
+
+describe("hashInstall", () => {
+  it("is the lower-case hex SHA-256 of the install id", async () => {
+    const hash = await hashInstall(INSTALL);
+    assert.equal(hash, createHash("sha256").update(INSTALL).digest("hex"));
+    assert.match(hash, /^[0-9a-f]{64}$/);
+  });
+
+  it("hashes an upper-case resend to the same row key", async () => {
+    const upper = validatePing(ping({ install: INSTALL.toUpperCase() }), NOW);
+    assert.equal(await hashInstall(upper.install), await hashInstall(INSTALL));
+  });
+});
+
+describe("pingRow", () => {
+  it("lines values up with the columns and never carries the raw id", async () => {
+    const hash = await hashInstall(INSTALL);
+    const row = pingRow(validatePing(ping(), NOW), hash);
+    assert.equal(row.length, PING_COLUMNS.length);
+    const byColumn = Object.fromEntries(PING_COLUMNS.map((column, i) => [column, row[i]]));
+    assert.equal(byColumn.install_hash, hash);
+    assert.equal(byColumn.day, "2026-10-17");
+    assert.equal(byColumn.tools, '{"inspect_project":5,"run_python":1}');
+    assert.equal(byColumn.failures, '{"timeout":1}');
+    assert.equal(row.includes(INSTALL), false);
+  });
+});
+
+describe("statsWindow", () => {
+  it("ends today and spans thirty and ninety inclusive days", () => {
+    assert.deepEqual(statsWindow(NOW), { today: "2026-10-17", recentSince: "2026-09-18", seriesSince: "2026-07-20" });
+  });
+
+  it("crosses a year boundary", () => {
+    assert.deepEqual(statsWindow(new Date("2027-01-05T00:00:00Z")), {
+      today: "2027-01-05",
+      recentSince: "2026-12-07",
+      seriesSince: "2026-10-08",
+    });
+  });
+});
+
+describe("fillDays", () => {
+  it("returns every day of the window, zero where nobody pinged", () => {
+    const days = fillDays([{ day: "2026-10-16", installs: 2, runs: 5, applies: 1 }], statsWindow(NOW));
+    assert.equal(days.length, SERIES_DAYS);
+    assert.deepEqual(days[0], { day: "2026-07-20", installs: 0, runs: 0, applies: 0 });
+    assert.deepEqual(days.at(-2), { day: "2026-10-16", installs: 2, runs: 5, applies: 1 });
+    assert.deepEqual(days.at(-1), { day: "2026-10-17", installs: 0, runs: 0, applies: 0 });
+  });
+});
+
+describe("rankFacet", () => {
+  it("orders values by count, then by name, within one facet", () => {
+    const rows = [
+      { facet: "os", value: "linux", n: 2 },
+      { facet: "os", value: "macos", n: 5 },
+      { facet: "os", value: "windows", n: 2 },
+      { facet: "qgis", value: "4.2.1", n: 9 },
+    ];
+    assert.deepEqual(Object.entries(rankFacet(rows, "os")), [
+      ["macos", 5],
+      ["linux", 2],
+      ["windows", 2],
+    ]);
+  });
+
+  it("caps the number of values", () => {
+    const rows = Array.from({ length: MAX_VALUES_PER_FACET + 20 }, (_, i) => ({ facet: "tools", value: `t${i}`, n: i }));
+    const ranked = rankFacet(rows, "tools");
+    assert.equal(Object.keys(ranked).length, MAX_VALUES_PER_FACET);
+    assert.equal(Object.values(ranked)[0], MAX_VALUES_PER_FACET + 19);
+  });
+
+  it("keeps a value named like a prototype key as data", () => {
+    const ranked = rankFacet([{ facet: "locale", value: "__proto__", n: 1 }], "locale");
+    assert.equal(Object.hasOwn(ranked, "__proto__"), true);
+    assert.equal(JSON.stringify(ranked), '{"__proto__":1}');
+  });
+});
+
+describe("shapeStats", () => {
+  it("produces exactly the public keys", () => {
+    const stats = shapeStats({
+      generated: NOW.toISOString(),
+      window: statsWindow(NOW),
+      totals: { installs_total: 4, installs_30d: 2 },
+      days: [],
+      facets: [{ facet: "tools", value: "inspect_project", n: 7 }],
+    });
+    assert.deepEqual(Object.keys(stats), [
+      "generated",
+      "installs_total",
+      "installs_30d",
+      "days",
+      "plugin",
+      "qgis",
+      "os",
+      "locale",
+      "provider",
+      "dialect",
+      "tools",
+      "skills",
+      "failures",
+    ]);
+    assert.deepEqual(stats.tools, { inspect_project: 7 });
+    assert.deepEqual(stats.os, {});
+  });
+});
