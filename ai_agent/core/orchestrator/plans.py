@@ -165,6 +165,7 @@ class PlanMixin:
 
     def on_applied(self, results: list) -> None:
         failed = [result for result in results if not result.ok]
+        self.usage.note("applies")
         self._close_plan_card(results, bool(failed))
         self._done_summary = "" if failed else applied_summary(results)
         self.dock_widget.show_outcome(STATUS_FAILED if failed else STATUS_DONE, self._done_summary)

@@ -548,6 +548,7 @@ _mod(
         "QNetworkProxy",
         "QNetworkProxyFactory",
         "QNetworkProxyQuery",
+        "QNetworkReply",
         "QNetworkRequest",
         "QSslSocket",
     ],

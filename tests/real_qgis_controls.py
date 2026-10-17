@@ -255,6 +255,35 @@ class TokenPatternTest(unittest.TestCase):
         self.assertEqual(found, ["@districts", '@"Main rivers"'])
 
 
+class UsageStatsOfferTest(PluginCase):
+    """The one-time card after an answer: only with a collector, once a session; the choice is stored."""
+
+    api_url = "http://localhost:11434/v1"
+    model_name = "qwen3"
+
+    def test_the_card_asks_once_and_stores_the_choice(self) -> None:
+        from unittest import mock
+
+        from qgis.core import QgsSettings
+
+        from ai_agent.core import usage_stats
+        from ai_agent.ui.usage_card import UsageCard
+
+        QgsSettings().remove(usage_stats.CONSENT_KEY)
+        self.addCleanup(QgsSettings().remove, usage_stats.CONSENT_KEY)
+        self.orchestrator._offer_usage_stats()
+        self.assertEqual(self.dock.conversation.findChildren(UsageCard), [], "no collector, no question")
+        with mock.patch.object(usage_stats, "COLLECTOR_URL", "https://stats.example"):
+            self.orchestrator._offer_usage_stats()
+            self.orchestrator._offer_usage_stats()
+            cards = self.dock.conversation.findChildren(UsageCard)
+            self.assertEqual(len(cards), 1, "asked twice in one session")
+            cards[0].share.click()
+            pump(0.05)
+            self.assertEqual(usage_stats.consent(), usage_stats.CONSENT_YES)
+            self.assertTrue(cards[0]._actions.isHidden())
+
+
 class SettingsBehaviourTest(PluginCase):
     api_url = "http://localhost:11434/v1"
     model_name = "qwen3"

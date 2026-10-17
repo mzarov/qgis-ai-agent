@@ -79,6 +79,7 @@ class RunEventsMixin:
             self.dock_widget.mark_plan_progress(self._plan_message_id, self._plan_step, percent, done)
 
     def on_tool_finished(self, tool_name: str, ok: bool, note: str = "") -> None:
+        self.usage.note("tools", tool_name)
         if self._applying_plan() and self._plan_step >= 0:
             state = STEP_DONE if ok else STEP_FAILED
             self.dock_widget.mark_plan_step(self._plan_message_id, self._plan_step, state, note)
@@ -105,6 +106,7 @@ class RunEventsMixin:
         self._instant_step(tr("Plan {0}/{1}: {2}").format(done, len(steps), shown))
 
     def on_skill_loaded(self, name: str) -> None:
+        self.usage.note("skills", name)
         summary = CallSummary.of(tr("Using {0}"), name)
         summary.skill = KNOWLEDGE
         self._instant_step(summary)
@@ -126,6 +128,7 @@ class RunEventsMixin:
         self._render_answer(message)
         # A check after an apply ends the request: the line still says what the apply changed.
         self.dock_widget.show_outcome(STATUS_DONE, self._done_summary)
+        self._offer_usage_stats()
         self.naming.after_answer()
         if getattr(self.agent, "is_planning", False) and not getattr(self.agent, "ended_on_limit", False):
             # Plan mode ends on a plan: offer to run it, as Claude Code does.
@@ -148,6 +151,7 @@ class RunEventsMixin:
             str(overrides.get("url_override") or ""),
             str(overrides.get("model_override") or ""),
         )
+        self.usage.note("failures", failure.kind)
         # Retry only where it can help: a wrong path or key fails the same way until the settings change.
         retryable = self._retry_args is not None and not getattr(self.agent, "is_verification", False)
         self.dock_widget.add_run_failure(
