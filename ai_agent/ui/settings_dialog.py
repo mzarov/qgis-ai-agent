@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import Any
 
 from qgis.PyQt.QtCore import Qt
@@ -415,6 +416,9 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         if token_budget is None or thinking_budget is None or context_window is None:
             self._show(BUDGET_INVALID, style.danger(self.palette()))
             return
+        # The stores that can refuse go first, so a refused Save leaves every setting as it was.
+        if not self._store_key_and_personalisation(url, dialect):
+            return
         set_api_url(url)
         set_model(model)
         set_auth_type(self.auth_type_combo.currentText())
@@ -434,22 +438,32 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         if self._built(settings_layout.SKILLS):
             set_disabled_skills(self.skills.disabled())
         settings_advanced.save(self)
-        if self._built(settings_layout.PERSONALISATION):
-            try:
-                self.personalisation.save()
-            except ValueError as error:
-                self._show(str(error), style.danger(self.palette()))
-                return
         if geocoder is not None and geocoder[0] == GEOCODER_NOMINATIM:
             set_custom_nominatim_url(geocoder[1])
+        self.accept()
+
+    def _store_key_and_personalisation(self, url: str, dialect: str) -> bool:
+        """Store the key, then the Personalisation page; False after a refusal, which leaves both as they were."""
         key = self.key_edit.text()
+        stored_key = get_api_key(url, dialect) if key else ""
         if key:
             try:
                 set_api_key(key, url, dialect)
             except RuntimeError as error:
                 self._show(str(error), style.danger(self.palette()))
-                return
-        self.accept()
+                return False
+        if self._built(settings_layout.PERSONALISATION):
+            try:
+                self.personalisation.save()
+            except ValueError as error:
+                if key:
+                    # The key goes back to what was stored. The store took a key a moment ago; should it
+                    # refuse this one, the notes' error is still the one to show.
+                    with suppress(RuntimeError):
+                        set_api_key(stored_key, url, dialect)
+                self._show(str(error), style.danger(self.palette()))
+                return False
+        return True
 
     def _overrides(self) -> dict[str, Any]:
         url = self._edited_url()
