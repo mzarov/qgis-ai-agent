@@ -86,6 +86,7 @@ class AddAnnotationTool(BaseTool):
         point = _to_project_point(x, y, _checked_crs(params.get("crs")))
         if kind == KIND_MARKER:
             item = QgsAnnotationMarkerItem(point)
+            _apply_marker_colour(item, params)
         else:
             # The text item takes a QgsPointXY: QGIS 4.2 refuses the QgsPoint the marker accepts.
             item = QgsAnnotationPointTextItem(str(params.get("text") or "").strip(), QgsPointXY(point.x(), point.y()))
@@ -94,11 +95,15 @@ class AddAnnotationTool(BaseTool):
         return {"id": str(item_id), "kind": kind, "note": "The annotation sits above every layer."}
 
     def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
-        # A note is a fact, not a look: it is on the map, with its words, where it was asked to be.
+        # A note is a fact, not a look: it is on the map, with its words and colour, where it was asked to be.
         item = (annotation_layer().items() or {}).get(str(payload.get("id") or ""))
         if item is None:
             return False
-        if _checked_kind(params.get("kind")) == KIND_TEXT and item_text(item) != str(params.get("text") or "").strip():
+        kind = _checked_kind(params.get("kind"))
+        if kind == KIND_TEXT and item_text(item) != str(params.get("text") or "").strip():
+            return False
+        colour = str(params.get("color") or "").strip()
+        if colour and _item_colour(item, kind) != QColor(colour).name():
             return False
         wanted = _to_project_point(*_checked_xy(params), _checked_crs(params.get("crs")))
         centre = item.boundingBox().center()
@@ -146,6 +151,22 @@ def _checked_crs(raw: Any) -> Any:
     if not crs.isValid():
         raise ValueError(f"Unknown CRS '{text}'. Give an authority id such as EPSG:4326.")
     return crs
+
+
+def _apply_marker_colour(item: Any, params: dict[str, Any]) -> None:
+    colour = str(params.get("color") or "").strip()
+    if colour:
+        symbol = item.symbol().clone()
+        symbol.setColor(QColor(colour))
+        item.setSymbol(symbol)
+
+
+def _item_colour(item: Any, kind: str) -> str:
+    try:
+        colour = item.symbol().color() if kind == KIND_MARKER else item.format().color()
+        return str(colour.name())
+    except Exception:
+        return ""
 
 
 def _apply_text_look(item: Any, params: dict[str, Any]) -> None:

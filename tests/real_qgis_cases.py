@@ -159,6 +159,18 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertAlmostEqual(place[0], 37.6175, places=5)
         self.assertAlmostEqual(place[1], 55.752, places=5)
 
+    def test_a_marker_and_a_note_come_in_the_asked_colour(self):
+        """A blue marker once came out red, and the read-back still said the step was done."""
+        tool = get_tool_by_name("add_annotation")
+        for kind, extra in (("marker", {}), ("text", {"text": "start here"})):
+            with self.subTest(kind=kind):
+                queued, added = self._run("add_annotation", kind=kind, x=37.62, y=55.75, color="#2040d0", **extra)
+                item = self.project.mainAnnotationLayer().items()[added["id"]]
+                colour = item.symbol().color() if kind == "marker" else item.format().color()
+                self.assertEqual(colour.name(), "#2040d0")
+                self.assertTrue(tool.confirm_applied(queued.arguments, added))
+                self.assertFalse(tool.confirm_applied({**queued.arguments, "color": "#d02020"}, added))
+
     def _custom_crs_target(self):
         """Where CUSTOM_POINT in CUSTOM_WEST lies in CUSTOM_EAST: two CRSs whose authids are both empty."""
         west, east = QgsCoordinateReferenceSystem(CUSTOM_WEST), QgsCoordinateReferenceSystem(CUSTOM_EAST)

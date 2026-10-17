@@ -1,6 +1,8 @@
 import unittest
 from unittest.mock import Mock, patch
 
+from qgis.PyQt.QtGui import QColor
+
 from ai_agent.qgis_tools.annotations import add_annotation as add_module
 from ai_agent.qgis_tools.annotations import store as store_module
 from ai_agent.qgis_tools.annotations.add_annotation import AddAnnotationTool
@@ -13,6 +15,32 @@ class FakeItem:
 
     def text(self):
         return self._text
+
+
+class FakeSymbol:
+    def __init__(self, colour):
+        self._colour = colour
+
+    def clone(self):
+        return FakeSymbol(self._colour)
+
+    def color(self):
+        return self._colour
+
+    def setColor(self, colour):
+        self._colour = colour
+
+
+class FakeMarker(FakeItem):
+    def __init__(self, point):
+        super().__init__()
+        self._symbol = FakeSymbol(QColor("#ff0000"))
+
+    def symbol(self):
+        return self._symbol
+
+    def setSymbol(self, symbol):
+        self._symbol = symbol
 
 
 class FakeLayer:
@@ -48,6 +76,15 @@ class AnnotationsTest(unittest.TestCase):
         result = AddAnnotationTool().execute({"kind": "text", "x": 49.1, "y": 55.8, "text": "центр"})
         self.assertEqual(result["id"], "a1")
         self.assertEqual(len(self.layer.items()), 1)
+
+    def test_a_marker_takes_the_asked_colour_and_reads_it_back(self):
+        params = {"kind": "marker", "x": 49.1, "y": 55.8, "color": "#2040d0"}
+        with patch.object(add_module, "QgsAnnotationMarkerItem", FakeMarker):
+            result = AddAnnotationTool().execute(params)
+        marker = self.layer.items()[result["id"]]
+        self.assertEqual(marker.symbol().color().name(), "#2040d0")
+        marker.setSymbol(FakeSymbol(QColor("#ff0000")))
+        self.assertFalse(AddAnnotationTool().confirm_applied(params, result), "a red marker is not the blue one asked")
 
     def test_text_kind_requires_text(self):
         with self.assertRaises(ValueError):
