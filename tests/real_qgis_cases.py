@@ -12,9 +12,11 @@ from processing.modeler.ModelerUtils import ModelerUtils
 from qgis.core import (
     QgsApplication,
     QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
     QgsCoordinateTransformContext,
     QgsFeature,
     QgsGeometry,
+    QgsPointXY,
     QgsProcessingContext,
     QgsProject,
     QgsRasterLayer,
@@ -47,6 +49,10 @@ MANY_POINTS = 20000
 MODEL_NAME = "Buffer in UTM"
 # Two points near Moscow in degrees: the model must reproject them before a buffer in metres means anything.
 MOSCOW_POINTS = ("POINT (37.6 55.75)", "POINT (37.7 55.8)")
+# Two transverse Mercator zones 3 degrees apart, defined by PROJ strings alone: valid CRSs without an authid.
+CUSTOM_WEST = "PROJ:+proj=tmerc +lat_0=0 +lon_0=30 +k=1 +x_0=500000 +y_0=0 +ellps=WGS84 +units=m +no_defs"
+CUSTOM_EAST = "PROJ:+proj=tmerc +lat_0=0 +lon_0=33 +k=1 +x_0=500000 +y_0=0 +ellps=WGS84 +units=m +no_defs"
+CUSTOM_POINT = (500000.0, 6000000.0)
 
 
 class GisWorkflowsTest(unittest.TestCase):
@@ -152,6 +158,36 @@ class GisWorkflowsTest(unittest.TestCase):
         place = next((item["lon"], item["lat"]) for item in listed if item["id"] == note["id"])
         self.assertAlmostEqual(place[0], 37.6175, places=5)
         self.assertAlmostEqual(place[1], 55.752, places=5)
+
+    def _custom_crs_target(self):
+        """Where CUSTOM_POINT in CUSTOM_WEST lies in CUSTOM_EAST: two CRSs whose authids are both empty."""
+        west, east = QgsCoordinateReferenceSystem(CUSTOM_WEST), QgsCoordinateReferenceSystem(CUSTOM_EAST)
+        self.assertTrue(west.isValid() and east.isValid())
+        self.assertEqual((west.authid(), east.authid()), ("", ""))
+        target = QgsCoordinateTransform(west, east, self.project).transform(QgsPointXY(*CUSTOM_POINT))
+        self.assertGreater(abs(target.x() - CUSTOM_POINT[0]), 100_000, "the zones must be far apart")
+        return east, target
+
+    def test_a_note_between_two_custom_crss_lands_where_asked(self):
+        east, target = self._custom_crs_target()
+        self.project.setCrs(east)
+        x, y = CUSTOM_POINT
+        queued, marker = self._run("add_annotation", kind="marker", x=x, y=y, crs=CUSTOM_WEST)
+        centre = self.project.mainAnnotationLayer().items()[marker["id"]].boundingBox().center()
+        self.assertAlmostEqual(centre.x(), target.x(), delta=0.01)
+        self.assertAlmostEqual(centre.y(), target.y(), delta=0.01)
+        self.assertTrue(get_tool_by_name("add_annotation").confirm_applied(queued.arguments, marker))
+
+    def test_drawing_between_two_custom_crss_moves_the_coordinates(self):
+        east, target = self._custom_crs_target()
+        survey = QgsVectorLayer("Point", "survey", "memory")
+        survey.setCrs(east)
+        self.project.addMapLayer(survey)
+        features = [{"coordinates": [list(CUSTOM_POINT)]}]
+        self._run("draw_features", layer_name="survey", geometry="point", crs=CUSTOM_WEST, features=features)
+        drawn = next(survey.getFeatures()).geometry().asPoint()
+        self.assertAlmostEqual(drawn.x(), target.x(), delta=0.01)
+        self.assertAlmostEqual(drawn.y(), target.y(), delta=0.01)
 
     def test_a_graduated_style_brings_its_legend_for_the_feed_only(self):
         batch = WriteBatch(ToolExecutor())

@@ -127,7 +127,8 @@ def _to_project_point(x: float, y: float, source: Any) -> Any:
     point = QgsPoint(x, y)
     project = QgsProject.instance()
     target = project.crs()
-    if not target.isValid() or source.authid() == target.authid():
+    # Not by authid: two custom CRSs both have an empty one.
+    if not target.isValid() or source == target:
         return point
     try:
         point.transform(QgsCoordinateTransform(source, target, project))

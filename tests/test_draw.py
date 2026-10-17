@@ -1,6 +1,6 @@
 import types
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from qgis.core import QgsVectorLayer
 
@@ -31,6 +31,9 @@ class FakeCrs:
 
     def toWkt(self):
         return f"WKT[{self._text}]"
+
+    def __eq__(self, other):
+        return isinstance(other, FakeCrs) and self._text == other._text
 
 
 class FakePoint:
@@ -421,6 +424,15 @@ class PrepareCoordinatesTest(DrawTestBase):
     def test_metres_with_a_metric_crs_pass(self):
         prepared = self.tool.prepare(self.new_point([4187000.0, 7508000.0], crs="EPSG:3857"))
         self.assertEqual(prepared["crs"], "EPSG:3857")
+
+    def test_two_crss_without_an_authority_id_are_still_transformed_between(self):
+        # Two PROJ-string CRSs both have an empty authid; only the CRS objects themselves tell them apart.
+        west, east = Mock(), Mock()
+        for crs in (west, east):
+            crs.isValid.return_value = True
+            crs.authid.return_value = ""
+        moved = coordinates_module.transformed_points([(500000.0, 6000000.0)], west, east)
+        self.assertEqual((moved[0].x(), moved[0].y()), (501000.0, 6002000.0))
 
     def test_a_line_needs_two_distinct_vertices(self):
         params = {"new_layer_name": "Route", "geometry": "line", "features": [{"coordinates": [MOSCOW, MOSCOW]}]}

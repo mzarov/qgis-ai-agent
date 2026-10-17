@@ -119,6 +119,24 @@ class AnnotationsTest(unittest.TestCase):
             AddAnnotationTool().execute({"kind": "marker", "x": 10, "y": 95})
         self.assertEqual(self.layer.items(), {})
 
+    def test_two_crss_without_an_authority_id_are_still_transformed_between(self):
+        # Two PROJ-string CRSs both have an empty authid; only the CRS objects themselves tell them apart.
+        source, target = Mock(), Mock()
+        for crs in (source, target):
+            crs.isValid.return_value = True
+            crs.authid.return_value = ""
+        project = Mock()
+        project.crs.return_value = target
+        point = Mock()
+        with (
+            patch.object(add_module.QgsProject, "instance", return_value=project),
+            patch.object(add_module, "QgsPoint", return_value=point),
+            patch.object(add_module, "QgsCoordinateTransform") as transform,
+        ):
+            add_module._to_project_point(500000.0, 6000000.0, source)
+        transform.assert_called_once_with(source, target, project)
+        point.transform.assert_called_once_with(transform.return_value)
+
     def test_summaries_never_raise(self):
         for tool in (AddAnnotationTool(), ListAnnotationsTool(), RemoveAnnotationTool()):
             self.assertTrue(tool.summarize_call({}).strip())

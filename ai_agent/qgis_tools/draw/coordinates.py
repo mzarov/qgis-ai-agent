@@ -123,7 +123,8 @@ def transformed_points(
     vertices: list[Vertex], source: QgsCoordinateReferenceSystem, target: QgsCoordinateReferenceSystem
 ) -> list[Any]:
     points = [QgsPointXY(x, y) for x, y in vertices]
-    if not target.isValid() or source.authid() == target.authid():
+    # Not by authid: two custom CRSs both have an empty one.
+    if not target.isValid() or source == target:
         return points
     transform = QgsCoordinateTransform(source, target, QgsProject.instance())
     try:
