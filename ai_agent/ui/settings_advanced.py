@@ -39,7 +39,7 @@ from ai_agent.core.settings import (
     set_extra_headers,
     set_history_days,
 )
-from ai_agent.core.usage_stats import CONSENT_YES, collector_url, consent
+from ai_agent.core.usage_stats import collector_url, enabled
 from ai_agent.i18n import tr, tr_n
 from ai_agent.ui import controls, icons, style
 from ai_agent.ui import settings_fields as fields
@@ -175,7 +175,7 @@ def build_privacy(owner: Any, palette: Any) -> QWidget:
     show_history_size(owner)
     # Only once a collector exists: a switch that sends nowhere would promise what it cannot do.
     owner.usage_cb = fields.switch(palette)
-    owner.usage_cb.setChecked(consent() == CONSENT_YES)
+    owner.usage_cb.setChecked(enabled())
     if collector_url():
         fields.section(column, USAGE_SECTION, palette)
         row = fields.switch_row(USAGE_LABEL, owner.usage_cb, USAGE_NOTE, palette)

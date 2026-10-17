@@ -181,3 +181,41 @@ class SettingsWhileUnloadingTest(unittest.TestCase):
             plugin._on_open_settings()
         self.assertEqual(parents, [window])
         dock.put_prompt.assert_not_called()
+
+
+class UsageNoticeTest(unittest.TestCase):
+    """The first load says that usage counts are on, once; a notice that fails is due again."""
+
+    def setUp(self):
+        self.states = {"notify": True, "noticed": False}
+        stats = mock.Mock()
+        stats.should_notify = lambda: self.states["notify"]
+        stats.mark_noticed = lambda: self.states.update(notify=False, noticed=True)
+        patcher = mock.patch.object(plugin_module, "usage_stats", stats)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.stats = stats
+        self.plugin = QgisAiAgentPlugin(mock.Mock())
+
+    def test_the_notice_is_shown_once_and_its_turn_off_says_no(self):
+        with mock.patch.object(plugin_module, "UsageNotice") as notice:
+            self.plugin._notify_usage_stats()
+            self.plugin._notify_usage_stats()
+        self.assertEqual(notice.call_count, 1)
+        self.assertTrue(self.states["noticed"])
+        _bar, turn_off = notice.call_args.args
+        turn_off()
+        self.stats.set_consent.assert_called_once_with(False)
+
+    def test_a_notice_that_could_not_be_shown_is_due_again(self):
+        with mock.patch.object(plugin_module, "UsageNotice", side_effect=AttributeError("no message bar")):
+            self.plugin._notify_usage_stats()
+        self.assertFalse(self.states["noticed"])
+        self.assertIsNone(self.plugin._usage_notice)
+
+    def test_unload_takes_the_notice_away(self):
+        with mock.patch.object(plugin_module, "UsageNotice") as notice:
+            self.plugin._notify_usage_stats()
+        self.plugin._drop_usage_notice()
+        self.plugin.iface.messageBar().popWidget.assert_called_once_with(notice.return_value.item)
+        self.assertIsNone(self.plugin._usage_notice)

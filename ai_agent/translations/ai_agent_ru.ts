@@ -1150,7 +1150,7 @@
         <translation>Копировать строки как CSV</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/conversation.py" line="505"/>
+        <location filename="ai_agent/ui/conversation.py" line="498"/>
         <source>Copy the whole conversation</source>
         <translation>Скопировать весь разговор</translation>
     </message>
@@ -1656,11 +1656,6 @@
         <location filename="ai_agent/qgis_tools/style/set_graduated.py" line="105"/>
         <source>Graduating '{0}' by '{1}', classes: {2}.</source>
         <translation>Строю градации «{0}» по «{1}», классов: {2}.</translation>
-    </message>
-    <message>
-        <location filename="ai_agent/ui/usage_card.py" line="18"/>
-        <source>Help improve AI Agent?</source>
-        <translation>Помочь улучшить AI Agent?</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="58"/>
@@ -2247,11 +2242,6 @@
         <translation>Своих навыков пока нет.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/usage_card.py" line="26"/>
-        <source>No thanks</source>
-        <translation>Нет, спасибо</translation>
-    </message>
-    <message>
         <location filename="ai_agent/core/orchestrator/plans.py" line="180"/>
         <source>Not all changes were applied.</source>
         <translation>Применились не все изменения.</translation>
@@ -2294,11 +2284,6 @@
         <translation>Пока ничего не сохранено.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/usage_card.py" line="28"/>
-        <source>Nothing is sent. Change it any time in Settings → Privacy.</source>
-        <translation>Ничего не отправляется. Изменить можно в любой момент: Настройки → Приватность.</translation>
-    </message>
-    <message>
         <location filename="ai_agent/qgis_tools/data/sources/openstreetmap.json" line="13"/>
         <source>ODbL, credit OpenStreetMap contributors</source>
         <translation>ODbL, с указанием участников OpenStreetMap</translation>
@@ -2312,11 +2297,6 @@
         <location filename="ai_agent/ui/personalisation_settings.py" line="85"/>
         <source>Often</source>
         <translation>Часто</translation>
-    </message>
-    <message>
-        <location filename="ai_agent/ui/usage_card.py" line="19"/>
-        <source>Once a day the plugin can send anonymous counts: how many runs and applies, which tools and skills ran, which errors happened, and the plugin and QGIS versions. Never what you wrote, the answers, your data or places. The totals are public.</source>
-        <translation>Раз в день плагин может отправлять анонимные счётчики: сколько было запусков и применений, какие инструменты и навыки работали, какие случались ошибки, версии плагина и QGIS. Никогда — то, что вы написали, ответы, ваши данные или места. Итоги публичны.</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="65"/>
@@ -3113,6 +3093,11 @@
         <translation>Отправить запрос в {0}?&#10;&#10;Провайдер получит ваш запрос и всё, что агент прочитает для ответа: имена слоёв и полей, значения объектов, границы, источники слоёв и изображения карты. Если данные не должны покидать компьютер, используйте локальный сервер модели.</translation>
     </message>
     <message>
+        <location filename="ai_agent/ui/usage_notice.py" line="20"/>
+        <source>Sends anonymous usage counts once a day — never what you write or your data.</source>
+        <translation>Раз в день отправляет анонимные счётчики использования — никогда ваши тексты и данные.</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/data/sources/planetary-computer.json" line="6"/>
         <source>Sentinel-2, Landsat, elevation and land cover scenes</source>
         <translation>Снимки Sentinel-2 и Landsat, рельеф и земельный покров</translation>
@@ -3162,11 +3147,6 @@
         <location filename="ai_agent/ui/settings_advanced.py" line="64"/>
         <source>Share anonymous usage counts</source>
         <translation>Делиться анонимными счётчиками</translation>
-    </message>
-    <message>
-        <location filename="ai_agent/ui/usage_card.py" line="25"/>
-        <source>Share counts</source>
-        <translation>Делиться</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/confirmations.py" line="79"/>
@@ -3376,11 +3356,6 @@
         <translation>Проверяю подключение…</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/usage_card.py" line="27"/>
-        <source>Thank you. Change it any time in Settings → Privacy.</source>
-        <translation>Спасибо. Изменить можно в любой момент: Настройки → Приватность.</translation>
-    </message>
-    <message>
         <location filename="ai_agent/core/llm/client.py" line="170"/>
         <location filename="ai_agent/core/llm/client.py" line="160"/>
         <location filename="ai_agent/core/llm/client.py" line="168"/>
@@ -3563,7 +3538,7 @@
         <translation>Новый режим действует со следующего запроса.</translation>
     </message>
     <message>
-        <location filename="ai_agent/plugin.py" line="21"/>
+        <location filename="ai_agent/plugin.py" line="24"/>
         <source>The panel theme changes once the agent has finished — open Settings and save again then.</source>
         <translation>Тема панели сменится, когда агент закончит, — тогда откройте настройки и сохраните ещё раз.</translation>
     </message>
@@ -3784,6 +3759,11 @@
         <translation>Турецкий</translation>
     </message>
     <message>
+        <location filename="ai_agent/ui/usage_notice.py" line="21"/>
+        <source>Turn off</source>
+        <translation>Выключить</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="57"/>
         <source>Turn off only for a trusted self-signed server.</source>
         <translation>Выключайте только для доверенного самоподписанного сервера.</translation>
@@ -3799,7 +3779,7 @@
         <translation>Превращает названия мест в координаты — например, когда вы пишете «школы в Казани».</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="160"/>
+        <location filename="ai_agent/core/orchestrator/orchestrator.py" line="158"/>
         <source>Type a request.</source>
         <translation>Введите запрос.</translation>
     </message>
@@ -3874,6 +3854,11 @@
         <translation>Статистика использования</translation>
     </message>
     <message>
+        <location filename="ai_agent/ui/usage_notice.py" line="23"/>
+        <source>Usage statistics are off. Turn them back on in Settings → Privacy.</source>
+        <translation>Статистика использования выключена. Включить снова можно в Настройки → Приватность.</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/personalisation_settings.py" line="32"/>
         <source>Used in answers. Empty: no name.</source>
         <translation>Используется в ответах. Пусто — без имени.</translation>
@@ -3919,9 +3904,9 @@
         <translation>Поиск в интернете, чтение страниц, геокодирование</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/usage_card.py" line="24"/>
-        <source>What is sent and the public totals</source>
-        <translation>Что отправляется и публичные итоги</translation>
+        <location filename="ai_agent/ui/usage_notice.py" line="22"/>
+        <source>What is sent</source>
+        <translation>Что отправляется</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="53"/>

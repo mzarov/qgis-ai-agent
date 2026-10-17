@@ -1,6 +1,6 @@
 # Usage statistics Worker
 
-The server side of the plugin's opt-in, anonymous usage statistics: a
+The server side of the plugin's anonymous usage statistics: a
 Cloudflare Worker with a D1 database, both on the free plan. Everything it
 publishes is public, on the [dashboard](https://mzarov.github.io/qgis-ai-agent/usage-stats/).
 Plain JavaScript modules, no build step and no npm dependencies.

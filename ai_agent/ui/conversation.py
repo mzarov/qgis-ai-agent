@@ -23,7 +23,6 @@ from ai_agent.ui.progress import ProgressLine
 from ai_agent.ui.question import QuestionCard
 from ai_agent.ui.table_card import TableCard
 from ai_agent.ui.thinking import ThinkingBlock
-from ai_agent.ui.usage_card import UsageCard
 from ai_agent.ui.welcome import WelcomeCard
 
 MESSAGE_SPACING = 11
@@ -41,7 +40,6 @@ class ConversationView(QScrollArea):
     confirm_requested = pyqtSignal()
     cancel_requested = pyqtSignal()
     plan_run_requested = pyqtSignal(str)
-    usage_chosen = pyqtSignal(bool)
     rewind_requested = pyqtSignal(int)
     plan_undo_requested = pyqtSignal(int)
     plan_restore_requested = pyqtSignal(int)
@@ -397,11 +395,6 @@ class ConversationView(QScrollArea):
         card.undo_requested.connect(lambda: self.plan_undo_requested.emit(entry_id))
         card.restore_requested.connect(lambda: self.plan_restore_requested.emit(entry_id))
         return entry_id
-
-    def add_usage_offer(self) -> int:
-        card = UsageCard(self.palette())
-        card.chosen.connect(self.usage_chosen.emit)
-        return self._append(card)
 
     def add_plan_offer(self) -> int:
         self._retire_plan_offers()

@@ -1,12 +1,14 @@
-"""Opt-in usage counts: once a day, how much the agent was used — never what for.
+"""Anonymous daily usage counts: how much the agent was used — never what for.
 
-Off until the user says yes, on the card after a first answer or in Settings →
-Privacy; without a yes nothing is even counted. What is counted: runs, applied
-batches, the names of the tools and skills used, the kinds of failures, and the
-versions around them (plugin, QGIS, the OS family, the interface language, a
-local or remote model and its API format). Never a request, an answer, a layer,
-a value or a place. A random id, kept in the QGIS settings, tells one install
-from another; the collector stores only its hash.
+On by default, and the user is told so once: the first time the plugin loads, a
+notice in the QGIS message bar says what is counted and offers to turn it off.
+Nothing is counted before that notice was shown, and a no — there or in
+Settings → Privacy — deletes what waits to be sent. What is counted: runs,
+applied batches, the names of the tools and skills used, the kinds of failures,
+and the versions around them (plugin, QGIS, the OS family, the interface
+language, a local or remote model and its API format). Never a request, an
+answer, a layer, a value or a place. A random id, kept in the QGIS settings,
+tells one install from another; the collector stores only its hash.
 
 The counts of a day go out once that day is over, in one small request on the
 QGIS network stack, to the collector in `telemetry/worker`. A failed send keeps
@@ -30,8 +32,8 @@ from ai_agent.core.llm.client import is_local
 from ai_agent.core.settings import get_api_url, get_dialect
 from ai_agent.i18n import locale_code
 
-# Set once the collector is deployed; empty keeps the whole feature off, the card included.
-COLLECTOR_URL = ""
+# The deployed collector (telemetry/worker); empty keeps the whole feature off, the notice included.
+COLLECTOR_URL = "https://ai-agent-usage.mzarov.workers.dev"
 PING_PATH = "/v1/ping"
 PAYLOAD_VERSION = 1
 PREFIX = "ai_agent/usage"
@@ -40,6 +42,7 @@ INSTALL_KEY = f"{PREFIX}/install"
 DAY_KEY = f"{PREFIX}/day"
 COUNTS_KEY = f"{PREFIX}/counts"
 PENDING_KEY = f"{PREFIX}/pending"
+NOTICE_KEY = f"{PREFIX}/noticed"
 CONSENT_YES = "yes"
 CONSENT_NO = "no"
 NAME = re.compile(r"^[a-z][a-z0-9_]{0,48}$")
@@ -60,7 +63,7 @@ def collector_url() -> str:
 
 
 def consent() -> str:
-    """'yes', 'no', or '' while the user was never asked."""
+    """'yes' or 'no' once the user chose in the notice or in Settings; '' while they never did."""
     value = QgsSettings().value(CONSENT_KEY, "", type=str)
     return value if value in (CONSENT_YES, CONSENT_NO) else ""
 
@@ -69,23 +72,28 @@ def set_consent(agreed: bool) -> None:
     settings = QgsSettings()
     settings.setValue(CONSENT_KEY, CONSENT_YES if agreed else CONSENT_NO)
     if not agreed:
-        # A no takes back what was counted under an earlier yes.
+        # A no takes back what was counted before it.
         for key in (COUNTS_KEY, DAY_KEY, PENDING_KEY):
             settings.remove(key)
 
 
-def save_usage_choice(checked: bool) -> None:
-    """The Privacy switch saved: a yes or a no, but an untouched switch of someone never asked stays unasked."""
-    if checked or consent() == CONSENT_YES:
-        set_consent(checked)
+def noticed() -> bool:
+    return bool(QgsSettings().value(NOTICE_KEY, False, type=bool))
 
 
-def should_ask() -> bool:
-    return bool(collector_url()) and consent() == ""
+def mark_noticed() -> None:
+    QgsSettings().setValue(NOTICE_KEY, True)
+
+
+def should_notify() -> bool:
+    """The notice is due: a collector exists, the user never chose, and the notice was never shown."""
+    return bool(collector_url()) and consent() == "" and not noticed()
 
 
 def enabled() -> bool:
-    return bool(collector_url()) and consent() == CONSENT_YES
+    """On by default, but only once the user was told; a no turns it off."""
+    choice = consent()
+    return bool(collector_url()) and choice != CONSENT_NO and (choice == CONSENT_YES or noticed())
 
 
 def empty_counts() -> dict[str, Any]:
