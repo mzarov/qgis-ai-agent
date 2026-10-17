@@ -1,4 +1,7 @@
+import html
+import re
 from typing import Any
+from urllib.parse import urlencode
 
 from qgis.core import QgsBlockingNetworkRequest
 from qgis.PyQt.QtCore import QByteArray, QUrl
@@ -15,6 +18,14 @@ TOO_BIG = (
     "Overpass returned {megabytes:.0f} MB, which is over the limit of {limit} MB. "
     "Narrow the territory down or make value more specific, otherwise QGIS will choke on it."
 )
+# Overpass keeps HTTP 200 when a query breaks off mid-run (a timeout, too little memory): what it found by
+# then comes back with a remark saying why, and the data is incomplete.
+REMARK = re.compile(r"<remark>(.*?)</remark>", re.DOTALL)
+MAX_REMARK_CHARS = 300
+BROKEN_OFF = (
+    "Overpass broke the query off and returned only part of the data, so nothing was loaded. It said: {remark} "
+    "Narrow the territory down or make the query lighter; if the service is busy, retry later."
+)
 
 
 def fetch(query: str, url: str = "", feedback: Any = None) -> str:
@@ -27,7 +38,7 @@ def fetch(query: str, url: str = "", feedback: Any = None) -> str:
     caller = QgsBlockingNetworkRequest()
     if feedback is not None:
         caller.downloadProgress.connect(download_progress(feedback))
-    code = caller.post(request, QByteArray(f"data={query}".encode()), False, feedback)
+    code = caller.post(request, QByteArray(urlencode({"data": query}).encode("ascii")), False, feedback)
     if code != QgsBlockingNetworkRequest.ErrorCode.NoError:
         raise ValueError(_failure(caller))
 
@@ -35,6 +46,7 @@ def fetch(query: str, url: str = "", feedback: Any = None) -> str:
     _check_size(payload)
     text = payload.decode("utf-8", errors="replace")
     _check_shape(text)
+    _check_remark(text)
     return text
 
 
@@ -52,6 +64,14 @@ def _check_shape(text: str) -> None:
         f"Overpass returned something that is not OSM data: {head}. "
         "That usually means a broken query or an overloaded service."
     )
+
+
+def _check_remark(text: str) -> None:
+    found = REMARK.search(text)
+    if found is None:
+        return
+    remark = " ".join(html.unescape(found.group(1)).split())[:MAX_REMARK_CHARS]
+    raise ValueError(BROKEN_OFF.format(remark=remark))
 
 
 def _failure(caller: Any) -> str:

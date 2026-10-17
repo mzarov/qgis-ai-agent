@@ -4,12 +4,17 @@ import time
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from socketserver import TCPServer
+from unittest import mock
+from urllib.parse import parse_qs
 
-from qgis.core import QgsApplication
+from qgis.core import QgsApplication, QgsProject
 from qgis.PyQt.QtCore import QCoreApplication, QEventLoop, QObject, QThread, QTimer, pyqtSlot
 
+from ai_agent.core.agent.batch import WriteBatch
+from ai_agent.core.agent.executor import ToolExecutor
 from ai_agent.core.agent.turn_thread import TurnThreadOwner
 from ai_agent.core.llm.client import ApiResponseError, post_json
+from ai_agent.core.llm.turns import ToolCall
 from ai_agent.core.llm.worker import ModelTurnThread
 
 WAIT_MS = 3000
@@ -315,3 +320,58 @@ class DownloadInBackgroundTest(unittest.TestCase):
         self.assertTrue(result.ok, result.payload)
         self.assertEqual(result.payload["total_features"], 2)
         self.assertGreater(len(ticks), 10, "the main thread was blocked while Overpass answered")
+
+
+class _RecordingOverpass(BaseHTTPRequestHandler):
+    """Keeps every posted form and answers it with the server's `answer`."""
+
+    def do_POST(self):
+        body = self.rfile.read(int(self.headers.get("Content-Length", "0")))
+        self.server.forms.append(parse_qs(body.decode("utf-8")))
+        self.send_response(200)
+        self.send_header("Content-Type", "application/osm3s+xml")
+        self.send_header("Content-Length", str(len(self.server.answer)))
+        self.end_headers()
+        self.wfile.write(self.server.answer)
+
+    def log_message(self, format, *args):
+        pass
+
+
+class OverpassExchangeTest(unittest.TestCase):
+    """What a query sends to Overpass, and what an answer Overpass broke off leaves in the project."""
+
+    def setUp(self):
+        self.server = ThreadingHTTPServer(("127.0.0.1", 0), _RecordingOverpass)
+        self.server.daemon_threads = True
+        self.server.forms, self.server.answer = [], OSM_ANSWER
+        threading.Thread(target=self.server.serve_forever, kwargs={"poll_interval": 0.02}, daemon=True).start()
+        self.addCleanup(self.server.server_close)
+        self.addCleanup(self.server.shutdown)
+        self.addCleanup(QgsProject.instance().clear)
+
+    def _download(self, query):
+        url = f"http://127.0.0.1:{self.server.server_address[1]}/api/interpreter"
+        arguments = {"intent": "cafes by name", "query": query, "name": "Cafes", "geometry": "points"}
+        ended = []
+        with mock.patch("ai_agent.qgis_tools.osm.run_overpass.endpoint", return_value=url):
+            batch = WriteBatch(ToolExecutor())
+            batch.add(ToolCall("overpass", "run_overpass", arguments))
+            batch.apply(lambda call: None, lambda call, result: None, done=ended.append)
+            self.assertTrue(_wait_until(lambda: bool(ended), 20000), "the download never ended")
+        return ended[0][0]
+
+    def test_a_plus_and_an_ampersand_in_a_query_reach_overpass(self):
+        query = '[out:xml];node["name"~"A+B&C"](55.7,37.6,55.8,37.7);out body;'
+        result = self._download(query)
+        self.assertTrue(result.ok, result.payload)
+        self.assertEqual(self.server.forms, [{"data": [query]}])
+
+    def test_an_answer_overpass_broke_off_loads_no_layer(self):
+        self.server.answer = OSM_ANSWER.replace(
+            b"</osm>", b"<remark> runtime error: Query timed out in &quot;query&quot; at line 1. </remark></osm>"
+        )
+        result = self._download("[out:xml];node[amenity=cafe](55.7,37.6,55.8,37.7);out body;")
+        self.assertFalse(result.ok)
+        self.assertIn('Query timed out in "query" at line 1.', result.payload["error"])
+        self.assertEqual(QgsProject.instance().mapLayersByName("Cafes"), [], "a partial answer became a layer")
