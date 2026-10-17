@@ -32,6 +32,7 @@ from ai_agent.core.llm.turns import ToolCall
 from ai_agent.i18n import tr_n
 from ai_agent.plugin import QgisAiAgentPlugin
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
+from ai_agent.qgis_tools.charts import chart_layer
 from ai_agent.qgis_tools.common.editing import edit_session
 from ai_agent.qgis_tools.common.layers import suggest_metric_crs
 from ai_agent.qgis_tools.draw.draw_features import DrawFeaturesTool
@@ -583,6 +584,43 @@ class GisWorkflowsTest(unittest.TestCase):
         )
         self.assertEqual((count.payload["matched"], count.payload["value"]), (1, 1))
         self.assertEqual((total.payload["matched"], total.payload["value"]), (2, 3.0))
+
+    def test_selected_only_answers_over_the_selected_features_the_filter_accepts(self):
+        # A real QgsFeatureRequest keeps one filter, and QgsVectorLayer.aggregate drops the ids beside a filter:
+        # rows and groups once answered over the whole selection, native aggregates over the whole filter.
+        numbers = self._memory(
+            "Point?crs=EPSG:3857&field=n:integer", "numbers", [(f"POINT ({n} 0)", [n]) for n in (1, 2, 3)]
+        )
+        numbers.selectByExpression("n <= 2")
+        executor = ToolExecutor()
+
+        def query(**arguments):
+            arguments = {"layer_name": "numbers", "selected_only": True, "filter": "n >= 2", **arguments}
+            result = executor.run(ToolCall("selected", "query_layer", arguments))
+            self.assertTrue(result.ok, result.payload)
+            return result.payload
+
+        self.assertEqual([row["n"] for row in query()["features"]], [2])
+        self.assertEqual(query(aggregate="count")["value"], 1)
+        self.assertEqual(query(aggregate="sum", expression="n")["value"], 2)
+        self.assertEqual(query(aggregate="concatenate", expression="n")["value"], "2")
+        grouped = query(aggregate="count", group_by="n")["groups"]
+        self.assertEqual([(group["group"], group["count"]) for group in grouped], [(2, 1)])
+        self.assertEqual(query(aggregate="count", filter="n = 3")["value"], 0)
+
+    def test_a_chart_past_the_feature_cap_says_it_is_partial(self):
+        rows = [("POINT (0 0)", ["a"]), ("POINT (1 0)", ["a"]), ("POINT (2 0)", ["b"])]
+        self._memory("Point?crs=EPSG:3857&field=kind:string", "kinds", rows)
+        arguments = {"layer_name": "kinds", "group_by": "kind"}
+        whole = ToolExecutor().run(ToolCall("whole", "chart_layer", arguments))
+        self.assertTrue(whole.ok, whole.payload)
+        self.assertEqual(whole.payload["features"], 3)
+        self.assertNotIn("partial", whole.payload)
+        with patch.object(chart_layer, "MAX_FEATURES", 2):
+            capped = ToolExecutor().run(ToolCall("capped", "chart_layer", arguments))
+        self.assertTrue(capped.ok, capped.payload)
+        self.assertEqual((capped.payload["features"], capped.payload.get("partial")), (2, True))
+        self.assertIn("first 2", capped.payload["note"])
 
     def _memory(self, uri, name, rows):
         layer = QgsVectorLayer(uri, name, "memory")
