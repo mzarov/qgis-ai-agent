@@ -100,6 +100,7 @@ class PlanMixin:
             return
         self._apply_scope = conversation_scope(self.conversation)
         self._note_apply_start()
+        self.dock_widget.begin_work()
         self.agent.confirm_pending()
 
     def _destructive_lines(self) -> tuple[list[str], str]:
