@@ -44,7 +44,7 @@ def build_body(
     messages: list[dict[str, Any]],
     tool_schemas: list[dict[str, Any]] | None,
     model: str,
-    max_tokens: int = DEFAULT_MAX_TOKENS,
+    max_tokens: int | None = None,
     thinking_budget: int = 0,
     cache_prefix_chars: int = 0,
     bind_thinking: bool = False,
@@ -112,13 +112,15 @@ def _family(model: str, prefixes: tuple[str, ...]) -> bool:
     return (model or "").strip().lower().startswith(prefixes)
 
 
-def _max_tokens(requested: int, thinking: dict[str, Any]) -> int:
+def _max_tokens(requested: int | None, thinking: dict[str, Any]) -> int:
+    """The default limit widened for thinking; an explicit one, such as the fallback after a refusal, holds."""
     kind = thinking.get("type")
     if kind == "enabled":
-        return max(requested, int(thinking.get("budget_tokens") or 0) + ANSWER_HEADROOM)
-    if kind == "adaptive":
-        return max(requested, ADAPTIVE_MAX_TOKENS)
-    return requested
+        # The API refuses a limit at or below budget_tokens, so a fixed budget raises even an explicit one.
+        return max(requested or DEFAULT_MAX_TOKENS, int(thinking.get("budget_tokens") or 0) + ANSWER_HEADROOM)
+    if requested is not None:
+        return requested
+    return ADAPTIVE_MAX_TOKENS if kind == "adaptive" else DEFAULT_MAX_TOKENS
 
 
 def _system_blocks(system: str, prefix_chars: int) -> list[dict[str, Any]]:
