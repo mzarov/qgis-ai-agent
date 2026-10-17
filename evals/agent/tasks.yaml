@@ -155,9 +155,10 @@
   vars:
     request: Count the schools in each district and colour the districts by that count
     expect:
+      # The counts themselves, 24 in all: a copy of the districts coloured by population counts nothing.
       any_of:
-        - new_layers: [{geometry: polygon, feature_count: 12, renderer: "re:graduated|categorized"}]
-        - layers: {districts: {renderer: "re:graduated|categorized", class_attribute: "re:count|num|school"}}
+        - new_layers: [{geometry: polygon, feature_count: 12, renderer: "re:graduated|categorized", sums: "re:\": 24(\\.0)?[,}]"}]
+        - layers: {districts: {renderer: "re:graduated|categorized", class_attribute: "re:count|num|school", sums: "re:\": 24(\\.0)?[,}]"}}
 
 - description: Russian — categories by type
   vars:

@@ -52,7 +52,6 @@ ELLIPSOID = "EPSG:7030"
 DEM_SIZE = (80, 60)
 DEM_CELL = 250.0
 DEM_ORIGIN = (400000.0, 6190000.0)
-LAYER_NAMES = ("districts", "roads", "schools", "stations", "dem")
 FILES = ("population.csv", "stops.csv")
 STOPS = [("1", "Tverskaya", 37.6056, 55.7647), ("2", "Pushkinskaya", 37.6043, 55.7656),
          ("3", "Okhotny Ryad", 37.6153, 55.7576), ("4", "Teatralnaya", 37.6186, 55.7579),

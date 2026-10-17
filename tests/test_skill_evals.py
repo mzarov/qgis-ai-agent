@@ -147,6 +147,19 @@ class ChecksTest(unittest.TestCase):
         self.assertIsNone(checks.mismatch({"answer": True}, checks.tool_calls("Fifty-eight schools.")))
         self.assertIsNotNone(checks.mismatch({"answer": True}, calls))
 
+    def test_a_forbidden_call_fails_beside_an_allowed_alternative(self):
+        # The draw and annotations cases: a place is geocoded or asked about, never drawn at made-up coordinates.
+        expect = {"not": ["draw_features"], "any_of": [{"loads": ["web"]}, {"call": "ask_user"}]}
+        geocoding = [self.call("load_skill", names=["web"])]
+        guessing = [
+            *geocoding,
+            self.call("draw_features", geometry="point", features=[{"coordinates": [[37.6, 55.7]]}]),
+        ]
+        self.assertIsNone(checks.mismatch(expect, checks.tool_calls(geocoding)))
+        self.assertEqual(
+            checks.mismatch(expect, checks.tool_calls(guessing)), "called draw_features, which this case forbids"
+        )
+
     def test_outputs_in_every_shape_promptfoo_gives(self):
         call = self.call("save_project")
         for output in ([call], {"content": "", "tool_calls": [call]}, json.dumps([call])):
@@ -273,6 +286,17 @@ class WorkflowTest(unittest.TestCase):
         self.assertNotRegex(text, r"(?m)^  push:", "the bench spends tokens; it must not run on every push")
 
 
+# The chain task in tasks.yaml: the school counts exist, 24 in all, and colour the districts or a new layer of them.
+COUNTED = 're:": 24(\\.0)?[,}]'
+COLOURED = "re:graduated|categorized"
+CHAIN_TASK = {
+    "any_of": [
+        {"new_layers": [{"geometry": "polygon", "feature_count": 12, "renderer": COLOURED, "sums": COUNTED}]},
+        {"layers": {"districts": {"renderer": COLOURED, "class_attribute": "re:count|num|school", "sums": COUNTED}}},
+    ]
+}
+
+
 def run_result(**changes):
     result = {
         "answer": "There are five.",
@@ -332,6 +356,38 @@ class AgentOutcomeTest(unittest.TestCase):
         self.assertEqual(outcome.problems_in(run_result(), options), [])
         failed = outcome.problems_in({"error": "Traceback\n  line\nValueError: broken"}, {})
         self.assertIn("ValueError: broken", failed[0])
+
+    def test_a_required_tool_that_failed_did_not_do_the_task(self):
+        failed = run_result(calls=[{"name": "chart_layer", "ok": False}])
+        self.assertEqual(outcome.problems_in(failed, {"calls": ["chart_layer"]}), ["chart_layer failed"])
+        retried = run_result(calls=[{"name": "chart_layer", "ok": False}, {"name": "chart_layer", "ok": True}])
+        self.assertEqual(outcome.problems_in(retried, {"calls": ["chart_layer"]}), [])
+        self.assertEqual(outcome.problems_in(run_result(), {"calls": ["chart_layer"]}), ["chart_layer never ran"])
+        forbidden = outcome.problems_in(failed, {"not_calls": ["chart_layer"]})
+        self.assertEqual(forbidden, ["chart_layer ran, which this task forbids"], "a failed try is still a try")
+
+    def test_the_districts_coloured_by_population_are_no_count_of_schools(self):
+        districts = {
+            "name": "districts",
+            "geometry": "polygon",
+            "feature_count": 12,
+            "renderer": "graduatedSymbol",
+            "class_attribute": "pop2020",
+            "sums": {"fid": 78.0, "pop2020": 993209.0, "area_km2": 334.8},
+        }
+        renamed = {**districts, "name": "School counts"}
+        # The snapshot keeps a renamed layer under its old name; a restyled copy is a new layer, still no count.
+        for state in (
+            {"layers": {"districts": renamed}, "new_layers": []},
+            {"layers": {"districts": districts}, "new_layers": [renamed]},
+        ):
+            with self.subTest(new_layers=len(state["new_layers"])):
+                self.assertTrue(outcome.problems_in(run_result(state=state), CHAIN_TASK))
+        counted = {**renamed, "class_attribute": "NUMPOINTS", "sums": {**districts["sums"], "NUMPOINTS": 24.0}}
+        state = {"layers": {"districts": districts}, "new_layers": [counted]}
+        self.assertEqual(outcome.problems_in(run_result(state=state), CHAIN_TASK), [])
+        chain = bench.TASKS.read_text(encoding="utf-8").split("- description: A chain across skills")[1]
+        self.assertEqual(chain.split("- description:")[0].count('sums: "re:\\": 24'), 2, "tasks.yaml drifted")
 
 
 class AgentBenchConfigTest(unittest.TestCase):
