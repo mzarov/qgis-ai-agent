@@ -192,6 +192,21 @@ class RepositoryTest(unittest.TestCase):
         self.assertEqual([plugin["plugin"] for plugin in found], ["ORStools", "QNEAT"])
         self.assertEqual((found[1]["installed"], found[1]["active"]), (True, False))
 
+    def test_a_name_with_its_qgis_version_or_a_plural_still_finds_the_plugin(self):
+        from ai_agent.qgis_tools.plugins import find_plugin
+
+        self.repository.remember([QNEAT, ORS])
+        with (
+            mock.patch.object(find_plugin, "installed_plugins", return_value=set()),
+            mock.patch.object(find_plugin, "active_plugins", return_value=[]),
+        ):
+            found = find_plugin.FindPluginTool().execute({"query": "QNEAT3"})
+            self.assertEqual([plugin["plugin"] for plugin in found["plugins"]], ["QNEAT"])
+            self.assertEqual(find_plugin.variants("isochrones"), {"isochrones", "isochrone", "isochron"})
+            nothing = find_plugin.FindPluginTool().execute({"query": "segmentation"})
+        self.assertEqual((nothing["plugins"], nothing["listed"]), ([], 2))
+        self.assertIn("do not tell the user a reason", nothing["note"])
+
     def test_an_empty_query_is_refused(self):
         from ai_agent.qgis_tools.plugins import find_plugin
 
