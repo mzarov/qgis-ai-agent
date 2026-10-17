@@ -94,7 +94,7 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         self._credential_drafts: dict[tuple[str, str], str] = {}
         self._probe_thread: ProbeThread | None = None
         self._probe_was_cancelled = False
-        self._reject_after_probe = False
+        self._close_after_probe: QDialog.DialogCode | None = None
         self.setWindowTitle(TITLE)
         self.setMinimumWidth(MIN_WIDTH)
         self.setMinimumHeight(MIN_HEIGHT)
@@ -449,7 +449,6 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
             except RuntimeError as error:
                 self._show(str(error), style.danger(self.palette()))
                 return
-        self._stop_probe_now()
         self.accept()
 
     def _overrides(self) -> dict[str, Any]:
