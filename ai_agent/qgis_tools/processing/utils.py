@@ -1,3 +1,5 @@
+import os
+from collections.abc import Collection
 from contextlib import suppress
 from typing import Any
 
@@ -213,13 +215,38 @@ def resolve_layer(value: Any) -> QgsMapLayer | None:
         return None
 
 
-def apply_output_name(result: dict[str, Any], output_name: str) -> str:
+def project_layer_ids() -> set[str]:
+    """Ids of the project's layers now: taken before a run, they tell the layers it loaded from the rest."""
+    return set(QgsProject.instance().mapLayers())
+
+
+def output_layer(value: Any, layers_before: Collection[str] = ()) -> QgsMapLayer | None:
+    """The project layer an algorithm's output stands for: a layer, its id or name, or one the run loaded from it.
+
+    A file output comes back as its path, and the layer Processing loaded from that file has an id of its own;
+    a layer already in the project before the run (`layers_before`) is never taken for it.
+    """
+    layer = resolve_layer(value)
+    if layer is not None or not isinstance(value, str) or not value.strip():
+        return layer
+    path = _file_path(value)
+    for layer_id, candidate in QgsProject.instance().mapLayers().items():
+        if layer_id not in layers_before and _file_path(candidate.source()) == path:
+            return candidate
+    return None
+
+
+def _file_path(source: str) -> str:
+    return os.path.normcase(os.path.normpath(source.split("|", 1)[0].strip()))
+
+
+def apply_output_name(result: dict[str, Any], output_name: str, layers_before: Collection[str] = ()) -> str:
     name = (output_name or "").strip()
     if not name or not isinstance(result, dict):
         return ""
     keys = [PRIMARY_OUTPUT_KEY] + [key for key in result if key != PRIMARY_OUTPUT_KEY]
     for key in keys:
-        layer = resolve_layer(result.get(key))
+        layer = output_layer(result.get(key), layers_before)
         if layer is not None:
             layer.setName(name)
             return name
@@ -238,7 +265,7 @@ def normalize_output(value: Any) -> Any:
     return str(value)
 
 
-def empty_output_warnings(result: Any) -> list[str]:
+def empty_output_warnings(result: Any, layers_before: Collection[str] = ()) -> list[str]:
     """Name every output vector layer that came back with zero features.
 
     An algorithm that matched nothing still reports success; without this the
@@ -248,7 +275,7 @@ def empty_output_warnings(result: Any) -> list[str]:
         return []
     warnings: list[str] = []
     for value in result.values():
-        layer = resolve_layer(value)
+        layer = output_layer(value, layers_before)
         if layer is None:
             continue
         if feature_count_if_cheap(layer) == 0:

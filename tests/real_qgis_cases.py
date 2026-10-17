@@ -2,6 +2,7 @@ import json
 import pathlib
 import struct
 import tempfile
+import threading
 import time
 import unittest
 from unittest.mock import patch
@@ -39,6 +40,7 @@ from ai_agent.i18n import tr_n
 from ai_agent.plugin import QgisAiAgentPlugin
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
 from ai_agent.qgis_tools.charts import chart_layer
+from ai_agent.qgis_tools.common.background import STOPPED, InTask
 from ai_agent.qgis_tools.common.editing import edit_session
 from ai_agent.qgis_tools.common.layers import suggest_metric_crs
 from ai_agent.qgis_tools.draw.draw_features import DrawFeaturesTool
@@ -50,6 +52,8 @@ from ai_agent.qgis_tools.registry import get_tool_by_name
 from ai_agent.ui.dock_widget import AgentDockWidget
 
 BACKGROUND_WAIT_S = 120
+# Long enough for a tiny work to end in its thread while the main thread does not look.
+WORK_ENDED_S = 1.0
 MANY_POINTS = 20000
 MODEL_NAME = "Buffer in UTM"
 # Two points near Moscow in degrees: the model must reproject them before a buffer in metres means anything.
@@ -337,6 +341,38 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual(self.layer.featureCount(), 2)
         self.assertEqual(next(self.layer.getFeatures()).geometry().asWkt(), "Point (0 0)")
 
+    def test_a_file_output_takes_the_name_a_later_step_refers_to(self):
+        """A file output comes back as its path; the layer loaded from it still gets output_name."""
+        centres = {"INPUT": self.layer.id(), "OUTPUT": str(self.root / "centres.gpkg")}
+        zones = {"INPUT": "centres", "DISTANCE": 10, "OUTPUT": str(self.root / "zones.shp")}
+        batch = WriteBatch(ToolExecutor())
+        for algorithm_id, parameters, name in (
+            ("native:centroids", centres, "centres"),
+            ("native:buffer", zones, "zones"),
+        ):
+            batch.add(
+                ToolCall(
+                    name,
+                    "run_processing",
+                    {"algorithm_id": algorithm_id, "parameters": parameters, "output_name": name},
+                )
+            )
+        results = self._applied(batch)
+        self.assertTrue(all(result.ok for result in results), [result.payload for result in results])
+        self.assertEqual([result.payload["result_layer_name"] for result in results], ["centres", "zones"])
+        self.assertEqual(self.project.mapLayersByName("centres")[0].source(), centres["OUTPUT"])
+        self.assertEqual(self.project.mapLayersByName("zones")[0].featureCount(), 2)
+
+        tool = RunProcessingTool()
+        on_main = {
+            "algorithm_id": "native:buffer",
+            "parameters": {"INPUT": self.layer.id(), "DISTANCE": 10, "OUTPUT": str(self.root / "on_main.gpkg")},
+            "output_name": "on the main thread",
+        }
+        payload = tool.execute(tool.prepare(on_main))
+        self.assertEqual(payload["result_layer_name"], "on the main thread")
+        self.assertEqual(self.project.mapLayersByName("on the main thread")[0].featureCount(), 2)
+
     def test_a_long_algorithm_runs_off_the_main_thread_and_reports_progress(self):
         many = QgsVectorLayer("Point?crs=EPSG:3857", "many", "memory")
         features = []
@@ -390,6 +426,22 @@ class GisWorkflowsTest(unittest.TestCase):
             QCoreApplication.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 20)
         self.assertEqual([result.ok for result in ended[0]], [False, False])
         self.assertAlmostEqual(self.layer.opacity(), 1.0, msg="a step after the stopped one ran")
+
+    def test_a_stop_after_a_background_work_ended_keeps_nothing(self):
+        worked = threading.Event()
+        made, ended = [], []
+        work = InTask("answer", lambda feedback: worked.set() or "answer", made.append)
+        work.finished.connect(ended.append)
+        work.start()
+        self.assertTrue(worked.wait(BACKGROUND_WAIT_S), "the work never ran")
+        # run() returns at once; its finished() then waits for a main thread that has not looked yet.
+        time.sleep(WORK_ENDED_S)
+        work.cancel()
+        deadline = time.monotonic() + BACKGROUND_WAIT_S
+        while not ended and time.monotonic() < deadline:
+            QCoreApplication.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 20)
+        self.assertEqual(made, [], "the work's value was used after the stop")
+        self.assertEqual([str(outcome) for outcome in ended], [STOPPED])
 
     def test_truncate_is_classified_destructive_using_the_real_algorithm(self):
         tool = RunProcessingTool()
@@ -547,6 +599,28 @@ class GisWorkflowsTest(unittest.TestCase):
                 "Point (100 0)",
             ],
         )
+
+    def test_undoing_a_style_change_keeps_a_scratch_layers_feature_ids(self):
+        """Ids 1 and 3 come back as 1 and 3, so a virtual field on $id reads the same after the undo."""
+        third = QgsFeature(self.layer.fields())
+        third.setGeometry(QgsGeometry.fromWkt("POINT (200 0)"))
+        third.setAttributes(["point-2", 2])
+        self.assertTrue(self.layer.dataProvider().addFeatures([third])[0])
+        self.assertTrue(self.layer.dataProvider().deleteFeatures([2]))
+        self._run("add_field", layer_name=self.layer.name(), name="row", expression="$id")
+        identifier = self.layer.id()
+        self.assertTrue(take_snapshot())
+        self._run("set_opacity", layer_name=self.layer.name(), opacity=0.5)
+        _, result = self._run("undo_last_apply")
+        restored = self.project.mapLayer(identifier)
+        self.assertNotIn("renumbered_scratch_layers", result)
+        rows = sorted((feature.id(), feature["name"], feature["row"]) for feature in restored.getFeatures())
+        self.assertEqual(rows, [(1, "point-0", 1), (3, "point-2", 3)])
+        self.assertEqual(restored.featureCount(), 2)
+        added = QgsFeature(restored.fields())
+        added.setAttributes(["point-3", 3])
+        ok, (fresh,) = restored.dataProvider().addFeatures([added])
+        self.assertEqual(fresh.id(), 4, "a feature added after the undo took an id that was in use")
 
     def test_a_drawn_utm_point_and_its_buffer_chain_in_one_batch(self):
         batch = WriteBatch(ToolExecutor())

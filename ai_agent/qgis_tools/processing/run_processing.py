@@ -18,6 +18,7 @@ from ai_agent.qgis_tools.processing.utils import (
     empty_output_warnings,
     find_algorithm,
     normalize_output,
+    project_layer_ids,
 )
 
 PROCESSING_MISSING_MSG = "The Processing plugin is not available. Enable it in Plugins → Manage and Install Plugins."
@@ -136,11 +137,12 @@ class RunProcessingTool(BaseTool):
             return None
         self._get_runner(load_output)
         output_name = params.get("output_name") or ""
+        layers_before = project_layer_ids()
         return ProcessingInBackground(
             algorithm.id(),
             prepared,
             load_output,
-            lambda result: _payload(algorithm.id(), prepared, load_output, result, output_name),
+            lambda result: _payload(algorithm.id(), prepared, load_output, result, output_name, layers_before),
             limits.tool_seconds(),
         )
 
@@ -148,6 +150,7 @@ class RunProcessingTool(BaseTool):
         algorithm, prepared, load_output = self._ready(params)
         runner = self._get_runner(load_output)
         feedback = DeadlineFeedback(limits.tool_seconds())
+        layers_before = project_layer_ids()
         try:
             result = runner(algorithm.id(), prepared, feedback=feedback)
         except Exception:
@@ -156,7 +159,7 @@ class RunProcessingTool(BaseTool):
             raise
         if feedback.timed_out:
             raise TimeoutError(feedback.timeout_message())
-        return _payload(algorithm.id(), prepared, load_output, result, params.get("output_name") or "")
+        return _payload(algorithm.id(), prepared, load_output, result, params.get("output_name") or "", layers_before)
 
     def _ready(self, params: dict[str, Any]) -> tuple[Any, dict[str, Any], bool]:
         algorithm, prepared = self._prepare(params)
@@ -189,9 +192,14 @@ class RunProcessingTool(BaseTool):
 
 
 def _payload(
-    algorithm_id: str, prepared: dict[str, Any], load_output: bool, result: Any, output_name: str
+    algorithm_id: str,
+    prepared: dict[str, Any],
+    load_output: bool,
+    result: Any,
+    output_name: str,
+    layers_before: set[str],
 ) -> dict[str, Any]:
-    layer_name = apply_output_name(result, output_name) if load_output else ""
+    layer_name = apply_output_name(result, output_name, layers_before) if load_output else ""
     payload = {
         "algorithm_id": algorithm_id,
         "loaded_to_project": load_output,
@@ -199,7 +207,7 @@ def _payload(
         "parameters_used": prepared,
         "outputs": normalize_output(result),
     }
-    warnings = empty_output_warnings(result)
+    warnings = empty_output_warnings(result, layers_before)
     if warnings:
         payload["warnings"] = warnings
     return payload
