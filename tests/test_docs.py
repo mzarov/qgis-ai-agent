@@ -46,7 +46,7 @@ class MirrorTest(unittest.TestCase):
 class NavTest(unittest.TestCase):
     def test_the_nav_lists_only_existing_english_pages(self):
         config = (DOCS.parent / "mkdocs.yml").read_text(encoding="utf-8")
-        listed = re.findall(r":\s*([\w.]+\.md)\s*$", config, re.MULTILINE)
+        listed = re.findall(r":\s*([\w.-]+\.md)\s*$", config, re.MULTILINE)
         self.assertTrue(listed)
         for name in listed:
             self.assertTrue((DOCS / name).is_file(), name)

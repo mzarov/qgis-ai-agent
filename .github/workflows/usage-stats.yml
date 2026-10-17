@@ -1,0 +1,129 @@
+name: usage-stats
+
+# The public usage statistics service (telemetry/worker, docs/usage-stats.md):
+# a Cloudflare Worker with a D1 database on the free plan. Pull requests that
+# touch it run the Worker tests; a push to main also deploys it, and so does a
+# manual run from the Actions tab.
+#
+# Repository settings:
+#   secret CLOUDFLARE_ACCOUNT_ID   the account id from the Cloudflare dashboard
+#   secret CLOUDFLARE_API_TOKEN    an API token for that account with
+#                                  Account > Workers Scripts > Edit
+#                                  Account > D1 > Edit
+#                                  Account > Account Settings > Read (wrangler
+#                                  reads the account's workers.dev subdomain)
+#
+# Open Workers & Pages in the dashboard once before the first deploy, so the
+# account has a workers.dev subdomain. Without the secrets the deploy is
+# skipped with a notice. The first deploy prints the Worker URL into the job
+# summary; put it into STATS_URL in docs/assets/usage-stats.js and into the
+# plugin's ping endpoint.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "telemetry/**"
+      - ".github/workflows/usage-stats.yml"
+  pull_request:
+    paths:
+      - "telemetry/**"
+      - ".github/workflows/usage-stats.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: usage-stats-${{ github.ref }}
+  # A deploy half done leaves the schema and the Worker out of step.
+  cancel-in-progress: false
+
+env:
+  WRANGLER_VERSION: "4.151.1"
+  DATABASE_NAME: ai-agent-usage
+  WRANGLER_SEND_METRICS: "false"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Worker tests
+        run: node --test 'telemetry/worker/test/*.test.js'
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        # Explicit bash adds pipefail, so a failed wrangler is not hidden behind tee or jq.
+        shell: bash
+        working-directory: telemetry/worker
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Check the configuration
+        id: configured
+        working-directory: .
+        run: |
+          if [ -n "${CLOUDFLARE_API_TOKEN}" ] && [ -n "${CLOUDFLARE_ACCOUNT_ID}" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Set the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets to deploy the usage statistics Worker; the deploy is skipped."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.configured.outputs.ready == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.configured.outputs.ready == 'true'
+        with:
+          node-version: "22"
+      - name: Find or create the database
+        id: database
+        if: steps.configured.outputs.ready == 'true'
+        run: |
+          find_id() {
+            npx --yes "wrangler@${WRANGLER_VERSION}" d1 list --json \
+              | jq -r --arg name "${DATABASE_NAME}" '[.[] | select(.name == $name)][0].uuid // empty'
+          }
+          id="$(find_id)"
+          if [ -z "${id}" ]; then
+            npx --yes "wrangler@${WRANGLER_VERSION}" d1 create "${DATABASE_NAME}"
+            id="$(find_id)"
+          fi
+          if [ -z "${id}" ]; then
+            echo "::error::The D1 database ${DATABASE_NAME} was neither found nor created."
+            exit 1
+          fi
+          echo "id=${id}" >> "$GITHUB_OUTPUT"
+      - name: Render wrangler.toml
+        if: steps.configured.outputs.ready == 'true'
+        env:
+          DATABASE_ID: ${{ steps.database.outputs.id }}
+        run: sed "s/__DATABASE_ID__/${DATABASE_ID}/" wrangler.toml.template > wrangler.toml
+      - name: Apply the schema
+        if: steps.configured.outputs.ready == 'true'
+        run: npx --yes "wrangler@${WRANGLER_VERSION}" d1 execute "${DATABASE_NAME}" --remote --file schema.sql --yes
+      - name: Deploy
+        if: steps.configured.outputs.ready == 'true'
+        run: |
+          npx --yes "wrangler@${WRANGLER_VERSION}" deploy | tee deploy.log
+          url="$(grep -oE 'https://[A-Za-z0-9.-]+\.workers\.dev' deploy.log | head -n 1)"
+          {
+            echo "### Usage statistics Worker"
+            if [ -n "${url}" ]; then
+              echo "Deployed to ${url}"
+              echo
+              echo "- pings: \`POST ${url}/v1/ping\`"
+              echo "- aggregates: ${url}/v1/stats"
+            else
+              echo "Deployed, but wrangler printed no workers.dev URL; see the log."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

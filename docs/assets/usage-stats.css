@@ -1,0 +1,130 @@
+/* Charts on the usage statistics page (docs/assets/usage-stats.js). Colours
+   come from Material's variables, so light and dark schemes both work. */
+
+#usage-stats [hidden] {
+  display: none !important;
+}
+
+/* Material sizes a figure to its content; the charts measure the figure, so
+   it must take the column width before anything is drawn in it. */
+.md-typeset .usage-chart {
+  display: block;
+  width: auto;
+  margin: 1.5em 0 2em;
+  text-align: left;
+}
+
+.md-typeset .usage-chart figcaption {
+  max-width: none;
+  margin: 0 0 0.6em;
+  font-style: normal;
+  font-weight: 700;
+  text-align: left;
+  color: var(--md-default-fg-color);
+}
+
+.usage-chart-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  column-gap: 1.5rem;
+}
+
+.usage-chart svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.usage-chart .mark {
+  fill: var(--md-primary-fg-color);
+}
+
+.usage-chart .line {
+  fill: none;
+  stroke: var(--md-primary-fg-color);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.usage-chart .dot {
+  fill: var(--md-primary-fg-color);
+  stroke: var(--md-default-bg-color);
+  stroke-width: 2;
+}
+
+.usage-chart .grid {
+  stroke: var(--md-default-fg-color--lightest);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.usage-chart .rule {
+  stroke: var(--md-default-fg-color--lighter);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.usage-chart .axis,
+.usage-chart .value {
+  fill: var(--md-default-fg-color--light);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.usage-chart .label {
+  fill: var(--md-default-fg-color);
+  font-size: 13px;
+}
+
+.usage-chart .hit {
+  fill: transparent;
+}
+
+.usage-chart .datum .rule,
+.usage-chart .datum .hover-only {
+  opacity: 0;
+}
+
+.usage-chart .datum:hover .rule,
+.usage-chart .datum:hover .hover-only {
+  opacity: 1;
+}
+
+.usage-chart .datum:hover .mark {
+  opacity: 0.75;
+}
+
+/* The table view under each chart: a quiet disclosure, not an admonition. */
+.md-typeset .usage-chart details {
+  margin: 0.4em 0 0;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+  background: none;
+  color: var(--md-default-fg-color);
+  font-size: 0.7rem;
+}
+
+.md-typeset .usage-chart summary {
+  display: inline-block;
+  margin: 0;
+  padding: 0.1rem 1.4rem 0.1rem 0;
+  background: none;
+  font-weight: 400;
+  color: var(--md-default-fg-color--light);
+}
+
+.md-typeset .usage-chart summary:hover {
+  color: var(--md-default-fg-color);
+}
+
+.md-typeset .usage-chart summary::before {
+  display: none;
+}
+
+.md-typeset .usage-chart summary::after {
+  top: 0.15rem;
+  right: 0;
+}

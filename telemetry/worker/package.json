@@ -1,0 +1,9 @@
+{
+  "name": "ai-agent-usage",
+  "private": true,
+  "description": "Usage statistics Worker for the AI Agent QGIS plugin. No dependencies and no build step.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  }
+}
