@@ -18,17 +18,21 @@ Runs inside `real_qgis_workflows.py` against the extracted plugin ZIP.
 
 import json
 import math
+import threading
+import time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
 import token_ceilings
 from e2e_harness import ARTIFACTS, PluginCase, process, pump
 from e2e_model import USAGE, ScriptedModel, call, calls, fail, say, think
-from qgis.core import QgsFeature, QgsGeometry, QgsProject, QgsVectorLayer
+from qgis.core import QgsFeature, QgsGeometry, QgsProject, QgsSettings, QgsVectorLayer
 
 from ai_agent.core.agent.run_failure import RUN_FAILURES
 from ai_agent.core.llm import failure_kinds, retry
 from ai_agent.core.orchestrator.notices import CHECKED_BY_READING, RUN_CHECK, STATUS_DONE, STATUS_WAITING
 from ai_agent.core.settings import get_auto_apply, set_reasoning_enabled, set_supports_images, set_work_mode
+from ai_agent.qgis_tools.osm import overpass
 from ai_agent.ui import progress
 from ai_agent.ui.activity import ActivityGroup
 from ai_agent.ui.chart import ChartCard
@@ -44,6 +48,11 @@ from ai_agent.ui.transitions import LeavingFeed
 MODEL = "scripted-model"
 SIZES_FILE = "request_sizes.json"
 SCRIPTED_CEILINGS = token_ceilings.load()[token_ceilings.SCRIPTED_KIND]
+CAFES = (
+    b'<?xml version="1.0" encoding="UTF-8"?><osm version="0.6" generator="fixture">'
+    b'<node id="1" lat="55.75" lon="37.62"><tag k="amenity" v="cafe"/><tag k="name" v="One"/></node>'
+    b"</osm>"
+)
 # The largest request part of each metric across all scenarios so far, and where it came from.
 PEAKS: dict[str, Any] = {"kind": token_ceilings.SCRIPTED_KIND, "where": {}}
 
@@ -790,6 +799,56 @@ class BackgroundStepScenario(ScenarioCase):
         project = QgsProject.instance()
         self.assertEqual(project.mapLayersByName("Station zones"), [])
         self.assertEqual(project.mapLayersByName("District centres"), [], "a step after the stopped one ran")
+        notes = [message.plain_text() for message in self.dock.conversation.findChildren(SystemMessage)]
+        self.assertTrue(any("stopped during apply" in note.lower() for note in notes), notes)
+
+
+class _Overpass(BaseHTTPRequestHandler):
+    """A local Overpass that answers at once."""
+
+    def do_POST(self) -> None:
+        self.rfile.read(int(self.headers.get("Content-Length", "0")))
+        self.send_response(200)
+        self.send_header("Content-Type", "application/osm3s+xml")
+        self.send_header("Content-Length", str(len(CAFES)))
+        self.end_headers()
+        self.wfile.write(CAFES)
+
+    def log_message(self, format: str, *args: Any) -> None:
+        return
+
+
+class DownloadStopScenario(ScenarioCase):
+    """Stop after a download's answer came in, while its layers still wait for the main thread."""
+
+    # Long enough for the answer to arrive and the download's work to end while the main thread does not look.
+    WORK_ENDED_S = 1.0
+
+    def setUp(self) -> None:
+        super().setUp()
+        server = ThreadingHTTPServer(("127.0.0.1", 0), _Overpass)
+        server.daemon_threads = True
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        QgsSettings().setValue(overpass.SETTINGS_KEY, f"http://127.0.0.1:{server.server_address[1]}/api/interpreter")
+        self.addCleanup(QgsSettings().remove, overpass.SETTINGS_KEY)
+
+    def test_stop_after_the_answer_came_in_adds_no_layer(self) -> None:
+        query = "[out:xml];node[amenity=cafe](55.7,37.6,55.8,37.7);out body;"
+        cafes = {"query": query, "name": "Cafes", "intent": "cafes in a corner of Moscow", "geometry": "points"}
+        self.model.script(
+            call("load_skill", names=["osm"]),
+            calls(("run_overpass", cafes)),
+            say("I will download the cafes."),
+        )
+        self.ask("Download the cafes in this corner of Moscow")
+        self.orchestrator.on_confirm_plan()
+        self.assertTrue(self.agent.is_applying, "the download did not go to the background")
+        time.sleep(self.WORK_ENDED_S)
+        self.orchestrator.on_stop()
+        self.wait_idle()
+        self.assertEqual(QgsProject.instance().mapLayersByName("Cafes"), [], "a stopped download added its layer")
         notes = [message.plain_text() for message in self.dock.conversation.findChildren(SystemMessage)]
         self.assertTrue(any("stopped during apply" in note.lower() for note in notes), notes)
 

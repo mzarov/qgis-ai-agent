@@ -138,7 +138,8 @@ class InTask(Background):
     def _finished(self, value: Any, error: BaseException | None) -> None:
         # The task manager deletes the task after this: nothing may reach it from now on.
         self._task = None
-        if error is not None:
+        if error is not None or self._stopped_because is not None:
+            # A stop that came after the work ended, while this call waited in the queue, still keeps nothing.
             self._end(error)
             return
         try:

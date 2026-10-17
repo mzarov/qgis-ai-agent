@@ -2,6 +2,7 @@ import json
 import pathlib
 import struct
 import tempfile
+import threading
 import time
 import unittest
 from unittest.mock import patch
@@ -32,6 +33,7 @@ from ai_agent.core.llm.turns import ToolCall
 from ai_agent.i18n import tr_n
 from ai_agent.plugin import QgisAiAgentPlugin
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
+from ai_agent.qgis_tools.common.background import STOPPED, InTask
 from ai_agent.qgis_tools.common.editing import edit_session
 from ai_agent.qgis_tools.common.layers import suggest_metric_crs
 from ai_agent.qgis_tools.draw.draw_features import DrawFeaturesTool
@@ -43,6 +45,8 @@ from ai_agent.qgis_tools.registry import get_tool_by_name
 from ai_agent.ui.dock_widget import AgentDockWidget
 
 BACKGROUND_WAIT_S = 120
+# Long enough for a tiny work to end in its thread while the main thread does not look.
+WORK_ENDED_S = 1.0
 MANY_POINTS = 20000
 MODEL_NAME = "Buffer in UTM"
 # Two points near Moscow in degrees: the model must reproject them before a buffer in metres means anything.
@@ -337,6 +341,22 @@ class GisWorkflowsTest(unittest.TestCase):
             QCoreApplication.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 20)
         self.assertEqual([result.ok for result in ended[0]], [False, False])
         self.assertAlmostEqual(self.layer.opacity(), 1.0, msg="a step after the stopped one ran")
+
+    def test_a_stop_after_a_background_work_ended_keeps_nothing(self):
+        worked = threading.Event()
+        made, ended = [], []
+        work = InTask("answer", lambda feedback: worked.set() or "answer", made.append)
+        work.finished.connect(ended.append)
+        work.start()
+        self.assertTrue(worked.wait(BACKGROUND_WAIT_S), "the work never ran")
+        # run() returns at once; its finished() then waits for a main thread that has not looked yet.
+        time.sleep(WORK_ENDED_S)
+        work.cancel()
+        deadline = time.monotonic() + BACKGROUND_WAIT_S
+        while not ended and time.monotonic() < deadline:
+            QCoreApplication.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 20)
+        self.assertEqual(made, [], "the work's value was used after the stop")
+        self.assertEqual([str(outcome) for outcome in ended], [STOPPED])
 
     def test_truncate_is_classified_destructive_using_the_real_algorithm(self):
         tool = RunProcessingTool()
