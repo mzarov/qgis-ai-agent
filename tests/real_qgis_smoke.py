@@ -8,7 +8,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from unittest.mock import patch
 
-from qgis.core import Qgis, QgsApplication, QgsFeature, QgsGeometry, QgsProject, QgsVectorLayer
+from qgis.core import Qgis, QgsApplication, QgsFeature, QgsGeometry, QgsProject, QgsSettings, QgsVectorLayer
 from qgis.PyQt.QtCore import QSettings
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtNetwork import QNetworkRequest
@@ -17,6 +17,8 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 MINIMUM_QGIS_VERSION = 40000
 EXPECTED_TOOLS = 90
 EXPECTED_SKILLS = 19
+# A test profile has said no to usage statistics: no test run counts, so none can reach the public collector.
+USAGE_OPT_OUT = ("ai_agent/usage/consent", "no")
 
 
 def main() -> int:
@@ -38,6 +40,7 @@ def qgis_application(root: pathlib.Path) -> Iterator[QgsApplication]:
         try:
             if not pathlib.Path(QgsApplication.qgisSettingsDirPath()).is_relative_to(root):
                 raise RuntimeError("Tests must use the temporary QGIS profile")
+            QgsSettings().setValue(*USAGE_OPT_OUT)
             yield application
         finally:
             QgsProject.instance().clear()

@@ -1,4 +1,4 @@
-// The usage statistics Worker: receives opt-in pings from the QGIS plugin and
+// The usage statistics Worker: receives anonymous pings from the QGIS plugin and
 // publishes daily aggregates. HTTP and D1 live here; the contract checks and
 // the shaping of the public document live in payload.js.
 

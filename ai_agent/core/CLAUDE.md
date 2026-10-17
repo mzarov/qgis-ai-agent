@@ -306,7 +306,7 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `llm/providers.py`       | provider presets for the settings dialog            |
 | `llm/context_window.py`  | the model's window: setting, detected, guessed; the 90 % mark |
 | `credentials.py`         | API keys in the QGIS authentication database        |
-| `usage_stats.py`         | opt-in daily usage counts: nothing counted without a yes, one ping per finished day |
+| `usage_stats.py`         | daily usage counts, on by default after a one-time notice; a no stops them, one ping per finished day |
 | `local_skills.py`        | the profile's skills folder: rescan, validation, example |
 | `attachments.py`         | attached files: data added as layers at once (the user's own act, not a queued write), pictures encoded for the request |
 | `orchestrator/compacting.py` | the context meter and compaction before a request or by hand |

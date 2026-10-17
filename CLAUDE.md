@@ -66,7 +66,7 @@ Details: [docs/core_architecture.md](docs/core_architecture.md).
 
 1. **No backend.** All logic lives inside the plugin. No agent framework — the
    loop is our own (the reasoning is in that document). The one server, the
-   opt-in usage-statistics collector in `telemetry/`, only counts; nothing of
+   anonymous usage-statistics collector in `telemetry/`, only counts; nothing of
    the agent's work goes through it.
 2. **Agent loop.** UI emits signals → `CoreOrchestrator` → `AgentLoop`. The loop
    works act → observe → decide: the model calls tools, sees results, picks the

@@ -1,9 +1,10 @@
 # Usage statistics
 
-AI Agent can send anonymous usage statistics, and only when you agree: nothing
-is sent until you turn it on, and you can turn it off again. The numbers below
-are what every agreeing install has sent, and they are public — anyone sees the
-same aggregates the developers do. They show which QGIS and plugin versions to
+AI Agent sends anonymous usage statistics. It is on by default, and the plugin
+says so the first time it loads, with a button to turn it off; the switch stays
+in Settings → Privacy. The numbers below are what every install that left it on
+has sent, and they are public — anyone sees the same aggregates the developers
+do. They show which QGIS and plugin versions to
 keep supporting, which tools earn their place, and where runs fail.
 
 ## What is sent

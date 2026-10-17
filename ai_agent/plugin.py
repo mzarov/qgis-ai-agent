@@ -1,19 +1,22 @@
 import os
+from contextlib import suppress
 from typing import Any
 
-from qgis.core import QgsProject
+from qgis.core import Qgis, QgsMessageLog, QgsProject
 from qgis.PyQt.QtCore import Qt, QTimer
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QDialog
 
 from ai_agent import i18n
 from ai_agent.config import personal
+from ai_agent.core import usage_stats
 from ai_agent.core.orchestrator.map_pick import MapPicker
 from ai_agent.core.orchestrator.orchestrator import CoreOrchestrator
 from ai_agent.i18n import tr
 from ai_agent.ui import theme
 from ai_agent.ui.dock_widget import AgentDockWidget
 from ai_agent.ui.settings_dialog import SettingsDialog
+from ai_agent.ui.usage_notice import UsageNotice
 
 MENU_TITLE = "AI Agent"
 DOCK_AREA = getattr(getattr(Qt, "DockWidgetArea", Qt), "RightDockWidgetArea", getattr(Qt, "RightDockWidgetArea", 2))
@@ -31,6 +34,7 @@ class QgisAiAgentPlugin:
         self._picker: MapPicker | None = None
         self._project_sync_pending = False
         self._project_reset_pending = False
+        self._usage_notice: UsageNotice | None = None
 
     def initGui(self) -> None:
         theme.set_override(personal.load().panel_theme)
@@ -40,9 +44,11 @@ class QgisAiAgentPlugin:
         self.iface.addToolBarIcon(self.menu_action)
         self._connect_project_lifecycle()
         self._follow_active_layer(True)
+        self._notify_usage_stats()
 
     def unload(self) -> None:
         self._disconnect_project_lifecycle()
+        self._drop_usage_notice()
         self._follow_active_layer(False)
         if self._picker is not None:
             # A pick still waiting on the map gives the canvas its tool back before the plugin goes.
@@ -97,10 +103,30 @@ class QgisAiAgentPlugin:
         self.dock_widget.session_renamed.connect(self._orchestrator.on_session_renamed)
         self.dock_widget.session_deleted.connect(self._orchestrator.on_session_deleted)
         self.dock_widget.open_settings_clicked.connect(self._on_open_settings)
-        self.dock_widget.usage_chosen.connect(self._orchestrator.on_usage_chosen)
         if self._picker is not None:
             self.dock_widget.place_requested.connect(self._picker.start)
             self.dock_widget.place_cancelled.connect(self._picker.cancel)
+
+    def _notify_usage_stats(self) -> None:
+        """Usage counts are on by default; the first load — right after installation — says so, once."""
+        if not usage_stats.should_notify():
+            return
+        try:
+            self._usage_notice = UsageNotice(self.iface.messageBar(), lambda: usage_stats.set_consent(False))
+        except Exception as error:
+            # Not shown, so not counted either: the notice is due again on the next load.
+            QgsMessageLog.logMessage(
+                f"The usage statistics notice failed: {error}", MENU_TITLE, Qgis.MessageLevel.Warning
+            )
+            return
+        usage_stats.mark_noticed()
+
+    def _drop_usage_notice(self) -> None:
+        notice, self._usage_notice = self._usage_notice, None
+        if notice is not None:
+            # Its buttons call into this instance's code: the notice goes with the plugin.
+            with suppress(AttributeError, RuntimeError, TypeError):
+                self.iface.messageBar().popWidget(notice.item)
 
     def _on_place_picked(self, text: str) -> None:
         if self.dock_widget is not None:

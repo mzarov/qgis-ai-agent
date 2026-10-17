@@ -131,7 +131,7 @@ information.
 
 ## Other network requests
 
-Apart from the opt-in usage statistics below, the plugin reports nothing about
+Apart from the anonymous usage statistics below, the plugin reports nothing about
 its use. It contacts the model endpoint you configure
 and the per-call web recipients listed above. When requested, GIS tools can also
 contact services such as Overpass, tile servers, WMS/WFS endpoints or databases
@@ -152,11 +152,14 @@ requests independently of this plugin.
 
 ## Usage statistics
 
-Off unless you agree: the plugin asks once, on a card after an answer, and the
-switch is in Settings → Privacy. Without a yes nothing is even counted, and a
-later no deletes what waits to be sent.
+On by default, and the plugin says so: the first time it loads — right after
+installation — a notice in the QGIS message bar tells what is counted, with a
+**Turn off** button and a link to what is sent. Nothing is counted before that
+notice was shown, and the first counts leave a day later at the earliest. The
+switch stays in Settings → Privacy; turning it off deletes what waits to be
+sent.
 
-With a yes, the counts of each day go out once that day is over, in one small
+While it is on, the counts of each day go out once that day is over, in one small
 request to the project's collector on Cloudflare (`telemetry/worker` in the
 repository): how many runs and applies, the names of the tools and skills used,
 the kinds of failures, and the versions around them — plugin, QGIS, the

@@ -36,7 +36,7 @@ from ai_agent.core.settings import (
     set_data_sharing_consent,
 )
 from ai_agent.core.state.conversation import ConversationState
-from ai_agent.core.usage_stats import UsageStats, set_consent, should_ask
+from ai_agent.core.usage_stats import UsageStats
 from ai_agent.i18n import tr
 
 
@@ -72,8 +72,6 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.compaction = SessionCompaction(self.dock_widget, lambda: self.conversation)
         self.naming = SessionNaming(lambda: self.conversation, self._show_title)
         self.usage = UsageStats()
-        # Asked at most once per QGIS session, after an answer; never while nobody can receive the counts.
-        self._usage_asked = False
         self._connect_agent()
         self.usage.flush()
         self.dock_widget.set_session_source(self.conversation.recent)
@@ -266,15 +264,6 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.dock_widget.set_session_source(self.conversation.recent)
         self.refresh_configured()
         self._replay()
-
-    def on_usage_chosen(self, agreed: bool) -> None:
-        set_consent(agreed)
-
-    def _offer_usage_stats(self) -> None:
-        if self._usage_asked or not should_ask():
-            return
-        self._usage_asked = True
-        self.dock_widget.offer_usage_stats()
 
     def on_compact(self) -> None:
         if not self.is_idle:

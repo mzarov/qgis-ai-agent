@@ -1,4 +1,6 @@
+import ast
 import json
+import pathlib
 import unittest
 from unittest import mock
 
@@ -57,21 +59,53 @@ class UsageStatsTest(unittest.TestCase):
     def counts(self):
         return json.loads(MemorySettings.values.get(usage_stats.COUNTS_KEY, "{}"))
 
-    def test_nothing_is_counted_without_a_yes(self):
+    def test_nothing_is_counted_before_the_notice_and_counting_is_on_after_it(self):
         self.stats.note("runs")
         self.assertEqual(MemorySettings.values, {})
-        self.assertTrue(usage_stats.should_ask())
+        self.assertTrue(usage_stats.should_notify())
+        self.assertFalse(usage_stats.enabled())
+        usage_stats.mark_noticed()
+        self.assertFalse(usage_stats.should_notify(), "the notice comes once")
+        self.assertTrue(usage_stats.enabled(), "on by default once the user was told")
+        self.stats.note("runs")
+        self.assertEqual(self.counts()["runs"], 1)
+
+    def test_a_no_in_the_notice_stops_counting_and_takes_back_the_counts(self):
+        usage_stats.mark_noticed()
+        self.stats.note("runs")
         usage_stats.set_consent(False)
+        self.assertNotIn(usage_stats.COUNTS_KEY, MemorySettings.values)
         self.stats.note("runs")
         self.assertNotIn(usage_stats.COUNTS_KEY, MemorySettings.values)
-        self.assertFalse(usage_stats.should_ask())
+        self.assertFalse(usage_stats.enabled())
+        usage_stats.set_consent(True)
+        self.assertTrue(usage_stats.enabled(), "Settings turns it back on")
 
-    def test_no_collector_means_no_question_and_no_counting(self):
+    def test_a_choice_made_in_settings_needs_no_notice(self):
+        usage_stats.set_consent(False)
+        self.assertFalse(usage_stats.should_notify())
+        usage_stats.set_consent(True)
+        self.assertFalse(usage_stats.should_notify())
+        self.assertTrue(usage_stats.enabled())
+
+    def test_no_collector_means_no_notice_and_no_counting(self):
+        usage_stats.mark_noticed()
         with mock.patch.object(usage_stats, "COLLECTOR_URL", ""):
+            MemorySettings.values.pop(usage_stats.NOTICE_KEY)
+            self.assertFalse(usage_stats.should_notify())
             usage_stats.set_consent(True)
-            self.assertFalse(usage_stats.should_ask())
             self.stats.note("runs")
         self.assertNotIn(usage_stats.COUNTS_KEY, MemorySettings.values)
+
+    def test_the_test_profile_never_counts(self):
+        # The profile helper runs before the plugin is importable, so it spells the setting out.
+        source = (pathlib.Path(__file__).parent / "real_qgis_smoke.py").read_text(encoding="utf-8")
+        assignment = next(
+            node
+            for node in ast.parse(source).body
+            if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") == "USAGE_OPT_OUT"
+        )
+        self.assertEqual(ast.literal_eval(assignment.value), (usage_stats.CONSENT_KEY, usage_stats.CONSENT_NO))
 
     def test_names_are_counted_and_anything_else_is_dropped(self):
         usage_stats.set_consent(True)
@@ -146,20 +180,6 @@ class UsageStatsTest(unittest.TestCase):
         )
         self.assertEqual((sent["provider"], sent["locale"], sent["plugin"]), ("local", "ru", "0.4.0"))
         self.assertIn(sent["os"], ("macos", "windows", "linux", "other"))
-
-    def test_a_no_takes_back_what_was_counted(self):
-        usage_stats.set_consent(True)
-        self.stats.note("runs")
-        usage_stats.set_consent(False)
-        self.assertNotIn(usage_stats.COUNTS_KEY, MemorySettings.values)
-
-    def test_the_privacy_switch_never_turns_a_never_asked_into_a_no(self):
-        usage_stats.save_usage_choice(False)
-        self.assertEqual(usage_stats.consent(), "")
-        usage_stats.save_usage_choice(True)
-        self.assertEqual(usage_stats.consent(), usage_stats.CONSENT_YES)
-        usage_stats.save_usage_choice(False)
-        self.assertEqual(usage_stats.consent(), usage_stats.CONSENT_NO)
 
 
 if __name__ == "__main__":

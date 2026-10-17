@@ -44,7 +44,7 @@ from ai_agent.core.settings import (
     set_verify_ssl,
     set_write_run_journal,
 )
-from ai_agent.core.usage_stats import save_usage_choice
+from ai_agent.core.usage_stats import set_consent
 from ai_agent.i18n import tr
 from ai_agent.ui import controls, settings_advanced, settings_layout, style
 from ai_agent.ui import settings_fields as fields
@@ -422,7 +422,7 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         set_verify_ssl(self.verify_ssl_cb.isChecked(), url)
         set_verify_after_apply(self.verify_apply_cb.isChecked())
         set_write_run_journal(self.journal_cb.isChecked())
-        save_usage_choice(self.usage_cb.isChecked())
+        set_consent(self.usage_cb.isChecked())
         set_token_budget(token_budget)
         set_thinking_budget(thinking_budget)
         set_context_window(context_window)

@@ -255,34 +255,42 @@ class TokenPatternTest(unittest.TestCase):
         self.assertEqual(found, ["@districts", '@"Main rivers"'])
 
 
-class UsageStatsOfferTest(PluginCase):
-    """The one-time card after an answer: only with a collector, once a session; the choice is stored."""
+class UsageNoticeTest(PluginCase):
+    """The first load tells, in the real QGIS message bar, that usage counts are on; Turn off says no."""
 
     api_url = "http://localhost:11434/v1"
     model_name = "qwen3"
 
-    def test_the_card_asks_once_and_stores_the_choice(self) -> None:
+    def test_the_first_load_shows_the_notice_once_and_turn_off_says_no(self) -> None:
         from unittest import mock
 
         from qgis.core import QgsSettings
+        from qgis.gui import QgsMessageBar
 
         from ai_agent.core import usage_stats
-        from ai_agent.ui.usage_card import UsageCard
+        from ai_agent.ui.usage_notice import TURNED_OFF
 
-        QgsSettings().remove(usage_stats.CONSENT_KEY)
-        self.addCleanup(QgsSettings().remove, usage_stats.CONSENT_KEY)
+        settings = QgsSettings()
+        settings.remove(usage_stats.CONSENT_KEY)
+        # The test profile says no again afterwards, whatever this test leaves.
+        self.addCleanup(settings.remove, usage_stats.NOTICE_KEY)
+        self.addCleanup(usage_stats.set_consent, False)
+        bar = QgsMessageBar(self.iface.window)
+        self.iface.messageBar = lambda: bar
         with mock.patch.object(usage_stats, "COLLECTOR_URL", ""):
-            self.orchestrator._offer_usage_stats()
-        self.assertEqual(self.dock.conversation.findChildren(UsageCard), [], "no collector, no question")
-        with mock.patch.object(usage_stats, "COLLECTOR_URL", "https://stats.example"):
-            self.orchestrator._offer_usage_stats()
-            self.orchestrator._offer_usage_stats()
-            cards = self.dock.conversation.findChildren(UsageCard)
-            self.assertEqual(len(cards), 1, "asked twice in one session")
-            cards[0].share.click()
-            pump(0.05)
-            self.assertEqual(usage_stats.consent(), usage_stats.CONSENT_YES)
-            self.assertTrue(cards[0]._actions.isHidden())
+            self.plugin._notify_usage_stats()
+        self.assertEqual(bar.items(), [], "no collector, no notice")
+        self.plugin._notify_usage_stats()
+        self.plugin._notify_usage_stats()
+        self.assertEqual(len(bar.items()), 1, "the notice comes once")
+        self.assertTrue(usage_stats.enabled(), "on by default once the user was told")
+        notice = self.plugin._usage_notice
+        notice.off.click()
+        pump(0.05)
+        self.assertEqual(usage_stats.consent(), usage_stats.CONSENT_NO)
+        self.assertFalse(usage_stats.enabled())
+        self.assertEqual(notice.item.text(), TURNED_OFF)
+        self.assertTrue(notice.off.isHidden())
 
 
 class SettingsBehaviourTest(PluginCase):
