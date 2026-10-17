@@ -309,6 +309,38 @@
   "text": "Delete…"
  },
  {
+  "depth": 5,
+  "type": "QLabel",
+  "text": "Usage statistics"
+ },
+ {
+  "depth": 5,
+  "type": "QWidget"
+ },
+ {
+  "depth": 6,
+  "type": "QWidget"
+ },
+ {
+  "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Share anonymous usage counts"
+ },
+ {
+  "depth": 8,
+  "type": "QLabel",
+  "text": "Once a day: how many runs and applies, which tools, skills and errors, the versions. Never what you wrote, the answers, "
+ },
+ {
+  "depth": 7,
+  "type": "Switch",
+  "checked": false
+ },
+ {
   "depth": 2,
   "type": "QFrame",
   "name": "settingsSeparator"

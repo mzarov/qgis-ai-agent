@@ -271,7 +271,8 @@ class UsageStatsOfferTest(PluginCase):
 
         QgsSettings().remove(usage_stats.CONSENT_KEY)
         self.addCleanup(QgsSettings().remove, usage_stats.CONSENT_KEY)
-        self.orchestrator._offer_usage_stats()
+        with mock.patch.object(usage_stats, "COLLECTOR_URL", ""):
+            self.orchestrator._offer_usage_stats()
         self.assertEqual(self.dock.conversation.findChildren(UsageCard), [], "no collector, no question")
         with mock.patch.object(usage_stats, "COLLECTOR_URL", "https://stats.example"):
             self.orchestrator._offer_usage_stats()

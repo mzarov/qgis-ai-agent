@@ -5,11 +5,9 @@
 // both languages share this script.
 
 (() => {
-  // The deployed Worker. Until the first deploy this is a placeholder and the
-  // page shows its "not running yet" notice; the usage-stats workflow prints
-  // the real URL into its job summary.
-  const STATS_URL = "https://ai-agent-usage.REPLACE-WITH-WORKERS-SUBDOMAIN.workers.dev/v1/stats";
-  const PLACEHOLDER_MARK = "REPLACE-WITH-WORKERS-SUBDOMAIN";
+  // The deployed Worker (telemetry/worker); the usage-stats workflow prints its
+  // URL into the job summary.
+  const STATS_URL = "https://ai-agent-usage.mzarov.workers.dev/v1/stats";
 
   const SVG_NS = "http://www.w3.org/2000/svg";
   const FETCH_TIMEOUT_MS = 10000;
@@ -293,10 +291,6 @@
   }
 
   async function start() {
-    if (STATS_URL.includes(PLACEHOLDER_MARK)) {
-      unavailable(root.dataset.unavailable || "");
-      return;
-    }
     say(root.dataset.loading || "");
     let stats;
     try {

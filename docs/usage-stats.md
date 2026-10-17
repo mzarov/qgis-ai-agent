@@ -49,7 +49,7 @@ point to see its value; every chart also opens as a table.
 | Runs, last 30 days | <span data-usage-stat="runs_30d">—</span> |
 | Applied batches, last 30 days | <span data-usage-stat="applies_30d">—</span> |
 
-<div id="usage-stats" data-loading="Loading the statistics…" data-unavailable="The statistics service is not running yet, so there is nothing to show." data-failed="The statistics could not be loaded. Try again later." data-empty="No data yet." data-table="Show as a table">
+<div id="usage-stats" data-loading="Loading the statistics…" data-failed="The statistics could not be loaded. Try again later." data-empty="No data yet." data-table="Show as a table">
 <p class="usage-stats-status" role="status">The charts need JavaScript.</p>
 <figure class="usage-chart" data-chart="installs" data-title="Daily active installs, last 90 days" data-key="Day" data-value="Installs"></figure>
 <figure class="usage-chart" data-chart="runs" data-title="Runs per day, last 90 days" data-key="Day" data-value="Runs"></figure>

@@ -52,7 +52,7 @@ AI Agent может отправлять анонимную статистику
 | Запусков за 30 дней | <span data-usage-stat="runs_30d">—</span> |
 | Применённых батчей за 30 дней | <span data-usage-stat="applies_30d">—</span> |
 
-<div id="usage-stats" data-loading="Загружаем статистику…" data-unavailable="Сервис статистики ещё не запущен, показывать пока нечего." data-failed="Не удалось загрузить статистику. Попробуйте позже." data-empty="Данных пока нет." data-table="Показать таблицей">
+<div id="usage-stats" data-loading="Загружаем статистику…" data-failed="Не удалось загрузить статистику. Попробуйте позже." data-empty="Данных пока нет." data-table="Показать таблицей">
 <p class="usage-stats-status" role="status">Для графиков нужен JavaScript.</p>
 <figure class="usage-chart" data-chart="installs" data-title="Активные установки по дням, последние 90 дней" data-key="День" data-value="Установки"></figure>
 <figure class="usage-chart" data-chart="runs" data-title="Запуски по дням, последние 90 дней" data-key="День" data-value="Запуски"></figure>

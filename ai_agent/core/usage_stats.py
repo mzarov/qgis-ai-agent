@@ -30,8 +30,8 @@ from ai_agent.core.llm.client import is_local
 from ai_agent.core.settings import get_api_url, get_dialect
 from ai_agent.i18n import locale_code
 
-# Set once the collector is deployed; empty keeps the whole feature off, the card included.
-COLLECTOR_URL = ""
+# The deployed collector (telemetry/worker); empty keeps the whole feature off, the card included.
+COLLECTOR_URL = "https://ai-agent-usage.mzarov.workers.dev"
 PING_PATH = "/v1/ping"
 PAYLOAD_VERSION = 1
 PREFIX = "ai_agent/usage"
