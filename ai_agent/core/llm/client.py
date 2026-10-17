@@ -122,7 +122,8 @@ class SetupError(ValueError):
 class ApiResponseError(RuntimeError):
     def __init__(self, status_code: int, body: str, message: str | None = None, retry_after: float | None = None):
         shown = scrub_secrets(body[:ERROR_BODY_LIMIT])
-        super().__init__(message or tr("The API returned {0}: {1}").format(status_code, shown))
+        # A caller's own message may quote the body too; the text that reaches the chat is scrubbed either way.
+        super().__init__(scrub_secrets(message or tr("The API returned {0}: {1}").format(status_code, shown)))
         self.status_code = status_code
         self.body = body
         self.retry_after = retry_after
