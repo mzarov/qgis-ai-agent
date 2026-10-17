@@ -16,6 +16,8 @@ from qgis.core import (
     QgsCoordinateTransformContext,
     QgsFeature,
     QgsGeometry,
+    QgsMapRendererSequentialJob,
+    QgsMapSettings,
     QgsPointXY,
     QgsProcessingContext,
     QgsProject,
@@ -24,7 +26,7 @@ from qgis.core import (
     QgsVectorLayer,
 )
 from qgis.gui import QgsGui
-from qgis.PyQt.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer
+from qgis.PyQt.QtCore import QCoreApplication, QEvent, QEventLoop, QSize, QTimer
 from qgis.PyQt.QtWidgets import QMainWindow
 
 from ai_agent.core.agent.batch import WriteBatch
@@ -795,7 +797,7 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual(len(names), before + 1)
         self.assertIn("centre", names)
 
-    def test_a_raster_style_with_no_data_uses_the_hidden_range(self):
+    def test_a_gray_raster_stretches_the_range_left_after_no_data(self):
         path = self.root / "dem.tif"
         driver = gdal.GetDriverByName("GTiff")
         dataset = driver.Create(str(path), 20, 20, 1, gdal.GDT_Float32)
@@ -808,6 +810,24 @@ class GisWorkflowsTest(unittest.TestCase):
         self.project.addMapLayer(raster)
         _, result = self._run("set_raster_style", layer_name="dem", mode="gray", no_data_values=[-9999])
         self.assertEqual((result["min"], result["max"]), (1.0, 399.0))
+        stretch = raster.renderer().contrastEnhancement()
+        self.assertIsNotNone(stretch, "gray without a stretch paints the raw values, wrapping past 255")
+        self.assertEqual((stretch.minimumValue(), stretch.maximumValue()), (1.0, 399.0))
+        # Cell (row, column) holds row * 20 + column: 1 goes black, 399 white, 200 halfway.
+        image = self._rendered(raster, 20)
+        self.assertLessEqual(image.pixelColor(1, 0).red(), 2)
+        self.assertGreaterEqual(image.pixelColor(19, 19).red(), 253)
+        self.assertAlmostEqual(image.pixelColor(0, 10).red(), 127, delta=2)
+
+    def _rendered(self, layer, size):
+        settings = QgsMapSettings()
+        settings.setLayers([layer])
+        settings.setExtent(layer.extent())
+        settings.setOutputSize(QSize(size, size))
+        job = QgsMapRendererSequentialJob(settings)
+        job.start()
+        job.waitForFinished()
+        return job.renderedImage()
 
     def _shapes(self, name, uri, wkts, rows=None):
         """A memory layer of these geometries and attribute rows; returns it with its feature ids in order."""
