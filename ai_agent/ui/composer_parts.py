@@ -19,6 +19,9 @@ LAYER_TOKEN = re.compile(r'(?:(?<=\s)|^)@(?:(?:point|area)\([^)\n]*\)?|"[^"]*"?|
 SLASH = "/"
 MENTION = "@"
 QUOTE = '"'
+# Qt counts text positions in UTF-16 code units, Python in characters: 🌍 is two of the first, one of the second.
+UTF16 = "utf-16-le"
+UTF16_UNIT = 2
 # One word a mode, as Claude Code names them (the user's call); the note says the rest, exact about deleting.
 MODES = (
     Choice(WORK_MODE_ASK, tr("Ask"), tr("Shows a plan and waits for Apply"), tr("Default")),
@@ -47,6 +50,16 @@ def mention_query(text: str, cursor: int) -> tuple[int, str] | None:
     if any(character.isspace() or character == QUOTE for character in query):
         return None
     return start, query
+
+
+def qt_length(text: str) -> int:
+    """How many positions `text` takes in a Qt document."""
+    return len(text.encode(UTF16)) // UTF16_UNIT
+
+
+def text_before(text: str, position: int) -> str:
+    """The part of `text` in front of a Qt document position, as Python characters."""
+    return text.encode(UTF16)[: position * UTF16_UNIT].decode(UTF16)
 
 
 def mention_text(name: str) -> str:
@@ -160,9 +173,13 @@ class PromptHighlighter(QSyntaxHighlighter):
         if self.currentBlock().blockNumber() == 0:
             match = SKILL_TOKEN.match(text)
             if match:
-                self.setFormat(match.start(), match.end() - match.start(), self._skill)
+                self._light(text, match, self._skill)
         for match in LAYER_TOKEN.finditer(text):
-            self.setFormat(match.start(), match.end() - match.start(), self._layer)
+            self._light(text, match, self._layer)
+
+    def _light(self, text: str, match: Any, token: QTextCharFormat) -> None:
+        # A match counts characters and setFormat Qt positions: an emoji before a token would shift its colour.
+        self.setFormat(qt_length(text[: match.start()]), qt_length(match.group()), token)
 
 
 def _token_format(palette: Any, colour: Any) -> QTextCharFormat:

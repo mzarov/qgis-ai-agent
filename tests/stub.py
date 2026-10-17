@@ -607,6 +607,7 @@ _mod(
         "QToolButton",
         "QScrollArea",
         "QAbstractScrollArea",
+        "QScrollBar",
         "QTextBrowser",
         "QFrame",
         "QSizePolicy",

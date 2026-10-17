@@ -23,7 +23,9 @@ from ai_agent.ui.composer_parts import (
     PromptHighlighter,
     mention_query,
     mention_text,
+    qt_length,
     slash_query,
+    text_before,
 )
 from ai_agent.ui.layer_chip import LayerChip
 from ai_agent.ui.skill_popup import SkillPopup
@@ -196,10 +198,9 @@ class Composer(QWidget):
 
     def insert_place(self, text: str) -> None:
         """Put a place picked on the map at the cursor, as words of the request."""
-        cursor = self._edit.textCursor()
-        before = self._edit.toPlainText()[: cursor.position()]
+        before = self._before_cursor()
         lead = "" if not before or before[-1].isspace() else " "
-        cursor.insertText(f"{lead}{text} ")
+        self._edit.textCursor().insertText(f"{lead}{text} ")
         self.end_place()
         self._edit.setFocus()
 
@@ -232,12 +233,17 @@ class Composer(QWidget):
         if query is not None:
             self._open_popup(MODE_SKILL, query, self._skills(), SLASH)
             return
-        mention = mention_query(text, self._edit.textCursor().position())
+        before = self._before_cursor()
+        mention = mention_query(before, len(before))
         if mention is not None:
-            self._mention_start = mention[0]
+            self._mention_start = qt_length(before[: mention[0]])
             self._open_popup(MODE_LAYER, mention[1], self._layers(), MENTION)
             return
         self._hide_popup()
+
+    def _before_cursor(self) -> str:
+        """The request up to the cursor; the cursor counts Qt positions, so the text is never sliced by it."""
+        return text_before(self._edit.toPlainText(), self._edit.textCursor().position())
 
     def _open_popup(self, mode: str, query: str, items: list[tuple[str, str, str]], prefix: str) -> None:
         if self._popup is None:
@@ -276,9 +282,8 @@ class Composer(QWidget):
 
     def _start_mention(self) -> None:
         """Layer… in the + menu: an @ at the cursor opens the layer list as if typed."""
-        cursor = self._edit.textCursor()
-        before = self._edit.toPlainText()[: cursor.position()]
-        cursor.insertText(MENTION if not before or before[-1].isspace() else f" {MENTION}")
+        before = self._before_cursor()
+        self._edit.textCursor().insertText(MENTION if not before or before[-1].isspace() else f" {MENTION}")
         self._edit.setFocus()
 
     def _start_skill(self) -> None:
@@ -292,13 +297,13 @@ class Composer(QWidget):
         self._edit.setFocus()
 
     def _insert_layer(self, name: str) -> None:
-        text = self._edit.toPlainText()
-        cursor = self._edit.textCursor().position()
-        inserted = mention_text(name) + " "
-        self._edit.setPlainText(text[: self._mention_start] + inserted + text[cursor:])
-        moved = self._edit.textCursor()
-        moved.setPosition(self._mention_start + len(inserted))
-        self._edit.setTextCursor(moved)
+        """The typed mention, from its @ to the cursor, gives way to the chosen layer's; the rest stays."""
+        cursor = self._edit.textCursor()
+        end = cursor.position()
+        cursor.setPosition(self._mention_start)
+        cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
+        cursor.insertText(mention_text(name) + " ")
+        self._edit.setTextCursor(cursor)
         self._hide_popup()
 
     def _hide_popup(self) -> None:
@@ -399,10 +404,9 @@ class Composer(QWidget):
 
     def mention_layers(self, names: list[str]) -> None:
         """Put @mentions of freshly added layers at the cursor, so the request names them."""
-        cursor = self._edit.textCursor()
-        before = self._edit.toPlainText()[: cursor.position()]
+        before = self._before_cursor()
         lead = "" if not before or before[-1].isspace() else " "
-        cursor.insertText(lead + " ".join(mention_text(name) for name in names) + " ")
+        self._edit.textCursor().insertText(lead + " ".join(mention_text(name) for name in names) + " ")
         self._edit.setFocus()
 
     def set_busy(self, busy: bool) -> None:

@@ -1013,3 +1013,11 @@ class ComposerScenario(ScenarioCase):
         self.shot("mention_popup")
         composer._popup._rows[0].mousePressEvent(None)
         self.assertEqual(composer._edit.toPlainText(), 'colour @"Main rivers" ')
+        # An emoji is two Qt text positions and one Python character: the mention and the caret stay in step.
+        composer._edit.clear()
+        composer._edit.insertPlainText("🌍 colour @ma")
+        pump(0.1)
+        self.assertFalse(composer._popup.isHidden())
+        composer._on_complete()
+        composer._edit.insertPlainText("blue")
+        self.assertEqual(composer._edit.toPlainText(), '🌍 colour @"Main rivers" blue')
