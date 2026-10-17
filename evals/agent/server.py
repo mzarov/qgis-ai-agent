@@ -159,10 +159,11 @@ class Runner:
         saved = self._saved_settings()
         try:
             self.fixture.build(folder)
-            before = self.state.files(folder)
+            before, layers = self.state.files(folder), self.state.layer_names()
             self._configure()
             plugin = self._start_plugin()
-            return self._drive(plugin, str(body.get("request") or "").replace(FOLDER_MARKER, folder), folder, before)
+            request = str(body.get("request") or "").replace(FOLDER_MARKER, folder)
+            return self._drive(plugin, request, folder, before, layers)
         except Exception:
             return {"error": traceback.format_exc()}
         finally:
@@ -270,7 +271,9 @@ class Runner:
         interface.window.deleteLater()
         self.harness.pump(0.1)
 
-    def _drive(self, plugin: Any, request: str, folder: str, before: set[str]) -> dict[str, Any]:
+    def _drive(
+        self, plugin: Any, request: str, folder: str, before: set[str], layers: dict[str, str]
+    ) -> dict[str, Any]:
         orchestrator = plugin._orchestrator
         agent = orchestrator.agent
         calls: list[dict[str, Any]] = []
@@ -316,16 +319,8 @@ class Runner:
             "sees_images": self.sees_images,
             "usage": usage,
             "seconds": round(time.monotonic() - began, 1),
-            "state": self._state(folder, before),
+            "state": self.state.snapshot(folder, before, layers),
         }
-
-    def _state(self, folder: str, before: set[str]) -> dict[str, Any]:
-        snapshot = self.state.snapshot(folder, before)
-        layers = snapshot["layers"]
-        snapshot["new_layers"] = [
-            {"name": name, **layer} for name, layer in layers.items() if name not in self.fixture.LAYER_NAMES
-        ]
-        return snapshot
 
     def _wait(self, orchestrator: Any, deadline: float) -> None:
         agent = orchestrator.agent

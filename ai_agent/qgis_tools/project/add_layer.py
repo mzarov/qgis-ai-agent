@@ -73,8 +73,10 @@ class AddLayerTool(BaseTool):
         prepared["source"] = source
         prepared["name"] = _wanted_name(params, source)
         prepared["kind"] = _wanted_kind(params, source)
-        if _looks_like_path(source) and not os.path.exists(source):
-            raise ValueError(f"There is no file '{source}' on disk. Check the path.")
+        # OGR options after "|" (layername=roads) are for the provider; the file is what comes before them.
+        path = source.split("|")[0]
+        if _looks_like_path(source) and not os.path.exists(path):
+            raise ValueError(f"There is no file '{path}' on disk. Check the path.")
         if prepared["name"] in layer_names():
             raise ValueError(
                 f"A layer named '{prepared['name']}' is already in the project. "

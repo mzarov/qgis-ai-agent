@@ -206,10 +206,10 @@ class PersonalisationSettings(QObject):
         )
 
     def save(self) -> None:
-        """Store the page; ValueError when the notes could not be written."""
+        """Store the page; ValueError when the notes could not be written, and then nothing was stored."""
+        save_user_notes(self.memory.notes)
         personal.save(self.profile())
         set_custom_instructions(self.text())
-        save_user_notes(self.memory.notes)
 
     def _line(self, text: str, placeholder: str, limit: int) -> QLineEdit:
         line = QLineEdit(text)

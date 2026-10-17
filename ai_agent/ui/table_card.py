@@ -3,7 +3,9 @@
 Painted rather than a QTableWidget: a table that scrolls inside the scrolling
 feed fights the wheel, and a wide one would push the dock sideways. Columns
 share the width by their content, long cells elide and show in full on hover,
-and right click copies the rows as CSV.
+and right click copies the rows as CSV. Columns that do not fit even at their
+narrowest slide under a bar of their own; only a sideways wheel moves them, so
+the upright one still scrolls the feed.
 """
 
 import csv
@@ -12,7 +14,7 @@ from typing import Any
 
 from qgis.PyQt.QtCore import QPointF, QRectF, Qt
 from qgis.PyQt.QtGui import QFontMetrics, QGuiApplication, QPainter, QPen
-from qgis.PyQt.QtWidgets import QSizePolicy, QToolTip, QWidget
+from qgis.PyQt.QtWidgets import QApplication, QScrollBar, QSizePolicy, QToolTip, QWidget
 
 from ai_agent.i18n import tr
 from ai_agent.ui import controls, style
@@ -36,9 +38,12 @@ class TableCard(QWidget):
         self.rows = [[str(cell) for cell in row] for row in spec.get("rows") or []]
         self.total = int(spec.get("total") or len(self.rows))
         self._cells: list[tuple[QRectF, str]] = []
+        # The rows move under it; the title and the footer stay where they are.
+        self._bar = QScrollBar(Qt.Orientation.Horizontal, self)
+        self._bar.valueChanged.connect(lambda _value: self.update())
         self.setMouseTracking(True)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.setFixedHeight(self._height())
+        self._fit_bar()
 
     def plain_text(self) -> str:
         return str(self.spec.get("title") or "")
@@ -52,9 +57,29 @@ class TableCard(QWidget):
     def _title_height(self) -> int:
         return QFontMetrics(self._bold()).height() + TITLE_GAP
 
+    def _rows_bottom(self) -> int:
+        return self._title_height() + self._row_height() * (len(self.rows) + 1)
+
+    def _bar_room(self) -> int:
+        return self._bar.sizeHint().height() if self._bar.maximum() > 0 else 0
+
     def _height(self) -> int:
         footer = self._row_height() if self.footer() else 0
-        return self._title_height() + self._row_height() * (len(self.rows) + 1) + footer + 2
+        return self._rows_bottom() + self._bar_room() + footer + 2
+
+    def resizeEvent(self, event: Any) -> None:
+        super().resizeEvent(event)
+        self._fit_bar()
+
+    def _fit_bar(self) -> None:
+        """The bar shows only while the columns overflow the card, under the rows, and the card grows by it."""
+        width = self.width()
+        overflow = round(sum(self.column_widths(width)) - width)
+        self._bar.setRange(0, max(0, overflow))
+        self._bar.setPageStep(width)
+        self._bar.setGeometry(0, self._rows_bottom() + 1, width, self._bar.sizeHint().height())
+        self._bar.setVisible(overflow > 0)
+        self.setFixedHeight(self._height())
 
     def _bold(self) -> Any:
         font = self.font()
@@ -84,7 +109,8 @@ class TableCard(QWidget):
         title = QFontMetrics(self._bold()).elidedText(self.plain_text(), Qt.TextElideMode.ElideRight, int(width))
         painter.drawText(QRectF(0, 0, width, self._title_height()), 0, title)
         widths = self.column_widths(width)
-        span = min(width, sum(widths))
+        left = -float(self._bar.value())
+        right = left + sum(widths)
         top = float(self._title_height())
         row_height = self._row_height()
         painter.setFont(self._small_bold())
@@ -93,15 +119,16 @@ class TableCard(QWidget):
         for index, row in enumerate(self.rows):
             y = top + row_height * (index + 1)
             painter.setPen(QPen(style.hairline(palette), 1))
-            painter.drawLine(QPointF(0, y), QPointF(span, y))
+            painter.drawLine(QPointF(left, y), QPointF(right, y))
             self._row(painter, row, widths, y, row_height, style.text(palette))
         y = top + row_height * (len(self.rows) + 1)
         painter.setPen(QPen(style.hairline(palette), 1))
-        painter.drawLine(QPointF(0, y), QPointF(span, y))
+        painter.drawLine(QPointF(left, y), QPointF(right, y))
         if self.footer():
             painter.setFont(self._small())
             painter.setPen(style.faint(palette))
-            painter.drawText(QRectF(CELL_PADDING, y, width, row_height), Qt.AlignmentFlag.AlignVCenter, self.footer())
+            footer = QRectF(CELL_PADDING, y + self._bar_room(), width, row_height)
+            painter.drawText(footer, Qt.AlignmentFlag.AlignVCenter, self.footer())
         painter.end()
 
     def _row(
@@ -115,7 +142,7 @@ class TableCard(QWidget):
         header: bool = False,
     ) -> None:
         metrics = QFontMetrics(painter.font())
-        x = 0.0
+        x = -float(self._bar.value())
         painter.setPen(ink)
         for index, width in enumerate(widths):
             text = cells[index] if index < len(cells) else ""
@@ -153,6 +180,14 @@ class TableCard(QWidget):
             )
         else:
             QToolTip.hideText()
+
+    def wheelEvent(self, event: Any) -> None:
+        delta = event.angleDelta()
+        if self._bar.maximum() > 0 and abs(delta.x()) > abs(delta.y()):
+            QApplication.sendEvent(self._bar, event)
+        else:
+            # Ignored, the wheel goes on to the feed: a table never holds the upright scroll.
+            event.ignore()
 
     def contextMenuEvent(self, event: Any) -> None:
         popup = controls.menu(self, self.palette())

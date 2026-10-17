@@ -1,6 +1,8 @@
 import unittest
 from unittest.mock import patch
 
+from qgis.core import Qgis
+
 from ai_agent.qgis_tools.inspect import get_selection as selection_module
 from ai_agent.qgis_tools.inspect.get_selection import GetSelectionTool
 from ai_agent.qgis_tools.inspect.query_layer import _restrict_to_selection
@@ -115,6 +117,9 @@ class RestrictToSelectionTest(unittest.TestCase):
                 return [3, 7]
 
         class Request:
+            def filterType(self):
+                return Qgis.FeatureRequestFilterType.NoFilter
+
             def setFilterFids(self, ids):
                 self.ids = list(ids)
 

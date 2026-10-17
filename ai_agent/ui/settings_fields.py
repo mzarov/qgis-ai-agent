@@ -1,3 +1,4 @@
+import math
 from typing import Any
 
 from qgis.PyQt.QtCore import QEvent, QRectF, QSize, Qt, pyqtSignal
@@ -390,8 +391,8 @@ BUDGET_MULTIPLIERS = {"k": 1_000, "m": 1_000_000}
 def parsed_budget(raw: str) -> int | None:
     """Read a token count such as 200000, 200 000, 200k or 1.5m; None when unreadable.
 
-    An empty field means no limit (0). Negative numbers are refused rather than
-    silently read as "no limit".
+    An empty field means no limit (0). Negative and infinite numbers, and a fraction of
+    one token, are refused rather than silently read as "no limit" or crashing.
     """
     text = "".join((raw or "").split()).replace("_", "").lower()
     if not text:
@@ -400,12 +401,12 @@ def parsed_budget(raw: str) -> int | None:
     if multiplier != 1:
         text = text[:-1]
     try:
-        value = float(text.replace(",", "."))
+        value = float(text.replace(",", ".")) * multiplier
     except ValueError:
         return None
-    if value < 0 or value != value:
+    if not math.isfinite(value) or value < 0 or 0 < value < 1:
         return None
-    return int(value * multiplier)
+    return int(value)
 
 
 def select(combo: QComboBox, value: str) -> None:

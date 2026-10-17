@@ -16,6 +16,10 @@ MAX_BINS = 30
 DEFAULT_TOP = 12
 MAX_FEATURES = 200_000
 EMPTY = "(empty)"
+PARTIAL_NOTE = (
+    "More than {limit} features match, so the chart covers only the first {limit}: categories past them "
+    "are missing and totals and shares are incomplete. Tell the user, or narrow the filter."
+)
 
 
 class ChartLayerTool(BaseTool):
@@ -88,18 +92,21 @@ class ChartLayerTool(BaseTool):
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = _layer(params)
         value, group, aggregate, kind = _setup(layer, params)
-        rows = _rows(layer, params, value, group)
+        rows, partial = _rows(layer, params, value, group)
         if group is None:
             spec = _histogram(rows, params, layer)
         else:
             spec = _grouped(rows, params, aggregate, kind, layer)
         series = spec["series"][0]["values"]
-        result = {
+        result: dict[str, Any] = {
             "shown": "chart",
             "features": len(rows),
             "labels": spec["labels"],
             "values": [round(value, 6) if value is not None else None for value in series],
         }
+        if partial:
+            result["partial"] = True
+            result["note"] = PARTIAL_NOTE.format(limit=MAX_FEATURES)
         return attach(result, spec)
 
 
@@ -131,9 +138,11 @@ def _setup(layer: QgsVectorLayer, params: dict[str, Any]) -> tuple[Any, Any, str
     return value, group, aggregate, kind
 
 
-def _rows(layer: QgsVectorLayer, params: dict[str, Any], value: Any, group: Any) -> list[tuple[Any, Any]]:
+def _rows(layer: QgsVectorLayer, params: dict[str, Any], value: Any, group: Any) -> tuple[list[tuple[Any, Any]], bool]:
+    """The (value, group) pairs of the matching features, and whether more matched than MAX_FEATURES."""
     request = build_request(str(params.get("filter") or ""), layer)
-    request.setLimit(MAX_FEATURES)
+    # One more than the cap: reading it says the chart is partial without counting the whole layer.
+    request.setLimit(MAX_FEATURES + 1)
     needs_geometry = any(expression is not None and expression.needsGeometry() for expression in (value, group))
     if not needs_geometry:
         request.setFlags(QgsFeatureRequest.Flag.NoGeometry)
@@ -142,7 +151,11 @@ def _rows(layer: QgsVectorLayer, params: dict[str, Any], value: Any, group: Any)
         if expression is not None:
             expression.prepare(context)
     rows = []
+    partial = False
     for feature in layer.getFeatures(request):
+        if len(rows) == MAX_FEATURES:
+            partial = True
+            break
         rows.append(
             (
                 evaluate(value, context, feature) if value is not None else None,
@@ -151,7 +164,7 @@ def _rows(layer: QgsVectorLayer, params: dict[str, Any], value: Any, group: Any)
         )
     if not rows:
         raise ValueError("No feature matches; nothing to chart. Check the filter.")
-    return rows
+    return rows, partial
 
 
 def _histogram(rows: list[tuple[Any, Any]], params: dict[str, Any], layer: QgsVectorLayer) -> dict[str, Any]:

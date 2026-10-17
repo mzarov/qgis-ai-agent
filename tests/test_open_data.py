@@ -106,6 +106,14 @@ class SearchImageryTest(unittest.TestCase):
             },
         )
 
+    def test_a_cloud_free_search_keeps_zero_and_only_a_missing_limit_defaults(self):
+        for given, sent_limit in ((0, 0.0), (None, search_imagery.DEFAULT_MAX_CLOUD)):
+            with mock.patch.object(stac, "post_json", return_value={"features": []}) as sent:
+                search_imagery.SearchImageryTool().execute(
+                    {"collection": "sentinel-2-l2a", "bbox": "37.5,55.6,37.8,55.9", "max_cloud": given}
+                )
+            self.assertEqual(sent.call_args.args[1]["query"], {"eo:cloud_cover": {"lte": sent_limit}}, given)
+
     def test_timeless_tiles_ignore_clouds_and_report_an_empty_search(self):
         with mock.patch.object(stac, "post_json", return_value={"features": []}) as sent:
             result = search_imagery.SearchImageryTool().execute({"collection": "cop-dem-glo-30", "bbox": "1,1,2,2"})

@@ -1,8 +1,10 @@
-"""What the status line says an apply changed."""
+"""What the status line says an apply changed, and what the composer's layer chip says."""
 
 import unittest
 
-from ai_agent.core.orchestrator.presentation import applied_summary
+from qgis.core import QgsVectorLayer
+
+from ai_agent.core.orchestrator.presentation import active_layer_chip, applied_summary
 
 
 class Call:
@@ -41,6 +43,44 @@ class AppliedSummaryTest(unittest.TestCase):
         results = [Result("configure_project"), Result("zoom_to_layer", ok=False, layer_name="roads")]
         self.assertEqual(applied_summary(results), "1 change applied")
         self.assertEqual(applied_summary([Result("set_opacity", ok=False, layer_name="roads")]), "")
+
+
+class CountedLayer(QgsVectorLayer):
+    def __init__(self, provider, count=12):
+        self.provider = provider
+        self.count = count
+        self.counted = 0
+
+    def name(self):
+        return "roads"
+
+    def providerType(self):
+        return self.provider
+
+    def featureCount(self):
+        self.counted += 1
+        return self.count
+
+
+class Iface:
+    def __init__(self, layer):
+        self.layer = layer
+
+    def activeLayer(self):
+        return self.layer
+
+
+class ActiveLayerChipTest(unittest.TestCase):
+    def test_a_local_layer_shows_its_feature_count(self):
+        self.assertEqual(active_layer_chip(Iface(CountedLayer("ogr"))), ("roads", "12 features"))
+
+    def test_a_remote_layer_is_named_but_never_counted(self):
+        # The chip refreshes on the main thread when the panel opens and after every run:
+        # a count on PostGIS or WFS is a server round trip that freezes QGIS meanwhile.
+        for provider in ("postgres", "WFS"):
+            layer = CountedLayer(provider)
+            self.assertEqual(active_layer_chip(Iface(layer)), ("roads", ""))
+            self.assertEqual(layer.counted, 0, provider)
 
 
 if __name__ == "__main__":

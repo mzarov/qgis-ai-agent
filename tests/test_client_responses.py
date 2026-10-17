@@ -54,3 +54,11 @@ class BlockingResponseTest(unittest.TestCase):
         with self.assertRaisesRegex(ApiResponseError, "non-JSON") as caught:
             self.post()
         self.assertEqual(caught.exception.status_code, 200)
+
+    def test_a_key_in_a_non_json_body_stays_out_of_the_message(self):
+        page = b"<html><body>proxy debug: Bearer sk-ant-FAKE0123456789 api_key=FAKEAPIKEY0123</body></html>"
+        self.caller.reply.return_value.content.return_value = page
+        with self.assertRaisesRegex(ApiResponseError, "non-JSON") as caught:
+            self.post()
+        for secret in ("sk-ant-FAKE0123456789", "FAKEAPIKEY0123"):
+            self.assertNotIn(secret, str(caught.exception))

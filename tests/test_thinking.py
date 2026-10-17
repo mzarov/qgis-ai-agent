@@ -158,6 +158,8 @@ class AnthropicThinkingTest(unittest.TestCase):
     def test_the_answer_still_fits_above_the_budget(self):
         body = anthropic.build_body([], [], "claude", thinking_budget=8192)
         self.assertGreater(body["max_tokens"], 8192)
+        lowered = anthropic.build_body([], [], "claude", max_tokens=anthropic.FALLBACK_MAX_TOKENS, thinking_budget=8192)
+        self.assertGreater(lowered["max_tokens"], 8192, "the API refuses a limit at or below budget_tokens")
 
     def test_blocks_are_parsed_out_with_their_signature(self):
         text, blocks = anthropic.parse_thinking({"content": self.BLOCKS})

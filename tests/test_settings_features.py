@@ -14,7 +14,7 @@ from ai_agent.core.local_skills import builtin_skills, register_local_skills, sk
 from ai_agent.core.state.session import Session
 from ai_agent.core.state.store import DAY_SECONDS, SessionStore
 from ai_agent.skills.registry import SKILL_REGISTRY
-from ai_agent.ui import settings_dialog, settings_layout
+from ai_agent.ui import personalisation_settings, settings_dialog, settings_layout
 from tests.test_credentials import MemorySettings
 
 
@@ -159,6 +159,43 @@ class DeferredPagesTest(SettingsCase):
         skills_saved.assert_called_once_with(["charts"])
         connectors_saved.assert_not_called()
         geocoder_saved.assert_not_called()
+
+
+class RefusedSaveTest(SettingsCase):
+    """A store that refuses the key or the notes leaves every setting as it was, so Cancel still means it."""
+
+    OLD = ("https://api.example.com/v1", "old-model")
+
+    def setUp(self):
+        super().setUp()
+        settings.set_api_url(self.OLD[0])
+        settings.set_model(self.OLD[1])
+        self.dialog = settings_dialog.SettingsDialog()
+        self.dialog.url_edit.setText("https://other.example.com/v1")
+        self.dialog.model_edit.setText("new-model")
+        self.dialog.key_edit.setText("sk-new")
+
+    def test_a_refused_key_stores_nothing(self):
+        refused = RuntimeError("The key store is locked.")
+        with mock.patch.object(settings_dialog, "set_api_key", side_effect=refused):
+            self.dialog._save()
+        self.assertEqual((settings.get_api_url(), settings.get_model()), self.OLD)
+        self.assertEqual(self.dialog._status.text(), str(refused))
+
+    def test_refused_notes_store_nothing_and_take_the_key_back(self):
+        self.dialog.personalisation.name.setText("Masha")
+        keys = []
+        refused = ValueError("The profile folder is read-only.")
+        with (
+            mock.patch.object(settings_dialog, "get_api_key", return_value="sk-old"),
+            mock.patch.object(settings_dialog, "set_api_key", side_effect=lambda key, *_scope: keys.append(key)),
+            mock.patch.object(personalisation_settings, "save_user_notes", side_effect=refused),
+        ):
+            self.dialog._save()
+        self.assertEqual((settings.get_api_url(), settings.get_model()), self.OLD)
+        self.assertEqual(personal.load().name, "")
+        self.assertEqual(keys, ["sk-new", "sk-old"], "the key goes back to what was stored")
+        self.assertEqual(self.dialog._status.text(), str(refused))
 
 
 class ResetTest(SettingsCase):

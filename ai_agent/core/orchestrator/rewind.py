@@ -38,6 +38,7 @@ EMPTY_LAYERS = tr("These temporary layers came back empty: {0}.")
 class Checkpoint:
     snapshot: str
     session: str
+    # The user message's place (ConversationState.next_place), which trimming the head does not move.
     message: int
 
 
@@ -51,9 +52,9 @@ class RewindMixin:
         if not path or path == getattr(self, "_snapshot_before_apply", ""):
             return
         self._snapshot_before_apply = path
-        users = [index for index, message in enumerate(self.conversation.messages) if message.get("role") == "user"]
-        if users:
-            self._checkpoints.append(Checkpoint(path, self.conversation.session_identifier, users[-1]))
+        place = self.conversation.last_place("user")
+        if place is not None:
+            self._checkpoints.append(Checkpoint(path, self.conversation.session_identifier, place))
 
     def checkpoint_for(self, message: int) -> Checkpoint | None:
         session = self.conversation.session_identifier
@@ -66,8 +67,8 @@ class RewindMixin:
         if busy:
             self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
             return
-        messages = self.conversation.messages
-        if not 0 <= message < len(messages) or messages[message].get("role") != "user":
+        target = self.conversation.message_at(message)
+        if target is None or target.get("role") != "user":
             return
         checkpoint = self.checkpoint_for(message)
         choice = self.dock_widget.choose_rewind(checkpoint is not None)
@@ -98,7 +99,7 @@ class RewindMixin:
             return
         position = next((index for index, item in enumerate(self._checkpoints) if item.snapshot == path), None)
         if position is None:
-            checkpoint = Checkpoint(path, self.conversation.session_identifier, len(self.conversation.messages))
+            checkpoint = Checkpoint(path, self.conversation.session_identifier, self.conversation.next_place)
             later = [checkpoint]
         else:
             # By the order the applies happened, not by message: the stages of one run share a message,
@@ -152,7 +153,7 @@ class RewindMixin:
         return " ".join(notes)
 
     def _rewind_conversation(self, message: int) -> None:
-        text = str(self.conversation.messages[message].get("content") or "")
+        text = str((self.conversation.message_at(message) or {}).get("content") or "")
         self._drop_pending_plan()
         self.conversation.truncate(message)
         self._replay()

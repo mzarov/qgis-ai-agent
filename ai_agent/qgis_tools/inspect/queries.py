@@ -37,14 +37,15 @@ SCAN_LIMIT_MESSAGE = (
 )
 
 
-def run_aggregate(layer, request, context, params, aggregate: str) -> dict[str, Any]:
+def run_aggregate(layer, request, context, params, aggregate: str, selected: list[int] | None = None) -> dict[str, Any]:
+    """Aggregate the features the request yields; `selected` is the selection the filter accepted, if any."""
     expression_text = (params.get("expression") or "").strip()
     group_text = (params.get("group_by") or "").strip()
     value_expression = prepared(expression_text, "expression", context, layer) if expression_text else None
     group_expression = prepared(group_text, "group_by", context, layer) if group_text else None
 
     if group_expression is None:
-        native = _native_aggregate(layer, context, params, aggregate, expression_text)
+        native = _native_aggregate(layer, context, params, aggregate, expression_text, selected)
         if native is not None:
             return native
     if value_expression is None and group_expression is None:
@@ -76,12 +77,14 @@ def run_aggregate(layer, request, context, params, aggregate: str) -> dict[str, 
     return info
 
 
-def _native_aggregate(layer, context, params, aggregate: str, expression_text: str) -> dict[str, Any] | None:
+def _native_aggregate(
+    layer, context, params, aggregate: str, expression_text: str, fids: list[int] | None
+) -> dict[str, Any] | None:
     """Answer an ungrouped aggregate through QgsVectorLayer.aggregate; None means scan instead."""
     if expression_text and aggregate != "count" and aggregate not in NATIVE_AGGREGATES:
         return None
-    filter_text = (params.get("filter") or "").strip()
-    fids = _selected_ids(layer) if params.get("selected_only") else None
+    # Selected ids have passed the filter already; beside a filter QgsVectorLayer.aggregate ignores ids.
+    filter_text = "" if fids is not None else (params.get("filter") or "").strip()
     matched = feature_count_if_cheap(layer) if not filter_text and fids is None else None
     if matched is None:
         counted = _native_value(layer, context, "Count", COUNT_EXPRESSION, filter_text, fids)
@@ -115,13 +118,6 @@ def _native_value(layer, context, member: str, expression_text: str, filter_text
     except Exception:
         return _FAILED
     return value if ok is True else _FAILED
-
-
-def _selected_ids(layer) -> list[int]:
-    try:
-        return [int(identifier) for identifier in layer.selectedFeatureIds()]
-    except Exception:
-        return []
 
 
 def _rounded(value: Any) -> Any:

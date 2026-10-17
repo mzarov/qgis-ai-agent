@@ -21,6 +21,8 @@ MODEL_ROLES = frozenset({"user", "assistant"})
 DISPLAY_ROLES = frozenset({VISUAL_ROLE, TRACE_ROLE, PLAN_ROLE, FAILURE_ROLE})
 # A user message the user picked on a question card: the chat shows it as "You chose …" again.
 CHOSEN = "chosen"
+# A replayed user message's place in the conversation (see Session.trimmed): what its rewind point names.
+PLACE = "place"
 
 
 class ConversationState:
@@ -98,10 +100,16 @@ class ConversationState:
             self._store.save(self._session)
 
     def replayable(self) -> list[dict[str, Any]]:
-        """The messages for the chat, each saved chart, table, turn trace or plan card decoded back."""
+        """The messages for the chat, each saved chart, table, turn trace or plan card decoded back.
+
+        A user message carries its place under PLACE, the rewind point its bubble offers.
+        """
         shown: list[dict[str, Any]] = []
-        for message in self._session.messages:
+        for index, message in enumerate(self._session.messages):
             role = message.get("role")
+            if role == "user":
+                shown.append({**message, PLACE: self._session.trimmed + index})
+                continue
             if role not in DISPLAY_ROLES:
                 shown.append(dict(message))
                 continue
@@ -155,17 +163,30 @@ class ConversationState:
         self._store.save(self._session)
 
     @property
-    def message_count(self) -> int:
-        return len(self._session.messages)
+    def next_place(self) -> int:
+        """The place the next message takes. A place stays with its message when the cap trims the head."""
+        return self._session.end
+
+    def message_at(self, place: int) -> dict[str, str] | None:
+        """The message at `place`; None once the cap has dropped it, or past the end."""
+        return self._session.at(place)
+
+    def last_place(self, role: str) -> int | None:
+        """The place of the latest message in `role`; None when there is none."""
+        messages = self._session.messages
+        for index in range(len(messages) - 1, -1, -1):
+            if messages[index].get("role") == role:
+                return self._session.trimmed + index
+        return None
 
     def compact(self, summary: str, upto: int | None = None) -> None:
-        """Let `summary` stand in for the first `upto` messages but the last exchange, in the model's window."""
+        """Let `summary` stand in for the messages before place `upto` but the last exchange, in the model's window."""
         self._session.compact(summary, KEEP_AFTER_COMPACTION, upto)
         self._store.save(self._session)
 
-    def truncate(self, index: int) -> None:
-        """Forget the messages from `index` on, as if the conversation had stopped there."""
-        self._session.truncate(index)
+    def truncate(self, place: int) -> None:
+        """Forget the messages from `place` on, as if the conversation had stopped there."""
+        self._session.truncate(place)
         self._store.save(self._session)
 
     def set_context(self, tokens: int) -> None:

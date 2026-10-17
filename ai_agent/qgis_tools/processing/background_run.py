@@ -104,7 +104,8 @@ class ProcessingInBackground(Background):
     def _executed(self, ok: bool, results: Any) -> None:
         # The task manager deletes the task after this signal.
         self._task = None
-        if not ok:
+        if not ok or self._stopped_because is not None:
+            # A stop that came after the algorithm ended, while its results waited in the queue, loads nothing.
             self._end(RuntimeError(FAILED.format(self._feedback.reason())))
             return
         try:

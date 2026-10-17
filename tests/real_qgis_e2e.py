@@ -18,17 +18,22 @@ Runs inside `real_qgis_workflows.py` against the extracted plugin ZIP.
 
 import json
 import math
+import threading
+import time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
 import token_ceilings
 from e2e_harness import ARTIFACTS, PluginCase, process, pump
 from e2e_model import USAGE, ScriptedModel, call, calls, fail, say, think
-from qgis.core import QgsFeature, QgsGeometry, QgsProject, QgsVectorLayer
+from qgis.core import QgsFeature, QgsGeometry, QgsProject, QgsSettings, QgsVectorLayer
 
 from ai_agent.core.agent.run_failure import RUN_FAILURES
 from ai_agent.core.llm import failure_kinds, retry
 from ai_agent.core.orchestrator.notices import CHECKED_BY_READING, RUN_CHECK, STATUS_DONE, STATUS_WAITING
 from ai_agent.core.settings import get_auto_apply, set_reasoning_enabled, set_supports_images, set_work_mode
+from ai_agent.core.state.session import MAX_MESSAGES
+from ai_agent.qgis_tools.osm import overpass
 from ai_agent.ui import progress
 from ai_agent.ui.activity import ActivityGroup
 from ai_agent.ui.chart import ChartCard
@@ -36,7 +41,7 @@ from ai_agent.ui.composer_parts import MODES
 from ai_agent.ui.durations import format_seconds
 from ai_agent.ui.failure_card import FailureCard
 from ai_agent.ui.legend import LegendCard
-from ai_agent.ui.messages import SystemMessage
+from ai_agent.ui.messages import SystemMessage, UserMessage
 from ai_agent.ui.plan import RUNNING_MARK, PlanCard
 from ai_agent.ui.question import QuestionCard
 from ai_agent.ui.transitions import LeavingFeed
@@ -44,6 +49,11 @@ from ai_agent.ui.transitions import LeavingFeed
 MODEL = "scripted-model"
 SIZES_FILE = "request_sizes.json"
 SCRIPTED_CEILINGS = token_ceilings.load()[token_ceilings.SCRIPTED_KIND]
+CAFES = (
+    b'<?xml version="1.0" encoding="UTF-8"?><osm version="0.6" generator="fixture">'
+    b'<node id="1" lat="55.75" lon="37.62"><tag k="amenity" v="cafe"/><tag k="name" v="One"/></node>'
+    b"</osm>"
+)
 # The largest request part of each metric across all scenarios so far, and where it came from.
 PEAKS: dict[str, Any] = {"kind": token_ceilings.SCRIPTED_KIND, "where": {}}
 
@@ -617,6 +627,60 @@ class RewindScenario(ScenarioCase):
         self.shot("rewound")
 
 
+class LongRewindScenario(ScenarioCase):
+    """Past the message cap the head of the conversation is dropped; a rewind must still find its message."""
+
+    def rewind_from_bubble(self, text: str) -> None:
+        """Click the rewind button of the bubble saying `text`; the conversation must stop right before it."""
+        bubbles = [item for item in self.dock.conversation.findChildren(UserMessage) if item.plain_text() == text]
+        self.assertEqual(len(bubbles), 1, f"expected one bubble saying {text!r}")
+        place = bubbles[0].message
+        conversation = self.orchestrator.conversation
+        self.assertIsNotNone(place, "the bubble offers no rewind")
+        named = conversation.message_at(place) or {}
+        self.assertEqual(named.get("content"), text, "the bubble names another message")
+        bubbles[0].rewind.click()
+        pump(0.1)
+        self.assertEqual(conversation.next_place, place, "the conversation must end right before the message")
+        self.assertEqual(self.dock.composer._edit.toPlainText(), text)
+
+    def test_rewinding_from_a_bubble_after_the_cap_trimmed_the_head(self) -> None:
+        conversation = self.orchestrator.conversation
+        for number in range(MAX_MESSAGES // 2):
+            conversation.add("user", f"Earlier question {number}")
+            conversation.add("assistant", f"Earlier answer {number}")
+        self.model.script(
+            call("load_skill", names=["project"]),
+            call("configure_layer", layer_name="districts", properties={"name": "Districts A"}),
+            say("Renamed to Districts A."),
+            call("configure_layer", layer_name="Districts A", properties={"name": "Districts B"}),
+            say("Renamed to Districts B."),
+        )
+        self.ask("Rename districts to Districts A")
+        self.apply()
+        self.ask("Now rename it to Districts B")
+        self.apply()
+        self.layer("Districts B")
+        self.assertEqual(len(conversation.messages), MAX_MESSAGES, "the scenario must run past the cap")
+        self.dock.choose_rewind = lambda project_available: "both" if project_available else None
+
+        # The newest message's own bubble, drawn while the cap was dropping the head.
+        self.rewind_from_bubble("Now rename it to Districts B")
+        self.layer("Districts A")
+
+        # An earlier message's bubble, drawn again by the replay of the reopened conversation.
+        # The box is cleared first: a rewind puts its message back only into an empty one.
+        self.dock.clear_prompt()
+        identifier = conversation.session_identifier
+        self.orchestrator.on_new_session()
+        self.orchestrator.on_session_chosen(identifier)
+        pump(0.1)
+        self.rewind_from_bubble("Rename districts to Districts A")
+        self.layer("districts")
+        self.assertEqual(conversation.messages[-1]["content"], f"Earlier answer {MAX_MESSAGES // 2 - 1}")
+        self.shot("rewound_past_the_cap")
+
+
 class LayerChipScenario(ScenarioCase):
     def test_the_active_layer_rides_into_a_new_request_until_dropped(self) -> None:
         self.model.script(say("districts holds six squares."), say("Three layers."))
@@ -794,6 +858,56 @@ class BackgroundStepScenario(ScenarioCase):
         self.assertTrue(any("stopped during apply" in note.lower() for note in notes), notes)
 
 
+class _Overpass(BaseHTTPRequestHandler):
+    """A local Overpass that answers at once."""
+
+    def do_POST(self) -> None:
+        self.rfile.read(int(self.headers.get("Content-Length", "0")))
+        self.send_response(200)
+        self.send_header("Content-Type", "application/osm3s+xml")
+        self.send_header("Content-Length", str(len(CAFES)))
+        self.end_headers()
+        self.wfile.write(CAFES)
+
+    def log_message(self, format: str, *args: Any) -> None:
+        return
+
+
+class DownloadStopScenario(ScenarioCase):
+    """Stop after a download's answer came in, while its layers still wait for the main thread."""
+
+    # Long enough for the answer to arrive and the download's work to end while the main thread does not look.
+    WORK_ENDED_S = 1.0
+
+    def setUp(self) -> None:
+        super().setUp()
+        server = ThreadingHTTPServer(("127.0.0.1", 0), _Overpass)
+        server.daemon_threads = True
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        QgsSettings().setValue(overpass.SETTINGS_KEY, f"http://127.0.0.1:{server.server_address[1]}/api/interpreter")
+        self.addCleanup(QgsSettings().remove, overpass.SETTINGS_KEY)
+
+    def test_stop_after_the_answer_came_in_adds_no_layer(self) -> None:
+        query = "[out:xml];node[amenity=cafe](55.7,37.6,55.8,37.7);out body;"
+        cafes = {"query": query, "name": "Cafes", "intent": "cafes in a corner of Moscow", "geometry": "points"}
+        self.model.script(
+            call("load_skill", names=["osm"]),
+            calls(("run_overpass", cafes)),
+            say("I will download the cafes."),
+        )
+        self.ask("Download the cafes in this corner of Moscow")
+        self.orchestrator.on_confirm_plan()
+        self.assertTrue(self.agent.is_applying, "the download did not go to the background")
+        time.sleep(self.WORK_ENDED_S)
+        self.orchestrator.on_stop()
+        self.wait_idle()
+        self.assertEqual(QgsProject.instance().mapLayersByName("Cafes"), [], "a stopped download added its layer")
+        notes = [message.plain_text() for message in self.dock.conversation.findChildren(SystemMessage)]
+        self.assertTrue(any("stopped during apply" in note.lower() for note in notes), notes)
+
+
 class QuestionScenario(ScenarioCase):
     def test_a_picked_answer_resumes_the_same_run(self) -> None:
         self.model.script(
@@ -958,3 +1072,11 @@ class ComposerScenario(ScenarioCase):
         self.shot("mention_popup")
         composer._popup._rows[0].mousePressEvent(None)
         self.assertEqual(composer._edit.toPlainText(), 'colour @"Main rivers" ')
+        # An emoji is two Qt text positions and one Python character: the mention and the caret stay in step.
+        composer._edit.clear()
+        composer._edit.insertPlainText("🌍 colour @ma")
+        pump(0.1)
+        self.assertFalse(composer._popup.isHidden())
+        composer._on_complete()
+        composer._edit.insertPlainText("blue")
+        self.assertEqual(composer._edit.toPlainText(), '🌍 colour @"Main rivers" blue')

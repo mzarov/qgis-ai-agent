@@ -9,7 +9,7 @@ from ai_agent.core.llm.client import (
     post_chat_completion,
     resolve_endpoint,
 )
-from ai_agent.core.llm.dialects import ANTHROPIC, ANTHROPIC_HOSTS, DEFAULT_MAX_TOKENS, host_of, resolve
+from ai_agent.core.llm.dialects import ANTHROPIC, ANTHROPIC_HOSTS, host_of, resolve
 from ai_agent.core.llm.images import IMAGE_REJECTED_STATUS_CODES, has_images, without_images
 from ai_agent.core.llm.live import fold_live
 from ai_agent.core.llm.parser import parse_tool_arguments
@@ -181,7 +181,7 @@ def _call_anthropic(
     exchange = AnthropicExchange(endpoint, headers, timeout, url, overrides, on_chunk, on_thinking)
     prefix = int(overrides.get(anthropic.CACHE_PREFIX_KEY) or 0)
 
-    def body(thinking_budget: int, max_tokens: int = DEFAULT_MAX_TOKENS) -> dict[str, Any]:
+    def body(thinking_budget: int, max_tokens: int | None = None) -> dict[str, Any]:
         return anthropic.build_body(
             messages,
             tool_schemas,

@@ -1,6 +1,6 @@
 from typing import Any
 
-from qgis.core import QgsVectorLayer
+from qgis.core import Qgis, QgsFeatureRequest, QgsVectorLayer
 
 from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
@@ -111,8 +111,7 @@ class QueryLayerTool(BaseTool):
 
         context = build_context(layer)
         request = build_request(params.get("filter") or "", layer)
-        if params.get("selected_only"):
-            _restrict_to_selection(layer, request)
+        selected = _restrict_to_selection(layer, request) if params.get("selected_only") else None
         aggregate = (params.get("aggregate") or "").strip().lower()
 
         result: dict[str, Any] = layer_reference(layer)
@@ -122,13 +121,19 @@ class QueryLayerTool(BaseTool):
         if params.get("selected_only"):
             result["selected_only"] = True
         if aggregate:
-            result.update(run_aggregate(layer, request, context, params, aggregate))
+            result.update(run_aggregate(layer, request, context, params, aggregate, selected))
         else:
             result.update(run_rows(layer, request, context, params))
         return result
 
 
-def _restrict_to_selection(layer: QgsVectorLayer, request: Any) -> None:
+def _restrict_to_selection(layer: QgsVectorLayer, request: QgsFeatureRequest) -> list[int]:
+    """Narrow the request to the selected features its filter accepts; returns their ids.
+
+    A request holds one filter: setFilterFids drops the filter expression, and
+    QgsVectorLayer.aggregate drops the ids beside a filter. So the two are
+    intersected here once, and every path reads these ids alone.
+    """
     try:
         ids = list(layer.selectedFeatureIds())
     except Exception:
@@ -138,4 +143,10 @@ def _restrict_to_selection(layer: QgsVectorLayer, request: Any) -> None:
             f"Nothing is selected on layer '{layer.name()}'. Ask the user to select "
             "features first, or drop selected_only."
         )
+    if request.filterType() == Qgis.FeatureRequestFilterType.Expression:
+        selection = QgsFeatureRequest().setFilterFids(ids)
+        if not request.filterExpression().needsGeometry():
+            selection.setFlags(Qgis.FeatureRequestFlag.NoGeometry)
+        ids = [feature.id() for feature in layer.getFeatures(selection) if request.acceptFeature(feature)]
     request.setFilterFids(ids)
+    return ids

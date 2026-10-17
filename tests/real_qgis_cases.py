@@ -2,6 +2,7 @@ import json
 import pathlib
 import struct
 import tempfile
+import threading
 import time
 import unittest
 from unittest.mock import patch
@@ -10,19 +11,25 @@ from osgeo import gdal, osr
 from processing.core.ProcessingConfig import ProcessingConfig
 from processing.modeler.ModelerUtils import ModelerUtils
 from qgis.core import (
+    Qgis,
     QgsApplication,
     QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
     QgsCoordinateTransformContext,
     QgsFeature,
     QgsGeometry,
+    QgsMapRendererSequentialJob,
+    QgsMapSettings,
+    QgsPointXY,
     QgsProcessingContext,
     QgsProject,
     QgsRasterLayer,
     QgsVectorFileWriter,
     QgsVectorLayer,
+    QgsVectorLayerSimpleLabeling,
 )
 from qgis.gui import QgsGui
-from qgis.PyQt.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer
+from qgis.PyQt.QtCore import QCoreApplication, QEvent, QEventLoop, QSize, QTimer
 from qgis.PyQt.QtWidgets import QMainWindow
 
 from ai_agent.core.agent.batch import WriteBatch
@@ -32,6 +39,8 @@ from ai_agent.core.llm.turns import ToolCall
 from ai_agent.i18n import tr_n
 from ai_agent.plugin import QgisAiAgentPlugin
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
+from ai_agent.qgis_tools.charts import chart_layer
+from ai_agent.qgis_tools.common.background import STOPPED, InTask
 from ai_agent.qgis_tools.common.editing import edit_session
 from ai_agent.qgis_tools.common.layers import suggest_metric_crs
 from ai_agent.qgis_tools.draw.draw_features import DrawFeaturesTool
@@ -43,10 +52,16 @@ from ai_agent.qgis_tools.registry import get_tool_by_name
 from ai_agent.ui.dock_widget import AgentDockWidget
 
 BACKGROUND_WAIT_S = 120
+# Long enough for a tiny work to end in its thread while the main thread does not look.
+WORK_ENDED_S = 1.0
 MANY_POINTS = 20000
 MODEL_NAME = "Buffer in UTM"
 # Two points near Moscow in degrees: the model must reproject them before a buffer in metres means anything.
 MOSCOW_POINTS = ("POINT (37.6 55.75)", "POINT (37.7 55.8)")
+# Two transverse Mercator zones 3 degrees apart, defined by PROJ strings alone: valid CRSs without an authid.
+CUSTOM_WEST = "PROJ:+proj=tmerc +lat_0=0 +lon_0=30 +k=1 +x_0=500000 +y_0=0 +ellps=WGS84 +units=m +no_defs"
+CUSTOM_EAST = "PROJ:+proj=tmerc +lat_0=0 +lon_0=33 +k=1 +x_0=500000 +y_0=0 +ellps=WGS84 +units=m +no_defs"
+CUSTOM_POINT = (500000.0, 6000000.0)
 
 
 class GisWorkflowsTest(unittest.TestCase):
@@ -152,6 +167,48 @@ class GisWorkflowsTest(unittest.TestCase):
         place = next((item["lon"], item["lat"]) for item in listed if item["id"] == note["id"])
         self.assertAlmostEqual(place[0], 37.6175, places=5)
         self.assertAlmostEqual(place[1], 55.752, places=5)
+
+    def test_a_marker_and_a_note_come_in_the_asked_colour(self):
+        """A blue marker once came out red, and the read-back still said the step was done."""
+        tool = get_tool_by_name("add_annotation")
+        for kind, extra in (("marker", {}), ("text", {"text": "start here"})):
+            with self.subTest(kind=kind):
+                queued, added = self._run("add_annotation", kind=kind, x=37.62, y=55.75, color="#2040d0", **extra)
+                item = self.project.mainAnnotationLayer().items()[added["id"]]
+                colour = item.symbol().color() if kind == "marker" else item.format().color()
+                self.assertEqual(colour.name(), "#2040d0")
+                self.assertTrue(tool.confirm_applied(queued.arguments, added))
+                self.assertFalse(tool.confirm_applied({**queued.arguments, "color": "#d02020"}, added))
+
+    def _custom_crs_target(self):
+        """Where CUSTOM_POINT in CUSTOM_WEST lies in CUSTOM_EAST: two CRSs whose authids are both empty."""
+        west, east = QgsCoordinateReferenceSystem(CUSTOM_WEST), QgsCoordinateReferenceSystem(CUSTOM_EAST)
+        self.assertTrue(west.isValid() and east.isValid())
+        self.assertEqual((west.authid(), east.authid()), ("", ""))
+        target = QgsCoordinateTransform(west, east, self.project).transform(QgsPointXY(*CUSTOM_POINT))
+        self.assertGreater(abs(target.x() - CUSTOM_POINT[0]), 100_000, "the zones must be far apart")
+        return east, target
+
+    def test_a_note_between_two_custom_crss_lands_where_asked(self):
+        east, target = self._custom_crs_target()
+        self.project.setCrs(east)
+        x, y = CUSTOM_POINT
+        queued, marker = self._run("add_annotation", kind="marker", x=x, y=y, crs=CUSTOM_WEST)
+        centre = self.project.mainAnnotationLayer().items()[marker["id"]].boundingBox().center()
+        self.assertAlmostEqual(centre.x(), target.x(), delta=0.01)
+        self.assertAlmostEqual(centre.y(), target.y(), delta=0.01)
+        self.assertTrue(get_tool_by_name("add_annotation").confirm_applied(queued.arguments, marker))
+
+    def test_drawing_between_two_custom_crss_moves_the_coordinates(self):
+        east, target = self._custom_crs_target()
+        survey = QgsVectorLayer("Point", "survey", "memory")
+        survey.setCrs(east)
+        self.project.addMapLayer(survey)
+        features = [{"coordinates": [list(CUSTOM_POINT)]}]
+        self._run("draw_features", layer_name="survey", geometry="point", crs=CUSTOM_WEST, features=features)
+        drawn = next(survey.getFeatures()).geometry().asPoint()
+        self.assertAlmostEqual(drawn.x(), target.x(), delta=0.01)
+        self.assertAlmostEqual(drawn.y(), target.y(), delta=0.01)
 
     def test_a_graduated_style_brings_its_legend_for_the_feed_only(self):
         batch = WriteBatch(ToolExecutor())
@@ -284,6 +341,38 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual(self.layer.featureCount(), 2)
         self.assertEqual(next(self.layer.getFeatures()).geometry().asWkt(), "Point (0 0)")
 
+    def test_a_file_output_takes_the_name_a_later_step_refers_to(self):
+        """A file output comes back as its path; the layer loaded from it still gets output_name."""
+        centres = {"INPUT": self.layer.id(), "OUTPUT": str(self.root / "centres.gpkg")}
+        zones = {"INPUT": "centres", "DISTANCE": 10, "OUTPUT": str(self.root / "zones.shp")}
+        batch = WriteBatch(ToolExecutor())
+        for algorithm_id, parameters, name in (
+            ("native:centroids", centres, "centres"),
+            ("native:buffer", zones, "zones"),
+        ):
+            batch.add(
+                ToolCall(
+                    name,
+                    "run_processing",
+                    {"algorithm_id": algorithm_id, "parameters": parameters, "output_name": name},
+                )
+            )
+        results = self._applied(batch)
+        self.assertTrue(all(result.ok for result in results), [result.payload for result in results])
+        self.assertEqual([result.payload["result_layer_name"] for result in results], ["centres", "zones"])
+        self.assertEqual(self.project.mapLayersByName("centres")[0].source(), centres["OUTPUT"])
+        self.assertEqual(self.project.mapLayersByName("zones")[0].featureCount(), 2)
+
+        tool = RunProcessingTool()
+        on_main = {
+            "algorithm_id": "native:buffer",
+            "parameters": {"INPUT": self.layer.id(), "DISTANCE": 10, "OUTPUT": str(self.root / "on_main.gpkg")},
+            "output_name": "on the main thread",
+        }
+        payload = tool.execute(tool.prepare(on_main))
+        self.assertEqual(payload["result_layer_name"], "on the main thread")
+        self.assertEqual(self.project.mapLayersByName("on the main thread")[0].featureCount(), 2)
+
     def test_a_long_algorithm_runs_off_the_main_thread_and_reports_progress(self):
         many = QgsVectorLayer("Point?crs=EPSG:3857", "many", "memory")
         features = []
@@ -337,6 +426,22 @@ class GisWorkflowsTest(unittest.TestCase):
             QCoreApplication.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 20)
         self.assertEqual([result.ok for result in ended[0]], [False, False])
         self.assertAlmostEqual(self.layer.opacity(), 1.0, msg="a step after the stopped one ran")
+
+    def test_a_stop_after_a_background_work_ended_keeps_nothing(self):
+        worked = threading.Event()
+        made, ended = [], []
+        work = InTask("answer", lambda feedback: worked.set() or "answer", made.append)
+        work.finished.connect(ended.append)
+        work.start()
+        self.assertTrue(worked.wait(BACKGROUND_WAIT_S), "the work never ran")
+        # run() returns at once; its finished() then waits for a main thread that has not looked yet.
+        time.sleep(WORK_ENDED_S)
+        work.cancel()
+        deadline = time.monotonic() + BACKGROUND_WAIT_S
+        while not ended and time.monotonic() < deadline:
+            QCoreApplication.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 20)
+        self.assertEqual(made, [], "the work's value was used after the stop")
+        self.assertEqual([str(outcome) for outcome in ended], [STOPPED])
 
     def test_truncate_is_classified_destructive_using_the_real_algorithm(self):
         tool = RunProcessingTool()
@@ -495,6 +600,28 @@ class GisWorkflowsTest(unittest.TestCase):
             ],
         )
 
+    def test_undoing_a_style_change_keeps_a_scratch_layers_feature_ids(self):
+        """Ids 1 and 3 come back as 1 and 3, so a virtual field on $id reads the same after the undo."""
+        third = QgsFeature(self.layer.fields())
+        third.setGeometry(QgsGeometry.fromWkt("POINT (200 0)"))
+        third.setAttributes(["point-2", 2])
+        self.assertTrue(self.layer.dataProvider().addFeatures([third])[0])
+        self.assertTrue(self.layer.dataProvider().deleteFeatures([2]))
+        self._run("add_field", layer_name=self.layer.name(), name="row", expression="$id")
+        identifier = self.layer.id()
+        self.assertTrue(take_snapshot())
+        self._run("set_opacity", layer_name=self.layer.name(), opacity=0.5)
+        _, result = self._run("undo_last_apply")
+        restored = self.project.mapLayer(identifier)
+        self.assertNotIn("renumbered_scratch_layers", result)
+        rows = sorted((feature.id(), feature["name"], feature["row"]) for feature in restored.getFeatures())
+        self.assertEqual(rows, [(1, "point-0", 1), (3, "point-2", 3)])
+        self.assertEqual(restored.featureCount(), 2)
+        added = QgsFeature(restored.fields())
+        added.setAttributes(["point-3", 3])
+        ok, (fresh,) = restored.dataProvider().addFeatures([added])
+        self.assertEqual(fresh.id(), 4, "a feature added after the undo took an id that was in use")
+
     def test_a_drawn_utm_point_and_its_buffer_chain_in_one_batch(self):
         batch = WriteBatch(ToolExecutor())
         point = {
@@ -555,6 +682,16 @@ class GisWorkflowsTest(unittest.TestCase):
             batch.add(ToolCall("crossing", "draw_features", crossing))
         self.assertEqual(batch.pending(), [])
 
+    def test_a_64_bit_id_reaches_a_drawn_layer_exactly(self):
+        osm_id = 2**53 + 1
+        features = [{"coordinates": [[37.62, 55.75]], "attributes": {"osm_id": osm_id}}]
+        self._run("draw_features", new_layer_name="Nodes", geometry="point", features=features)
+        self.assertEqual(next(self.project.mapLayersByName("Nodes")[0].getFeatures())["osm_id"], osm_id)
+        too_big = {**features[0], "attributes": {"osm_id": 2**63}}
+        appended = {"layer_name": "Nodes", "geometry": "point", "features": [too_big]}
+        with self.assertRaisesRegex(ValueError, "64-bit"):
+            WriteBatch(ToolExecutor()).add(ToolCall("too big", "draw_features", appended))
+
     def test_undo_removes_a_drawn_scratch_layer(self):
         self.assertTrue(take_snapshot())
         line = {"new_layer_name": "Route", "geometry": "line", "features": [{"coordinates": [[0, 0], [1, 1]]}]}
@@ -583,6 +720,43 @@ class GisWorkflowsTest(unittest.TestCase):
         )
         self.assertEqual((count.payload["matched"], count.payload["value"]), (1, 1))
         self.assertEqual((total.payload["matched"], total.payload["value"]), (2, 3.0))
+
+    def test_selected_only_answers_over_the_selected_features_the_filter_accepts(self):
+        # A real QgsFeatureRequest keeps one filter, and QgsVectorLayer.aggregate drops the ids beside a filter:
+        # rows and groups once answered over the whole selection, native aggregates over the whole filter.
+        numbers = self._memory(
+            "Point?crs=EPSG:3857&field=n:integer", "numbers", [(f"POINT ({n} 0)", [n]) for n in (1, 2, 3)]
+        )
+        numbers.selectByExpression("n <= 2")
+        executor = ToolExecutor()
+
+        def query(**arguments):
+            arguments = {"layer_name": "numbers", "selected_only": True, "filter": "n >= 2", **arguments}
+            result = executor.run(ToolCall("selected", "query_layer", arguments))
+            self.assertTrue(result.ok, result.payload)
+            return result.payload
+
+        self.assertEqual([row["n"] for row in query()["features"]], [2])
+        self.assertEqual(query(aggregate="count")["value"], 1)
+        self.assertEqual(query(aggregate="sum", expression="n")["value"], 2)
+        self.assertEqual(query(aggregate="concatenate", expression="n")["value"], "2")
+        grouped = query(aggregate="count", group_by="n")["groups"]
+        self.assertEqual([(group["group"], group["count"]) for group in grouped], [(2, 1)])
+        self.assertEqual(query(aggregate="count", filter="n = 3")["value"], 0)
+
+    def test_a_chart_past_the_feature_cap_says_it_is_partial(self):
+        rows = [("POINT (0 0)", ["a"]), ("POINT (1 0)", ["a"]), ("POINT (2 0)", ["b"])]
+        self._memory("Point?crs=EPSG:3857&field=kind:string", "kinds", rows)
+        arguments = {"layer_name": "kinds", "group_by": "kind"}
+        whole = ToolExecutor().run(ToolCall("whole", "chart_layer", arguments))
+        self.assertTrue(whole.ok, whole.payload)
+        self.assertEqual(whole.payload["features"], 3)
+        self.assertNotIn("partial", whole.payload)
+        with patch.object(chart_layer, "MAX_FEATURES", 2):
+            capped = ToolExecutor().run(ToolCall("capped", "chart_layer", arguments))
+        self.assertTrue(capped.ok, capped.payload)
+        self.assertEqual((capped.payload["features"], capped.payload.get("partial")), (2, True))
+        self.assertIn("first 2", capped.payload["note"])
 
     def _memory(self, uri, name, rows):
         layer = QgsVectorLayer(uri, name, "memory")
@@ -712,6 +886,25 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertAlmostEqual(settings.format().size(), 14)
         self.assertTrue(settings.format().font().bold())
 
+    def test_a_new_label_size_comes_in_points_and_millimetres(self):
+        """Live labels in map units once kept them for a new size: 10 'points' became 10 map units."""
+        self._run("set_labels", layer_name=self.layer.name(), properties={"field": "name", "buffer_size": 1})
+        settings = self.layer.labeling().settings()
+        text_format = settings.format()
+        text_format.setSizeUnit(Qgis.RenderUnit.MapUnits)
+        buffer = text_format.buffer()
+        buffer.setSizeUnit(Qgis.RenderUnit.MapUnits)
+        text_format.setBuffer(buffer)
+        settings.setFormat(text_format)
+        self.layer.setLabeling(QgsVectorLayerSimpleLabeling(settings))
+        self._run("set_labels", layer_name=self.layer.name(), properties={"bold": True})
+        kept = self.layer.labeling().settings().format()
+        self.assertEqual((kept.sizeUnit(), kept.buffer().sizeUnit()), (Qgis.RenderUnit.MapUnits,) * 2)
+        self._run("set_labels", layer_name=self.layer.name(), properties={"size": 10, "buffer_size": 1.5})
+        changed = self.layer.labeling().settings().format()
+        self.assertEqual((changed.size(), changed.sizeUnit()), (10.0, Qgis.RenderUnit.Points))
+        self.assertEqual((changed.buffer().size(), changed.buffer().sizeUnit()), (1.5, Qgis.RenderUnit.Millimeters))
+
     def test_a_csv_export_keeps_the_geometry(self):
         path = self.root / "points.csv"
         self._run("export_layer", layer_name=self.layer.name(), path=str(path))
@@ -737,7 +930,7 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual(len(names), before + 1)
         self.assertIn("centre", names)
 
-    def test_a_raster_style_with_no_data_uses_the_hidden_range(self):
+    def test_a_gray_raster_stretches_the_range_left_after_no_data(self):
         path = self.root / "dem.tif"
         driver = gdal.GetDriverByName("GTiff")
         dataset = driver.Create(str(path), 20, 20, 1, gdal.GDT_Float32)
@@ -750,6 +943,24 @@ class GisWorkflowsTest(unittest.TestCase):
         self.project.addMapLayer(raster)
         _, result = self._run("set_raster_style", layer_name="dem", mode="gray", no_data_values=[-9999])
         self.assertEqual((result["min"], result["max"]), (1.0, 399.0))
+        stretch = raster.renderer().contrastEnhancement()
+        self.assertIsNotNone(stretch, "gray without a stretch paints the raw values, wrapping past 255")
+        self.assertEqual((stretch.minimumValue(), stretch.maximumValue()), (1.0, 399.0))
+        # Cell (row, column) holds row * 20 + column: 1 goes black, 399 white, 200 halfway.
+        image = self._rendered(raster, 20)
+        self.assertLessEqual(image.pixelColor(1, 0).red(), 2)
+        self.assertGreaterEqual(image.pixelColor(19, 19).red(), 253)
+        self.assertAlmostEqual(image.pixelColor(0, 10).red(), 127, delta=2)
+
+    def _rendered(self, layer, size):
+        settings = QgsMapSettings()
+        settings.setLayers([layer])
+        settings.setExtent(layer.extent())
+        settings.setOutputSize(QSize(size, size))
+        job = QgsMapRendererSequentialJob(settings)
+        job.start()
+        job.waitForFinished()
+        return job.renderedImage()
 
     def _shapes(self, name, uri, wkts, rows=None):
         """A memory layer of these geometries and attribute rows; returns it with its feature ids in order."""
@@ -880,6 +1091,18 @@ class GisWorkflowsTest(unittest.TestCase):
         self._run("export_layout", layout_name="Sheet", path=str(path))
         self.assertTrue(path.read_bytes().startswith(b"%PDF-"))
         self.assertGreater(path.stat().st_size, 1000)
+
+    def test_two_unnamed_labels_in_one_batch_both_land_on_the_layout(self):
+        self._run("create_layout", name="Sheet", page="a4", orientation="landscape")
+        batch = WriteBatch(ToolExecutor())
+        for y, text in ((8, "Title"), (30, "Subtitle")):
+            label = {"layout_name": "Sheet", "item_type": "label", "x": 10, "y": y, "properties": {"text": text}}
+            batch.add(ToolCall(text, "add_layout_item", label))
+        results = self._applied(batch)
+        self.assertTrue(all(result.ok for result in results), [result.payload for result in results])
+        self.assertEqual([result.payload["id"] for result in results], ["label-1", "label-2"])
+        layout = self.project.layoutManager().layoutByName("Sheet")
+        self.assertEqual(layout.itemById("label-2").text(), "Subtitle")
 
 
 class _Interface:

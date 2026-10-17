@@ -67,7 +67,8 @@ in the same folder. The build packs only `SKILL.md` and Python files from
   - `loads` and `not_loads`: the skills it loaded or must not load;
   - `not`: tools it must not call;
   - `answer`: it answered in words, without calling a tool;
-  - `any_of`: any one of several expectations.
+  - `any_of`: any one of several expectations; the case's other keys still
+    hold beside it, so a forbidden call fails next to an allowed one.
 
 Matching is lenient, the way a person reads an answer:
 - strings ignore case;
@@ -134,7 +135,9 @@ left in the project, never at the route the model took.
   afterwards in `build/evals/agent.results.json`.
 - **The check** (`evals/agent/outcome.py`) matches the snapshot against the task's
   `expect`. It looks at the answer, the state of existing layers, new layers,
-  written files, the project and the tools that ran. A run that asks a
+  written files, the project and the tools that ran without an error. A layer
+  is followed by its id: a renamed one is not new, and a new one that takes an
+  old one's name stays apart from it. A run that asks a
   question, leaves a batch unapplied or never reaches the model fails and says
   why. Checks name values, not only shapes: a polygon layer's area is measured
   on the ellipsoid whatever its CRS, so a buffer drawn in Web Mercator "metres"
