@@ -980,6 +980,18 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertTrue(path.read_bytes().startswith(b"%PDF-"))
         self.assertGreater(path.stat().st_size, 1000)
 
+    def test_two_unnamed_labels_in_one_batch_both_land_on_the_layout(self):
+        self._run("create_layout", name="Sheet", page="a4", orientation="landscape")
+        batch = WriteBatch(ToolExecutor())
+        for y, text in ((8, "Title"), (30, "Subtitle")):
+            label = {"layout_name": "Sheet", "item_type": "label", "x": 10, "y": y, "properties": {"text": text}}
+            batch.add(ToolCall(text, "add_layout_item", label))
+        results = self._applied(batch)
+        self.assertTrue(all(result.ok for result in results), [result.payload for result in results])
+        self.assertEqual([result.payload["id"] for result in results], ["label-1", "label-2"])
+        layout = self.project.layoutManager().layoutByName("Sheet")
+        self.assertEqual(layout.itemById("label-2").text(), "Subtitle")
+
 
 class _Interface:
     def __init__(self):
