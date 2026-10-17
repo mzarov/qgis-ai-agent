@@ -292,6 +292,24 @@ class CallAnthropicTest(unittest.TestCase):
         self.assertNotIn("thinking", attempts[1])
         self.assertEqual(self.thinking_flags, [False])
 
+    def test_a_refused_output_limit_is_lowered_even_when_the_model_thinks_adaptively(self):
+        transport.build_request = lambda *a: ("https://api.anthropic.com/v1/messages", {}, "claude-opus-5-5")
+        served = self._serve(*TEXT_STREAM)
+        attempts: list[dict] = []
+
+        def fake(endpoint, headers, body, message, timeout, verify=None):
+            attempts.append(body)
+            if len(attempts) == 1:
+                raise ApiResponseError(400, "max_tokens: 32000 > 8192, which is the maximum allowed for this model")
+            return served(endpoint, headers, body, message, timeout, verify)
+
+        self.stream_module.post_stream = fake
+        turn = transport._call_anthropic([], [], {}, 10, URL, lambda text: None)
+        self.assertEqual(turn.text, "Hello")
+        self.assertEqual(attempts[0]["thinking"]["type"], "adaptive")
+        self.assertEqual(attempts[1]["max_tokens"], anthropic.FALLBACK_MAX_TOKENS)
+        self.assertEqual(attempts[1]["thinking"]["type"], "adaptive")
+
 
 class StreamedMessageDirectTest(unittest.TestCase):
     def test_an_untouched_fold_is_empty(self):

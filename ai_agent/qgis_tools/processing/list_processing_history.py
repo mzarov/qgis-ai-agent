@@ -6,6 +6,7 @@ from qgis.PyQt.QtCore import QDateTime, Qt
 
 from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, BaseTool
+from ai_agent.qgis_tools.common.layer_meta import sanitize_source
 from ai_agent.qgis_tools.common.values import clamp_limit
 
 LOG_TAG = "AI Agent"
@@ -96,10 +97,12 @@ def history_entry(details: dict[str, Any], when: str, layers: dict[str, str]) ->
 
 
 def shorten(value: Any, depth: int = 0) -> Any:
-    """A JSON-safe value no longer than a line: long text cut, long lists capped, objects as text."""
+    """A JSON-safe value no longer than a line: keys masked, long text cut, long lists capped, objects as text."""
     if value is None or isinstance(value, (bool, int, float)):
         return value
     if isinstance(value, str):
+        # A layer parameter is recorded as the layer's whole source, keys and passwords included.
+        value = sanitize_source(value)
         return value if len(value) <= MAX_VALUE_CHARS else value[: MAX_VALUE_CHARS - 1] + "…"
     if isinstance(value, (list, tuple)) and depth < 2:
         items = [shorten(item, depth + 1) for item in value[:MAX_LIST_ITEMS]]
