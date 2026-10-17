@@ -274,8 +274,10 @@ class Composer(QWidget):
 
     def _insert_skill(self, name: str) -> None:
         """Put `/name ` first: a typed /query gives way, any other text stays after the skill."""
-        text = self._edit.toPlainText()
-        rest = "" if text.startswith(SLASH) else text.strip()
+        rest = self._edit.toPlainText().strip()
+        if rest.startswith(SLASH):
+            # Only the /query itself: the words after it are the request.
+            rest = (rest.split(maxsplit=1) + [""])[1]
         self._edit.setPlainText(f"{SLASH}{name} {rest}".rstrip() + " ")
         self._edit.moveCursor(QTextCursor.MoveOperation.End)
         self._hide_popup()
