@@ -384,9 +384,11 @@ class SetLabelsTest(StyleWriteCase):
         existing.offsetUnits = "points"
         text_format = _FakeFormat()
         text_format.size = 14
+        text_format.size_unit = "map units"
         text_format.buffer_settings = _FakeSub()
         text_format.buffer_settings.enabled = True
         text_format.buffer_settings.colour = "#ffffff"
+        text_format.buffer_settings.size_unit = "map units"
         existing.text_format = text_format
         existing.format = lambda: existing.text_format
         labeling = type("Simple", (), {"type": lambda self: "simple", "settings": lambda self: existing})()
@@ -402,10 +404,19 @@ class SetLabelsTest(StyleWriteCase):
         self.assertTrue(result["kept_existing"])
         self.assertEqual((settings.fieldName, settings.isExpression), ("population", True))
         self.assertEqual((settings.xOffset, settings.offsetUnits), (4.0, "points"))
-        self.assertEqual(settings.text_format.size, 14)
+        self.assertEqual((settings.text_format.size, settings.text_format.size_unit), (14, "map units"))
         self.assertTrue(settings.text_format.font_object.bold)
         buffer = settings.text_format.buffer()
-        self.assertEqual((buffer.enabled, buffer.colour), (True, "#ffffff"))
+        self.assertEqual((buffer.enabled, buffer.colour, buffer.size_unit), (True, "#ffffff", "map units"))
+
+    def test_a_new_size_on_live_labels_comes_in_the_catalogue_units(self):
+        # The catalogue promises points and millimetres; a size kept in map units would scale with the zoom.
+        self._label_existing()
+        self.tool.execute({"layer_name": "Дороги", "properties": {"size": 10, "buffer_size": 1}})
+        text_format = self.layer.labeling[1].text_format
+        self.assertEqual((text_format.size, text_format.size_unit), (10.0, label_build.POINTS))
+        buffer = text_format.buffer()
+        self.assertEqual((buffer.size, buffer.size_unit), (1.0, label_build.MILLIMETRES))
 
     def test_a_new_field_on_live_labels_drops_the_expression_flag(self):
         settings_before = self._label_existing()
@@ -578,6 +589,7 @@ class _FakeSub:
     def __init__(self):
         self.enabled = None
         self.size = None
+        self.size_unit = None
         self.colour = None
 
     def setEnabled(self, value):
@@ -585,6 +597,9 @@ class _FakeSub:
 
     def setSize(self, value):
         self.size = value
+
+    def setSizeUnit(self, value):
+        self.size_unit = value
 
     def setColor(self, value):
         self.colour = value.name()
@@ -596,6 +611,7 @@ class _FakeSub:
 class _FakeFormat:
     def __init__(self):
         self.size = None
+        self.size_unit = None
         self.colour = None
         self.opacity = None
         self.buffer_settings = None
@@ -620,6 +636,9 @@ class _FakeFormat:
 
     def setSize(self, value):
         self.size = value
+
+    def setSizeUnit(self, value):
+        self.size_unit = value
 
     def setColor(self, value):
         self.colour = value.name()

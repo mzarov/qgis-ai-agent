@@ -10,6 +10,7 @@ from osgeo import gdal, osr
 from processing.core.ProcessingConfig import ProcessingConfig
 from processing.modeler.ModelerUtils import ModelerUtils
 from qgis.core import (
+    Qgis,
     QgsApplication,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
@@ -24,6 +25,7 @@ from qgis.core import (
     QgsRasterLayer,
     QgsVectorFileWriter,
     QgsVectorLayer,
+    QgsVectorLayerSimpleLabeling,
 )
 from qgis.gui import QgsGui
 from qgis.PyQt.QtCore import QCoreApplication, QEvent, QEventLoop, QSize, QTimer
@@ -771,6 +773,25 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual(settings.fieldName, "name")
         self.assertAlmostEqual(settings.format().size(), 14)
         self.assertTrue(settings.format().font().bold())
+
+    def test_a_new_label_size_comes_in_points_and_millimetres(self):
+        """Live labels in map units once kept them for a new size: 10 'points' became 10 map units."""
+        self._run("set_labels", layer_name=self.layer.name(), properties={"field": "name", "buffer_size": 1})
+        settings = self.layer.labeling().settings()
+        text_format = settings.format()
+        text_format.setSizeUnit(Qgis.RenderUnit.MapUnits)
+        buffer = text_format.buffer()
+        buffer.setSizeUnit(Qgis.RenderUnit.MapUnits)
+        text_format.setBuffer(buffer)
+        settings.setFormat(text_format)
+        self.layer.setLabeling(QgsVectorLayerSimpleLabeling(settings))
+        self._run("set_labels", layer_name=self.layer.name(), properties={"bold": True})
+        kept = self.layer.labeling().settings().format()
+        self.assertEqual((kept.sizeUnit(), kept.buffer().sizeUnit()), (Qgis.RenderUnit.MapUnits,) * 2)
+        self._run("set_labels", layer_name=self.layer.name(), properties={"size": 10, "buffer_size": 1.5})
+        changed = self.layer.labeling().settings().format()
+        self.assertEqual((changed.size(), changed.sizeUnit()), (10.0, Qgis.RenderUnit.Points))
+        self.assertEqual((changed.buffer().size(), changed.buffer().sizeUnit()), (1.5, Qgis.RenderUnit.Millimeters))
 
     def test_a_csv_export_keeps_the_geometry(self):
         path = self.root / "points.csv"
