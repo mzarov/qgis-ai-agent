@@ -41,11 +41,16 @@ MODE_SCALE = 12.5 / 13
 MODEL_SCALE = 12 / 13
 MODEL_MAX_WIDTH = 160
 ROW_MARGINS = (6, 4, 6, 6)
+# The kinds of place the + menu asks the map for; the map picker the plugin wires in knows the same two.
+POINT = "point"
+AREA = "area"
 ADD_CONTEXT = tr("Add context")
 ADD_CAPTION = tr("Add to context")
 LAYER_ITEM = tr("Layer…")
 FILE_ITEM = tr("File or table…")
 PICTURE_ITEM = tr("Picture…")
+POINT_ITEM = tr("Point on the map…")
+AREA_ITEM = tr("Area on the map…")
 SKILL_ITEM = tr("Skill…")
 MODE_CAPTION = tr("Mode")
 MODE_HINT = tr("How changes are applied. Shift+Tab switches.")
@@ -157,6 +162,7 @@ class ComposerControls(QWidget):
     picture_requested = pyqtSignal()
     layer_requested = pyqtSignal()
     skill_requested = pyqtSignal()
+    place_requested = pyqtSignal(str)
     mode_chosen = pyqtSignal(str)
 
     def __init__(self, palette: Any, count_layers: Callable[[], int] = lambda: 0, parent: QWidget | None = None):
@@ -217,6 +223,8 @@ class ComposerControls(QWidget):
         self._layer_action.triggered.connect(self.layer_requested.emit)
         menu.addAction(_glyph("file", palette), FILE_ITEM).triggered.connect(self.data_requested.emit)
         menu.addAction(_glyph("image", palette), PICTURE_ITEM).triggered.connect(self.picture_requested.emit)
+        menu.addAction(_glyph("point", palette), POINT_ITEM).triggered.connect(lambda: self.place_requested.emit(POINT))
+        menu.addAction(_glyph("area", palette), AREA_ITEM).triggered.connect(lambda: self.place_requested.emit(AREA))
         menu.addSeparator()
         # After a tab, QMenu writes the text right-aligned in its shortcut column; no shortcut is bound.
         skill = menu.addAction(_glyph("knowledge", palette), f"{SKILL_ITEM}\t{SKILL_KEY}")

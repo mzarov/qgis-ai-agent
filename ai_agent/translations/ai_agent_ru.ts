@@ -380,7 +380,7 @@
         <translation>Добавь подложку OpenStreetMap</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="44"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="47"/>
         <source>Add context</source>
         <translation>Добавить контекст</translation>
     </message>
@@ -420,7 +420,7 @@
         <translation>Добавь слой ночных огней</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="45"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="48"/>
         <source>Add to context</source>
         <translation>Добавить в контекст</translation>
     </message>
@@ -635,6 +635,11 @@
         </translation>
     </message>
     <message>
+        <location filename="ai_agent/ui/composer_controls.py" line="53"/>
+        <source>Area on the map…</source>
+        <translation>Область на карте…</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/project/reorder_layers.py" line="55"/>
         <source>Arranging the layer order.</source>
         <translation>Выстраиваю порядок слоёв.</translation>
@@ -700,7 +705,7 @@
         <translation>Австралия: топографические базовые карты</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/plugins/install_plugin.py" line="84"/>
+        <location filename="ai_agent/qgis_tools/plugins/install_plugin.py" line="90"/>
         <source>Author: {0}</source>
         <translation>Автор: {0}</translation>
     </message>
@@ -899,6 +904,11 @@
         <location filename="ai_agent/qgis_tools/data/sources/natural-earth.json" line="7"/>
         <source>Clean, generalised world layers made for small-scale maps: countries, provinces, cities, rivers, lakes, coastlines, roads, railways, airports and ports, at three levels of detail.</source>
         <translation>Аккуратные генерализованные слои мира для мелкомасштабных карт: страны, провинции, города, реки, озёра, береговая линия, дороги, железные дороги, аэропорты и порты, в трёх уровнях детальности.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/composer.py" line="35"/>
+        <source>Click a point on the map · Esc cancels</source>
+        <translation>Щёлкните точку на карте · Esc — отмена</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/chrome.py" line="40"/>
@@ -1239,9 +1249,14 @@
         <translation>Скачиваю границы {0} для {1} из geoBoundaries.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/plugins/install_plugin.py" line="85"/>
+        <location filename="ai_agent/qgis_tools/plugins/install_plugin.py" line="91"/>
         <source>Downloads: {0}</source>
         <translation>Скачиваний: {0}</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/composer.py" line="36"/>
+        <source>Drag a rectangle on the map · Esc cancels</source>
+        <translation>Обведите прямоугольник на карте · Esc — отмена</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/charts/show_chart.py" line="52"/>
@@ -1393,7 +1408,7 @@
         <translation>Будет удалено объектов: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="47"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="50"/>
         <source>File or table…</source>
         <translation>Файл или таблица…</translation>
     </message>
@@ -1545,7 +1560,7 @@
         <translation>История и журналы удалены.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="51"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="56"/>
         <source>How changes are applied. Shift+Tab switches.</source>
         <translation>Как применяются изменения. Shift+Tab переключает.</translation>
     </message>
@@ -1615,7 +1630,7 @@
         <translation>Сведения</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/plugins/install_plugin.py" line="77"/>
+        <location filename="ai_agent/qgis_tools/plugins/install_plugin.py" line="83"/>
         <source>Installing the plugin '{0}' {1} from the QGIS plugin repository.</source>
         <translation>Устанавливаю плагин «{0}» {1} из репозитория плагинов QGIS.</translation>
     </message>
@@ -1702,7 +1717,7 @@
         <translation>Слои, подложки, веб-сервисы, группы, закладки, сохранение</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="46"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="49"/>
         <source>Layer…</source>
         <translation>Слой…</translation>
     </message>
@@ -1896,7 +1911,7 @@
         <translation>Открытый каталог Microsoft со спутниковыми сценами и глобальными растрами. Агент ищет в нём самый чистый снимок Sentinel-2 или Landsat на ваш район и дату и читает высоты, покров и водные объекты прямо из облака, не скачивая файлы целиком.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="50"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="55"/>
         <source>Mode</source>
         <translation>Режим</translation>
     </message>
@@ -2059,7 +2074,7 @@
         <translation>Подходящего навыка нет</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="55"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="60"/>
         <source>No model</source>
         <translation>Нет модели</translation>
     </message>
@@ -2278,7 +2293,7 @@
         <translation>Картинки (*.png *.jpg *.jpeg *.webp *.gif *.bmp)</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="48"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="51"/>
         <source>Picture…</source>
         <translation>Картинка…</translation>
     </message>
@@ -2338,9 +2353,14 @@
         </translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/plugins/install_plugin.py" line="83"/>
+        <location filename="ai_agent/qgis_tools/plugins/install_plugin.py" line="89"/>
         <source>Plugin: {0} {1}</source>
         <translation>Плагин: {0} {1}</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/composer_controls.py" line="52"/>
+        <source>Point on the map…</source>
+        <translation>Точка на карте…</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/skill_summaries.py" line="15"/>
@@ -2690,7 +2710,7 @@
         <translation>Делаю снимок карты.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer.py" line="116"/>
+        <location filename="ai_agent/ui/composer.py" line="127"/>
         <source>Request</source>
         <translation>Запрос</translation>
     </message>
@@ -2900,7 +2920,7 @@
         <translation>Выделяю объекты в «{0}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="53"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="58"/>
         <source>Send</source>
         <translation>Отправить</translation>
     </message>
@@ -2961,7 +2981,7 @@
         <translation>Передать данные проекта?</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="52"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="57"/>
         <source>Shift+Tab — next mode</source>
         <translation>Shift+Tab — следующий режим</translation>
     </message>
@@ -3042,7 +3062,7 @@
         <translation>Навыки</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="49"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="54"/>
         <source>Skill…</source>
         <translation>Навык…</translation>
     </message>
@@ -3067,7 +3087,7 @@
         <translation>Шагов за прогон, не больше</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="54"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="59"/>
         <source>Stop</source>
         <translation>Стоп</translation>
     </message>
@@ -3112,7 +3132,7 @@
         <translation>Выключен</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/plugins/install_plugin.py" line="76"/>
+        <location filename="ai_agent/qgis_tools/plugins/install_plugin.py" line="82"/>
         <source>Switching on the installed plugin '{0}'.</source>
         <translation>Включаю установленный плагин «{0}».</translation>
     </message>
@@ -3255,7 +3275,7 @@
         <translation>Агент обращается к языковой модели на ваш выбор, поэтому ему нужен адрес и ключ — либо вообще ничего, если модель работает локально на localhost.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/plugins/install_plugin.py" line="88"/>
+        <location filename="ai_agent/qgis_tools/plugins/install_plugin.py" line="94"/>
         <source>The author marks this version as experimental.</source>
         <translation>Автор отмечает эту версию как экспериментальную.</translation>
     </message>
@@ -3340,7 +3360,7 @@
         <translation>Новый режим действует со следующего запроса.</translation>
     </message>
     <message>
-        <location filename="ai_agent/plugin.py" line="20"/>
+        <location filename="ai_agent/plugin.py" line="21"/>
         <source>The panel theme changes once the agent has finished — open Settings and save again then.</source>
         <translation>Тема панели сменится, когда агент закончит, — тогда откройте настройки и сохраните ещё раз.</translation>
     </message>
@@ -3466,7 +3486,7 @@
         <translation>Размышляю</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/plugins/install_plugin.py" line="90"/>
+        <location filename="ai_agent/qgis_tools/plugins/install_plugin.py" line="96"/>
         <source>This installs code that is not part of AI Agent and runs it inside QGIS with your rights. It may change data or contact the internet, and undo cannot remove it: uninstall it in Plugins → Manage and Install Plugins.</source>
         <translation>Устанавливается код, который не входит в AI Agent, и запускается внутри QGIS с вашими правами. Он может менять данные или обращаться в интернет, и отмена его не удалит: удалить плагин можно в «Модули → Управление модулями».</translation>
     </message>

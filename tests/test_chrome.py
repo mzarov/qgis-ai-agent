@@ -81,6 +81,25 @@ class ComposerContextTest(unittest.TestCase):
 
         self.assertIn("Shift+Tab", composer_controls.MODE_FOOTER)
 
+    def test_a_place_picked_on_the_map_goes_into_the_request(self):
+        from ai_agent.ui import composer
+
+        asked, cancelled = [], []
+        self.composer.place_requested.connect(asked.append)
+        self.composer.place_cancelled.connect(lambda: cancelled.append(True))
+        self.composer.toolbar.place_requested.emit("area")
+        self.assertEqual(asked, ["area"])
+        self.assertEqual(self.composer.place_hint.text(), composer.PICK_AREA_HINT)
+        self.assertFalse(self.composer._chips.isHidden(), "the hint is shown while the map is picked")
+        # The text itself lands at the cursor in live Qt (tests/real_qgis_controls.py).
+        self.composer.insert_place("@area(37.60000, 55.74000, 37.65000, 55.77000)")
+        self.assertTrue(self.composer._chips.isHidden(), "the hint goes once the place is in")
+        self.composer.toolbar.place_requested.emit("point")
+        self.assertEqual(self.composer.place_hint.text(), composer.PICK_POINT_HINT)
+        self.composer._on_escape()
+        self.assertEqual(cancelled, [True], "Esc gives the pick up")
+        self.assertTrue(self.composer.place_hint.isHidden())
+
     def test_ctrl_n_in_the_box_asks_for_a_new_conversation(self):
         asked = []
         self.composer.new_requested.connect(lambda: asked.append(True))

@@ -442,6 +442,40 @@ class ComposerBehaviourTest(PluginCase):
         self.assertEqual(stops, [True])
         self.dock.set_busy(False)
 
+    def test_a_place_picked_on_the_map_lands_in_the_request(self) -> None:
+        """+ → Point on the map: the canvas takes a one-pick tool, the click becomes @point(lon, lat) in the box."""
+        from qgis.core import QgsCoordinateReferenceSystem, QgsPointXY, QgsRectangle
+        from qgis.gui import QgsMapCanvas, QgsMapToolPan
+
+        canvas = QgsMapCanvas()
+        self.addCleanup(canvas.deleteLater)
+        canvas.setDestinationCrs(QgsCoordinateReferenceSystem("EPSG:3857"))
+        pan = QgsMapToolPan(canvas)
+        canvas.setMapTool(pan)
+        self.iface.mapCanvas = lambda: canvas
+        composer = self.dock.composer
+        composer._edit.setPlainText("buffer 500 m around")
+        composer._edit.moveCursor(composer._edit.textCursor().MoveOperation.End)
+        composer.toolbar.place_requested.emit("point")
+        tool = canvas.mapTool()
+        self.assertIsNot(tool, pan, "the map got no picking tool")
+        self.assertFalse(composer.place_hint.isHidden())
+        # Red Square in Web Mercator.
+        tool.canvasClicked.emit(QgsPointXY(4187799.6, 7509040.5), Qt.MouseButton.LeftButton)
+        pump(0.05)
+        self.assertRegex(composer._edit.toPlainText(), r"^buffer 500 m around @point\(37\.6\d{4}, 55\.75\d{3}\) $")
+        self.assertTrue(composer.place_hint.isHidden())
+        self.assertIs(canvas.mapTool(), pan, "the user's tool did not come back")
+        composer.toolbar.place_requested.emit("area")
+        canvas.mapTool().extentChanged.emit(QgsRectangle(4185000, 7505000, 4190000, 7512000))
+        pump(0.05)
+        self.assertIn("@area(37.59", composer._edit.toPlainText())
+        composer.toolbar.place_requested.emit("point")
+        escape = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
+        composer._edit.keyPressEvent(escape)
+        self.assertIs(canvas.mapTool(), pan, "Esc did not give the map its tool back")
+        self.assertTrue(composer.place_hint.isHidden())
+
     def test_the_progress_line_follows_the_run(self) -> None:
         self.assertTrue(self.dock.progress.isHidden())
         self.dock.set_busy(True)
@@ -475,9 +509,10 @@ class ComposerBehaviourTest(PluginCase):
         pump(0.05)
         try:
             self.assertTrue(toolbar.menu.isVisible())
-            # A caption, then Layer…, File or table…, Picture…, a separator and Skill….
+            # A caption, then Layer…, File or table…, Picture…, the two places on the map, a separator and Skill….
             labels = [action.text().split("\t")[0] for action in toolbar.menu.actions() if action.text()]
-            self.assertEqual(labels, ["Layer…", "File or table…", "Picture…", "Skill…"])
+            expected = ["Layer…", "File or table…", "Picture…", "Point on the map…", "Area on the map…", "Skill…"]
+            self.assertEqual(labels, expected)
             self.assertLess(toolbar.menu.geometry().bottom(), toolbar.attach.mapToGlobal(QPoint(0, 0)).y())
         finally:
             toolbar.menu.hide()

@@ -1179,3 +1179,10 @@ These verify the agent solves everyday tasks without wandering through search.
      N being the server's Retry-After (30 s at most); as soon as the answer
      streams in, the line says “Working…” again. The QGIS message log lists
      every pause.
+240. **A place picked on the map.** Type *buffer 500 m around*, then **+ →
+     Point on the map…** → a muted line above the text says to click on the
+     map; click Red Square → `@point(37.62…, 55.75…)` lands at the cursor and
+     the map has its previous tool again. **+ → Area on the map…**, drag a
+     rectangle → `@area(west, south, east, north)`. Start again and press Esc
+     in the chat box → the line goes, the map tool is restored. Send a request
+     with a point → the agent uses those coordinates without asking.

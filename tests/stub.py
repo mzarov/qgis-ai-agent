@@ -606,5 +606,7 @@ _mod(
 _qtcore.pyqtSignal = pyqtSignal
 _qtcore.pyqtSlot = pyqtSlot
 _mod("qgis.utils", ["iface"])
+_mod("qgis.gui", ["QgsMapToolEmitPoint", "QgsMapToolExtent"])
 qgis.core = sys.modules["qgis.core"]
+qgis.gui = sys.modules["qgis.gui"]
 qgis.PyQt = pyqt
