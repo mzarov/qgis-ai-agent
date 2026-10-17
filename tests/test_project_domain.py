@@ -193,6 +193,19 @@ class AddLayerTest(ProjectCase):
             self.tool.prepare({"source": "/нет/такого.shp"})
         self.assertIn("no file", str(caught.exception))
 
+    def test_a_layer_inside_an_existing_file_is_accepted_with_its_whole_uri(self):
+        package = os.path.join(self.folder, "data.gpkg")
+        open(package, "w").close()
+        source = f"{package}|layername=roads"
+        self.assertEqual(self.tool.prepare({"source": source})["source"], source)
+        opened = []
+        add_layer.QgsVectorLayer = lambda source, name, provider: opened.append(source) or _Made(name, True)
+        self.tool.execute({"source": source})
+        self.assertEqual(opened, [source])
+        with self.assertRaises(ValueError) as caught:
+            self.tool.prepare({"source": os.path.join(self.folder, "missing.gpkg|layername=roads")})
+        self.assertIn("no file", str(caught.exception))
+
     def test_duplicate_name_is_rejected(self):
         with self.assertRaises(ValueError) as caught:
             self.tool.prepare({"source": self.path, "name": "Дороги"})
