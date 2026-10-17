@@ -591,6 +591,16 @@ class GisWorkflowsTest(unittest.TestCase):
             batch.add(ToolCall("crossing", "draw_features", crossing))
         self.assertEqual(batch.pending(), [])
 
+    def test_a_64_bit_id_reaches_a_drawn_layer_exactly(self):
+        osm_id = 2**53 + 1
+        features = [{"coordinates": [[37.62, 55.75]], "attributes": {"osm_id": osm_id}}]
+        self._run("draw_features", new_layer_name="Nodes", geometry="point", features=features)
+        self.assertEqual(next(self.project.mapLayersByName("Nodes")[0].getFeatures())["osm_id"], osm_id)
+        too_big = {**features[0], "attributes": {"osm_id": 2**63}}
+        appended = {"layer_name": "Nodes", "geometry": "point", "features": [too_big]}
+        with self.assertRaisesRegex(ValueError, "64-bit"):
+            WriteBatch(ToolExecutor()).add(ToolCall("too big", "draw_features", appended))
+
     def test_undo_removes_a_drawn_scratch_layer(self):
         self.assertTrue(take_snapshot())
         line = {"new_layer_name": "Route", "geometry": "line", "features": [{"coordinates": [[0, 0], [1, 1]]}]}

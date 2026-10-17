@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from qgis.core import QgsVectorLayer
+from qgis.PyQt.QtCore import QMetaType
 
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE, SAFETY_WRITE
 from ai_agent.qgis_tools.draw import attributes as attributes_module
@@ -14,6 +15,7 @@ from ai_agent.qgis_tools.registry import summarize_tool_call
 KNOWN_CRS = {"EPSG:4326": True, "EPSG:3857": False, "EPSG:32637": False, "EPSG:32737": False}
 MOSCOW = [37.62, 55.75]
 KAZAN = [49.11, 55.79]
+FIELD_TYPES = {"integer": QMetaType.Type.Int, "int8": QMetaType.Type.LongLong}
 
 
 class FakeCrs:
@@ -100,6 +102,9 @@ class FakeField:
 
     def typeName(self):
         return self._kind
+
+    def type(self):
+        return FIELD_TYPES.get(self._kind, QMetaType.Type.QString)
 
     def convertCompatible(self, value):
         if self._kind == "integer" and not isinstance(value, int):
@@ -503,6 +508,16 @@ class PrepareTargetTest(DrawTestBase):
         }
         self.refused(params, "height", "integer")
 
+    def test_a_whole_number_past_64_bits_never_reaches_a_long_long_field(self):
+        # QGIS converts 2**63 for a LongLong field without complaint, and the layer stores -2**63.
+        self.layer = ExistingLayer(fields=("osm_id",), types={"osm_id": "int8"})
+        row = {"osm_id": 2**63}
+        features = [{"coordinates": [MOSCOW], "attributes": row}]
+        params = {"layer_name": "Sights", "geometry": "point", "features": features}
+        self.refused(params, "osm_id", "64-bit")
+        row["osm_id"] = 2**63 - 1
+        self.assertEqual(self.tool.prepare(params)["features"][0]["attributes"], {"osm_id": 2**63 - 1})
+
     def test_a_layer_in_an_edit_session_is_refused(self):
         self.layer = ExistingLayer(editable=True)
         params = {"layer_name": "Sights", "geometry": "point", "features": [{"coordinates": [MOSCOW]}]}
@@ -609,4 +624,15 @@ class AttributeHelpersTest(unittest.TestCase):
     def test_integers_refuse_fractions_and_booleans(self):
         for value in (2.5, True):
             with self.subTest(value=value), self.assertRaises(ValueError):
+                attributes_module.coerced_rows({"n": "integer"}, [{"n": value}])
+
+    def test_integers_stay_exact_past_the_precision_of_a_float(self):
+        # A float holds whole numbers exactly only up to 2**53: an OSM id one past it lost its last digit.
+        values = [2**53 + 1, str(2**53 + 1), 2**63 - 1, -(2**63), 12.0, " -7 "]
+        rows = attributes_module.coerced_rows({"n": "integer"}, [{"n": value} for value in values])
+        self.assertEqual([row["n"] for row in rows], [2**53 + 1, 2**53 + 1, 2**63 - 1, -(2**63), 12, -7])
+
+    def test_integers_past_the_64_bit_field_are_refused(self):
+        for value in (2**63, -(2**63) - 1, str(2**63), 1e19):
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, "does not fit field 'n'"):
                 attributes_module.coerced_rows({"n": "integer"}, [{"n": value}])

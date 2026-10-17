@@ -19,6 +19,9 @@ MAX_FIELD_NAME = 63
 MAX_FIELDS = 100
 TRUE_WORDS = frozenset({"true", "yes", "1"})
 FALSE_WORDS = frozenset({"false", "no", "0"})
+# The LongLong range, the integer field of a new layer: QGIS wraps a whole number past it without a word.
+LONG_LONG_MIN = -(2**63)
+LONG_LONG_MAX = 2**63 - 1
 
 
 def checked_attributes(raw: Any, position: int) -> dict[str, Any]:
@@ -134,12 +137,27 @@ def _convert(kind: str, value: Any) -> Any:
         return datetime.date.fromisoformat(str(value)).isoformat()
     if isinstance(value, bool):
         raise ValueError("a boolean is not a number")
-    number = float(value)
     if kind == DOUBLE:
-        return number
+        return float(value)
+    return _long_long(_whole_number(value))
+
+
+def _whole_number(value: Any) -> int:
+    """The exact integer: a float holds whole numbers only up to 2**53, so a 64-bit id never passes through one."""
+    if isinstance(value, int):
+        return value
+    with suppress(ValueError):
+        return int(str(value).strip())
+    number = float(value)
     if not number.is_integer():
         raise ValueError("not a whole number")
     return int(number)
+
+
+def _long_long(number: int) -> int:
+    if not LONG_LONG_MIN <= number <= LONG_LONG_MAX:
+        raise ValueError("outside the 64-bit integer range")
+    return number
 
 
 def _boolean(value: Any) -> bool:
@@ -161,6 +179,8 @@ def _check_convertible(layer: QgsVectorLayer, name: str, value: Any) -> None:
         return
     try:
         convert(value)
+        if isinstance(value, int) and field.type() == QMetaType.Type.LongLong:
+            _long_long(value)
     except ValueError as err:
         kind = ""
         with suppress(Exception):
