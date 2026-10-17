@@ -190,12 +190,30 @@
         </translation>
     </message>
     <message numerus="yes">
+        <location filename="ai_agent/qgis_tools/processing/list_processing_history.py" line="59"/>
+        <source>%n run(s)</source>
+        <translation>
+            <numerusform>%n запуск</numerusform>
+            <numerusform>%n запуска</numerusform>
+            <numerusform>%n запусков</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
         <location filename="ai_agent/qgis_tools/data/search_imagery.py" line="81"/>
         <source>%n scene(s)</source>
         <translation>
             <numerusform>%n сцена</numerusform>
             <numerusform>%n сцены</numerusform>
             <numerusform>%n сцен</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="ai_agent/qgis_tools/processing/create_processing_model.py" line="121"/>
+        <source>%n step(s)</source>
+        <translation>
+            <numerusform>%n шаг</numerusform>
+            <numerusform>%n шага</numerusform>
+            <numerusform>%n шагов</numerusform>
         </translation>
     </message>
     <message numerus="yes">
@@ -1413,6 +1431,11 @@
         <translation>Файл или таблица…</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/processing/create_processing_model.py" line="131"/>
+        <source>File: {0}</source>
+        <translation>Файл: {0}</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/edit/delete_features.py" line="59"/>
         <source>Filter: all, every feature is deleted</source>
         <translation>Фильтр: all — удаляются все объекты</translation>
@@ -1560,6 +1583,11 @@
         <translation>История и журналы удалены.</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/processing/list_processing_history.py" line="58"/>
+        <source>History unavailable</source>
+        <translation>История недоступна</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/composer_controls.py" line="56"/>
         <source>How changes are applied. Shift+Tab switches.</source>
         <translation>Как применяются изменения. Shift+Tab переключает.</translation>
@@ -1620,6 +1648,11 @@
         <translation>Имперские</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/processing/create_processing_model.py" line="148"/>
+        <source>In the Toolbox as {0}</source>
+        <translation>В панели Processing: {0}</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/personalisation_settings.py" line="25"/>
         <source>In the conversation</source>
         <translation>В разговоре</translation>
@@ -1628,6 +1661,11 @@
         <location filename="ai_agent/ui/connector_detail.py" line="24"/>
         <source>Information</source>
         <translation>Сведения</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/processing/create_processing_model.py" line="135"/>
+        <source>Inputs: {0}</source>
+        <translation>Входные данные: {0}</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/plugins/install_plugin.py" line="83"/>
@@ -1931,6 +1969,11 @@
         <location filename="ai_agent/core/llm/probe.py" line="36"/>
         <source>Model replied: {0}</source>
         <translation>Модель ответила: {0}</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/processing/create_processing_model.py" line="129"/>
+        <source>Model: {0}</source>
+        <translation>Модель: {0}</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/personalisation_settings.py" line="62"/>
@@ -2505,6 +2548,11 @@
         <translation>Смотрю файл таблицы {0}.</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/processing/list_processing_history.py" line="54"/>
+        <source>Reading the Processing history.</source>
+        <translation>Смотрю историю запусков Processing.</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/inspect/qgis_info.py" line="28"/>
         <source>Reading the QGIS version and environment.</source>
         <translation>Смотрю версию и окружение QGIS.</translation>
@@ -2710,6 +2758,11 @@
         <translation>Делаю снимок карты.</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/processing/create_processing_model.py" line="125"/>
+        <source>Replace Processing model '{0}' ({1}).</source>
+        <translation>Заменить модель Processing «{0}» ({1}).</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/composer.py" line="127"/>
         <source>Request</source>
         <translation>Запрос</translation>
@@ -2860,6 +2913,11 @@
         <translation>Сохранить</translation>
     </message>
     <message>
+        <location filename="ai_agent/qgis_tools/processing/create_processing_model.py" line="126"/>
+        <source>Save Processing model '{0}' ({1}).</source>
+        <translation>Сохранить модель Processing «{0}» ({1}).</translation>
+    </message>
+    <message>
         <location filename="ai_agent/qgis_tools/project/views.py" line="123"/>
         <source>Saving the current look as map theme '{0}'.</source>
         <translation>Сохраняю текущий вид как тему карты «{0}».</translation>
@@ -2878,6 +2936,11 @@
         <location filename="ai_agent/qgis_tools/project/save_project.py" line="68"/>
         <source>Saving the project.</source>
         <translation>Сохраняю проект.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/processing/create_processing_model.py" line="123"/>
+        <source>Saving the steps as a Processing model.</source>
+        <translation>Сохраняю шаги как модель Processing.</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/connector_detail.py" line="34"/>
@@ -3085,6 +3148,11 @@
         <location filename="ai_agent/ui/settings_advanced.py" line="81"/>
         <source>Steps per run, at most</source>
         <translation>Шагов за прогон, не больше</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/processing/create_processing_model.py" line="137"/>
+        <source>Steps:</source>
+        <translation>Шаги:</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/composer_controls.py" line="59"/>
@@ -3950,6 +4018,11 @@
         <location filename="ai_agent/core/credentials.py" line="90"/>
         <source>unknown error</source>
         <translation>неизвестная ошибка</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/qgis_tools/processing/create_processing_model.py" line="129"/>
+        <source>unnamed</source>
+        <translation>без имени</translation>
     </message>
     <message>
         <location filename="ai_agent/core/llm/providers.py" line="27"/>

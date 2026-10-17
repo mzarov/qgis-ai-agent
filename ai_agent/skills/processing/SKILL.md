@@ -1,7 +1,7 @@
 ---
 name: processing
-description: Geoprocessing and analysis — buffer, clip, intersect, dissolve, join, reproject, field calculator, heatmap, clustering, points in polygons, slope, hillshade, contours, interpolation, raster calculator. Load this to compute new data from existing layers.
-tools: [search_processing, describe_processing, run_processing]
+description: Geoprocessing and analysis — buffer, clip, intersect, dissolve, join, reproject, field calculator, heatmap, clustering, points in polygons, slope, hillshade, contours, interpolation, raster calculator; saving steps as a reusable Processing model. Load this to compute new data from existing layers.
+tools: [search_processing, describe_processing, run_processing, list_processing_history, create_processing_model]
 ---
 
 # Geoprocessing
@@ -229,3 +229,13 @@ result next time — anything they asked to make, keep or put on a map sheet —
 say that it is temporary, and write it to a file only with a path the user gave
 (`"OUTPUT": "<their path>.gpkg"`) or through `export_layer` from the project skill. Pass `load_output: false` only when the user
 explicitly wants the result not added.
+
+## Saving steps as a model
+
+"Make a model of these steps" is `create_processing_model`. Steps the user ran
+by hand come from `list_processing_history`; your own `run_processing` calls
+are not recorded there — take them from this conversation. The project layers
+the chain starts from become `vector` or `raster` inputs, and so does a value
+the user may change next time (a distance, a field, a CRS); keep the parameter
+names the runs used. The model exists only after Apply: offer one test run with
+`run_processing` and its `model:<name>` id, never queued beside its creation.

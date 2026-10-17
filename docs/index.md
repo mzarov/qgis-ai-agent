@@ -14,7 +14,7 @@ Seventeen domains, 85 tools:
 | `inspect` | “what layers do I have?”, “what did I select?”, “show me the map” |
 | `project` | “load this file”, “add an OSM basemap”, “load a table from PostGIS” |
 | `style` | “make the rivers blue”, “colour by population”, “label with names” |
-| `processing` | “build a 500 m buffer”, “clip by the district boundary”, “compute NDVI” |
+| `processing` | “build a 500 m buffer”, “clip by the district boundary”, “compute NDVI”, “make a model from these steps” |
 | `osm` | “download the cafes in Tver”, “roads except unpaved ones from OSM” |
 | `data` | “find a cloud-free Sentinel-2 image of this area”, “add the regions of Kenya”, “load a DEM here” |
 | `draw` | “put a point at 55.75, 37.62”, “draw a line between these towns” |

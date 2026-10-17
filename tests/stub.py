@@ -490,6 +490,19 @@ core = _mod(
         "QgsPointXY",
         "QgsMemoryProviderUtils",
         "QgsVectorLayerUtils",
+        "QgsProcessingUtils",
+        "QgsProcessingModelAlgorithm",
+        "QgsProcessingModelChildAlgorithm",
+        "QgsProcessingModelChildParameterSource",
+        "QgsProcessingModelOutput",
+        "QgsProcessingModelParameter",
+        "QgsProcessingParameterCrs",
+        "QgsProcessingParameterDistance",
+        "QgsProcessingParameterField",
+        "QgsProcessingParameterNumber",
+        "QgsProcessingParameterRasterLayer",
+        "QgsProcessingParameterString",
+        "QgsProcessingParameterVectorLayer",
     ],
 )
 pyqt = _mod("qgis.PyQt")
@@ -523,6 +536,7 @@ _qtcore = _mod(
         "QVariant",
         "QMetaType",
         "QCoreApplication",
+        "QDateTime",
     ],
 )
 _mod("qgis.PyQt.QtXml", ["QDomDocument"])
@@ -606,7 +620,7 @@ _mod(
 _qtcore.pyqtSignal = pyqtSignal
 _qtcore.pyqtSlot = pyqtSlot
 _mod("qgis.utils", ["iface"])
-_mod("qgis.gui", ["QgsMapToolEmitPoint", "QgsMapToolExtent"])
+_mod("qgis.gui", ["QgsGui", "QgsMapToolEmitPoint", "QgsMapToolExtent"])
 qgis.core = sys.modules["qgis.core"]
 qgis.gui = sys.modules["qgis.gui"]
 qgis.PyQt = pyqt

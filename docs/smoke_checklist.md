@@ -290,6 +290,11 @@ Additionally:
 
 - “find the buffer algorithm” → `search_processing` returns `native:buffer`
 - an enum passed as a label instead of an index → the tool coerces it itself
+- “make a model of these steps” after a buffer run from the Processing
+  Toolbox → `list_processing_history` names the run and its layer,
+  `create_processing_model` is queued; after Apply the model is in the Toolbox
+  under Models, opens in the Model Designer with its inputs, and runs on
+  another layer
 
 ## Transport
 
