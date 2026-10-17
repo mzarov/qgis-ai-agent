@@ -60,6 +60,9 @@ class ItemMixin:
     def id(self):
         return self._id
 
+    def setId(self, item_id):
+        self._id = item_id
+
     def sceneBoundingRect(self):
         return self._rect
 
@@ -185,10 +188,22 @@ class AddItemTest(unittest.TestCase):
             self.tool.prepare({"layout_name": "Лист", "item_type": "map"})
         self.assertIn("millimetres", str(caught.exception))
 
-    def test_defaults_fill_the_size_and_id(self):
+    def test_defaults_fill_the_size(self):
         prepared = self.tool.prepare({"layout_name": "Лист", "item_type": "map", "x": 10, "y": 20})
-        self.assertEqual(prepared["id"], "map-1")
         self.assertEqual(prepared["width"], items.DEFAULT_SIZES_MM["map"][0])
+
+    def test_two_unnamed_labels_queued_together_both_apply(self):
+        # Ids picked when queued both read label-1: the first applied, the second found it taken.
+        layout = FakeLayout()
+        add_module.find_layout = lambda name: layout
+        label = {"layout_name": "Лист", "item_type": "label", "x": 10}
+        texts = ((8, "A"), (30, "B"))
+        queued = [self.tool.prepare({**label, "y": y, "properties": {"text": text}}) for y, text in texts]
+        with patch.dict(add_module.TYPE_CLASSES, {"label": type(_label_item())}):
+            applied = [self.tool.execute(params)["id"] for params in queued]
+        self.assertEqual(applied, ["label-1", "label-2"])
+        with self.assertRaisesRegex(ValueError, "'label-1' already exists"):
+            self.tool.prepare({**label, "y": 50, "id": "label-1", "properties": {"text": "C"}})
 
     def test_bad_scale_bar_style_is_refused(self):
         with self.assertRaises(ValueError) as caught:

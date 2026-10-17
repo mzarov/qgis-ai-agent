@@ -10,19 +10,25 @@ from osgeo import gdal, osr
 from processing.core.ProcessingConfig import ProcessingConfig
 from processing.modeler.ModelerUtils import ModelerUtils
 from qgis.core import (
+    Qgis,
     QgsApplication,
     QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
     QgsCoordinateTransformContext,
     QgsFeature,
     QgsGeometry,
+    QgsMapRendererSequentialJob,
+    QgsMapSettings,
+    QgsPointXY,
     QgsProcessingContext,
     QgsProject,
     QgsRasterLayer,
     QgsVectorFileWriter,
     QgsVectorLayer,
+    QgsVectorLayerSimpleLabeling,
 )
 from qgis.gui import QgsGui
-from qgis.PyQt.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer
+from qgis.PyQt.QtCore import QCoreApplication, QEvent, QEventLoop, QSize, QTimer
 from qgis.PyQt.QtWidgets import QMainWindow
 
 from ai_agent.core.agent.batch import WriteBatch
@@ -48,6 +54,10 @@ MANY_POINTS = 20000
 MODEL_NAME = "Buffer in UTM"
 # Two points near Moscow in degrees: the model must reproject them before a buffer in metres means anything.
 MOSCOW_POINTS = ("POINT (37.6 55.75)", "POINT (37.7 55.8)")
+# Two transverse Mercator zones 3 degrees apart, defined by PROJ strings alone: valid CRSs without an authid.
+CUSTOM_WEST = "PROJ:+proj=tmerc +lat_0=0 +lon_0=30 +k=1 +x_0=500000 +y_0=0 +ellps=WGS84 +units=m +no_defs"
+CUSTOM_EAST = "PROJ:+proj=tmerc +lat_0=0 +lon_0=33 +k=1 +x_0=500000 +y_0=0 +ellps=WGS84 +units=m +no_defs"
+CUSTOM_POINT = (500000.0, 6000000.0)
 
 
 class GisWorkflowsTest(unittest.TestCase):
@@ -153,6 +163,48 @@ class GisWorkflowsTest(unittest.TestCase):
         place = next((item["lon"], item["lat"]) for item in listed if item["id"] == note["id"])
         self.assertAlmostEqual(place[0], 37.6175, places=5)
         self.assertAlmostEqual(place[1], 55.752, places=5)
+
+    def test_a_marker_and_a_note_come_in_the_asked_colour(self):
+        """A blue marker once came out red, and the read-back still said the step was done."""
+        tool = get_tool_by_name("add_annotation")
+        for kind, extra in (("marker", {}), ("text", {"text": "start here"})):
+            with self.subTest(kind=kind):
+                queued, added = self._run("add_annotation", kind=kind, x=37.62, y=55.75, color="#2040d0", **extra)
+                item = self.project.mainAnnotationLayer().items()[added["id"]]
+                colour = item.symbol().color() if kind == "marker" else item.format().color()
+                self.assertEqual(colour.name(), "#2040d0")
+                self.assertTrue(tool.confirm_applied(queued.arguments, added))
+                self.assertFalse(tool.confirm_applied({**queued.arguments, "color": "#d02020"}, added))
+
+    def _custom_crs_target(self):
+        """Where CUSTOM_POINT in CUSTOM_WEST lies in CUSTOM_EAST: two CRSs whose authids are both empty."""
+        west, east = QgsCoordinateReferenceSystem(CUSTOM_WEST), QgsCoordinateReferenceSystem(CUSTOM_EAST)
+        self.assertTrue(west.isValid() and east.isValid())
+        self.assertEqual((west.authid(), east.authid()), ("", ""))
+        target = QgsCoordinateTransform(west, east, self.project).transform(QgsPointXY(*CUSTOM_POINT))
+        self.assertGreater(abs(target.x() - CUSTOM_POINT[0]), 100_000, "the zones must be far apart")
+        return east, target
+
+    def test_a_note_between_two_custom_crss_lands_where_asked(self):
+        east, target = self._custom_crs_target()
+        self.project.setCrs(east)
+        x, y = CUSTOM_POINT
+        queued, marker = self._run("add_annotation", kind="marker", x=x, y=y, crs=CUSTOM_WEST)
+        centre = self.project.mainAnnotationLayer().items()[marker["id"]].boundingBox().center()
+        self.assertAlmostEqual(centre.x(), target.x(), delta=0.01)
+        self.assertAlmostEqual(centre.y(), target.y(), delta=0.01)
+        self.assertTrue(get_tool_by_name("add_annotation").confirm_applied(queued.arguments, marker))
+
+    def test_drawing_between_two_custom_crss_moves_the_coordinates(self):
+        east, target = self._custom_crs_target()
+        survey = QgsVectorLayer("Point", "survey", "memory")
+        survey.setCrs(east)
+        self.project.addMapLayer(survey)
+        features = [{"coordinates": [list(CUSTOM_POINT)]}]
+        self._run("draw_features", layer_name="survey", geometry="point", crs=CUSTOM_WEST, features=features)
+        drawn = next(survey.getFeatures()).geometry().asPoint()
+        self.assertAlmostEqual(drawn.x(), target.x(), delta=0.01)
+        self.assertAlmostEqual(drawn.y(), target.y(), delta=0.01)
 
     def test_a_graduated_style_brings_its_legend_for_the_feed_only(self):
         batch = WriteBatch(ToolExecutor())
@@ -556,6 +608,16 @@ class GisWorkflowsTest(unittest.TestCase):
             batch.add(ToolCall("crossing", "draw_features", crossing))
         self.assertEqual(batch.pending(), [])
 
+    def test_a_64_bit_id_reaches_a_drawn_layer_exactly(self):
+        osm_id = 2**53 + 1
+        features = [{"coordinates": [[37.62, 55.75]], "attributes": {"osm_id": osm_id}}]
+        self._run("draw_features", new_layer_name="Nodes", geometry="point", features=features)
+        self.assertEqual(next(self.project.mapLayersByName("Nodes")[0].getFeatures())["osm_id"], osm_id)
+        too_big = {**features[0], "attributes": {"osm_id": 2**63}}
+        appended = {"layer_name": "Nodes", "geometry": "point", "features": [too_big]}
+        with self.assertRaisesRegex(ValueError, "64-bit"):
+            WriteBatch(ToolExecutor()).add(ToolCall("too big", "draw_features", appended))
+
     def test_undo_removes_a_drawn_scratch_layer(self):
         self.assertTrue(take_snapshot())
         line = {"new_layer_name": "Route", "geometry": "line", "features": [{"coordinates": [[0, 0], [1, 1]]}]}
@@ -750,6 +812,25 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertAlmostEqual(settings.format().size(), 14)
         self.assertTrue(settings.format().font().bold())
 
+    def test_a_new_label_size_comes_in_points_and_millimetres(self):
+        """Live labels in map units once kept them for a new size: 10 'points' became 10 map units."""
+        self._run("set_labels", layer_name=self.layer.name(), properties={"field": "name", "buffer_size": 1})
+        settings = self.layer.labeling().settings()
+        text_format = settings.format()
+        text_format.setSizeUnit(Qgis.RenderUnit.MapUnits)
+        buffer = text_format.buffer()
+        buffer.setSizeUnit(Qgis.RenderUnit.MapUnits)
+        text_format.setBuffer(buffer)
+        settings.setFormat(text_format)
+        self.layer.setLabeling(QgsVectorLayerSimpleLabeling(settings))
+        self._run("set_labels", layer_name=self.layer.name(), properties={"bold": True})
+        kept = self.layer.labeling().settings().format()
+        self.assertEqual((kept.sizeUnit(), kept.buffer().sizeUnit()), (Qgis.RenderUnit.MapUnits,) * 2)
+        self._run("set_labels", layer_name=self.layer.name(), properties={"size": 10, "buffer_size": 1.5})
+        changed = self.layer.labeling().settings().format()
+        self.assertEqual((changed.size(), changed.sizeUnit()), (10.0, Qgis.RenderUnit.Points))
+        self.assertEqual((changed.buffer().size(), changed.buffer().sizeUnit()), (1.5, Qgis.RenderUnit.Millimeters))
+
     def test_a_csv_export_keeps_the_geometry(self):
         path = self.root / "points.csv"
         self._run("export_layer", layer_name=self.layer.name(), path=str(path))
@@ -775,7 +856,7 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual(len(names), before + 1)
         self.assertIn("centre", names)
 
-    def test_a_raster_style_with_no_data_uses_the_hidden_range(self):
+    def test_a_gray_raster_stretches_the_range_left_after_no_data(self):
         path = self.root / "dem.tif"
         driver = gdal.GetDriverByName("GTiff")
         dataset = driver.Create(str(path), 20, 20, 1, gdal.GDT_Float32)
@@ -788,6 +869,24 @@ class GisWorkflowsTest(unittest.TestCase):
         self.project.addMapLayer(raster)
         _, result = self._run("set_raster_style", layer_name="dem", mode="gray", no_data_values=[-9999])
         self.assertEqual((result["min"], result["max"]), (1.0, 399.0))
+        stretch = raster.renderer().contrastEnhancement()
+        self.assertIsNotNone(stretch, "gray without a stretch paints the raw values, wrapping past 255")
+        self.assertEqual((stretch.minimumValue(), stretch.maximumValue()), (1.0, 399.0))
+        # Cell (row, column) holds row * 20 + column: 1 goes black, 399 white, 200 halfway.
+        image = self._rendered(raster, 20)
+        self.assertLessEqual(image.pixelColor(1, 0).red(), 2)
+        self.assertGreaterEqual(image.pixelColor(19, 19).red(), 253)
+        self.assertAlmostEqual(image.pixelColor(0, 10).red(), 127, delta=2)
+
+    def _rendered(self, layer, size):
+        settings = QgsMapSettings()
+        settings.setLayers([layer])
+        settings.setExtent(layer.extent())
+        settings.setOutputSize(QSize(size, size))
+        job = QgsMapRendererSequentialJob(settings)
+        job.start()
+        job.waitForFinished()
+        return job.renderedImage()
 
     def _shapes(self, name, uri, wkts, rows=None):
         """A memory layer of these geometries and attribute rows; returns it with its feature ids in order."""
@@ -918,6 +1017,18 @@ class GisWorkflowsTest(unittest.TestCase):
         self._run("export_layout", layout_name="Sheet", path=str(path))
         self.assertTrue(path.read_bytes().startswith(b"%PDF-"))
         self.assertGreater(path.stat().st_size, 1000)
+
+    def test_two_unnamed_labels_in_one_batch_both_land_on_the_layout(self):
+        self._run("create_layout", name="Sheet", page="a4", orientation="landscape")
+        batch = WriteBatch(ToolExecutor())
+        for y, text in ((8, "Title"), (30, "Subtitle")):
+            label = {"layout_name": "Sheet", "item_type": "label", "x": 10, "y": y, "properties": {"text": text}}
+            batch.add(ToolCall(text, "add_layout_item", label))
+        results = self._applied(batch)
+        self.assertTrue(all(result.ok for result in results), [result.payload for result in results])
+        self.assertEqual([result.payload["id"] for result in results], ["label-1", "label-2"])
+        layout = self.project.layoutManager().layoutByName("Sheet")
+        self.assertEqual(layout.itemById("label-2").text(), "Subtitle")
 
 
 class _Interface:

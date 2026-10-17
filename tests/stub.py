@@ -461,6 +461,7 @@ core = _mod(
         "QgsDataSourceUri",
         "QgsSingleBandPseudoColorRenderer",
         "QgsSingleBandGrayRenderer",
+        "QgsContrastEnhancement",
         "QgsHillshadeRenderer",
         "QgsField",
         "QgsBookmark",

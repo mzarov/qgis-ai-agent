@@ -4,6 +4,7 @@ from typing import Any
 from qgis.core import (
     Qgis,
     QgsColorRampShader,
+    QgsContrastEnhancement,
     QgsHillshadeRenderer,
     QgsRasterRange,
     QgsRasterShader,
@@ -114,7 +115,14 @@ def build_pseudocolor(layer: Any, band: int, ramp_name: str, classes: int, inter
 
 def build_gray(layer: Any, band: int) -> Any:
     minimum, maximum = band_range(layer, band)
-    renderer = QgsSingleBandGrayRenderer(layer.dataProvider(), band)
+    provider = layer.dataProvider()
+    renderer = QgsSingleBandGrayRenderer(provider, band)
+    # Without a stretch the renderer paints raw values as gray levels, wrapping past 255.
+    stretch = QgsContrastEnhancement(provider.dataType(band))
+    stretch.setContrastEnhancementAlgorithm(QgsContrastEnhancement.ContrastEnhancementAlgorithm.StretchToMinimumMaximum)
+    stretch.setMinimumValue(minimum)
+    stretch.setMaximumValue(maximum)
+    renderer.setContrastEnhancement(stretch)
     return renderer, {"min": round(minimum, 4), "max": round(maximum, 4)}
 
 

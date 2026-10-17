@@ -110,7 +110,11 @@ class AddLayoutItemTool(BaseTool):
         prepared["item_type"] = kind
         prepared["width"] = width
         prepared["height"] = height
-        prepared["id"] = unique_item_id(layout, kind, str(params.get("id") or ""))
+        # Only a given id is checked here; the automatic one is picked at Apply, or two
+        # unnamed labels queued together would both claim label-1.
+        given = str(params.get("id") or "").strip()
+        if given:
+            prepared["id"] = unique_item_id(layout, kind, given)
         prepared["properties"] = properties
         return prepared
 
