@@ -11,7 +11,7 @@ import unittest
 
 from e2e_harness import PluginCase, pump
 from qgis.PyQt.QtCore import QEvent, QPoint, QPointF, Qt
-from qgis.PyQt.QtGui import QColor, QKeyEvent, QWheelEvent
+from qgis.PyQt.QtGui import QColor, QKeyEvent, QTextCursor, QWheelEvent
 from qgis.PyQt.QtWidgets import QApplication, QLabel, QLineEdit, QScrollBar, QWidget
 
 from ai_agent.ui import compass, controls, progress, settings_fields, style
@@ -590,6 +590,62 @@ class ComposerBehaviourTest(PluginCase):
         composer._edit.keyPressEvent(escape)
         self.assertIs(canvas.mapTool(), pan, "Esc did not give the map its tool back")
         self.assertTrue(composer.place_hint.isHidden())
+
+    def _type_at(self, text: str, before_end: int) -> None:
+        """Type `text` with the caret `before_end` characters before the end, as a person moving it would."""
+        edit = self.dock.composer._edit
+        cursor = edit.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.End)
+        cursor.movePosition(QTextCursor.MoveOperation.Left, QTextCursor.MoveMode.MoveAnchor, before_end)
+        edit.setTextCursor(cursor)
+        edit.insertPlainText(text)
+        pump(0.05)
+
+    def test_a_mention_after_astral_characters_replaces_only_itself(self) -> None:
+        """Qt counts text positions in UTF-16 units and Python in characters, and an emoji is two of the first:
+        completing `🌍🌍 @ro tail` once gave `🌍🌍 @roads ail`."""
+        composer = self.dock.composer
+        composer.set_layer_source(lambda: [("roads", "", "")])
+        edit = composer._edit
+        edit.setPlainText("🌍🌍  tail")
+        self._type_at("@ro", len(" tail"))
+        self.assertFalse(composer._popup.isHidden(), "the layer list did not open at the mention")
+        composer._on_complete()
+        self.assertEqual(edit.toPlainText(), "🌍🌍 @roads  tail")
+        edit.insertPlainText("by type")
+        self.assertEqual(edit.toPlainText(), "🌍🌍 @roads by type tail", "the caret did not land after the mention")
+        # Not only emoji: any character beyond the basic plane, a name holding one included.
+        composer.set_layer_source(lambda: [("𝄞 scores", "", "")])
+        edit.setPlainText("𠀋 colour")
+        self._type_at(" @𝄞", 0)
+        self.assertFalse(composer._popup.isHidden())
+        composer._on_complete()
+        edit.insertPlainText("red")
+        self.assertEqual(edit.toPlainText(), '𠀋 colour @"𝄞 scores" red')
+
+    def test_words_put_at_the_caret_after_astral_characters_keep_their_space(self) -> None:
+        composer = self.dock.composer
+        edit = composer._edit
+        edit.setPlainText("🌍a b")
+        self._type_at("", len(" b"))
+        composer.insert_place("@point(37.6, 55.7)")
+        self.assertEqual(edit.toPlainText(), "🌍a @point(37.6, 55.7)  b")
+        edit.setPlainText("𝄞a b")
+        self._type_at("", len(" b"))
+        composer.mention_layers(["rivers"])
+        self.assertEqual(edit.toPlainText(), "𝄞a @rivers  b")
+        edit.setPlainText("🌍a b")
+        self._type_at("", len(" b"))
+        composer._start_mention()
+        self.assertEqual(edit.toPlainText(), "🌍a @ b")
+
+    def test_tokens_after_astral_characters_are_lit_where_they_stand(self) -> None:
+        edit = self.dock.composer._edit
+        edit.setPlainText("/style 🌍 @𝄞roads x")
+        pump(0.05)
+        lit = {(span.start, span.length) for span in edit.document().firstBlock().layout().formats()}
+        # In UTF-16 units: "/style " is 7, the emoji 2 and its space 1; "@𝄞roads" is 8.
+        self.assertEqual(lit, {(0, 6), (10, 8)})
 
     def test_the_progress_line_follows_the_run(self) -> None:
         self.assertTrue(self.dock.progress.isHidden())
