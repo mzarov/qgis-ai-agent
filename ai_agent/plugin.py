@@ -97,6 +97,7 @@ class QgisAiAgentPlugin:
         self.dock_widget.session_renamed.connect(self._orchestrator.on_session_renamed)
         self.dock_widget.session_deleted.connect(self._orchestrator.on_session_deleted)
         self.dock_widget.open_settings_clicked.connect(self._on_open_settings)
+        self.dock_widget.usage_chosen.connect(self._orchestrator.on_usage_chosen)
         if self._picker is not None:
             self.dock_widget.place_requested.connect(self._picker.start)
             self.dock_widget.place_cancelled.connect(self._picker.cancel)

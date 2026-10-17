@@ -117,8 +117,8 @@ class FailureCard(controls.RoundedFrame):
         self.retry.setVisible(shown)
         self._actions.setVisible(shown or not self.settings.isHidden())
         # The first action is the outlined button, a second one a link beside it.
-        self.retry.setStyleSheet(_plain_button(self._palette))
-        self.settings.setStyleSheet(_link_button(self._palette) if shown else _plain_button(self._palette))
+        self.retry.setStyleSheet(plain_button(self._palette))
+        self.settings.setStyleSheet(link_button(self._palette) if shown else plain_button(self._palette))
 
 
 def _tile(role: str, palette: Any) -> QLabel:
@@ -138,7 +138,7 @@ def _tile(role: str, palette: Any) -> QLabel:
     return tile
 
 
-def _plain_button(palette: Any) -> str:
+def plain_button(palette: Any) -> str:
     return (
         f"QPushButton {{ background: {style.css_color(style.surface(palette))};"
         f" color: {style.css_color(style.text(palette))};"
@@ -148,7 +148,7 @@ def _plain_button(palette: Any) -> str:
     )
 
 
-def _link_button(palette: Any) -> str:
+def link_button(palette: Any) -> str:
     return (
         f"QPushButton {{ background: transparent; border: none; color: {style.css_color(style.accent(palette))};"
         " padding: 0 6px; border-radius: 4px; }"

@@ -131,7 +131,8 @@ information.
 
 ## Other network requests
 
-The plugin contains no telemetry. It contacts the model endpoint you configure
+Apart from the opt-in usage statistics below, the plugin reports nothing about
+its use. It contacts the model endpoint you configure
 and the per-call web recipients listed above. When requested, GIS tools can also
 contact services such as Overpass, tile servers, WMS/WFS endpoints or databases
 selected by the user. The open-data tools contact the Microsoft Planetary
@@ -148,6 +149,22 @@ Personalisation — profile, instructions and memory notes — is part of every
 request to the model; the notes are stored in the QGIS profile folder.
 Each such call is listed in the plan and runs only after confirmation. QGIS and installed providers may make their own network
 requests independently of this plugin.
+
+## Usage statistics
+
+Off unless you agree: the plugin asks once, on a card after an answer, and the
+switch is in Settings → Privacy. Without a yes nothing is even counted, and a
+later no deletes what waits to be sent.
+
+With a yes, the counts of each day go out once that day is over, in one small
+request to the project's collector on Cloudflare (`telemetry/worker` in the
+repository): how many runs and applies, the names of the tools and skills used,
+the kinds of failures, and the versions around them — plugin, QGIS, the
+operating-system family, the interface language, a local or remote model and its
+API format. A random id stored in your QGIS settings tells one install from
+another; the collector stores only its hash. Never sent: your requests, the
+answers, layer names, attribute values, places, file paths, keys or model names.
+The totals are public on the [usage statistics](usage-stats.md) page.
 
 ## Working with sensitive projects
 

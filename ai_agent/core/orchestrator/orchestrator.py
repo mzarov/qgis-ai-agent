@@ -36,6 +36,7 @@ from ai_agent.core.settings import (
     set_data_sharing_consent,
 )
 from ai_agent.core.state.conversation import ConversationState
+from ai_agent.core.usage_stats import UsageStats, set_consent, should_ask
 from ai_agent.i18n import tr
 
 
@@ -70,7 +71,11 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self._last_request = ""
         self.compaction = SessionCompaction(self.dock_widget, lambda: self.conversation)
         self.naming = SessionNaming(lambda: self.conversation, self._show_title)
+        self.usage = UsageStats()
+        # Asked at most once per QGIS session, after an answer; never while nobody can receive the counts.
+        self._usage_asked = False
         self._connect_agent()
+        self.usage.flush()
         self.dock_widget.set_session_source(self.conversation.recent)
         self.refresh_configured()
 
@@ -117,6 +122,8 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
     def on_busy(self, busy: bool) -> None:
         self.dock_widget.set_busy(busy)
         if not busy:
+            # A day that is over goes out between runs, never in the middle of one.
+            self.usage.flush()
             # A check's trace is drawn; the next run is the user's again.
             self.dock_widget.set_run_kind("")
             # A run may have edited the active layer: the chip's count follows.
@@ -194,6 +201,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
     ) -> None:
         """Show `shown`, then run `prompt`; `request` is what the user asked, for the check after Apply."""
         self.dock_widget.begin_work()
+        self.usage.note("runs")
         self._show_user_message(shown)
         self._forget_restore()
         self._drop_pending_plan()
@@ -258,6 +266,15 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.dock_widget.set_session_source(self.conversation.recent)
         self.refresh_configured()
         self._replay()
+
+    def on_usage_chosen(self, agreed: bool) -> None:
+        set_consent(agreed)
+
+    def _offer_usage_stats(self) -> None:
+        if self._usage_asked or not should_ask():
+            return
+        self._usage_asked = True
+        self.dock_widget.offer_usage_stats()
 
     def on_compact(self) -> None:
         if not self.is_idle:

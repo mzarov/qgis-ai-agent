@@ -33,6 +33,7 @@ class AgentDockWidget(QDockWidget):
     work_mode_changed = pyqtSignal(str)
     compact_requested = pyqtSignal()
     plan_run_requested = pyqtSignal(str)
+    usage_chosen = pyqtSignal(bool)
     rewind_requested = pyqtSignal(int)
     plan_undo_requested = pyqtSignal(int)
     plan_restore_requested = pyqtSignal(int)
@@ -126,6 +127,7 @@ class AgentDockWidget(QDockWidget):
         self.progress = self.conversation.progress
         self.conversation.confirm_requested.connect(self.confirm_plan_clicked.emit)
         self.conversation.plan_run_requested.connect(self.plan_run_requested.emit)
+        self.conversation.usage_chosen.connect(self.usage_chosen.emit)
         self.conversation.rewind_requested.connect(self.rewind_requested.emit)
         self.conversation.plan_undo_requested.connect(self.plan_undo_requested.emit)
         self.conversation.plan_restore_requested.connect(self.plan_restore_requested.emit)
@@ -298,6 +300,9 @@ class AgentDockWidget(QDockWidget):
 
     def offer_plan(self) -> None:
         self.conversation.add_plan_offer()
+
+    def offer_usage_stats(self) -> None:
+        self.conversation.add_usage_offer()
 
     def confirm_destructive(self, lines: list[str], details: str = "") -> bool:
         return confirmations.confirm_destructive(self, lines, details)
