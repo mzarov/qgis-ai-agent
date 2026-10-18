@@ -2,8 +2,8 @@
 name=AI Agent
 qgisMinimumVersion=4.0
 qgisMaximumVersion=4.99
-description=AI agent inside QGIS: explores your project and processes data from a plain-language request.
-about=The agent inspects the open project, styles layers, runs Processing, edits data and creates layouts from plain-language requests. Changes wait in a visible plan until you press Apply, unless you switch to Auto mode, where they apply themselves and only destructive steps still ask. Everything the agent reads goes to the language model you configure: your prompt, the conversation and its summaries, attached pictures, project notes, layer and field metadata, and tool results such as feature attribute values, exact map and layer extents, layer filters and sources, style categories, Processing and Python results, and rendered map or layout images. There is no switch that holds them back, so use a local model server for projects that must not leave your computer. The first send to each remote endpoint asks for confirmation; agreeing is remembered for that endpoint. Open-data tools contact the Microsoft Planetary Computer, GitHub, geoBoundaries and the public map services of the catalogue (NASA GIBS, EOX, GEBCO, OpenTopoMap, IGN France, PDOK, swisstopo, USGS, Geoscience Australia) only after per-call confirmation; each can be switched off in Settings. Searching for and installing another plugin contacts plugins.qgis.org after confirmation; installing runs that plugin's code and is confirmed separately. Anonymous usage statistics are on by default; the first load says so in the QGIS message bar with a Turn off button, and the switch is in Settings → Privacy: once a day, counts of runs, applies, tool and skill names, failure kinds and versions, never requests, answers or data; nothing is counted before the notice, and the totals are public. Personalisation text from Settings is sent with every request. Optional web tools require per-call confirmation: searches contact DuckDuckGo or Wikipedia, geocoding contacts the Photon demo or custom Nominatim service selected in Settings, and page reads contact the approved public HTTPS host. Geocoding is disabled until a service is selected, and the public OSMF Nominatim instance is not offered. Private hosts and credential-bearing URLs are rejected. Web results are untrusted, may be sent to the configured model and are not cached on disk. Conversation messages and project notes are stored as plain JSON in the QGIS profile. When enabled, applied runs write an unencrypted Markdown journal containing shortened request and agent text, tool names, errors and outcome in the profile's ai_agent_runs directory; owner-only permissions are applied where supported, the path is reported and the file remains until the user deletes it. API keys are stored encrypted in the QGIS authentication database and unlocked by the QGIS master password; only the identifier of the stored entry reaches the settings file. The plugin has no external Python dependencies. OpenAI-compatible providers including Google Gemini, Anthropic and local endpoints are supported. A local server can still store or forward data. The interface is available in English and Russian.
+description=An AI agent that inspects your QGIS project and processes data from plain-language requests.
+about=The agent reads the project, styles layers, runs Processing, loads OpenStreetMap and open data, and builds print layouts from plain-language requests. Changes wait in a plan until you press Apply, unless you switch on Auto mode. Everything the agent reads, including attribute values, extents and rendered map images, goes to the language model you configure; use a local model server for data that must not leave your computer. Tools that contact a web service ask before each call, except in Auto mode. Anonymous usage statistics are on by default: the first start says so with a Turn off button, and the switch is also in Settings → Privacy. API keys are stored in the QGIS authentication database. Details: https://mzarov.github.io/qgis-ai-agent/privacy/
 version=0.4.0
 author=mzarov
 email=mzarov@duck.com
@@ -20,54 +20,32 @@ repository=https://github.com/mzarov/qgis-ai-agent
 tracker=https://github.com/mzarov/qgis-ai-agent/issues
 
 changelog=0.4.0
-    - SQL over your layers: one SELECT across the project's layers, shown as a table in the chat or kept as a live virtual layer
-    - A data check for a layer: invalid, empty and repeated geometries, empty fields, coordinates outside the CRS, and the fix for each
-    - The agent finds plugins in the official QGIS repository and installs them after you confirm
-    - Pick a point or an area on the map from the + menu; it goes into the request as coordinates
-    - Processing steps can be saved as a reusable model
-    - Areas and lengths are measured in a local metric CRS, never in Web Mercator
-    - Fewer turns and a cheaper check after Apply: simple style changes and exports are read back, and fixes stay within what you asked
-    - Test connection finds out whether the model can see pictures
-    - "Done in N s" counts from your action; text notes work on QGIS 4.2
-    - Anonymous usage statistics, on by default: the first start says so with a Turn off button; counts only, never your data; the totals are public
+    - SQL over the project's layers, as a chat table or a live layer
+    - A data check for one layer, with the fix for each problem
+    - Finds and installs plugins from the QGIS repository after you confirm
+    - Pick a point or an area on the map from the + menu
+    - Anonymous usage statistics, on by default, with a Turn off button
     0.3.0
-    - Redesigned panel and settings: a compass mark that shows what the agent is doing, a calmer feed, a settings window with search, a panel theme of its own
-    - New skills: charts and tables in the chat; open data (Planetary Computer imagery, boundaries, Natural Earth, public map services as connectors you can switch off); the other installed plugins
-    - Rewind to before any message: the conversation, the project or both
-    - When unsure, the agent asks on a card: up to three answers or your own
-    - Personalisation: your name and units, how answers read, standing instructions and a memory
-    - Long Processing steps and downloads run in the background: QGIS stays responsive, the plan shows progress, Stop cancels
-    - After a restyle the chat shows the layer's legend, and the status line says what changed
-    - The plan card names its layer, comes back after Cancel and undoes after Apply
-    - Failures in plain words: a card says what went wrong and what to do, with Retry where it helps; a busy model is retried longer and the wait shows
-    - Simple changes are checked by reading them back instead of a second model run
+    - Redesigned panel and settings window, with search and a panel theme
+    - New skills: charts and tables, open data, other installed plugins
+    - Rewind the conversation, the project or both to an earlier message
+    - Long Processing steps and downloads run in the background
+    - Failures explained on a card, with Retry where it helps
     0.2.0
-    - New design: a compact composer and feed, a settings window with a sidebar, light and dark themes
-    - Three modes under the input: Ask, Auto (prepared changes apply themselves, destructive steps still ask) and Plan (the agent reads, proposes a numbered plan and runs it on request)
-    - The whole conversation reaches the model; a ring shows how full the context window is, and the conversation is compacted by hand or automatically near the limit
-    - Attach files from the chat: data files become layers, pictures go to the model
-    - Conversations get short titles from the model and can be renamed or deleted from the menu
-    - New skills: draw (features from coordinates) and tables (CSV preview, points from lon/lat, live table joins)
-    - Each turn folds into one line in the feed; a reasoning switch for OpenAI-compatible endpoints
-    - Text-only models verify their changes by reading instead of looking at images
-    - Fixed a rare QGIS crash when a streamed answer ended or was stopped
+    - New design with light and dark themes
+    - Ask, Auto and Plan modes
+    - The whole conversation reaches the model, compacted near the limit
+    - Attach data files and pictures to a request
+    - New skills: draw and tables
     0.1.1
-    - Much cheaper runs: a stable prompt prefix that provider caching can reuse, stepped compaction, a shorter base prompt
-    - Out of the box the agent can read your data and run Processing: the sensitive-data switch is gone (see Data and privacy)
-    - Fixes for QGIS 4: geometry and field types were reported wrongly to the model
-    - Undo no longer empties temporary layers; text virtual fields no longer come out empty
-    - Type @ to insert an exact layer name and / to pick a skill; your own skills from the profile folder
-    - A stopped or failed run keeps the partial answer, puts your request back and still offers prepared changes
-    - Retries on overloads and rate limits; correct streaming for Cyrillic; current Claude thinking settings
-    - Destructive edits show the filter and values before you confirm; network-sending algorithms are flagged
+    - Much cheaper runs: a cacheable prompt prefix and a shorter prompt
+    - The agent reads data and runs Processing out of the box
+    - Fixes for geometry and field types on QGIS 4
+    - Type @ for a layer name and / for a skill; add your own skills
+    - Stopped or failed runs keep the partial answer and prepared changes
     0.1.0
-    - Initial public release: 65 tools across twelve skill domains
-    - Annotations, a 3D view and an auditable run journal
-    - Google Gemini provider preset through its OpenAI-compatible endpoint
-    - Keys in the QGIS authentication database: no external Python dependencies
+    - First public release: 65 tools in twelve domains
     - Reads the project, styles layers, runs Processing, downloads OSM data
-    - Basemaps, PostGIS tables, in-place attribute editing, print layouts with PDF export
-    - The agent sees the map on vision models and verifies its own changes after Apply
-    - Web search, page reading and geocoding with per-call consent and public-HTTPS protections
-    - Safety model: local reads run instantly; network reads and writes wait for Apply; destructive steps ask twice
-    - Interface in English and Russian, following the QGIS language
+    - Local reads run at once; changes wait for Apply
+    - Web search, page reading and geocoding with per-call consent
+    - Interface in English and Russian
