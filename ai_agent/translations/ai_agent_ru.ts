@@ -67,7 +67,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/connectors_settings.py" line="113"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="112"/>
         <source>%n dataset(s)</source>
         <translation>
             <numerusform>%n набор данных</numerusform>
@@ -436,7 +436,7 @@
         <translation>Добавь подложку OpenStreetMap</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="47"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="46"/>
         <source>Add context</source>
         <translation>Добавить контекст</translation>
     </message>
@@ -476,7 +476,7 @@
         <translation>Добавь слой ночных огней</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="48"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="47"/>
         <source>Add to context</source>
         <translation>Добавить в контекст</translation>
     </message>
@@ -557,7 +557,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="81"/>
-        <location filename="ai_agent/ui/settings_layout.py" line="51"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="50"/>
         <source>Advanced</source>
         <translation>Дополнительно</translation>
     </message>
@@ -696,7 +696,7 @@
         </translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="53"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="52"/>
         <source>Area on the map…</source>
         <translation>Область на карте…</translation>
     </message>
@@ -731,7 +731,7 @@
         <translation>Спросите о проекте или попросите изменить карту…</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/welcome.py" line="36"/>
+        <location filename="ai_agent/ui/welcome.py" line="35"/>
         <source>Ask about your map</source>
         <translation>Спросите о своей карте</translation>
     </message>
@@ -844,7 +844,7 @@
         <translation>Просмотр CSV, таблицы точками, соединения таблиц</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/welcome.py" line="46"/>
+        <location filename="ai_agent/ui/welcome.py" line="45"/>
         <source>Calculate the built-up area in each district</source>
         <translation>Посчитай площадь застройки в каждом районе</translation>
     </message>
@@ -1009,7 +1009,7 @@
         <translation>Щёлкните точку на карте · Esc — отмена</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/chrome.py" line="40"/>
+        <location filename="ai_agent/ui/chrome.py" line="39"/>
         <source>Close</source>
         <translation>Закрыть</translation>
     </message>
@@ -1029,7 +1029,7 @@
         <translation>Безоблачная спутниковая мозаика мира, некоммерческое использование</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/welcome.py" line="44"/>
+        <location filename="ai_agent/ui/welcome.py" line="43"/>
         <source>Colour the districts by population</source>
         <translation>Раскрась районы по численности населения</translation>
     </message>
@@ -1083,7 +1083,7 @@
         <location filename="ai_agent/ui/failure_card.py" line="28"/>
         <location filename="ai_agent/ui/settings_advanced.py" line="54"/>
         <location filename="ai_agent/ui/settings_dialog.py" line="66"/>
-        <location filename="ai_agent/ui/settings_layout.py" line="47"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="46"/>
         <source>Connection</source>
         <translation>Подключение</translation>
     </message>
@@ -1094,7 +1094,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/connectors_settings.py" line="29"/>
-        <location filename="ai_agent/ui/settings_layout.py" line="52"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="51"/>
         <source>Connectors</source>
         <translation>Коннекторы</translation>
     </message>
@@ -1120,7 +1120,7 @@
         <translation>Разговор сжат · сэкономлено около {0} токенов</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/chrome.py" line="43"/>
+        <location filename="ai_agent/ui/chrome.py" line="42"/>
         <source>Conversation history</source>
         <translation>История разговоров</translation>
     </message>
@@ -1150,7 +1150,7 @@
         <translation>Копировать строки как CSV</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/conversation.py" line="498"/>
+        <location filename="ai_agent/ui/conversation.py" line="497"/>
         <source>Copy the whole conversation</source>
         <translation>Скопировать весь разговор</translation>
     </message>
@@ -1211,7 +1211,7 @@
         <translation>Свой адрес</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_layout.py" line="18"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="17"/>
         <source>Customize</source>
         <translation>Под себя</translation>
     </message>
@@ -1221,7 +1221,7 @@
         <translation>Тёмная</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_layout.py" line="19"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="18"/>
         <source>Data</source>
         <translation>Данные</translation>
     </message>
@@ -1511,7 +1511,7 @@
         <translation>Будет удалено объектов: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="50"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="49"/>
         <source>File or table…</source>
         <translation>Файл или таблица…</translation>
     </message>
@@ -1542,7 +1542,7 @@
         <translation>Найди безоблачный снимок Sentinel-2 этого района за прошлое лето</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/welcome.py" line="45"/>
+        <location filename="ai_agent/ui/welcome.py" line="44"/>
         <source>Find a cloud-free satellite image of the current extent from this summer</source>
         <translation>Найди снимок без облаков на текущий экстент за лето</translation>
     </message>
@@ -1562,7 +1562,7 @@
         <translation>Подгоняю вид карты.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/chrome.py" line="39"/>
+        <location filename="ai_agent/ui/chrome.py" line="38"/>
         <source>Float</source>
         <translation>Открепить</translation>
     </message>
@@ -1633,7 +1633,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/geocoder_settings.py" line="27"/>
-        <location filename="ai_agent/ui/settings_layout.py" line="50"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="49"/>
         <source>Geocoding</source>
         <translation>Геокодирование</translation>
     </message>
@@ -1673,7 +1673,7 @@
         <translation>История недоступна</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="56"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="55"/>
         <source>How changes are applied. Shift+Tab switches.</source>
         <translation>Как применяются изменения. Shift+Tab переключает.</translation>
     </message>
@@ -1723,7 +1723,7 @@
         <translation>Гидролог, градостроитель…</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="51"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="50"/>
         <source>Imagery</source>
         <translation>Снимки</translation>
     </message>
@@ -1840,7 +1840,7 @@
         <translation>Слои, подложки, веб-сервисы, группы, закладки, сохранение</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="49"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="48"/>
         <source>Layer…</source>
         <translation>Слой…</translation>
     </message>
@@ -2034,14 +2034,14 @@
         <translation>Открытый каталог Microsoft со спутниковыми сценами и глобальными растрами. Агент ищет в нём самый чистый снимок Sentinel-2 или Landsat на ваш район и дату и читает высоты, покров и водные объекты прямо из облака, не скачивая файлы целиком.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="55"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="54"/>
         <source>Mode</source>
         <translation>Режим</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="93"/>
         <location filename="ai_agent/ui/settings_dialog.py" line="220"/>
-        <location filename="ai_agent/ui/settings_layout.py" line="17"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="16"/>
         <source>Model</source>
         <translation>Модель</translation>
     </message>
@@ -2091,7 +2091,7 @@
         <translation>Глобальный сервис снимков NASA: вчерашний снимок всей Земли в естественных цветах со спутника MODIS, ночные огни городов и рельеф Blue Marble. Показывается быстро, детальность грубая.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="54"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="53"/>
         <source>National</source>
         <translation>Страны</translation>
     </message>
@@ -2106,7 +2106,7 @@
         <translation>Национальная карта (цветная)</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="61"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="60"/>
         <source>National mapping</source>
         <translation>Национальные картографические службы</translation>
     </message>
@@ -2131,7 +2131,7 @@
         <translation>Никогда</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/chrome.py" line="41"/>
+        <location filename="ai_agent/ui/chrome.py" line="40"/>
         <location filename="ai_agent/ui/sessions_popup.py" line="40"/>
         <source>New conversation</source>
         <translation>Новый разговор</translation>
@@ -2202,7 +2202,7 @@
         <translation>Подходящего навыка нет</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="60"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="59"/>
         <source>No model</source>
         <translation>Нет модели</translation>
     </message>
@@ -2309,13 +2309,13 @@
         <translation>По одному на строке, «Имя: значение». Ключи — в поле «Ключ API».</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/welcome.py" line="30"/>
+        <location filename="ai_agent/ui/welcome.py" line="29"/>
         <source>One step before we start</source>
         <translation>Один шаг до начала</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="74"/>
-        <location filename="ai_agent/ui/welcome.py" line="39"/>
+        <location filename="ai_agent/ui/welcome.py" line="38"/>
         <source>Open</source>
         <translation>Открыть</translation>
     </message>
@@ -2340,7 +2340,7 @@
         <translation>Открытые лицензии по наборам: Copernicus, общественное достояние USGS, CC BY 4.0</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/welcome.py" line="35"/>
+        <location filename="ai_agent/ui/welcome.py" line="34"/>
         <source>Open settings</source>
         <translation>Открыть настройки</translation>
     </message>
@@ -2416,7 +2416,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/personalisation_settings.py" line="22"/>
-        <location filename="ai_agent/ui/settings_layout.py" line="53"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="52"/>
         <source>Personalisation</source>
         <translation>Персонализация</translation>
     </message>
@@ -2426,17 +2426,17 @@
         <translation>Картинки (*.png *.jpg *.jpeg *.webp *.gif *.bmp)</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="51"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="50"/>
         <source>Picture…</source>
         <translation>Картинка…</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="53"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="52"/>
         <source>Places</source>
         <translation>Места</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="60"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="59"/>
         <source>Places and boundaries</source>
         <translation>Места и границы</translation>
     </message>
@@ -2491,7 +2491,7 @@
         <translation>Плагин: {0} {1}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="52"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="51"/>
         <source>Point on the map…</source>
         <translation>Точка на карте…</translation>
     </message>
@@ -2511,7 +2511,7 @@
         <translation>Португальский</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/welcome.py" line="38"/>
+        <location filename="ai_agent/ui/welcome.py" line="37"/>
         <source>Previous conversation saved in history</source>
         <translation>Прошлый разговор сохранён в истории</translation>
     </message>
@@ -2522,7 +2522,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="48"/>
-        <location filename="ai_agent/ui/settings_layout.py" line="48"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="47"/>
         <source>Privacy</source>
         <translation>Приватность</translation>
     </message>
@@ -3003,7 +3003,7 @@
         <translation>Как в QGIS</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="58"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="57"/>
         <source>Satellites and imagery</source>
         <translation>Спутники и снимки</translation>
     </message>
@@ -3083,7 +3083,7 @@
         <translation>Выделяю объекты в «{0}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="58"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="57"/>
         <source>Send</source>
         <translation>Отправить</translation>
     </message>
@@ -3134,7 +3134,7 @@
         <translation>Настраиваю подписи «{0}»: {1}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/chrome.py" line="42"/>
+        <location filename="ai_agent/ui/chrome.py" line="41"/>
         <source>Settings</source>
         <translation>Настройки</translation>
     </message>
@@ -3154,7 +3154,7 @@
         <translation>Передать данные проекта?</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="57"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="56"/>
         <source>Shift+Tab — next mode</source>
         <translation>Shift+Tab — следующий режим</translation>
     </message>
@@ -3229,13 +3229,13 @@
         <translation>Показывает план и ждёт «Применить»</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_layout.py" line="49"/>
+        <location filename="ai_agent/ui/settings_layout.py" line="48"/>
         <location filename="ai_agent/ui/skills_settings.py" line="22"/>
         <source>Skills</source>
         <translation>Навыки</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="54"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="53"/>
         <source>Skill…</source>
         <translation>Навык…</translation>
     </message>
@@ -3265,7 +3265,7 @@
         <translation>Шаги:</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_controls.py" line="59"/>
+        <location filename="ai_agent/ui/composer_controls.py" line="58"/>
         <source>Stop</source>
         <translation>Стоп</translation>
     </message>
@@ -3335,12 +3335,12 @@
         <translation>Связь с провайдером</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="52"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="51"/>
         <source>Terrain</source>
         <translation>Рельеф</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="59"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="58"/>
         <source>Terrain and oceans</source>
         <translation>Рельеф и океаны</translation>
     </message>
@@ -3448,7 +3448,7 @@
         <translation>Агент выбирает ответ, который сам советует, и продолжает.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/welcome.py" line="31"/>
+        <location filename="ai_agent/ui/welcome.py" line="30"/>
         <source>The agent talks to a language model of your choice, so it needs an address and a key — or nothing at all if you run a local model on localhost.</source>
         <translation>Агент обращается к языковой модели на ваш выбор, поэтому ему нужен адрес и ключ — либо вообще ничего, если модель работает локально на localhost.</translation>
     </message>
@@ -3934,7 +3934,7 @@
         <translation>Когда вы упоминаете то, что пригодится в следующий раз.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/welcome.py" line="43"/>
+        <location filename="ai_agent/ui/welcome.py" line="42"/>
         <source>Which layers are in the project and what is in them?</source>
         <translation>Какие слои есть в проекте и что в них?</translation>
     </message>
@@ -3954,12 +3954,12 @@
         <translation>Работаю…</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="50"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="49"/>
         <source>World</source>
         <translation>Мир</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/connectors_settings.py" line="57"/>
+        <location filename="ai_agent/ui/connectors_settings.py" line="56"/>
         <source>Worldwide maps</source>
         <translation>Карты мира</translation>
     </message>
@@ -3989,7 +3989,7 @@
         <translation>Ваш Nominatim</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/welcome.py" line="37"/>
+        <location filename="ai_agent/ui/welcome.py" line="36"/>
         <source>Your model, your keys, your project. Nothing changes without your approval.</source>
         <translation>Ваша модель, ваши ключи, ваш проект. Без подтверждения агент ничего не меняет.</translation>
     </message>

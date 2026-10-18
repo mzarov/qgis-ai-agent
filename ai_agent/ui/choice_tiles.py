@@ -1,10 +1,10 @@
-"""Exclusive choices as tiles, after the design handoff: providers on the Connection page, geocoders.
+"""Exclusive choices as tiles: providers on the Connection page, geocoders.
 
 A tile is a rounded box on the surface: an optional logo, a name and a quiet
 line under it, a radio at the right edge. The chosen one takes the accent edge
 and the accent wash. Painted, not styled, so a click restyles nothing in its
 own event. The grid gives each tile at least `min_width` and as many columns as
-fit, like the handoff's auto-fill grid.
+fit.
 """
 
 from typing import Any
@@ -25,7 +25,7 @@ NOTE_SCALE = 12 / 13
 
 
 class Radio(QWidget):
-    """The handoff's 14 px radio: a ring, the accent ring and dot when chosen."""
+    """A 14 px radio: a ring, the accent ring and dot when chosen."""
 
     def __init__(self, palette: Any, parent: QWidget | None = None):
         super().__init__(parent)

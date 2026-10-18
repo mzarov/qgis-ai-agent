@@ -1,6 +1,6 @@
 """The agent's question as a card: up to three answers and a fourth row to type one's own.
 
-Laid out like the design: "Needs clarification", the question, then option
+Top to bottom: "Needs clarification", the question, then option
 rows with a radio, the answer, a "recommended" tag on the first (the agent lists
 its pick first), a short why under it when the option carries one after " — ",
 and the key that picks it. A click, a number key or Enter in the fourth row

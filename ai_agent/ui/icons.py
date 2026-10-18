@@ -42,7 +42,7 @@ NAMES = {
     "late": "clock",
     "alert": "circle-alert",
     # A tool call's row wears its skill's icon; "knowledge" is a skill being loaded. Reading wears the
-    # layers and Processing a square with a play mark, as the handoff draws the trace.
+    # layers and Processing a square with a play mark.
     "inspect": "layers",
     "project": "layers",
     "style": "palette",

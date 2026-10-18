@@ -12,7 +12,6 @@ from ai_agent.ui.settings_search import SettingsSearch
 from ai_agent.ui.skills_settings import usable_count
 
 CONNECTION, PRIVACY, SKILLS, GEOCODING, ADVANCED, CONNECTORS, PERSONALISATION = range(7)
-# Sidebar groups as in the handoff.
 GROUPS = (
     (tr("Model"), (CONNECTION, PRIVACY, ADVANCED)),
     (tr("Customize"), (PERSONALISATION, SKILLS)),
@@ -41,7 +40,7 @@ def build_body(owner: Any, palette: Any) -> tuple[QHBoxLayout, QVBoxLayout]:
     nav.setObjectName(NAV_NAME)
     style.fill(nav, style.sidebar(palette))
     # None marks a page built on its first visit, by the owner's `build_page`: most openings never reach
-    # it, and building every page up front more than doubled the time the window took to appear. Privacy
+    # it, and building every page up front would double the time the window takes to appear. Privacy
     # and Advanced edit the endpoint together with the Connection page, so they are built with it.
     pages = (
         (tr("Connection"), "connection", owner._build_connection(palette)),

@@ -1,4 +1,4 @@
-"""A restyled layer's legend in the feed, after the design handoff: colour cells with what each one means.
+"""A restyled layer's legend in the feed: colour cells with what each one means.
 
 Classes that run in order (graduated, a raster ramp) are one strip of cells,
 10 px high with 2 px between them and their bounds under each in 11 px; a strip
@@ -21,7 +21,7 @@ RANGES = "ranges"
 CELL_HEIGHT = 10
 CELL_GAP = 2
 CELL_RADIUS = 2
-# A cell no wider than the handoff draws it in a narrow panel: a wide panel does not stretch the scale.
+# A wide panel does not stretch the scale: a cell stays as narrow as in a narrow panel.
 MAX_CELL_WIDTH = 72
 LABEL_GAP = 4
 MAX_STRIP_CELLS = 7

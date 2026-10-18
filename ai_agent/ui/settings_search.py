@@ -44,7 +44,7 @@ class SettingsSearch(QWidget):
         self.field.setPlaceholderText(PLACEHOLDER)
         self.field.setClearButtonEnabled(True)
         self.field.setFixedHeight(FIELD_HEIGHT)
-        # A click focuses it, the window's first Tab does not: a caret blinking in it on open read as a prompt.
+        # A click focuses it, the window's first Tab does not: a caret blinking in it on open would read as a prompt.
         self.field.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
         style.scale_font(self.field, TEXT_SCALE)
         self.field.setStyleSheet(fields.input_style(palette))

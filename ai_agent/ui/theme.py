@@ -1,9 +1,9 @@
 """The plugin's colours: the brand's two palettes, light and dark.
 
-Cartographic blue on cool neutrals, from the design handoff's token table
-(same names as here). The QGIS palette still decides which set applies, by its
-lightness, so the plugin follows the light and the dark theme. This module is
-the only place in the plugin that spells a colour; everything else asks `style`.
+Cartographic blue on cool neutrals. The QGIS palette still decides which set
+applies, by its lightness, so the plugin follows the light and the dark theme.
+This module is the only place in the plugin that spells a colour; everything
+else asks `style`.
 """
 
 from dataclasses import dataclass

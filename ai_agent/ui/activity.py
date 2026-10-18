@@ -1,4 +1,4 @@
-"""One turn's tool calls and reasoning as the design's "work trace": a quiet timeline above the answer.
+"""One turn's tool calls and reasoning as a work trace: a quiet timeline above the answer.
 
 Not a card. The header is the timeline's first node: a chevron in the glyph
 column, "Activity · 5 steps" (while working "Working · step 3") level with the
@@ -47,7 +47,7 @@ GLYPH_BOX = 20
 COLUMN_GAP = 8
 ROW_BOTTOM = 8
 HEADER_GAP = 6
-# With the feed's spacing, the handoff's 14 px from the trace to whatever follows it.
+# With the feed's spacing, 14 px from the trace to whatever follows it.
 GROUP_BOTTOM = 3
 # The hairline stops this far from every glyph, whatever the glyph's size.
 LINE_GAP = 3

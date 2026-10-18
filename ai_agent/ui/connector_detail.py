@@ -174,7 +174,7 @@ class ConnectorDetail(QObject):
 
     @staticmethod
     def _information(row: dict[str, Any], palette: Any) -> QWidget:
-        """Key and value pairs, a hairline under each, as the handoff's table of facts."""
+        """Key and value pairs, a hairline under each."""
         facts = (
             (KEY_LABEL, KEY_VALUE),
             (LICENCE, tr_data(str(row["licence"]))),
@@ -200,7 +200,7 @@ class ConnectorDetail(QObject):
 
 
 def _link_style(palette: Any) -> str:
-    """Muted text flush with the page edge, brightening on hover: a padded button sat indented from the title."""
+    """Muted text flush with the page edge, brightening on hover: a padded button would sit indented from the title."""
     return (
         f"QPushButton {{ background: transparent; border: none; padding: 4px 0px;"
         f"color: {style.css_color(style.muted(palette))}; }}"

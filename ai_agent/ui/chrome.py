@@ -1,8 +1,8 @@
-"""The panel's chrome after the design handoff: the dock's own title bar and the toolbar under it.
+"""The panel's chrome: the dock's own title bar and the toolbar under it.
 
 The title bar replaces the native one: the still compass, "AI Agent", and float
 and close buttons. A press anywhere else on it is left to the dock, so the panel
-drags, docks and floats on a double click as before. The toolbar names the open
+drags, docks and floats on a double click like a native one. The toolbar names the open
 conversation — a button that opens the history — and holds two icon buttons:
 a new conversation (disabled while the conversation is empty; its plus turns
 when pressed) and the settings. Buttons paint their hover; nothing restyles in
@@ -33,7 +33,6 @@ TOOL_RADIUS = 6
 CHEVRON = 14
 SPIN_DEGREES = 180.0
 SPIN_MS = 400
-# The handoff's transition for the plus: cubic-bezier(.3,.7,.3,1).
 SPIN_EASING = (0.3, 0.7, 0.3, 1.0)
 DISABLED_OPACITY = 0.55
 FLOAT = tr("Float")

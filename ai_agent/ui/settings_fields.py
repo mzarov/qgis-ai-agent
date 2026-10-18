@@ -17,7 +17,7 @@ from qgis.PyQt.QtWidgets import (
 
 from ai_agent.ui import controls, style
 
-# The handoff's type scale against the 13 px body: notes and captions 12, a page title 18.
+# The type scale against the 13 px body: notes and captions 12, a page title 18.
 HINT_SCALE = 12 / 13
 CAPTION_SCALE = 12 / 13
 TITLE_SCALE = 18 / 13
@@ -36,7 +36,7 @@ FIELD_SPACING = 2
 PAGE_MARGINS = (28, 22, 28, 28)
 PAGE_SPACING = 0
 LEAD_GAP = 4
-# Between the page's title block and each section: the handoff's 22 px column gap.
+# Between the page's title block and each section.
 SECTION_GAP = 22
 SECTION_TO_CARD = 2
 NAV_WIDTH = 216
@@ -70,7 +70,7 @@ class Switch(QCheckBox):
         return True
 
     def paintEvent(self, _event: Any) -> None:
-        """The handoff's toggle: an accent track with a light knob when on, a sunken outlined one when off."""
+        """An accent track with a light knob when on, a sunken outlined one when off."""
         palette = self._palette
         on = self.isChecked()
         painter = QPainter(self)
@@ -276,7 +276,7 @@ def section(column: QVBoxLayout, title: str, palette: Any, note: str = "") -> No
 
 
 def heading(title: str, palette: Any) -> QLabel:
-    """A section caption: 12/600 in the secondary ink, as the handoff's group titles."""
+    """A section caption: 12/600 in the secondary ink."""
     label = QLabel(title)
     label.setWordWrap(True)
     style.scale_font(label, CAPTION_SCALE, bold=True)
@@ -337,8 +337,7 @@ def _row(title: str, widget: QWidget, note: str, palette: Any, tooltip: str) -> 
     # What the sidebar's search matches: the row's title and its hint.
     holder.setProperty(SEARCH_PROPERTY, f"{title} {note}".strip())
     holder.hint = hint(note, palette)
-    # Shown only once it has a parent: a parentless widget shown becomes a window of its own,
-    # and thirty such windows were most of the second the settings took to open.
+    # Shown only once it has a parent: a parentless widget shown becomes a window of its own.
     text.addWidget(holder.hint)
     holder.hint.setVisible(bool(note))
     text.addStretch(1)

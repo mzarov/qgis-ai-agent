@@ -14,7 +14,6 @@ from ai_agent.ui.conversation import ConversationView
 from ai_agent.ui.sessions_popup import Entry, SessionsPopup
 
 TITLE = chrome.TITLE
-# The handoff's composer padding: 6 above the box, 12 around the rest.
 COMPOSER_MARGINS = (12, 6, 12, 12)
 BODY_NAME = "agentBody"
 
@@ -73,7 +72,7 @@ class AgentDockWidget(QDockWidget):
         self.composer.set_popup_host(body)
         # The welcome is up: there is nothing to start over from yet.
         self.toolbar.new_button.setEnabled(False)
-        # The old feed's picture while a new conversation is being asked for; see `_start_new`.
+        # The feed's picture while a new conversation is being asked for; see `_start_new`.
         self._leaving: QPixmap | None = None
         # The same while a conversation from the history replaces it; see `_choose_session`.
         self._switching: QPixmap | None = None
@@ -88,7 +87,7 @@ class AgentDockWidget(QDockWidget):
             self._switching = None
 
     def _start_new(self) -> None:
-        """Ask for a new conversation, as the handoff plays it: the feed's picture waits for the
+        """Ask for a new conversation: the feed's picture waits for the
         orchestrator to confirm the switch (`note_conversation_saved`) and is dropped if it does not."""
         self._leaving = self.conversation.snapshot()
         try:

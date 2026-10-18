@@ -1,14 +1,14 @@
 """The brand mark: a compass with an open ring whose needle says what the agent is doing.
 
-Geometry on a 24-unit grid centred at (12, 12), from the design handoff. The
-ring is an arc of radius 8.5 with a 60° gap around north-east; the needle is
-drawn pointing north and rotated about the centre. A diamond of the colour
-under the mark (the "halo") cuts the ring where the needle crosses it, so the
-needle reads in any position. Line weights are optical: heavier at small sizes.
+Geometry on a 24-unit grid centred at (12, 12). The ring is an arc of radius
+8.5 with a 60° gap around north-east; the needle is drawn pointing north and
+rotated about the centre. A diamond of the colour under the mark (the "halo")
+cuts the ring where the needle crosses it, so the needle reads in any position.
+Line weights are optical: heavier at small sizes.
 
-States are rotations of the needle only, keyframed like the prototype's CSS:
-each segment between two keyframes has its own easing, so the swing matches.
-One live compass per panel — in the status line; marks elsewhere stay still.
+States are rotations of the needle only, keyframed: each segment between two
+keyframes has its own CSS-style easing. One live compass per panel — in the
+status line; marks elsewhere stay still.
 """
 
 from dataclasses import dataclass

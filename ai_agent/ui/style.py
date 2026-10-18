@@ -1,4 +1,4 @@
-"""Named colours for the widgets, all read from the mockup tokens in `theme`.
+"""Named colours for the widgets, all read from the tokens in `theme`.
 
 Widgets ask for a role (`panel`, `hairline`, `muted`, `accent`…), never for a
 hex value; `theme.tokens(palette)` picks the light or the dark set from the
@@ -70,7 +70,7 @@ def sidebar(palette: QPalette) -> QColor:
 
 
 def sunken(palette: QPalette) -> QColor:
-    """Below the surface: segmented-control tracks, sidebar hover."""
+    """Below the surface: segmented-control and switch tracks, icon-button hover."""
     return _token(palette, "sunken")
 
 
@@ -210,7 +210,7 @@ def fill(widget: Any, colour: QColor) -> None:
 
     A style sheet on a container switches its whole subtree to QStyleSheetStyle,
     which resets the subtree's palette to QGIS's (and, with children that
-    restyle themselves often, once crashed QGIS inside event processing). An
+    restyle themselves often, can crash QGIS inside event processing). An
     auto-filled background is what QGIS's dark UI themes repaint:
     `QWidget[autoFillBackground=true]` takes their background colour. So the
     colour is painted by hand, ahead of the widget, and the palette carries it

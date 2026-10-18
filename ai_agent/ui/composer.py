@@ -48,7 +48,7 @@ MODE_LAYER = "layer"
 
 
 class Composer(QWidget):
-    """The input box after the design handoff: context chips, the text, and the row of controls inside."""
+    """The input box: context chips, the text, and the row of controls inside."""
 
     submitted = pyqtSignal(str)
     stopped = pyqtSignal()

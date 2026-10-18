@@ -1,12 +1,11 @@
-"""The composer's bottom row, after the design handoff: add context, the mode, the model, send.
+"""The composer's bottom row: add context, the mode, the model, send.
 
 "+" opens the add-to-context menu: a layer (opens the @ list), a file or table,
 a picture, a skill (opens the / list). The mode button — shield, name, chevron —
 opens the mode menu above the whole box. On the right sit the model's name, the
 context ring and the round send button, a stop square while the agent works.
 The name is only said, in quiet monospace, never a button: choosing a model
-belongs to the settings, and a button with a chevron took room for nothing
-(the user's call). Everything else paints its own hover.
+belongs to the settings. Everything else paints its own hover.
 """
 
 from collections.abc import Callable

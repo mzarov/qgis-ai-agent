@@ -2,8 +2,8 @@
 
 `Segmented` keeps the slice of the `QComboBox` API the dialog already relies
 on (`currentText`, `findText`, `setCurrentIndex`, item data, the change
-signals), so saving and loading code reads it exactly like the combo box it
-replaces. Everything is drawn from the palette through `style`.
+signals), so saving and loading code reads it exactly like a combo box.
+Everything is drawn from the palette through `style`.
 """
 
 from collections.abc import Callable
@@ -91,7 +91,7 @@ class Segmented(QFrame):
             button.setCheckable(True)
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.setStyleSheet(self._segment_style())
-            # Room for the bold checked label: sized for the regular weight, "Balanced" lost its last letter.
+            # Room for the bold checked label, wider than the regular one it is sized for otherwise.
             bold = button.font()
             bold.setWeight(QFont.Weight.DemiBold)
             button.setMinimumWidth(QFontMetrics(bold).horizontalAdvance(item) + 2 * SEGMENT_PADDING + SEGMENT_SLACK)
@@ -236,8 +236,8 @@ class RoundedFrame(QFrame):
     """A rounded box painted by hand; its look changes with `update()` and nothing else.
 
     A style sheet on a frame cascades to every child. Swapping it while a child
-    was inside its own event handler (the composer editor's focusOut) crashed QGIS
-    in event processing, so frames whose look follows state are painted.
+    is inside its own event handler (the composer editor's focusOut) can crash
+    QGIS in event processing, so frames whose look follows state are painted.
     """
 
     def __init__(self, radius: float, parent: QWidget | None = None):

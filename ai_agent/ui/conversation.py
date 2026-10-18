@@ -28,7 +28,6 @@ from ai_agent.ui.welcome import WelcomeCard
 MESSAGE_SPACING = 11
 WELCOME_STRETCH = 1
 TAIL_STRETCH = 1
-# The handoff's feed padding: 16 at the sides and the top, 10 above the composer.
 FEED_MARGINS = (16, 16, 16, 10)
 PIN_TOLERANCE = 24
 
@@ -120,7 +119,7 @@ class ConversationView(QScrollArea):
         return self.viewport().grab()
 
     def play_new_conversation(self, leaving: QPixmap) -> None:
-        """The handoff's new conversation: the old feed's picture leaves, then the welcome arrives."""
+        """A new conversation: the previous feed's picture leaves, then the welcome arrives."""
         card = self._empty
         if card is None:
             return
@@ -162,7 +161,7 @@ class ConversationView(QScrollArea):
         """Take a widget out of the feed now; Qt deletes it later.
 
         deleteLater alone leaves it laid out and painted until the event loop
-        gets round to it — a busy main thread showed the welcome card drawn
+        gets round to it: on a busy main thread the welcome card stays drawn
         over a running conversation.
         """
         self._column.removeWidget(widget)

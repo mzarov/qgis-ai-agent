@@ -192,7 +192,7 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         column.addSpacing(fields.WIDE_GAP)
         column.addWidget(self.provider_tiles)
 
-        # The section is named after the chosen provider, as the handoff draws it.
+        # The section is named after the chosen provider.
         column.addSpacing(fields.SECTION_GAP)
         self._endpoint_title = fields.heading("", palette)
         column.addWidget(self._endpoint_title)
@@ -330,7 +330,7 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         self._paint_key_hint(preset.needs_key or preset.is_custom)
 
     def _paint_key_hint(self, needs_key: bool) -> None:
-        """A local server takes no key: the field greys out and says so, as the handoff draws it."""
+        """A local server takes no key: the field greys out and says so."""
         fields.set_row_hint(self._key_field, KEY_HINT if needs_key else KEYLESS_HINT)
         self.key_edit.setPlaceholderText(tr("Provider key") if needs_key else NOT_REQUIRED)
         self.key_edit.setEnabled(needs_key or bool(self.key_edit.text()))

@@ -1,6 +1,6 @@
 """The empty conversation: the compass arriving, what the agent is, the project, examples to start with.
 
-Centred like the design's welcome: the mark plays its arrival once, a title,
+Centred: the mark plays its arrival once, a title,
 one sentence on the deal (your model, your keys, nothing changes without you),
 a line naming the open project, then full-width examples to start with. A click on
 one sends it. Without a configured model the card asks for settings instead.
@@ -54,7 +54,7 @@ def welcome_content(configured: bool) -> tuple[str, str, tuple[tuple[str, str], 
 
 class Suggestion(QFrame):
     """A clickable example request. A frame with a wrapping label, not a button: button text never
-    wraps, so a long example was cut off in a narrow dock."""
+    wraps, so a long example would be cut off in a narrow dock."""
 
     chosen = pyqtSignal(str)
 
@@ -139,7 +139,7 @@ class WelcomeCard(QWidget):
         self.saved.setVisible(True)
 
     def prepare_arrival(self) -> None:
-        """Wait unseen until `arrive` (the old conversation is still leaving)."""
+        """Wait unseen until `arrive` (what the feed showed is still leaving)."""
         self._arrival = transitions.Arrival(self, self._saved_rect)
 
     def arrive(self) -> None:

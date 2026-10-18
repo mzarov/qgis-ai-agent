@@ -2,14 +2,13 @@
 
 The activity list and a reasoning block open the same way: the chevron turns a
 quarter circle and the body grows from nothing to its full height (or shrinks
-back) on the handoff's curve. The body is a `ClipBox`: its content keeps its
+back) on the settle curve. The body is a `ClipBox`: its content keeps its
 full height and the box only shows as much of it as the fold allows — a layout
-given less room squeezed the rows mid-fold until they overlapped, and the user
-saw the list jump. Every frame lays out the containers above the body at once:
-Qt passes a size change up one parent per round of posted events, and a frame
-painted between rounds showed the body grown inside parents that had not — the
-fold stalled a frame or two, then jumped. Off screen, or asked to, the change is
-immediate. The animations belong to their widgets and tick bound methods, so a
+given less room squeezes the rows mid-fold until they overlap. Every frame lays
+out the containers above the body at once: Qt passes a size change up one
+parent per round of posted events, and a frame painted between rounds shows the
+body grown inside parents that have not, so the fold stalls, then jumps. Off
+screen, or asked to, the change is immediate. The animations belong to their widgets and tick bound methods, so a
 widget deleted mid-fold takes its ticks with it.
 """
 
@@ -26,7 +25,7 @@ from ai_agent.ui.transitions import animation
 
 FOLD_MS = 220
 TURN_MS = 160
-# The handoff's settle curve, as the transitions use it.
+# The settle curve the transitions use.
 EASING = (0.2, 0.7, 0.3, 1.0)
 OPEN_DEGREES = 90.0
 # QWIDGETSIZE_MAX: no maximum height, once a body is open.
@@ -177,8 +176,8 @@ def lay_out_above(widget: QWidget) -> None:
     while parent is not None and not parent.isWindow():
         viewport = _scroll_viewport(parent)
         if viewport is not None:
-            # The area sizes its content first: laid out in its old height, the feed squeezed
-            # every message below for a moment, and each one laid its text out twice.
+            # The area sizes its content first: laid out in its old height, the feed would squeeze
+            # every message below for a moment, and each one would lay its text out twice.
             QCoreApplication.sendEvent(viewport, QEvent(QEvent.Type.LayoutRequest))
         if isinstance(parent, ClipBox):
             parent.follow()

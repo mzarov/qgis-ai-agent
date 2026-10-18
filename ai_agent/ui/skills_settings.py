@@ -1,4 +1,4 @@
-"""The Skills page, after the design handoff.
+"""The Skills page.
 
 Your skills first, in a card: the book, `/name`, what it does, Edit to open its
 SKILL.md; drafts still holding the example text carry a badge. The folder path
