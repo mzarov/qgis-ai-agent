@@ -25,16 +25,6 @@ class OpenViewTest(unittest.TestCase):
         self.assertEqual(seen, ["Рельеф"])
         self.assertEqual(result["view"], "Рельеф")
 
-    def test_an_argumentless_api_is_survived(self):
-        calls = []
-
-        def opener():
-            calls.append(True)
-
-        self._patch(opener)
-        Open3dViewTool().execute({})
-        self.assertEqual(calls, [True])
-
     def test_summary_never_raises(self):
         self.assertTrue(Open3dViewTool().summarize_call({}).strip())
 

@@ -142,8 +142,6 @@ ORS = {
     "downloads": 415495,
     "experimental": False,
     "deprecated": False,
-    "trusted": True,
-    "homepage": "",
     "download_url": "https://plugins.qgis.org/plugins/ORStools/version/2.2.0/download/",
 }
 QNEAT = {

@@ -37,10 +37,7 @@ class Open3dViewTool(BaseTool):
         opener = _find_opener()
         if opener is None:
             raise ValueError(NOT_SUPPORTED)
-        try:
-            opener(name)
-        except TypeError:
-            opener()
+        opener(name)
         return {"view": name, "note": "Terrain and camera are adjusted through run_python."}
 
 
@@ -49,8 +46,5 @@ def _find_opener() -> Any:
         from qgis.utils import iface
     except Exception:
         return None
-    for attribute in ("createNewMapCanvas3D", "createNew3DMapCanvas", "createNewMapCanvas3d"):
-        opener = getattr(iface, attribute, None)
-        if callable(opener):
-            return opener
-    return None
+    opener = getattr(iface, "createNewMapCanvas3D", None)
+    return opener if callable(opener) else None
