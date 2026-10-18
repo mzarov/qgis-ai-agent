@@ -5,6 +5,7 @@ from qgis.core import Qgis
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.context.project import layer_choices
 from ai_agent.core.llm.client import is_local
+from ai_agent.core.llm.dialects import safe_endpoint_label
 from ai_agent.core.llm.retry import RetryNotice
 from ai_agent.core.local_skills import register_local_skills
 from ai_agent.core.orchestrator import attaching
@@ -26,7 +27,6 @@ from ai_agent.core.orchestrator.rewind import Checkpoint, RewindMixin
 from ai_agent.core.orchestrator.run_events import RunEventsMixin
 from ai_agent.core.orchestrator.sessions import SessionsMixin
 from ai_agent.core.orchestrator.slash import available_names, choices, is_known_skill, parse_slash, prompt_for
-from ai_agent.core.privacy import endpoint_label
 from ai_agent.core.settings import (
     get_api_url,
     get_data_sharing_consent,
@@ -285,7 +285,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         url = (endpoint if endpoint is not None else get_api_url() or "").strip()
         if not url or is_local(url) or get_data_sharing_consent(url):
             return True
-        if not self.dock_widget.confirm_data_sharing(endpoint_label(url)):
+        if not self.dock_widget.confirm_data_sharing(safe_endpoint_label(url)):
             self.dock_widget.add_system_message(DATA_SHARING_DECLINED)
             return False
         set_data_sharing_consent(True, url)

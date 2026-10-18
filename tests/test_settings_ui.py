@@ -581,7 +581,6 @@ class ClosingDuringAProbeTest(unittest.TestCase):
             mock.patch.object(settings_advanced, "reset_preferences"),
         ):
             settings_advanced.reset_settings(self.dialog)
-        self.assertTrue(self.dialog.was_reset)
         self.assertTrue(self.probe.cancelled)
         self.assertIsNone(self.dialog.closed_with, "the window outlived the probe's thread")
         self._probe_stops()

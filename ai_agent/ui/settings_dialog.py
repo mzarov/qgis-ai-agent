@@ -105,7 +105,6 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         self.chosen_prompt = ""
         # What happened here that the plugin acts on once the dialog closes.
         self.history_erased = False
-        self.was_reset = False
         palette = self.palette()
         self._palette = palette
         self._built_pages: dict[int, Any] = {}

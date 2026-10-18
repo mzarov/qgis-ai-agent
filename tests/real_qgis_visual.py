@@ -512,7 +512,7 @@ class ComposerScreens(ScreenCase):
         toolbar.modes.open_above(frame, "ask")
         try:
             # Lit, not checked: the current mode is the row with the fill, and the menu is as wide as its text.
-            lit = [row.key for row in toolbar.modes.rows if row.lit]
+            lit = [row.key for row in toolbar.modes.rows if row._look and row._look[0]]
             self.assertEqual(lit, ["ask"])
             self.assertLess(toolbar.modes.width(), frame.width())
             self.check("mode_menu", toolbar.modes)

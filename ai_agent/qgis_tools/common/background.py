@@ -16,10 +16,6 @@ from qgis.PyQt.QtCore import QObject, QTimer, pyqtSignal
 
 LOG_TAG = "AI Agent"
 STOPPED = "Stopped before it finished; nothing of this step was kept."
-TIMED_OUT = (
-    "The step ran past the {seconds} s tool timeout and was stopped. Try a smaller extent or fewer "
-    "features; the user can raise the limit in Settings → Advanced."
-)
 MS_IN_SECOND = 1000
 # Every work whose task still runs: QGIS holds only references to its context and feedback,
 # so nothing of it may be collected before the task ends, whoever stopped listening.
@@ -41,7 +37,7 @@ class Background(QObject):
     counted = pyqtSignal(int)
     finished = pyqtSignal(object)
 
-    def __init__(self, seconds: float | None, timeout_message: str = TIMED_OUT) -> None:
+    def __init__(self, seconds: float | None = None, timeout_message: str = "") -> None:
         super().__init__()
         self.seconds = seconds
         self._timeout_message = timeout_message
@@ -108,8 +104,8 @@ class InTask(Background):
 
     `work` gets a feedback it should pass on to what it calls (QgsBlockingNetworkRequest
     takes one) and must touch nothing but its arguments and thread-safe QGIS classes.
-    With `seconds` None the work has no limit of its own: a download keeps the
-    network's timeout, as on the main thread.
+    The work has no limit of its own: a download keeps the network's timeout, as on
+    the main thread.
     """
 
     def __init__(
@@ -117,9 +113,8 @@ class InTask(Background):
         description: str,
         work: Callable[[QgsFeedback], Any],
         complete: Callable[[Any], dict[str, Any]],
-        seconds: float | None = None,
     ) -> None:
-        super().__init__(seconds)
+        super().__init__()
         self._description = description
         self._work = work
         self._complete = complete

@@ -84,10 +84,6 @@ class ProgressLine(QWidget):
         self._timer.timeout.connect(self._tick)
         self.hide()
 
-    @property
-    def step_text(self) -> str:
-        return self._step.text()
-
     def begin(self) -> None:
         """The user set work going: the time on the line counts from here, across its phases."""
         self._started = time.monotonic()

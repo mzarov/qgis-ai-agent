@@ -43,7 +43,6 @@ class ChoiceRow(controls.RoundedFrame):
     def __init__(self, choice: Choice, number: int, palette: Any, parent: QWidget | None = None, wrap: bool = False):
         super().__init__(ROW_RADIUS, parent)
         self.key = choice.key
-        self.lit = False
         self._fill = style.card(palette).name()
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         line = QHBoxLayout(self)
@@ -74,7 +73,6 @@ class ChoiceRow(controls.RoundedFrame):
         line.addWidget(self.number, 0, Qt.AlignmentFlag.AlignTop)
 
     def set_highlighted(self, highlighted: bool) -> None:
-        self.lit = highlighted
         self.set_look(self._fill if highlighted else None, None)
 
     def mouseReleaseEvent(self, event: Any) -> None:

@@ -19,8 +19,7 @@ from ai_agent.config import limits
 from ai_agent.core import history
 from ai_agent.core.llm import extra_headers
 from ai_agent.core.llm.client import is_local
-from ai_agent.core.llm.dialects import ANTHROPIC, AUTO, OPENAI
-from ai_agent.core.privacy import endpoint_label
+from ai_agent.core.llm.dialects import ANTHROPIC, AUTO, OPENAI, safe_endpoint_label
 from ai_agent.core.settings import (
     AUTH_TYPE_BEARER,
     AUTH_TYPE_OAUTH,
@@ -312,7 +311,6 @@ def reset_settings(owner: Any) -> None:
     if QMessageBox.question(owner, RESET_LABEL, RESET_QUESTION) != QMessageBox.StandardButton.Yes:
         return
     reset_preferences()
-    owner.was_reset = True
     owner.accept()
 
 
@@ -354,7 +352,7 @@ class PrivacyStatus(controls.RoundedFrame):
         if glyph is not None:
             self._shield.setPixmap(glyph.pixmap(SHIELD, SHIELD))
         self.title.setText(LOCAL_TITLE if local else REMOTE_TITLE)
-        self.detail.setText((LOCAL_DETAIL if local else REMOTE_DETAIL).format(endpoint_label(url)))
+        self.detail.setText((LOCAL_DETAIL if local else REMOTE_DETAIL).format(safe_endpoint_label(url)))
 
 
 def _folder(path: str, palette: Any) -> QWidget:

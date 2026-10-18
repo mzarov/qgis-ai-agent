@@ -592,7 +592,7 @@ class StatusLineTest(unittest.TestCase):
     def test_working_shows_the_searching_compass(self):
         self.line.start()
         self.assertFalse(self.line.isHidden())
-        self.assertEqual(self.line.step_text, self.progress.WORKING)
+        self.assertEqual(self.line._step.text(), self.progress.WORKING)
         self.assertEqual(self.line.compass.state, self.compass.SEARCH)
 
     def test_a_plain_stop_hides_the_line(self):
@@ -605,19 +605,19 @@ class StatusLineTest(unittest.TestCase):
         self.line.show_outcome(self.progress.STATUS_WAITING)
         self.line.stop()
         self.assertFalse(self.line.isHidden())
-        self.assertEqual(self.line.step_text, self.progress.WAITING)
+        self.assertEqual(self.line._step.text(), self.progress.WAITING)
         self.assertEqual(self.line.compass.state, self.compass.ASK)
 
     def test_done_says_how_long_it_took(self):
         self.line.start()
         self.line.show_outcome(self.progress.STATUS_DONE)
-        self.assertEqual(self.line.step_text, self.progress.DONE_IN.format("0 s"))
+        self.assertEqual(self.line._step.text(), self.progress.DONE_IN.format("0 s"))
         self.assertEqual(self.line.compass.state, self.compass.DONE)
 
     def test_a_failure_shakes_the_needle(self):
         self.line.start()
         self.line.show_outcome(self.progress.STATUS_FAILED)
-        self.assertEqual(self.line.step_text, self.progress.FAILED)
+        self.assertEqual(self.line._step.text(), self.progress.FAILED)
         self.assertEqual(self.line.compass.state, self.compass.ERROR)
 
     def test_a_retry_counts_down_and_then_says_it_is_retrying(self):
@@ -625,18 +625,18 @@ class StatusLineTest(unittest.TestCase):
         with mock.patch.object(self.progress.time, "monotonic", lambda: clock[0]):
             self.line.start()
             self.line.show_retry(14.0, 2, 5, True)
-            self.assertEqual(self.line.step_text, self.progress.RETRY_BUSY.format("14 s", 2, 5))
+            self.assertEqual(self.line._step.text(), self.progress.RETRY_BUSY.format("14 s", 2, 5))
             clock[0] += 4.5
             self.line._tick()
-            self.assertEqual(self.line.step_text, self.progress.RETRY_BUSY.format("10 s", 2, 5))
+            self.assertEqual(self.line._step.text(), self.progress.RETRY_BUSY.format("10 s", 2, 5))
             clock[0] += 10.0
             self.line._tick()
-            self.assertEqual(self.line.step_text, self.progress.RETRYING.format(2, 5))
+            self.assertEqual(self.line._step.text(), self.progress.RETRYING.format(2, 5))
 
     def test_a_failed_request_is_not_called_a_busy_model(self):
         self.line.start()
         self.line.show_retry(4.0, 3, 3, False)
-        self.assertEqual(self.line.step_text, self.progress.RETRY_FAILED.format("4 s", 3, 3))
+        self.assertEqual(self.line._step.text(), self.progress.RETRY_FAILED.format("4 s", 3, 3))
 
     def test_whatever_reaches_the_feed_ends_the_retry_note(self):
         for arrive in (
@@ -649,15 +649,15 @@ class StatusLineTest(unittest.TestCase):
             self.line.start()
             self.line.show_retry(14.0, 2, 5, True)
             arrive()
-            self.assertEqual(self.line.step_text, self.progress.WORKING)
+            self.assertEqual(self.line._step.text(), self.progress.WORKING)
             self.line._tick()
-            self.assertEqual(self.line.step_text, self.progress.WORKING)
+            self.assertEqual(self.line._step.text(), self.progress.WORKING)
 
     def test_a_late_retry_does_not_overwrite_an_outcome(self):
         self.line.start()
         self.line.show_outcome(self.progress.STATUS_FAILED)
         self.line.show_retry(14.0, 2, 5, True)
-        self.assertEqual(self.line.step_text, self.progress.FAILED)
+        self.assertEqual(self.line._step.text(), self.progress.FAILED)
 
     def test_another_conversation_drops_the_old_outcome_but_not_a_live_run(self):
         self.line.start()

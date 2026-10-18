@@ -396,8 +396,8 @@ signals (never while `_loading_endpoint` is set); the page gets a dot in the
 sidebar and Save stays a quiet sunken button until something changed. The
 connection probe answers on its own line under the Connection page's fields;
 the footer line is for validation errors. Erasing the history and resetting
-the preferences act at once, after a question, and leave flags the plugin
-reads when the window closes (`history_erased`, `was_reset`).
+the preferences act at once, after a question; erasing leaves a flag the
+plugin reads when the window closes (`history_erased`).
 
 **The accent is the brand's, not the palette highlight.** `style.accent`
 reads the theme's token: on macOS the palette highlight is a muted

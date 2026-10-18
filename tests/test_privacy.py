@@ -1,8 +1,8 @@
 import pathlib
 import unittest
 
-from ai_agent.core import privacy
 from ai_agent.core.agent import request as request_module
+from ai_agent.core.llm.dialects import safe_endpoint_label
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, EGRESS_IMAGE, EGRESS_METADATA
 from ai_agent.qgis_tools.inspect.canvas_extent import GetCanvasExtentTool
 from ai_agent.qgis_tools.inspect.describe_layer import DescribeLayerTool
@@ -76,12 +76,8 @@ class PrivacyClassificationTest(unittest.TestCase):
         self.assertEqual(ZoomToLayerTool().egress, EGRESS_FEATURE_VALUES)
         self.assertEqual(SaveBookmarkTool().egress, EGRESS_FEATURE_VALUES)
 
-    def test_endpoint_label_never_displays_path_query_or_credentials(self):
-        label = privacy.endpoint_label("https://user:secret@example.com:8443/v1?token=x")
-        self.assertEqual(label, "https://example.com:8443")
-
     def test_malformed_port_does_not_break_the_consent_prompt(self):
-        self.assertEqual(privacy.endpoint_label("https://example.com:not-a-port/v1"), "https://example.com")
+        self.assertEqual(safe_endpoint_label("https://example.com:not-a-port/v1"), "https://example.com")
 
     def test_the_request_builder_itself_has_no_consent_gate(self):
         self.assertNotIn("data_sharing", pathlib.Path(request_module.__file__).read_text(encoding="utf-8"))

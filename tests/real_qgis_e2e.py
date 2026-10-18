@@ -149,8 +149,8 @@ class StyleScenario(ScenarioCase):
         self.assertIn("Message from the plugin", self.model.sent_text(4))
         self.assertEqual(self.answers()[-1], "Checked: districts is coloured in 5 classes.")
         self.assertTrue(
-            self.dock.progress.step_text.endswith(" · Layer “districts” redrawn"),
-            f"the status line does not say what the apply changed: {self.dock.progress.step_text!r}",
+            self.dock.progress._step.text().endswith(" · Layer “districts” redrawn"),
+            f"the status line does not say what the apply changed: {self.dock.progress._step.text()!r}",
         )
         # The live-model token report reads these counters: the verification run's two requests.
         expected = {"prompt_tokens": 2 * USAGE["prompt_tokens"], "completion_tokens": 2 * USAGE["completion_tokens"]}
@@ -562,7 +562,7 @@ class RetryScenario(ScenarioCase):
 
         def spy(*args: Any) -> None:
             announce(*args)
-            said.append(line.step_text)
+            said.append(line._step.text())
 
         line.show_retry = spy
         self.model.script(fail(429, "model deepseek-v4-flash is overloaded"), say("Two layers."))
