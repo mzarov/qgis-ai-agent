@@ -120,8 +120,8 @@ These need a real provider, a real network service or a person's eye.
    Reasoning on answers two tool-using questions in one conversation without
    a 400 about `reasoning_content`.
 3. **Russian QGIS.** Switch the QGIS interface to Russian and restart. The
-   panel, the settings and the plan card are in Russian, with correct plurals
-   (1 шаг, 2 шага, 5 шагов). German falls back to English. The agent answers
+   panel, the settings and the plan card are in Russian, with the right plural
+   forms for 1, 2 and 5 steps. German falls back to English. The agent answers
    in the language you write in.
 4. **Themes.** In a light and a dark QGIS, and with the *Light* panel theme in
    a dark QGIS, the panel, the settings, the `@` and `/` lists, the menus and
