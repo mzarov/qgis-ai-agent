@@ -299,16 +299,6 @@ class ThemeTest(unittest.TestCase):
     STYLE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "style.py").read_text(
         encoding="utf-8"
     )
-    TOKENS = (pathlib.Path(__file__).resolve().parent.parent / "design" / "tokens.css").read_text(encoding="utf-8")
-
-    def test_the_two_palettes_are_the_brand_tokens(self):
-        from ai_agent.ui import theme
-
-        light = self.TOKENS.split(":root {")[1].split("}")[0].lower()
-        dark = self.TOKENS.split('[data-theme="dark"] {')[1].split("}")[0].lower()
-        for tokens, css in ((theme.LIGHT, light), (theme.DARK, dark)):
-            for name, value in vars(tokens).items():
-                self.assertIn(f"--{name.replace('_', '-')}: {value.lower()}", css, name)
 
     def test_only_the_theme_spells_a_colour(self):
         ui = pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui"

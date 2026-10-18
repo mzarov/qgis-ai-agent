@@ -11,16 +11,14 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 3. **No Qt Designer.** Widgets and layouts are built in code; there are no
    `.ui` files.
 4. **Colours come from `theme.py`, the brand's tokens.** Two sets, light and
-   dark, with the exact hex values of `design/tokens.css` — cartographic blue
-   on cool neutrals, from the design handoff (`tests/test_settings_ui.py`
-   checks they match). The user's panel theme (Personalisation: as QGIS,
-   light, dark) overrides the palette's vote through `theme.set_override`.
+   dark — cartographic blue on cool neutrals. The user's panel theme
+   (Personalisation: as QGIS, light, dark) overrides the palette's vote
+   through `theme.set_override`.
    Top-level windows — the dock, the settings dialog, every popup — call
    `style.apply_palette` first thing, so stock widgets inside follow the
    theme rather than QGIS. A widget with a style sheet freezes the palette it
    was polished with, and a container with one resets its whole subtree to
-   QGIS's palette (the composer's popup once showed white names on white in a
-   dark QGIS); a QGIS UI theme's `QLabel { color }` rule outranks any palette.
+   QGIS's palette; a QGIS UI theme's `QLabel { color }` rule outranks any palette.
    So `style.ink` puts a label's colour in its own style sheet too, editors
    carry `color` in theirs (`style.field_inks` for the placeholder), a
    container's look is painted (`RoundedFrame`, never a style sheet), and
@@ -30,20 +28,19 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
    `ui_snapshot.unreadable_text` fails any label whose ink nobody could see. The QGIS palette only
    decides which set applies, by its lightness, so the plugin follows the
    light and the dark theme. It is deliberately not limited to the QGIS
-   colours (the user's call: the plugin must look good, and palette-derived
-   colours looked dull — on macOS the palette highlight is a muted navy).
+   colours: palette-derived colours look dull (on macOS the palette highlight
+   is a muted navy).
    No other module spells a colour: widgets ask `style` for a role (`panel`,
-   `hairline`, `muted`, `accent`…). The header icons are drawn in `icons.py`
-   with a pen from `style`, not taken from `QgsApplication.getThemeIcon`: the
-   stock icons are colourful toolbar art and look like mismatched stickers in
+   `hairline`, `muted`, `accent`…). The header icons come from `icons.py`,
+   tinted with a colour from `style`, not from `QgsApplication.getThemeIcon`:
+   the stock icons are colourful toolbar art and look like mismatched stickers in
    a compact header.
 5. **Enum compatibility.** Qt5 and Qt6 hold enums differently. Paths like
    `Qt.DockWidgetArea.RightDockWidgetArea` do not exist on Qt5 — wrap them in
    `getattr` with a fallback, as done in `plugin.py`.
 6. **Never show a widget before it has a parent.** `setVisible(True)` on a
-   parentless widget makes it a window of its own, a native one on macOS:
-   thirty hint labels once did, and making those windows was most of the
-   second the settings took to open. Add it to its layout first, then set its
+   parentless widget makes it a window of its own, a native one on macOS, and
+   making such windows is slow. Add it to its layout first, then set its
    visibility. `e2e_harness.WindowSpy` fails any real-QGIS scenario that
    shows one.
 
@@ -57,14 +54,14 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `messages.py`     | the user message, the agent reply, the service message (an error in the danger colour) |
 | `activity.py`     | the work trace: a fold header ("Working · step N", then "Activity · N steps" and the time; a check after Apply is "Changes checked · N steps") over a timeline of calls, reasoning and the user's choice |
 | `thinking.py`     | a reasoning row's content: "Thinking"/"Thought" with its time, opening a sunken box with the text |
-| `folding.py`      | the feed's folding: a chevron that turns, a body that opens to its height on the handoff's curve |
+| `folding.py`      | the feed's folding: a chevron that turns, a body that opens to its height on the settle curve |
 | `plan.py`         | the plan card: numbered steps with their kind, Apply and Cancel inside, a long step's thin bar (its percent, or a sweep and the bytes so far while the size is unknown), the outcome with the time and Undo |
 | `welcome.py`      | the empty conversation: the arriving compass, the deal in one sentence, the open project, four examples |
 | `transitions.py`  | the feed's transitions: what leaves is a snapshot that fades and rises, what arrives fades in and settles from below (`Arrival`) |
 | `confirmations.py` | the modal questions: share data with a provider, run destructive steps |
 | `durations.py`    | `3.4 s`, `2 min 5 s` — one formatter for the feed and the settings |
 | `sizes.py`        | `840 KB`, `2.4 MB` — the same for sizes |
-| `composer.py`     | the input box after the handoff: context chips, the text (two lines at least), the row of controls inside; Enter sends, Esc stops a run, Ctrl+N starts over; `/` and `@` open the popup |
+| `composer.py`     | the input box: context chips, the text (two lines at least), the row of controls inside; Enter sends, Esc stops a run, Ctrl+N starts over; `/` and `@` open the popup |
 | `composer_parts.py` | the editor, `/skill` and `@layer` parsing, token highlighting, the modes |
 | `composer_controls.py` | the box's bottom row: + (add to context), the mode button, the model's name (said, not a button), the context ring, the round send/stop button |
 | `layer_chip.py`   | the active layer as a chip above the text, × leaves it out until another layer is active |
@@ -82,7 +79,7 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `compass.py`      | the brand mark: open-ring compass painted on a 24-unit grid; needle rotation per state (rest, search, done, error, ask, arrive), keyframed with per-segment easing |
 | `controls.py`     | custom controls: `Segmented` keeps the combo-box API, `Chips`, `RoundedFrame` (every state-dependent box), `HoverFrame` (a lit row that clicks), `ThinBar` (a 2 px fraction or a sweep), glyphs, icon buttons and tiles, badges, keycaps, `ElidedLabel`, menus |
 | `connection_widgets.py` | provider tiles (Local, Cloud · key, Any compatible server) and the connection test's line |
-| `choice_tiles.py` | exclusive choices as tiles after the handoff: logo, name, a quiet line, a radio; the grid fills its width |
+| `choice_tiles.py` | exclusive choices as tiles: logo, name, a quiet line, a radio; the grid fills its width |
 | `settings_search.py` | the sidebar's Find a setting: matching rows of every page in place of the page list |
 | `logos.py`        | provider logos from `ui/logos/*.svg`, tinted to the theme's text colour |
 | `skill_popup.py`  | the list above the composer: prefix-then-substring ranking, keyboard steering, `local` badge |
@@ -92,9 +89,9 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `personalisation_settings.py` | the Personalisation page: talking, appearance, the conversation, about you, instructions, memory; stores `config/personal` on Save |
 | `memory_settings.py` | the Memory section: the user's notes, add and remove, stored on Save |
 | `skills_settings.py` | the Skills page: your skills (Edit, the folder, Create) and the built-in ones with a switch each, searchable |
-| `theme.py`        | the brand's light and dark colour tokens (`design/tokens.css`); the only module that spells a colour |
+| `theme.py`        | the brand's light and dark colour tokens; the only module that spells a colour |
 | `style.py`        | colour roles read from `theme`, `fill()` and `ink()` through the palette, `scale_font()` |
-| `icons.py`        | header, settings-nav, brand and layer icons: drawn with a palette pen, one stroke weight |
+| `icons.py`        | the interface icons: Lucide outlines tinted to the caller's colour, one stroke weight |
 | `settings_dialog.py` | the settings window: state, dirty tracking, saving |
 | `settings_probe.py` | the connection test: start, cancel, report, close only once stopped |
 | `settings_layout.py` | the sidebar (search, groups, counts, the versions at its foot), the page stack, per-page scrolling, pages built on their first visit |
@@ -126,20 +123,20 @@ circle when pressed. Icon buttons are painted (`IconButton`), not styled.
 
 Every popup menu comes from `controls.menu`: frameless and translucent (so
 the rounded corners are not drawn over a square system frame), a strong
-hairline edge, 30 px rows and a quiet highlight, as in the handoff. The
-custom popups (history, modes, context) take the same window through
-`controls.as_popup`. Every one drops in on show: 4 px from above, fading in,
-140 ms (`transitions.DropIn`); the window moves, not a snapshot of it. Group
-captions are `controls.caption` (small, bold, upper case through the font,
-so translations stay plain text); a menu takes one with `menu_caption`.
-Menus open where there is room: the history left-aligned under the title,
-the composer's + menu and the mode menu upwards. A right-hand note in a menu
-row (*Layer…* 6, *Skill…* /) is the text after a tab, which QMenu sets in its
-shortcut column without binding a shortcut.
+hairline edge, 30 px rows and a quiet highlight. The custom popups (history,
+modes, context) take the same window through `controls.as_popup`. Every one
+drops in on show: 4 px from above, fading in, 140 ms (`transitions.DropIn`);
+the window moves, not a snapshot of it. Group captions are `controls.caption`
+(small, bold, upper case through the font, so translations stay plain text);
+a menu takes one with `menu_caption`. Menus open where there is room: the
+history left-aligned under the title, the composer's + menu and the mode menu
+upwards. A right-hand note in a menu row (*Layer…* 6, *Skill…* /) is the text
+after a tab, which QMenu sets in its shortcut column without binding a
+shortcut.
 
 Welcome suggestions are `Suggestion` frames with a wrapping label, not
-buttons: button text never wraps, and a long example was cut off in a narrow
-dock. Examples name no local place; the one city named is Paris, which every
+buttons: button text never wraps, and a long example would be cut off in a
+narrow dock. Examples name no local place; the one city named is Paris, which every
 user knows.
 
 ## The agent reply is markdown
@@ -184,54 +181,51 @@ minute of thought would be a lie.
 
 ## The empty state fills the panel
 
-`WelcomeCard` has **no wrapping frame**. A card pinned to the top left two
-thirds of the panel as a void; stretching that same card to full height only
-turned the void into a huge empty box — worse, because a border draws attention
-to the emptiness it encloses. What works is the opposite: no container at all,
-and the suggestions themselves are the blocks. The group is centred vertically
-in the free space, so the balance is deliberate rather than leftover.
+`WelcomeCard` has **no wrapping frame**: a border draws attention to the
+emptiness it encloses, so the suggestions themselves are the blocks. The group
+is centred vertically in the free space.
 
 Under the deal sits one quiet line naming the open project (file, layer count,
 CRS), elided when long. It changes in place: rebuilding the card would replay
 the compass's arrival on every settings save.
 
-The feed's trailing stretch is what fought the centring — it exists to push
-messages upwards. While the welcome is shown that stretch drops to zero and the
+The feed's trailing stretch pushes messages upwards and would fight the
+centring. While the welcome is shown that stretch drops to zero and the
 card carries it instead; `_drop_welcome` hands it back. Both halves live in one
 pair of methods so the two states cannot drift apart.
 
 ## The feed is flat lines, frames mean a decision
 
-The activity list is a timeline, after the design handoff. Its header
-(`TraceHeader`, clickable as a whole) is the timeline's first node: its chevron
-sits in the glyph column and turns as the list opens or closes, and its title —
-"Working · step N" while the agent works, "Activity · N steps" with the turn's
-time once it moves on, never a row repeated — stands level with the steps' text.
+The activity list is a timeline. Its header (`TraceHeader`, clickable as a
+whole) is the timeline's first node: its chevron sits in the glyph column and
+turns as the list opens or closes, and its title — "Working · step N" while the
+agent works, "Activity · N steps" with the turn's time once it moves on, never
+a row repeated — stands level with the steps' text.
 Rows sit **open, without a frame**, one per call: the skill's icon (the skill is
 the `CallSummary.skill` the registry sets; reading wears the layers, Processing
-a square with a play mark, as the handoff draws them) in the fixed glyph column,
-the wording muted with the call's own values bright, and under it the tool's
+a square with a play mark) in the fixed glyph column, the wording muted with
+the call's own values bright, and under it the tool's
 `summarize_result` line — what the call found. One hairline joins the nodes; the
 group draws it from each glyph's `mark` (where its drawing sits), stopping
 `LINE_GAP` short of every glyph whatever its size, so dots, rings and icons get
 the same gap. Opening and closing animate (`folding.ClipBox`), and every frame
 lays out the containers above the body at once (`folding.lay_out_above`):
-left to Qt's posted layout requests, a paint landed between two parents and
-the fold stalled, then jumped. A skill being
-loaded or the plan moving on settles at once — such a step is over as it is
-drawn, and left pending it pulsed forever. The running call is a breathing accent ring
+left to Qt's posted layout requests, a paint lands between two parents and
+the fold stalls, then jumps. A skill being loaded or the plan moving on settles
+at once — such a step is over as it is drawn, and left pending it would pulse
+forever. The running call is a breathing accent ring
 (`PulseRing`); it stops when the call ends, and the screen checks stop it
 before a grab. Reasoning is a row with three dots holding the `ThinkingBlock`;
 a loaded skill reads "Using …" with a `skill` tag; the answer picked on a
 question card stays in the trace as "You chose …". When the answer arrives the
 list folds to its header. A turn that only reasoned has no header: its row
 stays, folded to "Thought ›" by the block itself. Row text keeps the inherited font: a scaled font set
-before the row joins the feed is computed from the application font and came
+before the row joins the feed is computed from the application font and comes
 out smaller. Success carries no mark — only a failed or rejected call shows
 one, in the danger colour, and the header counts failures. The status line
 below does not repeat the current call, which the open list already names.
 
-Boxing every turn made the feed read as a wall of cards. A frame with a fill is
+Boxing every turn makes the feed read as a wall of cards. A frame with a fill is
 reserved for the one thing that asks the user to act: the plan card. If a new
 element wants a frame, the question to ask is "does it hold buttons?" — if not,
 it is a line or an open list.
@@ -260,7 +254,7 @@ While the plan applies, each step shows its progress at the end of its line
 shows "64 %" there and a 2 px bar under its words) and a failed step its reason under
 it, in plain words (`core/agent/failures.explain_failure`); the model keeps the
 exact English error. Apply-phase tool events go to the card, not to feed rows,
-which only repeated its lines.
+which would only repeat its lines.
 
 The header names the layer the steps work on, on the right, when they name
 one (`planning.plan_layer`). A cancelled card offers **Restore plan** until
@@ -276,10 +270,9 @@ about data sources. A pruned snapshot answers that the plan can no longer be
 undone. A cancelled card fades instead of shouting.
 
 The Apply and Cancel buttons live inside `PlanCard`, not as a separate row at
-the bottom of the panel. The card emits signals upwards; the dock re-emits them
-under the same names as before. After applying or cancelling the buttons
-disappear and the title shows the outcome — the conversation history stays
-honest.
+the bottom of the panel. The card emits signals upwards; the dock re-emits
+them. After applying or cancelling the buttons disappear and the title shows
+the outcome — the conversation history stays honest.
 
 ## One button for send and stop
 
@@ -304,21 +297,20 @@ layer list opens as if typed), *Skill…* types / into an empty box or opens the
 list over typed text, and a chosen skill then goes first with the text kept
 after it. The model's name sits in the row as quiet monospace — said, never
 offered: no hover, no chevron, no click, as choosing a model belongs to the
-settings (the user's call). Modes are one word each, as in Claude Code — the
-note under each says the rest. Ctrl+N belongs to the box
-only while it has the focus (`ShortcutOverride`), so elsewhere QGIS keeps it
-for a new project.
+settings. Modes are one word each, as in Claude Code — the note under each
+says the rest. Ctrl+N belongs to the box only while it has the focus
+(`ShortcutOverride`), so elsewhere QGIS keeps it for a new project.
 
 ## The feed's transitions
 
-Starting a new conversation plays the handoff's sequence. The plus turns half a
-circle (400 ms); the old conversation fades and rises 8 px (200 ms, ease-in);
+Starting a new conversation plays a sequence. The plus turns half a circle
+(400 ms); the old conversation fades and rises 8 px (200 ms, ease-in);
 then the welcome fades in and settles from 10 px below (320 ms,
 cubic-bezier(.2,.7,.3,1)), the line about the saved conversation 120 ms behind,
-while the compass arrives. The same rise plays the other way in (the user's
-call): the first message on the welcome lifts the welcome away and the chat
-rises in, and a conversation opened from the history replaces what was shown
-the same way (opening the one already open does nothing).
+while the compass arrives. The same rise plays the other way in: the first
+message on the welcome lifts the welcome away and the chat rises in, and a
+conversation opened from the history replaces what was shown the same way
+(opening the one already open does nothing).
 
 The feed changes synchronously, so what leaves is a snapshot (`LeavingFeed`)
 over the viewport, taken just before the change: the dock takes it in
@@ -343,7 +335,7 @@ a link that opens it (`note_conversation_saved`).
 
 ## The settings window
 
-**A sidebar over a page stack, after the design handoff.** *Find a setting* on
+**A sidebar over a page stack.** *Find a setting* on
 top, then seven entries in three groups — Model (Connection, Privacy,
 Advanced), Customize (Personalisation, Skills), Data (Connectors, Geocoding) —
 with small upper-case captions, the number of usable skills beside Skills, and
@@ -353,8 +345,7 @@ horizontal one and carries a green or amber dot with the saved state. The
 chosen entry is a lifted pill with a hairline and its icon in the accent. The
 search lists the rows of every page whose title or hint matches (each row the
 grammar builds carries them in `SEARCH_PROPERTY`); a result opens the page with
-the row in view. The handoff replaced the earlier "no search, no page titles"
-choice (the user's call, 2026-10-10).
+the row in view.
 
 **One page and row grammar.** A page opens with its title (18/600) and one
 sentence (`fields.page(title, lead, palette)`); sections are small 12/600
@@ -365,26 +356,24 @@ title (`wide_row`). Numbers with a range are a `Stepper` (− value +), whose
 value column is measured once the window's font reaches it. Uniform control width is what makes the
 pages read as straight columns instead of ragged boxes. `add_rows`
 interleaves hairline separators **between** rows, never after the last one;
-`card_rows` wraps them in a card. Controls that size themselves (segmented
+`card_rows` lays them on the page. Controls that size themselves (segmented
 choices, chips) use `custom_row`.
 
 **Booleans are drawn switches, not native checkboxes.** A stray blue
 checkbox at the end of a wide row reads as debris; a track-and-knob toggle
 reads as a setting. `Switch` subclasses `QCheckBox` — the whole checkbox API
 (`setChecked`, `toggled`, `setEnabled`) keeps working — and only replaces
-`paintEvent`: accent track when on, hairline track when off, `card()` when
-disabled, knob from `highlightedText`. Same approach as the header icons:
-palette-driven `QPainter`, no image assets.
+its painting and size: an accent track with a light knob when on, a sunken
+outlined one when off, faded when disabled. `QPainter`, no image assets.
 
 **Copy is short.** Every hint is one short phrase; a page or section note is
-one sentence. Wordy explanations read as generated filler (the user's word
-was "нейрослоп") — cut them, or move detail to a tooltip.
+one sentence. Wordy explanations read as generated filler — cut them, or move
+detail to a tooltip.
 
-**Hints are visible, one short line under each title.** They used to hide
-behind "?" marks to avoid a wall of text; the user approved the redesign
-(`design/mockups/index.html`) that shows them again, so every hint must stay a
-single short sentence. A longer explanation goes to the row's tooltip
-(`tooltip=` in `fields.row`), never under the title.
+**Hints are visible, one short line under each title**, so every hint must
+stay a single short sentence. A longer explanation goes to the row's tooltip
+(`tooltip=` in `fields.switch_row` and `fields.custom_row`), never under the
+title.
 
 **Choices with a story are tiles.** Providers and geocoders are
 `choice_tiles.ChoiceTile`s: a name, a quiet line under it, a radio on the right,
@@ -396,8 +385,9 @@ Photon and Your own server; the public OSMF Nominatim is refused on purpose
 (`config/geocoder.py`).
 
 **The custom controls keep the combo-box API.** `Segmented` (API format,
-authorisation, geocoder) answers `currentText`, `findText`,
-`setCurrentIndex` and the change signals, so loading and saving did not change.
+authorisation, history keeping, the Personalisation choices) answers
+`currentText`, `findText`, `setCurrentIndex` and the change signals, so loading
+and saving read it like a combo box.
 The provider tiles only draw `preset_combo`, which stays hidden and remains the
 single source of truth: a tile sets the combo, the combo selects the tile.
 
@@ -409,22 +399,16 @@ the footer line is for validation errors. Erasing the history and resetting
 the preferences act at once, after a question, and leave flags the plugin
 reads when the window closes (`history_erased`, `was_reset`).
 
-**The accent is the system accent, not the selection highlight.**
-`style.accent` reads the Qt 6.6+ `Accent` role and falls back to `highlight`.
-On macOS the highlight is the muted text-selection fill (`#314f78` in the dark
-appearance), which made every button and ring look dull. On a dark palette the
-accent is softened towards white and text on it uses `style.on_accent` (the
-dark base), as in the mockup. Dark surfaces get a slight cool tint
-(`style.cool`); the settings sidebar (`style.sidebar`) sits a step above the
-content (`style.content`) and runs the full height, with the footer only under
-the pages. Verify the window inside a real QGIS too: offscreen renders a
-smaller font and the standard palette, and both hid real layout faults.
+**The accent is the brand's, not the palette highlight.** `style.accent`
+reads the theme's token: on macOS the palette highlight is a muted
+text-selection fill that makes every button and ring look dull. Text and
+glyphs on the accent use `style.on_accent`.
 
-**The roles follow the handoff's CSS.** The settings sidebar, the pages and
-the footer are `bg`; cards, tiles and inputs are `surface`; inputs and plain
-buttons take `border-strong`; the selected sidebar entry and hover are
-`surface-2`; the dock and feed backdrop is `bg`. Verify windows inside a real
-QGIS too: offscreen renders a smaller font, which hid real layout faults.
+**The roles.** The settings sidebar, the pages and the footer are `bg`; cards,
+tiles and inputs are `surface`; inputs and plain buttons take `border_strong`;
+the selected sidebar entry and hover are `surface_2`; the dock and feed
+backdrop is `bg`. Verify windows inside a real QGIS too: offscreen renders a
+smaller font and the standard palette, and both can hide real layout faults.
 
 **Pages nobody opens are not built.** Skills, Geocoding, Connectors and
 Personalisation are built on their first visit (`settings_layout.ensure_page`
@@ -435,10 +419,9 @@ built with it. The dialog's `skills`, `geocoder`, `connectors` and
 `personalisation` build their page when asked for.
 
 **Never restyle a container from inside a child's event.** A style sheet on a
-container cascades to every descendant. The composer once changed its frame's
-style sheet in the editor's `focusOutEvent`; Qt swapped the editor's style
-mid-event and QGIS segfaulted in event processing, intermittently and only in
-a full test run. Container backgrounds go through `style.fill` (painted),
+container cascades to every descendant: changed in a child's `focusOutEvent`,
+it makes Qt swap the child's style mid-event, and QGIS segfaults in event
+processing, intermittently. Container backgrounds go through `style.fill` (painted),
 focus and state looks are painted (`controls.RoundedFrame` for the composer,
 provider tiles and popup rows; `Compass`, `PaintedDot`), and a style
 sheet is set only when its text actually changed.
@@ -446,14 +429,11 @@ sheet is set only when its text actually changed.
 **A one-sided style-sheet border never paints.** Qt takes the whole border's
 style from the top edge, so a lone `border-left` on a widget without a
 background counts as the native border: nothing paints, yet the box keeps
-its width.
-The feed's notes carried such a rule and stood 11 px in beside nothing on
-every screen; the handoff draws no rule for them, so they now sit plain in
-the reply's column. An edge that must show is painted.
+its width. An edge that must show is painted.
 
 **Nothing that cannot shrink may sit in a grid.** A pill badge or an unelided
-name in the provider tiles widened the whole page in Russian; tile captions are
-wrapping text and names elide. The screen checks' overflow detector found it.
+name in a tile widens the whole page in Russian; tile captions are wrapping
+text and names elide. The screen checks' overflow detector catches it.
 
 Pages scroll individually (`scrollable()`), with the viewport forced
 transparent so the window surface shows through — a `QScrollArea` left to
@@ -464,7 +444,7 @@ line, the saved/unsaved note and Cancel/Save sit in the footer under a full
 hairline, visible from every page.
 
 The provider
-is picked from a list and fills in the address and the API format; the preset
+tile fills in the address and the API format; the preset
 list lives in `core/llm/providers.py`, because that is knowledge about
 services, not about the interface. The preset does **not** fill in the model —
 it only suggests one as a placeholder: model names change more often than
@@ -473,26 +453,16 @@ addresses, and writing a wrong one is worse than writing none.
 The connection-check result is shown as a line inside the window, not as a
 modal box: the check gets pressed several times in a row, and closing a dialog
 above a dialog every time is torture. Errors are red, success is green, both
-colours come from the palette.
+colours come from the theme.
 
 The connection check lives in `core/llm/probe.py` — it does not belong in ui,
 it is a model call. The dialog receives a “worked, text” pair and only draws it.
 
-**Three depth levels, not one.** The settings dialog first looked flatly dark,
-and the cause was computed, not guessed: under the typical dark QGIS palette
-the window background is ≈49 grey, `card()` gave 39 — the card was **darker**
-than its backdrop and sank — while the input at 35 differed from it by four
-levels out of 255. Hence `panel()`: in the dark theme it lifts the base towards
-white, in the light theme it returns it untouched. The result is 49 → 59 → 35:
-the card stands out, the input is recessed. `card()` remains for the
-conversation feed; its look is already approved.
-
-**Card styling must be bound to an objectName.** `QLabel` inherits `QFrame`, so
-a selector like `QFrame { border: ... }` leaks into the labels inside the card.
-Curing that by stamping `border: none` on containers is wrong: that rule leaks
-further, into the inputs, and their frame disappears — exactly what happened.
-The right way is `QFrame#settingsCard { ... }` plus explicit styles for
-`QLineEdit`/`QComboBox`. The invariant is guarded by
+**Frame styling must be bound to an objectName.** `QLabel` inherits `QFrame`,
+so a selector like `QFrame { border: ... }` leaks into the labels inside the
+frame, and stamping `border: none` on containers leaks further, into the
+inputs, whose frame disappears. Write `QFrame#name { ... }` plus explicit
+styles for `QLineEdit`/`QComboBox`. The invariant is guarded by
 `tests/test_settings_ui.py`.
 
 ## The orchestrator contract
@@ -546,8 +516,8 @@ takes the card out of the feed and out of the saved conversation
 (`drop_failures`); a new request only hides its Retry. A reopened
 conversation shows the card again, without buttons. Every other failure the orchestrator reports — a compaction, a
 restore, an attachment — stays a service line in the danger colour
-(`add_error_message`). Notes stay muted: a grey error read as a remark and
-was missed.
+(`add_error_message`). Notes stay muted; an error does not: a grey error reads
+as a remark and is missed.
 
 ## The brand mark
 
@@ -558,7 +528,7 @@ says how it ended (`ProgressLine.show_outcome`): it tilts slowly while waiting
 for an answer, settles north when done, shakes with a red tip after a failed apply;
 a stop hides the line. The orchestrator names the outcome (`STATUS_*` in
 `notices`), the dock only draws it. The welcome mark plays `arrive` once and
-then rests. Other marks are still pixmaps (`compass.pixmap`).
+then rests. Other marks are `Compass` widgets that never get a state.
 The halo colour must be the colour under the mark, or the needle's cut in the
 ring shows as a stripe.
 

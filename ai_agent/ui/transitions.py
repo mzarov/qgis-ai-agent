@@ -1,4 +1,4 @@
-"""The feed's transitions, after the design handoff's new conversation: what leaves rises, what comes rises in.
+"""The feed's transitions: what leaves rises, what comes rises in.
 
 Whatever the feed showed — a conversation, the welcome — leaves as a snapshot
 laid over the viewport, since the feed itself changes at once: it fades and
@@ -24,7 +24,7 @@ from ai_agent.ui.compass import cubic_bezier
 
 LEAVE_MS = 200
 LEAVE_RISE = 8
-# CSS ease-in, the handoff's curve for the leaving conversation.
+# CSS ease-in, for what leaves.
 LEAVE_EASING = (0.42, 0.0, 1.0, 1.0)
 ARRIVE_MS = 320
 ARRIVE_DROP = 10
@@ -32,7 +32,7 @@ LAG_MS = 120
 ARRIVE_EASING = (0.2, 0.7, 0.3, 1.0)
 MENU_MS = 140
 MENU_DROP = 4
-# CSS ease, the default curve of the handoff's menu animation.
+# CSS ease.
 MENU_EASING = (0.25, 0.1, 0.25, 1.0)
 
 
@@ -52,7 +52,7 @@ def animation(
 
 
 def arrival(elapsed_ms: float, delay_ms: float = 0.0) -> float:
-    """How far an arriving part has come, 0…1 on the handoff's curve, for a part starting `delay_ms` late."""
+    """How far an arriving part has come, 0…1 on the settle curve, for a part starting `delay_ms` late."""
     linear = (elapsed_ms - delay_ms) / ARRIVE_MS
     # Exact at both ends: the curve is solved numerically and would leave a trace of opacity.
     if linear <= 0.0:
@@ -63,7 +63,7 @@ def arrival(elapsed_ms: float, delay_ms: float = 0.0) -> float:
 
 
 class LeavingFeed(QWidget):
-    """A snapshot of the old conversation, fading and rising over the viewport; gone once it is done."""
+    """A snapshot of what the feed showed, fading and rising over the viewport; gone once it is done."""
 
     finished = pyqtSignal()
 

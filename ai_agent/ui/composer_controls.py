@@ -1,12 +1,11 @@
-"""The composer's bottom row, after the design handoff: add context, the mode, the model, send.
+"""The composer's bottom row: add context, the mode, the model, send.
 
 "+" opens the add-to-context menu: a layer (opens the @ list), a file or table,
 a picture, a skill (opens the / list). The mode button — shield, name, chevron —
 opens the mode menu above the whole box. On the right sit the model's name, the
 context ring and the round send button, a stop square while the agent works.
 The name is only said, in quiet monospace, never a button: choosing a model
-belongs to the settings, and a button with a chevron took room for nothing
-(the user's call). Everything else paints its own hover.
+belongs to the settings. Everything else paints its own hover.
 """
 
 from collections.abc import Callable
@@ -62,16 +61,16 @@ SKILL_KEY = "/"
 
 
 class MenuButton(PaintedButton):
-    """A flat button that opens a menu: an optional leading glyph, its text elided, a chevron after it."""
+    """A flat button that opens a menu: a leading glyph, its text elided, a chevron after it."""
 
-    def __init__(self, palette: Any, lead: str = "", parent: QWidget | None = None):
+    def __init__(self, palette: Any, lead: str, parent: QWidget | None = None):
         super().__init__(palette, parent)
         self._lead = (icons.drawn(lead, style.muted(palette), LEAD), icons.drawn(lead, style.text(palette), LEAD))
         self._chevron = (
             icons.drawn("expanded", style.muted(palette), CHEVRON),
             icons.drawn("expanded", style.text(palette), CHEVRON),
         )
-        self._has_lead = bool(lead) and self._lead[0] is not None
+        self._has_lead = self._lead[0] is not None
         self.setFixedHeight(BUTTON_HEIGHT)
         self.setFocusPolicy(Qt.FocusPolicy.TabFocus)
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
@@ -165,9 +164,8 @@ class ComposerControls(QWidget):
     place_requested = pyqtSignal(str)
     mode_chosen = pyqtSignal(str)
 
-    def __init__(self, palette: Any, count_layers: Callable[[], int] = lambda: 0, parent: QWidget | None = None):
+    def __init__(self, palette: Any, count_layers: Callable[[], int], parent: QWidget | None = None):
         super().__init__(parent)
-        self._palette = palette
         self._count_layers = count_layers
         row = QHBoxLayout(self)
         row.setContentsMargins(*ROW_MARGINS)

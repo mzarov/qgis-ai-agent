@@ -57,8 +57,8 @@ class SkillRow(controls.RoundedFrame):
 
 
 class SkillPopup(controls.RoundedFrame):
-    """The list above the composer. Its box is painted: a style sheet on it reset its rows' palette to
-    QGIS's, and in a dark QGIS the light panel's names came out white on white."""
+    """The list above the composer. Its box is painted: a style sheet on it would reset its rows' palette
+    to QGIS's, and in a dark QGIS the light panel's names would come out white on white."""
 
     chosen = pyqtSignal(str)
 

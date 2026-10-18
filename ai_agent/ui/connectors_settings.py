@@ -37,7 +37,6 @@ ALL = tr("All")
 CARD_NAME = "connectorCard"
 CARD_MIN_WIDTH = 280
 CARD_GAP = 12
-# The page had everything touching: the search, the chips, a group title and its cards each get air.
 SEARCH_TO_CHIPS = 12
 GROUP_GAP = 22
 TITLE_TO_CARDS = 8
@@ -45,7 +44,7 @@ CARD_HEIGHT = 72
 MAX_COLUMNS = 2
 STATUS_DOT = 6
 CARD_MARGINS = (12, 12, 12, 10)
-# Chips need short words: the full group titles in a row did not fit the page in Russian.
+# Chips need short words: the full group titles in a row do not fit the page in Russian.
 CHIP_TITLES = {
     "world": tr("World"),
     "imagery": tr("Imagery"),

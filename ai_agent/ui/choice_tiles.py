@@ -1,10 +1,10 @@
-"""Exclusive choices as tiles, after the design handoff: providers on the Connection page, geocoders.
+"""Exclusive choices as tiles: providers on the Connection page, geocoders.
 
 A tile is a rounded box on the surface: an optional logo, a name and a quiet
 line under it, a radio at the right edge. The chosen one takes the accent edge
 and the accent wash. Painted, not styled, so a click restyles nothing in its
 own event. The grid gives each tile at least `min_width` and as many columns as
-fit, like the handoff's auto-fill grid.
+fit.
 """
 
 from typing import Any
@@ -22,11 +22,10 @@ TILE_GAP = 8
 RADIO = 14
 RADIO_DOT = 6
 NOTE_SCALE = 12 / 13
-LIVE_DOT = 6
 
 
 class Radio(QWidget):
-    """The handoff's 14 px radio: a ring, the accent ring and dot when chosen."""
+    """A 14 px radio: a ring, the accent ring and dot when chosen."""
 
     def __init__(self, palette: Any, parent: QWidget | None = None):
         super().__init__(parent)
@@ -60,12 +59,11 @@ class ChoiceTile(controls.RoundedFrame):
 
     clicked = pyqtSignal(str)
 
-    def __init__(self, key: str, title: str, note: str, palette: Any, logo: QWidget | None = None, live: bool = False):
+    def __init__(self, key: str, title: str, note: str, palette: Any, logo: QWidget | None = None):
         super().__init__(TILE_RADIUS)
         self.key = key
         self.selected = False
         self._palette = palette
-        self._logo = logo
         self.setObjectName(TILE_NAME)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         line = QHBoxLayout(self)
@@ -78,19 +76,12 @@ class ChoiceTile(controls.RoundedFrame):
         self.name = controls.ElidedLabel(title)
         style.ink(self.name, style.text(palette))
         text.addWidget(self.name)
-        quiet = QHBoxLayout()
-        quiet.setSpacing(5)
-        if live:
-            dot = controls.PaintedDot(LIVE_DOT)
-            dot.set_colour(style.success(palette).name())
-            quiet.addWidget(dot, 0, Qt.AlignmentFlag.AlignVCenter)
         self.note = QLabel(note)
         # Wrapping, never widening: a long note in Russian must not push the grid off the page.
         self.note.setWordWrap(True)
         style.scale_font(self.note, NOTE_SCALE)
         style.ink(self.note, style.faint(palette))
-        quiet.addWidget(self.note, 1)
-        text.addLayout(quiet)
+        text.addWidget(self.note)
         line.addLayout(text, 1)
         self.radio = Radio(palette)
         line.addWidget(self.radio, 0, Qt.AlignmentFlag.AlignTop if not logo else Qt.AlignmentFlag.AlignVCenter)

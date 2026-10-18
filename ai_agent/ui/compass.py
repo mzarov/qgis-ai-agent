@@ -1,22 +1,21 @@
 """The brand mark: a compass with an open ring whose needle says what the agent is doing.
 
-Geometry on a 24-unit grid centred at (12, 12), from the design handoff. The
-ring is an arc of radius 8.5 with a 60° gap around north-east; the needle is
-drawn pointing north and rotated about the centre. A diamond of the colour
-under the mark (the "halo") cuts the ring where the needle crosses it, so the
-needle reads in any position. Line weights are optical: heavier at small sizes.
+Geometry on a 24-unit grid centred at (12, 12). The ring is an arc of radius
+8.5 with a 60° gap around north-east; the needle is drawn pointing north and
+rotated about the centre. A diamond of the colour under the mark (the "halo")
+cuts the ring where the needle crosses it, so the needle reads in any position.
+Line weights are optical: heavier at small sizes.
 
-States are rotations of the needle only, keyframed like the prototype's CSS:
-each segment between two keyframes has its own easing, so the swing matches.
-One live compass per panel — in the status line; marks elsewhere stay still.
+States are rotations of the needle only, keyframed: each segment between two
+keyframes has its own CSS-style easing. One live compass per panel — in the
+status line; marks elsewhere stay still.
 """
 
-import math
 from dataclasses import dataclass
 from typing import Any
 
 from qgis.PyQt.QtCore import QPointF, QRectF, QSize, Qt, QVariantAnimation
-from qgis.PyQt.QtGui import QBrush, QColor, QPainter, QPainterPath, QPen, QPixmap, QPolygonF
+from qgis.PyQt.QtGui import QBrush, QColor, QPainter, QPainterPath, QPen, QPolygonF
 from qgis.PyQt.QtWidgets import QSizePolicy, QWidget
 
 from ai_agent.ui import style
@@ -38,7 +37,6 @@ LARGE_WEIGHTS = (1.9, 1.3)
 HALO_EXTRA = 0.4
 
 REST = "rest"
-NORTH_STATE = "north"
 SEARCH = "search"
 DONE = "done"
 ERROR = "error"
@@ -69,7 +67,7 @@ MOTIONS = {
     ASK: Motion(((0, 30), (0.5, 60), (1, 30)), 3000, True, EASE_IN_OUT),
     ARRIVE: Motion(((0, -140), (0.55, 62), (0.75, 39), (0.9, 47), (1, 45)), 1100, False, SETTLE),
 }
-RESTING = {REST: 45.0, NORTH_STATE: 0.0}
+RESTING = {REST: 45.0}
 
 
 def cubic_bezier(easing: tuple[float, float, float, float], progress: float) -> float:
@@ -155,17 +153,6 @@ def paint(painter: QPainter, rect: QRectF, angle: float, colours: Colours) -> No
         painter.setBrush(QBrush(colours.halo))
         painter.drawEllipse(QPointF(CENTRE, CENTRE), AXIS_RADIUS, AXIS_RADIUS)
     painter.restore()
-
-
-def pixmap(size: int, colours: Colours, angle: float = RESTING[REST], ratio: float = 1.0) -> QPixmap:
-    """A still mark for icons and headers, drawn at the screen's pixel ratio."""
-    image = QPixmap(int(math.ceil(size * ratio)), int(math.ceil(size * ratio)))
-    image.setDevicePixelRatio(ratio)
-    image.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(image)
-    paint(painter, QRectF(0, 0, size, size), angle, colours)
-    painter.end()
-    return image
 
 
 def colours_for(palette: Any, halo: QColor | None = None, failed: bool = False) -> Colours:

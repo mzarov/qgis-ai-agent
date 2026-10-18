@@ -1,4 +1,4 @@
-"""A small popup of exclusive choices: the mode menu, after the design handoff.
+"""A small popup of exclusive choices: the mode menu.
 
 A caption, then one row per choice — its name (with an optional badge), a muted
 line saying what it does, and its number key — and an optional footer under a

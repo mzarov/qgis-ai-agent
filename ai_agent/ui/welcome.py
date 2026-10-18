@@ -1,6 +1,6 @@
 """The empty conversation: the compass arriving, what the agent is, the project, examples to start with.
 
-Centred like the design's welcome: the mark plays its arrival once, a title,
+Centred: the mark plays its arrival once, a title,
 one sentence on the deal (your model, your keys, nothing changes without you),
 a line naming the open project, then full-width examples to start with. A click on
 one sends it. Without a configured model the card asks for settings instead.
@@ -25,7 +25,6 @@ PROJECT_ICON = 14
 TITLE_SCALE = 17 / 13
 SMALL = 0.92
 SUGGESTION_NAME = "suggestion"
-SIDE_INSET = 0
 MARK = 56
 NEEDS_KEY_TITLE = tr("One step before we start")
 NEEDS_KEY_BODY = tr(
@@ -55,7 +54,7 @@ def welcome_content(configured: bool) -> tuple[str, str, tuple[tuple[str, str], 
 
 class Suggestion(QFrame):
     """A clickable example request. A frame with a wrapping label, not a button: button text never
-    wraps, so a long example was cut off in a narrow dock."""
+    wraps, so a long example would be cut off in a narrow dock."""
 
     chosen = pyqtSignal(str)
 
@@ -102,7 +101,7 @@ class WelcomeCard(QWidget):
         title, body, suggestions = welcome_content(configured)
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
         column = QVBoxLayout(self)
-        column.setContentsMargins(SIDE_INSET, 0, SIDE_INSET, 0)
+        column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(STACK_GAP)
         column.addStretch(1)
         # The compass arrives: its needle swings in and settles at rest, once, when the welcome appears.
@@ -110,9 +109,8 @@ class WelcomeCard(QWidget):
         column.addWidget(self.mark, 0, Qt.AlignmentFlag.AlignHCenter)
         self.mark.set_state(compass.ARRIVE)
         column.addWidget(_title(title, palette))
-        if body:
-            # Full width with centred text: an alignment flag would size a wrapping label by its hint and cut it.
-            column.addWidget(_body(body, palette))
+        # Full width with centred text: an alignment flag would size a wrapping label by its hint and cut it.
+        column.addWidget(_body(body, palette))
         self._configured = configured
         self.project = _project_line(palette)
         column.addWidget(self.project, 0, Qt.AlignmentFlag.AlignHCenter)
@@ -141,7 +139,7 @@ class WelcomeCard(QWidget):
         self.saved.setVisible(True)
 
     def prepare_arrival(self) -> None:
-        """Wait unseen until `arrive` (the old conversation is still leaving)."""
+        """Wait unseen until `arrive` (what the feed showed is still leaving)."""
         self._arrival = transitions.Arrival(self, self._saved_rect)
 
     def arrive(self) -> None:

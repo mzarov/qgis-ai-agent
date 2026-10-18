@@ -22,7 +22,7 @@ QUOTE = '"'
 # Qt counts text positions in UTF-16 code units, Python in characters: 🌍 is two of the first, one of the second.
 UTF16 = "utf-16-le"
 UTF16_UNIT = 2
-# One word a mode, as Claude Code names them (the user's call); the note says the rest, exact about deleting.
+# One word a mode, as Claude Code names them; the note says the rest, exact about deleting.
 MODES = (
     Choice(WORK_MODE_ASK, tr("Ask"), tr("Shows a plan and waits for Apply"), tr("Default")),
     Choice(WORK_MODE_AUTO, tr("Auto"), tr("Applies at once; deleting still asks")),

@@ -1,4 +1,4 @@
-"""Named colours for the widgets, all read from the mockup tokens in `theme`.
+"""Named colours for the widgets, all read from the tokens in `theme`.
 
 Widgets ask for a role (`panel`, `hairline`, `muted`, `accent`…), never for a
 hex value; `theme.tokens(palette)` picks the light or the dark set from the
@@ -26,10 +26,6 @@ def blend(first: QColor, second: QColor, ratio: float) -> QColor:
         int(first.green() * keep + second.green() * ratio),
         int(first.blue() * keep + second.blue() * ratio),
     )
-
-
-def is_dark(palette: QPalette) -> bool:
-    return theme.is_dark(palette)
 
 
 def _token(palette: QPalette, name: str) -> QColor:
@@ -73,17 +69,8 @@ def sidebar(palette: QPalette) -> QColor:
     return _token(palette, "bg")
 
 
-def nav_selected(palette: QPalette) -> QColor:
-    """The chosen sidebar entry: a step lighter on dark, a step darker on light."""
-    return _token(palette, "surface_2" if is_dark(palette) else "sunken")
-
-
-def nav_hover(palette: QPalette) -> QColor:
-    return _token(palette, "surface" if is_dark(palette) else "surface_2")
-
-
 def sunken(palette: QPalette) -> QColor:
-    """Below the surface: segmented-control tracks, sidebar hover."""
+    """Below the surface: segmented-control and switch tracks, icon-button hover."""
     return _token(palette, "sunken")
 
 
@@ -223,7 +210,7 @@ def fill(widget: Any, colour: QColor) -> None:
 
     A style sheet on a container switches its whole subtree to QStyleSheetStyle,
     which resets the subtree's palette to QGIS's (and, with children that
-    restyle themselves often, once crashed QGIS inside event processing). An
+    restyle themselves often, can crash QGIS inside event processing). An
     auto-filled background is what QGIS's dark UI themes repaint:
     `QWidget[autoFillBackground=true]` takes their background colour. So the
     colour is painted by hand, ahead of the widget, and the palette carries it
@@ -287,7 +274,7 @@ def scale_font(widget: Any, ratio: float, bold: bool = False) -> None:
 
 def series(palette: QPalette, index: int) -> QColor:
     """Categorical chart colour `index` in the fixed order; the spec folds past eight, so no cycling happens."""
-    colours = theme.CHART_DARK if is_dark(palette) else theme.CHART_LIGHT
+    colours = theme.CHART_DARK if theme.is_dark(palette) else theme.CHART_LIGHT
     return theme.colour(colours[min(index, len(colours) - 1)])
 
 

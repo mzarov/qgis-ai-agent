@@ -2,8 +2,8 @@
 
 `Segmented` keeps the slice of the `QComboBox` API the dialog already relies
 on (`currentText`, `findText`, `setCurrentIndex`, item data, the change
-signals), so saving and loading code reads it exactly like the combo box it
-replaces. Everything is drawn from the palette through `style`.
+signals), so saving and loading code reads it exactly like a combo box.
+Everything is drawn from the palette through `style`.
 """
 
 from collections.abc import Callable
@@ -91,7 +91,7 @@ class Segmented(QFrame):
             button.setCheckable(True)
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.setStyleSheet(self._segment_style())
-            # Room for the bold checked label: sized for the regular weight, "Balanced" lost its last letter.
+            # Room for the bold checked label, wider than the regular one it is sized for otherwise.
             bold = button.font()
             bold.setWeight(QFont.Weight.DemiBold)
             button.setMinimumWidth(QFontMetrics(bold).horizontalAdvance(item) + 2 * SEGMENT_PADDING + SEGMENT_SLACK)
@@ -128,9 +128,6 @@ class Segmented(QFrame):
             return
         self._group.button(index).setChecked(True)
         self._chosen(index)
-
-    def setCurrentText(self, text: str) -> None:
-        self.setCurrentIndex(self.findText(text))
 
     def _clicked(self, index: int) -> None:
         """Slide the highlight from where it is now to the chosen label, then report the choice."""
@@ -197,7 +194,6 @@ class Chips(QWidget):
         parent: QWidget | None = None,
     ):
         super().__init__(parent)
-        self._palette = palette
         self._edit = edit
         self._parse = parse
         self._chips: list[tuple[QPushButton, int | None]] = []
@@ -209,7 +205,7 @@ class Chips(QWidget):
             chip.setCheckable(True)
             chip.setFixedHeight(CHIP_HEIGHT)
             chip.setCursor(Qt.CursorShape.PointingHandCursor)
-            chip.setStyleSheet(self._chip_style())
+            chip.setStyleSheet(chip_style(palette))
             chip.clicked.connect(lambda _checked=False, text=value: self._edit.setText(text))
             line.addWidget(chip)
             self._chips.append((chip, parse(value)))
@@ -220,9 +216,6 @@ class Chips(QWidget):
         value = self._parse(text)
         for chip, preset in self._chips:
             chip.setChecked(value is not None and value == preset)
-
-    def _chip_style(self) -> str:
-        return chip_style(self._palette)
 
 
 def chip_style(palette: Any) -> str:
@@ -243,36 +236,36 @@ class RoundedFrame(QFrame):
     """A rounded box painted by hand; its look changes with `update()` and nothing else.
 
     A style sheet on a frame cascades to every child. Swapping it while a child
-    was inside its own event handler (the composer editor's focusOut) crashed QGIS
-    in event processing, so frames whose look follows state are painted.
+    is inside its own event handler (the composer editor's focusOut) can crash
+    QGIS in event processing, so frames whose look follows state are painted.
     """
 
     def __init__(self, radius: float, parent: QWidget | None = None):
         super().__init__(parent)
         self._radius = radius
-        self._look: tuple[Any, Any, float] | None = None
+        self._look: tuple[Any, Any] | None = None
 
-    def set_look(self, fill: Any, border: Any, width: float = style.HAIRLINE) -> None:
-        """Fill and border colours, either None for none, and the border width."""
-        look = (fill, border, width)
+    def set_look(self, fill: Any, border: Any) -> None:
+        """Fill and border colours, either None for none."""
+        look = (fill, border)
         if look != self._look:
             self._look = look
             self.update()
 
     def paintEvent(self, _event: Any) -> None:
-        if self._look is None or self._look[:2] == (None, None):
+        if self._look is None or self._look == (None, None):
             return
-        fill, border, width = self._look
+        fill, border = self._look
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         if border is None:
             painter.setPen(Qt.PenStyle.NoPen)
         else:
             pen = QPen(QColor(border))
-            pen.setWidthF(width)
+            pen.setWidthF(style.HAIRLINE)
             painter.setPen(pen)
         painter.setBrush(Qt.BrushStyle.NoBrush if fill is None else QColor(fill))
-        inset = width / 2
+        inset = style.HAIRLINE / 2
         painter.drawRoundedRect(QRectF(self.rect()).adjusted(inset, inset, -inset, -inset), self._radius, self._radius)
         painter.end()
 
@@ -558,21 +551,13 @@ def small(text: str, palette: Any, scale: float = SMALL_SCALE) -> QLabel:
 
 
 def badge(text: str, kind: str, palette: Any) -> QLabel:
-    """A small pill: neutral, ok, warn, accent or bad."""
+    """A small pill: "warn" or "accent"."""
     label = QLabel(text)
     style.scale_font(label, SMALL_SCALE, bold=True)
     label.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
-    colours = {
-        "ok": style.success(palette),
-        "warn": style.warning(palette),
-        "accent": style.accent(palette),
-        "bad": style.danger(palette),
-    }
-    colour = colours.get(kind)
-    fill = style.soft(palette, colour) if colour is not None else style.card(palette)
-    ink = colour if colour is not None else style.muted(palette)
-    if kind == "accent":
-        ink = style.accent_ink(palette)
+    colour = style.warning(palette) if kind == "warn" else style.accent(palette)
+    fill = style.soft(palette, colour)
+    ink = style.accent_ink(palette) if kind == "accent" else colour
     label.setStyleSheet(
         f"QLabel {{ background: {style.css_color(fill)}; color: {style.css_color(ink)};"
         f"border-radius: {BADGE_RADIUS}px; padding: 1px 7px; }}"

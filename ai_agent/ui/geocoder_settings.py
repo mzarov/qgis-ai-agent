@@ -45,7 +45,6 @@ class GeocoderSettings(QObject):
 
     def __init__(self, palette: Any):
         super().__init__()
-        self._palette = palette
         self._custom_url = get_custom_nominatim_url()
         self._provider = get_geocoder_provider()
         holder, column = fields.page(TITLE, LEAD, palette)

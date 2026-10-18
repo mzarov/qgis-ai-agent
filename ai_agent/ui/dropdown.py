@@ -58,20 +58,11 @@ class Dropdown(QPushButton):
         if self._current < 0:
             self.setCurrentIndex(0)
 
-    def count(self) -> int:
-        return len(self._items)
-
     def findData(self, data: Any) -> int:
         return next((index for index, (_text, value) in enumerate(self._items) if value == data), -1)
 
-    def currentIndex(self) -> int:
-        return self._current
-
     def currentData(self) -> Any:
         return self._items[self._current][1] if 0 <= self._current < len(self._items) else None
-
-    def currentText(self) -> str:
-        return self._items[self._current][0] if 0 <= self._current < len(self._items) else ""
 
     def setCurrentIndex(self, index: int) -> None:
         if not 0 <= index < len(self._items) or index == self._current:

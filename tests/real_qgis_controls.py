@@ -70,7 +70,7 @@ class SegmentedTest(unittest.TestCase):
         self.assertEqual(self.seen, ["openai"])
 
     def test_choosing_the_current_item_again_is_silent(self) -> None:
-        self.segmented.setCurrentText("auto")
+        self.segmented.setCurrentIndex(0)
         self.assertEqual(self.seen, [])
 
     def test_a_click_slides_the_highlight_to_the_new_choice(self) -> None:
