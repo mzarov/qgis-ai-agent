@@ -491,9 +491,7 @@ def _resolve_layer_reference(layer_name: str, layer_id: str) -> QgsMapLayer:
                 "Use a matching name and id from list_layers."
             )
         return layer
-    if layer_name:
-        return find_layer_by_name(layer_name)
-    raise ValueError("A layer_name or layer_id is required.")
+    return find_layer_by_name(layer_name)
 
 
 def _ambiguous_layer(name: str, matches: list[QgsMapLayer]) -> ValueError:

@@ -79,7 +79,7 @@ class ConfigureLayerTool(BaseTool):
         if "name" in properties:
             layer.setName(properties["name"])
         if "group" in properties or "position" in properties:
-            node = _move(layer, node, properties)
+            node = _move(node, properties)
         return {
             "layer": layer.name(),
             "visible": _visible(node),
@@ -105,7 +105,7 @@ class ConfigureLayerTool(BaseTool):
         return "position" not in properties or _at_position(node, properties["position"])
 
 
-def _move(layer: Any, node: Any, properties: dict[str, Any]) -> Any:
+def _move(node: Any, properties: dict[str, Any]) -> Any:
     source = parent_of(node)
     target = ensure_group(properties["group"]) if "group" in properties else source
     clone = node.clone()

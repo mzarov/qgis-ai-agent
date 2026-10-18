@@ -84,28 +84,28 @@ class MoveTest(unittest.TestCase):
         return [child.layer_id for child in self.tree.root.children()]
 
     def test_the_layer_survives_the_move(self):
-        module._move(object(), self.node, {"position": 2})
+        module._move(self.node, {"position": 2})
         self.assertIn(LAYER_ID, self.tree.registry.alive)
 
     def test_moving_down_lands_on_the_asked_position(self):
-        module._move(object(), self.node, {"position": 2})
+        module._move(self.node, {"position": 2})
         self.assertEqual(self._ids(), ["other_0", "other_1", LAYER_ID])
 
     def test_moving_up_lands_on_the_asked_position(self):
-        module._move(object(), self.others[1], {"position": 0})
+        module._move(self.others[1], {"position": 0})
         self.assertEqual(self._ids(), ["other_1", LAYER_ID, "other_0"])
 
     def test_the_position_is_clamped_to_the_children(self):
-        module._move(object(), self.node, {"position": 99})
+        module._move(self.node, {"position": 99})
         self.assertEqual(self._ids()[-1], LAYER_ID)
         self.assertIn(LAYER_ID, self.tree.registry.alive)
 
     def test_a_negative_position_means_the_top(self):
-        module._move(object(), self.others[0], {"position": -3})
+        module._move(self.others[0], {"position": -3})
         self.assertEqual(self._ids()[0], "other_0")
 
     def test_no_duplicate_is_left_behind(self):
-        module._move(object(), self.node, {"position": 1})
+        module._move(self.node, {"position": 1})
         self.assertEqual(self._ids().count(LAYER_ID), 1)
 
     def test_moving_into_a_group_keeps_the_layer_alive(self):
@@ -114,7 +114,7 @@ class MoveTest(unittest.TestCase):
         saved = module.ensure_group
         module.ensure_group = lambda name: group
         try:
-            module._move(object(), self.node, {"group": "Transport", "position": 0})
+            module._move(self.node, {"group": "Transport", "position": 0})
         finally:
             module.ensure_group = saved
         self.assertIn(LAYER_ID, self.tree.registry.alive)

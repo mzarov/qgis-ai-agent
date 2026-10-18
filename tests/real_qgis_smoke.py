@@ -181,7 +181,7 @@ def _active_edit_buffer_checks(project, ensure_read_safe, take_project_snapshot,
 
 
 def _web_request_policy(build_request, timeout_ms: int) -> bool:
-    request = build_request("https://example.com/", {}, address="93.184.216.34")
+    request = build_request("https://example.com/", address="93.184.216.34")
     return (
         request.url().host() == "93.184.216.34"
         and request.peerVerifyName() == "example.com"
