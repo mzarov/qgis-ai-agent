@@ -26,8 +26,8 @@ class UserMessage(QWidget):
 
     rewind_requested = pyqtSignal(int)
 
-    def __init__(self, text: str, parent=None):
-        super().__init__(parent)
+    def __init__(self, text: str):
+        super().__init__()
         palette = self.palette()
         row = QHBoxLayout(self)
         row.setContentsMargins(0, 0, 0, 0)
@@ -81,8 +81,8 @@ class UserMessage(QWidget):
 
 
 class AssistantMessage(QWidget):
-    def __init__(self, markdown: str, parent=None):
-        super().__init__(parent)
+    def __init__(self, markdown: str):
+        super().__init__()
         palette = self.palette()
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 0, 0, 0)
@@ -145,8 +145,8 @@ class SystemMessage(QWidget):
     An error wears the danger colour so it is not read past as a remark.
     """
 
-    def __init__(self, text: str, parent=None, *, error: bool = False):
-        super().__init__(parent)
+    def __init__(self, text: str, *, error: bool = False):
+        super().__init__()
         palette = self.palette()
         row = QHBoxLayout(self)
         row.setContentsMargins(0, SYSTEM_VERTICAL_PADDING, 0, SYSTEM_VERTICAL_PADDING)

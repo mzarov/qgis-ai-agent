@@ -84,8 +84,8 @@ class TraceHeader(QWidget):
 
     toggled = pyqtSignal(bool)
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._palette = palette
         self.expanded = False
         self.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -134,8 +134,8 @@ class PulseRing(QWidget):
 
     mark = ((GLYPH_BOX - PULSE) / 2, (GLYPH_BOX + PULSE) / 2)
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._palette = palette
         self.opacity = 1.0
         self.setFixedSize(GLYPH_BOX, GLYPH_BOX)
@@ -173,8 +173,8 @@ class ThinkingDots(QWidget):
 
     mark = (GLYPH_BOX / 2 - 1.5, GLYPH_BOX / 2 + 1.5)
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._colour = style.faint(palette)
         self.setFixedSize(GLYPH_BOX, GLYPH_BOX)
 
@@ -191,8 +191,8 @@ class ThinkingDots(QWidget):
 class TraceRow(QWidget):
     """A row on the timeline: glyph, content, time. The group draws the hairline between the glyphs."""
 
-    def __init__(self, glyph: QWidget, content: QWidget, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, glyph: QWidget, content: QWidget, palette: Any):
+        super().__init__()
         self._palette = palette
         self._line = QHBoxLayout(self)
         self._line.setContentsMargins(0, 0, 0, ROW_BOTTOM)
@@ -223,7 +223,7 @@ class TraceRow(QWidget):
 class StepRow(TraceRow):
     """One call: the wording muted, its own values bright, a skill tag for knowledge, what it found under it."""
 
-    def __init__(self, text: str, palette: Any, parent: QWidget | None = None):
+    def __init__(self, text: str, palette: Any):
         content = QWidget()
         column = QVBoxLayout(content)
         column.setContentsMargins(0, 1, 0, 0)
@@ -250,7 +250,7 @@ class StepRow(TraceRow):
         style.ink(self.note, style.faint(palette))
         self.note.setVisible(False)
         column.addWidget(self.note)
-        super().__init__(PulseRing(palette), content, palette, parent)
+        super().__init__(PulseRing(palette), content, palette)
         self.state = PENDING
         self.started = time.monotonic()
 
@@ -273,8 +273,8 @@ class StepRow(TraceRow):
 
 
 class ActivityGroup(QFrame):
-    def __init__(self, parent=None, kind: str = ""):
-        super().__init__(parent)
+    def __init__(self, kind: str = ""):
+        super().__init__()
         # What the run was for: the user's request (""), the check after an apply, or a look into a failure.
         self.kind = kind
         # Taken before the style sheet: "background: transparent" turns the widget's own palette

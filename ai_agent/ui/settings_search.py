@@ -31,8 +31,8 @@ class SettingsSearch(QWidget):
 
     opened = pyqtSignal(int, object)
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._palette = palette
         self._pages: list[tuple[str, QScrollArea]] = []
         self._hidden_while_searching: list[QWidget] = []

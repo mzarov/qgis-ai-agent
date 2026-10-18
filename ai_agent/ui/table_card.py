@@ -31,8 +31,8 @@ SHOWN_OF = tr("{0} of {1} rows")
 
 
 class TableCard(QWidget):
-    def __init__(self, spec: dict[str, Any], parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, spec: dict[str, Any]):
+        super().__init__()
         self.spec = spec
         self.columns = [str(column) for column in spec.get("columns") or []]
         self.rows = [[str(cell) for cell in row] for row in spec.get("rows") or []]

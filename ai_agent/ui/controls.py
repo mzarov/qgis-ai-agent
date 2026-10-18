@@ -64,8 +64,8 @@ class Segmented(QFrame):
     currentIndexChanged = pyqtSignal(int)
     currentTextChanged = pyqtSignal(str)
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._palette = palette
         self._items: list[str] = []
         self._data: dict[int, Any] = {}
@@ -191,9 +191,8 @@ class Chips(QWidget):
         edit: QLineEdit,
         presets: list[tuple[str, str]],
         parse: Callable[[str], int | None],
-        parent: QWidget | None = None,
     ):
-        super().__init__(parent)
+        super().__init__()
         self._edit = edit
         self._parse = parse
         self._chips: list[tuple[QPushButton, int | None]] = []
@@ -275,8 +274,8 @@ class HoverFrame(RoundedFrame):
 
     clicked = pyqtSignal()
 
-    def __init__(self, radius: float, palette: Any, parent: QWidget | None = None):
-        super().__init__(radius, parent)
+    def __init__(self, radius: float, palette: Any):
+        super().__init__(radius)
         self._fill = style.card(palette).name()
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
@@ -296,8 +295,8 @@ class HoverFrame(RoundedFrame):
 class PaintedDot(QWidget):
     """A round status dot drawn by hand, recoloured with `set_colour` and no style sheet."""
 
-    def __init__(self, size: int, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, size: int):
+        super().__init__()
         self._size = size
         self.colour = ""
         self.setFixedSize(size, size)
@@ -321,8 +320,8 @@ class PaintedDot(QWidget):
 class PaintedSwatch(QWidget):
     """A small square of one colour, its corners softened, drawn by hand: a legend's key."""
 
-    def __init__(self, size: int, colour: str, edge: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, size: int, colour: str, edge: Any):
+        super().__init__()
         self.colour = colour
         self._edge = edge
         self.setFixedSize(size, size)
@@ -344,8 +343,8 @@ class ThinBar(QWidget):
     a fraction stops it.
     """
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._track = style.hairline(palette)
         self._fill = style.accent(palette)
         self.fraction = 0.0
@@ -572,8 +571,8 @@ class KeyCap(QLabel):
     hairline border all but disappears on a dark palette.
     """
 
-    def __init__(self, text: str, palette: Any, parent: QWidget | None = None):
-        super().__init__(text, parent)
+    def __init__(self, text: str, palette: Any):
+        super().__init__(text)
         self._palette = palette
         style.scale_font(self, KEY_SCALE)
         metrics = self.fontMetrics()
@@ -602,8 +601,8 @@ class KeyCap(QLabel):
 class ElidedLabel(QLabel):
     """One line that ends in an ellipsis instead of pushing its parent wider."""
 
-    def __init__(self, text: str = "", parent: QWidget | None = None, mode: Any = Qt.TextElideMode.ElideRight):
-        super().__init__(text, parent)
+    def __init__(self, text: str = "", mode: Any = Qt.TextElideMode.ElideRight):
+        super().__init__(text)
         self._mode = mode
         self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self.setMinimumWidth(1)

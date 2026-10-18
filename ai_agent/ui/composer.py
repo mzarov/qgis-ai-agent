@@ -59,8 +59,8 @@ class Composer(QWidget):
     place_requested = pyqtSignal(str)
     place_cancelled = pyqtSignal()
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self):
+        super().__init__()
         self._busy = False
         self._configured = True
         self._focused = False

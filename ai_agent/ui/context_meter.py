@@ -46,8 +46,8 @@ def tokens(value: int) -> str:
 
 
 class ContextRing(QToolButton):
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._palette = palette
         self.share = 0.0
         self.setFixedSize(RING + 10, RING + 10)
@@ -87,8 +87,8 @@ class ContextRing(QToolButton):
 
 
 class UsageBar(QWidget):
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._palette = palette
         self.share = 0.0
         self.setFixedHeight(BAR_HEIGHT)
@@ -116,8 +116,8 @@ class UsageBar(QWidget):
 class ContextPopup(controls.RoundedFrame):
     compact_requested = pyqtSignal()
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(POPUP_RADIUS, parent)
+    def __init__(self, palette: Any):
+        super().__init__(POPUP_RADIUS)
         controls.as_popup(self)
         self.set_look(style.surface(palette).name(), style.hairline(palette).name())
         self.setFixedWidth(POPUP_WIDTH)
@@ -181,8 +181,8 @@ class ContextMeter(QWidget):
 
     compact_requested = pyqtSignal()
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         line = QHBoxLayout(self)
         line.setContentsMargins(0, 0, 0, 0)
         self.ring = ContextRing(palette)

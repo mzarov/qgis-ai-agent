@@ -63,8 +63,8 @@ SKILL_KEY = "/"
 class MenuButton(PaintedButton):
     """A flat button that opens a menu: a leading glyph, its text elided, a chevron after it."""
 
-    def __init__(self, palette: Any, lead: str, parent: QWidget | None = None):
-        super().__init__(palette, parent)
+    def __init__(self, palette: Any, lead: str):
+        super().__init__(palette)
         self._lead = (icons.drawn(lead, style.muted(palette), LEAD), icons.drawn(lead, style.text(palette), LEAD))
         self._chevron = (
             icons.drawn("expanded", style.muted(palette), CHEVRON),
@@ -111,8 +111,8 @@ class MenuButton(PaintedButton):
 class SendButton(PaintedButton):
     """The round send button: accent with an arrow, dimmed with nothing to send; a stop square while busy."""
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(palette, parent)
+    def __init__(self, palette: Any):
+        super().__init__(palette)
         self._arrow = icons.drawn("send", style.on_accent(palette), SEND_ICON)
         self.busy = False
         self.setFixedSize(SEND_SIZE, SEND_SIZE)
@@ -164,8 +164,8 @@ class ComposerControls(QWidget):
     place_requested = pyqtSignal(str)
     mode_chosen = pyqtSignal(str)
 
-    def __init__(self, palette: Any, count_layers: Callable[[], int], parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any, count_layers: Callable[[], int]):
+        super().__init__()
         self._count_layers = count_layers
         row = QHBoxLayout(self)
         row.setContentsMargins(*ROW_MARGINS)

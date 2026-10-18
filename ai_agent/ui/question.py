@@ -51,8 +51,8 @@ def split_option(option: str) -> tuple[str, str]:
 class Radio(QWidget):
     """A painted radio: a ring, and a dot when chosen."""
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._palette = palette
         self.chosen = False
         self.setFixedSize(RADIO, RADIO)
@@ -78,8 +78,8 @@ class Radio(QWidget):
 class AnswerRow(controls.RoundedFrame):
     clicked = pyqtSignal(str)
 
-    def __init__(self, number: int, option: str, palette: Any, recommended: bool = False, parent=None):
-        super().__init__(ROW_RADIUS, parent)
+    def __init__(self, number: int, option: str, palette: Any, recommended: bool = False):
+        super().__init__(ROW_RADIUS)
         self.text, why = split_option(option)
         self._palette = palette
         self.chosen = False
@@ -143,10 +143,8 @@ class AnswerRow(controls.RoundedFrame):
 class QuestionCard(controls.RoundedFrame):
     answered = pyqtSignal(str)
 
-    def __init__(
-        self, question: str, options: list[str], palette: Any, auto_seconds: int = 0, parent: QWidget | None = None
-    ):
-        super().__init__(CARD_RADIUS, parent)
+    def __init__(self, question: str, options: list[str], palette: Any, auto_seconds: int = 0):
+        super().__init__(CARD_RADIUS)
         self.set_look(style.surface(palette).name(), style.hairline(palette).name())
         self.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
         column = QVBoxLayout(self)

@@ -33,8 +33,8 @@ class ClickLine(QWidget):
 
     clicked = pyqtSignal()
 
-    def __init__(self, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self):
+        super().__init__()
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
     def mouseReleaseEvent(self, event: Any) -> None:
@@ -45,8 +45,8 @@ class ClickLine(QWidget):
 class ThinkingBlock(QFrame):
     """The reasoning row's content: a clickable line with the time on the right, and the text box."""
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self):
+        super().__init__()
         palette = self.palette()
         self.setStyleSheet("QFrame { background: transparent; border: none; }")
         column = QVBoxLayout(self)

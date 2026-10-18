@@ -42,8 +42,8 @@ def item_label(item: dict[str, Any]) -> str:
 
 
 class LegendCard(QWidget):
-    def __init__(self, spec: dict[str, Any], parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, spec: dict[str, Any]):
+        super().__init__()
         palette = self.palette()
         self.spec = spec
         self.items = [item for item in spec.get("items") or [] if isinstance(item, dict)]
@@ -71,8 +71,8 @@ class LegendCard(QWidget):
 class LegendStrip(QWidget):
     """Ordered classes as one strip of cells, each with its bounds under it, elided to the cell."""
 
-    def __init__(self, items: list[dict[str, Any]], palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, items: list[dict[str, Any]], palette: Any):
+        super().__init__()
         self.items = items
         self.labels = [item_label(item) for item in items]
         self._ink = style.faint(palette)

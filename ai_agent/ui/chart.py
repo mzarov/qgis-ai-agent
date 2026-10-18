@@ -43,8 +43,8 @@ COPY_DATA = tr("Copy data as CSV")
 
 
 class ChartCard(QWidget):
-    def __init__(self, spec: dict[str, Any], parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, spec: dict[str, Any]):
+        super().__init__()
         self.spec = spec
         self.kind = str(spec.get("kind") or "bar")
         self.labels = [str(label) for label in spec.get("labels") or []]

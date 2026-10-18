@@ -95,8 +95,8 @@ class WelcomeCard(QWidget):
     settings_requested = pyqtSignal()
     history_requested = pyqtSignal()
 
-    def __init__(self, configured: bool, project: str = "", parent: Any = None):
-        super().__init__(parent)
+    def __init__(self, configured: bool, project: str = ""):
+        super().__init__()
         palette = self.palette()
         title, body, suggestions = welcome_content(configured)
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)

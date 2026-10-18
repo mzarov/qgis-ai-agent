@@ -35,8 +35,8 @@ UNBOUNDED = 16777215
 class Chevron(QWidget):
     """A chevron pointing right when folded and down when open, turning between the two."""
 
-    def __init__(self, palette: Any, size: int, box: int = 0, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any, size: int, box: int = 0):
+        super().__init__()
         side = box or size
         # Where the drawing sits in the box, top to bottom: a timeline stops its line short of it.
         self.mark = ((side - size) / 2, (side + size) / 2)
@@ -84,8 +84,8 @@ class ClipBox(QWidget):
     hears every frame (to repaint a line).
     """
 
-    def __init__(self, content: QWidget, step: Callable[[], None] = lambda: None, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, content: QWidget, step: Callable[[], None] = lambda: None):
+        super().__init__()
         self.content = content
         content.setParent(self)
         # The content's layout asks for room when rows come or grow: the box follows.

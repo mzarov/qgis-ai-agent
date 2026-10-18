@@ -80,8 +80,8 @@ class PromptEdit(QPlainTextEdit):
     mode_cycled = pyqtSignal()
     new_requested = pyqtSignal()
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self):
+        super().__init__()
         self.popup_open = False
 
     def dragEnterEvent(self, event: Any) -> None:

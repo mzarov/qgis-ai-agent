@@ -40,8 +40,8 @@ class ChoiceRow(controls.RoundedFrame):
     clicked = pyqtSignal(str)
     hovered = pyqtSignal(str)
 
-    def __init__(self, choice: Choice, number: int, palette: Any, parent: QWidget | None = None, wrap: bool = False):
-        super().__init__(ROW_RADIUS, parent)
+    def __init__(self, choice: Choice, number: int, palette: Any, wrap: bool = False):
+        super().__init__(ROW_RADIUS)
         self.key = choice.key
         self._fill = style.card(palette).name()
         self.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -87,10 +87,8 @@ class ChoiceRow(controls.RoundedFrame):
 class ChoicePopup(controls.RoundedFrame):
     chosen = pyqtSignal(str)
 
-    def __init__(
-        self, caption: str, choices: list[Choice], palette: Any, footer: str = "", parent: QWidget | None = None
-    ):
-        super().__init__(POPUP_RADIUS, parent)
+    def __init__(self, caption: str, choices: list[Choice], palette: Any, footer: str = ""):
+        super().__init__(POPUP_RADIUS)
         self._choices = choices
         self._index = 0
         self._current = 0

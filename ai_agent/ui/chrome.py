@@ -45,8 +45,8 @@ HISTORY = tr("Conversation history")
 class PaintedButton(QAbstractButton):
     """A button that paints itself: entering and leaving only repaint, so nothing restyles in an event."""
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._palette = palette
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
@@ -74,8 +74,8 @@ class IconButton(PaintedButton):
     A glyph that cannot be drawn falls back to its text.
     """
 
-    def __init__(self, role: str, fallback: str, tooltip: str, palette: Any, size: int, icon: int, parent=None):
-        super().__init__(palette, parent)
+    def __init__(self, role: str, fallback: str, tooltip: str, palette: Any, size: int, icon: int):
+        super().__init__(palette)
         self._icon_size = icon
         self._fallback = fallback
         self._rest = icons.drawn(role, style.muted(palette), icon)
@@ -120,8 +120,8 @@ class IconButton(PaintedButton):
 class DockTitleBar(QWidget):
     """The dock's title bar: the still mark, the name, float and close."""
 
-    def __init__(self, dock: QDockWidget, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, dock: QDockWidget, palette: Any):
+        super().__init__()
         self._dock = dock
         self._palette = palette
         self.setFixedHeight(TITLE_BAR_HEIGHT)
@@ -154,8 +154,8 @@ class DockTitleBar(QWidget):
 class TitleButton(controls.HoverFrame):
     """The open conversation's title, bold and elided, with a chevron; a click opens the history."""
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(TOOL_RADIUS, palette, parent)
+    def __init__(self, palette: Any):
+        super().__init__(TOOL_RADIUS, palette)
         self.setFixedHeight(TOOL_BUTTON)
         self.setToolTip(HISTORY)
         self.setAccessibleName(HISTORY)
@@ -186,8 +186,8 @@ class Toolbar(QWidget):
     new_requested = pyqtSignal()
     settings_requested = pyqtSignal()
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._palette = palette
         self.setFixedHeight(TOOLBAR_HEIGHT)
         row = QHBoxLayout(self)

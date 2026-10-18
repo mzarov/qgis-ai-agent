@@ -85,8 +85,8 @@ class SessionRow(controls.RoundedFrame):
     renamed = pyqtSignal(str, str)
     delete_requested = pyqtSignal(str, str)
 
-    def __init__(self, entry: Entry, meta: str, palette: Any, parent: QWidget | None = None):
-        super().__init__(ROW_RADIUS, parent)
+    def __init__(self, entry: Entry, meta: str, palette: Any):
+        super().__init__(ROW_RADIUS)
         self.identifier = entry.identifier
         self.title = entry.title
         self.current = entry.current
@@ -181,8 +181,8 @@ class SessionRow(controls.RoundedFrame):
 class NewRow(controls.HoverFrame):
     """The menu's first row: a plus, "New conversation", the shortcut."""
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(ROW_RADIUS, palette, parent)
+    def __init__(self, palette: Any):
+        super().__init__(ROW_RADIUS, palette)
         self.setFixedHeight(ROW_HEIGHT)
         line = QHBoxLayout(self)
         line.setContentsMargins(10, 0, 10, 0)
@@ -205,8 +205,8 @@ class SessionsPopup(controls.RoundedFrame):
     delete_requested = pyqtSignal(str, str)
     new_requested = pyqtSignal()
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(POPUP_RADIUS, parent)
+    def __init__(self, palette: Any):
+        super().__init__(POPUP_RADIUS)
         self._palette = palette
         controls.as_popup(self)
         self.set_look(style.surface(palette).name(), style.border_strong(palette).name())

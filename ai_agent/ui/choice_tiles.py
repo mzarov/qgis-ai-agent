@@ -27,8 +27,8 @@ NOTE_SCALE = 12 / 13
 class Radio(QWidget):
     """A 14 px radio: a ring, the accent ring and dot when chosen."""
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._palette = palette
         self.checked = False
         self.setFixedSize(RADIO, RADIO)

@@ -60,8 +60,8 @@ def chip_close(tooltip: str, palette: Any) -> QToolButton:
 class AttachmentChip(controls.RoundedFrame):
     removed = pyqtSignal(str)
 
-    def __init__(self, path: str, palette: Any, parent: QWidget | None = None):
-        super().__init__(CHIP_RADIUS, parent)
+    def __init__(self, path: str, palette: Any):
+        super().__init__(CHIP_RADIUS)
         self.path = path
         self.setFixedHeight(CHIP_HEIGHT)
         self.set_look(style.card(palette).name(), style.hairline(palette).name())
@@ -94,8 +94,8 @@ class AttachmentChips(QWidget):
 
     changed = pyqtSignal()
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._palette = palette
         self._chips: list[AttachmentChip] = []
         self._line = QHBoxLayout(self)

@@ -51,9 +51,8 @@ class FailureCard(controls.RoundedFrame):
         kind: str,
         fixed_in_settings: bool,
         retryable: bool,
-        parent: QWidget | None = None,
     ):
-        super().__init__(CARD_RADIUS, parent)
+        super().__init__(CARD_RADIUS)
         palette = self.palette()
         self.setObjectName(CARD_NAME)
         self.set_look(style.surface(palette).name(), style.hairline(palette).name())

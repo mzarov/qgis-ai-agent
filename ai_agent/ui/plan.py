@@ -87,8 +87,8 @@ class PlanCard(controls.RoundedFrame):
     undo_requested = pyqtSignal()
     restore_requested = pyqtSignal()
 
-    def __init__(self, steps: list[str], applies_itself: bool = False, layer: str = "", parent=None):
-        super().__init__(CARD_RADIUS, parent)
+    def __init__(self, steps: list[str], applies_itself: bool = False, layer: str = ""):
+        super().__init__(CARD_RADIUS)
         palette = self._palette = self.palette()
         self._count = len(steps)
         self.set_look(style.surface(palette).name(), style.hairline(palette).name())
@@ -267,8 +267,8 @@ class PlanStep(QWidget):
     """A numbered step and, under it, the kind of change; while applying a mark at the end and, if it
     failed, the reason under it."""
 
-    def __init__(self, index: int, step: str, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, index: int, step: str, palette: Any):
+        super().__init__()
         self._palette = palette
         text, kind = split_line(step)
         grid = QGridLayout(self)
@@ -350,8 +350,8 @@ class PlanOffer(controls.RoundedFrame):
 
     run_requested = pyqtSignal(str)
 
-    def __init__(self, palette, parent=None):
-        super().__init__(style.CARD_RADIUS, parent)
+    def __init__(self, palette):
+        super().__init__(style.CARD_RADIUS)
         self.set_look(None, style.hairline(palette).name())
         column = QVBoxLayout(self)
         column.setContentsMargins(6, 10, 6, 8)

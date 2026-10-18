@@ -10,7 +10,7 @@ as the exact name of a layer.
 from typing import Any
 
 from qgis.PyQt.QtCore import pyqtSignal
-from qgis.PyQt.QtWidgets import QHBoxLayout, QSizePolicy, QWidget
+from qgis.PyQt.QtWidgets import QHBoxLayout, QSizePolicy
 
 from ai_agent.i18n import tr
 from ai_agent.ui import controls, style
@@ -24,8 +24,8 @@ DROP = tr("Leave this layer out of the request")
 class LayerChip(controls.RoundedFrame):
     changed = pyqtSignal()
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(CHIP_RADIUS, parent)
+    def __init__(self, palette: Any):
+        super().__init__(CHIP_RADIUS)
         self.name = ""
         self._dropped = ""
         self.set_look(style.card(palette).name(), style.hairline(palette).name())

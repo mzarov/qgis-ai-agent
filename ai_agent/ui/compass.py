@@ -163,8 +163,8 @@ def colours_for(palette: Any, halo: QColor | None = None, failed: bool = False) 
 class Compass(QWidget):
     """The live mark: `set_state` plays a state's motion; repeating ones run until the next state."""
 
-    def __init__(self, size: int, palette: Any, halo: QColor | None = None, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, size: int, palette: Any, halo: QColor | None = None):
+        super().__init__()
         self._size = size
         self._palette = palette
         self._halo = halo

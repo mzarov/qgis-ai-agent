@@ -29,8 +29,8 @@ UP = 180.0
 class Dropdown(QPushButton):
     currentIndexChanged = pyqtSignal(int)
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._palette = palette
         self._items: list[tuple[str, Any]] = []
         self._current = -1
@@ -116,8 +116,8 @@ class Dropdown(QPushButton):
 class Chevron(QWidget):
     """The field's arrow, painted at an angle so it can turn up and back smoothly."""
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self.setFixedSize(CHEVRON, CHEVRON)
         glyph = icons.drawn("expanded", style.muted(palette), CHEVRON)
         self._pixmap = glyph.pixmap(CHEVRON, CHEVRON) if glyph is not None else None

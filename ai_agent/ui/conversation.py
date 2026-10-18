@@ -51,8 +51,8 @@ class ConversationView(QScrollArea):
     # True while the feed shows only the welcome: nothing to start over from.
     emptied = pyqtSignal(bool)
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self):
+        super().__init__()
         self.setWidgetResizable(True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setFrameShape(QFrame.Shape.NoFrame)

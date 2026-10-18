@@ -56,8 +56,8 @@ WORKING_BY_KIND = {RUN_CHECK: CHECKING, RUN_LOOK_INTO: LOOKING_INTO}
 
 
 class ProgressLine(QWidget):
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._started = 0.0
         # The clock runs from the user's last action (a request, Apply, Retry, an answer) through every
         # phase it set going: a run, then the apply in Auto mode, then the check. A phase does not restart it.
