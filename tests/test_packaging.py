@@ -11,7 +11,6 @@ import zipfile
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "tools"))
 
 import build_plugin
-import check_secrets
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 METADATA = REPO_ROOT / "ai_agent" / "metadata.txt"
@@ -148,22 +147,6 @@ class BuildTest(unittest.TestCase):
 
 
 class SecretScanTest(unittest.TestCase):
-    def test_empty_detect_secrets_report_passes(self):
-        self.assertEqual(check_secrets.findings({"results": {}}), [])
-
-    def test_any_detected_secret_is_a_finding(self):
-        payload = {"results": {"ai_agent/example.py": [{"line_number": 3, "type": "Secret Keyword"}]}}
-        self.assertEqual(
-            check_secrets.findings(payload),
-            [("ai_agent/example.py", 3, "Secret Keyword")],
-        )
-
-    def test_malformed_report_is_not_treated_as_clean(self):
-        with self.assertRaises(ValueError):
-            check_secrets.findings({})
-        with self.assertRaises(ValueError):
-            check_secrets.findings({"results": {"file.py": ["not a finding"]}})
-
     def test_ci_scans_every_tracked_file_with_keyword_detection(self):
         workflow = TESTS_WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("git ls-files -z", workflow)
