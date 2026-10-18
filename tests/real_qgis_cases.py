@@ -156,7 +156,7 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertAlmostEqual(text.point().y(), 7_509_000, delta=5_000, msg="the note is not where Moscow is")
 
     def test_a_note_reads_back_with_its_place_in_lon_lat(self):
-        """A model once ran Python four times to find where its note was: the list and the read-back say it."""
+        """The list and the read-back say where a note is, so the model needs no Python to find it."""
         self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:3857"))
         queued, note = self._run("add_annotation", kind="text", x=37.6175, y=55.752, text="start here")
         tool = get_tool_by_name("add_annotation")
@@ -169,7 +169,7 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertAlmostEqual(place[1], 55.752, places=5)
 
     def test_a_marker_and_a_note_come_in_the_asked_colour(self):
-        """A blue marker once came out red, and the read-back still said the step was done."""
+        """The read-back checks the colour: a blue marker that comes out red is not a step done."""
         tool = get_tool_by_name("add_annotation")
         for kind, extra in (("marker", {}), ("text", {"text": "start here"})):
             with self.subTest(kind=kind):
@@ -234,7 +234,7 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertNotIn("note", equal)
 
     def test_a_one_point_layer_is_framed_with_the_area_around_it(self):
-        """One point has a box of no size; render_map once refused it as a layer with no extent."""
+        """One point has a box of no size; render_map must not refuse it as a layer with no extent."""
         from types import SimpleNamespace
 
         from qgis.gui import QgsMapCanvas
@@ -272,7 +272,7 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertAlmostEqual(next(cell.getFeatures())["area_ha"], 2801.9, delta=1.0)
 
     def test_a_count_from_another_layer_is_a_virtual_field(self):
-        """The aggregate over @parent the fields skill gives; its all-attributes marker was once refused."""
+        """The aggregate over @parent the fields skill gives; its all-attributes marker must not be refused."""
         district = QgsVectorLayer("Polygon?crs=EPSG:4326&field=name:string", "districts", "memory")
         feature = QgsFeature(district.fields())
         feature.setGeometry(QgsGeometry.fromWkt("POLYGON ((37 55, 38 55, 38 56, 37 56, 37 55))"))
@@ -723,7 +723,7 @@ class GisWorkflowsTest(unittest.TestCase):
 
     def test_selected_only_answers_over_the_selected_features_the_filter_accepts(self):
         # A real QgsFeatureRequest keeps one filter, and QgsVectorLayer.aggregate drops the ids beside a filter:
-        # rows and groups once answered over the whole selection, native aggregates over the whole filter.
+        # rows and groups could answer over the whole selection, native aggregates over the whole filter.
         numbers = self._memory(
             "Point?crs=EPSG:3857&field=n:integer", "numbers", [(f"POINT ({n} 0)", [n]) for n in (1, 2, 3)]
         )
@@ -887,7 +887,7 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertTrue(settings.format().font().bold())
 
     def test_a_new_label_size_comes_in_points_and_millimetres(self):
-        """Live labels in map units once kept them for a new size: 10 'points' became 10 map units."""
+        """Live labels in map units must not keep them for a new size: 10 'points' would be 10 map units."""
         self._run("set_labels", layer_name=self.layer.name(), properties={"field": "name", "buffer_size": 1})
         settings = self.layer.labeling().settings()
         text_format = settings.format()

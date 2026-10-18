@@ -143,8 +143,8 @@ SMALL_LABEL = 4000
 def unreadable_text(root: QWidget, image: QImage) -> list[str]:
     """Labels whose text cannot be told from what is under it, measured on the grabbed screen.
 
-    White text on the light panel inside a dark QGIS passed every other check: the
-    label was there, the right size, with its words — only nobody could read them.
+    White text on the light panel inside a dark QGIS passes every other check: the
+    label is there, the right size, with its words — only nobody can read them.
     """
     faults = []
     ratio = image.devicePixelRatio() or 1.0

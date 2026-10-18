@@ -13,9 +13,9 @@ are skipped, and the CI job timeout.
 Usage lands in `live_usage.json` next to the screenshots: per scenario the
 prompt tokens, completion tokens and model requests of every run, the
 verification run included. A scenario that spends more than its ceiling in
-`tests/data/token_ceilings.json` fails, so a token regression like issue #74
-cannot ship unnoticed; the ceilings apply only to the model they were measured
-on. `tests/token_ceilings.py` refreshes them from reports.
+`tests/data/token_ceilings.json` fails, so a token regression cannot ship
+unnoticed; the ceilings apply only to the model they were measured on.
+`tests/token_ceilings.py` refreshes them from reports.
 
 Configuration comes from the environment; without a key the module skips:
 

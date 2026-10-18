@@ -86,7 +86,7 @@ class WelcomeFeedTest(unittest.TestCase):
         welcome = self.view._empty
         self.view.add_user_message("hello")
         self.assertIsNone(self.view._empty)
-        # Hidden at once, not only scheduled for deletion: a busy main thread painted it over the chat.
+        # Hidden at once, not only scheduled for deletion: a busy main thread would paint it over the chat.
         self.assertTrue(welcome.isHidden())
 
     def test_a_streamed_answer_also_replaces_it(self):

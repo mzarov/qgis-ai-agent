@@ -24,14 +24,14 @@ def registry_ids() -> set[str]:
 
 class SkillAlgorithmTest(unittest.TestCase):
     def test_skills_do_mention_algorithms(self):
-        self.assertTrue(mentioned_ids(), "в скиллах не нашлось ни одного идентификатора")
+        self.assertTrue(mentioned_ids(), "no algorithm id found in the skills")
 
     def test_every_mentioned_algorithm_exists(self):
         known = registry_ids()
         if not known:
-            self.skipTest("реестр Processing пуст — проверка идёт только внутри живого QGIS")
+            self.skipTest("the Processing registry is empty: this check runs only inside live QGIS")
         missing = sorted(name for name in mentioned_ids() if name not in known)
-        self.assertEqual(missing, [], "в SKILL.md есть идентификаторы, которых нет в QGIS")
+        self.assertEqual(missing, [], "a SKILL.md names algorithm ids QGIS does not have")
 
     def test_ids_are_lowercase_and_prefixed(self):
         for name in mentioned_ids():

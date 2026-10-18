@@ -11,7 +11,7 @@ tool schemas, in characters, are what each step of a run pays again. The
 largest of each, and the smallest request (no skill loaded yet — what every
 run pays at least), must stay under the `scripted` ceilings in `tests/data/token_ceilings.json`
 and land in `request_sizes.json` next to the screenshots — a free, every-push
-guard against the permanent prompt growing back (issue #74).
+guard against the permanent prompt growing.
 
 Runs inside `real_qgis_workflows.py` against the extracted plugin ZIP.
 """
@@ -717,7 +717,7 @@ class ChromeScenario(ScenarioCase):
         self.assertIsNotNone(welcome, "a new conversation opens on the welcome")
         self.assertFalse(welcome.saved.isHidden(), "the welcome must say where the old conversation went")
         self.assertNotEqual(self.dock.toolbar.title.label.text(), "Which layers are there?")
-        # The handoff's transition: the old feed leaves over the welcome, then the welcome arrives.
+        # The old feed leaves over the welcome, then the welcome arrives.
         leaving = [item for item in viewport.findChildren(LeavingFeed) if item.isVisible()]
         self.assertEqual(len(leaving), 1, "the old feed did not leave")
         self.assertIsNotNone(welcome.graphicsEffect(), "the welcome must wait behind its arrival")

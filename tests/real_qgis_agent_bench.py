@@ -118,7 +118,7 @@ class AgentBenchServerTest(unittest.TestCase):
         self.assertEqual(problems_in(result, expect), [])
 
     def test_a_renamed_layer_is_the_same_layer_not_a_new_one(self) -> None:
-        # The districts renamed and coloured by population once passed for a new layer of school counts.
+        # The districts renamed and coloured by population must not pass for a new layer of school counts.
         self.model.script(
             call("load_skill", names=["project", "style"]),
             calls(

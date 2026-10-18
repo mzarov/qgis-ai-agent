@@ -100,8 +100,8 @@ class _Interface(QObject):
 class WindowSpy(QObject):
     """Widgets shown as windows and then given a parent: each was shown before its layout took it.
 
-    Such a widget becomes a native window, made and torn down for nothing: thirty hint labels once took
-    most of the second the settings needed to open. A window a test shows on purpose keeps no parent
+    Such a widget becomes a native window, made and torn down for nothing: thirty hint labels would take
+    most of the second the settings need to open. A window a test shows on purpose keeps no parent
     and is not counted.
     """
 

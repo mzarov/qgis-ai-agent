@@ -175,7 +175,7 @@ def _annotations(project: QgsProject) -> int:
 
 
 def _annotation_texts(project: QgsProject) -> list[str]:
-    """The text notes' words: a marker in place of a note looked like success once (the text item crashed)."""
+    """The text notes' words, so a marker in place of a note does not pass for one."""
     try:
         items = project.mainAnnotationLayer().items().values()
     except Exception:

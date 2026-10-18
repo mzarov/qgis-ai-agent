@@ -78,7 +78,7 @@ class BuildTest(unittest.TestCase):
     def test_every_skill_body_is_packed(self):
         on_disk = sorted(path.parent.name for path in (REPO_ROOT / "ai_agent").rglob("SKILL.md"))
         packed = sorted(name.rsplit("/", 2)[1] for name in self.names if name.endswith("SKILL.md"))
-        self.assertTrue(on_disk, "в исходниках не найдено ни одного SKILL.md")
+        self.assertTrue(on_disk, "no SKILL.md found in the sources")
         self.assertEqual(packed, on_disk)
 
     def test_metadata_and_entry_point_are_packed(self):

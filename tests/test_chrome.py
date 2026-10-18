@@ -168,9 +168,9 @@ class SessionsPopupTest(unittest.TestCase):
 
 
 class NewConversationTransitionTest(unittest.TestCase):
-    """The handoff's new conversation: the old feed leaves, then the welcome arrives."""
+    """A new conversation: the old feed leaves, then the welcome arrives."""
 
-    def test_the_arrival_runs_on_the_handoff_curve_with_the_saved_line_behind(self):
+    def test_the_arrival_runs_on_its_curve_with_the_saved_line_behind(self):
         from ai_agent.ui import transitions
 
         self.assertEqual(transitions.arrival(0), 0.0)

@@ -6,7 +6,7 @@ outcome: 3 schools hold fewer than 100 pupils, 5 more than 1000, 8 are lyceums.
 The project is in Web Mercator, as one that began on a basemap is. Each
 district is 0.08° × 0.05°, about 2798 ha on the ellipsoid.
 The schools spread unevenly, 0 to 4 per district, as real ones do: an even 2
-everywhere once made the model doubt its own count. The task cases in tasks.yaml
+everywhere makes a model doubt its own count. The task cases in tasks.yaml
 rely on these numbers.
 """
 

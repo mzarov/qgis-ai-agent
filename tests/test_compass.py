@@ -19,7 +19,7 @@ class TimingTest(unittest.TestCase):
             for fraction, degrees in motion.keys:
                 self.assertAlmostEqual(compass.angle_at(state, fraction), degrees, places=1, msg=(state, fraction))
 
-    def test_the_states_rest_where_the_handoff_says(self):
+    def test_each_state_rests_at_its_angle(self):
         self.assertEqual(compass.angle_at(compass.REST, 0.7), 45.0)
         self.assertEqual(compass.end_angle(compass.DONE), 0.0)
         self.assertEqual(compass.end_angle(compass.ARRIVE), 45.0)

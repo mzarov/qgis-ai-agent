@@ -51,7 +51,7 @@ SETTINGS_PAGES = ("connection", "privacy", "skills", "geocoding", "advanced", "c
 PINNED_PLUGIN_VERSION = "0.2.0"
 PINNED_QGIS_VERSION = "4.0"
 PROFILE_MARKER = "ai-agent-integration-"
-# A real profile path is long; a short stand-in once hid a skills page that overflowed on a real Mac.
+# A real profile path is long; a short stand-in would hide a skills page that overflows on a real Mac.
 LONG_PROFILE = "/Users/someone-with-a-long-name/Library/Application Support/QGIS/QGIS4/profiles/default"
 LOCALE = os.environ.get("UI_LOCALE", "").strip()
 LOCALE_SUFFIX = f"_{LOCALE}" if LOCALE else ""
@@ -400,7 +400,7 @@ class ForeignThemeScreens(ScreenCase):
     """A light panel inside a dark QGIS: every text keeps the panel's ink, whatever QGIS's palette or UI theme.
 
     Checked for faults only (clipping, overflow, text nobody can read), no goldens: the screens repeat
-    the others in a foreign setting, and a dark QGIS once turned the popups' names white on white.
+    the others in a foreign setting, where a dark QGIS can turn the popups' names white on white.
     """
 
     def test_a_light_panel_in_a_dark_palette(self) -> None:

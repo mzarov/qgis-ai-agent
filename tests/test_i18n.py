@@ -196,7 +196,7 @@ class InstallOrderTest(unittest.TestCase):
         saved = {name: sys.modules.pop(name) for name in stale}
         try:
             __import__("ai_agent")
-            self.assertTrue(loaded, "переводчик так и не создался")
+            self.assertTrue(loaded, "the translator was never created")
             self.assertEqual(loaded[0], ["ai_agent.i18n"])
         finally:
             qt.QTranslator = original_translator

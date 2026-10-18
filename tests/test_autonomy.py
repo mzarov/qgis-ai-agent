@@ -323,7 +323,7 @@ class QueuedStepsInPromptTest(unittest.TestCase):
         self.assertIn("not run yet", prompts.CORE_PROMPT)
 
     def test_extras_nobody_asked_for_are_offered_not_queued(self):
-        # A model styled, labelled and saved a layer the user had only asked to count.
+        # A layer the user only asked to count is not styled, labelled and saved on the side.
         self.assertIn("Do what was asked, and no more", prompts.CORE_PROMPT)
         self.assertIn("as an offer, not into the queue", prompts.CORE_PROMPT)
         self.assertIn("Only when the user asks to save", get_tool_by_name("save_project").description)

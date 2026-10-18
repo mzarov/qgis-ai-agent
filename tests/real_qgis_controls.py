@@ -1,8 +1,8 @@
-"""Behaviour of the redesigned controls in a live QGIS.
+"""Behaviour of the custom controls in a live QGIS.
 
 The screen checks prove how the settings window and the composer look; these
-prove they still work: the custom controls answer like the combo boxes they
-replaced, edits are tracked until saved, the composer's states follow the run.
+prove they work: the custom controls answer like combo boxes, edits are
+tracked until saved, the composer's states follow the run.
 
 Runs inside `real_qgis_workflows.py` against the extracted plugin ZIP.
 """
@@ -107,8 +107,8 @@ class CompassMotionTest(unittest.TestCase):
 
 class FoldMotionTest(unittest.TestCase):
     """Every frame of a fold leaves the whole feed laid out. Qt passes a size change up one parent per
-    round of posted events; a frame painted between rounds showed the reasoning grown inside a trace
-    that had not, and the motion stalled, then jumped."""
+    round of posted events; a frame painted between rounds would show the reasoning grown inside a trace
+    that has not, and the motion would stall, then jump."""
 
     def setUp(self) -> None:
         self.view = ConversationView()
@@ -230,8 +230,8 @@ class NoteColumnTest(unittest.TestCase):
         feed = view.widget()
         answer = feed.findChildren(AssistantMessage)[0]._browser
         label = feed.findChildren(SystemMessage)[0]._label
-        # A style sheet's lone border-left once reserved its width and padding but never painted (Qt takes
-        # the whole border's style from the top edge), so the note sat 11 px in beside nothing.
+        # A style sheet's lone border-left reserves its width and padding but never paints (Qt takes the
+        # whole border's style from the top edge): the note would sit 11 px in beside nothing.
         text = label.mapTo(feed, label.contentsRect().topLeft())
         self.assertEqual(text.x(), answer.mapTo(feed, QPoint(0, 0)).x())
         view.hide()
@@ -239,7 +239,7 @@ class NoteColumnTest(unittest.TestCase):
 
 
 class WideTableTest(unittest.TestCase):
-    """A table wider than the feed slides under a bar of its own: its right columns were cut off, out of reach."""
+    """A table wider than the feed slides under a bar of its own, so its right columns stay in reach."""
 
     def setUp(self) -> None:
         self.view = ConversationView()
@@ -509,8 +509,8 @@ class SettingsBehaviourTest(PluginCase):
         self.assertTrue(self.dialog.save_btn.isEnabled())
 
     def test_no_page_shows_a_window_of_its_own(self) -> None:
-        # Thirty hint labels were once shown before their rows took them: each became a window,
-        # and making those windows was most of the second the settings took to open.
+        # A hint label shown before its row takes it becomes a window of its own, and making thirty
+        # such windows would be most of the second the settings take to open.
         for index in range(self.dialog.pages.count()):
             self.dialog.show_page(index)
         self.dialog.search.field.setText("a")
@@ -531,7 +531,7 @@ class SettingsBehaviourTest(PluginCase):
     def test_a_chosen_group_sits_under_the_chips(self) -> None:
         from ai_agent.ui import connectors_settings, settings_layout
 
-        # The groups above a chosen one once left their air behind: a band of empty page under the chips.
+        # The groups above a chosen one must not leave their air behind: a band of empty page under the chips.
         self.dialog._nav_buttons[settings_layout.CONNECTORS].click()
         connectors = self.dialog.connectors
         chips = connectors.chips[0][0].parentWidget()
@@ -688,7 +688,7 @@ class ComposerBehaviourTest(PluginCase):
 
     def test_a_mention_after_astral_characters_replaces_only_itself(self) -> None:
         """Qt counts text positions in UTF-16 units and Python in characters, and an emoji is two of the first:
-        completing `🌍🌍 @ro tail` once gave `🌍🌍 @roads ail`."""
+        completing `🌍🌍 @ro tail` must not give `🌍🌍 @roads ail`."""
         composer = self.dock.composer
         composer.set_layer_source(lambda: [("roads", "", "")])
         edit = composer._edit
