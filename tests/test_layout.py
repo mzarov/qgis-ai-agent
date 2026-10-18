@@ -72,14 +72,11 @@ class ItemMixin:
     def setText(self, text):
         self._text = text
 
-    def setTextFormat(self, text_format):
-        return None
-
     def attemptMove(self, point):
         self._moved = point
 
     def attemptResize(self, size):
-        self._resized = size
+        pass
 
 
 def _fake_class(kind_class):

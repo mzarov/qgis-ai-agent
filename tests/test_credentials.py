@@ -28,8 +28,6 @@ class MemorySettings:
 class FakeConfig:
     def __init__(self, *_a, **_k):
         self._id = ""
-        self._name = ""
-        self._method = ""
         self._map: dict[str, str] = {}
 
     def setId(self, value):
@@ -39,13 +37,10 @@ class FakeConfig:
         return self._id
 
     def setName(self, value):
-        self._name = value
-
-    def name(self):
-        return self._name
+        pass
 
     def setMethod(self, value):
-        self._method = value
+        pass
 
     def setConfig(self, key, value):
         self._map[key] = value

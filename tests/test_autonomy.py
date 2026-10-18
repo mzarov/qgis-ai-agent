@@ -127,10 +127,6 @@ class FakeExecutor:
     def start(call, done):
         return None
 
-    @staticmethod
-    def queued(call):
-        return ToolResult(call=call, payload={"status": "queued"})
-
 
 class LoopPlanTest(unittest.TestCase):
     def setUp(self):

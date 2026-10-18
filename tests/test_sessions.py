@@ -34,9 +34,6 @@ class Project:
 
 
 class StorageProject(Project):
-    def absoluteFilePath(self):
-        return ""
-
     def projectStorage(self):
         return object()
 

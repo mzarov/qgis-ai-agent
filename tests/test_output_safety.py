@@ -23,10 +23,6 @@ class _Layer:
     def name():
         return "roads"
 
-    @staticmethod
-    def selectedFeatureCount():
-        return 1
-
     @classmethod
     def selectedFeatureIds(cls):
         return list(cls.selected_ids)

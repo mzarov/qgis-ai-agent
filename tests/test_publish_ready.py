@@ -7,7 +7,6 @@ PACKAGE = REPO_ROOT / "ai_agent"
 METADATA = PACKAGE / "metadata.txt"
 REQUIRED_FIELDS = ("name", "qgisMinimumVersion", "description", "about", "version", "author", "email", "repository")
 VALID_CATEGORIES = ("Raster", "Vector", "Database", "Mesh", "Web")
-MANDATORY_IN_ZIP = ("metadata.txt", "__init__.py", "LICENSE")
 CYRILLIC = re.compile(r"[а-яё]", re.IGNORECASE)
 
 

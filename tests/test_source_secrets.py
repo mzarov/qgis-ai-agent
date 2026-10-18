@@ -140,9 +140,6 @@ class _Vector(_SourceLayer, QgsVectorLayer):
     def selectedFeatureCount(self):
         return 0
 
-    def featureCount(self):
-        return 3
-
 
 class _Project:
     def __init__(self, layers):

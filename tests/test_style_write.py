@@ -604,9 +604,6 @@ class _FakeSub:
     def setColor(self, value):
         self.colour = value.name()
 
-    def setFillColor(self, value):
-        self.colour = value.name()
-
 
 class _FakeFormat:
     def __init__(self):
@@ -640,12 +637,6 @@ class _FakeFormat:
     def setSizeUnit(self, value):
         self.size_unit = value
 
-    def setColor(self, value):
-        self.colour = value.name()
-
-    def setOpacity(self, value):
-        self.opacity = value
-
     def setBuffer(self, value):
         self.buffer_settings = value
 
@@ -661,7 +652,6 @@ class _FakeSettings:
         self.fieldName = ""
         self.isExpression = False
         self.offsetUnits = None
-        self.distUnits = None
         self.xOffset = None
         self.yOffset = None
         self.dist = None

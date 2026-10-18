@@ -60,14 +60,7 @@ class BasemapTest(unittest.TestCase):
 
 
 class Connection:
-    def __init__(self, tables=()):
-        self._tables = list(tables)
-
-    def tables(self):
-        return self._tables
-
-    def tableUri(self, schema, table):
-        return f"uri://{schema}.{table}"
+    pass
 
 
 class DbToolsTest(unittest.TestCase):

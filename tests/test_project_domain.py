@@ -46,9 +46,6 @@ class Group:
     def name(self):
         return self._name
 
-    def parent(self):
-        return self._parent
-
     def children(self):
         return list(self._children)
 
@@ -475,9 +472,6 @@ class _Crs:
 
     def isValid(self):
         return self._text.upper().startswith("EPSG:")
-
-    def authid(self):
-        return self._text
 
 
 if __name__ == "__main__":

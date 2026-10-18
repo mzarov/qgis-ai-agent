@@ -552,14 +552,13 @@ class DnsAndCancellationTest(unittest.TestCase):
     class Loop:
         def __init__(self, on_exec=None):
             self.on_exec = on_exec
-            self.quits = 0
 
         def exec(self):
             if self.on_exec:
                 self.on_exec()
 
         def quit(self):
-            self.quits += 1
+            pass
 
     class Timer:
         def __init__(self):

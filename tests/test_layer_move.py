@@ -25,9 +25,6 @@ class Node:
     def clone(self):
         return Node(self.layer_id, self._tree)
 
-    def parent(self):
-        return self._parent
-
 
 class Group:
     def __init__(self, tree, name=""):
@@ -128,9 +125,6 @@ if __name__ == "__main__":
 class FakeLayer:
     def __init__(self, node):
         self._node = node
-
-    def name(self):
-        return self._node.layer_id
 
 
 class ReorderTest(unittest.TestCase):

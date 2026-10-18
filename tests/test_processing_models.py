@@ -179,10 +179,6 @@ class _Definition:
     def options(self):
         return self._options
 
-    @staticmethod
-    def flags():
-        return 0
-
 
 class _Named:
     def __init__(self, name):

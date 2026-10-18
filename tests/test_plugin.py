@@ -12,9 +12,6 @@ class Signal:
     def connect(self, slot):
         self.slots.append(slot)
 
-    def disconnect(self, slot):
-        self.slots.remove(slot)
-
     def emit(self):
         for slot in list(self.slots):
             slot()

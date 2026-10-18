@@ -313,13 +313,6 @@ class ThemeTest(unittest.TestCase):
         self.assertIn("theme.tokens(palette)", self.STYLE)
 
 
-def _constant(source, name):
-    for line in source.split("\n"):
-        if line.startswith(name + " ="):
-            return float(line.split("=")[1])
-    raise AssertionError(f"нет константы {name}")
-
-
 class ProbeTest(unittest.TestCase):
     def _with_call_model(self, fake):
         saved = transport.call_model
@@ -531,9 +524,6 @@ class RunningProbe:
 
     def cancel(self):
         self.cancelled = True
-
-    def wait(self, _milliseconds):
-        return not self.running
 
     def deleteLater(self):
         pass

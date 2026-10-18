@@ -49,10 +49,6 @@ class _Signal:
     def disconnect(self):
         self.slots = []
 
-    def emit(self):
-        for slot in list(self.slots):
-            slot()
-
 
 class _Reply:
     def __init__(self):
@@ -83,9 +79,6 @@ class _Reply:
 
 class _Completion:
     finished = True
-
-    def take(self, _event):
-        pass
 
     def response(self):
         return {}

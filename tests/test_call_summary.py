@@ -54,18 +54,15 @@ class RegistryTest(unittest.TestCase):
 
 
 class _Layer:
-    def __init__(self, identifier, name):
-        self._identifier, self._name = identifier, name
-
-    def id(self):
-        return self._identifier
+    def __init__(self, name):
+        self._name = name
 
     def name(self):
         return self._name
 
 
 class _Project:
-    layers = {"stations_98c97027_113b": _Layer("stations_98c97027_113b", "stations")}
+    layers = {"stations_98c97027_113b": _Layer("stations")}
 
     @classmethod
     def instance(cls):

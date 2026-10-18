@@ -47,10 +47,6 @@ class _Parameter:
     def isDestination(self):
         return self._destination
 
-    @staticmethod
-    def flags():
-        return 0
-
 
 class _Algorithm:
     def __init__(self, *parameters):

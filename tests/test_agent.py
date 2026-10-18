@@ -47,10 +47,6 @@ class FakeExecutor(MainThreadOnly):
         self.ran.append(call.name)
         return ToolResult(call=call, ok=True, payload={"fake": True})
 
-    @staticmethod
-    def queued(call):
-        return ToolResult(call=call, ok=True, payload={"status": "queued"})
-
 
 def call(tool, **arguments):
     return ToolCall(id="c", name=tool, arguments=arguments)
@@ -267,12 +263,6 @@ class AbortReentrancyTest(unittest.TestCase):
                 self.callbacks.append((on_turn, on_error, on_chunk, on_thinking, on_retry))
 
             def release(self):
-                return None
-
-            def stop(self):
-                return None
-
-            def detach(self, *callbacks):
                 return None
 
         loop = AgentLoop()

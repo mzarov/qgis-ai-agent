@@ -85,9 +85,6 @@ class _AggregatingLayer(_Layer):
     def featureCount(self):
         return self.count
 
-    def selectedFeatureIds(self):
-        return [4, 5]
-
     def aggregate(self, kind, expression, parameters, context, fids=None):
         self.calls.append((kind, expression, getattr(parameters, "filter", ""), fids))
         return self.answers.get(expression, (None, False))

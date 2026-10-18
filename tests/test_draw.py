@@ -140,7 +140,6 @@ class FakeMemoryLayer:
     def __init__(self, name, fields, wkb, crs):
         self._name = name
         self.schema = fields
-        self.wkb = wkb
         self._crs = crs
         self.provider = FakeProvider()
 
@@ -232,10 +231,6 @@ class ExistingLayer(QgsVectorLayer):
 
     def commitChanges(self):
         self.commits += 1
-        self.editing = False
-        return True
-
-    def rollBack(self):
         self.editing = False
         return True
 

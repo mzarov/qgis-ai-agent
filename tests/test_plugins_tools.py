@@ -15,7 +15,6 @@ META = {
 class Action:
     def __init__(self, text, menu=None, separator=False):
         self._text, self._menu, self._separator = text, menu, separator
-        self.triggered = 0
 
     def text(self):
         return self._text
@@ -27,7 +26,7 @@ class Action:
         return self._separator
 
     def trigger(self):
-        self.triggered += 1
+        pass
 
 
 class Menu:

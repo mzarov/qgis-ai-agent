@@ -1,5 +1,4 @@
 import pathlib
-import re
 import unittest
 import xml.etree.ElementTree as ElementTree
 
@@ -10,7 +9,6 @@ DOCK = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "do
     encoding="utf-8"
 )
 CHROME = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "chrome.py").read_text(encoding="utf-8")
-COORDINATE = re.compile(r"QPointF\(([0-9.]+), ([0-9.]+)\)")
 PLUGIN = pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "plugin.py"
 BRAND_ICON = pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "icon.svg"
 RENDERED_ICON = pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "icon.png"

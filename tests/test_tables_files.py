@@ -42,21 +42,9 @@ CAFES = "name,lon,lat\nDome,2.33,48.84\nFlore,2.332,48.854\n"
 class FakeProject:
     def __init__(self, layers=()):
         self.layers = {layer.id(): layer for layer in layers}
-        self.added = []
-
-    def mapLayers(self):
-        return dict(self.layers)
 
     def mapLayersByName(self, name):
         return [layer for layer in self.layers.values() if layer.name() == name]
-
-    def addMapLayer(self, layer, add_to_tree=True):
-        self.added.append(layer)
-        self.layers[layer.id()] = layer
-        return layer
-
-    def removeMapLayer(self, identifier):
-        self.layers.pop(identifier, None)
 
 
 def project_patch(project):
