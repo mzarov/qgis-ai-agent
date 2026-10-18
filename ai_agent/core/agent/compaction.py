@@ -52,7 +52,7 @@ class Compactor(QObject):
     def is_running(self) -> bool:
         return self._turn.is_running
 
-    def start(self, history: list[dict[str, Any]], overrides: dict[str, Any] | None = None) -> bool:
+    def start(self, history: list[dict[str, Any]]) -> bool:
         if self.is_running or not history:
             return False
         messages = [
@@ -60,7 +60,7 @@ class Compactor(QObject):
             *history,
             {"role": "user", "content": COMPACT_REQUEST},
         ]
-        self._turn.start(messages, [], overrides or build_overrides(), self._on_turn, self._on_error)
+        self._turn.start(messages, [], build_overrides(), self._on_turn, self._on_error)
         return True
 
     def abort(self) -> None:

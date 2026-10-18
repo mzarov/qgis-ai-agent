@@ -40,12 +40,12 @@ class Titler(QObject):
     def is_running(self) -> bool:
         return self._turn.is_running
 
-    def start(self, request: str, answer: str, overrides: dict[str, Any] | None = None) -> bool:
+    def start(self, request: str, answer: str) -> bool:
         if self.is_running or not request.strip():
             return False
         exchange = f"User:\n{request[:EXCERPT_CHARS]}\n\nAgent:\n{answer[:EXCERPT_CHARS]}"
         messages = [{"role": "system", "content": TITLE_SYSTEM}, {"role": "user", "content": exchange}]
-        self._turn.start(messages, [], overrides or build_overrides(), self._on_turn, self._on_error)
+        self._turn.start(messages, [], build_overrides(), self._on_turn, self._on_error)
         return True
 
     def stop(self) -> None:

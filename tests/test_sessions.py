@@ -200,7 +200,7 @@ class SessionStoreTest(unittest.TestCase):
     def test_old_sessions_are_trimmed(self):
         for index in range(MAX_SESSIONS + 5):
             self._saved(text=f"вопрос {index}")
-        self.assertLessEqual(len(self.store.recent("/p.qgz", limit=999)), MAX_SESSIONS)
+        self.assertLessEqual(len(self.store.recent("/p.qgz")), MAX_SESSIONS)
 
     def test_unwritable_root_does_not_raise(self):
         SessionStore("/proc/недоступно/сессии").save(self._saved())

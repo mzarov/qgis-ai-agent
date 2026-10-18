@@ -48,7 +48,7 @@ class CompactorTest(unittest.TestCase):
             release=lambda: None,
         )
         history = [{"role": "user", "content": "раскрась районы"}, {"role": "assistant", "content": "готово"}]
-        self.assertTrue(compactor.start(history, {"url_override": "u"}))
+        self.assertTrue(compactor.start(history))
         self.assertEqual(started["messages"][0], {"role": "system", "content": COMPACT_SYSTEM})
         self.assertEqual(started["messages"][1:3], history)
         self.assertEqual(started["messages"][-1]["content"], COMPACT_REQUEST)
