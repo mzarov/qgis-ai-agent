@@ -112,7 +112,7 @@ def scrub_secrets(text: str) -> str:
 
 
 class ModelTimeout(ConnectionError):
-    """The model did not answer in time; a ConnectionError still, so retries treat it as before."""
+    """The model did not answer in time; a ConnectionError, so retries treat it as one."""
 
 
 class SetupError(ValueError):

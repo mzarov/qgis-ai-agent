@@ -1,8 +1,8 @@
 """Noticing the same failure twice in one run, so the model changes course instead of retrying it.
 
-A rule in the prompt was not enough: in the agent bench a model sent the same
-failing export five times. The second identical failure now carries a note in its
-result, which the model reads at the moment it decides the next call.
+A prompt rule alone does not stop a model from resending a failing call. The
+second identical failure carries a note in its result, which the model reads at
+the moment it decides the next call.
 """
 
 from collections import Counter

@@ -6,7 +6,7 @@ from ai_agent.skills.registry import LOCAL, SKILL_REGISTRY
 
 
 def requested_skills(arguments: dict) -> list[str]:
-    """Skill names from a load_skill call: `names` (a list) or the older single `name`."""
+    """Skill names from a load_skill call: `names` (a list) or a single `name`."""
     raw = arguments.get("names")
     if raw is None:
         raw = [arguments.get("name")]
