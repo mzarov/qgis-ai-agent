@@ -1,23 +1,19 @@
 # Translations
 
-The source language is English — all of it: code, tool schemas, prompts, UI
-strings. Russian lives as a translation catalogue next to the code. The plugin
-follows the QGIS interface language; unsupported locales fall back to English.
+All source text is English. Russian is a translation catalogue next to the
+code. The plugin follows the QGIS interface language and falls back to English.
 
-## How it works
+## Files
 
-Three files, of which you only ever edit the middle one:
+- Python code with `tr("Apply")`: the English original, which is also the key.
+- `ai_agent/translations/ai_agent_ru.ts`: the catalogue. Edit only the
+  translations.
+- `ai_agent/translations/ai_agent_ru.qm`: the compiled file QGIS loads. Never
+  edit it by hand.
 
-| File | What it is | Edited by hand? |
-| --- | --- | --- |
-| `*.py` with `tr("Apply")` | the English original | yes — that is the code |
-| `ai_agent/translations/ai_agent_ru.ts` | XML, English → Russian | yes, the translation column only |
-| `ai_agent/translations/ai_agent_ru.qm` | the compiled binary QGIS loads | never — generated |
+A missing translation is harmless: `tr()` returns the English text.
 
-There is no separate key: the English string itself is the key. A missing
-translation is harmless — `tr()` falls back to the English original.
-
-## The workflow
+## Updating
 
 After adding or changing a `tr()` string:
 
@@ -25,52 +21,35 @@ After adding or changing a `tr()` string:
 python3 tools/update_translations.py
 ```
 
-The command needs no dependencies. It extracts the literals from `tr()` /
-`tr_n()` by parsing the AST, appends new entries to the `.ts` (existing
-translations survive), and compiles the `.qm` with our own compiler in
-`tools/qm.py`.
+It needs no dependencies. It extracts `tr()` and `tr_n()` literals by parsing
+the AST, adds new entries to the `.ts` (existing translations stay) and
+compiles the `.qm` with `tools/qm.py`. Fill in the empty `<translation>`
+entries and run it again.
 
-That is a deliberate departure from the stock QGIS recipe
-(`.pro` → `pylupdate5` → Qt Linguist → `lrelease` → `.qm`), and both replaced
-steps were replaced for measured reasons:
+The stock QGIS tools are not used:
 
-- **Extraction is AST-based, not `pylupdate5`.** That tool does find `tr()`
-  calls, but it reads non-ASCII source as latin-1 (`…` and `■` arrive mangled,
-  so the runtime lookup misses), it does not see `tr_n` at all — plural forms
-  vanish entirely — and it writes the `@default` context instead of
-  `QgisAiAgent`, the one the lookup uses.
-- **Compilation is `tools/qm.py`, not `lrelease`.** That binary ships in the Qt
-  tools, which exist neither in QGIS nor on a typical system — installing
-  349 MB of PySide6 for one executable is absurd next to a 144 KB plugin. The
-  `.qm` format is simple: magic, a language block, an `elfHash(source) → offset`
-  table, message records and plural rules. The output is **byte-identical** to
-  what real `lrelease` produces, pinned by a fixture: `tests/data/golden_ru.qm`
-  was built by `lrelease` once and lives in the repository, and
-  `tests/test_qm.py` requires our compiler to reproduce it. The fixture
-  deliberately covers what is easy to get wrong: non-ASCII, XML-escaped
-  characters, a newline and all three plural forms.
+- `pylupdate5` reads non-ASCII source as latin-1, misses `tr_n` and writes the
+  wrong context.
+- `lrelease` ships only with the Qt tools, which neither QGIS nor a typical
+  system has. `tools/qm.py` produces byte-identical output, pinned by
+  `tests/data/golden_ru.qm`, which `lrelease` built once.
 
-Then fill in the empty `<translation>` entries in the `.ts` and run the command
-again. `tests/test_i18n.py` fails while anything is left untranslated, when a
-placeholder (`{0}`, `%n`) is lost in translation, or when the catalogue drifts
-from the code.
+`tests/test_i18n.py` fails when an entry is untranslated, a placeholder (`{0}`,
+`%n`) is lost, or the catalogue drifts from the code.
 
 ## Rules
 
-- `tr()` takes a literal only: `tr("Layer '{0}'").format(name)` — never an
-  f-string, which the extractor cannot read.
-- User-facing text (`summarize_call`, everything in `ui/`) is wrapped in
-  `tr()`. Model-facing text (tool descriptions, schemas, error messages) is
-  plain English **without** `tr()` — piping it through the translator would
-  send the model Russian schemas in a Russian QGIS.
-- Plurals go through `tr_n("%n step(s)", count)`; Russian carries all three
-  forms in the catalogue.
+- `tr()` takes a literal: `tr("Layer '{0}'").format(name)`, never an f-string.
+- Text a person reads (`summarize_call`, everything in `ui/`) goes through
+  `tr()`. Text the model reads (tool descriptions, schemas, errors) stays plain
+  English, so a Russian QGIS does not send the model Russian schemas.
+- Plurals use `tr_n("%n step(s)", count)`; Russian has all three forms.
 
 ## Adding a language
 
 1. Add the locale to `SUPPORTED_LOCALES` in `ai_agent/i18n.py` and to
    `LANGUAGE_NAMES` in `core/agent/prompts.py`.
-2. Add its plural rules to `NUMERUS_RULES` in `tools/qm.py` — the compiler
-   refuses unknown languages instead of guessing.
-3. Add the language to `LANGUAGES` in `tools/update_translations.py`, run it,
-   translate the generated `.ts`.
+2. Add its plural rules to `NUMERUS_RULES` in `tools/qm.py`. The compiler
+   refuses unknown languages.
+3. Add the language to `LANGUAGES` in `tools/update_translations.py`, run it
+   and translate the new `.ts`.

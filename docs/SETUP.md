@@ -1,146 +1,84 @@
-# Installation and configuration
+# Setup
 
-The plugin requires **QGIS 4.0 or newer**. It does not work on QGIS 3.x: the
-3.40 LTR build on macOS ships Python 3.9, while the code uses annotation syntax
-from Python 3.10.
+The plugin needs **QGIS 4.0 or newer**. It does not run on QGIS 3.x.
 
-## 1. Installing from a zip
+## 1. Install
 
-For a published version, download the `ai_agent-<version>.zip` asset from
-the [latest GitHub Release](https://github.com/mzarov/qgis-ai-agent/releases/latest).
-Do not pick either of GitHub's auto-generated “Source code” archives: their
-top-level folder has the wrong name for a QGIS plugin.
+Install **AI Agent** from **Plugins → Manage and Install Plugins**.
 
-To build the release archive from a checkout instead, run:
+To install a specific version, download `ai_agent-<version>.zip` from the
+[GitHub releases](https://github.com/mzarov/qgis-ai-agent/releases/latest) and
+use **Install from ZIP** in the same dialog. Do not use GitHub's "Source code"
+or "Download ZIP" archives: their folder name is not a valid plugin name.
 
-```bash
-python3 tools/build_plugin.py
-```
+To build the archive from a checkout, run `python3 tools/build_plugin.py`. It
+writes `dist/ai_agent-<version>.zip`.
 
-It writes `dist/ai_agent-<version>.zip` — exactly the shape QGIS expects:
-a single `ai_agent/` folder inside the archive.
+The plugin has no Python dependencies beyond QGIS.
 
-Then in QGIS: **Plugins → Manage and Install Plugins → Install from ZIP**, pick
-the file, press **Install Plugin**. After installation **AI Agent** appears
-in the menu.
+## 2. Connect a model
 
-Do **not** download the zip with GitHub's “Code → Download ZIP” button: that
-archive unpacks as a `qgis-ai-agent-main` folder, the folder name becomes the
-Python package name, and with a hyphen the plugin will not load.
+Open the panel and click the settings button. On the **Connection** page pick a
+provider tile or enter your own address:
 
-## 2. API key and address
+- **Server address**: the base URL, without `/chat/completions`.
+- **Model**: the model name at your provider.
+- **API key**: stored encrypted in the QGIS authentication database, not in a
+  settings file. The first time you save a key, QGIS asks for its master
+  password.
 
-The plugin works with any OpenAI-compatible endpoint. Open the plugin panel and
-press the gear icon:
+**Test connection** sends one short request and shows the reply. It also
+checks whether the model can see pictures; if not, the agent checks its work
+by reading data instead of looking at a rendered map. Test again after you
+change the model.
 
-| Field | What to enter |
+The API format (`auto`, `openai` or `anthropic`) and the authorisation type are
+on the **Advanced** page. `auto` picks the format from the address.
+
+The model must support function calling. If the endpoint does not, the plugin
+switches to a text JSON protocol on its own. A model of about 30B parameters or
+larger works best; small 7–8B models often get the tool calls wrong.
+
+### Providers
+
+| Provider | Server address |
 | --- | --- |
-| Base URL | the address **without** `/chat/completions` — the plugin appends it |
-| Model | the model identifier at your provider |
-| API key | stored in the QGIS authentication database, not in the QGIS config |
-| API format | `auto` — picked from the address; `openai` or `anthropic` manually |
-| Authorisation type | `Bearer` for most services, `OAuth` for corporate gateways |
-| Verify the SSL certificate | untick only for an internal gateway with a self-signed certificate |
+| OpenAI | `https://api.openai.com/v1` |
+| OpenRouter | `https://openrouter.ai/api/v1` |
+| Anthropic | `https://api.anthropic.com/v1` |
+| Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` |
+| DeepSeek | `https://api.deepseek.com/v1` |
+| Groq | `https://api.groq.com/openai/v1` |
+| Mistral | `https://api.mistral.ai/v1` |
 
-The **Test connection** button sends one short request and shows the model's
-reply — proof that the URL, the key and the model name agree with each other.
-It then asks the model to name the two colours of a small picture. Some
-endpoints accept a picture and drop it before the model; when the model cannot
-name them, the plugin remembers it and the agent checks the map by reading the
-data instead of rendering it. Test once after switching to a new model.
+Any other OpenAI-compatible service works with its own address.
 
-Sending a request shares your prompt, project metadata and whatever the agent's
-tools read — attribute values, extents, styles, Processing results, rendered
-maps — with the configured endpoint. There is no switch that holds them back;
-use a local model server for projects that must stay on your computer.
+### Local models
 
-Geocoding is disabled by default. In the **Geocoding** card, choose **Photon
-demo (fair use)** for occasional interactive lookups or **Custom Nominatim**
-and enter a permitted public HTTPS base URL. The model receives only the place
-argument; it cannot choose or replace this destination. Every lookup still
-waits for its own Apply confirmation.
+An address on `localhost` needs no key.
 
-### Verified providers
-
-The plugin speaks two formats. `auto` picks one from the address, so usually
-pasting the URL, the key and the model name is enough.
-
-| Provider | Base URL | Format |
-| --- | --- | --- |
-| OpenAI | `https://api.openai.com/v1` | openai |
-| OpenRouter | `https://openrouter.ai/api/v1` | openai |
-| Anthropic | `https://api.anthropic.com/v1` | anthropic |
-| Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | openai |
-| DeepSeek | `https://api.deepseek.com/v1` | openai |
-| Groq | `https://api.groq.com/openai/v1` | openai |
-| Mistral | `https://api.mistral.ai/v1` | openai |
-| Together, Fireworks, Cerebras | the address from their docs | openai |
-
-The settings window offers tiles for OpenAI, OpenRouter, Anthropic, Google
-Gemini, Ollama and LM Studio; the rest of this table goes in as a custom
-address. Provider logos come from [Simple Icons](https://simpleicons.org)
-(CC0) and remain their owners' trademarks; the interface icons are
-[Lucide](https://lucide.dev) (ISC).
-
-OpenRouter exposes the models of nearly every vendor through one key and one
-address — including Claude and Gemini — and to the plugin it remains an ordinary
-OpenAI-compatible service. Setting the format by hand is only needed for a
-gateway that speaks the Anthropic format from a non-standard address.
-
-### A local model — no key and no bills
-
-An address on `localhost` requires no key: the field may stay empty. That is how
-Ollama, LM Studio, llama.cpp and any other server with an OpenAI-compatible API
-connect.
-
-| Server | Base URL |
+| Server | Server address |
 | --- | --- |
 | Ollama | `http://localhost:11434/v1` |
 | LM Studio | `http://localhost:1234/v1` |
 | llama.cpp server | `http://localhost:8080/v1` |
 
-The plugin treats these addresses as local, but that does not guarantee the
-server keeps data on this device. Review whether it stores or forwards requests.
+A local server keeps requests on your computer only if it is configured to;
+check whether it logs or forwards them.
 
-Mind the size: the agent runs a loop over 71 tools, and a small 7–8B
-model will get lost in the calls. The sensible minimum is a ~30B-class model
-with function calling support.
+### Geocoding
 
-The agent loop calls tools, so the model must support function calling. If the
-endpoint does not, the plugin switches to a text JSON protocol on its own and
-remembers the choice for that URL.
+Geocoding is off by default. On the **Geocoding** page choose the Photon demo
+service for occasional lookups, or your own Nominatim server. Each lookup asks
+for confirmation first.
 
-## 3. Dependencies
+Before you connect a remote provider, read [Data and privacy](privacy.md).
 
-**There are none.** The plugin needs nothing but QGIS itself: install the
-archive and it runs. Keys live in the QGIS authentication database, so no
-external Python library is involved in storing them.
+## 3. Development install
 
-Network requests stay on the QGIS network stack: ordinary calls use
-`QgsBlockingNetworkRequest`, while streaming and the pinned web transport use
-`QgsNetworkAccessManager` with a nested event loop. The latter accepts only
-public DNS answers, pins checked IPs on direct routes while TLS verifies the
-original host, preserves the hostname through an explicit QGIS proxy, and
-follows only manually validated same-origin redirects; a direct-route mismatch
-is blocked rather than bypassed.
-
-The first time a key is saved, QGIS asks for its **master password** — the same
-one it uses for layer and PostGIS passwords. If you cancel that dialog the key
-stays locked and the settings window says so.
-
-Before connecting a project to a remote provider, read
-[Data and privacy](privacy.md). Tool results sent to the model can contain
-attribute values, exact map or layer extents, layer filters and sources, style
-categories, Processing or Python results, and rendered map or layout images—not
-just basic schema metadata.
-
-## 4. Development install
-
-To avoid rebuilding the archive on every edit, symlink the package from the
-repository into the profile's plugin folder.
-
-The folder path: **Settings → User Profiles → Open Active Profile Folder**,
-then `python/plugins`.
+Link the package folder into your QGIS profile instead of rebuilding the ZIP.
+Find the profile with **Settings → User Profiles → Open Active Profile
+Folder**; plugins live in `python/plugins`.
 
 ```bash
 PLUGINS_DIR="$HOME/Library/Application Support/QGIS/QGIS4/profiles/default/python/plugins"
@@ -148,46 +86,24 @@ mkdir -p "$PLUGINS_DIR"
 ln -sfn "$(pwd)/ai_agent" "$PLUGINS_DIR/ai_agent"
 ```
 
-The link points at the package folder, not the repository root: only the plugin
-reaches QGIS, without tests and docs. If your symlink still points at the
-repository root from the old layout — recreate it with this command, otherwise
-QGIS stops seeing the plugin.
+Link `ai_agent/`, not the repository root. Reload the plugin with **Plugin
+Reloader**. After you add or move modules, restart QGIS.
 
-While editing code, reload the plugin with **Plugin Reloader** (`Ctrl+F5`). If
-the package structure changed, a full QGIS restart is needed: unticking the
-plugin does not unload submodules from `sys.modules`. The Python console keeps
-its own cache; reset it with:
-
-```python
-import sys; [sys.modules.pop(n) for n in list(sys.modules) if n.startswith("ai_agent")]
-```
-
-## 5. Verification
+## 4. Tests
 
 ```bash
 python3 -m unittest discover -s tests -t .
+poetry install
+poetry run ruff check .
+poetry run ruff format --check .
+poetry run mypy
 ```
 
-The command above is the fast unit suite and uses QGIS stand-ins when PyQGIS is
-absent. With Python 3.12+ and Poetry 2.1.3, run `poetry install` to install locked
-development tools without installing the plugin as a Python package. Then run
-`poetry run ruff check .`, `poetry run ruff format --check .` and `poetry run mypy`.
-Mypy strictly checks configuration, skill loading, the tool base contract,
-argument validation and Processing effect policy; the rest of the application is not yet in that scope.
+The unit suite runs on plain Python with QGIS stand-ins from `tests/stub.py`.
+For branch coverage, run `poetry run coverage run -m unittest discover -s tests -t .`
+and `poetry run coverage html`.
 
-For branch coverage, run
-`poetry run coverage run -m unittest discover -s tests -t .` and
-`poetry run coverage html`; open `build/coverage/index.html`. CI publishes the
-same HTML report and XML in the `fast-suite-branch-coverage` artifact. These
-reports measure the fast suite with QGIS substitutes, without the separate
-real-QGIS processes. Missing branches guide regression work; no percentage gate
-is imposed.
-
-CI also runs `tests/real_qgis_smoke.py` on the installed ZIP and
-`tests/real_qgis_workflows.py` against live layers, Processing, layouts and Qt
-lifecycle events in the official QGIS 4 containers. Run these scripts with the
-QGIS Python interpreter and `QT_QPA_PLATFORM=offscreen` for headless checks.
-On macOS the QGIS bundle's interpreter needs its home set explicitly:
+The real-QGIS suites need the QGIS Python. On macOS:
 
 ```bash
 R=/Applications/QGIS-final-4_2_1.app/Contents
@@ -196,5 +112,9 @@ cd tests && QT_QPA_PLATFORM=offscreen PYTHONHOME=$R/Resources \
   $R/MacOS/python3.12 real_qgis_workflows.py
 ```
 
-Interactive checks beyond those scenarios follow
-[smoke_checklist.md](smoke_checklist.md).
+See the [smoke checklist](smoke_checklist.md) for the other suites and the
+manual checks.
+
+Provider logos come from [Simple Icons](https://simpleicons.org) (CC0) and
+remain their owners' trademarks; interface icons are
+[Lucide](https://lucide.dev) (ISC).

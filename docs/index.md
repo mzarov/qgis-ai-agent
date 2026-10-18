@@ -1,90 +1,59 @@
 # AI Agent
 
-An AI agent inside QGIS 4: it inspects your project and processes data from a
-plain-language request. It works as a loop — looks at the project, calls tools,
-sees the results, decides the next step. Changes are applied only after you
-confirm them.
+AI Agent is a QGIS 4 plugin that works on your project from plain-language
+requests. It reads the project, calls tools, looks at the results and decides
+the next step. Changes wait in a plan until you press **Apply**.
 
 ## What it does
 
 Nineteen domains, 90 tools:
 
-| Domain | Example requests |
+| Domain | Example request |
 | --- | --- |
-| `inspect` | “what layers do I have?”, “what did I select?”, “show me the map” |
-| `project` | “load this file”, “add an OSM basemap”, “load a table from PostGIS” |
-| `style` | “make the rivers blue”, “colour by population”, “label with names” |
-| `processing` | “build a 500 m buffer”, “clip by the district boundary”, “compute NDVI”, “make a model from these steps” |
-| `osm` | “download the cafes in Tver”, “roads except unpaved ones from OSM” |
-| `data` | “find a cloud-free Sentinel-2 image of this area”, “add the regions of Kenya”, “load a DEM here” |
-| `draw` | “put a point at 55.75, 37.62”, “draw a line between these towns” |
-| `edit` | “fix the misspelled name”, “delete the features I selected” |
-| `fields` | “add a virtual field with the area in hectares”, “rename nm to name” |
-| `layout` | “make an A4 map sheet with a legend and export it to PDF” |
-| `python` | the escape hatch: a PyQGIS snippet you read and approve first |
-| `web` | “find the EPSG code”, “read this documentation page”, “geocode this place” |
-| `annotations` | “mark this place”, “add a note to the map”, “remove that annotation” |
-| `three_d` | “open a 3D view of this project” |
-| `tables` | “join this CSV to the districts by code”, “make points from this CSV with lon/lat” |
-| `sql` | “how many schools are in each district?”, “a layer of the districts with their school counts” |
-| `charts` | “chart population by district”, “histogram of the parcel areas”, “table of the ten largest towns” |
-| `plugins` | “which plugin can segment this image?”, “install a plugin for isochrones”, “start the qgis2web export” |
-| `quality` | “check my data for errors”, “are there broken geometries in the parcels?” |
+| `inspect` | what layers do I have? |
+| `project` | add an OSM basemap |
+| `style` | colour the districts by population |
+| `processing` | build a 500 m buffer around the schools |
+| `osm` | download the cafes in Tver |
+| `data` | find a cloud-free Sentinel-2 image of this area |
+| `draw` | put a point at 55.75, 37.62 |
+| `edit` | delete the features I selected |
+| `fields` | add a virtual field with the area in hectares |
+| `layout` | make an A4 map with a legend and export it to PDF |
+| `python` | runs a PyQGIS snippet you read and approve first |
+| `web` | read this documentation page |
+| `annotations` | add a note to the map |
+| `three_d` | open a 3D view of this project |
+| `tables` | join this CSV to the districts by code |
+| `sql` | how many schools are in each district? |
+| `charts` | chart population by district |
+| `plugins` | which plugin can make a web map? |
+| `quality` | check my data for errors |
 
-On a vision-capable model the agent **sees** the map: it renders the canvas or
-a print layout to an image and judges colours, labels and composition by eye.
-A model that has once turned image input down is no longer offered those
-tools: it checks its work by reading styles, data and layouts instead.
-And after you press Apply it **verifies itself** — re-reads the project,
-compares the result with what you asked for and queues fixes when something is
-off. A simple step such as a rename or a new field is confirmed by one read,
-without asking the model again.
+On a model that accepts images, the agent also looks at the rendered map.
+After you press Apply it checks the result and proposes fixes when something
+did not work.
 
-## The safety model
+## How changes are applied
 
-You never watch the agent mutate your project unsupervised:
+- Tools that only read the project run at once.
+- Tools that change the project wait in a plan card until you press
+  **Apply**. **Cancel** drops the whole plan.
+- Tools that contact a web service ask before each call.
+- Steps that edit or delete data in place, run Python or run another
+  plugin's code ask once more.
 
-- **Local reading** tools (listing layers, describing fields, querying data)
-  run immediately — they cannot change anything. Their results may still be
-  sent to the configured model as part of the agent loop.
-- **Network reading** tools wait in a plan for per-call confirmation. A web-only
-  batch does not change or snapshot the QGIS project.
-- **Writing** tools (styling, processing, loading data) are collected into a
-  plan card. Nothing runs until you press **Apply**; **Cancel** discards the
-  whole batch.
+In Auto mode the plan applies itself, except when it holds one of those
+steps.
 
-Arguments are validated at queue time, while the agent is still listening — so
-a metre buffer on a degree-based layer is rejected with a ready reprojection
-plan instead of producing garbage.
+## What you need
 
-## What it needs
+- QGIS 4.0 or newer.
+- A language model: any OpenAI-compatible endpoint or the Anthropic API.
+  Local servers such as Ollama and LM Studio need no key.
 
-- **QGIS 4.0 or newer.**
-- **An account and an API key** with a language-model provider — any
-  OpenAI-compatible endpoint or Anthropic. Local servers (Ollama, LM Studio)
-  need no key at all.
-- Everything the agent reads goes to the model you configure: your prompt,
-  the conversation, attached pictures, project notes, layer metadata and whatever tools read —
-  attribute values, extents, styles, Processing results, rendered maps. Use a
-  local model server for projects that must stay on your computer. Read
-  [Data and privacy](privacy.md) first.
-- Each optional web call is confirmed separately. Search terms go to
-  DuckDuckGo or, on fallback, Wikipedia; geocoding goes to the Photon demo or
-  custom Nominatim service selected in Settings; and page reads
-  contact the approved public HTTPS host. The public OSMF Nominatim instance is
-  intentionally not offered. Geocoding starts disabled; Photon permits
-  reasonable demo use but may throttle and has no uptime guarantee. Private hosts and credential-bearing URLs are
-  rejected. Returned web content is untrusted data, can be forwarded to the
-  chosen model and is not cached on disk. This flow is controlled by the
-  per-call web confirmation, not by the sensitive-GIS-data option.
-- API keys are stored encrypted in the QGIS authentication database, never in
-  the project or in the QGIS settings file. The plugin has no external Python
-  dependencies at all: install the archive and it runs.
+Everything the agent reads goes to the model you configure. Read
+[Data and privacy](privacy.md) before you connect a remote provider.
 
-Ready to try? Start with [Setup](SETUP.md), then see [Usage](usage.md) for what
-to ask.
-
-## The interface
-
-Available in English and Russian, following the QGIS interface language. The
-agent itself replies in whatever language you write to it.
+Start with [Setup](SETUP.md), then see [Usage](usage.md). The interface is in
+English and Russian and follows the QGIS language.

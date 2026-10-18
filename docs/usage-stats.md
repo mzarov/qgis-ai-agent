@@ -1,47 +1,37 @@
 # Usage statistics
 
-AI Agent sends anonymous usage statistics. It is on by default, and the plugin
-says so the first time it loads, with a button to turn it off; the switch stays
-in Settings → Privacy. The numbers below are what every install that left it on
-has sent, and they are public — anyone sees the same aggregates the developers
-do. They show which QGIS and plugin versions to
-keep supporting, which tools earn their place, and where runs fail.
+AI Agent sends anonymous usage statistics. They are on by default; the plugin
+says so the first time it loads and offers to turn them off. The switch is in
+Settings → Privacy. This page shows the totals from every install that left
+them on.
 
 ## What is sent
 
-The service keeps at most one short report per install per day. A report holds:
+At most one report per install per day:
 
-- a random install id, created on your computer and tied to nothing else — not
-  your name, account, machine or network;
+- a random install id, created on your computer and linked to nothing else;
 - the date, without a time;
-- the plugin and QGIS versions, the operating system family (macOS, Windows,
-  Linux or other) and the interface language;
-- whether the model server is local or remote, and which API dialect it speaks
-  — never its address, model name or key;
-- how many runs started that day and how many batches were applied;
-- how many times each tool was called, each skill was loaded and each kind of
-  failure happened — names and counts only.
+- the plugin and QGIS versions, the OS family and the interface language;
+- whether the model server is local or remote, and its API format;
+- the number of runs and applied batches;
+- how often each tool was called, each skill loaded and each kind of failure
+  happened.
 
-## What is never sent
-
-Nothing from your project — layers, fields, attribute values, coordinates, file
-paths — and none of your requests, the model's replies, keys or addresses.
+Nothing from your project is sent: no layers, fields, values, coordinates or
+file paths. Your requests, the model's answers, keys, addresses and model
+names are not sent either.
 
 ## How it is stored
 
-The service keeps a SHA-256 hash of the install id, never the id itself: one
-row per install per day, and a repeat for the same day replaces the row. It
-stores no IP addresses and keeps no request logs. Only daily totals are
-published — never a single install's row, its hash or a time finer than a day.
-The service is short and open: see
-[`telemetry/worker`](https://github.com/mzarov/qgis-ai-agent/tree/main/telemetry/worker)
-in the repository.
+The collector keeps a SHA-256 hash of the install id, one row per install per
+day. It stores no IP addresses and keeps no request logs. Only daily totals are
+published. The code is in
+[`telemetry/worker`](https://github.com/mzarov/qgis-ai-agent/tree/main/telemetry/worker).
 
 ## The numbers
 
-The daily charts end with yesterday, since today is still being counted, and
-the last few days may still grow as installs report. Hover over a bar or a
-point to see its value; every chart also opens as a table.
+Daily charts end with yesterday, and the last few days may still grow. Hover a
+bar or point for its value; each chart also opens as a table.
 
 | Measure | Value |
 | --- | --- |
@@ -68,5 +58,4 @@ point to see its value; every chart also opens as a table.
 </div>
 
 Operating systems, model servers and API dialects count installs in the last 30
-days. An install counts once per value: one that upgraded during the month
-appears under both versions.
+days. An install that upgraded during the month counts under both versions.

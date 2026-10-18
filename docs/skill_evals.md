@@ -1,46 +1,31 @@
 # Skill evals
 
-The skill bench measures how well a model works with our skills: given a
-request, does it load the right skills, and once a skill is loaded, does it
-call the right tool with the right arguments? It runs on
-[promptfoo](https://www.promptfoo.dev/) against any OpenAI-compatible
-endpoint. Every case is one model request, so the full bench costs about a
-million tokens and a few minutes.
+Two benches measure the agent against a real model. They run on
+[promptfoo](https://www.promptfoo.dev/) with any OpenAI-compatible endpoint
+and need Node for `npx`. The plugin and its tests do not need them.
 
-The bench checks the model's decisions, not their effect in QGIS. A model can
-pick the right tool, and the tool can still fail, or a chain can fall apart at
-step five. Running the whole agent against a live project is the next stage
-of the bench.
+- The **skill bench** checks single decisions: does the model load the right
+  skills, and then call the right tool with the right arguments?
+- The **agent bench** runs whole requests in a headless QGIS and checks what
+  they leave in the project.
 
-## What a case sends
+## The skill bench
 
-Prompts and schemas are never copied into the bench. `evals/context.py`
-builds each request with the plugin's own `core/agent/request.py`, exactly as
-for a real turn:
+Each case is one model request, built by the plugin's own
+`core/agent/request.py` (`evals/context.py`): the system prompt, the tool
+schemas after the skill under test is loaded, the project context and the
+user's request. The project is described by `evals/fixture.json`. A change to a
+`SKILL.md` or a tool description is measured on the next run.
 
-- the system prompt, with the skill descriptions and the loaded skill's body;
-- the tool schemas the model has once that skill is loaded;
-- the per-turn state with the project context;
-- the user's request, after a `load_skill` call for the skill under test and
-  any reads the case lists.
-
-The project is described by `evals/fixture.json`: layers `districts`,
-`roads`, `schools`, `stations`, `dem` and `OpenStreetMap`, with their fields,
-sample values and a few Processing algorithm descriptions. Edit a `SKILL.md`
-or a tool description, and the next run measures the edit.
-
-## Suites
+Suites:
 
 - **routing** (`evals/routing.yaml`): the first turn, with only `inspect`
-  loaded. Which skills does the model load for a request?
+  loaded. Which skills does the model load?
 - **one suite per skill** (`ai_agent/skills/<skill>/evals/cases.yaml`): the
-  skill is loaded, and the case checks the model's next call.
+  skill is loaded, and the case checks the next call. The cases never reach
+  the plugin ZIP.
 
-The cases live next to the skill's `SKILL.md`, so a new skill brings its cases
-in the same folder. The build packs only `SKILL.md` and Python files from
-`skills/`, so the cases never reach the plugin zip.
-
-## A case
+### A case
 
 ```yaml
 - description: Graduated classes with a count
@@ -53,171 +38,88 @@ in the same folder. The build packs only `SKILL.md` and Python files from
 ```
 
 - `request`: what the user writes, in English or Russian.
-- `reads`: calls the agent already made, separated by commas. `roads` is
-  `describe_layer`, `roads/highway` is that field's values, and
-  `native:buffer` is the algorithm's description, all taken from the fixture.
-  A read with its own result goes under `{steps: [{tool, args, result}]}`.
-  Never write a YAML list here: promptfoo turns a list in `vars` into one test
-  per item.
-- `measurements: none` describes the project without an ellipsoid, with the
-  plugin's own `Measurements:` line. The fixture has one, as a new QGIS project
-  does.
-- `expect`: what counts as right. `evals/checks.py` explains every key:
-  - `call` and `args`: the tool and the arguments it was called with;
-  - `loads` and `not_loads`: the skills it loaded or must not load;
-  - `not`: tools it must not call;
-  - `answer`: it answered in words, without calling a tool;
-  - `any_of`: any one of several expectations; the case's other keys still
-    hold beside it, so a forbidden call fails next to an allowed one.
+- `reads`: calls the agent already made, comma-separated: `roads` is
+  `describe_layer`, `roads/highway` that field's values, `native:buffer` the
+  algorithm's description. A read with its own result goes under
+  `{steps: [{tool, args, result}]}`. Do not use a YAML list here: promptfoo
+  turns a list in `vars` into one test per item.
+- `expect`: `call` and `args`, `loads` and `not_loads`, `not` (tools it must
+  not call), `answer` (a reply without a tool call) and `any_of`.
+  `evals/checks.py` documents every key.
 
-Matching is lenient, the way a person reads an answer:
-- strings ignore case;
-- `"500"` equals `500`;
-- a dict matches when its listed keys do;
-- `re:` starts a regular expression;
-- `*` only asks for the argument to be present;
-- `"~33580±1%"` is a number within 1 % of 33580, for measured sizes (1 % when
-  the `±` part is left out).
+Matching is lenient: strings ignore case, `"500"` equals `500`, a dict matches
+on its listed keys, `re:` starts a regular expression, `*` only requires the
+argument, and `"~33580±1%"` is a number within 1 %.
 
-## Running it
-
-You need Node, for `npx`. The plugin and its tests need nothing.
+### Running it
 
 ```bash
 export EVAL_API_URL=https://api.deepseek.com/v1
 export EVAL_MODEL=deepseek-chat
 export EVAL_API_KEY=...   # not needed for a local server
-export EVAL_AUTH=OAuth    # only for a gateway that wants OAuth instead of Bearer
 python3 evals/run.py
 ```
 
-- `--suites routing,style` runs only those suites; `--only "Labels|Buffer"` only the cases whose description matches.
-- `--repeat 3 --fresh` runs every case three times and reports the pass rate.
-  promptfoo answers an unchanged request from its cache, so an untouched suite
-  costs nothing on a rerun; `--fresh` asks the model again, which is what a
-  pass rate needs.
+- `--suites routing,style` runs only those suites; `--only "Labels|Buffer"`
+  only matching cases.
+- `--repeat 3 --fresh` runs each case three times without the cache and
+  reports the pass rate.
 - Several comma-separated models in `EVAL_MODEL` are compared side by side.
-- `EVAL_LOCALE=ru` builds the prompt as for the Russian interface.
+- `EVAL_LOCALE=ru` builds the prompt for the Russian interface.
+- `EVAL_AUTH=OAuth` is for gateways that want OAuth instead of Bearer.
 
-The runner writes a promptfoo config per suite to `build/evals/`. It runs
-them, then prints a table of passed cases, tokens and latency per suite, with
-every failure and what the model did instead. A case that never reached the
-model (a timeout, a refused request) is counted apart, not as a failure. The same table goes to
-`build/evals/summary.md`. To see the cases one by one, run `npx promptfoo
-view`. Telemetry, update checks and sharing are switched off for the run.
+The runner prints passed cases, tokens and latency per suite, with each
+failure and what the model did instead. The same table goes to
+`build/evals/summary.md`; `npx promptfoo view` shows the cases one by one.
 
 ## The agent bench
-
-The skill bench checks one decision. The agent bench checks a whole request.
-The plugin runs in a headless QGIS against a real model, with the real tools,
-through Apply and the check after it. The bench then looks at what the request
-left in the project, never at the route the model took.
-
-- **The project** (`evals/agent/fixture.py`) is the city the skill bench
-  describes, as real layers: 12 districts, 30 roads, 24 schools, 9 stations in
-  UTM 37N, a DEM, and two CSV files. Every value is fixed, so a task can name
-  its exact outcome: 3 schools hold fewer than 100 places, 5 hold more than
-  1000, the districts hold 993 209 people.
-- **The tasks** (`evals/agent/tasks.yaml`): styles, buffers, points in polygons,
-  fields, edits, questions answered from the data, drawing, notes, exports, a
-  print layout, joins, CSV points, the project CRS, a chart, and a chain across
-  skills.
-- **The provider** (`evals/agent/server.py`): promptfoo's HTTP provider posts
-  each task to a server inside QGIS. The server builds the project in a fresh
-  folder, opens the plugin in a main window with a map canvas, so the agent's
-  look at the rendered map works as on the desktop, sends the request, presses
-  Apply for every prepared batch (a
-  destructive step is confirmed), waits for the check after Apply, and answers
-  with the final answer, the tools that ran, tokens, requests, seconds and a
-  snapshot of the project (`evals/agent/state.py`). Its `steps` list every
-  call the model made, with the arguments and what came back, and what Apply
-  did with each queued one, so a run that went the long way can be read
-  afterwards in `build/evals/agent.results.json`.
-- **The check** (`evals/agent/outcome.py`) matches the snapshot against the task's
-  `expect`. It looks at the answer, the state of existing layers, new layers,
-  written files, the project and the tools that ran without an error. A layer
-  is followed by its id: a renamed one is not new, and a new one that takes an
-  old one's name stays apart from it. A run that asks a
-  question, leaves a batch unapplied or never reaches the model fails and says
-  why. Checks name values, not only shapes: a polygon layer's area is measured
-  on the ellipsoid whatever its CRS, so a buffer drawn in Web Mercator "metres"
-  (0.56 m at Moscow's latitude) fails despite the right feature count.
-
-```yaml
-- description: A metric buffer on a layer in degrees
-  vars:
-    request: Make a 500 m buffer around the schools
-    expect:
-      new_layers: [{geometry: polygon, feature_count: 24, measured_km2: "~18.70±2%"}]
-```
-
-`{folder}` in a request is the task's own folder, for exports.
 
 ```bash
 python3 evals/run.py --agent
 ```
 
-The same `EVAL_*` variables apply. The runner starts the server, runs the
-tasks one at a time and stops it; the server's log lands in
-`build/evals/agent-server.log`. On macOS with QGIS 4 installed, the server runs
-in that QGIS's own Python, at full speed and on the machine's own network, so a
-model behind a VPN or on an internal IPv6-only address is reachable. Elsewhere,
-or with `--agent-server docker`, it runs in the pinned QGIS image. A container
-on macOS is emulated and does not see a VPN's names; there the key reaches the
-container by name only. A run of all the tasks takes about a million tokens.
-`--agent-url` points at a server that is already running.
+- `evals/agent/fixture.py` builds a small city as real layers in UTM 37N, with
+  fixed values, so a task can name its exact outcome.
+- `evals/agent/tasks.yaml` holds the tasks: styles, buffers, fields, edits,
+  exports, a layout, joins, a chart, a chain across skills.
+- `evals/agent/server.py` runs inside QGIS. For each task it builds the
+  project, sends the request, presses Apply for every batch (destructive steps
+  included), waits for the check after Apply and returns the answer, the tools
+  that ran, tokens and a snapshot of the project.
+- `evals/agent/outcome.py` compares the snapshot with the task's `expect`:
+  the answer, layers, written files and the project. Areas are measured on the
+  ellipsoid, so a buffer drawn in Web Mercator "metres" fails.
 
-`tests/real_qgis_agent_bench.py` runs the server's parts in live QGIS against
-the scripted model on every CI run. It covers the fixture's numbers, Apply and
-the snapshot, so the bench's plumbing cannot rot between real runs.
+On macOS with QGIS 4 installed the server runs in that QGIS's Python;
+elsewhere, or with `--agent-server docker`, in the pinned QGIS image. The log
+goes to `build/evals/agent-server.log` and the results to
+`build/evals/agent.results.json`. `tests/real_qgis_agent_bench.py` checks the
+server's plumbing against the scripted model on every CI run.
 
 ## In CI
 
-The `skill-evals` workflow runs the bench on GitHub. It never runs on push,
-because every run spends tokens. There are two ways to start it:
+The `skill-evals` workflow never runs on push. Start it from the Actions tab
+(optionally with suites, a repeat count, `save_thresholds` or `agent`), or put
+the `skill-evals` label on a pull request. It uses the live-model provider
+settings: `LIVE_MODEL_URL`, `LIVE_MODEL`, the `LIVE_MODEL_KEY` secret and
+`LIVE_MODEL_AUTH`. Pull requests from forks get no secrets and are skipped.
 
-- from the Actions tab (**skill-evals → Run workflow**), optionally with a
-  list of suites, a repeat count, or `save_thresholds`;
-- by putting the `skill-evals` label on a pull request that touches a skill, a
-  tool description or the prompt.
-
-Tick `agent` on a manual run to add the agent bench; its suite has a floor like
-the others.
-
-It uses the same provider as the live-model workflow: the `LIVE_MODEL_URL` and
-`LIVE_MODEL` variables, the `LIVE_MODEL_KEY` secret, and `LIVE_MODEL_AUTH` when
-the gateway wants something other than Bearer. Pull requests from forks get no
-secrets, so their run is skipped with a notice. Contributors run the bench
-locally with their own key or a local model.
-
-A model's answers vary, so CI does not demand every case. Each suite has a
-floor in `evals/thresholds.json`: the pass rate of a baseline run less ten
-points, rounded down to five. The run fails only when a suite drops below its
-floor. Floors belong to the model they were measured on; with another model
-the run just reports.
-
-Setting the floors, once per model:
-
-1. Run the workflow with `repeat` 3 and `save_thresholds` ticked, or locally
-   `python3 evals/run.py --repeat 3 --fresh --save-thresholds`.
-2. Take `evals/thresholds.json` from the `skill-evals` artifact and commit it.
-
-Until then, `--check` only reports. `EVAL_REQUIRE_THRESHOLDS=1` makes a suite
-or a model without a floor fail too. The table and the floors' verdict also go
-to the run's summary page, and the raw results to the `skill-evals` artifact.
+Each suite has a floor in `evals/thresholds.json`: a baseline pass rate less
+ten points, rounded down to five. A run fails only below a floor. Floors belong
+to the model they were measured on. To set them, run the workflow with
+`repeat` 3 and `save_thresholds`, or locally
+`python3 evals/run.py --repeat 3 --fresh --save-thresholds`, and commit the
+file. `EVAL_REQUIRE_THRESHOLDS=1` fails a suite without a floor.
 
 ## When to run it
 
-- After editing a `SKILL.md`, a tool description or the prompt core: run that
-  skill's suite, and the routing suite when a skill description changed.
-- Before a release: run everything, with `--repeat 3 --fresh` for the cases that
-  wobble.
-- With a new skill: add `evals/cases.yaml` next to its `SKILL.md`. Cover the
-  requests it exists for, a pitfall its rules warn about, and one request in
-  Russian. Add a routing case for it.
+- After editing a `SKILL.md`, a tool description or the prompt core: that
+  skill's suite, plus routing when a skill description changed.
+- After changing a tool's behaviour, Apply or verification: the agent bench.
+- Before a release: everything, with `--repeat 3 --fresh`.
+- With a new skill: add `evals/cases.yaml` next to its `SKILL.md` (the
+  requests it exists for, a pitfall its rules warn about, one request in
+  Russian) and a routing case.
 
-`tests/test_skill_evals.py` guards the bench itself:
-- every tool a case names exists in its skill;
-- every skill a case expects exists;
-- the request is built by the plugin's code;
-- the check reads tool calls in every shape promptfoo returns.
+`tests/test_skill_evals.py` checks that every tool and skill a case names
+exists and that requests are built by the plugin's code.
