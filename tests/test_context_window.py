@@ -260,6 +260,21 @@ class TrimmingTest(unittest.TestCase):
         self.assertEqual(session.summary_index, before - 2)
         self.assertEqual(session.messages[session.summary_index]["content"], str(MAX_MESSAGES - 2))
 
+    def test_messages_added_while_the_summary_was_written_stay_after_the_head_is_trimmed(self):
+        from ai_agent.core.state.session import MAX_MESSAGES, Session
+
+        session = Session.create("/p.qgz")
+        for index in range(MAX_MESSAGES):
+            session.add("user" if index % 2 == 0 else "assistant", str(index))
+        upto = session.end
+        session.add("user", "asked meanwhile")
+        session.add("assistant", "answered meanwhile")
+        session.compact("s", 0, upto)
+        self.assertEqual(
+            [message["content"] for message in session.messages[session.summary_index :]],
+            ["asked meanwhile", "answered meanwhile"],
+        )
+
 
 class OrchestratorCompactionTest(unittest.TestCase):
     def setUp(self):

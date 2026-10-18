@@ -57,6 +57,9 @@ class ComposerContextTest(unittest.TestCase):
         self.composer._edit.setPlainText("/sty")
         self.composer._insert_skill("style")
         self.assertEqual(self.composer._edit.toPlainText(), "/style ")
+        self.composer._edit.setPlainText("/sty colour the rivers")
+        self.composer._insert_skill("style")
+        self.assertEqual(self.composer._edit.toPlainText(), "/style colour the rivers ", "only the /query gives way")
 
     def test_the_model_is_said_not_offered(self):
         from qgis.PyQt.QtWidgets import QAbstractButton

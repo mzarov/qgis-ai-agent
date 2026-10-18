@@ -24,6 +24,7 @@ from ai_agent.qgis_tools.style.label_catalogue import (
 )
 
 MILLIMETRES = Qgis.RenderUnit.Millimeters
+POINTS = Qgis.RenderUnit.Points
 SIMPLE_LABELING = "simple"
 OFFSET_KEYS = frozenset({"offset_x", "offset_y"})
 DISTANCE_KEYS = frozenset({"distance"})
@@ -62,6 +63,9 @@ def build_format(properties: dict[str, Any], base: Any = None) -> QgsTextFormat:
     _apply_group(font, properties, TARGET_FONT)
     text_format.setFont(font)
     _apply_group(text_format, properties, TARGET_FORMAT)
+    # Catalogue sizes are points and millimetres; an untouched size keeps whatever unit the user chose.
+    if "size" in properties:
+        text_format.setSizeUnit(POINTS)
     for target, getter, setter_name in SUB_SETTINGS:
         if base is not None and not addresses(properties, target):
             continue
@@ -107,6 +111,8 @@ def _sub(subject: Any, properties: dict[str, Any], target: str) -> Any:
     subject.setEnabled(enabled)
     if enabled:
         _apply_group(subject, properties, target)
+        if target == TARGET_BUFFER and "buffer_size" in properties:
+            subject.setSizeUnit(MILLIMETRES)
     return subject
 
 

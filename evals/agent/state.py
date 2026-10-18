@@ -33,9 +33,17 @@ MEASURING_ELLIPSOID = "EPSG:7030"
 LAYOUT_ITEM_PREFIX = "QgsLayoutItem"
 
 
-def snapshot(folder: str, before: set[str]) -> dict[str, Any]:
+def snapshot(folder: str, before: set[str], layers_before: dict[str, str]) -> dict[str, Any]:
+    """The project now, against the folder's files and the layers' names by id (`layer_names`) before the task.
+
+    Layers are told apart by id, never by name: a renamed layer stays under the
+    name it began with, and a new layer that takes an old one's name is still new.
+    """
     project = QgsProject.instance()
-    layers = {layer.name(): layer_state(layer, project) for layer in project.mapLayers().values()}
+    layers = {
+        layer_id: {"name": layer.name(), **layer_state(layer, project)}
+        for layer_id, layer in project.mapLayers().items()
+    }
     return {
         "project": {
             "crs": project.crs().authid(),
@@ -44,13 +52,18 @@ def snapshot(folder: str, before: set[str]) -> dict[str, Any]:
             "annotations": _annotations(project),
             "annotation_texts": _annotation_texts(project),
         },
-        "layers": layers,
+        "layers": {layers_before[layer_id]: layer for layer_id, layer in layers.items() if layer_id in layers_before},
+        "new_layers": [layer for layer_id, layer in layers.items() if layer_id not in layers_before],
         "files": sorted(_files(folder) - before),
     }
 
 
 def files(folder: str) -> set[str]:
     return _files(folder)
+
+
+def layer_names() -> dict[str, str]:
+    return {layer_id: layer.name() for layer_id, layer in QgsProject.instance().mapLayers().items()}
 
 
 def layer_state(layer: Any, project: QgsProject) -> dict[str, Any]:
@@ -124,8 +137,10 @@ def _points(layer: QgsVectorLayer) -> list[list[float]]:
         geometry = feature.geometry()
         if geometry is None or geometry.isEmpty():
             continue
-        point = transform.transform(geometry.asPoint())
-        points.append([round(point.x(), POINT_DECIMALS), round(point.y(), POINT_DECIMALS)])
+        # asPoint() refuses a multipoint: its points are its parts.
+        for part in geometry.asMultiPoint() if geometry.isMultipart() else [geometry.asPoint()]:
+            point = transform.transform(part)
+            points.append([round(point.x(), POINT_DECIMALS), round(point.y(), POINT_DECIMALS)])
     return points
 
 

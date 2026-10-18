@@ -7,6 +7,7 @@ from ai_agent.core.agent import prompts
 from ai_agent.core.orchestrator import slash
 from ai_agent.skills.registry import SKILL_REGISTRY
 from ai_agent.ui.composer import Composer, PromptEdit, slash_query
+from ai_agent.ui.composer_parts import qt_length, text_before
 from ai_agent.ui.skill_popup import MAX_ROWS, SkillPopup, match_skills
 
 ITEMS = [
@@ -78,6 +79,20 @@ class SlashQueryTest(unittest.TestCase):
     def test_plain_text_has_no_query(self):
         self.assertIsNone(slash_query("hello"))
         self.assertIsNone(slash_query(""))
+
+
+class QtPositionTest(unittest.TestCase):
+    """Qt counts text positions in UTF-16 units: a character beyond the basic plane takes two, as in Qt."""
+
+    def test_an_astral_character_takes_two_positions(self):
+        self.assertEqual(qt_length("colour"), 6)
+        self.assertEqual(qt_length("🌍🌍 @ro"), 8)
+        self.assertEqual(qt_length("𝄞a"), 3)
+
+    def test_the_text_before_a_position_is_cut_in_qt_units(self):
+        self.assertEqual(text_before("colour @ma", 7), "colour ")
+        self.assertEqual(text_before("🌍🌍 @ro tail", 8), "🌍🌍 @ro")
+        self.assertEqual(text_before("𠀋 a", 99), "𠀋 a")
 
 
 class MatchTest(unittest.TestCase):

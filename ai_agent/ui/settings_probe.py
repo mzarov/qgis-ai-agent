@@ -7,6 +7,8 @@ and reports into its status card and test button.
 import time
 from typing import Any
 
+from qgis.PyQt.QtWidgets import QDialog
+
 from ai_agent.core.llm.probe_worker import ProbeThread
 from ai_agent.core.settings import reset_capabilities, set_detected_context_window, set_supports_images
 from ai_agent.i18n import tr
@@ -17,7 +19,6 @@ from ai_agent.ui.durations import format_seconds
 NOT_TESTED_DETAIL = tr("Not tested yet.")
 CONNECTED = tr("Connected · {0} · {1}")
 FAILED = tr("The connection failed")
-PROBE_STOP_MS = 3000
 TESTING = tr("Testing the connection…")
 CANCELLING = tr("Cancelling the connection test…")
 CANCELLED = tr("Connection test cancelled.")
@@ -28,19 +29,13 @@ TEXT_ONLY = tr("This model does not see pictures: the agent checks the map by re
 class ConnectionProbeMixin:
     _probe_thread: ProbeThread | None
     _probe_was_cancelled: bool
-    _reject_after_probe: bool
+    _close_after_probe: "QDialog.DialogCode | None"
     _probe_started: float
     model_edit: Any
     test_btn: Any
     status_card: Any
     _probe_scope: tuple[str, str, str | None]
     _probe_report: tuple[str, str]
-
-    def _stop_probe_now(self) -> None:
-        thread = self._probe_thread
-        if thread is not None and thread.isRunning():
-            thread.cancel()
-            thread.wait(PROBE_STOP_MS)
 
     def _test_connection(self) -> None:
         if self._probe_thread is not None and self._probe_thread.isRunning():
@@ -99,14 +94,14 @@ class ConnectionProbeMixin:
         if self._probe_thread is not thread:
             return
         cancelled = self._probe_was_cancelled
-        close_dialog = self._reject_after_probe
+        close_with = self._close_after_probe
         self._probe_thread = None
         self._probe_was_cancelled = False
-        self._reject_after_probe = False
+        self._close_after_probe = None
         self.test_btn.setEnabled(True)
         self.test_btn.setText(tr("Test connection"))
-        if close_dialog:
-            super().reject()
+        if close_with is not None:
+            self.done(close_with)
         elif cancelled:
             self.status_card.show_state(STATE_IDLE, CANCELLED, "")
 
@@ -119,10 +114,21 @@ class ConnectionProbeMixin:
         self.test_btn.setEnabled(False)
         self.status_card.show_state(STATE_IDLE, CANCELLING, "")
 
+    def accept(self) -> None:
+        self._close_once_stopped(QDialog.DialogCode.Accepted)
+
     def reject(self) -> None:
+        # A Save waiting for the test has stored everything already: a Cancel now cannot take that back.
+        if self._close_after_probe != QDialog.DialogCode.Accepted:
+            self._close_once_stopped(QDialog.DialogCode.Rejected)
+
+    def _close_once_stopped(self, result: QDialog.DialogCode) -> None:
+        """Close now, or once the running test has stopped.
+
+        The window owns the test's thread: deleting the window while that thread runs aborts QGIS.
+        """
         if self._probe_thread is not None and self._probe_thread.isRunning():
-            self._reject_after_probe = True
+            self._close_after_probe = result
             self._cancel_probe()
             return
-        self._cancel_probe()
-        super().reject()
+        self.done(result)

@@ -1,3 +1,4 @@
+import json
 import unittest
 from unittest import mock
 
@@ -13,7 +14,14 @@ from ai_agent.core.agent.executor import ToolExecutor
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.prompts import APPLY_NOW_TOOL
 from ai_agent.core.agent.transcript import ToolResult
-from ai_agent.core.llm.turns import ModelTurn, ToolCall
+from ai_agent.core.llm.turns import (
+    PROTOCOL_JSON,
+    PROTOCOL_NATIVE,
+    ModelTurn,
+    ToolCall,
+    parse_json_turn,
+    parse_native_turn,
+)
 from ai_agent.qgis_tools.registry import ALL_TOOLS, get_tool_by_name
 from ai_agent.qgis_tools.web import geocode as geocode_module
 from ai_agent.qgis_tools.web import http as http_module
@@ -543,6 +551,91 @@ class BatchDedupTest(unittest.TestCase):
         self.batch.add(call("undo_last_apply"))
         with self.assertRaisesRegex(ValueError, "by itself"):
             self.batch.add(call("set_opacity", layer_name="roads", opacity=0.5))
+
+
+WRITE_A = ("add_basemap", {"preset": "osm"})
+WRITE_B = ("add_basemap", {"preset": "carto-dark"})
+READ_C = ("list_layers", {})
+APPLY_NOW = (APPLY_NOW_TOOL, {"reason": "see the basemaps"})
+
+
+def json_turn(*calls, text=""):
+    """A JSON-protocol answer as the parser reads it: the model gives its calls no ids."""
+    content = json.dumps({"text": text, "tool_calls": [{"name": name, "arguments": args} for name, args in calls]})
+    return parse_json_turn({"choices": [{"message": {"content": content}}]})
+
+
+def native_turn(*calls, text=""):
+    """A native answer from a provider that numbers its calls afresh in every answer."""
+    raw = [
+        {"id": f"call_{index}", "type": "function", "function": {"name": name, "arguments": json.dumps(args)}}
+        for index, (name, args) in enumerate(calls)
+    ]
+    return parse_native_turn({"choices": [{"message": {"content": text, "tool_calls": raw}}]})
+
+
+class CallIdentityTest(unittest.TestCase):
+    """Apply puts each result back by its call's id, so one id must name one call in the whole run."""
+
+    def setUp(self):
+        snapshot = mock.patch.object(batch_apply_module, "take_snapshot", return_value="/tmp/snapshot.qgz")
+        snapshot.start()
+        self.addCleanup(snapshot.stop)
+
+    def _run(self, make_turn, protocol, staged):
+        """write A, write B, read C in three turns, then Apply: at the end of the run or staged with C."""
+        self.loop = AgentLoop()
+        self.executor = FakeExecutor()
+        self.loop._executor = self.executor
+        self.loop._batch._executor = self.executor
+        self.loop._request_step = lambda: None
+        self.loop._journal.saved = True
+        self.loop._prompt_protocol = self.loop._pending_protocol = protocol
+        self.loop._on_turn(make_turn(WRITE_A))
+        self.loop._on_turn(make_turn(WRITE_B))
+        if staged:
+            self.loop._on_turn(make_turn(READ_C, APPLY_NOW))
+        else:
+            self.loop._on_turn(make_turn(READ_C))
+            self.loop._on_turn(make_turn(text="Two basemaps are planned."))
+        self.loop.confirm_pending()
+        return [entry["results"] for entry in self.loop._transcript.entries if entry["kind"] == "results"]
+
+    def test_every_result_stays_with_its_own_call_after_apply(self):
+        for make_turn, protocol in ((json_turn, PROTOCOL_JSON), (native_turn, PROTOCOL_NATIVE)):
+            for staged in (False, True):
+                with self.subTest(protocol=protocol, staged=staged):
+                    recorded = self._run(make_turn, protocol, staged)
+
+                    seen = [
+                        [(result.call.name, result.call.arguments.get("preset"), result.payload) for result in results]
+                        for results in recorded
+                    ]
+                    expected_read = [("list_layers", None, {"fake": True})]
+                    if staged:
+                        expected_read.append((APPLY_NOW_TOOL, None, {"status": "applied"}))
+                    self.assertEqual(
+                        seen,
+                        [
+                            [("add_basemap", "osm", {"fake": True})],
+                            [("add_basemap", "carto-dark", {"fake": True})],
+                            expected_read,
+                        ],
+                    )
+                    identifiers = [result.call.id for results in recorded for result in results]
+                    self.assertEqual(len(identifiers), len(set(identifiers)), identifiers)
+                    self.assertEqual(self.executor.ran, ["list_layers", "add_basemap", "add_basemap"])
+
+    def test_native_ids_a_provider_repeats_still_pair_each_call_with_its_result(self):
+        self._run(native_turn, PROTOCOL_NATIVE, staged=True)
+
+        messages = self.loop._transcript.build_messages("S")
+
+        asked = [item["id"] for message in messages if message.get("tool_calls") for item in message["tool_calls"]]
+        answers = [message for message in messages if message["role"] == "tool"]
+        self.assertEqual(asked, [answer["tool_call_id"] for answer in answers])
+        self.assertEqual(len(asked), len(set(asked)), asked)
+        self.assertEqual(json.loads(answers[2]["content"]), {"fake": True}, "the read keeps its own result")
 
 
 class BatchLayerPinTest(unittest.TestCase):

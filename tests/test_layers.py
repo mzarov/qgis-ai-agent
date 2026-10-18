@@ -143,6 +143,23 @@ class SanitizeSourceTest(unittest.TestCase):
         self.assertNotIn("DEADBEEF", cleaned)
         self.assertIn("layer=roads", cleaned)
 
+    def test_a_key_in_an_encoded_tile_url_is_hidden_and_the_url_encoded_again(self):
+        source = (
+            "type=xyz&url=https%3A%2F%2Ftiles.example%2F%7Bz%7D%2F%7Bx%7D%2F%7By%7D.png"
+            "%3Fapi_key%3DSUPERSECRET%26style%3Ddark&zmax=19"
+        )
+        self.assertEqual(
+            sanitize_source(source),
+            "type=xyz&url=https%3A%2F%2Ftiles.example%2F%7Bz%7D%2F%7Bx%7D%2F%7By%7D.png"
+            "%3Fapi_key%3D<hidden>%26style%3Ddark&zmax=19",
+        )
+
+    def test_a_clean_provider_uri_is_left_exactly_as_it_is(self):
+        source = "type=xyz&url=https%3A%2F%2Ftile.openstreetmap.org%2F%7Bz%7D%2F%7Bx%7D%2F%7By%7D.png&zmax=19&zmin=0"
+        self.assertEqual(sanitize_source(source), source)
+        delimited = "file:///Users/mzarov/data/points.csv?type=csv&delimiter=%3B&xField=lon&yField=lat&crs=EPSG:4326"
+        self.assertEqual(sanitize_source(delimited), delimited)
+
     def test_file_path_untouched(self):
         path = "/Users/mzarov/data/Города.shp|layerid=0"
         self.assertEqual(sanitize_source(path), path)

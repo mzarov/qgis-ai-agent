@@ -25,7 +25,8 @@ from unittest import mock
 import ui_snapshot
 from e2e_harness import ARTIFACTS, WINDOW_HEIGHT, WINDOW_WIDTH, PluginCase, pump
 from qgis.core import QgsApplication
-from qgis.PyQt.QtGui import QColor, QPalette
+from qgis.PyQt.QtCore import QLocale
+from qgis.PyQt.QtGui import QColor, QKeySequence, QPalette
 from qgis.PyQt.QtWidgets import QApplication, QLabel, QPushButton, QScrollArea, QVBoxLayout, QWidget
 
 import ai_agent
@@ -601,6 +602,23 @@ class FaultDetector(unittest.TestCase):
         self.column.addWidget(QLabel("Short"))
         self.column.addWidget(QPushButton("OK"))
         self.assertEqual(self.faults(), [])
+
+
+class PortableStructure(unittest.TestCase):
+    """The structure goldens come from the Linux CI: a Mac's ⌘N and a decimal comma must read as there."""
+
+    def test_the_platform_shortcut_reads_as_on_linux(self) -> None:
+        native = QKeySequence(QKeySequence.StandardKey.New).toString(QKeySequence.SequenceFormat.NativeText)
+        self.assertEqual(ui_snapshot.portable_text(f"New conversation {native}"), "New conversation Ctrl+N")
+
+    def test_a_decimal_comma_reads_as_a_point(self) -> None:
+        saved = QLocale()
+        QLocale.setDefault(QLocale("ru_RU"))
+        try:
+            self.assertEqual(ui_snapshot.portable_text("12 conversations, 2,1 MB"), "12 conversations, 2.1 MB")
+        finally:
+            QLocale.setDefault(saved)
+        self.assertEqual(ui_snapshot.portable_text("12 conversations, 2.1 MB"), "12 conversations, 2.1 MB")
 
 
 def tearDownModule() -> None:

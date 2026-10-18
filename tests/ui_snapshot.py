@@ -5,6 +5,7 @@ Three layers, from robust to strict:
 - `structure()` lists every visible widget with its type, name, text and
   state. Compared with a JSON golden; independent of fonts and platform, so it
   runs everywhere and catches a missing, renamed, hidden or disabled control.
+  Text is written as the Linux CI shows it (`portable_text`).
 - `layout_faults()` finds text that does not fit its widget and content wider
   than its scroll area. Computed, not compared, so it needs no golden.
 - `compare_pixels()` diffs a screenshot against a PNG golden. Fonts render
@@ -21,8 +22,8 @@ import os
 import pathlib
 import re
 
-from qgis.PyQt.QtCore import QPoint, QRect
-from qgis.PyQt.QtGui import QColor, QImage, QPainter
+from qgis.PyQt.QtCore import QLocale, QPoint, QRect
+from qgis.PyQt.QtGui import QColor, QImage, QKeySequence, QPainter
 from qgis.PyQt.QtWidgets import (
     QAbstractButton,
     QComboBox,
@@ -67,6 +68,24 @@ def duration_patterns(formats: list[str]) -> list[tuple[re.Pattern[str], str]]:
 
 
 EXTRA_VOLATILE: list[tuple[re.Pattern[str], str]] = []
+# The shortcuts the plugin writes as the platform does: a Mac shows ⌘N where the goldens say Ctrl+N.
+SHOWN_SHORTCUTS = (QKeySequence.StandardKey.New,)
+PORTABLE_DECIMAL_POINT = "."
+
+
+def portable_text(text: str) -> str:
+    """Text as the Linux CI shows it: this platform's shortcuts and this locale's decimal point give way.
+
+    The CI writes both the portable way already, so there the structure check stays exact.
+    """
+    for key in SHOWN_SHORTCUTS:
+        native = QKeySequence(key).toString(QKeySequence.SequenceFormat.NativeText)
+        if native:
+            text = text.replace(native, QKeySequence(key).toString(QKeySequence.SequenceFormat.PortableText))
+    point = QLocale().decimalPoint()
+    if point != PORTABLE_DECIMAL_POINT:
+        text = re.sub(rf"(?<=\d){re.escape(point)}(?=\d)", PORTABLE_DECIMAL_POINT, text)
+    return text
 
 
 def normalize_texts(root: QWidget, replacements: dict[str, str]) -> None:
@@ -256,7 +275,7 @@ def _walk(widget: QWidget, depth: int, rows: list[dict[str, object]]) -> None:
         row["name"] = name
     text = _text(widget)
     if text:
-        row["text"] = text[:TEXT_LIMIT]
+        row["text"] = portable_text(text)[:TEXT_LIMIT]
     if not widget.isEnabled():
         row["enabled"] = False
     if isinstance(widget, QAbstractButton) and widget.isCheckable():

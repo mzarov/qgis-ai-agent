@@ -1,6 +1,7 @@
 import re
 from contextlib import suppress
 from typing import Any
+from urllib.parse import quote, unquote
 
 from qgis.core import QgsMapLayer, QgsVectorLayer
 
@@ -28,22 +29,60 @@ SIGNED_QUERY_KEYS = (
     "awsaccesskeyid",
     "sas",
 )
+SECRET_NAMES = frozenset(name.replace("-", "_") for name in SECRET_KEYS + SIGNED_QUERY_KEYS)
+# Spellings of the same secrets: x-api-key, subscription-key, x-amz-security-token, private_token.
+SECRET_NAME_SUFFIXES = ("_key", "_token", "_secret", "_password", "_signature", "_credential")
 SECRET_PATTERN = re.compile(r"(?i)\b(" + "|".join(SECRET_KEYS) + r")\s*=\s*('[^']*'|\"[^\"]*\"|[^\s&;]+)")
-SIGNED_QUERY_PATTERN = re.compile(r"(?i)([?&](?:" + "|".join(SIGNED_QUERY_KEYS) + r")=)([^&\s'\"]+)")
+# A query or provider-URI parameter; its value may itself be a percent-encoded URL with a query.
+QUERY_ITEM_PATTERN = re.compile(r"(^|[?&])([^=&?#\s'\"]+)=([^&#\s'\"]*)")
 URL_USERINFO_PATTERN = re.compile(r"(?i)([a-z][a-z0-9+.-]*://)([^/@\s]+@)")
 MASKED_VALUE = "<hidden>"
 MAX_SOURCE_CHARS = 300
+# An XYZ URI nests a tile URL, and a proxy URL may nest one more; anything deeper is hidden unread.
+MAX_NESTING = 4
 
 
 def sanitize_source(source: str) -> str:
     if not source:
         return ""
-    cleaned = URL_USERINFO_PATTERN.sub(lambda m: f"{m.group(1)}{MASKED_VALUE}@", source)
-    cleaned = SIGNED_QUERY_PATTERN.sub(lambda m: f"{m.group(1)}{MASKED_VALUE}", cleaned)
-    cleaned = SECRET_PATTERN.sub(lambda m: f"{m.group(1)}={MASKED_VALUE}", cleaned)
+    cleaned = _scrubbed(source, 0)
     if len(cleaned) > MAX_SOURCE_CHARS:
         return cleaned[:MAX_SOURCE_CHARS] + "…"
     return cleaned
+
+
+def _scrubbed(text: str, depth: int) -> str:
+    """Credentials masked in a URL, a provider URI or a connection string, and in the URIs encoded inside it."""
+    cleaned = URL_USERINFO_PATTERN.sub(lambda m: f"{m.group(1)}{MASKED_VALUE}@", text)
+    cleaned = SECRET_PATTERN.sub(lambda m: f"{m.group(1)}={MASKED_VALUE}", cleaned)
+    return QUERY_ITEM_PATTERN.sub(lambda m: _scrubbed_item(m, depth), cleaned)
+
+
+def _scrubbed_item(match: re.Match[str], depth: int) -> str:
+    lead, name, value = match.groups()
+    if _is_secret_name(name):
+        return f"{lead}{name}={MASKED_VALUE}"
+    return f"{lead}{name}={_scrubbed_value(value, depth)}"
+
+
+def _scrubbed_value(value: str, depth: int) -> str:
+    """A nested URI decoded, scrubbed and encoded again as QgsDataSourceUri encodes it; a clean value as it was."""
+    if depth >= MAX_NESTING:
+        return MASKED_VALUE
+    decoded = unquote(value)
+    scrubbed = _scrubbed(decoded, depth + 1)
+    if scrubbed == decoded:
+        return value
+    if decoded == value:
+        return scrubbed
+    # The mask stays readable; everything around it is encoded whole, as QGIS writes the URI.
+    return MASKED_VALUE.join(quote(part, safe="") for part in scrubbed.split(MASKED_VALUE))
+
+
+def _is_secret_name(name: str) -> bool:
+    # `http-header:x-api-key=…` is how a QGIS URI keeps a request header: the header's name decides.
+    plain = unquote(name).strip().lower().replace("-", "_").rsplit(":", 1)[-1]
+    return plain in SECRET_NAMES or plain.endswith(SECRET_NAME_SUFFIXES)
 
 
 def provider_name(layer: QgsMapLayer) -> str:

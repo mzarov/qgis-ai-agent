@@ -7,12 +7,17 @@ replaced, edits are tracked until saved, the composer's states follow the run.
 Runs inside `real_qgis_workflows.py` against the extracted plugin ZIP.
 """
 
+import os
+import pathlib
+import subprocess
+import sys
+import time
 import unittest
 
 from e2e_harness import PluginCase, pump
-from qgis.PyQt.QtCore import QEvent, QPoint, Qt
-from qgis.PyQt.QtGui import QColor, QKeyEvent
-from qgis.PyQt.QtWidgets import QLabel, QLineEdit, QWidget
+from qgis.PyQt.QtCore import QEvent, QPoint, QPointF, Qt
+from qgis.PyQt.QtGui import QColor, QKeyEvent, QTextCursor, QWheelEvent
+from qgis.PyQt.QtWidgets import QApplication, QLabel, QLineEdit, QScrollBar, QWidget
 
 from ai_agent.ui import compass, controls, progress, settings_fields, style
 from ai_agent.ui.activity import ActivityGroup
@@ -21,7 +26,32 @@ from ai_agent.ui.conversation import ConversationView
 from ai_agent.ui.dropdown import Dropdown
 from ai_agent.ui.messages import AssistantMessage, SystemMessage
 from ai_agent.ui.settings_dialog import SettingsDialog
+from ai_agent.ui.table_card import TableCard
 from ai_agent.ui.thinking import ThinkingBlock
+
+# A connection test that ignores its cancel this long outlives any wait the main thread could afford.
+SLOW_TEST_S = 4.0
+CLOSE_WAIT_S = 20.0
+CHILD_TIMEOUT_S = 120
+# Each close runs in a child QGIS: a QThread destroyed while it runs aborts the whole process.
+CLOSE_CHILD = """
+import pathlib, sys, tempfile
+from real_qgis_smoke import qgis_application
+with tempfile.TemporaryDirectory() as root, qgis_application(pathlib.Path(root)):
+    import real_qgis_controls
+    code = real_qgis_controls.close_during_a_slow_test(sys.argv[1])
+sys.exit(code)
+"""
+# A 360 px panel: ten columns (the most a table carries) cannot fit even at their narrowest.
+PANEL_WIDTH = 360
+LAST_CELL = "the last column holds a long value"
+WIDE_TABLE = {
+    "type": "table",
+    "title": "Every field of districts",
+    "columns": [f"field_{index}" for index in range(10)],
+    "rows": [[f"value {index}" for index in range(9)] + [LAST_CELL]] * 3,
+    "total": 3,
+}
 
 
 class SegmentedTest(unittest.TestCase):
@@ -206,6 +236,71 @@ class NoteColumnTest(unittest.TestCase):
         self.assertEqual(text.x(), answer.mapTo(feed, QPoint(0, 0)).x())
         view.hide()
         view.deleteLater()
+
+
+class WideTableTest(unittest.TestCase):
+    """A table wider than the feed slides under a bar of its own: its right columns were cut off, out of reach."""
+
+    def setUp(self) -> None:
+        self.view = ConversationView()
+        self.view.resize(PANEL_WIDTH, 600)
+        self.view.show()
+        self.view.add_visual(WIDE_TABLE)
+        pump(0.2)
+        self.card = self.view.widget().findChildren(TableCard)[0]
+
+    def tearDown(self) -> None:
+        self.view.hide()
+        self.view.deleteLater()
+
+    def _bar(self) -> QScrollBar:
+        bar = self.card.findChild(QScrollBar)
+        self.assertIsNotNone(bar, "a table wider than the feed has no way to show its right columns")
+        return bar
+
+    def _wheel(self, dx: int, dy: int) -> QWheelEvent:
+        at = QPointF(20, 40)
+        return QWheelEvent(
+            at,
+            QPointF(self.card.mapToGlobal(at.toPoint())),
+            QPoint(0, 0),
+            QPoint(dx, dy),
+            Qt.MouseButton.NoButton,
+            Qt.KeyboardModifier.NoModifier,
+            Qt.ScrollPhase.NoScrollPhase,
+            False,
+        )
+
+    def test_the_last_column_can_be_brought_into_view(self) -> None:
+        card = self.card
+        self.assertGreater(sum(card.column_widths(card.width())), card.width() + 1, "the table must overflow")
+        bar = self._bar()
+        self.assertTrue(bar.isVisible())
+        bar.setValue(bar.maximum())
+        card.grab()
+        boxes = [box for box, text in card._cells if text == LAST_CELL]
+        self.assertTrue(boxes, "the last column's long cell was not drawn")
+        self.assertGreaterEqual(boxes[0].left(), 0)
+        self.assertLessEqual(boxes[0].right(), card.width() + 1, "the last column is still cut off")
+        # The bar lies under the rows, inside the card: the card made room for it.
+        self.assertLessEqual(bar.geometry().bottom(), card.height())
+
+    def test_only_a_sideways_wheel_moves_the_table(self) -> None:
+        bar = self._bar()
+        upright = self._wheel(0, -120)
+        QApplication.sendEvent(self.card, upright)
+        self.assertFalse(upright.isAccepted(), "an upright wheel belongs to the feed")
+        self.assertEqual(bar.value(), 0)
+        QApplication.sendEvent(self.card, self._wheel(-120, 0))
+        self.assertGreater(bar.value(), 0, "a sideways wheel did not slide the table")
+
+    def test_a_table_that_fits_shows_no_bar(self) -> None:
+        self.view.resize(1400, 600)
+        pump(0.2)
+        bar = self._bar()
+        self.assertFalse(bar.isVisible())
+        rows = self.card._title_height() + self.card._row_height() * (len(self.card.rows) + 1)
+        self.assertLessEqual(self.card.height(), rows + 2, "the card kept room for a bar it does not show")
 
 
 class DropdownPlacementTest(unittest.TestCase):
@@ -451,6 +546,73 @@ class SettingsBehaviourTest(PluginCase):
             self.assertEqual(top - under_chips, connectors_settings.GROUP_GAP, key)
 
 
+def close_during_a_slow_test(close: str) -> int:
+    """Save or reset while a connection test outlives its cancel; 0 once the window has closed and is gone.
+
+    Runs in a child QGIS started by `ClosingDuringATestTest`.
+    """
+    from unittest import mock
+
+    from qgis.PyQt.QtWidgets import QMainWindow, QMessageBox
+
+    from ai_agent.core.llm import probe_worker
+    from ai_agent.ui import settings_advanced
+
+    def slow_probe(_overrides: dict) -> tuple[bool, str]:
+        time.sleep(SLOW_TEST_S)
+        return False, "too late"
+
+    window = QMainWindow()
+    dialog = SettingsDialog(window)
+    dialog.url_edit.setText("http://localhost:11434/v1")
+    dialog.model_edit.setText("qwen3")
+    dialog.show()
+    with mock.patch.object(probe_worker, "probe", slow_probe):
+        dialog._test_connection()
+        if close == "save":
+            dialog.journal_cb.toggle()
+            dialog._save()
+        else:
+            yes = QMessageBox.StandardButton.Yes
+            with mock.patch.object(settings_advanced.QMessageBox, "question", return_value=yes):
+                settings_advanced.reset_settings(dialog)
+        deadline = time.monotonic() + CLOSE_WAIT_S
+        while dialog.isVisible() and time.monotonic() < deadline:
+            pump(0.05)
+    closed = not dialog.isVisible()
+    # What the plugin does once the window's exec() returns.
+    dialog.deleteLater()
+    pump(0.1)
+    return 0 if closed else 1
+
+
+class ClosingDuringATestTest(unittest.TestCase):
+    """Save and reset close the settings only once a running connection test has stopped."""
+
+    def _close_in_a_child(self, close: str) -> subprocess.CompletedProcess[str]:
+        import ai_agent
+
+        tests = pathlib.Path(__file__).resolve().parent
+        package_parent = pathlib.Path(ai_agent.__file__).resolve().parent.parent
+        paths = (os.fspath(tests), os.fspath(package_parent), os.environ.get("PYTHONPATH", ""))
+        return subprocess.run(
+            [sys.executable, "-c", CLOSE_CHILD, close],
+            cwd=tests,
+            env={**os.environ, "PYTHONPATH": os.pathsep.join(path for path in paths if path)},
+            capture_output=True,
+            text=True,
+            timeout=CHILD_TIMEOUT_S,
+        )
+
+    def test_save_waits_for_the_test_to_stop(self) -> None:
+        child = self._close_in_a_child("save")
+        self.assertEqual(child.returncode, 0, child.stderr[-2000:])
+
+    def test_reset_waits_for_the_test_to_stop(self) -> None:
+        child = self._close_in_a_child("reset")
+        self.assertEqual(child.returncode, 0, child.stderr[-2000:])
+
+
 class ComposerBehaviourTest(PluginCase):
     api_url = "http://localhost:11434/v1"
     model_name = "qwen3"
@@ -513,6 +675,62 @@ class ComposerBehaviourTest(PluginCase):
         composer._edit.keyPressEvent(escape)
         self.assertIs(canvas.mapTool(), pan, "Esc did not give the map its tool back")
         self.assertTrue(composer.place_hint.isHidden())
+
+    def _type_at(self, text: str, before_end: int) -> None:
+        """Type `text` with the caret `before_end` characters before the end, as a person moving it would."""
+        edit = self.dock.composer._edit
+        cursor = edit.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.End)
+        cursor.movePosition(QTextCursor.MoveOperation.Left, QTextCursor.MoveMode.MoveAnchor, before_end)
+        edit.setTextCursor(cursor)
+        edit.insertPlainText(text)
+        pump(0.05)
+
+    def test_a_mention_after_astral_characters_replaces_only_itself(self) -> None:
+        """Qt counts text positions in UTF-16 units and Python in characters, and an emoji is two of the first:
+        completing `🌍🌍 @ro tail` once gave `🌍🌍 @roads ail`."""
+        composer = self.dock.composer
+        composer.set_layer_source(lambda: [("roads", "", "")])
+        edit = composer._edit
+        edit.setPlainText("🌍🌍  tail")
+        self._type_at("@ro", len(" tail"))
+        self.assertFalse(composer._popup.isHidden(), "the layer list did not open at the mention")
+        composer._on_complete()
+        self.assertEqual(edit.toPlainText(), "🌍🌍 @roads  tail")
+        edit.insertPlainText("by type")
+        self.assertEqual(edit.toPlainText(), "🌍🌍 @roads by type tail", "the caret did not land after the mention")
+        # Not only emoji: any character beyond the basic plane, a name holding one included.
+        composer.set_layer_source(lambda: [("𝄞 scores", "", "")])
+        edit.setPlainText("𠀋 colour")
+        self._type_at(" @𝄞", 0)
+        self.assertFalse(composer._popup.isHidden())
+        composer._on_complete()
+        edit.insertPlainText("red")
+        self.assertEqual(edit.toPlainText(), '𠀋 colour @"𝄞 scores" red')
+
+    def test_words_put_at_the_caret_after_astral_characters_keep_their_space(self) -> None:
+        composer = self.dock.composer
+        edit = composer._edit
+        edit.setPlainText("🌍a b")
+        self._type_at("", len(" b"))
+        composer.insert_place("@point(37.6, 55.7)")
+        self.assertEqual(edit.toPlainText(), "🌍a @point(37.6, 55.7)  b")
+        edit.setPlainText("𝄞a b")
+        self._type_at("", len(" b"))
+        composer.mention_layers(["rivers"])
+        self.assertEqual(edit.toPlainText(), "𝄞a @rivers  b")
+        edit.setPlainText("🌍a b")
+        self._type_at("", len(" b"))
+        composer._start_mention()
+        self.assertEqual(edit.toPlainText(), "🌍a @ b")
+
+    def test_tokens_after_astral_characters_are_lit_where_they_stand(self) -> None:
+        edit = self.dock.composer._edit
+        edit.setPlainText("/style 🌍 @𝄞roads x")
+        pump(0.05)
+        lit = {(span.start, span.length) for span in edit.document().firstBlock().layout().formats()}
+        # In UTF-16 units: "/style " is 7, the emoji 2 and its space 1; "@𝄞roads" is 8.
+        self.assertEqual(lit, {(0, 6), (10, 8)})
 
     def test_the_progress_line_follows_the_run(self) -> None:
         self.assertTrue(self.dock.progress.isHidden())

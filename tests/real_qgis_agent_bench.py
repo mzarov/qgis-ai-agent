@@ -6,15 +6,20 @@ and the snapshot reads back what the outcome check expects.
 """
 
 import pathlib
+import shutil
 import sys
+import tempfile
 import unittest
 
 AGENT_BENCH = pathlib.Path(__file__).resolve().parent.parent / "evals" / "agent"
 sys.path.insert(0, str(AGENT_BENCH))
 
+import fixture  # noqa: E402
 import server  # noqa: E402
+import state  # noqa: E402
 from e2e_model import ScriptedModel, call, calls, say  # noqa: E402
 from outcome import problems_in  # noqa: E402
+from qgis.core import QgsFeature, QgsGeometry, QgsProject, QgsVectorLayer  # noqa: E402
 
 MODEL = "agent-bench-fixture"
 
@@ -111,6 +116,64 @@ class AgentBenchServerTest(unittest.TestCase):
             "new_layers": [{"geometry": "point", "feature_count": 1, "points_wgs84": "re:\\[37\\.6208, 55\\.7539\\]"}]
         }
         self.assertEqual(problems_in(result, expect), [])
+
+    def test_a_renamed_layer_is_the_same_layer_not_a_new_one(self) -> None:
+        # The districts renamed and coloured by population once passed for a new layer of school counts.
+        self.model.script(
+            call("load_skill", names=["project", "style"]),
+            calls(
+                ("set_graduated", {"layer_name": "districts", "field": "pop2020", "classes": 5}),
+                ("configure_layer", {"layer_name": "districts", "properties": {"name": "School counts"}}),
+            ),
+            say("The districts are coloured."),
+            say("Checked."),
+        )
+        result = self.runner.run(
+            {"request": "Count the schools in each district and colour the districts by that count"}
+        )
+        self.assertNotIn("error", result, result.get("error"))
+        self.assertFalse(result["pending"], "the bench did not press Apply")
+        self.assertEqual(result["state"]["new_layers"], [], "a renamed layer read as a new one")
+        districts = result["state"]["layers"]["districts"]
+        self.assertEqual((districts["name"], districts["class_attribute"]), ("School counts", "pop2020"))
+        self.assertTrue(problems_in(result, {"new_layers": [{"geometry": "polygon", "feature_count": 12}]}))
+
+
+class SnapshotTest(unittest.TestCase):
+    """The snapshot on its own, no model: layers are told apart by id, and multipoints list their points."""
+
+    def setUp(self) -> None:
+        self.folder = tempfile.mkdtemp(prefix="ai-agent-snapshot-")
+        fixture.build(self.folder)
+        self.files, self.layers = state.files(self.folder), state.layer_names()
+
+    def tearDown(self) -> None:
+        QgsProject.instance().clear()
+        shutil.rmtree(self.folder, ignore_errors=True)
+
+    def test_a_new_layer_named_like_an_old_one_stays_apart(self) -> None:
+        QgsProject.instance().addMapLayer(_points("Point", "schools", "Point (37.6208 55.7539)"))
+        snapshot = state.snapshot(self.folder, self.files, self.layers)
+        self.assertEqual(snapshot["layers"]["schools"]["feature_count"], 24, "the new layer took the old one's place")
+        self.assertEqual(
+            [(layer["name"], layer["feature_count"]) for layer in snapshot["new_layers"]], [("schools", 1)]
+        )
+
+    def test_a_multipoint_lists_each_of_its_points(self) -> None:
+        stops = _points("MultiPoint", "stops", "MultiPoint ((37.6056 55.7647), (37.6043 55.7656))")
+        QgsProject.instance().addMapLayer(stops)
+        (added,) = state.snapshot(self.folder, self.files, self.layers)["new_layers"]
+        self.assertEqual(
+            (added["geometry"], added["points_wgs84"]), ("point", [[37.6056, 55.7647], [37.6043, 55.7656]])
+        )
+
+
+def _points(kind: str, name: str, wkt: str) -> QgsVectorLayer:
+    layer = QgsVectorLayer(f"{kind}?crs=EPSG:4326", name, "memory")
+    feature = QgsFeature()
+    feature.setGeometry(QgsGeometry.fromWkt(wkt))
+    layer.dataProvider().addFeatures([feature])
+    return layer
 
 
 if __name__ == "__main__":

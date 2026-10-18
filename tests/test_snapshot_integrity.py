@@ -34,10 +34,17 @@ class NamedField:
 
 
 class RecordedFeature:
-    def __init__(self, fields=None, attributes=(), geometry=None):
+    def __init__(self, fields=None, attributes=(), geometry=None, fid=0):
         self.fields = fields
         self._attributes = list(attributes)
         self._geometry = geometry
+        self._id = fid
+
+    def id(self):
+        return self._id
+
+    def setId(self, fid):
+        self._id = fid
 
     def attributes(self):
         return list(self._attributes)
@@ -56,9 +63,12 @@ class RecordedFeature:
 
 
 class MemoryProvider:
+    """Numbers what it is given itself, as QGIS's memory provider does: from 1, one up from the last."""
+
     def __init__(self, field_names, features):
         self._fields = [NamedField(name) for name in field_names]
         self.features = list(features)
+        self.next_id = 1
 
     def fields(self):
         return list(self._fields)
@@ -67,8 +77,15 @@ class MemoryProvider:
         return iter(list(self.features))
 
     def addFeatures(self, features):
+        for feature in features:
+            feature.setId(self.next_id)
+            self.next_id += 1
         self.features.extend(features)
         return True, features
+
+    def deleteFeatures(self, ids):
+        self.features = [feature for feature in self.features if feature.id() not in set(ids)]
+        return True
 
 
 class MemoryLayer:
@@ -154,6 +171,7 @@ class StatefulProject:
         for layer in self.layers:
             if isinstance(layer, MemoryLayer) and layer.providerType() == "memory":
                 layer.provider.features = []
+                layer.provider.next_id = 1
         self._file_name = path
         self._dirty = False
         if self.read_failure is not None:
@@ -338,6 +356,36 @@ class SnapshotIntegrityTest(unittest.TestCase):
         self.assertFalse(scratch.provider.features[1].hasGeometry())
         self.assertEqual(scratch.repaints, 1)
         self.assertNotIn("empty_scratch_layers", result)
+
+    def test_undo_gives_scratch_features_their_own_ids_back(self):
+        scratch = MemoryLayer(
+            "sparse", ["name"], [RecordedFeature(attributes=[name], fid=fid) for fid, name in ((1, "a"), (3, "c"))]
+        )
+        self.project.layers = [scratch]
+        snapshots.take_snapshot()
+
+        with patch.object(scratch_copies, "QgsFeature", RecordedFeature):
+            result = UndoLastApplyTool().execute({})
+
+        restored = [(feature.id(), feature.attributes()) for feature in scratch.provider.features]
+        self.assertEqual(restored, [(1, ["a"]), (3, ["c"])], "a stand-in stayed or a feature took another id")
+        self.assertEqual(scratch.provider.next_id, 4)
+        self.assertNotIn("renumbered_scratch_layers", result)
+
+    def test_undo_names_a_scratch_layer_with_too_many_missing_ids_to_keep(self):
+        scratch = MemoryLayer(
+            "sparse", ["name"], [RecordedFeature(attributes=[name], fid=fid) for fid, name in ((1, "a"), (4, "d"))]
+        )
+        self.project.layers = [scratch]
+        with patch.object(scratch_copies, "MAX_STAND_INS", 1):
+            snapshots.take_snapshot()
+
+        with patch.object(scratch_copies, "QgsFeature", RecordedFeature):
+            result = UndoLastApplyTool().execute({})
+
+        self.assertEqual([feature.id() for feature in scratch.provider.features], [1, 2])
+        self.assertEqual(result["renumbered_scratch_layers"], ["sparse"])
+        self.assertIn("$id", result["renumbered_note"])
 
     def test_undo_names_scratch_layers_too_large_to_copy(self):
         scratch = MemoryLayer("huge", ["name"], [RecordedFeature(attributes=["a"])] * 3)

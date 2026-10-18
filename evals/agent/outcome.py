@@ -8,7 +8,7 @@ A task's `expect` names the outcome, never the route:
     new_layers: [{geometry: polygon, feature_count: 9}]   # each matches some layer the run added
     files: [roads.gpkg]                         # files the run wrote into the task folder
     project: {crs: EPSG:32637}
-    calls: [chart_layer]                        # tools that ran; `not_calls` for tools that must not
+    calls: [chart_layer]                        # tools that ran and succeeded; `not_calls` for tools that must not run
     asked: true                                 # the agent was right to stop and ask
     any_of: [{...}, {...}]                      # any one of these outcomes
 
@@ -86,8 +86,13 @@ def problems_in(result: dict[str, Any], expect: dict[str, Any]) -> list[str]:
             problems.append(f"no file {wanted!r} was written; files: {files or 'none'}")
     if "project" in expect and not matches(expect["project"], state.get("project") or {}):
         problems.append(f"the project is {_relevant(state.get('project') or {}, expect['project'])}")
-    names = [call.get("name") for call in result.get("calls") or []]
-    problems.extend(f"{name} never ran" for name in expect.get("calls") or [] if name not in names)
+    calls = result.get("calls") or []
+    names = [call.get("name") for call in calls]
+    # A tool that ran and failed did not do the task: a chart that never drew is no chart.
+    succeeded = [call.get("name") for call in calls if call.get("ok")]
+    for name in expect.get("calls") or []:
+        if name not in succeeded:
+            problems.append(f"{name} failed" if name in names else f"{name} never ran")
     problems.extend(f"{name} ran, which this task forbids" for name in expect.get("not_calls") or [] if name in names)
     return problems
 

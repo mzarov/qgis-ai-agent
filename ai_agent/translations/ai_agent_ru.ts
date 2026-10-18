@@ -16,7 +16,7 @@
         <translation>&#10;&#10;Точный код, который будет выполнен:&#10;&#10;{0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/add_layer.py" line="90"/>
+        <location filename="ai_agent/qgis_tools/project/add_layer.py" line="92"/>
         <source> into group '{0}'</source>
         <translation> в группу «{0}»</translation>
     </message>
@@ -94,7 +94,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/core/orchestrator/presentation.py" line="85"/>
+        <location filename="ai_agent/core/orchestrator/presentation.py" line="86"/>
         <location filename="ai_agent/qgis_tools/inspect/describe_layer.py" line="60"/>
         <location filename="ai_agent/qgis_tools/inspect/sample_features.py" line="51"/>
         <location filename="ai_agent/qgis_tools/osm/download_osm.py" line="132"/>
@@ -163,7 +163,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/core/orchestrator/presentation.py" line="98"/>
+        <location filename="ai_agent/core/orchestrator/presentation.py" line="99"/>
         <location filename="ai_agent/qgis_tools/inspect/list_layers.py" line="28"/>
         <source>%n layer(s)</source>
         <translation>
@@ -228,7 +228,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/qgis_tools/processing/list_processing_history.py" line="59"/>
+        <location filename="ai_agent/qgis_tools/processing/list_processing_history.py" line="60"/>
         <source>%n run(s)</source>
         <translation>
             <numerusform>%n запуск</numerusform>
@@ -322,7 +322,7 @@
         <translation>Nominatim в вашей сети или публичный, которым вам можно пользоваться</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="73"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="74"/>
         <source>A budget must be a whole number of tokens, such as 200000 or 200k; empty means no limit.</source>
         <translation>Бюджет — целое число токенов, например 200000 или 200k; пустое поле — без ограничения.</translation>
     </message>
@@ -332,12 +332,12 @@
         <translation>В двух словах. От этого зависит, какие данные и методы агент берёт первыми.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="76"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="77"/>
         <source>A local server needs no key.</source>
         <translation>Локальному серверу ключ не нужен.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="173"/>
+        <location filename="ai_agent/core/llm/client.py" line="174"/>
         <source>A non-local model endpoint must use HTTPS. Use an SSH tunnel to localhost for a trusted LAN server.</source>
         <translation>Нелокальная конечная точка модели должна использовать HTTPS. Для доверенного сервера в локальной сети используйте SSH-туннель на localhost.</translation>
     </message>
@@ -372,7 +372,7 @@
         <translation>Формат API</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="218"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="219"/>
         <source>API key</source>
         <translation>Ключ API</translation>
     </message>
@@ -486,7 +486,7 @@
         <translation>Добавляю подложку.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/layout/add_layout_item.py" line="120"/>
+        <location filename="ai_agent/qgis_tools/layout/add_layout_item.py" line="124"/>
         <source>Adding a {0} to layout '{1}'.</source>
         <translation>Добавляю {0} в макет «{1}».</translation>
     </message>
@@ -506,7 +506,7 @@
         <translation>Добавляю слой «{0}» из SQL: {1}</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/add_layer.py" line="91"/>
+        <location filename="ai_agent/qgis_tools/project/add_layer.py" line="93"/>
         <source>Adding layer '{0}'{1}.</source>
         <translation>Добавляю слой «{0}»{1}.</translation>
     </message>
@@ -577,7 +577,7 @@
         <translation>Аэрофотоснимки (актуальные)</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="124"/>
+        <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="125"/>
         <source>Algorithm: {0}</source>
         <translation>Алгоритм: {0}</translation>
     </message>
@@ -587,7 +587,7 @@
         <translation>Все</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="71"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="72"/>
         <source>All changes saved</source>
         <translation>Все изменения сохранены</translation>
     </message>
@@ -627,7 +627,7 @@
         <translation>Только Anthropic: 0 отключает расширенное рассуждение. Для Sonnet 5 любое положительное значение включает адаптивное рассуждение; более старым моделям требуется не менее 1024 токенов, а заданное значение используется как бюджет рассуждения.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="66"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="67"/>
         <source>Any OpenAI-compatible server works. Keys are kept in the QGIS authentication database, not in the project.</source>
         <translation>Подойдёт любой OpenAI-совместимый сервер. Ключи хранятся в менеджере аутентификации QGIS, а не в проекте.</translation>
     </message>
@@ -666,7 +666,7 @@
         </translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_parts.py" line="25"/>
+        <location filename="ai_agent/ui/composer_parts.py" line="28"/>
         <source>Applies at once; deleting still asks</source>
         <translation>Применяет сразу; удаление спросит</translation>
     </message>
@@ -716,17 +716,17 @@
         <translation>Как в QGIS</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="77"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="78"/>
         <source>As the provider names it.</source>
         <translation>Как её называет провайдер.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_parts.py" line="24"/>
+        <location filename="ai_agent/ui/composer_parts.py" line="27"/>
         <source>Ask</source>
         <translation>Спрашивать</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer.py" line="32"/>
+        <location filename="ai_agent/ui/composer.py" line="34"/>
         <source>Ask about the project or ask to change the map…</source>
         <translation>Спросите о проекте или попросите изменить карту…</translation>
     </message>
@@ -776,7 +776,7 @@
         <translation>Авторизация</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_parts.py" line="25"/>
+        <location filename="ai_agent/ui/composer_parts.py" line="28"/>
         <location filename="ai_agent/ui/personalisation_settings.py" line="72"/>
         <location filename="ai_agent/ui/settings_advanced.py" line="96"/>
         <location filename="ai_agent/ui/settings_advanced.py" line="117"/>
@@ -853,17 +853,17 @@
         <location filename="ai_agent/ui/confirmations.py" line="57"/>
         <location filename="ai_agent/ui/confirmations.py" line="119"/>
         <location filename="ai_agent/ui/plan.py" line="166"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="238"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="239"/>
         <source>Cancel</source>
         <translation>Отменить</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_probe.py" line="54"/>
+        <location filename="ai_agent/ui/settings_probe.py" line="49"/>
         <source>Cancel test</source>
         <translation>Отменить проверку</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_probe.py" line="22"/>
+        <location filename="ai_agent/ui/settings_probe.py" line="23"/>
         <source>Cancelling the connection test…</source>
         <translation>Отменяю проверку подключения…</translation>
     </message>
@@ -922,7 +922,7 @@
         <translation>Меняю настройки проекта: {0}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/charts/chart_layer.py" line="86"/>
+        <location filename="ai_agent/qgis_tools/charts/chart_layer.py" line="90"/>
         <source>Charting '{0}'.</source>
         <translation>Строю диаграмму по «{0}».</translation>
     </message>
@@ -1004,7 +1004,7 @@
         <translation>Аккуратные генерализованные слои мира для мелкомасштабных карт: страны, провинции, города, реки, озёра, береговая линия, дороги, железные дороги, аэропорты и порты, в трёх уровнях детальности.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer.py" line="35"/>
+        <location filename="ai_agent/ui/composer.py" line="37"/>
         <source>Click a point on the map · Esc cancels</source>
         <translation>Щёлкните точку на карте · Esc — отмена</translation>
     </message>
@@ -1059,7 +1059,7 @@
         <translation>Кратко</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer.py" line="34"/>
+        <location filename="ai_agent/ui/composer.py" line="36"/>
         <source>Connect a model to start</source>
         <translation>Подключите модель, чтобы начать</translation>
     </message>
@@ -1070,7 +1070,7 @@
         <translation>Подключён</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_probe.py" line="18"/>
+        <location filename="ai_agent/ui/settings_probe.py" line="20"/>
         <source>Connected · {0} · {1}</source>
         <translation>Подключено · {0} · {1}</translation>
     </message>
@@ -1082,13 +1082,13 @@
     <message>
         <location filename="ai_agent/ui/failure_card.py" line="28"/>
         <location filename="ai_agent/ui/settings_advanced.py" line="54"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="65"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="66"/>
         <location filename="ai_agent/ui/settings_layout.py" line="47"/>
         <source>Connection</source>
         <translation>Подключение</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_probe.py" line="23"/>
+        <location filename="ai_agent/ui/settings_probe.py" line="24"/>
         <source>Connection test cancelled.</source>
         <translation>Проверка подключения отменена.</translation>
     </message>
@@ -1145,7 +1145,7 @@
         <translation>Копировать изображение</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/table_card.py" line="27"/>
+        <location filename="ai_agent/ui/table_card.py" line="29"/>
         <source>Copy rows as CSV</source>
         <translation>Копировать строки как CSV</translation>
     </message>
@@ -1206,7 +1206,7 @@
     </message>
     <message>
         <location filename="ai_agent/core/llm/providers.py" line="6"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="69"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="70"/>
         <source>Custom address</source>
         <translation>Свой адрес</translation>
     </message>
@@ -1246,7 +1246,7 @@
         <translation>Данные не покидают компьютер</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_parts.py" line="24"/>
+        <location filename="ai_agent/ui/composer_parts.py" line="27"/>
         <source>Default</source>
         <translation>По умолчанию</translation>
     </message>
@@ -1308,7 +1308,7 @@
         <translation>Подробно</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="179"/>
+        <location filename="ai_agent/core/llm/client.py" line="180"/>
         <source>Do not put credentials in the API URL. Store the provider secret in the API key field instead.</source>
         <translation>Не добавляйте учётные данные в URL API. Сохраните секрет провайдера в поле API-ключа.</translation>
     </message>
@@ -1357,7 +1357,7 @@
         <translation>Скачиваний: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer.py" line="36"/>
+        <location filename="ai_agent/ui/composer.py" line="38"/>
         <source>Drag a rectangle on the map · Esc cancels</source>
         <translation>Обведите прямоугольник на карте · Esc — отмена</translation>
     </message>
@@ -1432,7 +1432,7 @@
         <translation>Английский</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_probe.py" line="24"/>
+        <location filename="ai_agent/ui/settings_probe.py" line="25"/>
         <source>Enter a model name from the provider.</source>
         <translation>Введите название модели, доступной у провайдера.</translation>
     </message>
@@ -1668,7 +1668,7 @@
         <translation>История и журналы удалены.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/processing/list_processing_history.py" line="58"/>
+        <location filename="ai_agent/qgis_tools/processing/list_processing_history.py" line="59"/>
         <source>History unavailable</source>
         <translation>История недоступна</translation>
     </message>
@@ -1798,7 +1798,7 @@
         <translation>Всё осталось как было — необратимые шаги не применялись.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="75"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="76"/>
         <source>Kept in the QGIS authentication database.</source>
         <translation>Хранится в базе учётных данных QGIS.</translation>
     </message>
@@ -2040,7 +2040,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="93"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="219"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="220"/>
         <location filename="ai_agent/ui/settings_layout.py" line="17"/>
         <source>Model</source>
         <translation>Модель</translation>
@@ -2157,7 +2157,7 @@
         <translation>Ночные огни (VIIRS Black Marble 2016)</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="156"/>
+        <location filename="ai_agent/core/llm/client.py" line="157"/>
         <source>No API URL. Set one in Settings.</source>
         <translation>Не задан адрес API. Укажите его в настройках.</translation>
     </message>
@@ -2212,7 +2212,7 @@
         <translation>Заметок пока нет.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="129"/>
+        <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="130"/>
         <source>No parameters.</source>
         <translation>Параметров нет.</translation>
     </message>
@@ -2252,12 +2252,12 @@
         <translation>Не нужен: открытые данные</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="70"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="71"/>
         <source>Not required</source>
         <translation>Не обязателен</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_probe.py" line="17"/>
+        <location filename="ai_agent/ui/settings_probe.py" line="19"/>
         <source>Not tested yet.</source>
         <translation>Ещё не проверено.</translation>
     </message>
@@ -2405,7 +2405,7 @@
         <translation>Параметры</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="126"/>
+        <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="127"/>
         <source>Parameters:</source>
         <translation>Параметры:</translation>
     </message>
@@ -2456,7 +2456,7 @@
         <translation>Обычные слова</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_parts.py" line="26"/>
+        <location filename="ai_agent/ui/composer_parts.py" line="29"/>
         <source>Plan</source>
         <translation>План</translation>
     </message>
@@ -2532,18 +2532,18 @@
         <translation>Только проект</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_parts.py" line="26"/>
+        <location filename="ai_agent/ui/composer_parts.py" line="29"/>
         <source>Proposes a plan, changes nothing</source>
         <translation>Предлагает план, ничего не меняет</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="182"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="183"/>
         <source>Provider</source>
         <translation>Провайдер</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="212"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="334"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="213"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="335"/>
         <source>Provider key</source>
         <translation>Ключ провайдера</translation>
     </message>
@@ -2638,7 +2638,7 @@
         <translation>Смотрю файл таблицы {0}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/processing/list_processing_history.py" line="54"/>
+        <location filename="ai_agent/qgis_tools/processing/list_processing_history.py" line="55"/>
         <source>Reading the Processing history.</source>
         <translation>Смотрю историю запусков Processing.</translation>
     </message>
@@ -2788,7 +2788,7 @@
         <translation>Убрать</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="214"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="215"/>
         <source>Remove key</source>
         <translation>Удалить ключ</translation>
     </message>
@@ -2853,7 +2853,7 @@
         <translation>Заменить модель Processing «{0}» ({1}).</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer.py" line="127"/>
+        <location filename="ai_agent/ui/composer.py" line="129"/>
         <source>Request</source>
         <translation>Запрос</translation>
     </message>
@@ -2948,7 +2948,7 @@
         <translation>Выполнить с подтверждением</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="119"/>
+        <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="120"/>
         <source>Run {0} ({1}{2}){3}.</source>
         <translation>Запустить {0} ({1}{2}){3}.</translation>
     </message>
@@ -3008,7 +3008,7 @@
         <translation>Спутники и снимки</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="242"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="243"/>
         <source>Save</source>
         <translation>Сохранить</translation>
     </message>
@@ -3093,7 +3093,7 @@
         <translation>Отправить запрос в {0}?&#10;&#10;Провайдер получит ваш запрос и всё, что агент прочитает для ответа: имена слоёв и полей, значения объектов, границы, источники слоёв и изображения карты. Если данные не должны покидать компьютер, используйте локальный сервер модели.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/usage_notice.py" line="20"/>
+        <location filename="ai_agent/ui/usage_notice.py" line="21"/>
         <source>Sends anonymous usage counts once a day — never what you write or your data.</source>
         <translation>Раз в день отправляет анонимные счётчики использования — никогда ваши тексты и данные.</translation>
     </message>
@@ -3104,7 +3104,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/geocoder_settings.py" line="31"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="224"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="225"/>
         <source>Server address</source>
         <translation>Адрес сервера</translation>
     </message>
@@ -3139,7 +3139,7 @@
         <translation>Настройки</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="59"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="60"/>
         <source>Settings — AI Agent</source>
         <translation>Настройки — AI Agent</translation>
     </message>
@@ -3224,7 +3224,7 @@
         <translation>Показываю слой «{0}» целиком.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer_parts.py" line="24"/>
+        <location filename="ai_agent/ui/composer_parts.py" line="27"/>
         <source>Shows a plan and waits for Apply</source>
         <translation>Показывает план и ждёт «Применить»</translation>
     </message>
@@ -3345,45 +3345,45 @@
         <translation>Рельеф и океаны</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="177"/>
-        <location filename="ai_agent/ui/settings_probe.py" line="107"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="178"/>
+        <location filename="ai_agent/ui/settings_probe.py" line="102"/>
         <source>Test connection</source>
         <translation>Проверить подключение</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_probe.py" line="21"/>
+        <location filename="ai_agent/ui/settings_probe.py" line="22"/>
         <source>Testing the connection…</source>
         <translation>Проверяю подключение…</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="170"/>
-        <location filename="ai_agent/core/llm/client.py" line="160"/>
-        <location filename="ai_agent/core/llm/client.py" line="168"/>
+        <location filename="ai_agent/core/llm/client.py" line="171"/>
+        <location filename="ai_agent/core/llm/client.py" line="161"/>
+        <location filename="ai_agent/core/llm/client.py" line="169"/>
         <source>The API URL is malformed. Check its host, brackets and port.</source>
         <translation>URL API некорректен. Проверьте адрес узла, скобки и порт.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="163"/>
+        <location filename="ai_agent/core/llm/client.py" line="164"/>
         <source>The API URL must use http or https.</source>
         <translation>URL API должен использовать http или https.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="344"/>
+        <location filename="ai_agent/core/llm/client.py" line="345"/>
         <source>The API returned an empty answer.</source>
         <translation>API вернул пустой ответ.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="295"/>
+        <location filename="ai_agent/core/llm/client.py" line="296"/>
         <source>The API returned non-JSON: {0}</source>
         <translation>API вернул не JSON: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="298"/>
+        <location filename="ai_agent/core/llm/client.py" line="299"/>
         <source>The API returned something that is not a JSON object.</source>
         <translation>API вернул нечто, что не является объектом JSON.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="125"/>
+        <location filename="ai_agent/core/llm/client.py" line="126"/>
         <source>The API returned {0}: {1}</source>
         <translation>API вернул {0}: {1}</translation>
     </message>
@@ -3463,7 +3463,7 @@
         <translation>Сервер из настроек</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_probe.py" line="19"/>
+        <location filename="ai_agent/ui/settings_probe.py" line="21"/>
         <source>The connection failed</source>
         <translation>Подключиться не удалось</translation>
     </message>
@@ -3618,7 +3618,7 @@
         <translation>Шаг не выполнился — агент видит причину и может попробовать иначе.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="74"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="75"/>
         <source>The stored key for this endpoint was removed.</source>
         <translation>Сохранённый ключ для этого адреса удалён.</translation>
     </message>
@@ -3644,7 +3644,7 @@
     </message>
     <message>
         <location filename="ai_agent/core/orchestrator/rewind.py" line="34"/>
-        <location filename="ai_agent/core/orchestrator/rewind.py" line="149"/>
+        <location filename="ai_agent/core/orchestrator/rewind.py" line="150"/>
         <source>These temporary layers came back empty: {0}.</source>
         <translation>Эти временные слои вернулись пустыми: {0}.</translation>
     </message>
@@ -3674,7 +3674,7 @@
         <translation>Эта модель не принимает картинки, поэтому {0} не отправлено.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_probe.py" line="25"/>
+        <location filename="ai_agent/ui/settings_probe.py" line="26"/>
         <source>This model does not see pictures: the agent checks the map by reading the data instead.</source>
         <translation>Эта модель не видит картинки: агент проверяет карту, читая данные.</translation>
     </message>
@@ -3759,7 +3759,7 @@
         <translation>Турецкий</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/usage_notice.py" line="21"/>
+        <location filename="ai_agent/ui/usage_notice.py" line="22"/>
         <source>Turn off</source>
         <translation>Выключить</translation>
     </message>
@@ -3784,7 +3784,7 @@
         <translation>Введите запрос.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer.py" line="33"/>
+        <location filename="ai_agent/ui/composer.py" line="35"/>
         <source>Type to correct me…</source>
         <translation>Напишите, чтобы поправить меня…</translation>
     </message>
@@ -3824,12 +3824,12 @@
         <translation>Единицы</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="72"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="73"/>
         <source>Unsaved changes</source>
         <translation>Есть несохранённые изменения</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/presentation.py" line="97"/>
+        <location filename="ai_agent/core/orchestrator/presentation.py" line="98"/>
         <source>Unsaved project</source>
         <translation>Несохранённый проект</translation>
     </message>
@@ -3854,7 +3854,7 @@
         <translation>Статистика использования</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/usage_notice.py" line="23"/>
+        <location filename="ai_agent/ui/usage_notice.py" line="24"/>
         <source>Usage statistics are off. Turn them back on in Settings → Privacy.</source>
         <translation>Статистика использования выключена. Включить снова можно в Настройки → Приватность.</translation>
     </message>
@@ -3904,7 +3904,7 @@
         <translation>Поиск в интернете, чтение страниц, геокодирование</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/usage_notice.py" line="22"/>
+        <location filename="ai_agent/ui/usage_notice.py" line="23"/>
         <source>What is sent</source>
         <translation>Что отправляется</translation>
     </message>
@@ -3939,7 +3939,7 @@
         <translation>Какие слои есть в проекте и что в них?</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="224"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="225"/>
         <source>Without /chat/completions.</source>
         <translation>Без /chat/completions.</translation>
     </message>
@@ -4109,7 +4109,7 @@
         <translation>нет корректной системы координат</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/presentation.py" line="87"/>
+        <location filename="ai_agent/core/orchestrator/presentation.py" line="88"/>
         <source>raster</source>
         <translation>растр</translation>
     </message>
@@ -4124,8 +4124,8 @@
         <translation>выбираю объекты</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="304"/>
-        <location filename="ai_agent/core/llm/client.py" line="306"/>
+        <location filename="ai_agent/core/llm/client.py" line="305"/>
+        <location filename="ai_agent/core/llm/client.py" line="307"/>
         <source>service unavailable</source>
         <translation>сервис недоступен</translation>
     </message>
@@ -4160,7 +4160,7 @@
         <translation>в чат ↵</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="124"/>
+        <location filename="ai_agent/qgis_tools/processing/run_processing.py" line="125"/>
         <source>unknown</source>
         <translation>неизвестно</translation>
     </message>
@@ -4205,7 +4205,7 @@
         <translation>{0} мин {1} с</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/table_card.py" line="28"/>
+        <location filename="ai_agent/ui/table_card.py" line="30"/>
         <source>{0} of {1} rows</source>
         <translation>{0} из {1} строк</translation>
     </message>

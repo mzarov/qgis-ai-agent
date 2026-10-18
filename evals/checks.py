@@ -8,7 +8,7 @@
     not: [run_python]                     # tools it must not call
     not_loads: [python]                   # skills it must not load
     answer: true                          # it answered in words, no tool call
-    any_of: [{...}, {...}]                # any one of these expectations
+    any_of: [{...}, {...}]                # any one of these expectations, and the keys above still hold
 
 Values match leniently, the way a person reads them: strings ignore case and
 surrounding space, numbers compare as numbers ("500" is 500), a dict matches
@@ -48,6 +48,10 @@ def mismatch(expect: dict[str, Any], calls: list[tuple[str, dict[str, Any]]]) ->
     """None when the calls meet the expectation, else what is missing."""
     alternatives = expect.get("any_of")
     if alternatives:
+        # The other keys hold beside whichever alternative matches: a forbidden call fails next to an allowed one.
+        others = mismatch({key: value for key, value in expect.items() if key != "any_of"}, calls)
+        if others is not None:
+            return others
         problems = [mismatch(option, calls) for option in alternatives]
         return None if any(problem is None for problem in problems) else " / ".join(str(p) for p in problems)
     names = [name for name, _ in calls]

@@ -329,6 +329,28 @@ class RasterHelpersTest(unittest.TestCase):
         band, _flags, _extent, sample = provider.bandStatistics.call_args.args
         self.assertEqual((band, sample), (2, raster.STATISTICS_SAMPLE_CELLS))
 
+    def test_gray_stretches_the_band_from_its_minimum_to_its_maximum(self):
+        provider = Mock()
+        provider.bandStatistics.return_value = Mock(minimumValue=1.0, maximumValue=399.0)
+        layer = Mock()
+        layer.dataProvider.return_value = provider
+        with (
+            patch.object(raster, "QgsSingleBandGrayRenderer") as gray,
+            patch.object(raster, "QgsContrastEnhancement") as enhancement,
+        ):
+            renderer, details = raster.build_gray(layer, 2)
+        stretch = enhancement.return_value
+        provider.dataType.assert_called_once_with(2)
+        enhancement.assert_called_once_with(provider.dataType.return_value)
+        stretch.setContrastEnhancementAlgorithm.assert_called_once_with(
+            enhancement.ContrastEnhancementAlgorithm.StretchToMinimumMaximum
+        )
+        stretch.setMinimumValue.assert_called_once_with(1.0)
+        stretch.setMaximumValue.assert_called_once_with(399.0)
+        self.assertIs(renderer, gray.return_value)
+        renderer.setContrastEnhancement.assert_called_once_with(stretch)
+        self.assertEqual(details, {"min": 1.0, "max": 399.0})
+
     def test_web_rasters_are_refused(self):
         for provider in ("wms", "WCS"):
             layer = Mock()

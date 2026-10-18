@@ -4,9 +4,10 @@ import stat
 import tempfile
 import unittest
 from unittest import mock
+from urllib.parse import parse_qs
 
 from ai_agent.qgis_tools.common.editing import edit_session
-from ai_agent.qgis_tools.osm import download_osm, extent, load, overpass, run_overpass, selectors, tags
+from ai_agent.qgis_tools.osm import download_osm, extent, fetch, load, overpass, run_overpass, selectors, tags
 from ai_agent.qgis_tools.osm.run_overpass import RunOverpassTool
 
 
@@ -521,3 +522,68 @@ class EditableDownloadTest(unittest.TestCase):
             self.fail("read-only data must never enter the mutation block")
         layer.commitChanges.assert_not_called()
         layer.rollBack.assert_not_called()
+
+
+OVERPASS_URL = "https://overpass.test/api/interpreter"
+TIMED_OUT_ANSWER = (
+    b'<?xml version="1.0" encoding="UTF-8"?>\n<osm version="0.6" generator="Overpass API">\n'
+    b'<node id="1" lat="55.75" lon="37.62"><tag k="amenity" v="cafe"/></node>\n'
+    b"<remark> runtime error: Query timed out in &quot;query&quot; at line 3 after 91 seconds. </remark>\n"
+    b"</osm>\n"
+)
+
+
+class _Overpass:
+    """A QgsBlockingNetworkRequest that keeps the bodies it posted and answers every request with `answer`."""
+
+    class ErrorCode:
+        NoError = 0
+
+    answer = b'<?xml version="1.0"?><osm version="0.6"></osm>'
+    last = None
+
+    def __init__(self):
+        self.downloadProgress = mock.Mock()
+        self.posted = []
+        _Overpass.last = self
+
+    def post(self, request, data, *rest):
+        self.posted.append(bytes(data))
+        return self.ErrorCode.NoError
+
+    def reply(self):
+        return mock.Mock(content=lambda: self.answer)
+
+
+class FetchTest(unittest.TestCase):
+    """What reaches Overpass and what is made of its answer; no request ever leaves the test."""
+
+    def setUp(self):
+        for name, fake in (("QgsBlockingNetworkRequest", _Overpass), ("QByteArray", bytes)):
+            patcher = mock.patch.object(fetch, name, fake)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def test_the_query_reaches_overpass_whole(self):
+        query = '[out:xml];node["name"~"A+B&C=D %"](55,37,56,38);out body;'
+        fetch.fetch(query, OVERPASS_URL)
+        (body,) = _Overpass.last.posted
+        self.assertEqual(parse_qs(body.decode("ascii")), {"data": [query]})
+
+    def test_a_query_overpass_broke_off_is_a_failure_not_a_partial_download(self):
+        with mock.patch.object(_Overpass, "answer", TIMED_OUT_ANSWER), self.assertRaises(ValueError) as caught:
+            fetch.fetch("[out:xml];node(55,37,56,38);out body;", OVERPASS_URL)
+        message = str(caught.exception)
+        self.assertIn('runtime error: Query timed out in "query" at line 3 after 91 seconds.', message)
+        self.assertIn("nothing was loaded", message)
+
+    def test_a_broken_off_answer_never_becomes_layers(self):
+        params = {"query": '[out:xml];node["amenity"="cafe"](55,37,56,38);out body;', "name": "Cafes"}
+        with (
+            mock.patch.object(_Overpass, "answer", TIMED_OUT_ANSWER),
+            mock.patch.object(fetch, "endpoint", return_value=OVERPASS_URL),
+            mock.patch.object(run_overpass, "load_answer") as load_answer,
+            self.assertRaises(ValueError),
+        ):
+            RunOverpassTool().execute(params)
+        load_answer.assert_not_called()

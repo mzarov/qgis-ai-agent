@@ -125,9 +125,18 @@ class NativeAggregateTest(unittest.TestCase):
 
     def test_selected_only_passes_the_selected_ids(self):
         layer = _AggregatingLayer({"1": (2.0, True), "$area": (10.0, True)})
-        result = run_aggregate(layer, _Request(), None, {"selected_only": True, "expression": "$area"}, "max")
+        params = {"selected_only": True, "expression": "$area"}
+        result = run_aggregate(layer, _Request(), None, params, "max", [4, 5])
         self.assertEqual((result["matched"], result["value"]), (2, 10.0))
         self.assertTrue(all(call[3] == [4, 5] for call in layer.calls))
+
+    def test_selected_ids_that_passed_the_filter_go_without_it(self):
+        # Beside a filter QgsVectorLayer.aggregate ignores the ids and answers over the whole layer.
+        layer = _AggregatingLayer({"1": (1.0, True), "n": (2.0, True)})
+        params = {"selected_only": True, "filter": "n >= 2", "expression": "n"}
+        result = run_aggregate(layer, _Request(), None, params, "sum", [5])
+        self.assertEqual((result["matched"], result["value"]), (1, 2.0))
+        self.assertEqual([call[2:] for call in layer.calls], [("", [5]), ("", [5])])
 
     def test_a_refused_native_aggregate_falls_back_to_the_scan(self):
         layer = _AggregatingLayer({"1": (3.0, True)}, count=3)
