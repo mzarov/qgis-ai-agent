@@ -8,13 +8,13 @@ SHORT_LABEL = 6
 MAX_VERTICAL_BARS = 12
 
 
-def nice_ticks(low: float, high: float, target: int = TARGET_TICKS) -> list[float]:
+def nice_ticks(low: float, high: float) -> list[float]:
     """Round tick values covering [low, high], zero included when the data reaches it."""
     if low > high:
         low, high = high, low
     if low == high:
         high = low + (abs(low) or 1.0)
-    raw = (high - low) / max(1, target)
+    raw = (high - low) / TARGET_TICKS
     magnitude = 10 ** math.floor(math.log10(raw))
     step = next(step * magnitude for step in TICK_STEPS if step * magnitude >= raw)
     start = math.floor(low / step) * step

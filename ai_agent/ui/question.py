@@ -147,7 +147,6 @@ class QuestionCard(controls.RoundedFrame):
         self, question: str, options: list[str], palette: Any, auto_seconds: int = 0, parent: QWidget | None = None
     ):
         super().__init__(CARD_RADIUS, parent)
-        self._palette = palette
         self.set_look(style.surface(palette).name(), style.hairline(palette).name())
         self.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
         column = QVBoxLayout(self)

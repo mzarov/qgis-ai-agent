@@ -163,9 +163,7 @@ class PersonalisationSettings(QObject):
             )
         )
         fields.section(column, ABOUT, palette, ABOUT_NOTE)
-        self.about, self.about_counter = self._text_area(
-            column, profile.about, ABOUT_PLACEHOLDER, ABOUT_HEIGHT, personal.MAX_ABOUT
-        )
+        self.about, _ = self._text_area(column, profile.about, ABOUT_PLACEHOLDER, ABOUT_HEIGHT, personal.MAX_ABOUT)
         fields.section(column, TITLE, palette, INTRO)
         self.editor, self.counter = self._text_area(
             column, get_custom_instructions(), PLACEHOLDER, EDITOR_HEIGHT, MAX_CUSTOM_INSTRUCTIONS

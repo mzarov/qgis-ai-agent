@@ -47,7 +47,7 @@ class ThinkingBlock(QFrame):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        palette = self._palette = self.palette()
+        palette = self.palette()
         self.setStyleSheet("QFrame { background: transparent; border: none; }")
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 1, 0, 0)

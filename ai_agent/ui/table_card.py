@@ -114,7 +114,7 @@ class TableCard(QWidget):
         top = float(self._title_height())
         row_height = self._row_height()
         painter.setFont(self._small_bold())
-        self._row(painter, self.columns, widths, top, row_height, style.muted(palette), header=True)
+        self._row(painter, self.columns, widths, top, row_height, style.muted(palette))
         painter.setFont(self.font())
         for index, row in enumerate(self.rows):
             y = top + row_height * (index + 1)
@@ -131,16 +131,7 @@ class TableCard(QWidget):
             painter.drawText(footer, Qt.AlignmentFlag.AlignVCenter, self.footer())
         painter.end()
 
-    def _row(
-        self,
-        painter: QPainter,
-        cells: list[str],
-        widths: list[float],
-        y: float,
-        height: int,
-        ink: Any,
-        header: bool = False,
-    ) -> None:
+    def _row(self, painter: QPainter, cells: list[str], widths: list[float], y: float, height: int, ink: Any) -> None:
         metrics = QFontMetrics(painter.font())
         x = -float(self._bar.value())
         painter.setPen(ink)

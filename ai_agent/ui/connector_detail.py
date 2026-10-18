@@ -80,7 +80,6 @@ class ConnectorDetail(QObject):
 
     def __init__(self, row: dict[str, Any], card_switch: Any, palette: Any):
         super().__init__()
-        self.identifier = str(row["id"])
         holder, column = fields.page()
         back = QPushButton(BACK)
         back.setStyleSheet(_link_style(palette))

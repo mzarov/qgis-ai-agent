@@ -63,8 +63,6 @@ NAMES = {
     "plugins": "puzzle",
     "quality": "shield-check",
     "knowledge": "book-open",
-    "brain": "brain",
-    "sparkles": "sparkles",
     "check": "check",
     "image": "image",
     "point": "map-pin",

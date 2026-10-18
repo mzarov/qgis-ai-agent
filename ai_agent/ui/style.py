@@ -28,10 +28,6 @@ def blend(first: QColor, second: QColor, ratio: float) -> QColor:
     )
 
 
-def is_dark(palette: QPalette) -> bool:
-    return theme.is_dark(palette)
-
-
 def _token(palette: QPalette, name: str) -> QColor:
     return theme.colour(getattr(theme.tokens(palette), name))
 
@@ -71,15 +67,6 @@ def elevated(palette: QPalette) -> QColor:
 
 def sidebar(palette: QPalette) -> QColor:
     return _token(palette, "bg")
-
-
-def nav_selected(palette: QPalette) -> QColor:
-    """The chosen sidebar entry: a step lighter on dark, a step darker on light."""
-    return _token(palette, "surface_2" if is_dark(palette) else "sunken")
-
-
-def nav_hover(palette: QPalette) -> QColor:
-    return _token(palette, "surface" if is_dark(palette) else "surface_2")
 
 
 def sunken(palette: QPalette) -> QColor:
@@ -287,7 +274,7 @@ def scale_font(widget: Any, ratio: float, bold: bool = False) -> None:
 
 def series(palette: QPalette, index: int) -> QColor:
     """Categorical chart colour `index` in the fixed order; the spec folds past eight, so no cycling happens."""
-    colours = theme.CHART_DARK if is_dark(palette) else theme.CHART_LIGHT
+    colours = theme.CHART_DARK if theme.is_dark(palette) else theme.CHART_LIGHT
     return theme.colour(colours[min(index, len(colours) - 1)])
 
 

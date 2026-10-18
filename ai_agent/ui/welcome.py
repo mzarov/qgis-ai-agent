@@ -25,7 +25,6 @@ PROJECT_ICON = 14
 TITLE_SCALE = 17 / 13
 SMALL = 0.92
 SUGGESTION_NAME = "suggestion"
-SIDE_INSET = 0
 MARK = 56
 NEEDS_KEY_TITLE = tr("One step before we start")
 NEEDS_KEY_BODY = tr(
@@ -102,7 +101,7 @@ class WelcomeCard(QWidget):
         title, body, suggestions = welcome_content(configured)
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
         column = QVBoxLayout(self)
-        column.setContentsMargins(SIDE_INSET, 0, SIDE_INSET, 0)
+        column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(STACK_GAP)
         column.addStretch(1)
         # The compass arrives: its needle swings in and settles at rest, once, when the welcome appears.
@@ -110,9 +109,8 @@ class WelcomeCard(QWidget):
         column.addWidget(self.mark, 0, Qt.AlignmentFlag.AlignHCenter)
         self.mark.set_state(compass.ARRIVE)
         column.addWidget(_title(title, palette))
-        if body:
-            # Full width with centred text: an alignment flag would size a wrapping label by its hint and cut it.
-            column.addWidget(_body(body, palette))
+        # Full width with centred text: an alignment flag would size a wrapping label by its hint and cut it.
+        column.addWidget(_body(body, palette))
         self._configured = configured
         self.project = _project_line(palette)
         column.addWidget(self.project, 0, Qt.AlignmentFlag.AlignHCenter)

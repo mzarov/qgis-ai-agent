@@ -156,7 +156,6 @@ class SystemMessage(QWidget):
         label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         style.scale_font(label, SYSTEM_FONT_SCALE)
         style.ink(label, style.danger(palette) if error else style.muted(palette))
-        self.error = error
         row.addWidget(label, 1)
         self._label = label
 

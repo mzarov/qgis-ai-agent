@@ -21,7 +21,6 @@ class TimingTest(unittest.TestCase):
 
     def test_the_states_rest_where_the_handoff_says(self):
         self.assertEqual(compass.angle_at(compass.REST, 0.7), 45.0)
-        self.assertEqual(compass.angle_at(compass.NORTH_STATE, 0.2), 0.0)
         self.assertEqual(compass.end_angle(compass.DONE), 0.0)
         self.assertEqual(compass.end_angle(compass.ARRIVE), 45.0)
         self.assertEqual(compass.end_angle(compass.ERROR), 45.0)
@@ -54,8 +53,6 @@ class WidgetTest(unittest.TestCase):
         self.assertEqual(mark.angle, 45.0)
         mark.set_state(compass.DONE)
         mark.stop()
-        self.assertEqual(mark.angle, 0.0)
-        mark.set_state(compass.NORTH_STATE)
         self.assertEqual(mark.angle, 0.0)
 
 

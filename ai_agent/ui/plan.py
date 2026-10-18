@@ -270,7 +270,6 @@ class PlanStep(QWidget):
     def __init__(self, index: int, step: str, palette: Any, parent: QWidget | None = None):
         super().__init__(parent)
         self._palette = palette
-        self.state = ""
         text, kind = split_line(step)
         grid = QGridLayout(self)
         grid.setContentsMargins(*ROW_PADDING)
@@ -320,7 +319,6 @@ class PlanStep(QWidget):
         self.mark.setVisible(True)
 
     def set_state(self, state: str, note: str = "") -> None:
-        self.state = state
         self.bar.setVisible(False)
         mark, colour = STEP_MARKS.get(state, ("", style.muted))
         self.mark.setText(mark)

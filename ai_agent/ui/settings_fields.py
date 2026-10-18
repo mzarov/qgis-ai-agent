@@ -98,7 +98,7 @@ class Stepper(QFrame):
         super().__init__()
         # Set before anything can restyle the frame: a style change calls changeEvent mid-construction.
         self._shown: QWidget | None = None
-        self._low, self._high, self._step = low, high, step
+        self._low, self._high = low, high
         self._value = max(low, min(high, value))
         self.setObjectName(STEPPER_NAME)
         border = style.css_color(style.border_strong(palette))
@@ -199,13 +199,13 @@ def sidebar() -> tuple[QWidget, QVBoxLayout]:
     return holder, column
 
 
-def sidebar_button(title: str, palette: Any, glyphs: tuple[Any, Any] | None = None) -> QPushButton:
+def sidebar_button(title: str, palette: Any, glyphs: tuple[Any, Any]) -> QPushButton:
     """A sidebar entry: muted at rest, the chosen one lifted with a hairline, its icon in the accent."""
     button = QPushButton(title)
     button.setCheckable(True)
     button.setCursor(Qt.CursorShape.PointingHandCursor)
     button.setFixedHeight(NAV_HEIGHT)
-    if glyphs is not None and glyphs[0] is not None:
+    if glyphs[0] is not None:
         rest, chosen = glyphs
         icon = QIcon()
         icon.addPixmap(rest.pixmap(NAV_ICON, NAV_ICON), QIcon.Mode.Normal, QIcon.State.Off)
@@ -284,10 +284,10 @@ def heading(title: str, palette: Any) -> QLabel:
     return label
 
 
-def row(title: str, widget: QWidget, note: str, palette: Any, tooltip: str = "") -> QWidget:
+def row(title: str, widget: QWidget, note: str, palette: Any) -> QWidget:
     widget.setStyleSheet(input_style(palette))
     widget.setFixedWidth(CONTROL_WIDTH)
-    return _row(title, widget, note, palette, tooltip)
+    return _row(title, widget, note, palette, "")
 
 
 def switch_row(title: str, checkbox: QWidget, note: str, palette: Any, tooltip: str = "") -> QWidget:
