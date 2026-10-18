@@ -55,11 +55,6 @@ def get_tool_by_name(name: str) -> BaseTool | None:
     return None
 
 
-def get_tools_for_skills(skill_names: Iterable[str]) -> list[BaseTool]:
-    wanted = {name for name in skill_names if name}
-    return [tool for tool in ALL_TOOLS if tool.skill in wanted]
-
-
 def build_tool_schemas(tools: Iterable[BaseTool]) -> list[dict[str, Any]]:
     return [tool.get_openai_schema() for tool in tools]
 

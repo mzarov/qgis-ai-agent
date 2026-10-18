@@ -7,7 +7,6 @@ from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_WEB_CONTENT, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.web.html_text import BLOCK_TAGS, DROP_TAGS, html_to_text, normalize_text
 from ai_agent.qgis_tools.web.http import (
-    RequestCancelled,
     cancellation_epoch,
     checked_url,
     get_text,
@@ -71,8 +70,6 @@ class SearchWebTool(BaseTool):
             results = parse_results(html)
             note = ""
             engine = "duckduckgo"
-        except RequestCancelled:
-            raise
         except ValueError:
             guard_not_cancelled(epoch)
             results = wikipedia_results(query, epoch=epoch)
@@ -172,7 +169,7 @@ class SearchResultParser(HTMLParser):
 
 
 def _unwrapped(href: str) -> str:
-    parsed = urlparse(href if "//" in href else f"https:{href}" if href.startswith("//") else href)
+    parsed = urlparse(href)
     host = (parsed.hostname or "").lower()
     if (host == "duckduckgo.com" or host.endswith(".duckduckgo.com")) and parsed.path.startswith("/l/"):
         packed = parse_qs(parsed.query).get("uddg", [""])[0]

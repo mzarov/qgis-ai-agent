@@ -52,7 +52,7 @@ DEFAULT_SIZES_MM = {
     ITEM_NORTH_ARROW: (18.0, 18.0),
     ITEM_PICTURE: (40.0, 40.0),
 }
-MM = getattr(getattr(Qgis, "LayoutUnit", None), "Millimeters", None)
+MM = Qgis.LayoutUnit.Millimeters
 
 
 def item_kind(item: Any) -> str:

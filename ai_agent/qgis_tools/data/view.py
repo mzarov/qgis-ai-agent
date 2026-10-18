@@ -1,7 +1,7 @@
 """Bringing a national service into view: from a world-wide map its tiles show blank paper or a coverage mask.
 
 PDOK answers the lowest zoom levels with white tiles and black blobs, so a
-layer added to a world view looked broken although it worked. After adding
+layer added to a world view looks broken although it works. After adding
 such a layer the canvas moves to the country, unless the view already shows it.
 """
 

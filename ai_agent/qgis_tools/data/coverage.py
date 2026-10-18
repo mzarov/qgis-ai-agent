@@ -1,8 +1,8 @@
 """How much of the searched rectangle a scene's footprint covers, in plain Python.
 
-A Sentinel-2 tile at the edge of a satellite swath holds data in a sliver only;
-"clearest" alone picked such a tile for a city it barely touched. Footprints
-are lon/lat polygons, small enough that planar area is a fair share measure.
+A Sentinel-2 tile at the edge of a satellite swath holds data in a sliver only,
+so the clearest scene alone may barely touch the area. Footprints are lon/lat
+polygons, small enough that planar area is a fair share measure.
 """
 
 from typing import Any

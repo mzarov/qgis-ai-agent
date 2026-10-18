@@ -69,8 +69,6 @@ def parse_repository(xml: bytes) -> list[dict[str, Any]]:
             "downloads": _number(_text(element, "downloads")),
             "experimental": _text(element, "experimental").lower() in TRUE_TEXTS,
             "deprecated": _text(element, "deprecated").lower() in TRUE_TEXTS,
-            "trusted": _text(element, "trusted").lower() in TRUE_TEXTS,
-            "homepage": _text(element, "homepage"),
             "download_url": _text(element, "download_url"),
         }
         if entry["key"] and entry["download_url"]:

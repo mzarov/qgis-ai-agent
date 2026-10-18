@@ -13,7 +13,6 @@ from ai_agent.qgis_tools.project.tree import (
     project,
 )
 
-VECTOR_SUFFIXES = (".shp", ".geojson", ".json", ".gpkg", ".kml", ".gml", ".csv", ".tab", ".gpx")
 RASTER_SUFFIXES = (".tif", ".tiff", ".geotiff", ".png", ".jpg", ".jpeg", ".img", ".asc", ".vrt")
 VECTOR = "vector"
 RASTER = "raster"

@@ -1,7 +1,7 @@
 # skills/ — domain knowledge
 
 A skill is a domain package: `<domain>/SKILL.md` with frontmatter and a body of
-rules. This is what used to live as numbered clauses in the system prompt.
+rules.
 
 The format deliberately follows the open Agent Skills convention: required
 `name` and `description` in the frontmatter, a Markdown body, progressive
@@ -42,8 +42,7 @@ dependency and will not become one. `key: value` pairs and inline lists
 4. **Never duplicate what the code already guarantees.** If the tool itself
    coerces an enum label to its index or fills the default output, a rule about
    it does not belong in `SKILL.md`. It only burns tokens and drifts from the
-   code at the first edit. That was the main disease of the old prompt.
-   The reverse also holds: when the model systematically ignores a `SKILL.md`
+   code at the first edit. The reverse also holds: when the model systematically ignores a `SKILL.md`
    rule — move the check into `BaseTool.prepare`; code is more reliable than an
    instruction.
 5. **Write what the model cannot guess:** step order, measurement units,

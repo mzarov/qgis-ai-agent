@@ -180,7 +180,7 @@ class UrlTest(unittest.TestCase):
     def test_public_addresses_are_sorted_deterministically(self):
         answers = {"2606:4700:4700::1111", "93.184.216.35", "93.184.216.34"}
         with mock.patch.object(http_module, "_resolved_addresses", return_value=answers):
-            resolved = http_module._require_public_host("public.example", 443)
+            resolved = http_module._require_public_host("public.example")
         self.assertEqual(resolved, ("93.184.216.34", "93.184.216.35", "2606:4700:4700::1111"))
 
     def test_local_hostnames_are_refused_without_dns(self):
@@ -252,7 +252,7 @@ class RedirectTest(unittest.TestCase):
     def test_cross_origin_redirect_is_blocked_before_second_request(self):
         downloaded = []
 
-        def download(url, headers, **options):
+        def download(url, **options):
             downloaded.append(url)
             return http_module._Hop(b"", 302, "https://elsewhere.example/admin")
 
@@ -282,7 +282,7 @@ class RedirectTest(unittest.TestCase):
         downloaded = []
         pinned = []
 
-        def download(url, headers, **options):
+        def download(url, **options):
             downloaded.append(url)
             pinned.append(options["address"])
             if len(downloaded) == 1:
@@ -301,7 +301,7 @@ class RedirectTest(unittest.TestCase):
     def test_cancellation_between_hops_is_sticky(self):
         downloaded = []
 
-        def download(url, headers, **options):
+        def download(url, **options):
             downloaded.append(url)
             http_module.cancel_active_requests()
             return http_module._Hop(b"", 302, "/next")
@@ -329,7 +329,7 @@ class RedirectTest(unittest.TestCase):
     def test_connection_failure_falls_back_to_the_next_validated_address(self):
         attempts = []
 
-        def download(url, headers, **options):
+        def download(url, **options):
             attempts.append(options["address"])
             if len(attempts) == 1:
                 return http_module._Hop(b"", 0, error="network error 7")
@@ -395,7 +395,6 @@ class NetworkRequestPolicyTest(unittest.TestCase):
         ):
             request = http_module._network_request(
                 "https://public.example/path?q=visible",
-                {"X-Test": "yes"},
                 address="93.184.216.34",
                 manager=manager,
             )
@@ -412,7 +411,6 @@ class NetworkRequestPolicyTest(unittest.TestCase):
         self.assertEqual(request.attributes["cookie-save"], "manual-only")
         self.assertEqual(request.attributes["auth-reuse"], "manual-only")
         self.assertEqual(request.timeout, http_module.TIMEOUT_MS)
-        self.assertEqual(request.headers[b"X-Test"], b"yes")
 
     def test_pinned_request_uses_one_idna_authority_for_tls_and_host(self):
         manager = _direct_manager()
@@ -423,7 +421,6 @@ class NetworkRequestPolicyTest(unittest.TestCase):
         ):
             request = http_module._network_request(
                 "https://пример.рф/path",
-                {},
                 address="93.184.216.34",
                 manager=manager,
             )

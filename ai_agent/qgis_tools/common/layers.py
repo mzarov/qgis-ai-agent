@@ -31,7 +31,7 @@ NOT_COUNTED_NOTE = "Features are not counted for remote sources; use query_layer
 
 
 def enum_name(value: Any) -> str:
-    """The readable name of a Qt or QGIS enum member under Qt5 and Qt6 alike.
+    """The readable name of a Qt or QGIS enum member.
 
     A Qt6 member is an IntEnum: str() gives its number ("2") and repr() a
     dotted path, so only `.name` is the word a model can read.
@@ -491,9 +491,7 @@ def _resolve_layer_reference(layer_name: str, layer_id: str) -> QgsMapLayer:
                 "Use a matching name and id from list_layers."
             )
         return layer
-    if layer_name:
-        return find_layer_by_name(layer_name)
-    raise ValueError("A layer_name or layer_id is required.")
+    return find_layer_by_name(layer_name)
 
 
 def _ambiguous_layer(name: str, matches: list[QgsMapLayer]) -> ValueError:

@@ -2,7 +2,7 @@ import os
 import pathlib
 import unittest
 
-from ai_agent.qgis_tools.registry import get_tools_for_skills
+from ai_agent.qgis_tools.registry import ALL_TOOLS
 from ai_agent.skills.base import parse_skill_markdown
 from ai_agent.skills.registry import SkillRegistry
 
@@ -53,7 +53,7 @@ class RegistryTest(unittest.TestCase):
     def test_declared_tools_match_registry(self):
         for name in self.registry.names():
             declared = self.registry.get(name).tool_names
-            actual = [tool.name for tool in get_tools_for_skills([name])]
+            actual = [tool.name for tool in ALL_TOOLS if tool.skill == name]
             self.assertEqual(declared, actual, f"скилл {name}")
 
     def test_summaries_block_lists_all(self):

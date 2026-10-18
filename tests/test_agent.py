@@ -22,6 +22,7 @@ from ai_agent.core.llm.turns import (
     parse_json_turn,
     parse_native_turn,
 )
+from ai_agent.qgis_tools.base import SAFETY_READ
 from ai_agent.qgis_tools.registry import ALL_TOOLS, get_tool_by_name
 from ai_agent.qgis_tools.web import geocode as geocode_module
 from ai_agent.qgis_tools.web import http as http_module
@@ -94,10 +95,10 @@ class DispatchTest(unittest.TestCase):
 
     def test_no_write_ever_runs_without_confirmation(self):
         for tool in ALL_TOOLS:
-            if not tool.is_read_only:
+            if tool.safety != SAFETY_READ:
                 self.loop._dispatch(call(tool.name))
         for name in self.executor.ran:
-            self.assertTrue(get_tool_by_name(name).is_read_only, name)
+            self.assertEqual(get_tool_by_name(name).safety, SAFETY_READ, name)
 
     def test_all_network_tools_are_queued_and_auto_staged_even_for_a_local_model(self):
         self.loop._overrides = {"url_override": "http://127.0.0.1:11434/v1"}

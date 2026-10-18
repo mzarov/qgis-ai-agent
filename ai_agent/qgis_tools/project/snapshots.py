@@ -102,11 +102,6 @@ def snapshot_exists(path: str) -> bool:
     return path in _LAST and os.path.isfile(path)
 
 
-def drop_last() -> None:
-    if _LAST:
-        drop_snapshot(_LAST[-1])
-
-
 def drop_snapshot(path: str) -> None:
     try:
         _LAST.remove(path)

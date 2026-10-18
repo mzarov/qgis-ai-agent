@@ -159,10 +159,10 @@ def function_names(tokens: list[Token]) -> list[str]:
     ]
 
 
-def short_sql(raw: object, limit: int = SUMMARY_CHARS) -> str:
-    """The SQL on one line for a person to recognise, cut to `limit` characters."""
+def short_sql(raw: object) -> str:
+    """The SQL on one line for a person to recognise, cut to SUMMARY_CHARS characters."""
     text = " ".join(str(raw or "").split())
-    return text if len(text) <= limit else text[: limit - 1].rstrip() + "…"
+    return text if len(text) <= SUMMARY_CHARS else text[: SUMMARY_CHARS - 1].rstrip() + "…"
 
 
 def _quoted(tokens: list[Token], text: str, start: int, kind: str, closing: str, depth: int) -> int:

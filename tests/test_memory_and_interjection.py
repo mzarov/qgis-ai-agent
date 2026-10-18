@@ -7,6 +7,7 @@ from unittest.mock import patch
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.notices import INTERJECTION_HEADER
 from ai_agent.core.agent.prompts import build_system_prompt, render_project_notes
+from ai_agent.qgis_tools.base import SAFETY_READ
 from ai_agent.qgis_tools.project import notes as notes_module
 from ai_agent.qgis_tools.project import remember as remember_module
 from ai_agent.qgis_tools.project.notes import MAX_NOTE_CHARS, MAX_NOTES, NoteStore
@@ -133,7 +134,7 @@ class RememberToolTest(unittest.TestCase):
         self.assertIn("this project only", result["note"])
 
     def test_listing_is_a_read_tool(self):
-        self.assertTrue(ListNotesTool().is_read_only)
+        self.assertEqual(ListNotesTool().safety, SAFETY_READ)
 
     def test_summaries_never_raise(self):
         for tool in (RememberTool(), ListNotesTool(), ForgetTool()):

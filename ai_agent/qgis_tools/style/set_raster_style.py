@@ -14,7 +14,6 @@ from ai_agent.qgis_tools.style.raster import (
     MAX_CLASSES,
     MIN_CLASSES,
     MODE_GRAY,
-    MODE_HILLSHADE,
     MODE_PSEUDOCOLOR,
     MODES,
     apply_no_data,
@@ -175,6 +174,4 @@ def _checked_mode(raw: Any) -> str:
     mode = str(raw or "").strip().lower()
     if mode not in MODES:
         raise ValueError(f"Unknown raster mode '{raw}'. Available: {', '.join(MODES)}.")
-    if mode == MODE_HILLSHADE:
-        return MODE_HILLSHADE
     return mode
