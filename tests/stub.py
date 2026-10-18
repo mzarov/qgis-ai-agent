@@ -7,12 +7,7 @@ def _enum_value(name: str) -> "_Num":
     return _Num(zlib.crc32(name.encode()) & 0xFFFF or 1)
 
 
-class _NumMeta(type):
-    def __getattr__(cls, n):
-        return _enum_value(n)
-
-
-class _Num(int, metaclass=_NumMeta):
+class _Num(int):
     def __new__(cls, v=0):
         return super().__new__(cls, v)
 
@@ -84,13 +79,7 @@ class _Stub(metaclass=_Meta):
     def __mul__(self, other):
         return 0
 
-    def __rmul__(self, other):
-        return 0
-
     def __lt__(self, other):
-        return True
-
-    def __le__(self, other):
         return True
 
     def __gt__(self, other):
@@ -150,7 +139,6 @@ def pyqtSlot(*types, **options):
 
 
 WHITE = 255
-MID_LIGHTNESS = 128
 
 
 class _Colour:
@@ -178,12 +166,6 @@ class _Colour:
     def name(self):
         return "#" + "".join(f"{part:02x}" for part in self._parts)
 
-    def lighter(self, factor=150):
-        return _Colour(*[min(WHITE, part * factor // 100) for part in self._parts])
-
-    def darker(self, factor=200):
-        return _Colour(*[part * 100 // max(1, factor) for part in self._parts])
-
     def isValid(self):
         return self._valid
 
@@ -202,18 +184,6 @@ class _Palette:
 
     def base(self):
         return _Brush(self._colour)
-
-    def window(self):
-        return _Brush(self._colour)
-
-    def text(self):
-        return _Brush(_Colour(0, 0, 0))
-
-    def highlight(self):
-        return _Brush(_Colour(0, 90, 180))
-
-    def __getattr__(self, name):
-        return lambda *a, **k: _Brush(self._colour)
 
 
 class _Label(_Stub):
@@ -303,15 +273,6 @@ class _Feedback(_Stub):
     def pushInfo(self, info):
         pass
 
-    def pushDebugInfo(self, info):
-        pass
-
-    def pushCommandInfo(self, info):
-        pass
-
-    def pushConsoleInfo(self, info):
-        pass
-
 
 class _Project(_Stub):
     _singleton = None
@@ -344,7 +305,7 @@ class _PlainText(_Label):
 
 
 class _Button(_Stub):
-    """A button remembers its text, tooltip and enabled state; a click emits `clicked`."""
+    """A button remembers its text, tooltip and enabled state."""
 
     def __init__(self, *a, **k):
         self._text = ""
@@ -369,10 +330,6 @@ class _Button(_Stub):
 
     def isEnabled(self):
         return self._enabled
-
-    def click(self):
-        if self._enabled:
-            self.clicked.emit()
 
 
 _FAKES = {
@@ -590,18 +547,13 @@ _mod(
         "QLabel",
         "QPushButton",
         "QPlainTextEdit",
-        "QListView",
         "QMenu",
-        "QShortcut",
-        "QAbstractItemView",
-        "QStyledItemDelegate",
         "QAction",
         "QApplication",
         "QDialog",
         "QLineEdit",
         "QComboBox",
         "QCheckBox",
-        "QFormLayout",
         "QMessageBox",
         "QDialogButtonBox",
         "QToolButton",
@@ -626,5 +578,4 @@ _qtcore.pyqtSlot = pyqtSlot
 _mod("qgis.utils", ["iface"])
 _mod("qgis.gui", ["QgsGui", "QgsMapToolEmitPoint", "QgsMapToolExtent"])
 qgis.core = sys.modules["qgis.core"]
-qgis.gui = sys.modules["qgis.gui"]
 qgis.PyQt = pyqt
