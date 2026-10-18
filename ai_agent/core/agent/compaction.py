@@ -44,8 +44,8 @@ class Compactor(QObject):
     finished = pyqtSignal(str, int, int)
     failed = pyqtSignal(str)
 
-    def __init__(self, parent: QObject | None = None):
-        super().__init__(parent)
+    def __init__(self) -> None:
+        super().__init__()
         self._turn = TurnThreadOwner()
 
     @property

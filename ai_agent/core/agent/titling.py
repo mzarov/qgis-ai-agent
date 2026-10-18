@@ -32,8 +32,8 @@ class Titler(QObject):
     # The title, then the request's prompt and completion tokens.
     finished = pyqtSignal(str, int, int)
 
-    def __init__(self, parent: QObject | None = None):
-        super().__init__(parent)
+    def __init__(self) -> None:
+        super().__init__()
         self._turn = TurnThreadOwner()
 
     @property

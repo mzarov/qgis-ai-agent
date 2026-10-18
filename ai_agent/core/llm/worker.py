@@ -15,8 +15,8 @@ class ModelTurnThread(QThread):
     # A TurnFailure: the message as a str, with the kind of failure attached.
     error = pyqtSignal(object)
 
-    def __init__(self, messages, tool_schemas, overrides, timeout=DEFAULT_TIMEOUT, parent=None):
-        super().__init__(parent)
+    def __init__(self, messages, tool_schemas, overrides, timeout=DEFAULT_TIMEOUT):
+        super().__init__()
         self._messages = messages
         self._tool_schemas = tool_schemas
         self._overrides = dict(overrides or {})

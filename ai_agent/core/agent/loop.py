@@ -61,8 +61,8 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
     busy_changed = pyqtSignal(bool)
     aborted = pyqtSignal()
 
-    def __init__(self, parent: QObject | None = None):
-        super().__init__(parent)
+    def __init__(self) -> None:
+        super().__init__()
         self._executor = ToolExecutor()
         self._transcript = Transcript()
         self._history: list[dict[str, str]] = []
