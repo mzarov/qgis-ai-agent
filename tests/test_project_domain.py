@@ -3,7 +3,7 @@ import shutil
 import tempfile
 import unittest
 
-from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE, SAFETY_WRITE
+from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE, SAFETY_READ, SAFETY_WRITE
 from ai_agent.qgis_tools.project import (
     add_layer,
     configure_layer,
@@ -422,7 +422,7 @@ class ZoomToLayerTest(ProjectCase):
         self.tool = zoom_to_layer.ZoomToLayerTool()
 
     def test_zoom_is_read_only(self):
-        self.assertTrue(self.tool.is_read_only)
+        self.assertEqual(self.tool.safety, SAFETY_READ)
 
     def test_missing_layer_is_rejected(self):
         with self.assertRaises(ValueError):

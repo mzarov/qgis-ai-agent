@@ -6,6 +6,7 @@ import unittest
 from unittest import mock
 from urllib.parse import parse_qs
 
+from ai_agent.qgis_tools.base import SAFETY_READ
 from ai_agent.qgis_tools.common.editing import edit_session
 from ai_agent.qgis_tools.osm import download_osm, extent, fetch, load, overpass, run_overpass, selectors, tags
 from ai_agent.qgis_tools.osm.run_overpass import RunOverpassTool
@@ -258,7 +259,7 @@ class ToolTest(unittest.TestCase):
         self.assertTrue(self.tool.summarize_call({}).strip())
 
     def test_it_is_a_write_tool(self):
-        self.assertFalse(self.tool.is_read_only)
+        self.assertNotEqual(self.tool.safety, SAFETY_READ)
 
 
 class CountTest(unittest.TestCase):
@@ -500,7 +501,7 @@ class RunOverpassTest(unittest.TestCase):
             self.tool.prepare(self._params(query="out body; " + "x" * run_overpass.MAX_QUERY_CHARS))
 
     def test_it_is_a_write_tool_so_it_waits_for_the_button(self):
-        self.assertFalse(self.tool.is_read_only)
+        self.assertNotEqual(self.tool.safety, SAFETY_READ)
 
 
 class EditableDownloadTest(unittest.TestCase):

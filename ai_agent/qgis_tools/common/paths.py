@@ -31,10 +31,6 @@ def same_path(left: str, right: str) -> bool:
     return _identity(left) == _identity(right)
 
 
-def requires_overwrite(path: str, exempt_paths: Iterable[str] = ()) -> bool:
-    return requires_any_overwrite(related_output_paths(path), exempt_paths)
-
-
 def requires_any_overwrite(paths: Iterable[str], exempt_paths: Iterable[str] = ()) -> bool:
     exemptions = [related for exempt in exempt_paths for related in related_output_paths(exempt)]
     return any(

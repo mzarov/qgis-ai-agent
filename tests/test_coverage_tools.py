@@ -470,7 +470,7 @@ class SnapshotTest(unittest.TestCase):
                 open(path, "w").close()
             snapshots._LAST.extend([older, newer])
             self.assertEqual(snapshots.last_snapshot(), newer)
-            snapshots.drop_last()
+            snapshots.drop_snapshot(newer)
             self.assertEqual(snapshots.last_snapshot(), older)
 
     def test_undo_is_destructive(self):

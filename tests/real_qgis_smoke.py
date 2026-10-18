@@ -66,7 +66,7 @@ def _run_checks(package_root: pathlib.Path) -> int:
     from ai_agent.qgis_tools.common.layers import find_layer_by_id, find_layer_by_name
     from ai_agent.qgis_tools.common.project_identity import STORAGE_PREFIX, project_identity
     from ai_agent.qgis_tools.project.snapshots import (
-        drop_last,
+        drop_snapshot,
         ensure_project_read_safe,
         snapshot_error,
         take_snapshot,
@@ -101,7 +101,7 @@ def _run_checks(package_root: pathlib.Path) -> int:
     storage_uri_hashed = storage_identity.startswith(STORAGE_PREFIX) and "geopackage" not in storage_identity
     project.clear()
     if snapshot_path:
-        drop_last()
+        drop_snapshot(snapshot_path)
         pathlib.Path(snapshot_path).unlink(missing_ok=True)
     checks = {
         "QGIS 4.0+": Qgis.QGIS_VERSION_INT >= MINIMUM_QGIS_VERSION,

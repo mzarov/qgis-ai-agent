@@ -6,7 +6,7 @@ from unittest import mock
 from qgis.core import QgsVectorLayer
 
 from ai_agent.qgis_tools.common import layers as layers_module
-from ai_agent.qgis_tools.registry import get_tools_for_skills
+from ai_agent.qgis_tools.registry import ALL_TOOLS
 from ai_agent.qgis_tools.tables import join_table as join_module
 from ai_agent.qgis_tools.tables import list_joins as list_module
 from ai_agent.qgis_tools.tables import source as source_module
@@ -287,7 +287,7 @@ class ListAndRemoveJoinsTest(JoinCase):
 class SummariesTest(unittest.TestCase):
     def test_summaries_survive_malformed_arguments(self):
         odd = [{}, {"path": 5, "layer_name": None, "table": ["x"], "x_field": 1, "y_field": {}}]
-        for tool in get_tools_for_skills(["tables"]):
+        for tool in [each for each in ALL_TOOLS if each.skill == "tables"]:
             for params in odd:
                 self.assertTrue(tool.summarize_call(params).strip(), tool.name)
 

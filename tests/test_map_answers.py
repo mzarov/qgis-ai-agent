@@ -5,6 +5,7 @@ from unittest import mock
 
 from qgis.core import QgsVectorLayer
 
+from ai_agent.qgis_tools.base import SAFETY_READ
 from ai_agent.qgis_tools.inspect import select_features as select_module
 from ai_agent.qgis_tools.inspect.select_features import SelectFeaturesTool
 from ai_agent.qgis_tools.project import export_layer as export_module
@@ -52,7 +53,7 @@ class SelectFeaturesTest(unittest.TestCase):
         select_module.compile_expression = self.saved_compile
 
     def test_selection_is_a_read_tool(self):
-        self.assertTrue(self.tool.is_read_only)
+        self.assertEqual(self.tool.safety, SAFETY_READ)
 
     def test_a_missing_filter_is_refused(self):
         with self.assertRaises(ValueError) as caught:

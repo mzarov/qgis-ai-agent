@@ -11,7 +11,6 @@ EGRESS_METADATA = "metadata"
 EGRESS_FEATURE_VALUES = "feature_values"
 EGRESS_IMAGE = "image"
 EGRESS_WEB_CONTENT = "web_content"
-SENSITIVE_EGRESS = frozenset({EGRESS_FEATURE_VALUES, EGRESS_IMAGE})
 
 JSON_SCHEMA_TYPES = {
     "string": "string",
@@ -46,10 +45,6 @@ class BaseTool(ABC):
     returns_image: bool = False
     # detail_call returns code to run (run_python): the confirmation shows it as code, not as prose.
     detail_is_code: bool = False
-
-    @property
-    def is_read_only(self) -> bool:
-        return self.safety == SAFETY_READ
 
     def safety_for(self, params: dict[str, Any]) -> str:
         return self.safety
