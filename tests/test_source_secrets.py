@@ -33,7 +33,10 @@ SOURCES = {
     ),
     "plugin basemap": (_xyz_source(f"{TILES}?api_key=FAKE-PLUGIN-KEY&style=dark"), "raster"),
     "subscription": (xyz(f"{TILES}?subscription-key=FAKE-SUBSCRIPTION-KEY"), "raster"),
-    "userinfo": (xyz("https://alice:FAKE-USERINFO@tiles.example/{z}/{x}/{y}.png"), "raster"),
+    "userinfo": (
+        xyz("https://alice:FAKE-USERINFO@tiles.example/{z}/{x}/{y}.png"),  # pragma: allowlist secret
+        "raster",
+    ),
     "proxied": (xyz(PROXIED) + "&zmax=19", "raster"),
     "header": (xyz(TILES) + "&http-header:x-api-key=FAKE-HEADER-KEY", "raster"),
     "wms": (
@@ -42,7 +45,7 @@ SOURCES = {
         "raster",
     ),
     "postgis": (
-        "dbname='gis' host=db.example user='gis' password='FAKE-PG-PASSWORD' key='gid' "
+        "dbname='gis' host=db.example user='gis' password='FAKE-PG-PASSWORD' key='gid' "  # pragma: allowlist secret
         'table="public"."roads" (geom)',
         "vector",
     ),
