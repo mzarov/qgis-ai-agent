@@ -29,7 +29,7 @@ TEXT_ONLY = tr("This model does not see pictures: the agent checks the map by re
 class ConnectionProbeMixin:
     _probe_thread: ProbeThread | None
     _probe_was_cancelled: bool
-    _close_after_probe: QDialog.DialogCode | None
+    _close_after_probe: "QDialog.DialogCode | None"
     _probe_started: float
     model_edit: Any
     test_btn: Any
