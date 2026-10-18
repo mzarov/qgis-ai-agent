@@ -5,206 +5,47 @@
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![QGIS 4.0+](https://img.shields.io/badge/QGIS-4.0%2B-589632.svg)](https://qgis.org/)
 
-An AI agent inside QGIS 4: it inspects your project and processes data from a
-plain-language request. It works as a loop — looks at the project, calls tools,
-sees the results, decides the next step. Changes are applied only after the user
-confirms them.
+AI Agent is a QGIS 4 plugin that works on your project from plain-language
+requests. It reads the project, calls tools, looks at the results and decides
+the next step. Changes wait in a plan until you press Apply.
 
-**Documentation:** <https://mzarov.github.io/qgis-ai-agent/> ·
-по-русски: <https://mzarov.github.io/qgis-ai-agent/ru/>
+It inspects and styles layers, runs Processing, downloads OpenStreetMap and
+open data, edits attributes, answers with SQL and charts, and builds print
+layouts: nineteen domains, 90 tools.
 
-**What it does** — nineteen domains, 90 tools:
+Documentation: <https://mzarov.github.io/qgis-ai-agent/> (in Russian:
+<https://mzarov.github.io/qgis-ai-agent/ru/>).
 
-| Domain | Example requests |
-| --- | --- |
-| `inspect` | “what layers do I have?”, “what did I select?”, “show me the map” |
-| `project` | “load this file”, “add an OSM basemap”, “load a table from PostGIS” |
-| `style` | “make the rivers blue”, “colour by population”, “label with names” |
-| `processing` | “build a 500 m buffer”, “clip by the district boundary”, “compute NDVI”, “make a model from these steps” |
-| `osm` | “download the cafes in Tver”, “roads except unpaved ones from OSM” |
-| `data` | “find a cloud-free Sentinel-2 image of this area”, “add the regions of Kenya”, “load a DEM here” |
-| `draw` | “put a point at 55.75, 37.62”, “draw a line between these towns” |
-| `edit` | “fix the misspelled name”, “delete the features with no geometry data” |
-| `fields` | “add a virtual field with the area in hectares”, “rename nm to name” |
-| `layout` | “make an A4 map sheet with a legend and export it to PDF” |
-| `python` | the escape hatch: runs a PyQGIS snippet you read and approve first |
-| `web` | “find the EPSG code”, “read this documentation page”, “geocode this place” |
-| `annotations` | “mark this place”, “add a note to the map”, “remove that annotation” |
-| `three_d` | “open a 3D view of this project” |
-| `tables` | “join this CSV to the districts by code”, “make points from this CSV with lon/lat” |
-| `sql` | “how many schools are in each district?”, “a layer of the districts with their school counts” |
-| `charts` | “chart population by district”, “histogram of the parcel areas”, “table of the ten largest towns” |
-| `plugins` | “which plugin can segment this image?”, “install a plugin for isochrones”, “start the qgis2web export” |
-| `quality` | “check my data for errors”, “are there broken geometries in the parcels?” |
+## Install
 
-The agent can **see**: on a vision model it renders the map or the layout and
-judges the result by eye. After you press Apply it runs a **verification pass**
-— re-reads the project, looks at the picture and reports whether the changes
-really landed, queueing fixes when they did not.
+QGIS 4.0 or newer is required. Install **AI Agent** from **Plugins → Manage
+and Install Plugins**, or download `ai_agent-<version>.zip` from the
+[latest release](https://github.com/mzarov/qgis-ai-agent/releases/latest) and
+use **Install from ZIP**. The plugin needs no extra Python packages.
 
-## Installation
+## Connect a model
 
-Requires **QGIS 4.0+**. For a published version, download the
-`ai_agent-<version>.zip` asset from the
-[latest GitHub Release](https://github.com/mzarov/qgis-ai-agent/releases/latest).
-Do not use GitHub's auto-generated “Source code” archives. Install the plugin
-archive through **Plugins → Manage and Install Plugins → Install from ZIP**.
+Click the settings button on the panel. Pick a provider or enter the address
+of any OpenAI-compatible endpoint; the Anthropic API works too. Enter the
+model name and the API key. Local servers such as Ollama and LM Studio need no
+key. Keys are stored in the QGIS authentication database.
 
-To build the same deterministic archive from a checkout:
-
-```bash
-python3 tools/build_plugin.py
-```
-
-The archive appears in `dist/`. The plugin has no external Python dependencies —
-install it and it runs. The development install is in
-[docs/SETUP.md](docs/SETUP.md).
-
-## Configuration
-
-The gear icon on the plugin panel. Picking a provider fills in the address and
-the API format for OpenAI, OpenRouter, Anthropic, Google Gemini and the local
-Ollama / LM Studio; any other OpenAI-compatible service (DeepSeek, Groq,
-Mistral…) is entered as a custom address (no key needed for
-localhost). The key is stored encrypted in the QGIS authentication database, not in the config.
-
-The model must support function calling; for endpoints without it there is a
-text JSON protocol that switches on by itself.
-
-## Data and privacy
-
-“Read-only” means a tool does not mutate QGIS; it does not mean its result stays
-on the device. The first agent run against a remote endpoint requires explicit,
-per-endpoint consent. The separate **Test connection** action sends one short
-diagnostic request when you click it, independently of agent-run consent.
-Everything the agent reads goes to the configured model: the prompt, the conversation,
-attached pictures, project notes, layer and field metadata, and whatever tools read — attribute
-values, extents, layer filters and sources, style categories, Processing and
-Python results, rendered map or layout images. If you install an AI agent, expect
-your project data to reach the model; use a local model server for projects that
-must not leave your computer. Conversation messages and project notes are saved as plain JSON in
-the active QGIS profile. When an applied run produces an audit journal, it is
-saved as a plaintext Markdown file in that profile's `ai_agent_runs` directory;
-the UI reports the exact path. The directory and files use owner-only
-permissions where the platform supports them, but they are not encrypted and
-remain until you delete them. Treat both stores as sensitive.
-
-The three optional web tools have a separate boundary: every search, geocode or
-page fetch waits for per-call confirmation, including when the model endpoint is
-local. Search terms go to DuckDuckGo, with Wikipedia as a fallback; geocoding
-goes to the Photon demo or custom Nominatim service selected in Settings; and
-`fetch_url` contacts the public HTTPS host you approve. The public OSMF
-Nominatim instance is intentionally not offered. Geocoding starts disabled;
-Photon permits reasonable demo use but may throttle and has no uptime guarantee. Private
-hosts and URLs containing credentials are rejected. Web results are untrusted
-data, may be forwarded to the configured model as tool results and are not
-cached on disk.
-
-Review [the complete data boundary](docs/privacy.md) before connecting a
-sensitive project to a remote provider. Local endpoints are allowed without the
-remote-consent prompt, but a local server can
-still store or forward data, so review its storage and logging configuration.
-
-## How it works
-
-```
-user → CoreOrchestrator → AgentLoop (main thread)
-                             │  HTTP in background (ModelTurnThread)
-                             ▼
-                    the model calls tools
-        local read — immediately │ network read/write — into a batch
-                             ▼
-                 plan card → the Apply button
-```
-
-Three ideas everything rests on:
-
-- **Safety classes instead of “plan → confirm”.** A local reading tool runs
-  immediately; a network read or writing tool is collected into a batch and
-  waits for the button.
-- **Progressive disclosure.** The prompt permanently holds one line per domain;
-  the rule bodies and tool schemas are loaded by the `load_skill` meta-tool.
-- **Vendor neutrality.** Any OpenAI-compatible API plus the Anthropic dialect;
-  no provider SDKs.
-
-The full picture: [docs/core_architecture.md](docs/core_architecture.md).
-
-## Layout
-
-```
-ai_agent/                 the whole plugin — only this folder reaches QGIS
-  __init__.py, metadata.txt    the QGIS entry point
-  plugin.py                    composition root: wires QGIS, core and ui
-  core/                        loop, orchestration, LLM transport, state
-  qgis_tools/                  tools by domain — all the PyQGIS logic
-  skills/                      domain knowledge (SKILL.md)
-  ui/                          Qt only: rendering and signals
-tests/                         unittest, runs without QGIS via tests/stub.py
-tools/build_plugin.py          builds the installable zip
-docs/                          setup, architecture, manual checklist
-```
-
-Dependency direction: `ui → core → qgis_tools → skills`; reverse imports are
-forbidden and checked by `tests/test_layering.py`.
+Everything the agent reads goes to the model you configure; see
+[Data and privacy](https://mzarov.github.io/qgis-ai-agent/privacy/).
 
 ## Development
 
 ```bash
-python3 -m unittest discover -s tests -t .
-```
-
-Formatting and imports are owned by ruff; set up the pre-commit hook once and it
-fixes them on every commit:
-
-```bash
 poetry install
 poetry run pre-commit install
+python3 -m unittest discover -s tests -t .
+poetry run ruff check . && poetry run ruff format --check . && poetry run mypy
+python3 tools/build_plugin.py
 ```
 
-Before a PR, run the same scanners the QGIS plugin repository runs — CI runs
-them too:
+The rules for the code are in [CLAUDE.md](CLAUDE.md). See
+[CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
 
-```bash
-poetry run bandit -r ai_agent -q
-git ls-files -z | xargs -0 poetry run detect-secrets-hook --baseline .secrets.baseline
-poetry run ruff check .
-poetry run ruff format --check .
-poetry run mypy
-```
+## License
 
-The unit suite itself has zero dependencies: stdlib only. On plain Python,
-`tests/stub.py` supplies QGIS stand-ins. CI also runs installed-package smoke
-checks and real-QGIS workflows against live layers and Qt lifecycle events.
-The manual smoke checklist covers interactive checks beyond those scenarios.
-CI attaches XML and HTML branch-coverage reports for the fast suite; real-QGIS
-integration coverage is separate and is not included in those percentages.
-Poetry manages locked development tools in dependency-only mode; the plugin ZIP
-still has no external Python dependencies.
-
-Code rules live in [CLAUDE.md](CLAUDE.md) and in each package's `CLAUDE.md`.
-Use cohesive modules, typed contracts and absolute imports. Concise docstrings
-and comments explain contracts and non-obvious reasons. Ruff checks syntax and
-undefined names; mypy strictly checks the current boundary listed in
-`pyproject.toml`, with broader application typing added incrementally.
-
-Contributions follow [CONTRIBUTING.md](CONTRIBUTING.md), the
-[Code of Conduct](CODE_OF_CONDUCT.md) and the private reporting process in
-[SECURITY.md](SECURITY.md).
-
-### Adding a domain
-
-1. `ai_agent/qgis_tools/<domain>/` — tool classes
-   (`skill = "<domain>"`, `safety = read|write`)
-2. `ai_agent/skills/<domain>/SKILL.md` — the domain rules
-3. one line in `qgis_tools/registry.py`
-
-The loop, the orchestrator and the prompt stay untouched. A new tool means a new
-test against fake PyQGIS objects, as in `tests/test_style_write.py`.
-
-### Before a PR
-
-- [ ] `python3 -m unittest discover -s tests -t .` — green
-- [ ] `python3 tools/build_plugin.py` — builds
-- [ ] a new tool or skill is covered by a test
-- [ ] whatever tests cannot reach is added to
-      [docs/smoke_checklist.md](docs/smoke_checklist.md)
+GPL-3.0. See [LICENSE](LICENSE).
