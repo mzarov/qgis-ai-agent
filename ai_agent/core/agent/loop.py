@@ -45,7 +45,6 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
     confirm_needed = pyqtSignal(object, str, bool)
     question_asked = pyqtSignal(str)
     preamble = pyqtSignal(str)
-    usage_changed = pyqtSignal(int)
     # Each answered request: prompt tokens (estimated when the server reports none), completion
     # tokens, and whether it opened the run, so its prompt is the conversation's own size.
     turn_counted = pyqtSignal(int, int, bool)
@@ -249,10 +248,6 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         return True
 
     @property
-    def tokens_spent(self) -> int:
-        return self._budget.spent
-
-    @property
     def usage(self) -> dict[str, int]:
         """Prompt tokens, completion tokens and answered requests of the current or last run."""
         return self._budget.snapshot()
@@ -442,8 +437,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
             self.journal_written.emit(path)
 
     def _track_usage(self, turn: ModelTurn) -> None:
-        if self._budget.add(turn):
-            self.usage_changed.emit(self._budget.spent)
+        self._budget.add(turn)
         prompt = max(0, int(turn.input_tokens)) or self._request_estimate
         self._journal.answered(prompt, max(0, int(turn.output_tokens)))
         self.turn_counted.emit(prompt, max(0, int(turn.output_tokens)), self._budget.requests == 1)

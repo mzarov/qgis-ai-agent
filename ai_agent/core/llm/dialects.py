@@ -5,7 +5,6 @@ OPENAI = "openai"
 ANTHROPIC = "anthropic"
 AUTO = "auto"
 
-DIALECTS = (AUTO, OPENAI, ANTHROPIC)
 ANTHROPIC_HOSTS = ("api.anthropic.com",)
 ANTHROPIC_VERSION = "2023-06-01"
 ANTHROPIC_PATH = "/messages"

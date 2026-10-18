@@ -213,18 +213,3 @@ class StreamedCompletion:
         if self._usage:
             built["usage"] = self._usage
         return built
-
-
-def consume(
-    chunks: list[bytes],
-    on_text: Callable[[str], None] | None = None,
-    on_thinking: Callable[[str], None] | None = None,
-) -> dict[str, Any]:
-    accumulator = SseAccumulator()
-    completion = StreamedCompletion(on_text, on_thinking)
-    for chunk in chunks:
-        for event in accumulator.feed(chunk):
-            completion.take(event)
-    for event in accumulator.flush():
-        completion.take(event)
-    return completion.response()

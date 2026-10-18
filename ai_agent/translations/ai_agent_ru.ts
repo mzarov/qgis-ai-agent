@@ -3368,11 +3368,6 @@
         <translation>URL API должен использовать http или https.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="345"/>
-        <source>The API returned an empty answer.</source>
-        <translation>API вернул пустой ответ.</translation>
-    </message>
-    <message>
         <location filename="ai_agent/core/llm/client.py" line="296"/>
         <source>The API returned non-JSON: {0}</source>
         <translation>API вернул не JSON: {0}</translation>
@@ -3643,8 +3638,7 @@
         <translation>Эти шаги изменяют или удаляют данные, и их нельзя отменить:&#10;&#10;{0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/orchestrator/rewind.py" line="34"/>
-        <location filename="ai_agent/core/orchestrator/rewind.py" line="150"/>
+        <location filename="ai_agent/core/orchestrator/rewind.py" line="149"/>
         <source>These temporary layers came back empty: {0}.</source>
         <translation>Эти временные слои вернулись пустыми: {0}.</translation>
     </message>

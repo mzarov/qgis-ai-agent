@@ -9,7 +9,7 @@ from ai_agent.core.agent.notices import APPLY_DECLINED_MESSAGE, BUDGET_REACHED_M
 from ai_agent.core.agent.prompts import (
     APPLY_NOW_TOOL,
     UPDATE_PLAN_TOOL,
-    build_system_prompt,
+    build_system_parts,
     render_task_plan,
 )
 from ai_agent.core.agent.request import build_tool_schemas_for
@@ -110,7 +110,7 @@ class TaskPlanTest(unittest.TestCase):
         self.assertEqual(render_task_plan([], 0), "")
 
     def test_the_plan_is_pinned_into_the_system_prompt(self):
-        prompt = build_system_prompt("", [], task_plan=render_task_plan(["a", "b"], 1))
+        prompt = "\n\n".join(build_system_parts("", [], task_plan=render_task_plan(["a", "b"], 1)))
         self.assertIn("[x] a", prompt)
 
     def test_the_meta_tools_are_always_offered(self):
@@ -244,20 +244,6 @@ class BudgetTest(unittest.TestCase):
     def setUp(self):
         self.loop = AgentLoop()
 
-    def test_usage_accumulates_and_is_reported(self):
-        seen = []
-        self.loop.usage_changed.connect(lambda spent: seen.append(spent))
-        self.loop._track_usage(ModelTurn(input_tokens=100, output_tokens=20))
-        self.loop._track_usage(ModelTurn(input_tokens=30, output_tokens=0))
-        self.assertEqual(seen, [120, 150])
-        self.assertEqual(self.loop.tokens_spent, 150)
-
-    def test_a_turn_without_usage_does_not_report(self):
-        seen = []
-        self.loop.usage_changed.connect(lambda spent: seen.append(spent))
-        self.loop._track_usage(ModelTurn())
-        self.assertEqual(seen, [])
-
     def test_usage_keeps_prompt_completion_and_requests_apart(self):
         self.loop._track_usage(ModelTurn(input_tokens=100, output_tokens=20))
         self.loop._track_usage(ModelTurn())
@@ -332,7 +318,9 @@ class QueuedStepsInPromptTest(unittest.TestCase):
         self.assertIn("- Крашу слой", rendered)
 
     def test_they_are_pinned_into_the_system_prompt(self):
-        prompt = prompts.build_system_prompt("", [], queued_steps=prompts.render_queued_steps(["Скачиваю кафе"]))
+        prompt = "\n\n".join(
+            prompts.build_system_parts("", [], queued_steps=prompts.render_queued_steps(["Скачиваю кафе"]))
+        )
         self.assertIn("Скачиваю кафе", prompt)
 
     def test_the_prompt_warns_that_context_lags_behind_the_queue(self):

@@ -11,7 +11,7 @@ from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.common.layers import pin_layer_references, validate_public_layer_references
 from ai_agent.qgis_tools.common.project_identity import project_identity
-from ai_agent.qgis_tools.registry import prepare_tool_call, summarize_tool_call
+from ai_agent.qgis_tools.registry import prepare_tool_call
 
 UNDO_TOOL = "undo_last_apply"
 
@@ -88,9 +88,6 @@ class WriteBatch:
         call it made, in the language of the schemas, to avoid queueing it twice.
         """
         return [_model_line(call) for call in self._calls]
-
-    def pending_summaries(self) -> list[str]:
-        return [summarize_tool_call(call.name, call.arguments) for call in self._calls]
 
     def apply(
         self,

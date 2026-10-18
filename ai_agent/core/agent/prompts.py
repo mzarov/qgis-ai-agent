@@ -391,22 +391,6 @@ def build_system_parts(
     return _joined(static), (LIVE_STATE_HEADER + "\n" + state) if state else ""
 
 
-def build_system_prompt(
-    project_context: str,
-    loaded_skills: list[str],
-    json_protocol: bool = False,
-    locale: str = "en",
-    task_plan: str = "",
-    project_notes: str = "",
-    queued_steps: str = "",
-    invoked_skills: list[str] | tuple[str, ...] = (),
-) -> str:
-    static, live = build_system_parts(
-        project_context, loaded_skills, json_protocol, locale, task_plan, project_notes, queued_steps, invoked_skills
-    )
-    return _joined([static, live])
-
-
 def _joined(parts: list[str]) -> str:
     return "\n\n".join(part for part in parts if part)
 

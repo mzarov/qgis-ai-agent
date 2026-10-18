@@ -5,9 +5,9 @@ from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.transcript import Transcript
 from ai_agent.core.llm import anthropic, turns
 from ai_agent.core.llm.reasoning import wire_messages
-from ai_agent.core.llm.stream import consume
 from ai_agent.core.llm.thinking import ThinkSplitter, split_thinking
 from ai_agent.core.llm.turns import PROTOCOL_JSON, ModelTurn
+from tests.test_streaming import consume
 
 
 def event(payload: dict) -> bytes:

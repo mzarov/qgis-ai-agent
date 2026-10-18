@@ -336,11 +336,3 @@ def post_chat_completion(
         verify_override,
         overrides.get("feedback_override"),
     )
-
-
-def chat(messages: list[dict[str, Any]], timeout: int = 60, **overrides: Any) -> str:
-    data = post_chat_completion(messages, timeout=timeout, **overrides)
-    choices = data.get("choices") or []
-    if not choices:
-        raise ValueError(tr("The API returned an empty answer."))
-    return ((choices[0].get("message") or {}).get("content") or "").strip()

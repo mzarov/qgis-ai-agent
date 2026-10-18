@@ -20,7 +20,6 @@ GEOCODER_DISABLED = geocoder.GEOCODER_DISABLED
 GEOCODER_PHOTON = geocoder.GEOCODER_PHOTON
 GEOCODER_NOMINATIM = geocoder.GEOCODER_NOMINATIM
 GEOCODER_PHOTON_URL = geocoder.GEOCODER_PHOTON_URL
-DEFAULT_GEOCODER_PROVIDER = geocoder.DEFAULT_GEOCODER_PROVIDER
 
 FALSE_WORDS = ("false", "0", "no", "off")
 TRUE_WORDS = ("true", "1", "yes", "on")
@@ -217,10 +216,6 @@ def get_custom_nominatim_url() -> str:
 
 def set_custom_nominatim_url(value: str | None) -> None:
     geocoder.set_custom_url(value)
-
-
-def get_geocoder_url() -> str:
-    return geocoder.get_url()
 
 
 # How the agent works
