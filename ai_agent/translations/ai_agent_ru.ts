@@ -16,7 +16,7 @@
         <translation>&#10;&#10;Точный код, который будет выполнен:&#10;&#10;{0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/add_layer.py" line="92"/>
+        <location filename="ai_agent/qgis_tools/project/add_layer.py" line="91"/>
         <source> into group '{0}'</source>
         <translation> в группу «{0}»</translation>
     </message>
@@ -209,7 +209,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/qgis_tools/web/search_web.py" line="62"/>
+        <location filename="ai_agent/qgis_tools/web/search_web.py" line="61"/>
         <source>%n result(s)</source>
         <translation>
             <numerusform>%n результат</numerusform>
@@ -237,7 +237,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/qgis_tools/data/search_imagery.py" line="81"/>
+        <location filename="ai_agent/qgis_tools/data/search_imagery.py" line="80"/>
         <source>%n scene(s)</source>
         <translation>
             <numerusform>%n сцена</numerusform>
@@ -506,7 +506,7 @@
         <translation>Добавляю слой «{0}» из SQL: {1}</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/project/add_layer.py" line="93"/>
+        <location filename="ai_agent/qgis_tools/project/add_layer.py" line="92"/>
         <source>Adding layer '{0}'{1}.</source>
         <translation>Добавляю слой «{0}»{1}.</translation>
     </message>
@@ -2222,7 +2222,7 @@
         <translation>Плагин не найден.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/data/search_imagery.py" line="80"/>
+        <location filename="ai_agent/qgis_tools/data/search_imagery.py" line="79"/>
         <source>No scenes</source>
         <translation>Сцен нет</translation>
     </message>
@@ -3053,7 +3053,7 @@
         <translation>Поиск коннекторов</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/web/search_web.py" line="52"/>
+        <location filename="ai_agent/qgis_tools/web/search_web.py" line="51"/>
         <source>Searching DuckDuckGo/Wikipedia: {0}.</source>
         <translation>Ищу в DuckDuckGo/Wikipedia: {0}.</translation>
     </message>
@@ -3073,7 +3073,7 @@
         <translation>Ищу в репозитории плагинов QGIS: «{0}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/data/search_imagery.py" line="75"/>
+        <location filename="ai_agent/qgis_tools/data/search_imagery.py" line="74"/>
         <source>Searching {0} scenes on the Planetary Computer.</source>
         <translation>Ищу снимки {0} в Planetary Computer.</translation>
     </message>
@@ -3294,7 +3294,7 @@
         <translation>Оформляю слой «{0}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/style/set_raster_style.py" line="128"/>
+        <location filename="ai_agent/qgis_tools/style/set_raster_style.py" line="127"/>
         <source>Styling raster '{0}': {1}.</source>
         <translation>Оформляю растр «{0}»: {1}.</translation>
     </message>
@@ -4225,12 +4225,12 @@
         <translation>{0} до авто-сжатия</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/data/search_imagery.py" line="85"/>
+        <location filename="ai_agent/qgis_tools/data/search_imagery.py" line="84"/>
         <source>{0} · best {1}</source>
         <translation>{0} · лучшая {1}</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/data/search_imagery.py" line="84"/>
+        <location filename="ai_agent/qgis_tools/data/search_imagery.py" line="83"/>
         <source>{0} · best {1}, {2}% cloud</source>
         <translation>{0} · лучшая {1}, облачность {2}%</translation>
     </message>
