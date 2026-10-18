@@ -21,7 +21,7 @@
         <translation> в группу «{0}»</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="92"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="91"/>
         <source> s</source>
         <translation> с</translation>
     </message>
@@ -58,7 +58,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/settings_advanced.py" line="295"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="294"/>
         <source>%n conversation(s)</source>
         <translation>
             <numerusform>%n разговор</numerusform>
@@ -292,7 +292,7 @@
         <translation>3 мин</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="60"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="59"/>
         <source>30 days</source>
         <translation>30 дней</translation>
     </message>
@@ -302,7 +302,7 @@
         <translation>5 мин</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="60"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="59"/>
         <source>7 days</source>
         <translation>7 дней</translation>
     </message>
@@ -312,7 +312,7 @@
         <translation>Трёхмерный вид карты и рельефа</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="62"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="61"/>
         <source>A Markdown file with the steps and calls after every Apply.</source>
         <translation>Markdown-файл с шагами и вызовами после каждого «Применить».</translation>
     </message>
@@ -347,7 +347,7 @@
         <translation>Публичный сервер</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="87"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="86"/>
         <source>A run stops after this many tokens.</source>
         <translation>Запуск остановится после стольких токенов.</translation>
     </message>
@@ -367,12 +367,12 @@
         <translation>Топографическая подложка по данным OpenStreetMap и рельефа: горизонтали, отмывка, тропы и хижины. Хороша для туристических и полевых карт.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="115"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="114"/>
         <source>API format</source>
         <translation>Формат API</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="219"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="218"/>
         <source>API key</source>
         <translation>Ключ API</translation>
     </message>
@@ -556,7 +556,7 @@
         <translation>Административные границы любой страны</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="81"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="80"/>
         <location filename="ai_agent/ui/settings_layout.py" line="50"/>
         <source>Advanced</source>
         <translation>Дополнительно</translation>
@@ -592,7 +592,7 @@
         <translation>Все изменения сохранены</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="60"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="59"/>
         <source>Always</source>
         <translation>Всегда</translation>
     </message>
@@ -617,12 +617,12 @@
         <translation>Отвечать на вопросы за меня через</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="109"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="108"/>
         <source>Anthropic only. 0 turns it off.</source>
         <translation>Только Anthropic. 0 — выключено.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="110"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="109"/>
         <source>Anthropic only: 0 disables extended thinking. For Sonnet 5, any positive value enables adaptive thinking; older models require at least 1024 tokens and use the value as their reasoning budget.</source>
         <translation>Только Anthropic: 0 отключает расширенное рассуждение. Для Sonnet 5 любое положительное значение включает адаптивное рассуждение; более старым моделям требуется не менее 1024 токенов, а заданное значение используется как бюджет рассуждения.</translation>
     </message>
@@ -736,7 +736,7 @@
         <translation>Спросите о своей карте</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="103"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="102"/>
         <source>Asks the model to think before it answers, in the parameter its provider expects. A server that rejects it is skipped from then on; a connection test, or saving the switch off and then on, asks it again.</source>
         <translation>Просит модель подумать перед ответом — тем параметром, который ждёт её провайдер. Сервер, который его отклонил, дальше не спрашивается; проверка соединения или сохранение переключателя выключенным, а затем включённым, спросит снова.</translation>
     </message>
@@ -771,20 +771,20 @@
         <translation>Автор: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="118"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="117"/>
         <source>Authorisation</source>
         <translation>Авторизация</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/composer_parts.py" line="28"/>
         <location filename="ai_agent/ui/personalisation_settings.py" line="72"/>
-        <location filename="ai_agent/ui/settings_advanced.py" line="96"/>
-        <location filename="ai_agent/ui/settings_advanced.py" line="117"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="95"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="116"/>
         <source>Auto</source>
         <translation>Авто</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="116"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="115"/>
         <source>Auto picks it from the address.</source>
         <translation>«Авто» определяет его по адресу.</translation>
     </message>
@@ -799,7 +799,7 @@
         <translation>Средне</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="119"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="118"/>
         <source>Bearer suits almost everyone.</source>
         <translation>Bearer подходит почти всем.</translation>
     </message>
@@ -853,7 +853,7 @@
         <location filename="ai_agent/ui/confirmations.py" line="57"/>
         <location filename="ai_agent/ui/confirmations.py" line="119"/>
         <location filename="ai_agent/ui/plan.py" line="166"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="239"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="238"/>
         <source>Cancel</source>
         <translation>Отменить</translation>
     </message>
@@ -932,7 +932,7 @@
         <translation>Графики и таблицы прямо в чате: гистограммы, столбцы, линии</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="84"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="83"/>
         <source>Check the result after Apply</source>
         <translation>Проверять результат после применения</translation>
     </message>
@@ -1081,7 +1081,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/failure_card.py" line="28"/>
-        <location filename="ai_agent/ui/settings_advanced.py" line="54"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="53"/>
         <location filename="ai_agent/ui/settings_dialog.py" line="66"/>
         <location filename="ai_agent/ui/settings_layout.py" line="46"/>
         <source>Connection</source>
@@ -1100,7 +1100,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/context_meter.py" line="25"/>
-        <location filename="ai_agent/ui/settings_advanced.py" line="94"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="93"/>
         <source>Context window</source>
         <translation>Контекстное окно</translation>
     </message>
@@ -1231,7 +1231,7 @@
         <translation>Проверка данных: битая геометрия, дубликаты, пустые поля, СК</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="52"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="51"/>
         <source>Data goes to the provider</source>
         <translation>Данные уходят провайдеру</translation>
     </message>
@@ -1241,7 +1241,7 @@
         <translation>Источники данных, к которым агент обращается сам. Выключенный коннектор агенту не виден.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="50"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="49"/>
         <source>Data stays on this computer</source>
         <translation>Данные не покидают компьютер</translation>
     </message>
@@ -1257,12 +1257,12 @@
         <translation>Удалить</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="79"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="78"/>
         <source>Delete every saved conversation of every project, and every run journal? This cannot be undone.</source>
         <translation>Удалить все сохранённые разговоры всех проектов и все журналы прогонов? Отменить это нельзя.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="75"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="74"/>
         <source>Delete history and journals</source>
         <translation>Удалить историю и журналы</translation>
     </message>
@@ -1272,7 +1272,7 @@
         <translation>Удалить разговор?</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="78"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="77"/>
         <source>Delete…</source>
         <translation>Удалить…</translation>
     </message>
@@ -1392,7 +1392,7 @@
         <translation>Нидерландский</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="69"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="68"/>
         <source>Each applied run leaves an unencrypted Markdown file in the QGIS profile with the request, the tool names and the outcome. Off by default; the files stay until you delete them.</source>
         <translation>Каждый применённый прогон оставляет незашифрованный Markdown-файл в профиле QGIS с запросом, именами инструментов и итогом. По умолчанию выключено; файлы остаются, пока вы их не удалите.</translation>
     </message>
@@ -1422,7 +1422,7 @@
         <translation>Правки, записанные в источники данных, не отменяются.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="95"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="94"/>
         <source>Empty finds it on its own.</source>
         <translation>Пустое поле — определится само.</translation>
     </message>
@@ -1447,12 +1447,12 @@
         <translation>Каждый шаг агента — отдельный запрос, который заново отправляет весь контекст, поэтому разговор тратит во много раз больше своего окна.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="89"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="88"/>
         <source>Every tool call is one step.</source>
         <translation>Каждый вызов инструмента — один шаг.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="49"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="48"/>
         <source>Everything the agent reads goes to the model you chose. Here: where it goes and what stays on disk.</source>
         <translation>Всё, что агент читает, уходит выбранной модели. Здесь — куда именно и что остаётся на диске.</translation>
     </message>
@@ -1472,12 +1472,12 @@
         <translation>Экспортирую макет «{0}» в {1}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="108"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="107"/>
         <source>Extended thinking budget</source>
         <translation>Бюджет расширенного рассуждения</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="120"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="119"/>
         <source>Extra headers</source>
         <translation>Дополнительные заголовки</translation>
     </message>
@@ -1567,7 +1567,7 @@
         <translation>Открепить</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="73"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="72"/>
         <source>Folder</source>
         <translation>Папка</translation>
     </message>
@@ -1658,12 +1658,12 @@
         <translation>Строю градации «{0}» по «{1}», классов: {2}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="58"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="57"/>
         <source>History and journals</source>
         <translation>История и журналы</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="80"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="79"/>
         <source>History and journals deleted.</source>
         <translation>История и журналы удалены.</translation>
     </message>
@@ -1683,7 +1683,7 @@
         <translation>Как это работает</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="97"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="96"/>
         <source>How many tokens the model reads at once. Left empty, the plugin asks the server at the connection test and otherwise guesses from the model's name. The conversation is compacted at 90 % of it.</source>
         <translation>Сколько токенов модель читает за раз. Если поле пустое, плагин спросит сервер при проверке подключения, а иначе угадает по имени модели. Разговор сжимается на 90 % окна.</translation>
     </message>
@@ -1708,7 +1708,7 @@
         <translation>Как агент говорит с вами и что показывает в разговоре. Действует во всех проектах.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="83"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="82"/>
         <source>How the agent works</source>
         <translation>Как работает агент</translation>
     </message>
@@ -1788,7 +1788,7 @@
         <translation>Присоединяю {0} к «{1}» по {2} = {3}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="59"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="58"/>
         <source>Keep conversations</source>
         <translation>Хранить разговоры</translation>
     </message>
@@ -1875,7 +1875,7 @@
         <translation>Светлая или тёмная независимо от темы QGIS.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="82"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="81"/>
         <source>Limits and fine tuning. The defaults suit most people.</source>
         <translation>Пределы и тонкая настройка. Значения по умолчанию подходят большинству.</translation>
     </message>
@@ -2039,8 +2039,8 @@
         <translation>Режим</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="93"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="220"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="92"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="219"/>
         <location filename="ai_agent/ui/settings_layout.py" line="16"/>
         <source>Model</source>
         <translation>Модель</translation>
@@ -2121,7 +2121,7 @@
         <translation>Нидерланды: аэрофото, базовая карта, муниципалитеты</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="55"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="54"/>
         <source>Network</source>
         <translation>Соединение</translation>
     </message>
@@ -2192,7 +2192,7 @@
         <translation>Без ключа, для редких запросов; прощает опечатки</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="130"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="129"/>
         <source>No limit</source>
         <translation>Без лимита</translation>
     </message>
@@ -2279,7 +2279,7 @@
         <translation>Ничего не найдено</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="77"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="76"/>
         <source>Nothing is kept yet.</source>
         <translation>Пока ничего не сохранено.</translation>
     </message>
@@ -2299,12 +2299,12 @@
         <translation>Часто</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="65"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="64"/>
         <source>Once a day: how many runs and applies, which tools, skills and errors, the versions. Never what you wrote, the answers, your data or places. The totals are public.</source>
         <translation>Раз в день: сколько запусков и применений, какие инструменты, навыки и ошибки, версии. Никогда — то, что вы написали, ответы, ваши данные или места. Итоги публичны.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="121"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="120"/>
         <source>One per line, Name: value. Keys go in the API key field.</source>
         <translation>По одному на строке, «Имя: значение». Ключи — в поле «Ключ API».</translation>
     </message>
@@ -2314,7 +2314,7 @@
         <translation>Один шаг до начала</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="74"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="73"/>
         <location filename="ai_agent/ui/welcome.py" line="38"/>
         <source>Open</source>
         <translation>Открыть</translation>
@@ -2350,7 +2350,7 @@
         <translation>Открытая, своя у каждой страны</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="102"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="101"/>
         <source>OpenAI-compatible APIs. Slower, more tokens.</source>
         <translation>OpenAI-совместимые API. Медленнее, больше токенов.</translation>
     </message>
@@ -2521,7 +2521,7 @@
         <translation>Печатные макеты: карта, легенда, масштаб; экспорт в PDF и PNG</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="48"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="47"/>
         <location filename="ai_agent/ui/settings_layout.py" line="47"/>
         <source>Privacy</source>
         <translation>Приватность</translation>
@@ -2537,13 +2537,13 @@
         <translation>Предлагает план, ничего не меняет</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="183"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="182"/>
         <source>Provider</source>
         <translation>Провайдер</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="213"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="335"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="212"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="334"/>
         <source>Provider key</source>
         <translation>Ключ провайдера</translation>
     </message>
@@ -2608,7 +2608,7 @@
         <translation>Вопросы</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="91"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="90"/>
         <source>Raise it for long Processing algorithms.</source>
         <translation>Для долгих алгоритмов Processing увеличьте.</translation>
     </message>
@@ -2758,7 +2758,7 @@
         <translation>Читаю {0}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="101"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="100"/>
         <source>Reasoning</source>
         <translation>Рассуждение</translation>
     </message>
@@ -2788,7 +2788,7 @@
         <translation>Убрать</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="215"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="214"/>
         <source>Remove key</source>
         <translation>Удалить ключ</translation>
     </message>
@@ -2863,12 +2863,12 @@
         <translation>Запрос не отправлен.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="123"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="122"/>
         <source>Reset agent settings</source>
         <translation>Сбросить настройки агента</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="125"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="124"/>
         <source>Reset…</source>
         <translation>Сбросить…</translation>
     </message>
@@ -2888,7 +2888,7 @@
         <translation>Повторяю запрос… ({0}/{1})</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="126"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="125"/>
         <source>Return limits, modes, connectors, skills, geocoding and personalisation choices to their defaults? The connection, keys, your own texts and skills stay.</source>
         <translation>Вернуть пределы, режимы, коннекторы, навыки, геокодирование и выбор в персонализации к значениям по умолчанию? Подключение, ключи, ваши тексты и навыки сохранятся.</translation>
     </message>
@@ -2918,7 +2918,7 @@
         <translation>Выполнить автоматически</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="61"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="60"/>
         <source>Run journal</source>
         <translation>Журнал прогона</translation>
     </message>
@@ -3008,7 +3008,7 @@
         <translation>Спутники и снимки</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="243"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="242"/>
         <source>Save</source>
         <translation>Сохранить</translation>
     </message>
@@ -3104,7 +3104,7 @@
     </message>
     <message>
         <location filename="ai_agent/ui/geocoder_settings.py" line="31"/>
-        <location filename="ai_agent/ui/settings_dialog.py" line="225"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="224"/>
         <source>Server address</source>
         <translation>Адрес сервера</translation>
     </message>
@@ -3144,7 +3144,7 @@
         <translation>Настройки — AI Agent</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="64"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="63"/>
         <source>Share anonymous usage counts</source>
         <translation>Делиться анонимными счётчиками</translation>
     </message>
@@ -3255,7 +3255,7 @@
         <translation>Потрачено за разговор</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="88"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="87"/>
         <source>Steps per run, at most</source>
         <translation>Шагов за прогон, не больше</translation>
     </message>
@@ -3330,7 +3330,7 @@
         <translation>Общение</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="114"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="113"/>
         <source>Talking to the provider</source>
         <translation>Связь с провайдером</translation>
     </message>
@@ -3345,7 +3345,7 @@
         <translation>Рельеф и океаны</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="178"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="177"/>
         <location filename="ai_agent/ui/settings_probe.py" line="102"/>
         <source>Test connection</source>
         <translation>Проверить подключение</translation>
@@ -3433,7 +3433,7 @@
         <translation>Агент попросит координаты или выделение на карте</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="85"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="84"/>
         <source>The agent re-reads the project to confirm the changes.</source>
         <translation>Агент перечитает проект и подтвердит изменения.</translation>
     </message>
@@ -3468,7 +3468,7 @@
         <translation>Подключение не настроено</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="124"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="123"/>
         <source>The connection, keys, your own texts and skills stay.</source>
         <translation>Подключение, ключи, ваши тексты и навыки сохранятся.</translation>
     </message>
@@ -3518,7 +3518,7 @@
         <translation>Модель ничего не вернула. Попробуйте переформулировать.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="51"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="50"/>
         <source>The model runs at {0}, on this device.</source>
         <translation>Модель работает на {0}, на этом устройстве.</translation>
     </message>
@@ -3713,12 +3713,12 @@
         <translation>Сегодня</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="86"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="85"/>
         <source>Token budget per run</source>
         <translation>Бюджет токенов на прогон</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="90"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="89"/>
         <source>Tool timeout</source>
         <translation>Таймаут инструмента</translation>
     </message>
@@ -3758,7 +3758,7 @@
         <translation>Выключить</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="57"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="56"/>
         <source>Turn off only for a trusted self-signed server.</source>
         <translation>Выключайте только для доверенного самоподписанного сервера.</translation>
     </message>
@@ -3843,7 +3843,7 @@
         <translation>Обновляю объектов: {0} — в «{1}»: {2}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="63"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="62"/>
         <source>Usage statistics</source>
         <translation>Статистика использования</translation>
     </message>
@@ -3873,7 +3873,7 @@
         <translation>Векторные слои, скачиваются</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="56"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="55"/>
         <source>Verify the SSL certificate</source>
         <translation>Проверять сертификат SSL</translation>
     </message>
@@ -3903,7 +3903,7 @@
         <translation>Что отправляется</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="53"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="52"/>
         <source>What the agent reads is sent to {0}. For data that must stay here, use a local server.</source>
         <translation>Всё, что агент читает, отправляется на {0}. Чтобы данные оставались здесь, используйте локальный сервер.</translation>
     </message>
@@ -3933,7 +3933,7 @@
         <translation>Какие слои есть в проекте и что в них?</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_dialog.py" line="225"/>
+        <location filename="ai_agent/ui/settings_dialog.py" line="224"/>
         <source>Without /chat/completions.</source>
         <translation>Без /chat/completions.</translation>
     </message>
@@ -4229,7 +4229,7 @@
         <translation>{0} · лучшая {1}, облачность {2}%</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="76"/>
+        <location filename="ai_agent/ui/settings_advanced.py" line="75"/>
         <source>{0}, {1}. This cannot be undone.</source>
         <translation>{0}, {1}. Отменить нельзя.</translation>
     </message>
