@@ -6,7 +6,6 @@ from ai_agent.core.llm.anthropic import TEXT_BLOCK, THINKING_BLOCK, TOOL_USE
 from ai_agent.core.llm.client import ApiResponseError, blocking_timeout, post_json
 from ai_agent.core.llm.dialects import resolve
 from ai_agent.core.llm.refusals import streaming_unsupported, thinking_unsupported
-from ai_agent.core.llm.stream import SseAccumulator
 from ai_agent.core.llm.stream_runner import STREAM_EVENTS_KEY, post_stream
 from ai_agent.core.settings import (
     get_dialect,
@@ -199,16 +198,3 @@ def _as_object(raw: str) -> dict[str, Any]:
     except ValueError:
         return {}
     return parsed if isinstance(parsed, dict) else {}
-
-
-def consume_anthropic(
-    chunks: list[bytes],
-    on_text: Callable[[str], None] | None = None,
-    on_thinking: Callable[[str], None] | None = None,
-) -> dict[str, Any]:
-    accumulator = SseAccumulator()
-    message = StreamedMessage(on_text, on_thinking)
-    for chunk in chunks:
-        for event in accumulator.feed(chunk):
-            message.take(event)
-    return message.response()

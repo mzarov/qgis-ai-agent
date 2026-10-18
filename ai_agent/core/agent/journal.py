@@ -89,9 +89,9 @@ def write_journal(markdown: str, folder: str | None = None) -> str:
     return path
 
 
-def usage(folder: str | None = None) -> tuple[int, int]:
+def usage() -> tuple[int, int]:
     """How many run journals there are, and their size in bytes."""
-    paths = _journals(folder)
+    paths = _journals()
     size = 0
     for path in paths:
         try:
@@ -101,17 +101,17 @@ def usage(folder: str | None = None) -> tuple[int, int]:
     return len(paths), size
 
 
-def erase(folder: str | None = None) -> None:
+def erase() -> None:
     """Delete every run journal; the folder itself stays."""
-    for path in _journals(folder):
+    for path in _journals():
         try:
             os.remove(path)
         except OSError:
             continue
 
 
-def _journals(folder: str | None) -> list[str]:
-    target = os.path.abspath(os.path.expanduser(folder or default_root()))
+def _journals() -> list[str]:
+    target = os.path.abspath(os.path.expanduser(default_root()))
     try:
         names = os.listdir(target)
     except OSError:

@@ -100,10 +100,7 @@ class NoPrivacyModeTest(unittest.TestCase):
     def test_every_tool_of_a_loaded_skill_is_offered_to_a_cloud_model(self):
         from ai_agent.core.agent.request import build_tool_schemas_for
 
-        names = {
-            schema["function"]["name"]
-            for schema in build_tool_schemas_for(["inspect", "processing", "style"], "https://api.example.com/v1")
-        }
+        names = {schema["function"]["name"] for schema in build_tool_schemas_for(["inspect", "processing", "style"])}
         for tool in ("describe_layer", "query_layer", "render_map", "run_processing", "describe_style"):
             self.assertIn(tool, names)
 

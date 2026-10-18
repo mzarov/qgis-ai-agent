@@ -69,13 +69,13 @@ def register_local_skills(path: str | None = None) -> list[str]:
     return problems
 
 
-def describe_local_skills(path: str | None = None) -> dict[str, Any]:
+def describe_local_skills() -> dict[str, Any]:
     """Local skills for the settings page: active skills, drafts still holding the example text, problems.
 
     A draft is not an error: it is the example waiting for its description, so it is listed apart
     with the file to open instead of among the problems.
     """
-    problems = register_local_skills(path)
+    problems = register_local_skills()
     root = SKILL_REGISTRY.local_root() or ""
     drafts = _drafts(root)
     inactive = {PROBLEM_EXAMPLE_INACTIVE.format(name=draft["name"]) for draft in drafts}
@@ -119,8 +119,8 @@ def _drafts(root: str) -> list[dict[str, str]]:
     return found
 
 
-def write_example_skill(path: str | None = None) -> str:
-    root = path if path is not None else local_skills_dir()
+def write_example_skill() -> str:
+    root = local_skills_dir()
     if not root:
         return ""
     folder = os.path.join(root, EXAMPLE_FOLDER)

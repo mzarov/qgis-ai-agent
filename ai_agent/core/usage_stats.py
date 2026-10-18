@@ -96,10 +96,6 @@ def enabled() -> bool:
     return bool(collector_url()) and choice != CONSENT_NO and (choice == CONSENT_YES or noticed())
 
 
-def empty_counts() -> dict[str, Any]:
-    return {"runs": 0, "applies": 0, "failures": {}, "tools": {}, "skills": {}}
-
-
 def add(counts: dict[str, Any], kind: str, name: str = "") -> dict[str, Any]:
     """`counts` with one more `kind` (runs, applies) or one more `name` under failures, tools or skills."""
     if kind in ("runs", "applies"):

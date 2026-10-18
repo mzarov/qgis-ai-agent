@@ -30,9 +30,8 @@ class PlaceTextTest(unittest.TestCase):
         picker = map_pick.MapPicker(NoCanvas())
         ended = []
         picker.ended.connect(lambda: ended.append(True))
-        picker.start(map_pick.POINT)
+        picker.start("point")
         self.assertEqual(ended, [True])
-        self.assertFalse(picker.active)
 
 
 if __name__ == "__main__":

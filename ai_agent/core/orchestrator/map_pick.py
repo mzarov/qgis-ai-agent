@@ -22,7 +22,6 @@ from qgis.core import (
 from qgis.gui import QgsMapToolEmitPoint, QgsMapToolExtent
 from qgis.PyQt.QtCore import QObject, pyqtSignal
 
-POINT = "point"
 AREA = "area"
 WGS84 = "EPSG:4326"
 DECIMALS = 5
@@ -48,10 +47,6 @@ class MapPicker(QObject):
         self._iface = iface
         self._tool: Any = None
         self._previous: Any = None
-
-    @property
-    def active(self) -> bool:
-        return self._tool is not None
 
     def start(self, kind: str) -> None:
         self.cancel()

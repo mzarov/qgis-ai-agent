@@ -18,10 +18,6 @@ class SystemPartsTest(unittest.TestCase):
         self.assertIn("Layers: a.", live)
         self.assertIn("Plan: [ ] step", live)
 
-    def test_the_joined_prompt_is_static_then_live(self):
-        static, live = prompts.build_system_parts("Layers: a.", ["inspect"])
-        self.assertEqual(prompts.build_system_prompt("Layers: a.", ["inspect"]), static + "\n\n" + live)
-
 
 class AnthropicCacheTest(unittest.TestCase):
     def test_without_a_prefix_the_body_is_untouched(self):

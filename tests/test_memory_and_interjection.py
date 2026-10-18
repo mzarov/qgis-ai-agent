@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.notices import INTERJECTION_HEADER
-from ai_agent.core.agent.prompts import build_system_prompt, render_project_notes
+from ai_agent.core.agent.prompts import build_system_parts, render_project_notes
 from ai_agent.qgis_tools.base import SAFETY_READ
 from ai_agent.qgis_tools.project import notes as notes_module
 from ai_agent.qgis_tools.project import remember as remember_module
@@ -151,7 +151,7 @@ class NotesInPromptTest(unittest.TestCase):
         self.assertEqual(render_project_notes([]), "")
 
     def test_notes_are_pinned_into_the_system_prompt(self):
-        prompt = build_system_prompt("", [], project_notes=render_project_notes(["POP2020 is population"]))
+        prompt = "\n\n".join(build_system_parts("", [], project_notes=render_project_notes(["POP2020 is population"])))
         self.assertIn("POP2020 is population", prompt)
 
 

@@ -31,7 +31,6 @@ UNDONE_PROJECT = tr("The plan is undone: the project is back to how it was befor
 UNDO_GONE = tr("This plan can no longer be undone: its snapshot is gone (only the latest {0} are kept).")
 REWIND_FAILED = tr("Could not restore the project: {0}")
 DATA_EDITS_NOTE = tr("Edits written into data sources are not undone.")
-EMPTY_LAYERS = tr("These temporary layers came back empty: {0}.")
 
 
 @dataclass(frozen=True)

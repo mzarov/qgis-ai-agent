@@ -22,16 +22,13 @@ class TokenBudget:
         self.completion = 0
         self.requests = 0
 
-    def add(self, turn: ModelTurn) -> bool:
-        """Count one answered model request; True when the token total changed."""
+    def add(self, turn: ModelTurn) -> None:
+        """Count one answered model request."""
         self.requests += 1
         incoming, outgoing = max(0, int(turn.input_tokens)), max(0, int(turn.output_tokens))
-        if incoming + outgoing <= 0:
-            return False
         self.prompt += incoming
         self.completion += outgoing
         self.spent += incoming + outgoing
-        return True
 
     def snapshot(self) -> dict[str, int]:
         """Prompt tokens, completion tokens and answered requests counted since the last reset."""

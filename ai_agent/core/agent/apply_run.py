@@ -5,7 +5,7 @@ failed, the run was stopped, the project is another one, a pinned layer moved.
 A step whose tool works long goes to the background (`ToolExecutor.start`): the
 run returns to Qt's event loop and goes on when the step's result arrives, so
 the window, the map and Stop stay alive. With no such step the whole batch is
-applied before `WriteBatch.apply` returns, as it always was.
+applied before `WriteBatch.apply` returns.
 """
 
 from collections.abc import Callable

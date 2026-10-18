@@ -5,7 +5,7 @@ prompt and tool schemas; for a rename or a new bookmark it cost more than the
 work itself. Each tool knows the one read that proves its own step
 (`BaseTool.confirm_applied`). A failed step, a tool that cannot judge its
 result, a step that does not read back, or a check that raises — any of them
-sends the batch to the model as before.
+sends the batch to the model's check.
 """
 
 from typing import Any

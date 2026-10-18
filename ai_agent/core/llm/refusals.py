@@ -1,10 +1,10 @@
 """Telling "this endpoint does not support feature X" apart from any other 4xx.
 
 A refusal is remembered per endpoint and model and switches the feature off for
-good, so a false positive is expensive: one context-length overflow or one bad
-tool schema used to disable streaming, tools and images at once. A body counts
-as a refusal only when it names the feature next to a refusal phrase, or when a
-structured error points at the feature's parameter.
+good, so a false positive is expensive: a context-length overflow or a bad tool
+schema must not disable anything. A body counts as a refusal only when it names
+the feature next to a refusal phrase, or when a structured error points at the
+feature's parameter.
 """
 
 import json
@@ -29,13 +29,11 @@ FEATURE_WORDS = {
     "tools": r"tools?|tool_choice|tool[_ ]calls?|function[_ ]calling|functions",
     "streaming": r"stream|streaming|stream_options|server-sent events|event-stream",
     "thinking": r"thinking|budget_tokens|reasoning(?:_effort|Effort)?",
-    "images": r"images?|image_url|vision|multimodal",
 }
 FEATURE_PARAMETERS = {
     "tools": ("tools", "tool_choice", "functions"),
     "streaming": ("stream", "stream_options"),
     "thinking": ("thinking", "reasoning", "reasoning_effort", "reasoningeffort"),
-    "images": ("image_url",),
 }
 # Rejecting a value counts only for thinking: the plugin sends one fixed reasoning
 # value, so a server that accepts others ("must be one of none, default") is best
@@ -77,10 +75,6 @@ def thinking_unsupported(err: ApiResponseError) -> bool:
 
 def streaming_unsupported(err: ApiResponseError) -> bool:
     return refuses(err, "streaming")
-
-
-def images_unsupported(err: ApiResponseError) -> bool:
-    return refuses(err, "images")
 
 
 def may_reject_images(err: ApiResponseError, statuses: tuple[int, ...]) -> bool:
