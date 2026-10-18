@@ -14,7 +14,7 @@ DESCENDING_MARKERS = ("desc", "descending")
 ASCENDING_MARKERS = ("asc", "ascending")
 SPECIAL_COLUMNS = {"*", "$geometry", "$id", "$area", "$length", "$perimeter", "$x", "$y"}
 # QgsFeatureRequest.ALL_ATTRIBUTES: what an expression using @parent (aggregate over another layer) references.
-# It names no field, and refusing it refused every correct "count the points in each polygon" expression.
+# It names no field; refusing it would refuse every correct "count the points in each polygon" expression.
 ALL_ATTRIBUTES = "#!allattributes!#"
 QUOTED_EXPRESSION_HINT = (
     "A name in double quotes is a field; an expression goes without quotes — inside aggregate, for one: "

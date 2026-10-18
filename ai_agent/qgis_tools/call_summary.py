@@ -3,7 +3,7 @@
 The feed shows a call the way Claude Code does, "Ran python3…": the wording
 muted, the target bright. A tool's `summarize_call` writes plain text, so the
 registry marks the spans that repeat the call's arguments verbatim. The object
-is still a `str`, so every caller that only wants the text is unaffected.
+is a `str`, so a caller that only wants the text uses it as one.
 """
 
 from string import Formatter

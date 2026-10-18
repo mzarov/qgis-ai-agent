@@ -4,7 +4,7 @@ QgsProcessingAlgRunnerTask prepares the algorithm here, runs it in a worker
 thread with a context of its own and post-processes it back on the main thread.
 The results are then loaded exactly as processing.runAndLoadResults loads them,
 or taken out of the context as processing.run hands them back. An algorithm
-flagged NoThreading never gets here: it runs on the main thread as before.
+flagged NoThreading never gets here: it runs on the main thread.
 """
 
 from collections.abc import Callable

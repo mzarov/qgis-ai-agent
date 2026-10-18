@@ -31,7 +31,7 @@ NOT_COUNTED_NOTE = "Features are not counted for remote sources; use query_layer
 
 
 def enum_name(value: Any) -> str:
-    """The readable name of a Qt or QGIS enum member under Qt5 and Qt6 alike.
+    """The readable name of a Qt or QGIS enum member.
 
     A Qt6 member is an IntEnum: str() gives its number ("2") and repr() a
     dotted path, so only `.name` is the word a model can read.
