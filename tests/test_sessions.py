@@ -3,8 +3,12 @@ import os
 import shutil
 import tempfile
 import unittest
+from unittest import mock
+
+from qgis.core import QgsApplication
 
 from ai_agent.core.state import conversation as conversation_module
+from ai_agent.core.state import store as store_module
 from ai_agent.core.state.conversation import ConversationState
 from ai_agent.core.state.session import MAX_MESSAGES, Session, shorten
 from ai_agent.core.state.store import MAX_SESSIONS, SessionStore, current_project_key
@@ -200,6 +204,22 @@ class SessionStoreTest(unittest.TestCase):
 
     def test_unwritable_root_does_not_raise(self):
         SessionStore("/proc/недоступно/сессии").save(self._saved())
+
+    def test_a_save_that_cannot_be_written_keeps_the_last_copy(self):
+        session = self._saved(text="first")
+        session.add("assistant", "answer")
+        with mock.patch.object(store_module, "atomic_write_json", side_effect=OSError("disk full")):
+            self.store.save(session)
+        self.assertEqual([m["content"] for m in self.store.load(session.identifier).messages], ["first"])
+
+    def test_a_missing_root_lists_no_conversations(self):
+        store = SessionStore(os.path.join(self.root, "never-made"))
+        self.assertEqual((store.recent("/p.qgz"), store.usage()), ([], (0, 0)))
+        store.erase()
+
+    def test_without_a_qgis_profile_conversations_live_in_the_home_folder(self):
+        with mock.patch.object(QgsApplication, "qgisSettingsDirPath", side_effect=RuntimeError("no profile")):
+            self.assertEqual(store_module.default_root(), os.path.join(os.path.expanduser("~"), "ai_agent_sessions"))
 
 
 class ConversationStateTest(unittest.TestCase):
