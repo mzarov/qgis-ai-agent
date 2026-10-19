@@ -10,21 +10,26 @@ JavaScript modules, no build step, no npm dependencies.
 One row per install and day in the `pings` table (`schema.sql`): the SHA-256 of
 the install's random UUID, the day, the plugin and QGIS versions, the OS
 family, the UI locale, a local or remote model, the API dialect, and that day's
-counts of runs, applies, tool calls, skill loads and failures. It stores no IP
-addresses and keeps no request logs. A resend for the same install and day
-replaces the row.
+counts of runs, applies, tool calls, skill loads and failures. A v2 ping adds
+a row to `ping_extras`: whether a model is set up and the failed calls per
+tool. It stores no IP addresses and keeps no request logs. A resend for the
+same install and day replaces the rows.
 
 ## API
 
 `POST /v1/ping` takes one JSON body of at most 4096 bytes:
 
 ```json
-{"v": 1, "install": "<uuid4>", "day": "YYYY-MM-DD",
+{"v": 2, "install": "<uuid4>", "day": "YYYY-MM-DD",
  "plugin": "0.4.0", "qgis": "4.2.1", "os": "macos", "locale": "en",
- "provider": "remote", "dialect": "openai",
+ "provider": "remote", "dialect": "openai", "configured": true,
  "runs": 3, "applies": 2,
- "failures": {"timeout": 1}, "tools": {"inspect_project": 5}, "skills": {"style": 2}}
+ "failures": {"timeout": 1}, "tools": {"inspect_project": 5},
+ "tool_errors": {"inspect_project": 1}, "skills": {"style": 2}}
 ```
+
+A v1 ping, sent by plugin 0.4.0, has no `configured` or `tool_errors`; both
+versions are accepted.
 
 `src/payload.js` validates it strictly: no unknown fields, `day` within two
 days of the server's UTC date, counts from 0 to 100000, map keys matching
@@ -33,9 +38,12 @@ days of the server's UTC date, counts from 0 to 100000, map keys matching
 
 `GET /v1/stats` returns the public aggregates with
 `Access-Control-Allow-Origin: *`: install totals, one entry per day for the
-last 90 days, and per-value counts for the last 30 days (at most 100 values
-each). The document is rebuilt at most once an hour and kept in the
-`stats_snapshot` table. `GET /` points to the dashboard.
+last 90 days, one entry per ISO week (new and returning installs) for the last
+13, the 30-day funnel (active, set up, ran, applied), the share of installs
+still active 7 and 30 days after their first day, failed calls per tool, and
+per-value counts for the last 30 days (at most 100 values each). The document
+is rebuilt at most once an hour and kept in the `stats_snapshot` table.
+`GET /` points to the dashboard.
 
 ## Tests
 
