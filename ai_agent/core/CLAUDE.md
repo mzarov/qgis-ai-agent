@@ -51,9 +51,10 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    The user's extra headers (`llm/extra_headers.py`, Settings → Advanced) ride
    on every model request through `build_request`; the transport's own headers
    always win, and names that would carry a key are refused on save.
-   Streaming and web redirects are the two exceptions to
-   `QgsBlockingNetworkRequest`; both use `QgsNetworkAccessManager` with a nested
-   `QEventLoop`. Streaming needs a body as it arrives. The web runner resolves
+   Model calls go through `qgis_tools/common/network.py::send`: a blocking one on
+   `QgsBlockingNetworkRequest`, a streamed one on `QgsNetworkAccessManager` with
+   a nested `QEventLoop` (docs/core_architecture.md, "Network calls off the main
+   thread"). Streaming needs a body as it arrives. The web runner resolves
    with Qt, requires every DNS answer to be public, tries pinned addresses while
    TLS verifies the approved host, and follows only manually checked same-origin
    redirects. Explicit QGIS proxies receive the hostname; direct-route mismatches

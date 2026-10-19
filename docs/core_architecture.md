@@ -91,6 +91,14 @@ Every applied batch with a write takes a project snapshot first. Undo on the
 plan card and rewinding to an earlier message restore these snapshots
 (`orchestrator/rewind.py`).
 
+QGIS 4 writes every `.qgz` through one fixed file in the system temp folder,
+`qgis-project-XXXXXX.zip`, then renames it into place. Two QGIS processes
+saving at the same moment share that file: one save fails, or one project file
+ends up holding the other process's project. A snapshot therefore checks that
+the archive it wrote holds its own project file and writes it again if not
+(`project/snapshots.py`). The real-QGIS tests give every QGIS process its own
+temp folder, so parallel runs never meet in that file.
+
 After Apply the orchestrator checks the result. First it reads: each write
 tool may answer `confirm_applied` with the one read that proves its step.
 When every step of a successful batch reads back as done, no model run starts.
@@ -110,7 +118,8 @@ heavy part to a QGIS task (`BaseTool.start`, `qgis_tools/common/background.py`):
 
 - a Processing algorithm through `QgsProcessingAlgRunnerTask`, as the
   Processing toolbox does for "Run in background";
-- a download through `QgsBlockingNetworkRequest`, which is safe in any thread.
+- a download through `qgis_tools/common/network.py`, which waits in the task's
+  own thread.
 
 The task touches only thread-safe objects. The project, layers and widgets are
 touched when it ends, back on the main thread. The apply run
@@ -120,6 +129,32 @@ Algorithms flagged NoThreading still run on the main thread.
 
 Never move a whole tool or the loop to a background thread, and never rewrite
 the loop as a background `while` or with `asyncio`.
+
+### Network calls off the main thread
+
+PyQt and the GIL set traps for a worker thread that talks HTTP, and
+`qgis_tools/common/network.py::send` is the one place that knows them:
+
+- A `QgsBlockingNetworkRequest` made from Python can freeze QGIS for good when
+  it runs off the main thread. When it finishes, QGIS destroys its private
+  event loop while holding a Qt lock and asks Python whether the request
+  object, the feedback passed with it or a Python-made application object
+  overrides `disconnectNotify`; the question needs the GIL. A main thread that holds the GIL and waits for the
+  same lock (any `connect`, such as a style sheet on a new widget) never gets
+  it. sip remembers a "no" per object, so `send` asks once itself, with the GIL
+  held and no Qt lock taken, before the request starts; the request itself
+  then runs without the GIL. Running the request on `QgsNetworkAccessManager`
+  from Python instead only turns the deadlock around: the worker then holds
+  the GIL while Qt takes its locks, and a main thread deleting an object
+  connected to a Python-made widget takes a lock first and the GIL second.
+- A stream needs the body as it arrives, so `send` runs it on
+  `QgsNetworkAccessManager` in the thread's own event loop, which keeps that
+  rarer reversed risk; every Python worker that emits signals has it too.
+- PyQt 6 reports the deletion of a QObject made in C++ to the main thread, by
+  address. A report about a reply or network manager deleted in a worker can
+  arrive after the address was reused, and then marks a newer, live object as
+  deleted: the next model turn failed before its request was even sent. `send`
+  cuts that report on the manager and the reply of a stream.
 
 ## Skills and progressive disclosure
 
@@ -173,10 +208,12 @@ refusal per endpoint. A refusal is told apart from an outage, so a 401 or 429
 never switches a feature off.
 
 All HTTP stays on the QGIS network stack, so QGIS proxy and authentication
-settings apply. Ordinary calls use `QgsBlockingNetworkRequest`. Streaming and
-the web tools use `QgsNetworkAccessManager` with a nested event loop, because
-they need the body while it arrives. The web tools also accept only public DNS
-answers, pin a checked IP while TLS verifies the original host name, follow
+settings apply. Ordinary calls use `QgsBlockingNetworkRequest` and streaming
+uses `QgsNetworkAccessManager` with a nested event loop, both through
+`qgis_tools/common/network.py` (see "Network calls off the main thread").
+The web tools run their own `QgsNetworkAccessManager` loop on the main
+thread, because they need the body while it arrives. They also accept only
+public DNS answers, pin a checked IP while TLS verifies the original host name, follow
 only same-origin redirects they have checked, pass the host name to an
 explicit QGIS proxy and fail closed when a direct route does not match.
 

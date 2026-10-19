@@ -1,3 +1,4 @@
+import faulthandler
 import json
 import threading
 import time
@@ -7,13 +8,16 @@ from socketserver import TCPServer
 from unittest import mock
 from urllib.parse import parse_qs
 
-from qgis.core import QgsApplication, QgsProject
+from qgis.core import QgsApplication, QgsFeedback, QgsProject
 from qgis.PyQt.QtCore import QCoreApplication, QEventLoop, QObject, QThread, QTimer, pyqtSlot
+from qgis.PyQt.QtWidgets import QLabel, QWidget
 
 from ai_agent.core.agent.batch import WriteBatch
 from ai_agent.core.agent.executor import ToolExecutor
 from ai_agent.core.agent.turn_thread import TurnThreadOwner
 from ai_agent.core.llm.client import ApiResponseError, post_json
+from ai_agent.core.llm.stream import StreamedCompletion
+from ai_agent.core.llm.stream_runner import post_stream
 from ai_agent.core.llm.turns import ToolCall
 from ai_agent.core.llm.worker import ModelTurnThread
 
@@ -21,6 +25,12 @@ WAIT_MS = 3000
 SERVER_HOLD_SECONDS = 4
 MESSAGES = [{"role": "user", "content": "Local integration test"}]
 SCHEMAS = [{"type": "function", "function": {"name": "ping", "parameters": {"type": "object", "properties": {}}}}]
+STRESS_S = 3
+HANG_GUARD_S = 120
+LABELS = 20
+NAP_S = 0.0005
+STREAM_WORKERS = 6
+JSON_HEADERS = {"Content-Type": "application/json"}
 
 
 def _event(delta, finish_reason=None):
@@ -256,6 +266,76 @@ class RealNetworkTest(unittest.TestCase):
         self.assertEqual(observer.errors, [])
         self.assertFalse(self.server.release.is_set())
         owner.stop()
+
+
+class _Requester(QThread):
+    def __init__(self, send_one, enough):
+        super().__init__()
+        self._send_one = send_one
+        self._enough = enough
+        self.sent = 0
+        self.errors = []
+
+    def run(self):
+        while not self._enough(self.sent):
+            try:
+                self._send_one()
+            except Exception as failure:
+                self.errors.append(f"{type(failure).__name__}: {failure}")
+                return
+            self.sent += 1
+
+
+def _build_widgets():
+    holder = QWidget()
+    for index in range(LABELS):
+        QLabel(f"label {index}", holder).setStyleSheet(f"padding: {index % 4}px;")
+    holder.deleteLater()
+
+
+def _nap():
+    time.sleep(NAP_S)
+
+
+def _keep_main_thread_busy(worker, chore):
+    worker.start()
+    while worker.isRunning():
+        chore()
+        QCoreApplication.processEvents()
+    worker.wait()
+
+
+class WorkerExchangeTest(unittest.TestCase):
+    def setUp(self):
+        self.server = _Server()
+        self.addCleanup(self.server.close)
+        # A deadlock freezes the main thread for good: the dump names both threads and ends the run.
+        faulthandler.dump_traceback_later(HANG_GUARD_S, exit=True)
+        self.addCleanup(faulthandler.cancel_dump_traceback_later)
+
+    def test_model_requests_in_a_worker_never_lock_up_a_busy_main_thread(self):
+        url = self.server.url("/status/200")
+        deadline = time.monotonic() + STRESS_S
+        worker = _Requester(
+            lambda: post_json(url, JSON_HEADERS, {}, timeout=5, feedback=QgsFeedback()),
+            lambda sent: time.monotonic() > deadline,
+        )
+        _keep_main_thread_busy(worker, _build_widgets)
+        self.assertEqual(worker.errors, [])
+        self.assertGreater(worker.sent, LABELS)
+
+    def test_back_to_back_streams_in_one_worker_keep_their_replies(self):
+        url = self.server.url("/success")
+
+        def stream_once():
+            post_stream(url, JSON_HEADERS, {"stream": True}, StreamedCompletion(lambda text: None), 5)
+
+        for _ in range(STREAM_WORKERS):
+            deadline = time.monotonic() + STRESS_S / STREAM_WORKERS
+            worker = _Requester(stream_once, lambda sent, until=deadline: time.monotonic() > until)
+            _keep_main_thread_busy(worker, _nap)
+            self.assertEqual(worker.errors, [])
+            self.assertGreater(worker.sent, LABELS)
 
 
 OSM_ANSWER = (

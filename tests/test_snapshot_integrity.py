@@ -2,6 +2,7 @@ import itertools
 import os
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -133,6 +134,8 @@ class StatefulProject:
         self._preset_home = preset_home
         self._dirty = dirty
         self.write_ok = True
+        self.writes = 0
+        self.foreign_writes = 0
         self.read_ok = True
         self.read_failure = None
         self.read_calls = []
@@ -169,7 +172,10 @@ class StatefulProject:
     def write(self, path):
         self._file_name = path
         self._dirty = False
-        Path(path).touch()
+        self.writes += 1
+        inner = "another_project" if self.writes <= self.foreign_writes else Path(path).name.split(".", 1)[0]
+        with zipfile.ZipFile(path, "w") as archive:
+            archive.writestr(f"{inner}.qgs", "<qgis/>")
         return self.write_ok
 
     def read(self, path):
@@ -226,6 +232,23 @@ class SnapshotIntegrityTest(unittest.TestCase):
 
         self.assertEqual((self.project.fileName(), self.project.homePath(), self.project.isDirty()), original)
         self.assertEqual(snapshots.last_snapshot(), "")
+        self.assertEqual(list(Path(self.folder.name).glob("before_apply_*.qgz")), [])
+
+    def test_a_snapshot_another_qgis_overwrote_is_written_again(self):
+        self.project.foreign_writes = 1
+
+        path = snapshots.take_snapshot()
+
+        self.assertEqual(self.project.writes, 2)
+        with zipfile.ZipFile(path) as archive:
+            self.assertEqual(archive.namelist(), [f"{Path(path).name.split('.', 1)[0]}.qgs"])
+
+    def test_a_snapshot_that_keeps_coming_out_foreign_is_refused(self):
+        self.project.foreign_writes = snapshots.MAX_WRITE_ATTEMPTS
+
+        self.assertEqual(snapshots.take_snapshot(), "")
+
+        self.assertEqual(self.project.writes, snapshots.MAX_WRITE_ATTEMPTS)
         self.assertEqual(list(Path(self.folder.name).glob("before_apply_*.qgz")), [])
 
     def test_snapshot_refuses_to_ignore_an_active_edit_buffer(self):

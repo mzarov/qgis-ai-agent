@@ -1,10 +1,12 @@
 import pathlib
 import unittest
+from unittest import mock
 
 from ai_agent.core import credentials
 from ai_agent.core.llm import client
 from ai_agent.core.llm.client import build_request, is_local, resolve_endpoint
 from ai_agent.core.llm.dialects import safe_endpoint_label
+from ai_agent.qgis_tools.common.network import Answer
 
 REMOTE = "https://api.openai.com/v1"
 USERINFO_URL = "https://localhost:password@evil.example/v1"
@@ -124,7 +126,7 @@ class TransportTest(unittest.TestCase):
     )
 
     def test_network_goes_through_qgis_not_requests(self):
-        self.assertIn("QgsBlockingNetworkRequest", self.SOURCE)
+        self.assertIn("from ai_agent.qgis_tools.common.network import", self.SOURCE)
         self.assertNotIn("import requests", self.SOURCE)
         self.assertNotIn("session.post", self.SOURCE)
 
@@ -244,47 +246,19 @@ class _SslSocket:
 
 class BlockingCancellationTest(unittest.TestCase):
     def setUp(self):
-        self.saved = client.QgsBlockingNetworkRequest, client.build_network_request, client.QByteArray
-        _BlockingRequest.seen_feedback = None
-        client.QgsBlockingNetworkRequest = _BlockingRequest
-        client.build_network_request = lambda *args: object()
-        client.QByteArray = lambda value: value
+        self.seen = []
+        for patch in (
+            mock.patch.object(client, "send", side_effect=self._send),
+            mock.patch.object(client, "build_network_request", return_value=object()),
+        ):
+            patch.start()
+            self.addCleanup(patch.stop)
 
-    def tearDown(self):
-        client.QgsBlockingNetworkRequest, client.build_network_request, client.QByteArray = self.saved
+    def _send(self, request, payload, feedback=None):
+        self.seen.append(feedback)
+        return Answer(status=200, body=b"{}")
 
-    def test_feedback_reaches_qgis_blocking_request_for_cancellation(self):
+    def test_feedback_reaches_the_request_for_cancellation(self):
         feedback = object()
         self.assertEqual(client.post_json("https://example.test", {}, {}, feedback=feedback), {})
-        self.assertIs(_BlockingRequest.seen_feedback, feedback)
-
-
-class _BlockingReply:
-    def content(self):
-        return b"{}"
-
-    def attribute(self, attribute):
-        return 200
-
-
-class _BlockingRequest:
-    seen_feedback = None
-
-    class ErrorCode:
-        NoError = 0
-
-    def post(self, request, payload, force_refresh, feedback):
-        _BlockingRequest.seen_feedback = feedback
-        return self.ErrorCode.NoError
-
-    def reply(self):
-        return _BlockingReply()
-
-    def test_transport_failure_is_distinct_from_an_api_error(self):
-        self.assertIn("raise ConnectionError(", self.SOURCE)
-        self.assertIn("raise ApiResponseError(status, text)", self.SOURCE)
-
-    def test_non_json_answer_is_reported_clearly(self):
-        body = self.SOURCE.split("def _decoded(")[1].split("\ndef ")[0]
-        self.assertIn("non-JSON", body)
-        self.assertIn("not a JSON object", body)
+        self.assertEqual(self.seen, [feedback])

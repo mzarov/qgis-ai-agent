@@ -47,7 +47,7 @@ A step that can take long also implements `start`: it validates as `execute`
 does and returns a `common.background.Background` — `InTask(description, work,
 complete)` for a download, `processing/background_run.py` for an algorithm.
 `work` runs in a QGIS task and touches only its arguments and thread-safe
-classes (`QgsBlockingNetworkRequest` with the task's feedback); `complete` makes
+classes (`common.network.send` with the task's feedback); `complete` makes
 the layers and the payload on the main thread. Keep `execute` working: the
 executor falls back to it when a step cannot start.
 Raise clear English errors with a recovery hint. `summarize_call` handles invalid

@@ -337,7 +337,7 @@
         <translation>Локальному серверу ключ не нужен.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="166"/>
+        <location filename="ai_agent/core/llm/client.py" line="162"/>
         <source>A non-local model endpoint must use HTTPS. Use an SSH tunnel to localhost for a trusted LAN server.</source>
         <translation>Нелокальная конечная точка модели должна использовать HTTPS. Для доверенного сервера в локальной сети используйте SSH-туннель на localhost.</translation>
     </message>
@@ -1175,7 +1175,7 @@
         <translation>Сервис недоступен — проверьте подключение к интернету или прокси в QGIS.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="46"/>
+        <location filename="ai_agent/core/llm/client.py" line="45"/>
         <source>Could not reach {endpoint}: {reason}. Check the address, the network and the QGIS proxy settings.</source>
         <translation>Не удалось достучаться до {endpoint}: {reason}. Проверьте адрес, сеть и настройки прокси в QGIS.</translation>
     </message>
@@ -1313,7 +1313,7 @@
         <translation>Подробно</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="172"/>
+        <location filename="ai_agent/core/llm/client.py" line="168"/>
         <source>Do not put credentials in the API URL. Store the provider secret in the API key field instead.</source>
         <translation>Не добавляйте учётные данные в URL API. Сохраните секрет провайдера в поле API-ключа.</translation>
     </message>
@@ -2162,7 +2162,7 @@
         <translation>Ночные огни (VIIRS Black Marble 2016)</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="149"/>
+        <location filename="ai_agent/core/llm/client.py" line="145"/>
         <source>No API URL. Set one in Settings.</source>
         <translation>Не задан адрес API. Укажите его в настройках.</translation>
     </message>
@@ -3361,29 +3361,29 @@
         <translation>Проверяю подключение…</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="163"/>
-        <location filename="ai_agent/core/llm/client.py" line="153"/>
-        <location filename="ai_agent/core/llm/client.py" line="161"/>
+        <location filename="ai_agent/core/llm/client.py" line="159"/>
+        <location filename="ai_agent/core/llm/client.py" line="149"/>
+        <location filename="ai_agent/core/llm/client.py" line="157"/>
         <source>The API URL is malformed. Check its host, brackets and port.</source>
         <translation>URL API некорректен. Проверьте адрес узла, скобки и порт.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="156"/>
+        <location filename="ai_agent/core/llm/client.py" line="152"/>
         <source>The API URL must use http or https.</source>
         <translation>URL API должен использовать http или https.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="288"/>
+        <location filename="ai_agent/core/llm/client.py" line="274"/>
         <source>The API returned non-JSON: {0}</source>
         <translation>API вернул не JSON: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="291"/>
+        <location filename="ai_agent/core/llm/client.py" line="277"/>
         <source>The API returned something that is not a JSON object.</source>
         <translation>API вернул нечто, что не является объектом JSON.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="125"/>
+        <location filename="ai_agent/core/llm/client.py" line="124"/>
         <source>The API returned {0}: {1}</source>
         <translation>API вернул {0}: {1}</translation>
     </message>
@@ -4128,8 +4128,7 @@
         <translation>выбираю объекты</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="297"/>
-        <location filename="ai_agent/core/llm/client.py" line="299"/>
+        <location filename="ai_agent/core/llm/client.py" line="220"/>
         <source>service unavailable</source>
         <translation>сервис недоступен</translation>
     </message>
