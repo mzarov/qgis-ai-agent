@@ -121,6 +121,17 @@ class ApplyRunTest(unittest.TestCase):
         self.assertEqual(self.progress, [(-1.0, 0)])
         self.assertEqual(self.executor.ran, ["set_opacity", "run_processing"])
 
+    def test_nothing_is_queued_restored_or_applied_again_while_a_plan_applies(self):
+        self.apply()
+        with self.assertRaisesRegex(ValueError, "Wait for the current plan"):
+            self.batch.add(ToolCall(id="late", name="set_opacity", arguments={}))
+        with self.assertRaisesRegex(ValueError, "Wait for the current plan"):
+            self.batch.restore(calls("set_opacity"))
+        with self.assertRaisesRegex(RuntimeError, "already being applied"):
+            self.apply()
+        self.executor.finish()
+        self.assertEqual(self.executor.ran, ["set_opacity", "run_processing", "set_symbol"])
+
     def test_a_step_that_raises_frees_the_batch_for_the_next_plan(self):
         class Raising(BackgroundExecutor):
             def run(self, call):

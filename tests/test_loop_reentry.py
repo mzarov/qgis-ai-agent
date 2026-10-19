@@ -192,6 +192,35 @@ class RequestFailureTest(LoopCase):
         self.assertEqual(self.failed, [])
         self.assertTrue(self.loop.is_running)
 
+    def test_no_request_leaves_while_a_plan_applies(self):
+        self.turns.answer(ModelTurn(text="Done."))
+        self.loop._batch._applying = True
+        self.loop._request_step()
+        self.assertEqual(self.turns.started, 1)
+
+
+class RunSettingsTest(unittest.TestCase):
+    def test_a_run_reports_what_it_was_started_with(self):
+        loop = AgentLoop()
+        loop._turn = Turns()
+        overrides = {"url_override": "https://provider.example/v1"}
+        with (
+            mock.patch.object(loop_module, "build_step_request", return_value=REQUEST),
+            mock.patch.object(loop_module, "build_overrides", return_value=overrides),
+        ):
+            loop.start("Plan the map", skills=["style"], planning=True)
+        self.assertEqual(loop.endpoint, "https://provider.example/v1")
+        self.assertEqual(loop.overrides, overrides)
+        self.assertIsNot(loop.overrides, loop._overrides, "a caller could change the run's settings")
+        self.assertTrue(loop.is_planning)
+        self.assertFalse(loop.is_verification)
+        self.assertEqual(loop.loaded_skills, ["inspect", "style"])
+        chunks = []
+        loop.answer_chunk.connect(chunks.append)
+        loop._turn.callbacks[2]("")
+        loop._turn.callbacks[2]("Plan")
+        self.assertEqual(chunks, ["Plan"])
+
 
 if __name__ == "__main__":
     unittest.main()

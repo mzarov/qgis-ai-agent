@@ -436,6 +436,49 @@ class ProjectIdentityTest(unittest.TestCase):
         restore_project_identity(project, original)
         self.assertEqual(project_identity(project), original)
 
+    def test_a_saved_project_is_known_by_its_absolute_file(self):
+        with tempfile.TemporaryDirectory() as root:
+            project = Project("map.qgz")
+            project.absoluteFilePath = lambda: os.path.join(root, "maps", "..", "map.qgz")
+            self.assertEqual(project_identity(project), os.path.realpath(os.path.join(root, "map.qgz")))
+
+    def test_a_database_project_without_its_storage_is_still_hashed_without_credentials(self):
+        for name in ("postgresql://alice:pw@db.example/projects?project=city", "postgresql://[::1/projects"):
+            identity = project_identity(Project(name))
+            self.assertTrue(identity.startswith(STORAGE_PREFIX), identity)
+            self.assertNotIn("alice", identity)
+
+    def test_a_project_without_a_readable_file_name_is_unsaved(self):
+        class Closing(Project):
+            def fileName(self):
+                raise RuntimeError("wrapped C++ object has been deleted")
+
+        self.assertTrue(project_identity(Closing()).startswith("unsaved:"))
+        restore_project_identity(Closing(), "unsaved:")
+        restore_project_identity(Closing(), "/p.qgz")
+
+    def test_a_project_that_refuses_attributes_keeps_one_identity_until_cleared(self):
+        class Sealed(Project):
+            def __setattr__(self, name, value):
+                if name.startswith("_ai_agent"):
+                    raise AttributeError(name)
+                super().__setattr__(name, value)
+
+        project = Sealed()
+        first = project_identity(project)
+        self.assertEqual(project_identity(project), first)
+        self.assertEqual(len(project.cleared._slots), 1, "the clear signal was connected twice")
+        project.cleared.emit()
+        self.assertNotEqual(project_identity(project), first)
+
+    def test_a_project_without_a_clear_signal_still_gets_an_identity(self):
+        class Bare:
+            def fileName(self):
+                return ""
+
+        bare = Bare()
+        self.assertEqual(project_identity(bare), project_identity(bare))
+
 
 class AtomicPersistenceTest(unittest.TestCase):
     def test_failed_replacement_keeps_the_previous_primary_readable(self):
