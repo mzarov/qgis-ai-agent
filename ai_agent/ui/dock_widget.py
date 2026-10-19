@@ -39,6 +39,9 @@ class AgentDockWidget(QDockWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        # Qt asks sip about disconnectNotify under a lock while a dock animation dies; settle it with the GIL held.
+        self.destroyed.connect(_ignore)
+        self.destroyed.disconnect(_ignore)
         # Before any child is built: children read the panel's palette, which must already be the theme's.
         style.apply_palette(self)
         self.setWindowTitle(TITLE)
@@ -337,3 +340,7 @@ class AgentDockWidget(QDockWidget):
 
     def clear_prompt(self) -> None:
         self.composer.clear()
+
+
+def _ignore(*_args: Any) -> None:
+    return None
