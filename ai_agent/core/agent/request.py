@@ -55,9 +55,8 @@ def build_step_request(
     planning: bool = False,
 ) -> StepRequest:
     effective_overrides = dict(overrides) if overrides is not None else build_overrides()
-    endpoint = str(effective_overrides.get("url_override") or get_api_url() or "")
     images = not detect_images_unsupported(effective_overrides)
-    schemas = build_tool_schemas_for(loaded_skills, endpoint, images, planning)
+    schemas = build_tool_schemas_for(loaded_skills, images, planning)
     json_protocol = detect_json_protocol(effective_overrides)
     static_prompt, live_prompt = build_system_parts(
         project_context=get_project_context(),
@@ -102,10 +101,8 @@ def _project_notes() -> str:
 
 
 def build_tool_schemas_for(
-    loaded_skills: list[str], endpoint: str | None = None, images: bool = True, planning: bool = False
+    loaded_skills: list[str], images: bool = True, planning: bool = False
 ) -> list[dict[str, Any]]:
-    """Tool schemas for one turn; `images=False` leaves out tools whose result is only a picture,
-    `planning` every tool that would change something."""
     tools = tools_for_skills(loaded_skills, images, writes=not planning)
     schemas = build_tool_schemas(tools)
     if not planning:
@@ -119,7 +116,6 @@ def build_tool_schemas_for(
 
 
 def detect_images_unsupported(overrides: dict[str, Any] | None = None) -> bool:
-    """True only when this endpoint and model already rejected image input; unknown counts as supported."""
     scope = overrides or {}
     try:
         return (

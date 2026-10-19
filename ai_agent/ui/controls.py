@@ -1,11 +1,3 @@
-"""Small custom controls for the settings window and the composer.
-
-`Segmented` keeps the slice of the `QComboBox` API the dialog already relies
-on (`currentText`, `findText`, `setCurrentIndex`, item data, the change
-signals), so saving and loading code reads it exactly like the combo box it
-replaces. Everything is drawn from the palette through `style`.
-"""
-
 from collections.abc import Callable
 from typing import Any
 
@@ -55,17 +47,11 @@ SWATCH_RADIUS = 2
 
 
 class Segmented(QFrame):
-    """Mutually exclusive choices in one pill; reads like a combo box.
-
-    The highlight under the chosen label is painted by the frame, not by the
-    button, so a click slides it from the old choice to the new one.
-    """
-
     currentIndexChanged = pyqtSignal(int)
     currentTextChanged = pyqtSignal(str)
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._palette = palette
         self._items: list[str] = []
         self._data: dict[int, Any] = {}
@@ -91,7 +77,6 @@ class Segmented(QFrame):
             button.setCheckable(True)
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.setStyleSheet(self._segment_style())
-            # Room for the bold checked label: sized for the regular weight, "Balanced" lost its last letter.
             bold = button.font()
             bold.setWeight(QFont.Weight.DemiBold)
             button.setMinimumWidth(QFontMetrics(bold).horizontalAdvance(item) + 2 * SEGMENT_PADDING + SEGMENT_SLACK)
@@ -129,11 +114,7 @@ class Segmented(QFrame):
         self._group.button(index).setChecked(True)
         self._chosen(index)
 
-    def setCurrentText(self, text: str) -> None:
-        self.setCurrentIndex(self.findText(text))
-
     def _clicked(self, index: int) -> None:
-        """Slide the highlight from where it is now to the chosen label, then report the choice."""
         previous = self._group.button(self._last)
         start = self._pill or (QRectF(previous.geometry()) if previous is not None else None)
         target = self._group.button(index)
@@ -186,18 +167,14 @@ class Segmented(QFrame):
 
 
 class Chips(QWidget):
-    """Preset values for a line edit: a click writes the value, typing lights the matching chip."""
-
     def __init__(
         self,
         palette: Any,
         edit: QLineEdit,
         presets: list[tuple[str, str]],
         parse: Callable[[str], int | None],
-        parent: QWidget | None = None,
     ):
-        super().__init__(parent)
-        self._palette = palette
+        super().__init__()
         self._edit = edit
         self._parse = parse
         self._chips: list[tuple[QPushButton, int | None]] = []
@@ -209,7 +186,7 @@ class Chips(QWidget):
             chip.setCheckable(True)
             chip.setFixedHeight(CHIP_HEIGHT)
             chip.setCursor(Qt.CursorShape.PointingHandCursor)
-            chip.setStyleSheet(self._chip_style())
+            chip.setStyleSheet(chip_style(palette))
             chip.clicked.connect(lambda _checked=False, text=value: self._edit.setText(text))
             line.addWidget(chip)
             self._chips.append((chip, parse(value)))
@@ -221,12 +198,8 @@ class Chips(QWidget):
         for chip, preset in self._chips:
             chip.setChecked(value is not None and value == preset)
 
-    def _chip_style(self) -> str:
-        return chip_style(self._palette)
-
 
 def chip_style(palette: Any) -> str:
-    """A pill button: hairline at rest, an accent wash when checked."""
     accent = style.accent(palette)
     return (
         f"QPushButton {{ background: {style.css_color(style.panel(palette))};"
@@ -239,51 +212,42 @@ def chip_style(palette: Any) -> str:
     )
 
 
+# Painted, not styled: a style sheet swapped while a child is in its event handler crashes QGIS.
 class RoundedFrame(QFrame):
-    """A rounded box painted by hand; its look changes with `update()` and nothing else.
-
-    A style sheet on a frame cascades to every child. Swapping it while a child
-    was inside its own event handler (the composer editor's focusOut) crashed QGIS
-    in event processing, so frames whose look follows state are painted.
-    """
-
     def __init__(self, radius: float, parent: QWidget | None = None):
         super().__init__(parent)
         self._radius = radius
-        self._look: tuple[Any, Any, float] | None = None
+        self._look: tuple[Any, Any] | None = None
 
-    def set_look(self, fill: Any, border: Any, width: float = style.HAIRLINE) -> None:
-        """Fill and border colours, either None for none, and the border width."""
-        look = (fill, border, width)
+    def set_look(self, fill: Any, border: Any) -> None:
+        look = (fill, border)
         if look != self._look:
             self._look = look
             self.update()
 
     def paintEvent(self, _event: Any) -> None:
-        if self._look is None or self._look[:2] == (None, None):
+        if self._look is None or self._look == (None, None):
             return
-        fill, border, width = self._look
+        fill, border = self._look
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         if border is None:
             painter.setPen(Qt.PenStyle.NoPen)
         else:
             pen = QPen(QColor(border))
-            pen.setWidthF(width)
+            pen.setWidthF(style.HAIRLINE)
             painter.setPen(pen)
         painter.setBrush(Qt.BrushStyle.NoBrush if fill is None else QColor(fill))
-        inset = width / 2
+        inset = style.HAIRLINE / 2
         painter.drawRoundedRect(QRectF(self.rect()).adjusted(inset, inset, -inset, -inset), self._radius, self._radius)
         painter.end()
 
 
 class HoverFrame(RoundedFrame):
-    """A rounded row lit under the pointer; a left click emits `clicked`."""
-
     clicked = pyqtSignal()
 
-    def __init__(self, radius: float, palette: Any, parent: QWidget | None = None):
-        super().__init__(radius, parent)
+    def __init__(self, radius: float, palette: Any):
+        super().__init__(radius)
         self._fill = style.card(palette).name()
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
@@ -301,10 +265,8 @@ class HoverFrame(RoundedFrame):
 
 
 class PaintedDot(QWidget):
-    """A round status dot drawn by hand, recoloured with `set_colour` and no style sheet."""
-
-    def __init__(self, size: int, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, size: int):
+        super().__init__()
         self._size = size
         self.colour = ""
         self.setFixedSize(size, size)
@@ -326,10 +288,8 @@ class PaintedDot(QWidget):
 
 
 class PaintedSwatch(QWidget):
-    """A small square of one colour, its corners softened, drawn by hand: a legend's key."""
-
-    def __init__(self, size: int, colour: str, edge: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, size: int, colour: str, edge: Any):
+        super().__init__()
         self.colour = colour
         self._edge = edge
         self.setFixedSize(size, size)
@@ -337,7 +297,6 @@ class PaintedSwatch(QWidget):
     def paintEvent(self, _event: Any) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        # A pale key would vanish into the backdrop without its hairline.
         painter.setPen(QPen(self._edge, style.HAIRLINE))
         painter.setBrush(QColor(self.colour))
         painter.drawRoundedRect(QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5), SWATCH_RADIUS, SWATCH_RADIUS)
@@ -345,14 +304,8 @@ class PaintedSwatch(QWidget):
 
 
 class ThinBar(QWidget):
-    """How far a long step has come: a 2 px accent line over a hairline track, painted.
-
-    While the whole is unknown (`set_running`) a short segment sweeps along the track instead;
-    a fraction stops it.
-    """
-
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._track = style.hairline(palette)
         self._fill = style.accent(palette)
         self.fraction = 0.0
@@ -381,13 +334,11 @@ class ThinBar(QWidget):
             self._sweep.start()
 
     def rest(self) -> None:
-        """A still frame of the sweep, its segment mid-track: a screen grab must not depend on the moment."""
         if self._sweep is not None:
             self._sweep.stop()
         self._swept(REST_PHASE)
 
     def hideEvent(self, event: Any) -> None:
-        # Nobody sees it: no timer ticks for a hidden bar.
         self._stop_sweep()
         super().hideEvent(event)
 
@@ -418,10 +369,6 @@ class ThinBar(QWidget):
 
 
 def menu(parent: QWidget, palette: Any) -> QMenu:
-    """A popup menu in the panel's own look: rounded, soft edge, roomy rows, quiet highlight.
-
-    Frameless and translucent so the rounded corners are not drawn over a square system frame.
-    """
     popup = QMenu(parent)
     try:
         flags = popup.windowFlags() | Qt.WindowType.FramelessWindowHint | Qt.WindowType.NoDropShadowWindowHint
@@ -446,22 +393,19 @@ def menu(parent: QWidget, palette: Any) -> QMenu:
 
 
 def as_popup(window: QWidget) -> None:
-    """Make a frame a popup window in the panel's look: frameless and translucent, so its rounded corners
-    are not drawn over a square system frame; the theme's palette; dropping in as the menus do."""
     try:
         flags = Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint | Qt.WindowType.NoDropShadowWindowHint
     except TypeError:
         flags = None
     if flags is not None:
         window.setWindowFlags(flags)
-    # A popup is a window of its own: it does not inherit the panel's palette, so it takes the theme's.
+    # A popup is a window of its own: it does not inherit the panel's palette.
     style.apply_palette(window)
     window.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
     transitions.DropIn(window)
 
 
 def caption(text: str, palette: Any) -> QLabel:
-    """A group caption in a menu or popup: small, bold, upper case, faint."""
     label = QLabel(text)
     style.scale_font(label, CAPTION_SCALE, bold=True)
     font = label.font()
@@ -473,7 +417,6 @@ def caption(text: str, palette: Any) -> QLabel:
 
 
 def menu_rule(palette: Any) -> QWidget:
-    """A popup's separator: a hairline inset from the edges, as `menu` draws its own."""
     holder = QWidget()
     line = QHBoxLayout(holder)
     line.setContentsMargins(6, 4, 6, 4)
@@ -485,14 +428,12 @@ def menu_rule(palette: Any) -> QWidget:
 
 
 def menu_caption(popup: QMenu, text: str, palette: Any) -> QWidgetAction:
-    """A caption row for a `menu`: a widget action, so it is neither highlighted nor triggered."""
     action = QWidgetAction(popup)
     action.setDefaultWidget(caption(text, palette))
     return action
 
 
 def icon_tile(role: str, palette: Any, tile: int, size: int, radius: int, fallback: str) -> QLabel:
-    """A glyph centred on a rounded card-coloured square; the fallback text when it cannot be drawn."""
     label = QLabel()
     label.setFixedSize(tile, tile)
     label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -509,7 +450,6 @@ def icon_tile(role: str, palette: Any, tile: int, size: int, radius: int, fallba
 
 
 def glyph(role: str, colour: Any, size: int) -> QLabel:
-    """A drawn icon in a label of its size; empty when it cannot be drawn."""
     label = QLabel()
     label.setFixedSize(size, size)
     icon = icons.drawn(role, colour, size)
@@ -521,7 +461,6 @@ def glyph(role: str, colour: Any, size: int) -> QLabel:
 def icon_button(
     role: str, fallback: str, tooltip: str, colour: Any, palette: Any, side: int, icon: int, radius: int
 ) -> QToolButton:
-    """A flat icon button with a sunken plate under the pointer; its fallback text when the glyph cannot be drawn."""
     button = QToolButton()
     button.setFixedSize(side, side)
     button.setAutoRaise(True)
@@ -542,37 +481,25 @@ def icon_button(
 
 
 def is_new_shortcut(event: Any) -> bool:
-    """Whether a key event is the platform's new-document shortcut (Ctrl+N, ⌘N on macOS)."""
     matches = getattr(event, "matches", None)
     return bool(matches is not None and matches(QKeySequence.StandardKey.New) is True)
 
 
 def small(text: str, palette: Any, scale: float = SMALL_SCALE) -> QLabel:
-    """A muted, wrapping caption a step below the body text."""
     label = QLabel(text)
     label.setWordWrap(True)
     style.scale_font(label, scale)
-    # Through ink: the colour holds under any style sheet, and a later ink may change it.
     style.ink(label, style.muted(palette))
     return label
 
 
 def badge(text: str, kind: str, palette: Any) -> QLabel:
-    """A small pill: neutral, ok, warn, accent or bad."""
     label = QLabel(text)
     style.scale_font(label, SMALL_SCALE, bold=True)
     label.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
-    colours = {
-        "ok": style.success(palette),
-        "warn": style.warning(palette),
-        "accent": style.accent(palette),
-        "bad": style.danger(palette),
-    }
-    colour = colours.get(kind)
-    fill = style.soft(palette, colour) if colour is not None else style.card(palette)
-    ink = colour if colour is not None else style.muted(palette)
-    if kind == "accent":
-        ink = style.accent_ink(palette)
+    colour = style.warning(palette) if kind == "warn" else style.accent(palette)
+    fill = style.soft(palette, colour)
+    ink = style.accent_ink(palette) if kind == "accent" else colour
     label.setStyleSheet(
         f"QLabel {{ background: {style.css_color(fill)}; color: {style.css_color(ink)};"
         f"border-radius: {BADGE_RADIUS}px; padding: 1px 7px; }}"
@@ -581,14 +508,8 @@ def badge(text: str, kind: str, palette: Any) -> QLabel:
 
 
 class KeyCap(QLabel):
-    """A keyboard key drawn by hand: a rounded outline, a slightly heavier bottom edge, the glyph centred.
-
-    Style sheets cannot do this reliably: a thicker bottom border shifts the text off centre, and a
-    hairline border all but disappears on a dark palette.
-    """
-
-    def __init__(self, text: str, palette: Any, parent: QWidget | None = None):
-        super().__init__(text, parent)
+    def __init__(self, text: str, palette: Any):
+        super().__init__(text)
         self._palette = palette
         style.scale_font(self, KEY_SCALE)
         metrics = self.fontMetrics()
@@ -615,10 +536,8 @@ class KeyCap(QLabel):
 
 
 class ElidedLabel(QLabel):
-    """One line that ends in an ellipsis instead of pushing its parent wider."""
-
-    def __init__(self, text: str = "", parent: QWidget | None = None, mode: Any = Qt.TextElideMode.ElideRight):
-        super().__init__(text, parent)
+    def __init__(self, text: str = "", mode: Any = Qt.TextElideMode.ElideRight):
+        super().__init__(text)
         self._mode = mode
         self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self.setMinimumWidth(1)

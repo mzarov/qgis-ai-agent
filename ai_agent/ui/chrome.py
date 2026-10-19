@@ -1,14 +1,3 @@
-"""The panel's chrome after the design handoff: the dock's own title bar and the toolbar under it.
-
-The title bar replaces the native one: the still compass, "AI Agent", and float
-and close buttons. A press anywhere else on it is left to the dock, so the panel
-drags, docks and floats on a double click as before. The toolbar names the open
-conversation — a button that opens the history — and holds two icon buttons:
-a new conversation (disabled while the conversation is empty; its plus turns
-when pressed) and the settings. Buttons paint their hover; nothing restyles in
-an event.
-"""
-
 from typing import Any
 
 from qgis.PyQt.QtCore import QPointF, QRectF, Qt, pyqtSignal
@@ -33,7 +22,6 @@ TOOL_RADIUS = 6
 CHEVRON = 14
 SPIN_DEGREES = 180.0
 SPIN_MS = 400
-# The handoff's transition for the plus: cubic-bezier(.3,.7,.3,1).
 SPIN_EASING = (0.3, 0.7, 0.3, 1.0)
 DISABLED_OPACITY = 0.55
 FLOAT = tr("Float")
@@ -43,11 +31,10 @@ SETTINGS = tr("Settings")
 HISTORY = tr("Conversation history")
 
 
+# Paints its hover: a style sheet swapped inside an event handler can crash QGIS.
 class PaintedButton(QAbstractButton):
-    """A button that paints itself: entering and leaving only repaint, so nothing restyles in an event."""
-
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._palette = palette
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
@@ -55,7 +42,6 @@ class PaintedButton(QAbstractButton):
         return self.isEnabled() and self.underMouse()
 
     def _paint_plate(self, painter: QPainter) -> None:
-        """The rounded plate under the pointer."""
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(style.card(self._palette))
         painter.drawRoundedRect(QRectF(self.rect()), TOOL_RADIUS, TOOL_RADIUS)
@@ -70,13 +56,8 @@ class PaintedButton(QAbstractButton):
 
 
 class IconButton(PaintedButton):
-    """A square icon button: a rounded plate under the pointer, the glyph turned by `angle` degrees.
-
-    A glyph that cannot be drawn falls back to its text.
-    """
-
-    def __init__(self, role: str, fallback: str, tooltip: str, palette: Any, size: int, icon: int, parent=None):
-        super().__init__(palette, parent)
+    def __init__(self, role: str, fallback: str, tooltip: str, palette: Any, size: int, icon: int):
+        super().__init__(palette)
         self._icon_size = icon
         self._fallback = fallback
         self._rest = icons.drawn(role, style.muted(palette), icon)
@@ -89,7 +70,6 @@ class IconButton(PaintedButton):
         self.setFocusPolicy(Qt.FocusPolicy.TabFocus)
 
     def spin(self) -> None:
-        """Turn the glyph half a circle, once."""
         self._spin.stop()
         self._spin.start()
 
@@ -119,10 +99,8 @@ class IconButton(PaintedButton):
 
 
 class DockTitleBar(QWidget):
-    """The dock's title bar: the still mark, the name, float and close."""
-
-    def __init__(self, dock: QDockWidget, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, dock: QDockWidget, palette: Any):
+        super().__init__()
         self._dock = dock
         self._palette = palette
         self.setFixedHeight(TITLE_BAR_HEIGHT)
@@ -130,7 +108,6 @@ class DockTitleBar(QWidget):
         row = QHBoxLayout(self)
         row.setContentsMargins(*TITLE_BAR_MARGINS)
         row.setSpacing(6)
-        # Still: the panel's one live compass is the status line's.
         self.mark = compass.Compass(TITLE_MARK, palette, halo=style.card(palette))
         row.addWidget(self.mark, 0, Qt.AlignmentFlag.AlignVCenter)
         title = QLabel(TITLE)
@@ -153,10 +130,8 @@ class DockTitleBar(QWidget):
 
 
 class TitleButton(controls.HoverFrame):
-    """The open conversation's title, bold and elided, with a chevron; a click opens the history."""
-
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(TOOL_RADIUS, palette, parent)
+    def __init__(self, palette: Any):
+        super().__init__(TOOL_RADIUS, palette)
         self.setFixedHeight(TOOL_BUTTON)
         self.setToolTip(HISTORY)
         self.setAccessibleName(HISTORY)
@@ -164,7 +139,6 @@ class TitleButton(controls.HoverFrame):
         row.setContentsMargins(6, 0, 6, 0)
         row.setSpacing(4)
         self.label = controls.ElidedLabel()
-        # As wide as its text while there is room, so the chevron follows the title; elided below that.
         self.label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         font = self.label.font()
         font.setBold(True)
@@ -181,14 +155,12 @@ class TitleButton(controls.HoverFrame):
 
 
 class Toolbar(QWidget):
-    """The row under the title bar: the conversation's title, a new conversation, the settings."""
-
     history_requested = pyqtSignal()
     new_requested = pyqtSignal()
     settings_requested = pyqtSignal()
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._palette = palette
         self.setFixedHeight(TOOLBAR_HEIGHT)
         row = QHBoxLayout(self)

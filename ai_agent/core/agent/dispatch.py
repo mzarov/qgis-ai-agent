@@ -61,8 +61,6 @@ class DispatchMixin:
         if tool is None:
             return self._run_now(call)
         if tool.returns_image and detect_images_unsupported(self._overrides):
-            # An earlier load_skill result or the history may still name the tool;
-            # rendering would only cost main-thread time for an omission note.
             return ToolResult.failure(call, NO_IMAGE_INPUT.format(tool=tool.name), tool.egress)
         reads = tool.safety_for(call.arguments) == SAFETY_READ
         if self._planning and not reads:
@@ -145,7 +143,6 @@ class DispatchMixin:
 
 
 def question_options(raw: Any) -> list[str]:
-    """The offered answers: short distinct strings, at most MAX_QUESTION_OPTIONS; anything else is dropped."""
     if not isinstance(raw, list):
         return []
     options: list[str] = []

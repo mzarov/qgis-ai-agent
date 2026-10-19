@@ -98,13 +98,7 @@ def last_snapshot() -> str:
 
 
 def snapshot_exists(path: str) -> bool:
-    """Whether `path` is a live snapshot: still kept (not trimmed or undone) and still on disk."""
     return path in _LAST and os.path.isfile(path)
-
-
-def drop_last() -> None:
-    if _LAST:
-        drop_snapshot(_LAST[-1])
 
 
 def drop_snapshot(path: str) -> None:
@@ -122,7 +116,6 @@ def snapshot_state(path: str) -> ProjectState | None:
 
 
 def snapshot_scratch(path: str) -> ScratchCopies:
-    """Memory-layer features kept for the snapshot; empty when none were copied."""
     return _SCRATCH.get(path) or ScratchCopies()
 
 

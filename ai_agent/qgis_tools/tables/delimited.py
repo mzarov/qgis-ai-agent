@@ -1,10 +1,3 @@
-"""Reading a delimited text file the way the QGIS delimitedtext provider will.
-
-Pure Python on purpose: `prepare` checks a file before anything touches QGIS,
-and the same code runs in tests without it. Only a bounded head of the file is
-read, so a preview of a gigabyte export costs the same as one of a small table.
-"""
-
 import codecs
 import csv
 import difflib
@@ -26,14 +19,11 @@ UTF16 = "UTF-16"
 UTF16_BOMS = (codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE)
 CYRILLIC_ENCODING = "windows-1251"
 WESTERN_ENCODING = "windows-1252"
-# A text that is mostly Cyrillic letters once decoded as windows-1251 was
-# written in it; anything else not in UTF-8 is taken for a Western export.
 CYRILLIC_SHARE = 0.3
 TEXT = "text"
 INTEGER = "integer"
 DOUBLE = "double"
 BOOLEAN = "bool"
-# The provider's boolean literals: a column using one pair only is typed bool.
 BOOLEAN_PAIRS = (("true", "false"), ("t", "f"), ("yes", "no"), ("1", "0"))
 INTEGER_PATTERN = re.compile(r"[+-]?\d+")
 REAL_PATTERN = re.compile(r"[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?")
@@ -45,16 +35,12 @@ CLOSE_MATCH_CUTOFF = 0.6
 
 @dataclass(frozen=True)
 class DelimitedTable:
-    """The header and the first rows of a delimited text file."""
-
     path: str
     delimiter: str
     encoding: str
     header: list[str]
     rows: list[list[str]]
     complete: bool
-    # Whether numbers are written as 37,5 — the provider needs decimalPoint=, then.
-    # A field, not a property: number() runs once per coordinate value.
     decimal_comma: bool = False
 
     @property
@@ -66,17 +52,14 @@ class DelimitedTable:
         return os.path.splitext(os.path.basename(self.path))[0] or "table"
 
     def values(self, column: str, strip: bool = True) -> list[str]:
-        """The non-blank sampled values of one column; QGIS itself keeps the spaces of text."""
         index = self.header.index(column)
         found = [row[index] for row in self.rows if index < len(row) and row[index].strip()]
         return [value.strip() for value in found] if strip else found
 
     def column_type(self, column: str) -> str:
-        """The type QGIS will detect, except that codes with leading zeros stay text."""
         return column_type(self.values(column), self.decimal_comma)
 
     def text_codes(self) -> list[str]:
-        """Columns of digit codes like 007 that type detection would turn into numbers."""
         return [column for column in self.header if has_leading_zeros(self.values(column))]
 
     def number(self, value: str) -> float | None:
@@ -92,7 +75,6 @@ class DelimitedTable:
 
 
 def read_table(path: str, delimiter: str = "", limit: int = SAMPLE_BYTES) -> DelimitedTable:
-    """Read the header and up to `limit` bytes of rows; errors name what to fix."""
     clean = checked_path(path)
     with open(clean, "rb") as handle:
         raw = handle.read(limit + 1)
@@ -118,7 +100,6 @@ def read_table(path: str, delimiter: str = "", limit: int = SAMPLE_BYTES) -> Del
 
 
 def field_names(cells: list[str]) -> list[str]:
-    """Header cells named as the provider names them: trimmed, field_N when empty, a_1 for a repeat."""
     names: list[str] = []
     for position, cell in enumerate(cells, start=1):
         base = cell.strip() or f"field_{position}"
@@ -147,7 +128,6 @@ def checked_path(path: str) -> str:
 
 
 def looks_like_file(text: str) -> bool:
-    """Whether a table argument names a file rather than a project layer."""
     clean = str(text or "").strip()
     if not clean.lower().endswith(TABLE_SUFFIXES):
         return False
@@ -208,7 +188,6 @@ def _wanted_delimiter(raw: str) -> str:
 
 
 def _sniff(text: str) -> str:
-    """The delimiter that splits the first lines into the most, consistently wide columns."""
     lines = text.splitlines()[:SNIFF_LINES]
     best, best_width = DELIMITERS[0], 1
     for candidate in DELIMITERS:
@@ -232,10 +211,8 @@ def _decimal_comma(header: list[str], rows: list[list[str]]) -> bool:
 
 def _decode(raw: bytes, complete: bool) -> tuple[str, str]:
     if raw.startswith(UTF16_BOMS):
-        # Excel's "Unicode text" export; the provider reads it as UTF-16 once told so.
         return codecs.getincrementaldecoder("utf-16")(errors="replace").decode(raw, final=complete), UTF16
     try:
-        # Incremental, so a sample cut inside a multi-byte letter is not mistaken for another encoding.
         return codecs.getincrementaldecoder("utf-8-sig")().decode(raw, final=complete), UTF8
     except UnicodeDecodeError:
         pass

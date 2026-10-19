@@ -17,7 +17,7 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 MINIMUM_QGIS_VERSION = 40000
 EXPECTED_TOOLS = 90
 EXPECTED_SKILLS = 19
-# A test profile has said no to usage statistics: no test run counts, so none can reach the public collector.
+# A test profile opts out of usage statistics, so no test run can reach the public collector.
 USAGE_OPT_OUT = ("ai_agent/usage/consent", "no")
 
 
@@ -31,7 +31,6 @@ def main() -> int:
 
 @contextmanager
 def qgis_application(root: pathlib.Path) -> Iterator[QgsApplication]:
-    """Keep settings, authentication and Processing state inside the test profile."""
     QSettings.setDefaultFormat(QSettings.Format.IniFormat)
     QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, os.fspath(root / "settings"))
     with patch.dict(os.environ, {"QGIS_CUSTOM_CONFIG_PATH": os.fspath(root / "config")}):
@@ -66,7 +65,7 @@ def _run_checks(package_root: pathlib.Path) -> int:
     from ai_agent.qgis_tools.common.layers import find_layer_by_id, find_layer_by_name
     from ai_agent.qgis_tools.common.project_identity import STORAGE_PREFIX, project_identity
     from ai_agent.qgis_tools.project.snapshots import (
-        drop_last,
+        drop_snapshot,
         ensure_project_read_safe,
         snapshot_error,
         take_snapshot,
@@ -101,7 +100,7 @@ def _run_checks(package_root: pathlib.Path) -> int:
     storage_uri_hashed = storage_identity.startswith(STORAGE_PREFIX) and "geopackage" not in storage_identity
     project.clear()
     if snapshot_path:
-        drop_last()
+        drop_snapshot(snapshot_path)
         pathlib.Path(snapshot_path).unlink(missing_ok=True)
     checks = {
         "QGIS 4.0+": Qgis.QGIS_VERSION_INT >= MINIMUM_QGIS_VERSION,
@@ -181,7 +180,7 @@ def _active_edit_buffer_checks(project, ensure_read_safe, take_project_snapshot,
 
 
 def _web_request_policy(build_request, timeout_ms: int) -> bool:
-    request = build_request("https://example.com/", {}, address="93.184.216.34")
+    request = build_request("https://example.com/", address="93.184.216.34")
     return (
         request.url().host() == "93.184.216.34"
         and request.peerVerifyName() == "example.com"

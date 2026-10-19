@@ -16,8 +16,6 @@ class Clock:
 
 
 class DoneTimeTest(unittest.TestCase):
-    """The time on "Done in N s" runs from the user's last action, not from the last phase that started."""
-
     def setUp(self):
         self.clock = Clock()
         patcher = mock.patch.object(progress.time, "monotonic", self.clock)
@@ -27,10 +25,9 @@ class DoneTimeTest(unittest.TestCase):
 
     def done_text(self):
         self.line.show_outcome(notices.STATUS_DONE)
-        return self.line.step_text
+        return self.line._step.text()
 
     def test_auto_mode_counts_the_run_the_apply_and_the_check(self):
-        # Seen: "Done in 0 s" after a run of a minute, because the apply restarted the clock.
         self.line.begin()
         self.line.start()
         self.clock.now += 50
@@ -54,7 +51,7 @@ class DoneTimeTest(unittest.TestCase):
         self.line.start()
         self.clock.now += 3
         self.assertIn("3", self.done_text())
-        self.assertNotIn("min", self.line.step_text, "the minutes before Apply was pressed are not work")
+        self.assertNotIn("min", self.line._step.text(), "the minutes before Apply was pressed are not work")
 
     def test_work_nobody_announced_keeps_its_own_time(self):
         self.line.start()

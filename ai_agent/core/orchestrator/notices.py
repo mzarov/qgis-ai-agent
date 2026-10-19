@@ -1,9 +1,6 @@
-"""What the orchestrator says in the chat and the QGIS message bar, in one place."""
-
 from ai_agent.i18n import tr
 
 LOG_TAG = "AI Agent"
-# What the rewind question can answer; the dock returns one of these or None.
 REWIND_BOTH = "both"
 REWIND_CONVERSATION = "conversation"
 REWIND_PROJECT = "project"
@@ -13,15 +10,12 @@ RUN_STOPPED = tr("Run stopped. Pending work was cancelled.")
 APPLY_STOPPED = tr("Run stopped during apply. Pending steps were cancelled; any completed changes remain.")
 SWITCH_WHILE_RUNNING = tr("Wait for the current task to finish.")
 SWITCH_WHILE_APPLYING = tr("Changes are being applied — wait for that to finish.")
-# What a run is for, when it is not the user's request: the feed names its trace and the status line by it.
 RUN_CHECK = "check"
 RUN_LOOK_INTO = "look_into"
-# States of a plan card step, shared with the card through the dock contract.
 STEP_RUNNING = "running"
 STEP_DONE = "done"
 STEP_FAILED = "failed"
 STEP_SKIPPED = "skipped"
-# What the status line under the feed says once a run has stopped working.
 STATUS_WAITING = "waiting"
 STATUS_DONE = "done"
 STATUS_FAILED = "failed"
@@ -36,7 +30,6 @@ DATA_SHARING_DECLINED = tr("Request not sent.")
 UNKNOWN_SKILL = tr("No skill named /{0}. Available: {1}.")
 PROJECT_CHANGED = tr("The QGIS project changed. A new project-scoped conversation was started.")
 PREVIOUS_APPLY_INTERRUPTED = tr("An interrupted run completed work in the previous project; see its conversation.")
-# Shown as the user's message when they run a plan; the model gets the English one with the request.
 RUN_THE_PLAN = tr("Carry out the plan.")
 RUN_THE_PLAN_MODEL = "Carry out the plan above."
 RUN_THE_PLAN_FOR = "Carry out the plan above for my request: {0}"

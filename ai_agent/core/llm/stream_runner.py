@@ -67,8 +67,7 @@ def post_stream(
     closed = False
 
     def drain() -> None:
-        # A readyRead can still arrive while Qt tears the reply down after deleteLater;
-        # reading a deleted reply raises inside a slot and aborts QGIS.
+        # readyRead can arrive after deleteLater: reading a deleted reply raises in a slot and aborts QGIS.
         if closed:
             return
         try:
@@ -127,14 +126,6 @@ def post_stream(
 
 
 def _finished_response(completion: Any, accumulator: SseAccumulator, endpoint: str) -> dict[str, Any]:
-    """Turn a closed stream into a response, or raise what really happened.
-
-    An error event inside a 200 stream (an overloaded model, an upstream
-    failure) is raised as an API error so the retry layer sees it; a stream
-    that closed without its terminator is an incomplete answer, not a short
-    one. A server that ignored `stream` and sent one plain JSON body is read as
-    that body.
-    """
     error = getattr(completion, "error", None)
     if error:
         kind = str(error.get("type") or error.get("code") or "")

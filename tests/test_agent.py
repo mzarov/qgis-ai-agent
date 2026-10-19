@@ -22,6 +22,7 @@ from ai_agent.core.llm.turns import (
     parse_json_turn,
     parse_native_turn,
 )
+from ai_agent.qgis_tools.base import SAFETY_READ
 from ai_agent.qgis_tools.registry import ALL_TOOLS, get_tool_by_name
 from ai_agent.qgis_tools.web import geocode as geocode_module
 from ai_agent.qgis_tools.web import http as http_module
@@ -29,8 +30,6 @@ from ai_agent.skills.registry import SKILL_REGISTRY
 
 
 class MainThreadOnly:
-    """An executor fake whose calls all run on the main thread, through `run`."""
-
     @staticmethod
     def start(call, done):
         return None
@@ -45,10 +44,6 @@ class FakeExecutor(MainThreadOnly):
             return ToolResult.failure(call, "неизвестный тул")
         self.ran.append(call.name)
         return ToolResult(call=call, ok=True, payload={"fake": True})
-
-    @staticmethod
-    def queued(call):
-        return ToolResult(call=call, ok=True, payload={"status": "queued"})
 
 
 def call(tool, **arguments):
@@ -94,10 +89,10 @@ class DispatchTest(unittest.TestCase):
 
     def test_no_write_ever_runs_without_confirmation(self):
         for tool in ALL_TOOLS:
-            if not tool.is_read_only:
+            if tool.safety != SAFETY_READ:
                 self.loop._dispatch(call(tool.name))
         for name in self.executor.ran:
-            self.assertTrue(get_tool_by_name(name).is_read_only, name)
+            self.assertEqual(get_tool_by_name(name).safety, SAFETY_READ, name)
 
     def test_all_network_tools_are_queued_and_auto_staged_even_for_a_local_model(self):
         self.loop._overrides = {"url_override": "http://127.0.0.1:11434/v1"}
@@ -266,12 +261,6 @@ class AbortReentrancyTest(unittest.TestCase):
                 self.callbacks.append((on_turn, on_error, on_chunk, on_thinking, on_retry))
 
             def release(self):
-                return None
-
-            def stop(self):
-                return None
-
-            def detach(self, *callbacks):
                 return None
 
         loop = AgentLoop()
@@ -560,13 +549,11 @@ APPLY_NOW = (APPLY_NOW_TOOL, {"reason": "see the basemaps"})
 
 
 def json_turn(*calls, text=""):
-    """A JSON-protocol answer as the parser reads it: the model gives its calls no ids."""
     content = json.dumps({"text": text, "tool_calls": [{"name": name, "arguments": args} for name, args in calls]})
     return parse_json_turn({"choices": [{"message": {"content": content}}]})
 
 
 def native_turn(*calls, text=""):
-    """A native answer from a provider that numbers its calls afresh in every answer."""
     raw = [
         {"id": f"call_{index}", "type": "function", "function": {"name": name, "arguments": json.dumps(args)}}
         for index, (name, args) in enumerate(calls)
@@ -575,15 +562,12 @@ def native_turn(*calls, text=""):
 
 
 class CallIdentityTest(unittest.TestCase):
-    """Apply puts each result back by its call's id, so one id must name one call in the whole run."""
-
     def setUp(self):
         snapshot = mock.patch.object(batch_apply_module, "take_snapshot", return_value="/tmp/snapshot.qgz")
         snapshot.start()
         self.addCleanup(snapshot.stop)
 
     def _run(self, make_turn, protocol, staged):
-        """write A, write B, read C in three turns, then Apply: at the end of the run or staged with C."""
         self.loop = AgentLoop()
         self.executor = FakeExecutor()
         self.loop._executor = self.executor

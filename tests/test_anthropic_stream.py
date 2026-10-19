@@ -2,12 +2,21 @@ import json
 import unittest
 
 from ai_agent.core.llm import anthropic, transport
-from ai_agent.core.llm.anthropic_stream import AnthropicExchange, StreamedMessage, consume_anthropic
+from ai_agent.core.llm.anthropic_stream import AnthropicExchange, StreamedMessage
 from ai_agent.core.llm.client import ApiResponseError
 from ai_agent.core.llm.stream import SseAccumulator
 from ai_agent.core.llm.stream_runner import _finished_response as finished_response
 
 URL = "https://api.anthropic.com"
+
+
+def consume_anthropic(chunks, on_text=None, on_thinking=None):
+    accumulator = SseAccumulator()
+    message = StreamedMessage(on_text, on_thinking)
+    for chunk in chunks:
+        for event in accumulator.feed(chunk):
+            message.take(event)
+    return message.response()
 
 
 def event(payload: dict) -> bytes:

@@ -28,7 +28,6 @@ MIN_CLASSES = 2
 MAX_CLASSES = 20
 DEFAULT_RAMPS = ("Viridis", "Blues", "Spectral")
 EXACT_MODE = "equal"
-# Said with the result, so a count the user named is fixed in this turn rather than found in the check after Apply.
 CLASS_COUNT_NOTE = (
     "{made} classes came out, not the {asked} asked for: the {mode} mode picks its own breaks. "
     "Only mode=equal always makes exactly the number given."

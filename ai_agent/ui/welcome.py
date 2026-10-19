@@ -1,11 +1,3 @@
-"""The empty conversation: the compass arriving, what the agent is, the project, examples to start with.
-
-Centred like the design's welcome: the mark plays its arrival once, a title,
-one sentence on the deal (your model, your keys, nothing changes without you),
-a line naming the open project, then full-width examples to start with. A click on
-one sends it. Without a configured model the card asks for settings instead.
-"""
-
 from typing import Any
 
 from qgis.PyQt.QtCore import QRect, Qt, pyqtSignal
@@ -25,7 +17,6 @@ PROJECT_ICON = 14
 TITLE_SCALE = 17 / 13
 SMALL = 0.92
 SUGGESTION_NAME = "suggestion"
-SIDE_INSET = 0
 MARK = 56
 NEEDS_KEY_TITLE = tr("One step before we start")
 NEEDS_KEY_BODY = tr(
@@ -38,7 +29,6 @@ READY_BODY = tr("Your model, your keys, your project. Nothing changes without yo
 SAVED = tr("Previous conversation saved in history")
 OPEN = tr("Open")
 SAVED_ICON = 12
-# Each example wears the icon of what it does: read, style, imagery, measure.
 SUGGESTIONS = (
     ("layer", tr("Which layers are in the project and what is in them?")),
     ("style", tr("Colour the districts by population")),
@@ -53,10 +43,8 @@ def welcome_content(configured: bool) -> tuple[str, str, tuple[tuple[str, str], 
     return NEEDS_KEY_TITLE, NEEDS_KEY_BODY, ()
 
 
+# A frame with a wrapping label, not a button: button text never wraps.
 class Suggestion(QFrame):
-    """A clickable example request. A frame with a wrapping label, not a button: button text never
-    wraps, so a long example was cut off in a narrow dock."""
-
     chosen = pyqtSignal(str)
 
     def __init__(self, role: str, text: str, palette: Any):
@@ -96,23 +84,21 @@ class WelcomeCard(QWidget):
     settings_requested = pyqtSignal()
     history_requested = pyqtSignal()
 
-    def __init__(self, configured: bool, project: str = "", parent: Any = None):
-        super().__init__(parent)
+    def __init__(self, configured: bool, project: str = ""):
+        super().__init__()
         palette = self.palette()
         title, body, suggestions = welcome_content(configured)
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
         column = QVBoxLayout(self)
-        column.setContentsMargins(SIDE_INSET, 0, SIDE_INSET, 0)
+        column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(STACK_GAP)
         column.addStretch(1)
-        # The compass arrives: its needle swings in and settles at rest, once, when the welcome appears.
         self.mark = compass.Compass(MARK, palette)
         column.addWidget(self.mark, 0, Qt.AlignmentFlag.AlignHCenter)
         self.mark.set_state(compass.ARRIVE)
         column.addWidget(_title(title, palette))
-        if body:
-            # Full width with centred text: an alignment flag would size a wrapping label by its hint and cut it.
-            column.addWidget(_body(body, palette))
+        # Full width, centred text: an alignment flag would size a wrapping label by its hint and cut it.
+        column.addWidget(_body(body, palette))
         self._configured = configured
         self.project = _project_line(palette)
         column.addWidget(self.project, 0, Qt.AlignmentFlag.AlignHCenter)
@@ -125,7 +111,6 @@ class WelcomeCard(QWidget):
         column.addLayout(stack)
         if not suggestions:
             column.addWidget(self._settings_button(palette))
-        # After "New conversation": where the previous one went, and a way back to it.
         self.saved = self._saved_line(palette)
         self.saved.setVisible(False)
         self._arrival: transitions.Arrival | None = None
@@ -141,11 +126,9 @@ class WelcomeCard(QWidget):
         self.saved.setVisible(True)
 
     def prepare_arrival(self) -> None:
-        """Wait unseen until `arrive` (the old conversation is still leaving)."""
         self._arrival = transitions.Arrival(self, self._saved_rect)
 
     def arrive(self) -> None:
-        """Fade in and settle from below, the saved line a little behind, while the compass arrives."""
         if self._arrival is None:
             return
         self.mark.set_state(compass.ARRIVE)
@@ -208,7 +191,6 @@ def _body(text: str, palette: Any) -> QLabel:
 
 
 def _project_line(palette: Any) -> QWidget:
-    """The open project in one quiet line: its file, how many layers, the CRS; a long name elides."""
     holder = QWidget()
     line = QHBoxLayout(holder)
     line.setContentsMargins(0, 0, 0, 0)
@@ -219,7 +201,6 @@ def _project_line(palette: Any) -> QWidget:
         glyph.setPixmap(icon.pixmap(PROJECT_ICON, PROJECT_ICON))
     line.addWidget(glyph)
     label = controls.ElidedLabel()
-    # Sized by its text while there is room, so the centred line is as wide as it reads; elides below that.
     label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
     style.scale_font(label, SMALL)
     style.ink(label, style.faint(palette))

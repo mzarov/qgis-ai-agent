@@ -67,7 +67,7 @@ class TitleTest(unittest.TestCase):
             is_running=False,
             start=lambda messages, tools, overrides, on_turn, on_error: started.update(messages=messages, tools=tools),
         )
-        self.assertTrue(titler.start("раскрась районы", "готово", {"url_override": "u"}))
+        self.assertTrue(titler.start("раскрась районы", "готово"))
         self.assertEqual(started["tools"], [])
         self.assertIn("раскрась районы", started["messages"][1]["content"])
 
@@ -123,8 +123,6 @@ class RowTest(unittest.TestCase):
 
 
 class DayGroupsTest(unittest.TestCase):
-    """The history menu groups conversations by day, newest first, a time today and yesterday, a date before."""
-
     def test_today_yesterday_and_earlier(self):
         from datetime import datetime
 

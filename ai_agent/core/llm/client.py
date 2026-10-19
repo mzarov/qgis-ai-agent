@@ -105,24 +105,23 @@ SECRET_PATTERNS = (
 
 
 def scrub_secrets(text: str) -> str:
-    """Mask anything shaped like a key before an error body reaches the chat, the log or a journal."""
     for pattern, replacement in SECRET_PATTERNS:
         text = pattern.sub(replacement, text)
     return text
 
 
 class ModelTimeout(ConnectionError):
-    """The model did not answer in time; a ConnectionError still, so retries treat it as before."""
+    pass
 
 
 class SetupError(ValueError):
-    """The connection is not set up: no address, a malformed one, no key."""
+    pass
 
 
 class ApiResponseError(RuntimeError):
     def __init__(self, status_code: int, body: str, message: str | None = None, retry_after: float | None = None):
         shown = scrub_secrets(body[:ERROR_BODY_LIMIT])
-        # A caller's own message may quote the body too; the text that reaches the chat is scrubbed either way.
+        # A caller's own message may quote the body too: scrub whatever reaches the chat.
         super().__init__(scrub_secrets(message or tr("The API returned {0}: {1}").format(status_code, shown)))
         self.status_code = status_code
         self.body = body
@@ -130,17 +129,10 @@ class ApiResponseError(RuntimeError):
 
 
 def blocking_timeout(idle_timeout: int) -> int:
-    """A whole non-streamed answer arrives at once, so the wait must cover all of the model's work.
-
-    A stream only needs data to keep flowing; a blocking call gets nothing until
-    the model is done, and a slow local model or a long think easily passes the
-    stream's idle limit.
-    """
     return int(idle_timeout) * BLOCKING_TIMEOUT_FACTOR
 
 
 def retry_after_of(reply: Any) -> float | None:
-    """Seconds from a Retry-After header in seconds form; None when absent or a date."""
     try:
         raw = bytes(reply.rawHeader(QByteArray(RETRY_AFTER_HEADER))).decode("ascii", errors="ignore").strip()
     except Exception:
@@ -336,11 +328,3 @@ def post_chat_completion(
         verify_override,
         overrides.get("feedback_override"),
     )
-
-
-def chat(messages: list[dict[str, Any]], timeout: int = 60, **overrides: Any) -> str:
-    data = post_chat_completion(messages, timeout=timeout, **overrides)
-    choices = data.get("choices") or []
-    if not choices:
-        raise ValueError(tr("The API returned an empty answer."))
-    return ((choices[0].get("message") or {}).get("content") or "").strip()

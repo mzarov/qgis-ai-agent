@@ -1,10 +1,3 @@
-"""The Geocoding page: off, the public Photon, or the user's own Nominatim, as tiles; the address below.
-
-The public OSMF Nominatim is not offered on purpose (`config/geocoder.py`): its
-policy does not allow an agent's traffic. "Your own server" is any Nominatim the
-user may use; its address is the only one edited here.
-"""
-
 from typing import Any
 
 from qgis.PyQt.QtCore import QObject, pyqtSignal
@@ -45,7 +38,6 @@ class GeocoderSettings(QObject):
 
     def __init__(self, palette: Any):
         super().__init__()
-        self._palette = palette
         self._custom_url = get_custom_nominatim_url()
         self._provider = get_geocoder_provider()
         holder, column = fields.page(TITLE, LEAD, palette)
@@ -92,7 +84,6 @@ class GeocoderSettings(QObject):
 
     def _show(self, provider: str) -> None:
         self.tiles.select(provider)
-        # The address belongs to the own server only; Photon's public one is shown, greyed.
         self._parameters.setVisible(provider != GEOCODER_DISABLED)
         own = provider == GEOCODER_NOMINATIM
         self.url_edit.setText(self._custom_url if own else GEOCODER_PHOTON_URL)

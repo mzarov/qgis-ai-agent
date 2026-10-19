@@ -10,7 +10,6 @@ from ai_agent.qgis_tools.data.stac import search
 DEFAULT_LIMIT = 5
 MAX_LIMIT = 10
 DEFAULT_MAX_CLOUD = 20.0
-LOAD_HINT = "load_imagery with collection={collection} and item_ids; default asset {asset}"
 NOTHING = (
     "No scene matches. Widen the dates, raise max_cloud, or check that the area is on land "
     "and inside the dataset's coverage."
@@ -101,7 +100,6 @@ class SearchImageryTool(BaseTool):
 
 
 def _max_cloud(raw: Any) -> float:
-    """The highest cloud cover in percent; 0 asks for cloud-free scenes, so only a missing value defaults."""
     return DEFAULT_MAX_CLOUD if raw in (None, "") else float(raw)
 
 

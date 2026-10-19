@@ -64,12 +64,8 @@ class SchemaTest(unittest.TestCase):
 
 class SafetyTest(unittest.TestCase):
     def test_read_tools_are_the_majority(self):
-        read = [tool for tool in ALL_TOOLS if tool.is_read_only]
+        read = [tool for tool in ALL_TOOLS if tool.safety == SAFETY_READ]
         self.assertGreater(len(read), 0)
-
-    def test_is_read_only_matches_safety(self):
-        for tool in ALL_TOOLS:
-            self.assertEqual(tool.is_read_only, tool.safety == SAFETY_READ, tool.name)
 
     def test_prepare_defaults_to_passthrough(self):
         checked = []

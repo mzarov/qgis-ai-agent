@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 RESULT_IMAGE_KEY = "image_base64"
-# A chart or table for the person: the feed draws it, the model never receives it.
 RESULT_VISUAL_KEY = "visual_for_user"
 SAFETY_READ = "read"
 SAFETY_WRITE = "write"
@@ -11,7 +10,6 @@ EGRESS_METADATA = "metadata"
 EGRESS_FEATURE_VALUES = "feature_values"
 EGRESS_IMAGE = "image"
 EGRESS_WEB_CONTENT = "web_content"
-SENSITIVE_EGRESS = frozenset({EGRESS_FEATURE_VALUES, EGRESS_IMAGE})
 
 JSON_SCHEMA_TYPES = {
     "string": "string",
@@ -24,13 +22,6 @@ JSON_SCHEMA_TYPES = {
 
 
 class BaseTool(ABC):
-    """One main-thread operation with explicit effect and output classifications.
-
-    Every registered subclass declares safety, egress, external_effect and
-    network_access. Parameter-dependent effects override the capability methods;
-    schemas describe model arguments, while prepare validates concrete values.
-    """
-
     name: str = ""
     description: str = ""
     params_schema: list[dict[str, Any]] = []
@@ -41,21 +32,13 @@ class BaseTool(ABC):
     egress: str = EGRESS_METADATA
     external_effect: bool = False
     network_access: bool = False
-    # The result exists only to be looked at: a model known to reject image
-    # input is not offered the tool, since it would get an omission note back.
     returns_image: bool = False
-    # detail_call returns code to run (run_python): the confirmation shows it as code, not as prose.
     detail_is_code: bool = False
-
-    @property
-    def is_read_only(self) -> bool:
-        return self.safety == SAFETY_READ
 
     def safety_for(self, params: dict[str, Any]) -> str:
         return self.safety
 
     def has_external_effect(self, params: dict[str, Any]) -> bool:
-        """Whether this call can change data that a project snapshot cannot restore."""
         return self.external_effect
 
     def has_network_access(self, params: dict[str, Any]) -> bool:
@@ -106,56 +89,26 @@ class BaseTool(ABC):
         return " ".join(part for part in parts if part)
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
-        """Normalize and validate without mutations or service calls.
-
-        Bind selected layers by ID for deferred execution. Raise ValueError with
-        a recovery hint for invalid input; the model can correct it before Apply.
-        """
+        # No mutations or service calls: prepare runs before the user confirms.
         return params
 
     def detail_call(self, params: dict[str, Any]) -> str:
         return ""
 
     def summarize_call(self, params: dict[str, Any]) -> str:
-        """Return a user-facing label, including when arguments are malformed."""
         if not params:
             return self.description or self.name
         shown = ", ".join(f"{key}={value}" for key, value in params.items())
         return f"{self.description or self.name}: {shown}"
 
     def summarize_result(self, params: dict[str, Any], payload: dict[str, Any]) -> str:
-        """A short user-facing line under the finished call: what it found, in tr() text.
-
-        `payload` is what execute returned. "" (the default) shows nothing; the
-        registry swallows exceptions, but the line must never claim more than
-        the payload holds.
-        """
         return ""
 
     def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
-        """Read back whether an applied step took effect, so the model need not check it.
-
-        `params` are the prepared arguments and `payload` what execute returned.
-        True: the project shows the step. False: it does not. None (the default):
-        this step needs the model's eye — visual results, new data, anything a
-        single read cannot judge. Runs on the main thread after the whole batch.
-        """
         return None
 
     def start(self, params: dict[str, Any]) -> Any:
-        """Start this call's long work off the main thread, or return None to run `execute` instead.
-
-        A tool that can take long returns a `common.background.Background`: its
-        task does only thread-safe work, and the project is touched when it ends,
-        on the main thread. Validate as `execute` does and raise the same errors.
-        """
         return None
 
     @abstractmethod
-    def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        """Execute on the Qt main thread and return JSON-compatible results.
-
-        Recheck mutable preconditions and report errors or partial effects
-        accurately. The output classification must cover every returned value.
-        """
-        ...
+    def execute(self, params: dict[str, Any]) -> dict[str, Any]: ...

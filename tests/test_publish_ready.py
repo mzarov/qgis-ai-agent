@@ -7,7 +7,6 @@ PACKAGE = REPO_ROOT / "ai_agent"
 METADATA = PACKAGE / "metadata.txt"
 REQUIRED_FIELDS = ("name", "qgisMinimumVersion", "description", "about", "version", "author", "email", "repository")
 VALID_CATEGORIES = ("Raster", "Vector", "Database", "Mesh", "Web")
-MANDATORY_IN_ZIP = ("metadata.txt", "__init__.py", "LICENSE")
 CYRILLIC = re.compile(r"[а-яё]", re.IGNORECASE)
 
 
@@ -57,18 +56,20 @@ class MetadataRulesTest(unittest.TestCase):
 
     def test_actual_model_data_is_disclosed(self):
         about = self.values.get("about", "").lower()
+        for phrase in ("everything the agent reads", "attribute values", "rendered map", "local model server"):
+            self.assertIn(phrase, about)
+        self.assertNotIn("per-endpoint consent", about)
+
+    def test_network_calls_usage_statistics_and_the_privacy_page_are_disclosed(self):
+        about = self.values.get("about", "").lower()
         for phrase in (
-            "feature attribute values",
-            "exact map and layer extents",
-            "layer filters and sources",
-            "processing and python results",
-            "rendered map or layout images",
-            "plain json",
+            "ask before each call",
+            "usage statistics are on by default",
+            "turn off",
+            "settings → privacy",
+            "https://mzarov.github.io/qgis-ai-agent/privacy/",
         ):
             self.assertIn(phrase, about)
-        self.assertIn("local model server", about)
-        self.assertNotIn("off by default", about)
-        self.assertNotIn("per-endpoint consent", about)
 
     def test_credential_storage_is_disclosed_without_promising_dependencies(self):
         about = self.values.get("about", "").lower()

@@ -1,24 +1,5 @@
 name: skill-evals
 
-# The skill bench (evals/run.py, docs/skill_evals.md) against a real model:
-# which skills the model loads for a request, and which call it makes once a
-# skill is loaded. Every case is one model request, about half a million tokens
-# for the whole bench, so it never runs on push: start it from the Actions tab,
-# or put the `skill-evals` label on a pull request that touches a skill, a tool
-# description or the prompt. Pull requests from forks get no secrets, so for
-# them the run is skipped; contributors run the bench locally with their own key.
-#
-# It uses the same provider as the live-model workflow. Repository settings:
-#   variable LIVE_MODEL_URL   base URL, e.g. https://api.deepseek.com/v1
-#   variable LIVE_MODEL       model id as the provider names it
-#   secret   LIVE_MODEL_KEY   API key
-#   variable LIVE_MODEL_AUTH  Authorization scheme when not Bearer, e.g. OAuth (optional)
-#
-# A suite fails when its pass rate drops below its floor in
-# evals/thresholds.json, measured on LIVE_MODEL. Until floors exist for that
-# model the run only reports; set them from a run with save_thresholds and
-# commit the file.
-
 on:
   workflow_dispatch:
     inputs:

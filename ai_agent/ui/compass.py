@@ -1,22 +1,8 @@
-"""The brand mark: a compass with an open ring whose needle says what the agent is doing.
-
-Geometry on a 24-unit grid centred at (12, 12), from the design handoff. The
-ring is an arc of radius 8.5 with a 60° gap around north-east; the needle is
-drawn pointing north and rotated about the centre. A diamond of the colour
-under the mark (the "halo") cuts the ring where the needle crosses it, so the
-needle reads in any position. Line weights are optical: heavier at small sizes.
-
-States are rotations of the needle only, keyframed like the prototype's CSS:
-each segment between two keyframes has its own easing, so the swing matches.
-One live compass per panel — in the status line; marks elsewhere stay still.
-"""
-
-import math
 from dataclasses import dataclass
 from typing import Any
 
 from qgis.PyQt.QtCore import QPointF, QRectF, QSize, Qt, QVariantAnimation
-from qgis.PyQt.QtGui import QBrush, QColor, QPainter, QPainterPath, QPen, QPixmap, QPolygonF
+from qgis.PyQt.QtGui import QBrush, QColor, QPainter, QPainterPath, QPen, QPolygonF
 from qgis.PyQt.QtWidgets import QSizePolicy, QWidget
 
 from ai_agent.ui import style
@@ -24,21 +10,18 @@ from ai_agent.ui import style
 GRID = 24.0
 CENTRE = 12.0
 RING_RECT = QRectF(3.5, 3.5, 17.0, 17.0)
-# The arc runs clockwise from 15° to 75° the long way round (Qt measures counter-clockwise from 3 o'clock).
 RING_START = 15.0
 RING_SWEEP = -300.0
 HALO = ((12.0, 1.2), (14.7, 12.0), (12.0, 18.6), (9.3, 12.0))
 SOUTH = ((9.9, 12.0), (14.1, 12.0), (12.0, 17.7))
 NORTH = ((12.0, 1.6), (14.5, 12.0), (9.5, 12.0))
 AXIS_RADIUS = 0.9
-# Ring and needle-outline widths in grid units, by the size the mark is drawn at.
 SMALL, MEDIUM = 16, 30
 WEIGHTS = {SMALL: (2.6, 1.7), MEDIUM: (2.2, 1.5)}
 LARGE_WEIGHTS = (1.9, 1.3)
 HALO_EXTRA = 0.4
 
 REST = "rest"
-NORTH_STATE = "north"
 SEARCH = "search"
 DONE = "done"
 ERROR = "error"
@@ -52,8 +35,6 @@ LINEAR = (0.0, 0.0, 1.0, 1.0)
 
 @dataclass(frozen=True)
 class Motion:
-    """Keyframes as (fraction, degrees), the cycle length, whether it repeats, and each segment's easing."""
-
     keys: tuple[tuple[float, float], ...]
     milliseconds: int
     loops: bool
@@ -69,11 +50,10 @@ MOTIONS = {
     ASK: Motion(((0, 30), (0.5, 60), (1, 30)), 3000, True, EASE_IN_OUT),
     ARRIVE: Motion(((0, -140), (0.55, 62), (0.75, 39), (0.9, 47), (1, 45)), 1100, False, SETTLE),
 }
-RESTING = {REST: 45.0, NORTH_STATE: 0.0}
+RESTING = {REST: 45.0}
 
 
 def cubic_bezier(easing: tuple[float, float, float, float], progress: float) -> float:
-    """CSS cubic-bezier timing: the curve's y where its x equals `progress`."""
     x1, y1, x2, y2 = easing
 
     def axis(t: float, first: float, second: float) -> float:
@@ -90,7 +70,6 @@ def cubic_bezier(easing: tuple[float, float, float, float], progress: float) -> 
 
 
 def angle_at(state: str, progress: float) -> float:
-    """The needle's rotation in degrees at `progress` (0…1) through the state's motion."""
     if state in RESTING:
         return RESTING[state]
     motion = MOTIONS.get(state)
@@ -106,7 +85,6 @@ def angle_at(state: str, progress: float) -> float:
 
 
 def end_angle(state: str) -> float:
-    """Where a state leaves the needle: a motion's last keyframe, or the resting angle."""
     motion = MOTIONS.get(state)
     return motion.keys[-1][1] if motion is not None else RESTING.get(state, RESTING[REST])
 
@@ -127,7 +105,6 @@ class Colours:
 
 
 def paint(painter: QPainter, rect: QRectF, angle: float, colours: Colours) -> None:
-    """Draw the mark into `rect` (square) with the needle at `angle` degrees clockwise from north."""
     size = min(rect.width(), rect.height())
     ring_width, outline = weights(size)
     painter.save()
@@ -157,27 +134,14 @@ def paint(painter: QPainter, rect: QRectF, angle: float, colours: Colours) -> No
     painter.restore()
 
 
-def pixmap(size: int, colours: Colours, angle: float = RESTING[REST], ratio: float = 1.0) -> QPixmap:
-    """A still mark for icons and headers, drawn at the screen's pixel ratio."""
-    image = QPixmap(int(math.ceil(size * ratio)), int(math.ceil(size * ratio)))
-    image.setDevicePixelRatio(ratio)
-    image.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(image)
-    paint(painter, QRectF(0, 0, size, size), angle, colours)
-    painter.end()
-    return image
-
-
 def colours_for(palette: Any, halo: QColor | None = None, failed: bool = False) -> Colours:
     needle = style.danger(palette) if failed else style.accent(palette)
     return Colours(style.text(palette), needle, halo if halo is not None else style.background(palette))
 
 
 class Compass(QWidget):
-    """The live mark: `set_state` plays a state's motion; repeating ones run until the next state."""
-
-    def __init__(self, size: int, palette: Any, halo: QColor | None = None, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, size: int, palette: Any, halo: QColor | None = None):
+        super().__init__()
         self._size = size
         self._palette = palette
         self._halo = halo
@@ -201,15 +165,13 @@ class Compass(QWidget):
         animation.setStartValue(0.0)
         animation.setEndValue(1.0)
         animation.setLoopCount(-1 if motion.loops else 1)
-        # A bound method, not a lambda: Qt drops the connection when the widget dies, so a tick
-        # arriving while the feed deletes the widget cannot reach a half-destroyed object.
+        # A bound method, not a lambda: Qt drops the connection when the widget dies.
         animation.valueChanged.connect(self._on_progress)
         self._motion = animation
         self._turn(angle_at(state, 0.0))
         animation.start()
 
     def stop(self) -> None:
-        """Freeze where the state ends: a still widget costs no repaints."""
         if self._motion is not None:
             self._motion.stop()
             self._motion = None

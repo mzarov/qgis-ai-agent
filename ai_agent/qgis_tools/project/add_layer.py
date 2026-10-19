@@ -13,7 +13,6 @@ from ai_agent.qgis_tools.project.tree import (
     project,
 )
 
-VECTOR_SUFFIXES = (".shp", ".geojson", ".json", ".gpkg", ".kml", ".gml", ".csv", ".tab", ".gpx")
 RASTER_SUFFIXES = (".tif", ".tiff", ".geotiff", ".png", ".jpg", ".jpeg", ".img", ".asc", ".vrt")
 VECTOR = "vector"
 RASTER = "raster"
@@ -73,7 +72,6 @@ class AddLayerTool(BaseTool):
         prepared["source"] = source
         prepared["name"] = _wanted_name(params, source)
         prepared["kind"] = _wanted_kind(params, source)
-        # OGR options after "|" (layername=roads) are for the provider; the file is what comes before them.
         path = source.split("|")[0]
         if _looks_like_path(source) and not os.path.exists(path):
             raise ValueError(f"There is no file '{path}' on disk. Check the path.")

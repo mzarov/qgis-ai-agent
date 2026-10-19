@@ -52,7 +52,7 @@ DEFAULT_SIZES_MM = {
     ITEM_NORTH_ARROW: (18.0, 18.0),
     ITEM_PICTURE: (40.0, 40.0),
 }
-MM = getattr(getattr(Qgis, "LayoutUnit", None), "Millimeters", None)
+MM = Qgis.LayoutUnit.Millimeters
 
 
 def item_kind(item: Any) -> str:
@@ -80,8 +80,6 @@ def north_arrow_path(style: str) -> str:
         folders = [str(folder) for folder in QgsApplication.svgPaths()]
     except Exception:
         folders = []
-    # The first SVG path is usually the user's profile folder, which rarely
-    # holds the bundled arrows; take the first folder that really has the file.
     for folder in folders:
         candidate = os.path.join(folder, relative)
         if os.path.isfile(candidate):

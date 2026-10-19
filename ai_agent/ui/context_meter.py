@@ -1,10 +1,3 @@
-"""The context meter under the composer, as in Claude Code: a ring, and a popup with the numbers.
-
-The ring fills with the share of the model's window the latest request used. Its
-popup shows the window, how far auto-compaction is, a button to compact now and
-what this conversation has spent. Everything is painted, so updates are repaints.
-"""
-
 from typing import Any
 
 from qgis.PyQt.QtCore import QPoint, QRectF, Qt, pyqtSignal
@@ -20,7 +13,6 @@ RING_WIDTH = 2.0
 BAR_HEIGHT = 5
 POPUP_WIDTH = 380
 POPUP_RADIUS = 12
-# Matches the core's auto-compaction share: past it the ring turns to the warning colour.
 FULL_SHARE = 0.9
 TITLE = tr("Context window")
 USED = "{0} / {1} ({2}%)"
@@ -37,7 +29,6 @@ RING_TIP = tr("Context window: {0}% used")
 
 
 def tokens(value: int) -> str:
-    """`950`, `21.3k`, `1M` — the way the numbers read in Claude Code."""
     if value >= 1_000_000:
         return f"{value / 1_000_000:.2f}".rstrip("0").rstrip(".") + "M"
     if value >= 1000:
@@ -46,8 +37,8 @@ def tokens(value: int) -> str:
 
 
 class ContextRing(QToolButton):
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._palette = palette
         self.share = 0.0
         self.setFixedSize(RING + 10, RING + 10)
@@ -81,14 +72,13 @@ class ContextRing(QToolButton):
             arc.setWidthF(RING_WIDTH)
             arc.setCapStyle(Qt.PenCapStyle.RoundCap)
             painter.setPen(arc)
-            # Qt angles are sixteenths of a degree, counter-clockwise from three o'clock.
             painter.drawArc(box, 90 * 16, -int(self.share * 360 * 16))
         painter.end()
 
 
 class UsageBar(QWidget):
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._palette = palette
         self.share = 0.0
         self.setFixedHeight(BAR_HEIGHT)
@@ -116,8 +106,8 @@ class UsageBar(QWidget):
 class ContextPopup(controls.RoundedFrame):
     compact_requested = pyqtSignal()
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(POPUP_RADIUS, parent)
+    def __init__(self, palette: Any):
+        super().__init__(POPUP_RADIUS)
         controls.as_popup(self)
         self.set_look(style.surface(palette).name(), style.hairline(palette).name())
         self.setFixedWidth(POPUP_WIDTH)
@@ -165,7 +155,6 @@ class ContextPopup(controls.RoundedFrame):
         self.spent.setText(spent_text)
 
     def open_above(self, anchor: QWidget) -> None:
-        """Right edges aligned: the ring sits at the composer's right end."""
         self.adjustSize()
         corner = anchor.mapToGlobal(QPoint(anchor.width(), 0))
         self.move(corner.x() - self.width(), corner.y() - self.sizeHint().height() - controls.MENU_GAP)
@@ -177,12 +166,10 @@ class ContextPopup(controls.RoundedFrame):
 
 
 class ContextMeter(QWidget):
-    """The ring and its popup, fed with the numbers by the dock."""
-
     compact_requested = pyqtSignal()
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         line = QHBoxLayout(self)
         line.setContentsMargins(0, 0, 0, 0)
         self.ring = ContextRing(palette)

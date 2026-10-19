@@ -1,11 +1,3 @@
-"""A checked ModelSpec as a QgsProcessingModelAlgorithm, and the folder the Models provider reads.
-
-`checked_against_registry` resolves what only QGIS knows — algorithm ids,
-parameter and output names, enum labels — so every mistake surfaces while the
-call is prepared. `build_model` assembles the model the way the Model
-Designer stores it; the files it writes open there like hand-made ones.
-"""
-
 import os
 import re
 from dataclasses import replace
@@ -56,14 +48,12 @@ HELP_DESCRIPTION_KEY = "ALG_DESC"
 SCRATCH_PREFIXES = ("memory:", "memory://")
 HTML_TAG = re.compile(r"<[^>]+>")
 MAX_LISTED_NAMES = 12
-# Designer coordinates: inputs in a row on top, steps in a column below, each output beside its step.
 INPUT_ROW = (120.0, 60.0, 220.0)
 STEP_COLUMN = (320.0, 200.0, 160.0)
 OUTPUT_OFFSET = (230.0, 60.0)
 
 
 def checked_against_registry(spec: ModelSpec) -> ModelSpec:
-    """The spec with canonical algorithm ids and enum indexes; ValueError for anything QGIS would refuse."""
     algorithms: dict[str, Any] = {}
     steps: list[ModelStep] = []
     for step in spec.steps:
@@ -129,7 +119,6 @@ def parameter_definition(model_input: ModelInput) -> Any:
 
 
 def validation_issues(model: Any) -> list[str]:
-    """What QGIS's own model check finds, as plain text (it marks names up in HTML for its dialogs)."""
     _valid, issues = model.validate()
     return [HTML_TAG.sub("", str(issue)).strip() for issue in issues or []]
 
@@ -139,9 +128,8 @@ def model_id(spec: ModelSpec) -> str:
 
 
 def models_folder() -> str:
-    """The first folder of the Models provider: where the Model Designer saves and what the Toolbox lists."""
     try:
-        # The Processing plugin can be switched off; its absence must not break importing the tool.
+        # The Processing plugin can be switched off: its absence must not break importing the tool.
         from processing.modeler.ModelerUtils import ModelerUtils
 
         folders = [str(folder) for folder in ModelerUtils.modelsFolders() if folder]
@@ -157,7 +145,6 @@ def model_path(spec: ModelSpec) -> str:
 
 
 def check_target(algorithm_id: str, path: str, overwrite: bool) -> None:
-    """Refuse to replace a model file without overwrite, and to shadow a model loaded from elsewhere."""
     loaded = registered_model(algorithm_id)
     source = _source_path(loaded)
     if loaded is not None and not (source and same_path(source, path)):
@@ -240,7 +227,6 @@ def _static_value(step: ModelStep, definition: Any, value: Any) -> Any:
 
 
 def _refuse_project_layer(step: ModelStep, parameter: str, value: Any) -> None:
-    """A model runs in other projects: a layer of this one, or a scratch layer, must become a model input."""
     if not isinstance(value, str) or not value.strip():
         return
     text = value.strip()

@@ -10,13 +10,12 @@ class ModelTurnThread(QThread):
     finished_turn = pyqtSignal(object)
     chunk = pyqtSignal(str)
     thinking = pyqtSignal(str)
-    # A RetryNotice: the request failed and waits before its next attempt.
     retrying = pyqtSignal(object)
-    # A TurnFailure: the message, a str still, with the kind of failure attached.
+    # object, not str: a str signal would drop the TurnFailure's kind.
     error = pyqtSignal(object)
 
-    def __init__(self, messages, tool_schemas, overrides, timeout=DEFAULT_TIMEOUT, parent=None):
-        super().__init__(parent)
+    def __init__(self, messages, tool_schemas, overrides, timeout=DEFAULT_TIMEOUT):
+        super().__init__()
         self._messages = messages
         self._tool_schemas = tool_schemas
         self._overrides = dict(overrides or {})

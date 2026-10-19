@@ -6,7 +6,6 @@ from ai_agent.skills.registry import LOCAL, SKILL_REGISTRY
 
 
 def requested_skills(arguments: dict) -> list[str]:
-    """Skill names from a load_skill call: `names` (a list) or the older single `name`."""
     raw = arguments.get("names")
     if raw is None:
         raw = [arguments.get("name")]
@@ -78,8 +77,6 @@ def skills_to_load(name: str) -> list[str]:
 
 
 def tools_for_skills(loaded_skills, images: bool = True, writes: bool = True) -> list[BaseTool]:
-    """The tools the loaded skills offer; without images, the ones that only return a picture drop out,
-    and without writes (plan mode) only the reading ones stay."""
     domains: set[str] = set()
     named: set[str] = set()
     for name in loaded_skills:
@@ -94,7 +91,6 @@ def tools_for_skills(loaded_skills, images: bool = True, writes: bool = True) ->
         tool
         for tool in ALL_TOOLS
         if (tool.skill in domains or tool.name in named)
-        # A local skill naming a tool cannot bring back a domain the user switched off.
         and not SKILL_REGISTRY.is_disabled(tool.skill)
         and (images or not tool.returns_image)
         and (writes or tool.safety == SAFETY_READ)

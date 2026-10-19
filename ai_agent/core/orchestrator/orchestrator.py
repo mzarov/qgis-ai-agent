@@ -5,6 +5,7 @@ from qgis.core import Qgis
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.context.project import layer_choices
 from ai_agent.core.llm.client import is_local
+from ai_agent.core.llm.dialects import safe_endpoint_label
 from ai_agent.core.llm.retry import RetryNotice
 from ai_agent.core.local_skills import register_local_skills
 from ai_agent.core.orchestrator import attaching
@@ -26,7 +27,6 @@ from ai_agent.core.orchestrator.rewind import Checkpoint, RewindMixin
 from ai_agent.core.orchestrator.run_events import RunEventsMixin
 from ai_agent.core.orchestrator.sessions import SessionsMixin
 from ai_agent.core.orchestrator.slash import available_names, choices, is_known_skill, parse_slash, prompt_for
-from ai_agent.core.privacy import endpoint_label
 from ai_agent.core.settings import (
     get_api_url,
     get_data_sharing_consent,
@@ -41,8 +41,6 @@ from ai_agent.i18n import tr
 
 
 class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycleMixin, RewindMixin):
-    """Wires the dock to the agent loop. The mixins hold the rest: sessions, plans, run events, projects."""
-
     def __init__(self, iface: Any, dock_widget: DockWidgetContract):
         self.iface = iface
         self.dock_widget = dock_widget
@@ -50,20 +48,14 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.agent = AgentLoop()
         self._active_tool_message_id: int | None = None
         self._plan_message_id: int | None = None
-        # The plan card step the running apply is on; -1 before the first.
         self._plan_step = -1
         self._apply_scope: tuple[str, str] | None = None
         self._checkpoints: list[Checkpoint] = []
-        # Plan card id to the snapshot its apply took: the card's Undo restores it.
         self._plan_snapshots: dict[int, str] = {}
-        # Each live plan card's kept record, by the card's id in the feed.
         self._plan_keys: dict[int, str] = {}
         self._plan_marks: list[list[str]] = []
-        # The cancelled plan card that may still be restored, until anything else happens.
         self._restorable_plan_id: int | None = None
-        # The last request's start, for Retry on its failure card.
         self._retry_args: tuple[Any, ...] | None = None
-        # What the last apply of this request changed, for the status line once the request is done.
         self._done_summary = ""
         self._snapshot_before_apply = ""
         self._invalidated_scope: tuple[str, str] | None = None
@@ -78,7 +70,6 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.refresh_configured()
 
     def refresh_configured(self) -> None:
-        # Settings may have switched skills off or shortened how long conversations are kept.
         register_local_skills()
         self.conversation.prune_history()
         self.dock_widget.set_project_line(project_line())
@@ -109,8 +100,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.agent.finished.connect(self.on_finished)
         self.agent.failed.connect(self.on_failed)
         self.agent.aborted.connect(self.on_aborted)
-        # Through the orchestrator, never to the dock's own methods: a rebuilt dock (a theme change)
-        # must receive them too, and a connection to the old dock's method would not follow it.
+        # Via the orchestrator, not the dock's methods: a rebuilt dock must receive these too.
         self.agent.busy_changed.connect(self.on_busy)
         self.agent.turn_counted.connect(self.on_turn_counted)
         self.agent.answer_chunk.connect(self.on_answer_chunk)
@@ -120,15 +110,11 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
     def on_busy(self, busy: bool) -> None:
         self.dock_widget.set_busy(busy)
         if not busy:
-            # A day that is over goes out between runs, never in the middle of one.
             self.usage.flush()
-            # A check's trace is drawn; the next run is the user's again.
             self.dock_widget.set_run_kind("")
-            # A run may have edited the active layer: the chip's count follows.
             self.on_active_layer_changed()
 
     def on_active_layer_changed(self, *_layer: Any) -> None:
-        """The composer's chip follows the layer QGIS has active."""
         name, detail = active_layer_chip(self.iface)
         self.dock_widget.set_active_layer(name, detail)
 
@@ -169,7 +155,6 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         if self.agent.is_awaiting_answer:
             self._answer(text)
             return
-        # The active layer the composer's chip carries joins a new request, unless it is already named.
         mention = self.dock_widget.context_mention()
         if isinstance(mention, str) and mention and mention not in text:
             text = f"{text} {mention}"
@@ -197,7 +182,6 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         skills: list[str] | None = None,
         images: list[str] | None = None,
     ) -> None:
-        """Show `shown`, then run `prompt`; `request` is what the user asked, for the check after Apply."""
         self.dock_widget.begin_work()
         self.usage.note("runs")
         self._show_user_message(shown)
@@ -211,20 +195,16 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
             self._show_title()
             self._last_request = request
             self._done_summary = ""
-            # What Retry on a failure card sends again: the request is on screen and in the conversation.
             self._retry_args = (shown, prompt, request, skills, images, planning)
             self.agent.start(prompt, history, skills=skills, images=images, planning=planning)
 
-        # The new request is not part of what gets compacted: it rides on the summary.
         def stopped() -> None:
-            # The request is on screen already: keep it in the saved conversation too.
             self.conversation.add("user", shown)
 
         if not (self.compaction.needed() and self.compaction.start(after=begin, cancelled=stopped)):
             begin()
 
     def on_retry(self) -> None:
-        """Send the failed request again, as it was: the chat and the conversation already hold it."""
         if not self.is_idle:
             self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
             return
@@ -242,13 +222,11 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.agent.start(prompt, history, skills=skills, images=images, planning=planning)
 
     def on_settings_saved(self) -> None:
-        """The connection may be fixed now: a failure card that held Retry back offers it."""
         if self._retry_args is not None and self.is_idle:
             self.dock_widget.offer_retry()
 
     @property
     def is_idle(self) -> bool:
-        """Nothing in flight: no run, apply, pending plan, open question or compaction."""
         return not (
             self.agent.is_running
             or bool(getattr(self.agent, "is_applying", False))
@@ -258,7 +236,6 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         )
 
     def attach_dock(self, dock_widget: DockWidgetContract) -> None:
-        """Draw into a new dock — a rebuilt panel after a theme change — and show the conversation there."""
         self.dock_widget = dock_widget
         self.compaction.attach(dock_widget)
         self.dock_widget.set_session_source(self.conversation.recent)
@@ -285,7 +262,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         url = (endpoint if endpoint is not None else get_api_url() or "").strip()
         if not url or is_local(url) or get_data_sharing_consent(url):
             return True
-        if not self.dock_widget.confirm_data_sharing(endpoint_label(url)):
+        if not self.dock_widget.confirm_data_sharing(safe_endpoint_label(url)):
             self.dock_widget.add_system_message(DATA_SHARING_DECLINED)
             return False
         set_data_sharing_consent(True, url)
@@ -296,7 +273,6 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
             return
         self._show_user_message(text)
         self.dock_widget.clear_prompt()
-        # Picked on the question card, so a reopened chat says "You chose" again; typed the same is the same.
         chosen = text in list(getattr(self.agent, "question_options", None) or [])
         self.conversation.add("user", text, chosen=chosen)
         self.dock_widget.begin_work()
@@ -312,7 +288,6 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.conversation.add("user", text)
 
     def _show_user_message(self, text: str) -> None:
-        """Draw the user's message with the place it takes in the conversation, so it can be rewound to."""
         # The steps so far are written first: they come before the message, and so does its place.
         self.conversation.keep_trace()
         entry = self.dock_widget.add_user_message(text)

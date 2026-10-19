@@ -18,9 +18,7 @@ NO_LAYERS = "Layers: none."
 NO_ELLIPSOID = "NONE"
 MEASURED = "Measurements: ellipsoid {0}; $length in {1}, $area in {2}, even on layers in degrees."
 UNMEASURED = "Measurements: no ellipsoid; $length and $area are in layer CRS units (degrees on a geographic layer)."
-# Without the CRS named, a model reaches for EPSG:3857 to get metres, and its areas come out threefold at 55° N.
 METRIC_FALLBACK = " For metres, transform the geometry to {0} first; EPSG:3857 inflates sizes."
-# Field names in the context spare most tasks their first describe_layer turn; a wide table lists its first ones.
 MAX_CONTEXT_FIELDS = 15
 
 
@@ -35,7 +33,6 @@ def get_project_context() -> str:
         lines.append(f"Active layer: {active}.")
     layers = [context_line(layer) for layer in project.mapLayers().values()]
     if layers:
-        # How sizes come out, so a question about lengths or areas needs no get_project_info first.
         measurement = measurement_line(project)
         if measurement:
             lines.append(measurement)
@@ -44,7 +41,6 @@ def get_project_context() -> str:
 
 
 def measurement_line(project: Any) -> str:
-    """The ellipsoid and units $length and $area use, in unit codes the model reads (not translated names)."""
     try:
         ellipsoid = str(project.ellipsoid() or "").strip()
         if not ellipsoid or ellipsoid.upper() == NO_ELLIPSOID:
@@ -65,14 +61,12 @@ def project_crs(project: Any) -> str:
 
 
 def context_line(layer: Any) -> str:
-    """The layer's line for the model: the facts of describe_layer_line plus its fields and their types."""
     line = describe_layer_line(layer)
     fields = field_list(layer)
     return f"{line[:-1]}; fields: {fields})" if fields and line.endswith(")") else line
 
 
 def field_list(layer: Any) -> str:
-    """`name:String, pop2020:Integer64` — the first MAX_CONTEXT_FIELDS fields, and how many more there are."""
     if layer_kind(layer) == "raster":
         return ""
     try:
@@ -117,7 +111,6 @@ LAYER_ORIGIN = "layer"
 
 
 def layer_choices() -> list[tuple[str, str, str]]:
-    """Layers for the composer's @ list: name, a short description, origin."""
     choices = []
     with suppress(Exception):
         for layer in QgsProject.instance().mapLayers().values():

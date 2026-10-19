@@ -1,12 +1,3 @@
-"""A restyled layer's legend in the feed, after the design handoff: colour cells with what each one means.
-
-Classes that run in order (graduated, a raster ramp) are one strip of cells,
-10 px high with 2 px between them and their bounds under each in 11 px; a strip
-of more cells than fit their words, and categories, are rows of a swatch and a
-label. The spec comes from the style tool that changed the layer
-(`qgis_tools/style/legend.py`) and never reaches the model.
-"""
-
 from typing import Any
 
 from qgis.PyQt.QtCore import QRectF, Qt
@@ -21,7 +12,6 @@ RANGES = "ranges"
 CELL_HEIGHT = 10
 CELL_GAP = 2
 CELL_RADIUS = 2
-# A cell no wider than the handoff draws it in a narrow panel: a wide panel does not stretch the scale.
 MAX_CELL_WIDTH = 72
 LABEL_GAP = 4
 MAX_STRIP_CELLS = 7
@@ -34,7 +24,6 @@ BOUNDS = "{0}–{1}"
 
 
 def item_label(item: dict[str, Any]) -> str:
-    """A class's words: its bounds, compact (20k–35k), when it has them; else its label."""
     low, high = item.get("low"), item.get("high")
     if isinstance(low, (int, float)) and isinstance(high, (int, float)):
         return BOUNDS.format(compact(low), compact(high))
@@ -42,8 +31,8 @@ def item_label(item: dict[str, Any]) -> str:
 
 
 class LegendCard(QWidget):
-    def __init__(self, spec: dict[str, Any], parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, spec: dict[str, Any]):
+        super().__init__()
         palette = self.palette()
         self.spec = spec
         self.items = [item for item in spec.get("items") or [] if isinstance(item, dict)]
@@ -69,15 +58,12 @@ class LegendCard(QWidget):
 
 
 class LegendStrip(QWidget):
-    """Ordered classes as one strip of cells, each with its bounds under it, elided to the cell."""
-
-    def __init__(self, items: list[dict[str, Any]], palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, items: list[dict[str, Any]], palette: Any):
+        super().__init__()
         self.items = items
         self.labels = [item_label(item) for item in items]
         self._ink = style.faint(palette)
         self._blank = style.hairline(palette)
-        # The palest class of a ramp is near the backdrop's colour: a hairline keeps its cell in sight.
         self._edge = style.hairline(palette)
         style.scale_font(self, CAPTION_SCALE)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -106,7 +92,6 @@ class LegendStrip(QWidget):
 
 
 def _colour(item: dict[str, Any], blank: QColor) -> QColor:
-    """The class's colour; a missing or unreadable one is drawn as a blank hairline cell."""
     colour = QColor(str(item.get("color") or ""))
     return colour if colour.isValid() else blank
 

@@ -10,8 +10,6 @@ DEFAULT_ROWS = 5
 MAX_ROWS = 20
 MAX_CELL_CHARS = 80
 MAX_LISTED_COLUMNS = 40
-# Rows are the bulk of a preview; this keeps the whole result well under the
-# transcript's per-result cap, which would otherwise cut the findings off.
 ROWS_BUDGET = 1500
 LEADING_ZEROS_NOTE = (
     "Columns {0} hold codes with leading zeros; they are loaded as text so 007 stays 007. "
@@ -62,8 +60,6 @@ class PreviewTableTool(BaseTool):
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         table = read_table(params.get("path") or "", str(params.get("delimiter") or ""))
         limit = clamp_limit(params.get("rows"), DEFAULT_ROWS, MAX_ROWS)
-        # Order matters: the transcript cuts a long result at its end, so the
-        # findings come first and the bulky rows last, within their own budget.
         result: dict[str, Any] = {"path": table.path, "delimiter": table.delimiter_name, "encoding": table.encoding}
         if table.decimal_comma:
             result["decimal_comma"] = True
@@ -97,7 +93,6 @@ class PreviewTableTool(BaseTool):
 
 
 def _rows_within_budget(rows: list[list[str]], width: int) -> list[list[str]]:
-    """The first rows, cells cut short, stopping before the character budget runs out."""
     kept: list[list[str]] = []
     spent = 0
     for row in rows:

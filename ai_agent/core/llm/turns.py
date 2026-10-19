@@ -1,10 +1,3 @@
-"""What one model request comes back as, whichever dialect or protocol produced it.
-
-`ModelTurn` and `ToolCall` are the loop's whole view of a model: text, tool calls,
-reasoning and token counts. The parsers here turn an OpenAI-style body — native
-tool calls or the JSON protocol — into one.
-"""
-
 import json
 from dataclasses import dataclass, field
 from typing import Any
@@ -41,12 +34,6 @@ JSON_TURN_KEYS = ("text", "message", "tool_calls")
 
 
 def parse_usage(data: dict[str, Any]) -> tuple[int, int]:
-    """Input and output tokens of one turn, counted the same way for both dialects.
-
-    OpenAI's prompt_tokens already includes cached tokens; Anthropic's
-    input_tokens does not, so the cache reads and writes are added back —
-    otherwise the budget undercounts a cached run several times over.
-    """
     usage = data.get("usage") or {}
     if not isinstance(usage, dict):
         return 0, 0

@@ -95,14 +95,12 @@ class LoadImageryTool(BaseTool):
 
 
 def _layer_name(given: str, entry: Dataset, found: dict[str, Any], count: int) -> str:
-    """A given name as is for one scene; otherwise the name or the title, then the scene's date."""
     if given and count == 1:
         return given
     return f"{given or entry.title} {scene_date(found.get('properties') or {})}".strip()
 
 
 def _add_under_vectors(layer: QgsRasterLayer) -> None:
-    """Imagery is a backdrop: it goes to the bottom of the layer tree, so it hides no vector layer."""
     project = QgsProject.instance()
     project.addMapLayer(layer, False)
     root = project.layerTreeRoot()
@@ -135,7 +133,6 @@ def _asset(entry: Dataset, raw: Any) -> str:
 
 
 def _stacked(entry: Dataset, found: dict[str, Any], name: str) -> tuple[str, bool, str]:
-    """One RGB layer from separate band files: a small VRT pointing at the signed remote bands."""
     from osgeo import gdal
 
     links = [signed(asset_href(found, band)) for band in entry.rgb]

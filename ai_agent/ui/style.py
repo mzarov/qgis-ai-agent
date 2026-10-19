@@ -1,10 +1,3 @@
-"""Named colours for the widgets, all read from the mockup tokens in `theme`.
-
-Widgets ask for a role (`panel`, `hairline`, `muted`, `accent`…), never for a
-hex value; `theme.tokens(palette)` picks the light or the dark set from the
-QGIS palette, so the plugin still follows the theme's lightness.
-"""
-
 from typing import Any
 
 from qgis.PyQt.QtCore import QEvent, QObject
@@ -15,7 +8,6 @@ from ai_agent.ui import theme
 CARD_RADIUS = 10
 BUBBLE_RADIUS = 10
 HAIRLINE = 1
-# Marks the style sheet `ink` wrote on a label, so ink rewrites only its own.
 INK_PROPERTY = "aiInk"
 
 
@@ -28,21 +20,15 @@ def blend(first: QColor, second: QColor, ratio: float) -> QColor:
     )
 
 
-def is_dark(palette: QPalette) -> bool:
-    return theme.is_dark(palette)
-
-
 def _token(palette: QPalette, name: str) -> QColor:
     return theme.colour(getattr(theme.tokens(palette), name))
 
 
 def background(palette: QPalette) -> QColor:
-    """The page behind everything: the dock body and the feed."""
     return _token(palette, "bg")
 
 
 def surface(palette: QPalette) -> QColor:
-    """Inputs and the composer."""
     return _token(palette, "surface")
 
 
@@ -51,17 +37,14 @@ def field(palette: QPalette) -> QColor:
 
 
 def panel(palette: QPalette) -> QColor:
-    """Cards, tiles, the status card: the raised level."""
     return _token(palette, "surface")
 
 
 def content(palette: QPalette) -> QColor:
-    """The settings page background: the window's own, so fields and cards stand out on it."""
     return _token(palette, "bg")
 
 
 def card(palette: QPalette) -> QColor:
-    """A quiet fill one step off the surface: hover, strips, chips at rest."""
     return _token(palette, "surface_2")
 
 
@@ -73,17 +56,7 @@ def sidebar(palette: QPalette) -> QColor:
     return _token(palette, "bg")
 
 
-def nav_selected(palette: QPalette) -> QColor:
-    """The chosen sidebar entry: a step lighter on dark, a step darker on light."""
-    return _token(palette, "surface_2" if is_dark(palette) else "sunken")
-
-
-def nav_hover(palette: QPalette) -> QColor:
-    return _token(palette, "surface" if is_dark(palette) else "surface_2")
-
-
 def sunken(palette: QPalette) -> QColor:
-    """Below the surface: segmented-control tracks, sidebar hover."""
     return _token(palette, "sunken")
 
 
@@ -92,7 +65,6 @@ def hairline(palette: QPalette) -> QColor:
 
 
 def border_strong(palette: QPalette) -> QColor:
-    """Input and plain-button outlines."""
     return _token(palette, "border_strong")
 
 
@@ -117,12 +89,10 @@ def accent_hover(palette: QPalette) -> QColor:
 
 
 def on_accent(palette: QPalette) -> QColor:
-    """Text and glyphs on an accent fill."""
     return _token(palette, "accent_text")
 
 
 def accent_ink(palette: QPalette) -> QColor:
-    """Accent text on its own soft wash."""
     return _token(palette, "accent")
 
 
@@ -139,12 +109,10 @@ def muted(palette: QPalette) -> QColor:
 
 
 def faint(palette: QPalette) -> QColor:
-    """Placeholders and the least important captions."""
     return _token(palette, "text_3")
 
 
 def soft(palette: QPalette, colour: QColor) -> QColor:
-    """The pale wash that belongs to a status colour: badge, selection and callout fills."""
     tokens = theme.tokens(palette)
     for strong, wash in (
         (tokens.accent, tokens.accent_soft),
@@ -158,12 +126,6 @@ def soft(palette: QPalette, colour: QColor) -> QColor:
 
 
 def apply_palette(widget: Any) -> None:
-    """Give a top-level panel the theme's own palette, so its children follow it rather than QGIS.
-
-    With a panel theme other than QGIS's, plain labels, line edits and scroll areas would
-    still draw with the QGIS palette — white text on the light panel inside a dark QGIS.
-    Every role a stock widget reads is set from the tokens; children inherit it.
-    """
     roles = getattr(QPalette, "ColorRole", None)
     groups = getattr(QPalette, "ColorGroup", None)
     if roles is None or groups is None:
@@ -203,8 +165,6 @@ def apply_palette(widget: Any) -> None:
 
 
 class _Backdrop(QObject):
-    """Paints its widget's background just before the widget paints itself."""
-
     def __init__(self, widget: Any, colour: QColor):
         super().__init__(widget)
         self.colour = QColor(colour)
@@ -219,16 +179,7 @@ class _Backdrop(QObject):
 
 
 def fill(widget: Any, colour: QColor) -> None:
-    """Paint a container's background — neither through a style sheet nor through autoFillBackground.
-
-    A style sheet on a container switches its whole subtree to QStyleSheetStyle,
-    which resets the subtree's palette to QGIS's (and, with children that
-    restyle themselves often, once crashed QGIS inside event processing). An
-    auto-filled background is what QGIS's dark UI themes repaint:
-    `QWidget[autoFillBackground=true]` takes their background colour. So the
-    colour is painted by hand, ahead of the widget, and the palette carries it
-    too for whatever reads it there.
-    """
+    # Not a style sheet (palette reset, crashes) nor autoFillBackground (QGIS dark themes repaint it).
     role = getattr(getattr(QPalette, "ColorRole", None), "Window", None)
     if role is None:
         return
@@ -244,14 +195,7 @@ def fill(widget: Any, colour: QColor) -> None:
 
 
 def ink(widget: Any, colour: QColor) -> None:
-    """Set a label's text colour, in its palette and in its own style sheet.
-
-    The palette alone does not hold: an ancestor's style sheet resets its
-    subtree's palette to QGIS's — white text on the light panel inside a dark
-    QGIS — and a QGIS UI theme's `QLabel { color }` rule outranks any palette.
-    A label's own style sheet outranks both. Only a style sheet `ink` wrote is
-    rewritten; a label styled otherwise keeps its own and gets the palette.
-    """
+    # Its own style sheet too: an ancestor's sheet and QGIS themes' QLabel rules outrank a palette.
     role = getattr(getattr(QPalette, "ColorRole", None), "WindowText", None)
     if role is None:
         return
@@ -266,7 +210,6 @@ def ink(widget: Any, colour: QColor) -> None:
 
 
 def field_inks(widget: Any, palette: QPalette) -> None:
-    """Typed text and placeholder colours for an editor whose style sheet froze another palette."""
     roles = getattr(QPalette, "ColorRole", None)
     if roles is None:
         return
@@ -277,7 +220,6 @@ def field_inks(widget: Any, palette: QPalette) -> None:
 
 
 def scale_font(widget: Any, ratio: float, bold: bool = False) -> None:
-    """Resize a widget's font relative to the one it inherited, optionally bold."""
     font = widget.font()
     font.setPointSizeF(max(1.0, font.pointSizeF() * ratio))
     if bold:
@@ -286,8 +228,7 @@ def scale_font(widget: Any, ratio: float, bold: bool = False) -> None:
 
 
 def series(palette: QPalette, index: int) -> QColor:
-    """Categorical chart colour `index` in the fixed order; the spec folds past eight, so no cycling happens."""
-    colours = theme.CHART_DARK if is_dark(palette) else theme.CHART_LIGHT
+    colours = theme.CHART_DARK if theme.is_dark(palette) else theme.CHART_LIGHT
     return theme.colour(colours[min(index, len(colours) - 1)])
 
 

@@ -11,17 +11,10 @@ CLOCK = time.monotonic
 
 
 class RunJournal:
-    """The optional Markdown record of one run: written once, and only after something was applied.
-
-    Besides the steps it keeps every model request's tokens and seconds, the two
-    figures that show where a slow or expensive run went.
-    """
-
     def __init__(self) -> None:
         self.prompt = ""
         self.applied = 0
         self.saved = False
-        # (input tokens, output tokens, seconds) per model request, discarded ones included: they were billed.
         self.requests: list[tuple[int, int, float]] = []
         self._asked = 0.0
 
@@ -36,7 +29,6 @@ class RunJournal:
         self.applied += successful
 
     def asked(self) -> None:
-        """A request to the model went out; its answer's seconds count from here."""
         self._asked = CLOCK()
 
     def answered(self, prompt_tokens: int, completion_tokens: int) -> None:
@@ -45,7 +37,6 @@ class RunJournal:
         self._asked = 0.0
 
     def write(self, entries: list[dict[str, Any]], outcome: str) -> str:
-        """Return the file path, or "" when nothing was written."""
         if not self.applied or self.saved or not get_write_run_journal():
             return ""
         try:

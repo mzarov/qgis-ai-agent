@@ -73,9 +73,6 @@ class SymbolLayer:
     def setStrokeColor(self, colour):
         self.stroke_color = colour.name()
 
-    def setStrokeWidth(self, width):
-        self.stroke_width = width
-
 
 class Symbol:
     def __init__(self, layers=1):
@@ -85,9 +82,6 @@ class Symbol:
 
     def setColor(self, colour):
         self.colour = colour.name()
-
-    def setWidth(self, value):
-        self.size = value
 
     def symbolLayerCount(self):
         return len(self._layers)

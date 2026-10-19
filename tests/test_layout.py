@@ -72,14 +72,11 @@ class ItemMixin:
     def setText(self, text):
         self._text = text
 
-    def setTextFormat(self, text_format):
-        return None
-
     def attemptMove(self, point):
         self._moved = point
 
     def attemptResize(self, size):
-        self._resized = size
+        pass
 
 
 def _fake_class(kind_class):
@@ -193,7 +190,6 @@ class AddItemTest(unittest.TestCase):
         self.assertEqual(prepared["width"], items.DEFAULT_SIZES_MM["map"][0])
 
     def test_two_unnamed_labels_queued_together_both_apply(self):
-        # Ids picked when queued both read label-1: the first applied, the second found it taken.
         layout = FakeLayout()
         add_module.find_layout = lambda name: layout
         label = {"layout_name": "Лист", "item_type": "label", "x": 10}

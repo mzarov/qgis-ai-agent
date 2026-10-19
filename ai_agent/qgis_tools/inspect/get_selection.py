@@ -60,8 +60,7 @@ class GetSelectionTool(BaseTool):
 def _sample(layer: Any) -> list[dict[str, Any]]:
     try:
         names = layer.fields().names()
-        # Only the sample is read: selectedFeatures() would load every selected
-        # feature, with geometry, just to show ten of them.
+        # Not selectedFeatures(): it would load every selected feature with geometry.
         features = layer.getSelectedFeatures(QgsFeatureRequest().setLimit(SAMPLE_LIMIT).setNoGeometry())
     except Exception:
         return []

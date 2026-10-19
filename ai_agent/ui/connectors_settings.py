@@ -1,12 +1,3 @@
-"""The Connectors page: the open-data sources the agent may use, as cards with a switch each.
-
-Cards in a grid like the Connection page's provider tiles: a monogram (country
-code for national services), the name, what it offers and how many datasets,
-and a switch; a switched-off card dims. Chips pick a group, the search box
-narrows by name and description. A click on a card opens its own page
-(connector_detail.py) in place of the list. Nothing here goes online.
-"""
-
 from typing import Any
 
 from qgis.PyQt.QtCore import QObject, Qt, pyqtSignal
@@ -37,7 +28,6 @@ ALL = tr("All")
 CARD_NAME = "connectorCard"
 CARD_MIN_WIDTH = 280
 CARD_GAP = 12
-# The page had everything touching: the search, the chips, a group title and its cards each get air.
 SEARCH_TO_CHIPS = 12
 GROUP_GAP = 22
 TITLE_TO_CARDS = 8
@@ -45,7 +35,6 @@ CARD_HEIGHT = 72
 MAX_COLUMNS = 2
 STATUS_DOT = 6
 CARD_MARGINS = (12, 12, 12, 10)
-# Chips need short words: the full group titles in a row did not fit the page in Russian.
 CHIP_TITLES = {
     "world": tr("World"),
     "imagery": tr("Imagery"),
@@ -63,8 +52,6 @@ CATEGORY_TITLES = {
 
 
 class ConnectorCard(controls.RoundedFrame):
-    """One source: monogram, name, what it offers, a switch; under a hairline its state, size and the way in."""
-
     opened = pyqtSignal()
 
     def __init__(self, row: dict[str, Any], palette: Any):
@@ -121,7 +108,6 @@ class ConnectorCard(controls.RoundedFrame):
         self._shade(self.switch.isChecked())
 
     def mouseReleaseEvent(self, event: Any) -> None:
-        # The switch takes its own clicks, so a release reaching the card is a click beside it.
         if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event.pos()):
             self.opened.emit()
         super().mouseReleaseEvent(event)
@@ -139,7 +125,6 @@ class ConnectorCard(controls.RoundedFrame):
 class ConnectorsSettings(QObject):
     changed = pyqtSignal()
     prompt_chosen = pyqtSignal(str, str)
-    # The list and a connector page share one scroll area; the owner scrolls it back to the top.
     page_switched = pyqtSignal()
 
     def __init__(self, palette: Any):
@@ -184,7 +169,6 @@ class ConnectorsSettings(QObject):
         self.current = self.list
 
     def open(self, identifier: str) -> None:
-        """Show one connector's page in place of the list; built on first visit, kept after."""
         card = next(card for card in self.cards if card.identifier == identifier)
         detail = self.details.get(identifier)
         if detail is None:
@@ -256,7 +240,6 @@ class ConnectorsSettings(QObject):
 
 
 def _group(title: QLabel, grid: QWidget) -> QWidget:
-    """A group's caption and cards with the air above them, one widget so a hidden group leaves no gap."""
     group = QWidget()
     column = QVBoxLayout(group)
     column.setContentsMargins(0, GROUP_GAP, 0, 0)
@@ -267,8 +250,6 @@ def _group(title: QLabel, grid: QWidget) -> QWidget:
 
 
 class CardGrid(QWidget):
-    """Cards two to a row when they fit, one when the window is narrow; hidden cards leave no gap."""
-
     def __init__(self, cards: list[ConnectorCard]):
         super().__init__()
         self._cards = cards

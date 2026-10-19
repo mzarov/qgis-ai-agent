@@ -1,5 +1,3 @@
-"""Building a Processing model from steps: the reference rules, the registry checks and the history read."""
-
 import os
 import tempfile
 import unittest
@@ -18,7 +16,6 @@ from ai_agent.qgis_tools.registry import get_tool_by_name
 
 
 def two_steps(**overrides):
-    """Reproject the points to a chosen CRS, then buffer them by a distance input."""
     params = {
         "name": "Buffer in UTM",
         "group": "Agent",
@@ -178,10 +175,6 @@ class _Definition:
 
     def options(self):
         return self._options
-
-    @staticmethod
-    def flags():
-        return 0
 
 
 class _Named:

@@ -28,8 +28,6 @@ class MemorySettings:
 class FakeConfig:
     def __init__(self, *_a, **_k):
         self._id = ""
-        self._name = ""
-        self._method = ""
         self._map: dict[str, str] = {}
 
     def setId(self, value):
@@ -39,13 +37,10 @@ class FakeConfig:
         return self._id
 
     def setName(self, value):
-        self._name = value
-
-    def name(self):
-        return self._name
+        pass
 
     def setMethod(self, value):
-        self._method = value
+        pass
 
     def setConfig(self, key, value):
         self._map[key] = value
@@ -257,12 +252,12 @@ class ScopedCapabilityTest(unittest.TestCase):
 
     def test_geocoding_is_opt_in_and_provider_urls_are_not_model_settings(self):
         self.assertEqual(settings.get_geocoder_provider(), settings.GEOCODER_DISABLED)
-        self.assertEqual(settings.get_geocoder_url(), "")
+        self.assertEqual(geocoder_config.get_url(), "")
         settings.set_geocoder_provider(settings.GEOCODER_PHOTON)
-        self.assertEqual(settings.get_geocoder_url(), settings.GEOCODER_PHOTON_URL)
+        self.assertEqual(geocoder_config.get_url(), settings.GEOCODER_PHOTON_URL)
         settings.set_custom_nominatim_url("https://geo.example/nominatim")
         settings.set_geocoder_provider(settings.GEOCODER_NOMINATIM)
-        self.assertEqual(settings.get_geocoder_url(), "https://geo.example/nominatim")
+        self.assertEqual(geocoder_config.get_url(), "https://geo.example/nominatim")
 
 
 if __name__ == "__main__":

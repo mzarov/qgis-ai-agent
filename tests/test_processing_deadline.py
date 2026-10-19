@@ -14,8 +14,6 @@ class Clock:
 
 
 class DeadlineFeedbackTest(unittest.TestCase):
-    """Algorithms run on the main thread: every report they make is the moment to look at the clock."""
-
     def setUp(self):
         self.clock = Clock()
         self.feedback = DeadlineFeedback(30, self.clock)
@@ -36,8 +34,6 @@ class DeadlineFeedbackTest(unittest.TestCase):
 
 
 class TimedOutRunTest(unittest.TestCase):
-    """A run cut by the deadline fails with the limit named, whether the runner raised or returned."""
-
     def setUp(self):
         self.tool = run_processing.RunProcessingTool()
         self.saved = (run_processing.RunProcessingTool._prepare, run_processing.RunProcessingTool._get_runner)

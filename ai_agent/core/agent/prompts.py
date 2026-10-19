@@ -193,7 +193,6 @@ OUTCOME_FAILED = "FAILED — {error}"
 
 
 def build_verification_prompt(outcomes: list[dict[str, Any]], request: str = "", images: bool = True) -> str:
-    """The check after Apply; `images=False` swaps the rendered-image check for read tools only."""
     lines = []
     for outcome in outcomes:
         status = OUTCOME_OK if outcome.get("ok") else OUTCOME_FAILED.format(error=outcome.get("error", ""))
@@ -373,7 +372,6 @@ def build_system_parts(
     if profile:
         static.append(profile)
     if custom_instructions.strip():
-        # Changes only when the user saves Settings, so the cached prefix holds from turn to turn.
         static.append(CUSTOM_INSTRUCTIONS_HEADER + "\n" + custom_instructions.strip())
     if json_protocol:
         static.append(JSON_PROTOCOL_PROMPT)
@@ -383,28 +381,11 @@ def build_system_parts(
         if invoked_skills:
             static.append(INVOKED_SKILLS_HEADER + ", ".join(invoked_skills) + ".")
         static.append(SKILL_REGISTRY.bodies_block(loaded_skills))
-    # The mode rides in the live state: the system prompt stays the cached prefix.
     live = [PLAN_MODE_NOTE if planning else "", project_notes, task_plan, queued_steps]
     if project_context:
         live.append(PROJECT_CONTEXT_HEADER + "\n" + project_context)
     state = _joined(live)
     return _joined(static), (LIVE_STATE_HEADER + "\n" + state) if state else ""
-
-
-def build_system_prompt(
-    project_context: str,
-    loaded_skills: list[str],
-    json_protocol: bool = False,
-    locale: str = "en",
-    task_plan: str = "",
-    project_notes: str = "",
-    queued_steps: str = "",
-    invoked_skills: list[str] | tuple[str, ...] = (),
-) -> str:
-    static, live = build_system_parts(
-        project_context, loaded_skills, json_protocol, locale, task_plan, project_notes, queued_steps, invoked_skills
-    )
-    return _joined([static, live])
 
 
 def _joined(parts: list[str]) -> str:

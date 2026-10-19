@@ -1,5 +1,3 @@
-"""What the status line says an apply changed, and what the composer's layer chip says."""
-
 import unittest
 
 from qgis.core import QgsVectorLayer
@@ -75,8 +73,6 @@ class ActiveLayerChipTest(unittest.TestCase):
         self.assertEqual(active_layer_chip(Iface(CountedLayer("ogr"))), ("roads", "12 features"))
 
     def test_a_remote_layer_is_named_but_never_counted(self):
-        # The chip refreshes on the main thread when the panel opens and after every run:
-        # a count on PostGIS or WFS is a server round trip that freezes QGIS meanwhile.
         for provider in ("postgres", "WFS"):
             layer = CountedLayer(provider)
             self.assertEqual(active_layer_chip(Iface(layer)), ("roads", ""))

@@ -1,9 +1,4 @@
-"""Reading a vector layer's features into a `Tally`: the only part of the check that touches QGIS objects.
-
-The scan runs on the main thread, so it stays cheap: one pass, only stored
-fields requested (a virtual field would evaluate its expression per
-feature), no geometry for a table, and at most MAX_FEATURES features.
-"""
+# Runs on the main thread: one pass, stored fields only, no geometry for a table, capped.
 
 from contextlib import suppress
 from hashlib import blake2b
@@ -25,7 +20,6 @@ LOG_TAG = "AI Agent"
 
 
 def stored_fields(layer: QgsVectorLayer) -> list[tuple[int, str]]:
-    """(index, name) of the fields holding data; virtual fields hold an expression, not values."""
     found: list[tuple[int, str]] = []
     fields = layer.fields()
     for index in range(fields.count()):
@@ -37,7 +31,6 @@ def stored_fields(layer: QgsVectorLayer) -> list[tuple[int, str]]:
 
 
 def scan_layer(layer: QgsVectorLayer) -> tuple[Tally, bool, int]:
-    """The tally of the first MAX_FEATURES features, whether more were left unread, and the fields left out."""
     fields = stored_fields(layer)
     checked_fields = fields[:MAX_CHECKED_FIELDS]
     indexes = [index for index, _ in checked_fields]
@@ -57,7 +50,6 @@ def scan_layer(layer: QgsVectorLayer) -> tuple[Tally, bool, int]:
 
 
 def invalid_reason(geometry: QgsGeometry) -> str:
-    """GEOS's own words for the first error, with the place it found it."""
     try:
         errors = geometry.validateGeometry(Qgis.GeometryValidationEngine.Geos)
     except Exception:
@@ -78,7 +70,6 @@ def _request(indexes: list[int], spatial: bool) -> QgsFeatureRequest:
     request.setSubsetOfAttributes(indexes)
     if not spatial:
         request.setFlags(Qgis.FeatureRequestFlag.NoGeometry)
-    # One more than the cap: reading it says the scan was partial without counting the whole layer.
     request.setLimit(MAX_FEATURES + 1)
     return request
 
@@ -115,7 +106,6 @@ def _check_geometry(feature: Any, tally: Tally) -> None:
 
 
 def _geometry_key(geometry: QgsGeometry) -> bytes:
-    """A digest of the normalized WKB: the same shape with another start vertex or ring order matches."""
     normalized = QgsGeometry(geometry)
     normalized.normalize()
     return blake2b(bytes(normalized.asWkb()), digest_size=KEY_BYTES).digest()

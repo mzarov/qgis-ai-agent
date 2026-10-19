@@ -92,7 +92,6 @@ class LoadDatasetTool(BaseTool):
         return tr("Downloading Natural Earth {0}.").format(str(params.get("layer") or ""))
 
     def start(self, params: dict[str, Any]) -> Background:
-        """The download off the main thread; the layer is written and added on it once the data is in."""
         return InTask(self.summarize_call(params), _fetcher(params), lambda fetched: _added(params, fetched))
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -100,7 +99,6 @@ class LoadDatasetTool(BaseTool):
 
 
 def _fetcher(params: dict[str, Any]) -> Callable[[Any], dict[str, Any]]:
-    """What to download, checked here; the returned work only talks to the network, so it may run anywhere."""
     entry = dataset(params.get("dataset") or "", KIND_VECTOR)
     if entry.id == "natural-earth":
         layer_key, scale = _natural_earth(params)
@@ -133,7 +131,6 @@ def _fetcher(params: dict[str, Any]) -> Callable[[Any], dict[str, Any]]:
 
 
 def _added(params: dict[str, Any], fetched: dict[str, Any]) -> dict[str, Any]:
-    """The downloaded data written next to the project and added as a layer, on the main thread."""
     url, licence = fetched["url"], fetched["licence"]
     name = str(params.get("name") or "").strip() or fetched["title"]
     path, temporary = target_path(name, GEOJSON)

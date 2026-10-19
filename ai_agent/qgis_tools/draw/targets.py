@@ -1,5 +1,3 @@
-"""Where drawn features land: a new scratch layer or an existing vector layer."""
-
 from typing import Any
 
 from qgis.core import (
@@ -47,7 +45,6 @@ def draw_new_layer(
     rows: list[dict[str, Any]],
     schema: dict[str, str],
 ) -> dict[str, Any]:
-    """Build a memory layer with the features, then add it to the project; nothing is added on failure."""
     check_free_name(name)
     wkb_types = {POINT: Qgis.WkbType.Point, LINE: Qgis.WkbType.LineString, POLYGON: Qgis.WkbType.Polygon}
     layer = QgsMemoryProviderUtils.createMemoryLayer(name, qgs_fields(schema), wkb_types[geometry], target)
@@ -81,7 +78,6 @@ def append_to_layer(
     shapes: list[list[Vertex]],
     rows: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    """Add the features in one edit session, committed or rolled back as a whole."""
     check_existing_target(layer, geometry)
     check_existing_fields(layer, rows)
     fields = layer.fields()
@@ -144,7 +140,6 @@ def check_free_name(name: str) -> None:
 
 
 def inside_extent(layer: QgsVectorLayer, crs_text: str, vertices: list[Vertex]) -> bool:
-    """Whether the vertices, given in the layer's own CRS, fall inside its current extent."""
     try:
         if not vertices or layer.crs().authid() != crs_text:
             return False

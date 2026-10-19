@@ -18,8 +18,6 @@ from ai_agent.qgis_tools.style.label_build import addresses, build_settings, cur
 from ai_agent.qgis_tools.style.label_catalogue import LABELS, TARGET_BUFFER
 
 FIELD_NEEDED = "The labels are off, so switching them on needs the field property. {hint}"
-# Labels on or off and the field they show are facts one read proves. Fonts, colours, buffers and
-# placement are how the map looks, which only the model's look at it can judge.
 READ_BACK_PROPERTIES = frozenset({"enabled", "field"})
 
 

@@ -1,12 +1,3 @@
-"""How many tokens the model can read at once, and when the conversation gets compacted.
-
-No standard API reports it. A size set in Settings wins; then what the server
-itself said at the last connection test (OpenAI-style `/models` entries,
-Ollama's `num_ctx`, LM Studio's `/api/v0/models`); then a guess from the
-model's name; then a cautious default. Detection only talks to the configured
-server: the key goes nowhere else.
-"""
-
 import json
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
@@ -18,13 +9,11 @@ from ai_agent.core.llm.client import build_network_request, build_request
 from ai_agent.core.settings import get_context_window, get_detected_context_window
 
 DEFAULT_WINDOW = 128_000
-# Compact before a request once the last one took this share of the window, as Codex does.
 AUTO_COMPACT_SHARE = 0.9
 DETECT_TIMEOUT = 5
 OLLAMA_PORT = 11434
 LMSTUDIO_PORT = 1234
 WINDOW_KEYS = ("context_length", "max_model_len", "context_window", "max_context_length")
-# The first fragment found in the model's name decides; more specific names come first.
 KNOWN_WINDOWS = (
     ("gpt-4.1", 1_047_576),
     ("gpt-5", 400_000),
@@ -61,10 +50,6 @@ def guessed(model: str) -> int:
 
 
 def detect(overrides: dict[str, Any]) -> int:
-    """Ask the server for the model's window; 0 when it does not say. Never raises.
-
-    Runs on the connection-test thread, so the blocking requests stay off the UI.
-    """
     try:
         endpoint, headers, model = build_request(
             overrides.get("url_override"),
@@ -100,11 +85,6 @@ def _from_models_list(base: str, headers: dict[str, str], model: str, verify: An
 
 
 def _from_ollama(base: str, headers: dict[str, str], model: str, verify: Any, feedback: Any) -> int:
-    """Ollama's runtime `num_ctx` when the model sets one; its trained maximum would overstate.
-
-    Without `num_ctx` Ollama runs a small default window and truncates silently, but
-    compacting against that default would compact on every request: the name guess stays.
-    """
     if urlsplit(base).port != OLLAMA_PORT:
         return 0
     shown = _request(f"{_root(base)}/api/show", headers, verify, feedback, {"model": model})

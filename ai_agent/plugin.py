@@ -108,13 +108,11 @@ class QgisAiAgentPlugin:
             self.dock_widget.place_cancelled.connect(self._picker.cancel)
 
     def _notify_usage_stats(self) -> None:
-        """Usage counts are on by default; the first load — right after installation — says so, once."""
         if not usage_stats.should_notify():
             return
         try:
             self._usage_notice = UsageNotice(self.iface.messageBar(), lambda: usage_stats.set_consent(False))
         except Exception as error:
-            # Not shown, so not counted either: the notice is due again on the next load.
             QgsMessageLog.logMessage(
                 f"The usage statistics notice failed: {error}", MENU_TITLE, Qgis.MessageLevel.Warning
             )
@@ -141,8 +139,7 @@ class QgisAiAgentPlugin:
         return QIcon(icon_path) if os.path.isfile(icon_path) else QIcon()
 
     def _on_open_settings(self) -> None:
-        # The main window, not the panel: a reload or a theme rebuild deletes the panel, and its
-        # children with it, while the dialog's own event loop is still running.
+        # Parent is the main window: a reload or theme rebuild deletes the panel while the dialog runs.
         dialog = SettingsDialog(self.iface.mainWindow())
         accepted = dialog.exec() == QDialog.DialogCode.Accepted
         prompt = dialog.chosen_prompt
@@ -153,7 +150,6 @@ class QgisAiAgentPlugin:
         if accepted and prompt and self.dock_widget:
             self.dock_widget.put_prompt(prompt)
         if dialog.history_erased:
-            # The open conversation's file went with the rest: a fresh one takes its place.
             self._orchestrator.on_history_erased()
         if self._orchestrator:
             self._orchestrator.refresh_configured()
@@ -162,7 +158,6 @@ class QgisAiAgentPlugin:
             self._follow_theme()
 
     def _follow_theme(self) -> None:
-        """Rebuild the panel in the theme just saved; its colours are fixed when its widgets are made."""
         chosen = personal.load().panel_theme
         if chosen == theme.override():
             return
@@ -184,7 +179,6 @@ class QgisAiAgentPlugin:
         self.dock_widget.setVisible(visible)
 
     def _follow_active_layer(self, following: bool) -> None:
-        """The composer's chip names the layer QGIS has active."""
         try:
             signal = self.iface.currentLayerChanged
             if following:

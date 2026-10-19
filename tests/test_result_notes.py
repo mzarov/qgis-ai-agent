@@ -8,8 +8,6 @@ def note(tool: str, payload: dict) -> str:
 
 
 class ResultNoteTest(unittest.TestCase):
-    """The line under a finished call says what it found, in a few words, from the payload alone."""
-
     def test_counts(self):
         self.assertEqual(note("list_layers", {"layers": [], "count": 3}), "3 layers")
         self.assertEqual(note("describe_layer", {"feature_count": 1}), "1 feature")

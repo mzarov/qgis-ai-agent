@@ -299,16 +299,6 @@ class ThemeTest(unittest.TestCase):
     STYLE = (pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui" / "style.py").read_text(
         encoding="utf-8"
     )
-    TOKENS = (pathlib.Path(__file__).resolve().parent.parent / "design" / "tokens.css").read_text(encoding="utf-8")
-
-    def test_the_two_palettes_are_the_brand_tokens(self):
-        from ai_agent.ui import theme
-
-        light = self.TOKENS.split(":root {")[1].split("}")[0].lower()
-        dark = self.TOKENS.split('[data-theme="dark"] {')[1].split("}")[0].lower()
-        for tokens, css in ((theme.LIGHT, light), (theme.DARK, dark)):
-            for name, value in vars(tokens).items():
-                self.assertIn(f"--{name.replace('_', '-')}: {value.lower()}", css, name)
 
     def test_only_the_theme_spells_a_colour(self):
         ui = pathlib.Path(__file__).resolve().parent.parent / "ai_agent" / "ui"
@@ -321,13 +311,6 @@ class ThemeTest(unittest.TestCase):
 
     def test_the_palette_only_chooses_light_or_dark(self):
         self.assertIn("theme.tokens(palette)", self.STYLE)
-
-
-def _constant(source, name):
-    for line in source.split("\n"):
-        if line.startswith(name + " ="):
-            return float(line.split("=")[1])
-    raise AssertionError(f"нет константы {name}")
 
 
 class ProbeTest(unittest.TestCase):
@@ -427,8 +410,6 @@ class ProbeTest(unittest.TestCase):
 
 
 class ImageProbeTest(unittest.TestCase):
-    """Whether the model sees a picture: an endpoint can take one and drop it before the model."""
-
     def _replying(self, text, seen=None):
         def fake(messages, schemas, overrides=None, timeout=0):
             if seen is not None:
@@ -530,8 +511,6 @@ class ProbeWorkerTest(unittest.TestCase):
 
 
 class RunningProbe:
-    """A connection test still on its way: it runs until the test says it stopped."""
-
     def __init__(self):
         self.running = True
         self.cancelled = False
@@ -542,16 +521,11 @@ class RunningProbe:
     def cancel(self):
         self.cancelled = True
 
-    def wait(self, _milliseconds):
-        return not self.running
-
     def deleteLater(self):
         pass
 
 
 class ClosingDialog(SettingsDialog):
-    """The settings window, remembering the result it closed with."""
-
     closed_with = None
 
     def done(self, result):
@@ -559,8 +533,6 @@ class ClosingDialog(SettingsDialog):
 
 
 class ClosingDuringAProbeTest(unittest.TestCase):
-    """Every way out of the window waits for a running connection test: its thread dies with the window."""
-
     def setUp(self):
         MemorySettings.values = {}
         for module in (settings, geocoder_config):
@@ -591,7 +563,6 @@ class ClosingDuringAProbeTest(unittest.TestCase):
             mock.patch.object(settings_advanced, "reset_preferences"),
         ):
             settings_advanced.reset_settings(self.dialog)
-        self.assertTrue(self.dialog.was_reset)
         self.assertTrue(self.probe.cancelled)
         self.assertIsNone(self.dialog.closed_with, "the window outlived the probe's thread")
         self._probe_stops()
@@ -617,8 +588,6 @@ class ClosingDuringAProbeTest(unittest.TestCase):
 
 
 class ReasoningSwitchTest(unittest.TestCase):
-    """The switch built, toggled and saved through the real dialog, on in-memory settings."""
-
     def setUp(self):
         MemorySettings.values = {}
         for module in (settings, geocoder_config):

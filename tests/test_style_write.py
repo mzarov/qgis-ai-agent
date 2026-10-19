@@ -410,7 +410,6 @@ class SetLabelsTest(StyleWriteCase):
         self.assertEqual((buffer.enabled, buffer.colour, buffer.size_unit), (True, "#ffffff", "map units"))
 
     def test_a_new_size_on_live_labels_comes_in_the_catalogue_units(self):
-        # The catalogue promises points and millimetres; a size kept in map units would scale with the zoom.
         self._label_existing()
         self.tool.execute({"layer_name": "Дороги", "properties": {"size": 10, "buffer_size": 1}})
         text_format = self.layer.labeling[1].text_format
@@ -604,9 +603,6 @@ class _FakeSub:
     def setColor(self, value):
         self.colour = value.name()
 
-    def setFillColor(self, value):
-        self.colour = value.name()
-
 
 class _FakeFormat:
     def __init__(self):
@@ -640,12 +636,6 @@ class _FakeFormat:
     def setSizeUnit(self, value):
         self.size_unit = value
 
-    def setColor(self, value):
-        self.colour = value.name()
-
-    def setOpacity(self, value):
-        self.opacity = value
-
     def setBuffer(self, value):
         self.buffer_settings = value
 
@@ -661,7 +651,6 @@ class _FakeSettings:
         self.fieldName = ""
         self.isExpression = False
         self.offsetUnits = None
-        self.distUnits = None
         self.xOffset = None
         self.yOffset = None
         self.dist = None

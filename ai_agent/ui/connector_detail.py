@@ -1,10 +1,3 @@
-"""One connector on its own page: what it is, prompts to try, what it serves and on what terms.
-
-Opened from a card on the Connectors page. The switch here and the card's
-switch are one setting shown twice, so each follows the other. A click on an
-example prompt hands it to the chat box through `prompt_chosen`.
-"""
-
 from typing import Any
 
 from qgis.PyQt.QtCore import QObject, Qt, pyqtSignal
@@ -34,7 +27,6 @@ CAPTIONS = {
     "imagery": tr("Scenes and rasters, read from the cloud"),
     "pointer": tr("Through the agent's own tools"),
 }
-# Country codes mark national services; the rest wear a drawn glyph.
 GLYPHS = {"openstreetmap": "geocoding", "geoboundaries": "geocoding"}
 MONOGRAM = 34
 LARGE_MONOGRAM = 44
@@ -80,7 +72,6 @@ class ConnectorDetail(QObject):
 
     def __init__(self, row: dict[str, Any], card_switch: Any, palette: Any):
         super().__init__()
-        self.identifier = str(row["id"])
         holder, column = fields.page()
         back = QPushButton(BACK)
         back.setStyleSheet(_link_style(palette))
@@ -142,7 +133,6 @@ class ConnectorDetail(QObject):
         style.ink(self._state, style.success(palette) if enabled else style.faint(palette))
 
     def _example(self, text: str, palette: Any) -> QWidget:
-        """A request to try: the words, and on the right where a click sends them."""
         row = controls.HoverFrame(EXAMPLE_RADIUS, palette)
         row.set_look(style.surface(palette).name(), style.hairline(palette).name())
         line = QHBoxLayout(row)
@@ -175,7 +165,6 @@ class ConnectorDetail(QObject):
 
     @staticmethod
     def _information(row: dict[str, Any], palette: Any) -> QWidget:
-        """Key and value pairs, a hairline under each, as the handoff's table of facts."""
         facts = (
             (KEY_LABEL, KEY_VALUE),
             (LICENCE, tr_data(str(row["licence"]))),
@@ -201,7 +190,6 @@ class ConnectorDetail(QObject):
 
 
 def _link_style(palette: Any) -> str:
-    """Muted text flush with the page edge, brightening on hover: a padded button sat indented from the title."""
     return (
         f"QPushButton {{ background: transparent; border: none; padding: 4px 0px;"
         f"color: {style.css_color(style.muted(palette))}; }}"

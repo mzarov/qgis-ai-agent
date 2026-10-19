@@ -167,7 +167,6 @@ class UpdateAttributesTest(EditTestBase):
             self.tool.prepare({"layer_name": "Дороги", "values": {"type": "x"}, "expressions": {"type": "upper(name)"}})
 
     def test_a_field_not_applied_yet_points_to_apply_now(self):
-        # A model added the column in the same run, then had nothing to fill it with but run_python.
         with self.assertRaisesRegex(ValueError, "area_ha.*apply_now"):
             self.tool.prepare({"layer_name": "Дороги", "expressions": {"area_ha": "$area / 10000"}})
 

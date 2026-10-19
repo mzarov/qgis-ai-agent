@@ -1,19 +1,3 @@
-"""One turn's tool calls and reasoning as the design's "work trace": a quiet timeline above the answer.
-
-Not a card. The header is the timeline's first node: a chevron in the glyph
-column, "Activity · 5 steps" (while working "Working · step 3") level with the
-steps' text, the time on the right; a click anywhere on it folds the list, the
-chevron turning and the list closing smoothly. Each step is a row: a 16 px glyph
-in the faint ink, the call's wording muted and its own values bright, a skill
-tag for a loaded skill, a second line saying what it found, the step's time on
-the right. One hairline joins the nodes, broken around each glyph by the same
-small gap, so the list reads as one timeline. The running step pulses a small
-accent ring instead of its glyph. Reasoning and the user's choice on a question
-card are rows of their own. Success carries no mark; a failed step shows its
-reason in the danger colour. A reopened conversation rebuilds the same rows from
-what was saved, folded and without animation.
-"""
-
 import time
 from html import escape
 from typing import Any
@@ -40,16 +24,13 @@ SKILL_TAG = tr("skill")
 CHOSE = tr("You chose")
 CHOICE = "choice"
 KNOWLEDGE = "knowledge"
-# The person glyph marks the user's own answer; the skills keep their icons, all in the faint ink.
 GLYPH_ROLES = {CHOICE: "personalisation"}
 GLYPH = 16
 GLYPH_BOX = 20
 COLUMN_GAP = 8
 ROW_BOTTOM = 8
 HEADER_GAP = 6
-# With the feed's spacing, the handoff's 14 px from the trace to whatever follows it.
 GROUP_BOTTOM = 3
-# The hairline stops this far from every glyph, whatever the glyph's size.
 LINE_GAP = 3
 SMALL = 0.92
 CHEVRON = 12
@@ -59,15 +40,11 @@ PULSE = 9
 PULSE_PEN = 1.5
 PULSE_MS = 1200
 PULSE_LOW = 0.35
-# A step faster than this shows no time: "0.0 s" claims a measurement that says nothing.
 SHORTEST_SHOWN = 0.05
-# Where an icon glyph's drawing sits in its box, top to bottom; smaller glyphs say their own.
 ICON_MARK = ((GLYPH_BOX - GLYPH) / 2, (GLYPH_BOX + GLYPH) / 2)
 
 
 class RecordedText(str):
-    """A saved step's wording, with the marked values and the skill a live CallSummary carries."""
-
     parts: tuple[tuple[str, bool], ...] = ()
     skill = ""
 
@@ -80,12 +57,10 @@ def recorded_text(step: dict[str, Any]) -> RecordedText:
 
 
 class TraceHeader(QWidget):
-    """The fold line: a turning chevron in the glyph column, the title level with the steps, the time."""
-
     toggled = pyqtSignal(bool)
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._palette = palette
         self.expanded = False
         self.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -130,12 +105,10 @@ class TraceHeader(QWidget):
 
 
 class PulseRing(QWidget):
-    """The running step's mark: a small accent ring whose opacity breathes."""
-
     mark = ((GLYPH_BOX - PULSE) / 2, (GLYPH_BOX + PULSE) / 2)
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._palette = palette
         self.opacity = 1.0
         self.setFixedSize(GLYPH_BOX, GLYPH_BOX)
@@ -145,7 +118,7 @@ class PulseRing(QWidget):
         self._breath.setKeyValueAt(0.5, PULSE_LOW)
         self._breath.setKeyValueAt(1.0, 1.0)
         self._breath.setLoopCount(-1)
-        # A bound method: Qt drops it when the ring is deleted with its row.
+        # A bound method, not a lambda: Qt drops it when the ring is deleted with its row.
         self._breath.valueChanged.connect(self._breathe)
         self._breath.start()
 
@@ -169,12 +142,10 @@ class PulseRing(QWidget):
 
 
 class ThinkingDots(QWidget):
-    """Three dots: the glyph of a reasoning step."""
-
     mark = (GLYPH_BOX / 2 - 1.5, GLYPH_BOX / 2 + 1.5)
 
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._colour = style.faint(palette)
         self.setFixedSize(GLYPH_BOX, GLYPH_BOX)
 
@@ -189,10 +160,8 @@ class ThinkingDots(QWidget):
 
 
 class TraceRow(QWidget):
-    """A row on the timeline: glyph, content, time. The group draws the hairline between the glyphs."""
-
-    def __init__(self, glyph: QWidget, content: QWidget, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, glyph: QWidget, content: QWidget, palette: Any):
+        super().__init__()
         self._palette = palette
         self._line = QHBoxLayout(self)
         self._line.setContentsMargins(0, 0, 0, ROW_BOTTOM)
@@ -221,9 +190,7 @@ class TraceRow(QWidget):
 
 
 class StepRow(TraceRow):
-    """One call: the wording muted, its own values bright, a skill tag for knowledge, what it found under it."""
-
-    def __init__(self, text: str, palette: Any, parent: QWidget | None = None):
+    def __init__(self, text: str, palette: Any):
         content = QWidget()
         column = QVBoxLayout(content)
         column.setContentsMargins(0, 1, 0, 0)
@@ -234,7 +201,6 @@ class StepRow(TraceRow):
         self.skill = str(getattr(text, "skill", "") or "")
         self.tag: QLabel | None = None
         if self.skill == KNOWLEDGE:
-            # A real chip beside the words: rich text in a label draws no border round a span.
             head = QHBoxLayout()
             head.setSpacing(6)
             head.addWidget(self._label)
@@ -250,15 +216,11 @@ class StepRow(TraceRow):
         style.ink(self.note, style.faint(palette))
         self.note.setVisible(False)
         column.addWidget(self.note)
-        super().__init__(PulseRing(palette), content, palette, parent)
+        super().__init__(PulseRing(palette), content, palette)
         self.state = PENDING
         self.started = time.monotonic()
 
     def finish(self, marker: str, note: str = "", seconds: float | None = None) -> None:
-        """Settle the row: its glyph replaces the pulse, the note says what it found or why it failed.
-
-        `seconds` is a saved step's time; a live one measures its own.
-        """
         self.state = marker
         failed = marker in (FAILED, REJECTED)
         if isinstance(self.glyph, PulseRing):
@@ -273,17 +235,14 @@ class StepRow(TraceRow):
 
 
 class ActivityGroup(QFrame):
-    def __init__(self, parent=None, kind: str = ""):
-        super().__init__(parent)
-        # What the run was for: the user's request (""), the check after an apply, or a look into a failure.
+    def __init__(self, kind: str = ""):
+        super().__init__()
         self.kind = kind
-        # Taken before the style sheet: "background: transparent" turns the widget's own palette
-        # base transparent, which the theme reads as dark and paints the rows in near-white text.
+        # Read before the style sheet: "background: transparent" makes the palette base read as dark.
         palette = self._palette = self.palette()
         self.setStyleSheet("QFrame { background: transparent; border: none; }")
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 0, 0, GROUP_BOTTOM)
-        # No spacing here: the gap under the header belongs to the folding list, so it opens with it.
         column.setSpacing(0)
         self._header = TraceHeader(palette)
         self._header.toggled.connect(self._on_toggled)
@@ -292,13 +251,10 @@ class ActivityGroup(QFrame):
         self._rows = QVBoxLayout(rows)
         self._rows.setContentsMargins(0, 0, 0, 0)
         self._rows.setSpacing(0)
-        # The fold shows a part of the rows, never squeezes them: they keep their height and are clipped.
         self._rows_holder = folding.ClipBox(rows, self.update)
         column.addWidget(self._rows_holder)
         self.items: list[TraceRow] = []
-        # Off in Personalisation: steps stay folded under the header while the agent works too.
         self._show_steps = personal.load().show_steps
-        # A replayed group is built folded at once: no animation, no live clock.
         self.quiet = False
         self._recorded: float | None = None
         self._started = 0.0
@@ -321,7 +277,6 @@ class ActivityGroup(QFrame):
         return row
 
     def add_recorded_step(self, step: dict[str, Any]) -> None:
-        """A saved call, settled as it ended; a call the run never finished reads as done."""
         row = self.add_step(recorded_text(step))
         if step.get("rejected"):
             self.mark_rejected(row)
@@ -333,19 +288,15 @@ class ActivityGroup(QFrame):
         )
 
     def add_widget(self, widget: QWidget) -> None:
-        """A reasoning block, on the timeline with the three-dot glyph."""
         self._thoughts += 1
         self._add(TraceRow(ThinkingDots(self._palette), widget, self._palette))
         self._refresh()
 
     @property
     def only_thoughts(self) -> bool:
-        """Reasoning and nothing else: no header, the row stays shown — the block folds by itself, and a
-        reasoning-only turn folded under "Activity · 1 step" would hide the only thing it did."""
         return bool(self.items) and self._thoughts == len(self.items)
 
     def add_choice(self, answer: str) -> None:
-        """The answer the user picked on a question card, as "You chose …" with the person glyph."""
         label = QLabel()
         label.setTextFormat(Qt.TextFormat.RichText)
         label.setWordWrap(True)
@@ -360,17 +311,14 @@ class ActivityGroup(QFrame):
         self._header.set_expanded(False, not self.quiet)
 
     def rest(self) -> None:
-        """The turn moved on: the trace folds to its header with the time the steps took."""
         self._closed = True
         self.fold()
         self._refresh()
 
     def settle(self, seconds: Any = None) -> None:
-        """A replayed turn: folded at once, its header showing the time the record kept."""
         self._recorded = float(seconds) if isinstance(seconds, (int, float)) else None
         self.rest()
         self.finish_folding()
-        # Built still; from now on the user's clicks open and close it like any other.
         self.quiet = False
 
     def mark_step(self, row: StepRow, ok: bool, note: str = "", seconds: float | None = None) -> None:
@@ -389,7 +337,6 @@ class ActivityGroup(QFrame):
         self._refresh()
 
     def finish_folding(self) -> None:
-        """End any fold or turn at once, as a screenshot wants it."""
         self._rows_holder.finish()
         self._header.chevron.finish()
 
@@ -406,8 +353,6 @@ class ActivityGroup(QFrame):
         count = len(self.items)
         self._header.setVisible(bool(count) and not self.only_thoughts)
         self._rows.setContentsMargins(0, 0 if self.only_thoughts else HEADER_GAP, 0, 0)
-        # Reasoning alone stands in for the header: no row gap under it, the answer sits as close
-        # below it as below a folded "Activity" line.
         for row in self.items:
             row.set_bottom(0 if self.only_thoughts and row is self.items[-1] else ROW_BOTTOM)
         if self.only_thoughts and self._rows_holder.isHidden():
@@ -449,7 +394,6 @@ class ActivityGroup(QFrame):
             return
         painter = QPainter(self)
         painter.setPen(QPen(style.hairline(self._palette), 1))
-        # While the list folds, only what is still shown of it carries the line.
         holder = self._rows_holder.geometry()
         painter.setClipRect(QRect(0, 0, self.width(), holder.y() + holder.height()))
         for (x, _top, upper), (_x, lower, _bottom) in zip(nodes, nodes[1:], strict=False):
@@ -458,7 +402,6 @@ class ActivityGroup(QFrame):
         painter.end()
 
     def _nodes(self) -> list[tuple[float, float, float]]:
-        """Each node's line axis, the top and the bottom of its drawing, in the group's coordinates."""
         if self._rows_holder.isHidden():
             return []
         glyphs: list[QWidget] = [row.glyph for row in self.items]
@@ -473,7 +416,6 @@ class ActivityGroup(QFrame):
 
 
 def skill_glyph(skill: str, palette: Any, failed: bool = False) -> QLabel:
-    """A step's glyph: its skill's icon in the faint ink (the danger colour when it failed)."""
     label = QLabel()
     label.setFixedSize(GLYPH_BOX, GLYPH_BOX)
     label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -486,11 +428,7 @@ def skill_glyph(skill: str, palette: Any, failed: bool = False) -> QLabel:
 
 
 def step_markup(text: str, palette: Any) -> str:
-    """Rich text for a call: the wording muted, the call's own values bright.
-
-    Every span is escaped: the values come from the model, and a layer named
-    `<img src=…>` must read as its name, not render.
-    """
+    # Every span is escaped: a model value such as a layer named `<img src=…>` must not render.
     parts = list(getattr(text, "parts", ())) or [(str(text), False)]
     last, marked = parts[-1]
     if not marked:
@@ -521,12 +459,10 @@ def _spans(parts: list[tuple[str, bool]], palette: Any) -> str:
 
 
 def _without_period(text: str) -> str:
-    # A row is a label, not a sentence; an ellipsis is kept, it means "cut".
     return text[:-1] if text.endswith(".") and not text.endswith("..") else text
 
 
 def _unquoted(parts: list[tuple[str, bool]]) -> list[tuple[str, bool]]:
-    # A bright value already stands out; the quotes the wording put around it are noise.
     for index in range(1, len(parts) - 1):
         span, marked = parts[index]
         before, after = parts[index - 1][0], parts[index + 1][0]

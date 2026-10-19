@@ -122,10 +122,9 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 8. **A run can pause and resume.** `apply_now` marks the run staged: the loop
    emits `confirm_needed` but does **not** end. On confirm, the batch executes,
    its real results go into the same transcript and `_request_step` continues;
-   on cancel the run ends with a stated reason. The invariant is unchanged —
-   writes still only run after the user's button. What changed is that the run
-   no longer dies at the first batch, which is what lets one request finish a
-   multi-stage task.
+   on cancel the run ends with a stated reason. Writes still only run after the
+   user's button; the run outlives the first batch, which is what lets one
+   request finish a multi-stage task.
    A read with `network_access = True` auto-stages the run for exact per-call
    confirmation. A batch containing only network reads skips the project
    snapshot because it cannot mutate QGIS.
@@ -175,14 +174,11 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    calls `terminate`.
 15. **Keys live in the QGIS authentication database.** `credentials.py` talks to
     `QgsAuthManager`: the encrypted `qgis-auth.db` inside the profile, the same
-    store QGIS uses for layer passwords. The earlier `keyring` route was the
-    plugin's only external dependency and it does not ship with QGIS — every
-    user had to pip-install it into the QGIS Python before the plugin worked at
-    all, which is not an install story. `QgsAuthManager` needs nothing, behaves
-    the same on all three platforms, and the master password is a dialog the
-    user already knows. Only the identifier of the stored entry goes into
-    `QgsSettings`; the secret never does. A refused master password reads as an
-    empty key with a stated reason, never as a crash.
+    store QGIS uses for layer passwords. It ships with QGIS, so the plugin needs
+    no dependency for it, behaves the same on all three platforms, and the
+    master password is a dialog the user already knows. Only the identifier of
+    the stored entry goes into `QgsSettings`; the secret never does. A refused
+    master password reads as an empty key with a stated reason, never as a crash.
 16. **Slash commands preload skills; the loop stays skill-agnostic.**
     `orchestrator/slash.py` parses `/name rest`: an unknown name is refused with
     the list before anything is sent; a known one becomes
@@ -255,15 +251,15 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     calls runs none of them and tells the model to resend.
 21. **The same failure twice gets a note.** `agent/repeats.py` counts failures
     by tool and error within a run; the second identical one carries a note in
-    its result telling the model to change course or tell the user. A prompt
-    rule alone did not stop a model retrying a refused export five times.
+    its result telling the model to change course or tell the user: a prompt
+    rule alone does not stop a model from resending a refused call.
 22. **A final reply gets one nudge at most** when it is cut off, empty, or —
     before any tool was called in the run — only announces its next step
     (`agent/announcements.py`: "I'll load the export tool." with no call;
     English phrasing only, as the source stays English).
     After real work a short reply is an answer or an offer, never nudged.
-23. **Imports** — all at the top, absolute. Use concise contract docstrings and
-    comments for non-obvious reasons — see the root CLAUDE.md.
+23. **Imports** — all at the top, absolute. Docstrings and comments follow the root
+    CLAUDE.md.
 
 ## What lives where
 

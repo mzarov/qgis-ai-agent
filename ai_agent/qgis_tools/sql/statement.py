@@ -1,10 +1,4 @@
-"""Reading an SQL text before QGIS sees it: one read-only SELECT, its identifiers, no file or schema functions.
-
-Pure Python on purpose. The virtual layer provider would quietly run only the
-first of several statements, and SpatiaLite carries functions that read and
-write files; a read tool runs without the user's confirmation, so both are
-refused here, before any layer is built.
-"""
+# A read tool runs unconfirmed: refuse all but one SELECT, and SpatiaLite's file functions.
 
 import re
 from dataclasses import dataclass
@@ -14,16 +8,13 @@ QUOTED = "quoted"
 STRING = "string"
 NUMBER = "number"
 PUNCT = "punct"
-# SQLite quotes identifiers three ways; the first two double their closing mark to escape it.
 IDENTIFIER_QUOTES = {'"': '"', "`": "`", "[": "]"}
 STRING_QUOTE = "'"
 WORD_PATTERN = re.compile(r"[^\W\d][\w$]*")
 NUMBER_PATTERN = re.compile(r"(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?")
 ALLOWED_STARTS = frozenset({"SELECT", "WITH"})
-# What can follow a WITH clause at the top level: only SELECT reads.
 STATEMENT_WORDS = frozenset({"SELECT", "VALUES", "INSERT", "UPDATE", "DELETE", "REPLACE"})
 READ_STATEMENT = "SELECT"
-# Bare words that are grammar, never a table: a layer named like one is matched only in double quotes.
 SQL_KEYWORDS = re.compile(
     r"ALL|AND|AS|ASC|BETWEEN|BY|CASE|CAST|CROSS|DESC|DISTINCT|ELSE|END|ESCAPE|EXCEPT|EXISTS|FROM|FULL|GLOB"
     r"|GROUP|HAVING|IN|INNER|INTERSECT|IS|ISNULL|JOIN|LEFT|LIKE|LIMIT|MATERIALIZED|NATURAL|NOT|NOTNULL|NULL"
@@ -31,8 +22,7 @@ SQL_KEYWORDS = re.compile(
     r"|WHERE|WINDOW|WITH",
     re.IGNORECASE,
 )
-# Functions that touch files, load code or change the database or the session, by name or name prefix.
-# CreateUUID() goes with them: a prefix rule that misses a writer is worse than one refused harmless call.
+# By prefix on purpose: missing a writer is worse than refusing a harmless CreateUUID().
 DENIED_FUNCTIONS = re.compile(
     r"load_extension|fts3_tokenizer|readfile|writefile|edit|sqlite_attach|sqlite_detach"
     r"|blobfromfile|blobtofile|xb_loadxml|xb_storexml|checkgeometries|sanitizegeometrycolumn"
@@ -42,7 +32,6 @@ DENIED_FUNCTIONS = re.compile(
     re.IGNORECASE,
 )
 SUMMARY_CHARS = 80
-# The one argument both tools share, worded once.
 SQL_PARAM = {
     "name": "sql",
     "type": "string",
@@ -70,8 +59,6 @@ DENIED_ERROR = (
 
 @dataclass(frozen=True)
 class Token:
-    """One lexical unit; `text` is an identifier's or a string's value without its quotes."""
-
     kind: str
     text: str
     depth: int
@@ -79,7 +66,6 @@ class Token:
 
 
 def checked_sql(raw: object) -> str:
-    """The statement to run: one SELECT, without a trailing ';' or comment. Raises ValueError otherwise."""
     text = str(raw or "").strip()
     tokens = statement_tokens(text)
     first = tokens[0]
@@ -95,7 +81,6 @@ def checked_sql(raw: object) -> str:
 
 
 def statement_tokens(text: str) -> list[Token]:
-    """The tokens of the single statement in `text`; a trailing ';' is dropped, anything after it refused."""
     tokens = tokenize(text)
     for position, token in enumerate(tokens):
         if _is(token, ";"):
@@ -109,7 +94,6 @@ def statement_tokens(text: str) -> list[Token]:
 
 
 def tokenize(text: str) -> list[Token]:
-    """Split SQL into tokens, skipping whitespace and comments and tracking parenthesis depth."""
     tokens: list[Token] = []
     depth = 0
     index = 0
@@ -134,7 +118,6 @@ def tokenize(text: str) -> list[Token]:
 
 
 def identifiers(tokens: list[Token]) -> list[str]:
-    """Names that may be tables, in order and once each: no keywords, function names or `alias.column` columns."""
     found: list[str] = []
     for position, token in enumerate(tokens):
         if token.kind not in (WORD, QUOTED):
@@ -151,7 +134,6 @@ def identifiers(tokens: list[Token]) -> list[str]:
 
 
 def function_names(tokens: list[Token]) -> list[str]:
-    """Every name called like a function: a word or a quoted name right before '('."""
     return [
         token.text
         for token, following in zip(tokens, tokens[1:], strict=False)
@@ -159,10 +141,9 @@ def function_names(tokens: list[Token]) -> list[str]:
     ]
 
 
-def short_sql(raw: object, limit: int = SUMMARY_CHARS) -> str:
-    """The SQL on one line for a person to recognise, cut to `limit` characters."""
+def short_sql(raw: object) -> str:
     text = " ".join(str(raw or "").split())
-    return text if len(text) <= limit else text[: limit - 1].rstrip() + "…"
+    return text if len(text) <= SUMMARY_CHARS else text[: SUMMARY_CHARS - 1].rstrip() + "…"
 
 
 def _quoted(tokens: list[Token], text: str, start: int, kind: str, closing: str, depth: int) -> int:
@@ -172,7 +153,7 @@ def _quoted(tokens: list[Token], text: str, start: int, kind: str, closing: str,
         if index < 0:
             what = "string" if kind == STRING else "quoted name"
             raise ValueError(UNTERMINATED_ERROR.format(what, start + 1))
-        # A doubled closing mark is an escaped one, except for [brackets], which have no escape.
+        # A doubled closing mark escapes itself, except for ']', which has no escape.
         if closing != "]" and text.startswith(closing * 2, index):
             index += 2
             continue
@@ -203,7 +184,6 @@ def _plain(tokens: list[Token], text: str, index: int, depth: int) -> tuple[int,
 
 
 def _main_statement(tokens: list[Token]) -> str:
-    """The statement keyword at the top level: the first word, or for WITH the one after its clause."""
     words = [token.text.upper() for token in tokens if token.kind == WORD and token.depth == 0]
     if words[0] != "WITH":
         return words[0]

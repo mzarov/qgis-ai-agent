@@ -31,7 +31,7 @@ FORMATS = {
     ".csv": "CSV",
 }
 CSV_SUFFIX = ".csv"
-# Without it the CSV driver silently drops the geometry and keeps attributes only.
+# Without it the CSV driver silently drops the geometry.
 CSV_GEOMETRY_OPTIONS = ["GEOMETRY=AS_WKT"]
 CSV_NOTE = "The geometry is stored as WKT text in a column named WKT."
 
@@ -148,8 +148,6 @@ class ExportLayerTool(BaseTool):
         return result
 
     def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
-        # The file is the whole result: it opens and holds the features that were written. Loading it as a
-        # layer to look, as a model does, costs several requests and a layer to tidy away afterwards.
         path = str(payload.get("path") or "")
         if not path or not os.path.isfile(path) or os.path.getsize(path) == 0:
             return False
@@ -162,7 +160,6 @@ class ExportLayerTool(BaseTool):
 
 
 def _written_count(source: Any, selected_only: bool) -> int | None:
-    """How many features the export wrote, when the source can say cheaply; None for a remote source."""
     if selected_only:
         return int(source.selectedFeatureCount())
     return feature_count_if_cheap(source)
@@ -211,7 +208,6 @@ def _validate_selection(layer: Any, params: dict[str, Any]) -> None:
 
 
 def _refuse_a_layer_source(path: str) -> None:
-    """An export onto the file a project layer reads from would destroy that layer's data, overwrite or not."""
     for layer in QgsProject.instance().mapLayers().values():
         source = _file_of(layer)
         if source and same_path(source, path):
@@ -222,7 +218,6 @@ def _refuse_a_layer_source(path: str) -> None:
 
 
 def _file_of(layer: Any) -> str:
-    """The file a layer reads from, without the provider's `|layername=` suffix; "" when it has none."""
     with suppress(Exception):
         return str(layer.source() or "").split("|")[0]
     return ""

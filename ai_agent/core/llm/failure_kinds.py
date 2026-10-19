@@ -1,10 +1,3 @@
-"""What kind of failure ended a model request, so the chat can say it plainly; the message stays as it was.
-
-The worker thread knows the exception; the main thread only gets a message.
-`TurnFailure` is that message with the kind attached, a `str` still, so every
-handler that took a string keeps taking it.
-"""
-
 from ai_agent.core.llm.client import ApiResponseError, ModelTimeout, SetupError
 from ai_agent.core.llm.retry import QUOTA_MARKERS, is_overload
 
@@ -22,8 +15,6 @@ RATE_LIMITED = 429
 
 
 class TurnFailure(str):
-    """A failed request's message, carrying its kind across the thread boundary."""
-
     kind: str
 
     def __new__(cls, message: str, kind: str) -> "TurnFailure":

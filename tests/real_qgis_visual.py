@@ -1,20 +1,3 @@
-"""Screen checks of the plugin in a live QGIS: structure, layout faults, pixels.
-
-Each test builds one screen without a model — the dock in a known state, a
-composer popup, a settings page — then checks it with `ui_snapshot`:
-
-- the widget structure must match its JSON golden in `tests/data/ui/structure`;
-- no text may be clipped and no content may overflow its scroll area;
-- with `UI_PIXEL_BASELINE=1` (one pinned CI job) the screenshot must match its
-  PNG golden in `tests/data/ui/pixels`.
-
-Screenshots and a gallery page land in `E2E_ARTIFACTS`. After an intended
-change, regenerate goldens with `UI_UPDATE_GOLDENS=1`; pixel goldens only from
-the `ui-goldens` artifact of the pinned CI job.
-
-Runs inside `real_qgis_workflows.py` against the extracted plugin ZIP.
-"""
-
 import os
 import pathlib
 import time
@@ -47,11 +30,9 @@ NARROW_WIDTH = 380
 SETTINGS_WIDTH = 900
 SETTINGS_HEIGHT = 640
 SETTINGS_PAGES = ("connection", "privacy", "skills", "geocoding", "advanced", "connectors", "personalisation")
-# The versions the sidebar's foot shows in the goldens, whatever the release and the QGIS image.
 PINNED_PLUGIN_VERSION = "0.2.0"
 PINNED_QGIS_VERSION = "4.0"
 PROFILE_MARKER = "ai-agent-integration-"
-# A real profile path is long; a short stand-in once hid a skills page that overflowed on a real Mac.
 LONG_PROFILE = "/Users/someone-with-a-long-name/Library/Application Support/QGIS/QGIS4/profiles/default"
 LOCALE = os.environ.get("UI_LOCALE", "").strip()
 LOCALE_SUFFIX = f"_{LOCALE}" if LOCALE else ""
@@ -73,7 +54,6 @@ NOT_FOUND_BODY = '{"detail":"Not Found"}'
 DOWNLOADED = 2_516_582
 OVERLOADED = '{"error":"model deepseek-v4-flash is overloaded","request_id":"1791819735292003-15416037050477550884"}'
 STEP = ("query_layer", {"layer_name": "districts", "aggregate": "max", "expression": "pop2020"})
-# The calls before the answer, with what each found: the open activity list as a person sees it.
 READS = (
     ("describe_layer", {"layer_name": "districts"}, {"feature_count": 12}),
     ("get_field_values", {"layer_name": "districts", "field_name": "pop2020"}, {"unique_values": list(range(12))}),
@@ -172,17 +152,14 @@ class ScreenCase(PluginCase):
         focused = QApplication.focusWidget()
         if focused is not None:
             focused.clearFocus()
-        # A swinging needle or a breathing ring would make every pixel golden depend on the moment of the grab.
         for mark in widget.findChildren(compass.Compass):
             mark.stop()
         for ring in widget.findChildren(activity.PulseRing):
             ring.stop()
-        # A transition caught halfway would too: what leaves goes, what arrives is in place.
         for overlay in widget.findChildren(transitions.LeavingFeed):
             overlay.finish()
         for arrival in widget.findChildren(transitions.Arrival):
             arrival.finish()
-        # And a list or a reasoning box still opening: open it fully.
         for group in widget.findChildren(activity.ActivityGroup):
             group.finish_folding()
         for block in widget.findChildren(ThinkingBlock):
@@ -197,8 +174,6 @@ class ScreenCase(PluginCase):
         ARTIFACTS.mkdir(parents=True, exist_ok=True)
         image.save(str(ARTIFACTS / f"ui_{name}.png"))
         problems = []
-        # Translated text is the catalogue's business (tests/test_i18n.py); the
-        # Russian run looks for clipping, so its structure is not pinned.
         structure = (
             None if LOCALE or not goldens else ui_snapshot.compare_structure(name, ui_snapshot.structure(widget))
         )
@@ -218,7 +193,6 @@ class ScreenCase(PluginCase):
         self.dock.conversation.add_assistant_message(ANSWER)
         self.dock.add_plan_message(PLAN)
         self.dock.add_result_message(i18n.tr_n(DONE, len(PLAN)).format(""))
-        # The verification run after the apply: its reads gather under their own trace, no note above them.
         self.dock.set_run_kind(notices.RUN_CHECK)
         self.reads()
         self.dock.set_run_kind("")
@@ -246,7 +220,6 @@ class DockScreens(ScreenCase):
 
 class StateScreens(ScreenCase):
     def test_a_dark_panel_in_a_light_qgis(self) -> None:
-        """The panel theme overrides QGIS: every part of the rebuilt panel follows the dark tokens."""
         theme.set_override(theme.THEME_DARK)
         panel = AgentDockWidget()
         try:
@@ -306,7 +279,6 @@ class StateScreens(ScreenCase):
         self.check("dock_run_failed", self.dock)
 
     def test_run_failed_on_a_wrong_address(self) -> None:
-        """Settings must fix it: no Retry yet, Connection is the outlined button, the path is named."""
         self.dock.add_user_message(REQUEST)
         message = i18n.tr(API_ERROR).format(404, NOT_FOUND_BODY)
         failure = run_failure.explain_run_failure(failure_kinds.NOT_FOUND, message, WRONG_ADDRESS, MODEL)
@@ -316,16 +288,13 @@ class StateScreens(ScreenCase):
         self.check("dock_run_failed_not_found", self.dock)
 
     def test_done_with_a_summary(self) -> None:
-        """A request that applied a change ends saying what changed, after how long."""
         self.dock.add_user_message(REQUEST)
         self.dock.add_result_message(i18n.tr_n(DONE, 1).format(""))
-        # A run that took six seconds: the time on the line must not depend on the machine.
         self.dock.progress._started = time.monotonic() - 6.2
         self.dock.show_outcome(notices.STATUS_DONE, i18n.tr(REDRAWN).format("districts"))
         self.check("dock_done_summary", self.dock)
 
     def test_downloading(self) -> None:
-        """A download of unknown size: the step's bar sweeps and its mark counts the bytes so far."""
         self.dock.add_user_message(REQUEST)
         plan = self.dock.add_plan_message(PLAN)
         self.dock.mark_plan_step(plan, 0, notices.STEP_DONE)
@@ -397,12 +366,6 @@ class StateScreens(ScreenCase):
 
 
 class ForeignThemeScreens(ScreenCase):
-    """A light panel inside a dark QGIS: every text keeps the panel's ink, whatever QGIS's palette or UI theme.
-
-    Checked for faults only (clipping, overflow, text nobody can read), no goldens: the screens repeat
-    the others in a foreign setting, and a dark QGIS once turned the popups' names white on white.
-    """
-
     def test_a_light_panel_in_a_dark_palette(self) -> None:
         app = QApplication.instance()
         saved = QPalette(app.palette())
@@ -488,7 +451,6 @@ class ComposerScreens(ScreenCase):
 
         from ai_agent.ui.sessions_popup import Entry
 
-        # A fixed "now", so the day groups and the dates are the same on every run.
         now = datetime(2026, 10, 8, 15, 0).timestamp()
         entries = [
             Entry("a", "Town layers and what is in them", datetime(2026, 10, 8, 14, 32).timestamp(), True),
@@ -511,8 +473,7 @@ class ComposerScreens(ScreenCase):
         frame = self.dock.composer._frame
         toolbar.modes.open_above(frame, "ask")
         try:
-            # Lit, not checked: the current mode is the row with the fill, and the menu is as wide as its text.
-            lit = [row.key for row in toolbar.modes.rows if row.lit]
+            lit = [row.key for row in toolbar.modes.rows if row._look and row._look[0]]
             self.assertEqual(lit, ["ask"])
             self.assertLess(toolbar.modes.width(), frame.width())
             self.check("mode_menu", toolbar.modes)
@@ -536,7 +497,6 @@ class ComposerScreens(ScreenCase):
 
 class SettingsScreens(ScreenCase):
     def test_every_settings_page(self) -> None:
-        # What the profile holds depends on the tests run before, the versions on the build: all pinned.
         with (
             mock.patch("ai_agent.core.history.usage", return_value=(12, 2_200_000)),
             mock.patch("ai_agent.ui.settings_layout.plugin_version", return_value=PINNED_PLUGIN_VERSION),
@@ -561,8 +521,6 @@ class SettingsScreens(ScreenCase):
 
 
 class FaultDetector(unittest.TestCase):
-    """The layout check must see a fault, or its empty result proves nothing."""
-
     def setUp(self) -> None:
         self.window = QWidget()
         self.window.resize(300, 200)
@@ -605,8 +563,6 @@ class FaultDetector(unittest.TestCase):
 
 
 class PortableStructure(unittest.TestCase):
-    """The structure goldens come from the Linux CI: a Mac's ⌘N and a decimal comma must read as there."""
-
     def test_the_platform_shortcut_reads_as_on_linux(self) -> None:
         native = QKeySequence(QKeySequence.StandardKey.New).toString(QKeySequence.SequenceFormat.NativeText)
         self.assertEqual(ui_snapshot.portable_text(f"New conversation {native}"), "New conversation Ctrl+N")

@@ -1,13 +1,3 @@
-"""A step's long work off the main thread, and its ending back on it.
-
-PyQGIS objects belong to the main thread, so a tool that works long hands only
-thread-safe work to a QGIS task — a Processing algorithm through
-QgsProcessingAlgRunnerTask, a download through QgsBlockingNetworkRequest — and
-touches the project, its layers and the interface only once the task is over,
-on the main thread again. The executor starts the work and waits for
-`finished` without blocking: the window, the map and Stop stay alive meanwhile.
-"""
-
 from collections.abc import Callable
 from typing import Any
 
@@ -16,32 +6,17 @@ from qgis.PyQt.QtCore import QObject, QTimer, pyqtSignal
 
 LOG_TAG = "AI Agent"
 STOPPED = "Stopped before it finished; nothing of this step was kept."
-TIMED_OUT = (
-    "The step ran past the {seconds} s tool timeout and was stopped. Try a smaller extent or fewer "
-    "features; the user can raise the limit in Settings → Advanced."
-)
 MS_IN_SECOND = 1000
-# Every work whose task still runs: QGIS holds only references to its context and feedback,
-# so nothing of it may be collected before the task ends, whoever stopped listening.
+# QGIS holds only references to a task's context and feedback: keep each work alive until it ends.
 _RUNNING: set["Background"] = set()
 
 
 class Background(QObject):
-    """One step's work in a QGIS task.
-
-    `progressed` carries 0–100, `counted` how many bytes or items are done when
-    the whole is unknown, and `finished` the step's payload, or the exception that
-    ended it; all arrive on the main thread, `finished` exactly once. A
-    subclass builds its task in `_launch` and calls `_end` when the task is over;
-    `cancel` and the time limit, when there is one, make it end with the reason
-    instead.
-    """
-
     progressed = pyqtSignal(float)
     counted = pyqtSignal(int)
     finished = pyqtSignal(object)
 
-    def __init__(self, seconds: float | None, timeout_message: str = TIMED_OUT) -> None:
+    def __init__(self, seconds: float | None = None, timeout_message: str = "") -> None:
         super().__init__()
         self.seconds = seconds
         self._timeout_message = timeout_message
@@ -53,7 +28,7 @@ class Background(QObject):
         self._limit.timeout.connect(self._time_out)
 
     def start(self) -> None:
-        """Launch the task; `finished` never arrives before this returns, even when the launch fails."""
+        # `finished` never arrives before this returns, even when the launch fails.
         _RUNNING.add(self)
         if self.seconds is not None:
             self._limit.start(int(self.seconds * MS_IN_SECOND))
@@ -73,7 +48,6 @@ class Background(QObject):
         self._end(self._launch_error)
 
     def _halt(self) -> None:
-        """Ask the running task to stop; it ends through `_end` as usual."""
         raise NotImplementedError
 
     def _time_out(self) -> None:
@@ -94,7 +68,6 @@ class Background(QObject):
             self.counted.emit(int(done))
 
     def _end(self, outcome: object) -> None:
-        """The step's payload or the exception that ended it; a stop's reason outranks both."""
         if self._over:
             return
         self._over = True
@@ -104,22 +77,14 @@ class Background(QObject):
 
 
 class InTask(Background):
-    """`work` runs in a QGIS task, then `complete` turns its value into the payload on the main thread.
-
-    `work` gets a feedback it should pass on to what it calls (QgsBlockingNetworkRequest
-    takes one) and must touch nothing but its arguments and thread-safe QGIS classes.
-    With `seconds` None the work has no limit of its own: a download keeps the
-    network's timeout, as on the main thread.
-    """
-
+    # `work` runs in a QGIS task: it may touch only its arguments and thread-safe QGIS classes.
     def __init__(
         self,
         description: str,
         work: Callable[[QgsFeedback], Any],
         complete: Callable[[Any], dict[str, Any]],
-        seconds: float | None = None,
     ) -> None:
-        super().__init__(seconds)
+        super().__init__()
         self._description = description
         self._work = work
         self._complete = complete
@@ -139,7 +104,7 @@ class InTask(Background):
         # The task manager deletes the task after this: nothing may reach it from now on.
         self._task = None
         if error is not None or self._stopped_because is not None:
-            # A stop that came after the work ended, while this call waited in the queue, still keeps nothing.
+            # A stop that came while this call waited in the queue still keeps nothing.
             self._end(error)
             return
         try:
@@ -149,9 +114,6 @@ class InTask(Background):
 
 
 def download_progress(feedback: Any) -> Callable[[int, int], None]:
-    """A QgsBlockingNetworkRequest's downloadProgress, told to a step's feedback: bytes always, a percent
-    once the server names the size."""
-
     def report(received: int, total: int) -> None:
         feedback.setProcessedCount(max(0, int(received)))
         if total > 0:
@@ -161,15 +123,12 @@ def download_progress(feedback: Any) -> Callable[[int, int], None]:
 
 
 class _Worker(QgsTask):
-    """Runs `work` off the main thread; `finished` hands the value back on the main thread."""
-
     def __init__(
         self,
         description: str,
         work: Callable[[QgsFeedback], Any],
         done: Callable[[Any, BaseException | None], None],
     ) -> None:
-        # Hidden from QGIS's own task bar: the step's line in the chat shows how far it is.
         super().__init__(description, QgsTask.Flag.CanCancel | QgsTask.Flag.Hidden)
         self._work = work
         self._done = done

@@ -1,21 +1,3 @@
-"""Estimate what one scripted agent task costs in prompt tokens.
-
-The script replays a fixed task (a graduated statistics map from one shapefile,
-followed by the verification run) through the real request builder, so every
-prompt, skill body and tool schema is the one the plugin would send. Model
-turns and tool results are canned. Numbers are character counts divided by
-four: good for comparing two versions of the plugin, not for billing.
-
-Two figures matter:
-- sent: every input token of every request;
-- uncached: the part of each request that differs from the previous one. A
-  provider with prefix caching (Anthropic breakpoints, OpenAI, DeepSeek) only
-  bills the cached rest at a fraction of the price, so this is what a stable
-  prefix saves.
-
-Run: python3 tools/measure_tokens.py
-"""
-
 import json
 import os
 import sys

@@ -1,8 +1,3 @@
-"""Plain HTTPS calls to fixed hosts, the open-data catalogue and the QGIS plugin repository.
-
-They run on the QGIS network stack, so proxy and SSL settings apply.
-"""
-
 import json
 from typing import Any
 
@@ -36,7 +31,6 @@ def get_bytes(url: str, limit: int, feedback: Any = None) -> bytes:
 
 
 def _send(url: str, body: bytes | None = None, feedback: Any = None) -> bytes:
-    """The answer's bytes; safe off the main thread, where `feedback` can cancel the request."""
     request = QNetworkRequest(QUrl(url))
     request.setRawHeader(b"User-Agent", USER_AGENT)
     caller = QgsBlockingNetworkRequest()

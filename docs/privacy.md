@@ -1,183 +1,120 @@
 # Data and privacy
 
-AI Agent runs in QGIS, but a remote language model cannot reason about the
-project without receiving context. “Read-only” in the plan means that a tool
-does not mutate QGIS. It is not a promise that the tool result remains on the
-device.
-
-## What you agree to by using the agent
-
 The agent works by showing your project to the language model you configure.
-**Everything a tool reads goes to that model**: layer and field names, CRS,
-attribute values it samples or queries, extents, layer filters and sources,
-style categories, Processing and Python results, and rendered images of the map
-or a print layout. There is no switch that keeps those details back — an agent
-that cannot read the data cannot do GIS work, and an earlier "privacy mode" that
-hid such tools only left the model guessing.
+A "read" tool does not change QGIS, but its result still goes to the model.
 
-The first send to a remote endpoint shows one confirmation naming its address;
-agreeing is remembered for that endpoint, declining cancels just that send and
-asks again next time. Local addresses skip the dialog. If a project must not
-leave your computer, use a local model server (Ollama, LM Studio) — and remember
-that a local server can still log or forward data, so review its configuration.
+## What goes to the model
+
+Every request carries your prompt, the conversation (or its summary after
+compaction), a short project context, project notes, your Personalisation
+settings, the loaded skill rules and the tool schemas. After each tool call,
+the result goes to the model as well. Results can include:
+
+- feature attribute values, unique values and value ranges;
+- exact map and layer extents;
+- layer filters and data sources;
+- style categories;
+- Processing and Python results, including paths and error text;
+- a PNG image of the map or a print layout, on a model that accepts images;
+- pictures you attach.
+
+There is no switch that holds this back: an agent that cannot read the data
+cannot do GIS work. Results are shortened to fit the context, but that is not
+a privacy boundary. The model also receives the conversation to write a
+compaction summary and a short title.
+
+The first send to a remote endpoint asks for confirmation and names its
+address. Agreeing is remembered for that endpoint; declining cancels just that
+send. Local addresses do not ask. **Test connection** sends one short request
+with no project data.
+
+For a project that must not leave your computer, use a local model server
+such as Ollama or LM Studio. A local server can still log or forward requests,
+so check its configuration.
 
 ## Web tools
 
-The optional `search_web`, `geocode` and `fetch_url` tools have a separate,
-per-call consent boundary. Each call is queued in a plan even though it cannot
-change the QGIS project; the network request starts only after **Apply** and
-**Cancel** discards it. This confirmation is required with both remote and local
-model endpoints. A batch containing only web reads does not create a project
-snapshot.
+`search_web`, `geocode` and `fetch_url` ask before each call, also with a local
+model. The request starts only after **Apply**. In Auto mode they run without
+asking, like the rest of the plan.
 
-The recipients and data are:
+- `search_web` sends the search phrase to DuckDuckGo, and to Wikipedia if
+  DuckDuckGo fails.
+- `geocode` sends the place name to the Photon demo or your own Nominatim
+  server, chosen in Settings. Geocoding is off until you choose one. The public
+  OSMF server `nominatim.openstreetmap.org` is refused under its
+  [usage policy](https://operations.osmfoundation.org/policies/nominatim/).
+- `fetch_url` contacts the public HTTPS host in the approved URL.
 
-- `search_web` sends the search phrase to DuckDuckGo; if that service fails, it
-  sends the same phrase to the English or Russian Wikipedia search API;
-- `geocode` sends the place name to the Photon demo or custom
-  Nominatim-compatible public HTTPS service selected in Settings;
-- `fetch_url` sends a request to the public HTTPS host in the URL you approved.
+Only public HTTPS addresses are accepted. Private and local addresses, URLs
+with credentials or signatures, and redirects to another origin are refused.
+Cookies are not kept. Web results are treated as untrusted data, are passed to
+the model and are not saved on disk.
 
-The public OSMF Nominatim instance at `nominatim.openstreetmap.org` is
-intentionally rejected rather than offered as generic agent geocoding.
-Geocoding starts disabled. The Photon demo preset permits reasonable use, may
-throttle heavy traffic and has no availability guarantee; for other use, bring
-a service whose operator permits it. Review the official
-[Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/).
+## Other services
 
-Web tools accept only public HTTPS destinations. Local, private, link-local and
-reserved addresses, credential-bearing or signed URLs, and cross-origin
-redirects are rejected. Every DNS answer must be globally routable; one checked
-IP is pinned through all same-origin hops while TLS verifies the approved host
-name. If a direct connection to one validated address fails, the next validated
-answer is tried. When QGIS selects an explicit proxy for the approved host, the
-original hostname is sent through that proxy so its rules and DNS path remain
-effective; direct routes still use IP pinning and fail closed on a route mismatch.
-Cookie persistence and cached HTTP-authentication reuse are
-disabled for these requests. Responses are treated as untrusted data, never as
-instructions: a page cannot authorise more requests or ask the agent to reveal
-prompts, project data, credentials or other tool results.
+When a request needs them, tools also contact:
 
-Search, geocode and fetched-page results become tool results and may therefore
-be forwarded to the model endpoint chosen in Settings. The per-call web
-confirmation is independent of the model endpoint.
+- the Overpass API for OpenStreetMap data;
+- the Microsoft Planetary Computer (the search area and dates; imagery is read
+  through a short-lived signed link), GitHub (Natural Earth and geoBoundaries
+  files) and the geoBoundaries API (the country code);
+- the map services of the open-data catalogue, which receive the extents being
+  drawn: NASA GIBS, EOX, GEBCO, OpenTopoMap, IGN France, PDOK, swisstopo, USGS
+  and Geoscience Australia;
+- plugins.qgis.org, when searching for or installing a plugin. Nothing about
+  the project is sent;
+- tile, WMS, WFS and database servers you name.
 
-## What reaches the model endpoint
-
-Every model turn includes the current prompt, the whole conversation (or,
-once it has been compacted, the model's summary of the older part plus the
-newer messages), a short project context, the loaded skill instructions and
-tool schemas. Project notes created with `remember` are included as well.
-Compacting sends the conversation to the same model to write that summary, and
-after the first answer the first request and answer are sent once more so the
-model can give the conversation a short title.
-
-After a tool runs, its result is returned to the model so it can decide the next
-step. Tool results can include:
-
-- sampled, queried or selected feature attribute values, unique values and
-  numeric ranges;
-- exact map and layer extents;
-- layer filters and source descriptions;
-- style categories;
-- Processing and Python results, including output paths or error details;
-- a PNG rendering of the map canvas or print layout when image input is enabled;
-- pictures you attach to a request yourself.
-
-Tool results are capped or compacted for model context, but truncation is not a
-privacy boundary. Do not assume that a sensitive value will be removed.
-
-The connection-test request contains no project context, but the provider may
-retain or use it according to its own terms.
+Each of these calls is listed in the plan and asks first, except in Auto mode.
+Any open-data source can be switched off in Settings → Connectors. QGIS itself
+and its data providers may make their own requests.
 
 ## What stays on the computer
 
-API credentials are stored in the QGIS authentication database — the encrypted
-`qgis-auth.db` inside the active QGIS profile, the same store QGIS uses for
-layer and PostGIS passwords. It is unlocked by the QGIS master password, which
-QGIS asks for once per session. The plugin writes no key to a QGIS project or
-settings file; only the identifier of the stored entry goes into the settings,
-never the secret. Removing the key from the settings window deletes that entry.
-Extra request headers (Settings → Advanced) are plain settings, so a header
-whose name would carry a credential — `Authorization`, `X-Api-Key`, or any name
-with *key*, *token*, *secret*, *password*, *session*, *cookie* or *auth* in it —
-is refused there: a key cannot land in a settings file that way either.
+API keys are stored in the QGIS authentication database (`qgis-auth.db` in the
+active QGIS profile), unlocked by the QGIS master password. Only the entry's
+identifier goes into the settings. Extra request headers are plain settings,
+so a header whose name suggests a credential (`Authorization`, or a name with
+*key*, *token*, *secret*, *password*, *session*, *cookie* or *auth*) is
+refused.
 
-Conversation messages and remembered project notes are stored as plain JSON
-under the active QGIS profile in `ai_agent_sessions`. So is what the chat showed
-of each turn, so a reopened conversation shows it again: the activity steps with
-their result lines, the model's reasoning text and the plan cards with their
-outcome. None of that is sent back to the model. Atomic writes keep a
-previous `.bak` copy so a power loss or partial write does not destroy the last
-valid state. These files are not encrypted. Settings → Privacy can keep them
-for 7 or 30 days after their last change instead of until deleted; the open
-conversation is never pruned. Tool results and rendered images
-remain in memory unless their content is repeated in a saved chat message or
-written by another operation. Web responses are not cached on disk.
+Conversations, project notes and memory notes are stored as plain JSON in the
+active QGIS profile (`ai_agent_sessions`), with a `.bak` copy of the previous
+version. They are not encrypted. Settings → Privacy can delete conversations
+untouched for 7 or 30 days.
 
-After an applied run, the plugin also writes a plaintext Markdown audit journal
-under `ai_agent_runs` in the active QGIS profile and reports the exact path in
-the conversation and QGIS log. It records shortened versions of the request and
-agent messages, tool names, failed-tool error text, the number of applied steps
-and the final outcome. The plugin refuses a symbolic-link journal directory,
-sets the directory to owner-only mode `0700` and each atomically written file to
-`0600` where the platform supports those permissions. This limits other local
-accounts but is not encryption. Journals persist across QGIS restarts and remain
-until the user deletes them — one by one in the folder, or all of them together
-with every saved conversation through **Delete history and journals** in
-Settings → Privacy, after a confirmation. They do not add tool arguments or successful
-tool-result payloads, but recorded text and errors can still contain sensitive
-information.
-
-## Other network requests
-
-Apart from the anonymous usage statistics below, the plugin reports nothing about
-its use. It contacts the model endpoint you configure
-and the per-call web recipients listed above. When requested, GIS tools can also
-contact services such as Overpass, tile servers, WMS/WFS endpoints or databases
-selected by the user. The open-data tools contact the Microsoft Planetary
-Computer (scene search sends the search rectangle and dates; loaded imagery is
-read from its Azure storage through a short-lived signed link), GitHub (Natural
-Earth and geoBoundaries files) and the geoBoundaries API (the country code). Searching for a plugin
-and installing one contact plugins.qgis.org: the list of plugins for this QGIS version and the chosen
-plugin's archive; nothing about the project is sent. Web map services from the
-catalogue are drawn from their providers' servers, which receive the map
-extents being drawn: NASA GIBS, EOX, GEBCO, OpenTopoMap, IGN France
-(data.geopf.fr), PDOK, swisstopo, USGS and Geoscience Australia. Any of these
-sources can be switched off in Settings → Connectors. Everything in Settings →
-Personalisation — profile, instructions and memory notes — is part of every
-request to the model; the notes are stored in the QGIS profile folder.
-Each such call is listed in the plan and runs only after confirmation. QGIS and installed providers may make their own network
-requests independently of this plugin.
+The run journal is off by default. When you switch it on in Settings →
+Privacy, each applied run writes a plaintext Markdown file to `ai_agent_runs`
+in the active QGIS profile, and the chat shows its path. It holds shortened
+request and agent text, tool names, error text and the outcome. The folder
+gets mode `0700` and each file `0600` where the system supports it. That keeps
+other local accounts out but is not encrypted. Files stay until you delete
+them; **Delete history and journals** in Settings → Privacy removes all
+journals and conversations at once.
 
 ## Usage statistics
 
-On by default, and the plugin says so: the first time it loads — right after
-installation — a notice in the QGIS message bar tells what is counted, with a
-**Turn off** button and a link to what is sent. Nothing is counted before that
-notice was shown, and the first counts leave a day later at the earliest. The
-switch stays in Settings → Privacy; turning it off deletes what waits to be
-sent.
+Anonymous usage statistics are on by default. The first time the plugin loads,
+a notice in the QGIS message bar says so and offers **Turn off**. Nothing is
+counted before that notice. The switch is also in Settings → Privacy; turning
+it off deletes the counts not yet sent.
 
-While it is on, the counts of each day go out once that day is over, in one small
-request to the project's collector on Cloudflare (`telemetry/worker` in the
-repository): how many runs and applies, the names of the tools and skills used,
-the kinds of failures, and the versions around them — plugin, QGIS, the
-operating-system family, the interface language, a local or remote model and its
-API format. A random id stored in your QGIS settings tells one install from
-another; the collector stores only its hash. Never sent: your requests, the
-answers, layer names, attribute values, places, file paths, keys or model names.
-The totals are public on the [usage statistics](usage-stats.md) page.
+Once a day the plugin sends one small report to the project's collector on
+Cloudflare (`telemetry/worker`): the number of runs and applies, the names of
+the tools and skills used, the kinds of failures, the plugin and QGIS versions,
+the OS family, the interface language, and whether the model is local or
+remote and which API format it uses. A random install id tells installs apart;
+the collector stores only its hash. Your requests, answers, layer names,
+values, places, file paths, keys and model names are never sent. The totals
+are public on the [usage statistics](usage-stats.md) page.
 
-## Working with sensitive projects
+## Sensitive projects
 
-- Prefer a local OpenAI-compatible server whose storage and logging you control.
-- If it must not reach a provider at all, do not use a remote endpoint for it.
-- Ask for schema or aggregates instead of samples when real attribute values are
-  not needed.
-- Limit requested fields before sampling records.
-- Avoid rendering a map when its geography or labels are sensitive.
-- Remove saved conversations, project notes and their `.bak` files, and
-  Markdown journals from the profile's `ai_agent_runs` directory, when the
-  local record is no longer required.
-- Review the configured provider's retention policy before sending client data.
+- Use a local model server whose storage and logging you control.
+- Ask for counts and summaries instead of samples when you do not need real
+  values.
+- Do not render the map when its geography or labels are sensitive.
+- Delete saved conversations, notes, `.bak` files and journals when you no
+  longer need them.
+- Read your provider's data retention policy.

@@ -11,7 +11,7 @@ from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.common.layers import pin_layer_references, validate_public_layer_references
 from ai_agent.qgis_tools.common.project_identity import project_identity
-from ai_agent.qgis_tools.registry import prepare_tool_call, summarize_tool_call
+from ai_agent.qgis_tools.registry import prepare_tool_call
 
 UNDO_TOOL = "undo_last_apply"
 
@@ -48,7 +48,6 @@ class WriteBatch:
         self._calls = []
         self._cancel_requested = self._applying
         if self._applying and self._run is not None:
-            # A step working in the background stops too; the steps after it are cancelled as usual.
             self._run.cancel()
 
     def add(self, call: ToolCall) -> ToolCall:
@@ -66,7 +65,6 @@ class WriteBatch:
         return queued
 
     def restore(self, calls: list[ToolCall]) -> None:
-        """Queue again calls this batch held before, as they were: they were checked and pinned when added."""
         if self._applying:
             raise ValueError("Wait for the current plan to finish before adding another change.")
         self._calls = list(calls)
@@ -82,15 +80,7 @@ class WriteBatch:
         return list(self._calls)
 
     def pending_lines(self) -> list[str]:
-        """Model-facing lines for the queued steps: tool name and public arguments.
-
-        The user-facing summaries are translated and lossy; the model needs the
-        call it made, in the language of the schemas, to avoid queueing it twice.
-        """
         return [_model_line(call) for call in self._calls]
-
-    def pending_summaries(self) -> list[str]:
-        return [summarize_tool_call(call.name, call.arguments) for call in self._calls]
 
     def apply(
         self,
@@ -100,12 +90,6 @@ class WriteBatch:
         done: Callable[[list[ToolResult]], Any] | None = None,
         on_progress: Callable[[float, int], Any] | None = None,
     ) -> list[ToolResult] | None:
-        """Apply the queued calls in order; `done` gets their results once the last step has ended.
-
-        When no step went off the main thread that happens before this returns, and the results are
-        returned too; otherwise this returns None and `done` follows. `on_progress` hears how far a step
-        working in the background is: a percent, -1 while unknown, and the bytes or items done.
-        """
         if self._applying:
             raise RuntimeError("This plan is already being applied.")
         calls = self._calls
@@ -125,7 +109,6 @@ class WriteBatch:
         return ended[0] if ended else None
 
     def detach(self) -> None:
-        """Leave a running apply behind for good: its background step stops and reports to nobody."""
         if self._run is not None:
             self._run.detach()
         self._calls = []

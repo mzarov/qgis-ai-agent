@@ -34,9 +34,6 @@ class Project:
 
 
 class StorageProject(Project):
-    def absoluteFilePath(self):
-        return ""
-
     def projectStorage(self):
         return object()
 
@@ -157,7 +154,6 @@ class SessionStoreTest(unittest.TestCase):
         self.assertEqual(identifiers, [newer.identifier, older.identifier])
 
     def test_recent_breaks_equal_update_times_deterministically(self):
-        # Ties fall back to `created`, then to the identifier, never to directory order.
         created_later = self._saved_at(1000.0, created=20.0, identifier="aaaa")
         higher_identifier = self._saved_at(1000.0, created=10.0, identifier="zzzz")
         lower_identifier = self._saved_at(1000.0, created=10.0, identifier="bbbb")
@@ -200,7 +196,7 @@ class SessionStoreTest(unittest.TestCase):
     def test_old_sessions_are_trimmed(self):
         for index in range(MAX_SESSIONS + 5):
             self._saved(text=f"вопрос {index}")
-        self.assertLessEqual(len(self.store.recent("/p.qgz", limit=999)), MAX_SESSIONS)
+        self.assertLessEqual(len(self.store.recent("/p.qgz")), MAX_SESSIONS)
 
     def test_unwritable_root_does_not_raise(self):
         SessionStore("/proc/недоступно/сессии").save(self._saved())

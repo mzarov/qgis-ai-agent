@@ -16,8 +16,6 @@ FIELD_TYPES = {
     "date": (QMetaType.Type.QDate, 10, 0),
     "datetime": (QMetaType.Type.QDateTime, 0, 0),
 }
-# A virtual field is never written to a source, so it gets the widest type of
-# each kind: a 64-bit integer cannot overflow on large sums.
 VIRTUAL_TYPES = {
     "text": QMetaType.Type.QString,
     "integer": QMetaType.Type.LongLong,
@@ -68,11 +66,7 @@ def checked_new_name(layer: QgsVectorLayer, name: Any) -> str:
 
 
 def infer_virtual_type(layer: QgsVectorLayer, expression_text: str) -> str:
-    """Name the VIRTUAL_TYPES kind of the first non-NULL value the expression yields.
-
-    A virtual field declared with the wrong type silently shows NULL (text in a
-    double field), so the type follows real values; no value at all means text.
-    """
+    # A virtual field of the wrong type silently shows NULL, so the type follows real values.
     expression = compile_expression(expression_text, "expression", layer)
     context = build_context(layer)
     with suppress(Exception):

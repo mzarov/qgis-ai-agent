@@ -153,8 +153,6 @@ class Labelled:
 
 
 class StyleFactsTest(unittest.TestCase):
-    """Opacity and labels on or off read back; how the labels look is left to the model's eye."""
-
     def test_opacity_reads_back_as_asked(self):
         tool = set_opacity.SetOpacityTool()
         with mock.patch.object(set_opacity, "pinned_layer", return_value=Labelled(True)):
@@ -188,8 +186,6 @@ class StyleFactsTest(unittest.TestCase):
 
 
 class ExportStepTest(unittest.TestCase):
-    """The written file opens with the features the source holds; a remote source leaves it to the model."""
-
     def verdict(self, written_count, source_count=2, selected=0, size=10, selected_only=False):
         folder = tempfile.mkdtemp()
         path = os.path.join(folder, "roads.gpkg")

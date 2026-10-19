@@ -1,13 +1,3 @@
-"""The official QGIS plugin repository: what can be installed, and installing it.
-
-The repository's list comes from plugins.qgis.org for this QGIS version, the
-same list the Plugin Manager shows; it is kept for the session once fetched.
-Installing downloads the plugin's zip, unpacks it into the profile's plugin
-folder and starts it, the way the Plugin Manager does. The zip is someone
-else's code: its paths are checked before anything is written, and the tool
-that calls this asks the user first.
-"""
-
 import io
 import os
 import time
@@ -31,7 +21,6 @@ _CACHE: dict[str, Any] = {"entries": None, "fetched": 0.0}
 
 
 def repository_url() -> str:
-    """The list for this QGIS version: plugins.qgis.org leaves out what this version cannot run."""
     parts = str(Qgis.version()).split(".")
     return REPOSITORY_URL.format(version=".".join(parts[:2]))
 
@@ -48,7 +37,6 @@ def remember(entries: list[dict[str, Any]]) -> None:
 
 
 def parse_repository(xml: bytes) -> list[dict[str, Any]]:
-    """Every plugin of the repository's XML: its package key, name, version, description and trust facts."""
     document = QDomDocument()
     parsed = document.setContent(bytes(xml))
     if not (parsed[0] if isinstance(parsed, tuple) else parsed):
@@ -69,8 +57,6 @@ def parse_repository(xml: bytes) -> list[dict[str, Any]]:
             "downloads": _number(_text(element, "downloads")),
             "experimental": _text(element, "experimental").lower() in TRUE_TEXTS,
             "deprecated": _text(element, "deprecated").lower() in TRUE_TEXTS,
-            "trusted": _text(element, "trusted").lower() in TRUE_TEXTS,
-            "homepage": _text(element, "homepage"),
             "download_url": _text(element, "download_url"),
         }
         if entry["key"] and entry["download_url"]:
@@ -79,7 +65,6 @@ def parse_repository(xml: bytes) -> list[dict[str, Any]]:
 
 
 def plugin_key(file_name: str, version: str) -> str:
-    """The package folder name a plugin installs as: its zip name without the version (ORStools.2.2.0.zip)."""
     name = str(file_name or "").strip()
     suffix = f".{version}.zip"
     if version and name.endswith(suffix):
@@ -95,7 +80,6 @@ def installed_plugins() -> set[str]:
 
 
 def find_entry(entries: list[dict[str, Any]], wanted: str) -> dict[str, Any] | None:
-    """The entry named by its key or its display name, case aside."""
     text = str(wanted or "").strip().lower()
     for entry in entries:
         if text in (entry["key"].lower(), entry["name"].lower()):
@@ -104,12 +88,7 @@ def find_entry(entries: list[dict[str, Any]], wanted: str) -> dict[str, Any] | N
 
 
 def unpacked(archive: bytes, plugins_folder: str) -> str:
-    """Unpack a plugin zip into the plugin folder and return its package name.
-
-    Every member must sit under one top folder, with no absolute path and no
-    `..`: a zip that writes outside its own folder is refused before anything
-    is written. An existing folder of that name is never overwritten.
-    """
+    # Zip-slip guard: one top folder, no absolute path or `..`; an existing folder is never overwritten.
     try:
         bundle = zipfile.ZipFile(io.BytesIO(archive))
     except zipfile.BadZipFile:
@@ -129,13 +108,11 @@ def unpacked(archive: bytes, plugins_folder: str) -> str:
 
 
 def plugins_folder() -> str:
-    """The profile's own plugin folder, where the Plugin Manager installs too."""
     folder = getattr(qgis_utils(), "home_plugin_path", "")
     return str(folder or os.path.join(QgsApplication.qgisSettingsDirPath(), "python", "plugins"))
 
 
 def enable(key: str) -> None:
-    """Load and start an installed plugin, and keep it enabled for the next QGIS start."""
     utils = qgis_utils()
     with suppress(Exception):
         utils.updateAvailablePlugins()

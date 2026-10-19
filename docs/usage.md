@@ -1,435 +1,178 @@
 # Usage
 
-Open the panel from the **AI Agent** menu entry or the toolbar icon, type a
-request, press Enter. Shift+Enter breaks the line. The bar on top shows the
-conversation's title — click it for the history — with **+** for a new
-conversation and the settings beside it. Type `/` to pick a skill and `@` to
-pick a layer, or use **+** in the box: a layer, a file or table, a picture, a
-skill; both are highlighted in the text. The layer active in QGIS sits above
-the text as a chip: a new request names it, so *colour this layer* means that
-one; its × leaves it out until another layer is active. The box also names
-the model in use; it is changed in the settings. While the agent
-works, the line under the newest message shows a swinging compass and the
-time, the send button becomes a stop button and Esc stops the run too; typing
-meanwhile corrects the agent. Once the run stops, the same line says whether
-the agent waits for your answer, is done (and how long it took) or stopped on
-an error.
+Open the panel from the **AI Agent** menu or the toolbar icon, type a request
+and press Enter (Shift+Enter starts a new line). While the agent works, the
+send button becomes a stop button; Esc stops the run too. A message typed
+during a run goes to the agent as a correction.
 
 ## Asking about the project
 
-Reading runs immediately, no confirmation. Every call the agent makes is listed
-above its answer as a timeline: each row has its skill's icon, the running one
-breathes, and under it stands what the call found — *12 features matched*, the
-address a place name resolved to, the clearest satellite scene. Reasoning is a
-row of its own, *Thinking* and then *Thought* with its time; a click opens the
-text. While the agent works the header says *Working · step 3*; when the answer
-arrives the list folds to *Activity · 5 steps* with the time, and a click
-reopens it.
+Questions run at once, without confirmation. Above the answer, a folded list
+shows each step the agent took and what it found; click it to open.
 
 - *what layers do I have?*
 - *which fields does the roads layer have, and what is in `highway`?*
-- *how many motorway roads are there?*
-- *which river is the longest?* — length and area come from the geometry
-  itself; no length column is needed
-- *why are the cities red?* — the agent reads the actual renderer instead of
-  guessing
+- *which river is the longest?* (lengths and areas come from the geometry)
+- *why are the cities red?* (the agent reads the actual style)
 
-## Changing things
+## Making changes
 
-Writing collects into a plan card, *Plan · 2 changes*, one numbered step per
-change, with the layer they work on at the right; press **Apply** to run it,
-**Cancel** to drop it. A cancelled card offers **Restore plan** until you write
-again: the plan comes back with Apply and Cancel. Once applied, the card says
-*Applied · 2 changes* with the time and offers **Undo**: the project returns to
-how it was right before that apply, from the same snapshot that rewinding uses
-(see below). A long step — a Processing algorithm, an OpenStreetMap or
-open-data download — works in the background: QGIS stays usable, the step's
-line shows how far it is, and ■ stops it along with the steps after it.
-Examples:
+Changes collect in a plan card, one numbered step per change. **Apply** runs
+them; **Cancel** drops them, and **Restore plan** brings them back until you
+send another message. After Apply the card offers **Undo**, which returns the
+project to its state before that Apply.
 
-- *make the rivers blue* / *roads as thin grey dashed lines*
-- *colour the districts by population, 7 classes, Viridis* — after Apply the
-  chat shows the legend: the classes' colours with their bounds
-- *label the cities with names, bold, 12 pt, white halo* — one step, not four
-- *build a 500 m buffer around the schools* — on a degree-based layer the agent
-  reprojects first, on its own
-- *load /data/roads.geojson into the Background group*
-- *download the cafes in Tver from OSM* / *roads except unpaved ones in the
-  current view*
+- *make the rivers blue*
+- *colour the districts by population, 7 classes, Viridis*
+- *label the cities with names, bold, 12 pt, white halo*
+- *build a 500 m buffer around the schools* (on a layer in degrees the agent
+  reprojects first)
+- *download the cafes in Tver from OSM*
 - *clip the roads by the city boundary, compute the length and save the
-  project* — a whole chain lands in one plan card
+  project* (one plan card for the whole chain)
 
-When the agent cannot go on without your decision — which of two similar layers,
-which territory — it asks in a card: up to three likely answers to click (the
-first is the one it recommends, and each may say when it fits), and a fourth
-row to type your own and press Enter. Number keys pick a row; typing in the
-main box works too. The run continues from the same place with your answer,
-and your choice stays in the activity list as *You chose …*.
+Long steps, such as Processing algorithms and downloads, run in the
+background. QGIS stays usable, the step shows its progress, and ■ stops it and
+the steps after it. After Apply the agent checks the result and proposes fixes
+if something did not work.
 
-### Auto mode
+### Questions from the agent
 
-The mode button in the chat box, next to **+**, shows **Ask** or **Auto**;
-click it for the mode menu (number keys choose) or press Shift+Tab in the box
-to switch. In Auto the plan card applies itself the
-moment it appears — styles, layers, fields, processing, OSM downloads, web
-search and page reading included — and the check after it still runs. A batch
-with a destructive step (deleting features, overwriting a file, Python code)
-waits for **Apply** and its extra confirmation as before, and so does the batch
-left over after a failed run. Every applied batch still takes a project
-snapshot, so *undo the last change* works the same. The mode is remembered.
+When the agent needs a decision, for example which of two similar layers to
+use, it asks in a card with up to three answers and a row for your own. Click
+an answer or press its number. The run continues with your answer.
 
-### Plan mode
+### Modes
 
-The third mode, **Plan**, changes nothing: the agent may only read — layers,
-fields, values, the web — and answers with a numbered plan of the changes it
-would make, with exact names and the order. Under the plan two buttons run it:
-**Run with approval** (switches to Ask) or **Run automatically**
-(switches to Auto); to change the plan, just reply to it. A step the model tries
-to run anyway is refused, not queued. Web search and page reading still ask
-for consent per call. Processing algorithms count as changes, even the ones
-that only compute statistics, so a plan names them instead of running them;
-selecting features or zooming to a layer is allowed, as it leaves the data as
-it is.
+The mode button in the chat box switches between three modes. Shift+Tab cycles
+through them.
 
-### Drawing from coordinates
+- **Ask** (default): every plan waits for Apply.
+- **Auto**: plans apply themselves, web calls included. Plans that edit or
+  delete data in place, run Python or run another plugin's code still wait for
+  Apply and ask again.
+- **Plan**: the agent only reads and answers with a numbered plan. **Run with
+  approval** carries it out in Ask mode, **Run automatically** in Auto mode.
 
-The `draw` skill turns coordinates into real features — with attributes, so
-they can be styled, labelled and fed to processing (an annotation is only a
-picture on top of the map):
+## The chat box
 
-- *put a point at 55.75, 37.62* — typed pairs are read latitude first, the
-  usual order on web maps; the agent says which order it took when it is
-  unclear
-- *add the town hall as a point* — a place or an address is geocoded first,
-  which asks for consent like every web request
-- *draw a line from Moscow to Kazan* — a straight segment, not a road route
-- *a 500 m buffer around this address* — geocode, a point in a metric UTM
-  layer and the buffer, in one plan card
+- Type `/` to pick a skill: `/osm cafes in Kazan` loads the OSM rules before
+  the first step.
+- Type `@` to insert an exact layer name, such as `@rivers` or
+  `@"Main roads"`.
+- The layer selected in QGIS appears above the text. A new request refers to
+  it, so *colour this layer* works. Click × to leave it out.
+- **+** adds a layer, a file or table, a picture or a skill. **Point on the
+  map…** and **Area on the map…** let you click a point or drag a rectangle;
+  the place goes into the request as `@point(lon, lat)` or
+  `@area(west, south, east, north)`.
 
-By default the features go into a new scratch layer, which lives in memory
-until QGIS closes: ask to export it to keep it. Adding to an existing file or
-database layer writes into its source, so the plugin asks a second time and
-*undo the last change* cannot take it back. Impossible coordinates — a
-latitude beyond 90 from a swapped pair, degrees given as metres — are caught
-before the plan card appears.
+Attached or dropped GIS files (GeoPackage, shapefile, GeoJSON, CSV, GeoTIFF
+and others) are added to the project at once and named in the request. A CSV
+with lon/lat or x/y columns in degrees becomes points; any other CSV becomes a
+table. Pictures (PNG, JPEG, WebP, GIF, BMP) go to the model with your next
+request; a picture with a world file is added as a layer instead.
 
 ## Conversations
 
-Conversations persist across QGIS restarts and are bound to the project: the
-history — click the conversation's title in the bar on top — lists only the
-ones started in the currently open project, all of them, by day (Today,
-Yesterday, Earlier) with their time, the open one highlighted; a long history
-scrolls. Its first row starts a new
-conversation, like the **+** beside the title or Ctrl+N (⌘N on macOS) in the
-chat box; the welcome then says the previous conversation is in the history,
-with a link back to it. After the first answer the model names the conversation in a few words,
-as Claude does; until then the title is the start of your first message.
-Hovering a conversation in the history swaps its time for a pencil to rename it in place (Enter
-keeps, Esc drops — a name you chose is never replaced) and a bin to delete it
-for good after a confirmation; deleting the open conversation starts a fresh one.
-**Settings → Privacy → Keep conversations** can delete the ones untouched for
-7 or 30 days; the open one is never deleted, and the default keeps them all.
-Restoring a conversation restores the model's context too — a follow-up like
-*and how many are there?* keeps working — and what the chat showed of each turn:
-the activity lists with the reasoning, the answers picked on question cards and
-the plan cards with how they ended, folded as they were left.
+Conversations are saved in the QGIS profile and bound to the project. Click
+the conversation title at the top to see the history of this project; **+** or
+Ctrl+N (⌘N) in the chat box starts a new one. Hover a conversation to rename or
+delete it. A reopened conversation keeps the model's context, so follow-up
+questions still work.
 
-### Rewinding to an earlier message
+### Rewinding
 
-Hover one of your messages and click the curved arrow beside it to go back to
-before it, as in Claude Code. You choose what goes back:
-
-- **Conversation and project** — the chat ends just before that message, the
-  message returns to the input box to edit or resend, and the project returns
-  to how it was before the changes that message led to;
-- **Conversation only** — the project stays as it is;
-- **Project only** — the chat stays as it is.
-
-The project side uses the snapshots taken before every Apply. They live as long
-as QGIS runs and only the newest ten are kept, so an older message may offer the
-conversation alone. Edits written into data sources (changed attributes,
-deleted features) are not undone; temporary layers too large to copy come back
-empty, and the agent says which. Temporary layers keep their feature ids, so a
-field computed from `$id` reads the same; only a layer missing more than
-200,000 ids between its features comes back renumbered.
+Hover one of your messages and click the curved arrow to go back to before
+it. Choose **Conversation and project**, **Conversation only** or **Project
+only**. The project side restores the snapshot taken before Apply; QGIS keeps
+the last ten while it runs. Changes written into data sources are not undone.
 
 ### The context window
 
-The ring at the right of the chat box, beside the model's name, fills with the share of the
-model's context window the latest request used; click it for the numbers:
+The ring next to the model name shows how much of the model's context window
+the last request used. Click it for details and **Compact**, which replaces
+older messages with a summary for the model. The chat keeps every message. A
+conversation is compacted on its own at 90 % of the window.
 
-- **Context window** — the latest request against the window, with a bar.
-- **… until auto-compact** — how much room is left before the conversation is
-  compacted on its own, at 90 % of the window, right before your next request.
-- **Compact** — compact now. The model writes a handoff summary (what you
-  asked for, what was done with exact layer names, decisions, what is left) and
-  from then on reads the summary plus the last exchange instead of the older
-  messages. The chat keeps every message and gains a line *Conversation
-  compacted · about N tokens saved*; the summary is saved with the conversation.
-- **Spent in this conversation** — tokens and requests over the whole
-  conversation. Every step of the agent is a request that sends the context
-  again, so this is many times the window.
+## What the skills add
 
-The window size comes from **Settings → Advanced → Context window** when set;
-otherwise from the server at the last connection test (OpenRouter and other
-`/models` listings, Ollama, LM Studio), otherwise from the model's name,
-otherwise 128k.
+### Drawing
 
-## Run journals
+*Put a point at 55.75, 37.62* or *draw a line from Moscow to Kazan* creates
+real features in a scratch layer. Typed pairs are read latitude first. A place
+name is geocoded first, which asks for consent. Scratch layers live in memory
+until QGIS closes; ask to export one to keep it.
 
-After an applied run, the conversation shows the path to its plaintext Markdown
-journal. It lives in the active QGIS profile's `ai_agent_runs` directory, uses
-owner-only permissions where supported and is not removed automatically by the
-plugin. It is not encrypted. **Settings → Privacy** opens the folder and, with
-**Delete history and journals**, erases every journal and every saved
-conversation at once after a confirmation. See
-[Data and privacy](privacy.md) for its exact contents and cleanup guidance.
+### Tables and joins
 
-## When something goes wrong
+The agent previews a CSV (delimiter, encoding, column types, first rows),
+loads one as points, or joins it to a layer by a key field. A join is live:
+nothing is copied. A join where no key matches is refused with the reason,
+such as text against numbers or leading zeros.
 
-- A tool error does not kill the run: the agent reads the error and corrects
-  itself — a wrong layer name gets the list of real ones.
-- The stop button aborts the run immediately and discards any planned changes.
-- A step that fails during Apply is marked ✕ in the plan with the reason in
-  plain words under it — *the service did not answer in time* — and the steps
-  after it are marked as not run. The agent then looks into what went wrong.
-- A plan may rename a layer and then style it: the later steps follow the
-  renamed layer. Renaming it yourself between the plan and Apply stops those
-  steps, so they never touch a layer you changed.
-- Overpass (the OSM service) is public and sometimes busy; a refusal is not a
-  plugin bug — retry later or narrow the query.
-- A small local model (7–8B) will fumble the tool calls. The sensible minimum
-  is a ~30B-class model with function calling.
+### SQL
 
-## Skills and slash commands
+*How many schools are in each district?* runs one SELECT over the project's
+layers and changes nothing. *Make a layer of the districts with their school
+counts* keeps the same query as a live virtual layer. Only read queries run.
 
-A skill is a knowledge package the agent loads when a task enters its domain:
-one `SKILL.md` with a name, a one-line description and the rules in Markdown.
-The nineteen built-in skills cover the QGIS domains; you can add your own.
-**Settings → Skills** lists them with a switch each: a skill switched off
-leaves the agent's prompt and cannot be loaded, not even through a skill of
-your own that names its tools.
+### Open data
 
-Type `/` in the chat to see the list. Pick a skill with the arrows and Tab, then
-write the request: `/osm cafes in Kazan` loads the OSM rules before the first
-model turn, so the agent starts in the right domain instead of discovering it a
-turn later. A bare `/skill` applies the skill to the current project.
+*Find a cloud-free Sentinel-2 image of this area from July* searches the
+Microsoft Planetary Computer; *load the clearest one* adds it. Landsat,
+elevation models and land cover work the same way. *Add the regions of Kenya*
+loads geoBoundaries; Natural Earth layers and public map services (NASA GIBS,
+OpenTopoMap, national services) are in the same catalogue. Each download asks
+first. **Settings → Connectors** switches sources on and off.
 
-Your own skills live in the QGIS profile, in `ai_agent_skills/<name>/SKILL.md`
-— **Settings → Skills** shows the folder, opens it, opens each skill's
-`SKILL.md` for editing and creates an example to start from — a `house-style`
-skill that stays switched off until you edit its description. The frontmatter needs `name` (lowercase letters, digits, `-` or
-`_`) and `description` (the sentence the model picks the skill by); an optional
-`tools` list names existing tools to bring along — the domain rules of those
-tools load with them. A local skill cannot add Python code: it teaches the
-agent your conventions, step order and pitfalls, and it appears in `/` and in
-the agent's own `load_skill` list like any built-in one. Problems — a missing
-name, a name taken by a built-in skill, an unknown tool — are listed on the
-same settings page instead of failing silently.
+### Charts
 
-## Naming layers with @
+*Chart the population by district*, *histogram of parcel areas* or *table of
+the ten largest towns* draws a chart or table in the chat. Right-click it to
+copy the picture or the data as CSV. The model gets only the numbers.
 
-Type `@` in the chat to pick a layer from the project: the list filters as you
-type, ↑↓ or the mouse choose, Tab or Enter insert. The layer name goes into the
-request exactly as QGIS knows it — `@rivers`, or `@"Main roads"` when the name
-has spaces — so the agent does not have to guess which layer you meant.
+### Other plugins
 
-## Places on the map
+The agent can run Processing algorithms of installed plugins as plan steps. A
+plugin's menu command runs only after a confirmation. When nothing installed
+fits, the agent can search the official plugin repository and install a
+plugin after two confirmations; uninstall it in **Plugins → Manage and Install
+Plugins**.
 
-**+ → Point on the map…** or **Area on the map…** hands the map a one-time
-tool: click a point, or drag a rectangle, and the place goes into the request
-at the cursor as `@point(lon, lat)` or `@area(west, south, east, north)` in
-degrees — “buffer 500 m around @point(37.62080, 55.75390)”, “download the
-cafes in @area(…)”. The map gets its previous tool back afterwards; Esc in the
-chat box, or picking another tool in QGIS, gives the pick up.
+## Your own skills
 
-## Attaching files
-
-The **+** under the chat box, or dropping files onto it, attaches them.
-
-- **GIS data** (GeoPackage, shapefile, GeoJSON, KML, GPX, CSV, GeoTIFF and the
-  like) is added to the project straight away — attaching is your own action,
-  like dropping a file onto the map — and the new layer is mentioned in the
-  request as `@name`. A name already taken gets a number: `roads (2)`.
-  A CSV whose columns are named like lon/lat or x/y and hold degrees becomes
-  points in EPSG:4326; any other CSV is added as a table.
-- **Pictures** (PNG, JPEG, WebP, GIF, BMP) — a screenshot, a photo of a paper
-  map, a sketch — wait above the text and go to the model with your next
-  request, their longer side scaled down to 1568 pixels. A picture with a world
-  file (`.pgw`, `.jgw`, `.wld`) is georeferenced and is added as a layer
-  instead. A model that has already refused images gets none; the chat says so.
-
-## Tables and joins
-
-The `tables` skill handles CSV files and attribute joins:
-
-- “What is in /data/population.csv?” — the agent previews the file: delimiter,
-  encoding, columns with the types QGIS will detect, the first rows and the
-  columns that look like coordinates.
-- “Make points from cafes.csv with lon/lat” — the file is added as a points
-  layer linked to the CSV. Degrees get EPSG:4326; projected numbers (UTM, a
-  national grid) need the CRS named, and the agent asks rather than guesses.
-  Swapped longitude and latitude are refused before anything is added.
-- “Attach population.csv to the districts by code” — a live QGIS join: the
-  districts gain the table's fields, nothing is copied, and the join is undone
-  by asking to remove it. A CSV that is not loaded yet is loaded as a table in
-  the same step. Codes with leading zeros (`007`) stay text, and a join where
-  no key matches is refused with the reason — text against numbers, leading
-  zeros, spaces or letter case. A partial match is reported with the keys that
-  found no row.
-
-When the joined fields must become a separate layer or file, ask for that: the
-agent then uses the Processing algorithm `native:joinattributestable` instead.
-
-## SQL across layers
-
-The `sql` skill answers questions that combine layers with one SELECT (SQLite
-with SpatiaLite functions) through the QGIS virtual layer provider:
-
-- “How many schools are in each district?” — a spatial join and a grouping;
-  the agent reads the rows back and changes nothing, so there is nothing to
-  confirm.
-- “Make a layer of the districts with their school counts” — the same query
-  becomes a virtual layer in the plan: live like a view, it shows new numbers
-  after the source layers are edited.
-
-Only one reading statement runs: changes to the data, several statements in a
-row and functions that read or write files are refused before anything runs.
-Layers are named in the query as in the project; when two layers share a name,
-the agent addresses the right one by its id.
-
-## Open data and satellite imagery
-
-The `data` skill fetches data the project does not have yet:
-
-- “Find a cloud-free Sentinel-2 image of this area from July” — the agent
-  searches the Microsoft Planetary Computer and lists scenes with their date
-  and cloud cover; “load the clearest one” adds it as a true-colour raster.
-  Landsat (since 1982), the Copernicus 30 m and 90 m elevation models, ESA
-  WorldCover, yearly land use and JRC surface water work the same way. The area
-  is the current view, a layer's extent or coordinates.
-- “Add the regions of Kenya” — administrative boundaries from geoBoundaries,
-  any country, from regions down to districts and further where published.
-- “Add the world's countries and rivers” — Natural Earth layers at 1:110m,
-  1:50m or 1:10m.
-
-Each search and download is listed in the plan and runs after you agree.
-Imagery is read in place over the internet through a signed link that expires
-within a day; ask the agent to export a layer when you want to keep it.
-Vector downloads are saved next to a saved project (in `open_data/`), or in a
-temporary folder for an unsaved one. OpenStreetMap features stay with the `osm`
-skill.
-
-Web map services join the same catalogue: yesterday's satellite picture of the
-whole Earth and night lights from NASA GIBS, the Sentinel-2 cloudless mosaic,
-GEBCO bathymetry, OpenTopoMap, and national services — IGN France (aerial
-photos, Plan IGN, regions, departments and communes as vectors), PDOK
-Netherlands, swisstopo, USGS and Geoscience Australia. Tiles and WMS pictures
-go under your vector layers; WFS layers are real vectors to query and style.
-A national service shows nothing useful from a world or continent view, so
-adding one moves the map to its country when the view does not already show it.
-
-**Settings → Connectors** lists every source with a switch. A source you switch
-off disappears from the agent's catalogue and its data is refused; nothing on
-that page goes online. Click a card to open the source's own page: what it
-offers layer by layer, its licence and servers, and example requests — a click
-on one closes Settings and puts it into the chat box, switching the source on
-if it was off.
-
-## Personalisation
-
-**Settings → Personalisation** tells the agent who it works with and how:
-
-- **Talking** — how to address you, your work (it decides which data and
-  methods come first), the answer language (or the QGIS one), how long the
-  answers are, metric or imperial units, your GIS experience (how much it
-  explains), layer names in plain words or snake_case.
-- **Appearance** — the panel theme: as QGIS, light or dark. A light panel in
-  a dark QGIS works; the panel is rebuilt on Save, or once the agent is idle.
-- **In the conversation** — steps shown while it works, a summary after each
-  run, the map moving to new data and selections, how often it asks before
-  acting, and whether an unanswered question takes the recommended answer
-  after 1, 3 or 5 minutes — a countdown under the question shows it, and
-  typing your own answer stops it.
-- **About you** — a few lines about what you work on, where and with which data.
-- **Instructions for the agent** — standing rules, up to 2000 characters:
-  coordinate systems, your organisation's conventions.
-- **Memory** — short facts about you kept across conversations and projects.
-  Add or remove them here; with the last switch on, the agent adds them itself
-  when you mention something that will matter next time. Notes about one
-  project stay with that project.
-
-All of it travels with every request to the model, and the safety rules still
-win over it.
+A skill is a `SKILL.md` file with a name, a one-line description and rules. Put
+your own in the QGIS profile under `ai_agent_skills/<name>/SKILL.md`.
+**Settings → Skills** opens the folder, creates an example and lists any
+problems. A local skill can name existing tools but cannot add code. Every
+skill, built-in or yours, can be switched off there.
 
 ## Settings
 
-The gear in the panel's toolbar opens the settings: a sidebar of pages in three
-groups — *Model*, *Customize*, *Data* — with **Find a setting** on top, which
-lists the matching rows of every page; a click opens the page at the row. Each
-page says in one sentence what it is for. Nothing is stored until **Save**; a
-page with unsaved edits has a dot in the sidebar, and the footer says whether
-everything is saved.
+- **Connection**: the provider, address, model and key. See [Setup](SETUP.md).
+- **Privacy**: where your data goes, SSL checking, how long conversations are
+  kept, the run journal (off by default), usage statistics and **Delete
+  history and journals**. See [Data and privacy](privacy.md).
+- **Advanced**: the check after Apply, the token budget, steps per run (40 by
+  default), the tool timeout (120 s), the context window, reasoning, the API
+  format and extra request headers. **Reset agent settings** restores the
+  defaults but keeps the connection, keys and your texts.
+- **Personalisation**: how to address you, answer length and language, units,
+  the panel theme, standing instructions and memory notes. All of it goes to
+  the model with every request.
+- **Skills**, **Connectors** and **Geocoding**: see above.
 
-- **Connection** — the provider as tiles (Ollama, LM Studio, OpenAI, OpenRouter,
-  Anthropic, Google Gemini or your own address), then the server address, the
-  model and the key. A local server needs no key, so its field is greyed out.
-  **Test connection** answers on the same line.
-- **Privacy** — where your data goes, read from the address being edited: this
-  computer, or the provider's host. SSL certificate checking, how long
-  conversations are kept, the run journal and its folder, and deleting the
-  history and the journals.
-- **Advanced** — checking the result after Apply, the token budget, how many
-  steps one run may take (40 by default) and how long one Processing algorithm
-  may run before it is stopped (120 s by default; raise it for long
-  algorithms). The context window, reasoning, the API format and authorisation.
-  **Extra headers** add one `Name: value` per line to every model request — for
-  a gateway such as Yandex Cloud's `x-folder-id`; a header that would carry a
-  key is refused, keys go in the API key field. **Reset agent settings**
-  returns limits, modes, connectors, skills, geocoding and personalisation
-  choices to their defaults; the connection, keys, your own texts and skills
-  stay.
-- **Personalisation**, **Skills**, **Connectors** — as described above.
-- **Geocoding** — off, the public Photon or your own server: any Nominatim you
-  may use, at its address.
+## When something goes wrong
 
-## Charts and tables
-
-Ask for a picture of the data and it appears in the chat:
-
-- “Chart the population by district” — a bar per district, computed in QGIS
-  from the layer; long names lay out as rows.
-- “Show the distribution of parcel areas” — a histogram of a field or an
-  expression such as `$area / 10000`.
-- “Pie of land use by area” — shares of a whole; more than seven parts fold
-  into “Other”.
-- “Table of the ten largest towns with name and population” — a sorted table of
-  chosen fields, up to 50 rows.
-
-Hover a bar, point or slice for its value; right-click to copy the picture or
-the numbers as CSV. Charts and tables stay with the conversation and come back
-when you reopen it. They are drawn for you: the model gets only a short
-confirmation with the numbers, not the picture.
-
-## Other plugins
-
-The agent can use plugins you have installed. Ask “which plugin can segment
-this image?” or name one — “use GeoAI on this raster”. Algorithms a plugin
-adds to Processing run like any other step, inside the plan. A plugin's menu
-command (say, qgis2web's export) is started only after a confirmation that it
-runs that plugin's code, which the agent cannot undo; its window then opens for
-you.
-
-When nothing installed fits — “build 15-minute walking isochrones”, say — the
-agent searches the official QGIS plugin repository, the list the Plugin Manager
-shows, and proposes one plugin with its author and download count. Searching
-contacts plugins.qgis.org and asks first. Installing is confirmed on its own:
-it downloads the plugin and runs code that is not part of AI Agent, which undo
-cannot remove — uninstall it in **Plugins → Manage and Install Plugins**. A
-plugin that is installed but switched off is switched on the same way.
-
-## When a run stops or fails
-
-Stop or an error keeps whatever the agent had already written, puts your
-request back into the input box so you can resend or edit it, and still shows
-the changes the agent had prepared — apply them or dismiss them as usual.
+- A tool error does not end the run; the agent reads it and corrects itself.
+- Stop or a failure keeps the partial answer, puts your request back in the
+  box and still offers the prepared changes.
+- A failed step is marked in the plan with the reason, and the steps after it
+  do not run.
+- A failed model request shows a card with the cause and, where it helps,
+  **Retry**. A busy model is retried automatically.
+- Overpass, the OpenStreetMap service, is sometimes busy. Retry later or
+  narrow the area.
+- Small local models (7–8B) often get tool calls wrong. Use a model of about
+  30B or larger with function calling.

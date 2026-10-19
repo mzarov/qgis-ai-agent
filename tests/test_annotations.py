@@ -157,7 +157,6 @@ class AnnotationsTest(unittest.TestCase):
         self.assertEqual(self.layer.items(), {})
 
     def test_two_crss_without_an_authority_id_are_still_transformed_between(self):
-        # Two PROJ-string CRSs both have an empty authid; only the CRS objects themselves tell them apart.
         source, target = Mock(), Mock()
         for crs in (source, target):
             crs.isValid.return_value = True

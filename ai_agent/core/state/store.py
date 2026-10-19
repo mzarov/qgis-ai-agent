@@ -40,7 +40,6 @@ class SessionStore:
                 continue
 
     def prune(self, days: int, keep: str = "") -> int:
-        """Delete conversations untouched for `days` days, never the one `keep` names; 0 days keeps all."""
         if days <= 0:
             return 0
         cutoff = time.time() - days * DAY_SECONDS
@@ -50,7 +49,6 @@ class SessionStore:
         return len(stale)
 
     def usage(self) -> tuple[int, int]:
-        """How many conversations are kept, and their size on disk in bytes, backups included."""
         names = self._names()
         size = 0
         for name in names:
@@ -63,14 +61,13 @@ class SessionStore:
         return len(names), size
 
     def erase(self) -> None:
-        """Delete every kept conversation, of every project."""
         for name in self._names():
             self.delete(name[: -len(SUFFIX)])
 
-    def recent(self, project: str, limit: int | None = None) -> list[Session]:
+    def recent(self, project: str) -> list[Session]:
         sessions = [item for item in self._all() if item.project == project]
         sessions.sort(key=_newest_first, reverse=True)
-        return sessions[:limit]
+        return sessions
 
     def _all(self) -> list[Session]:
         sessions = []
@@ -106,8 +103,6 @@ class SessionStore:
 
 
 def _newest_first(session: Session) -> tuple[float, float, str]:
-    # Equal `updated` values are real (a coarse clock, sessions saved in one tick);
-    # without a tie-breaker the order would follow os.listdir, which is arbitrary.
     return (session.updated, session.created, session.identifier)
 
 

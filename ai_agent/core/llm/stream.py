@@ -19,17 +19,6 @@ def first_reasoning(payload: dict[str, Any]) -> str:
 
 
 class SseAccumulator:
-    """Split a server-sent-event byte stream into event payloads.
-
-    Bytes are buffered and decoded one complete line at a time, so a multi-byte
-    character split across two network reads (every Cyrillic letter is two
-    bytes) arrives intact. Consecutive `data:` lines join into one event, as
-    the spec says; a payload that is already complete JSON is emitted at once
-    for servers that omit the blank line between events. Lines that are not SSE
-    at all are kept, so a server that ignored `stream` and answered with a plain
-    JSON body can still be read.
-    """
-
     def __init__(self) -> None:
         self._buffer = b""
         self._pending: list[str] = []
@@ -174,12 +163,6 @@ class StreamedCompletion:
             slot["arguments"] += str(function["arguments"])
 
     def _call_index(self, raw: dict[str, Any]) -> int:
-        """Slot of a streamed tool-call delta.
-
-        Some OpenAI-compatible servers send each parallel call whole and without
-        `index`; a new id then opens a new slot instead of gluing two calls into
-        one unknown tool.
-        """
         if raw.get("index") is not None:
             try:
                 return int(raw["index"])
@@ -213,18 +196,3 @@ class StreamedCompletion:
         if self._usage:
             built["usage"] = self._usage
         return built
-
-
-def consume(
-    chunks: list[bytes],
-    on_text: Callable[[str], None] | None = None,
-    on_thinking: Callable[[str], None] | None = None,
-) -> dict[str, Any]:
-    accumulator = SseAccumulator()
-    completion = StreamedCompletion(on_text, on_thinking)
-    for chunk in chunks:
-        for event in accumulator.feed(chunk):
-            completion.take(event)
-    for event in accumulator.flush():
-        completion.take(event)
-    return completion.response()

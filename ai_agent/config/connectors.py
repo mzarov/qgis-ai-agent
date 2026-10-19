@@ -1,8 +1,3 @@
-"""Which open-data connectors the user turned off; shared by the tools that obey it and the page that sets it.
-
-Everything is on until the user switches a connector off in Settings → Connectors.
-"""
-
 from collections.abc import Iterable
 
 from qgis.core import QgsSettings

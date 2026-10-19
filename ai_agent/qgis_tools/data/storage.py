@@ -1,5 +1,3 @@
-"""Where downloaded files land: next to a saved project, or in a private temporary folder."""
-
 import os
 import tempfile
 
@@ -15,7 +13,6 @@ TEMP_NOTE = (
 
 
 def target_path(stem: str, suffix: str) -> tuple[str, bool]:
-    """A free file path for the download and whether it is temporary."""
     home = _project_home()
     if home:
         folder = os.path.join(home, PROJECT_FOLDER)

@@ -4,13 +4,24 @@ import unittest
 
 from ai_agent.core.llm import transport, turns, worker
 from ai_agent.core.llm.client import ApiResponseError
-from ai_agent.core.llm.stream import SseAccumulator, consume
+from ai_agent.core.llm.stream import SseAccumulator, StreamedCompletion
 from ai_agent.core.llm.stream_runner import _finished_response as finished_response
 from ai_agent.core.llm.transport import _openai_options
 from ai_agent.core.llm.turns import ModelTurn
 
 SCHEMAS = [{"type": "function", "function": {"name": "list_layers", "parameters": {}}}]
 URL = "https://api.example/v1"
+
+
+def consume(chunks, on_text=None, on_thinking=None):
+    accumulator = SseAccumulator()
+    completion = StreamedCompletion(on_text, on_thinking)
+    for chunk in chunks:
+        for event in accumulator.feed(chunk):
+            completion.take(event)
+    for event in accumulator.flush():
+        completion.take(event)
+    return completion.response()
 
 
 DONE = b"data: [DONE]\n\n"

@@ -1,9 +1,3 @@
-"""Chart and table specifications: plain JSON the feed draws, checked before anything is shown.
-
-The limits keep a chart readable: categorical colours come in a fixed order of
-eight, so more categories fold into "Other"; scatter separates at most three.
-"""
-
 import math
 from typing import Any
 
@@ -31,7 +25,6 @@ def chart(
     y_label: str = "",
     unit: str = "",
 ) -> dict[str, Any]:
-    """A validated chart spec; raises ValueError with a fix the model can apply."""
     kind = str(kind or "bar").strip().lower()
     if kind not in KINDS:
         raise ValueError(f"kind is one of {', '.join(KINDS)}.")
@@ -75,7 +68,6 @@ def table(title: str, columns: list[str], rows: list[list[Any]], total: int) -> 
 
 
 def fold_other(labels: list[str], values: list[float | None], keep: int) -> tuple[list[str], list[float | None]]:
-    """The largest `keep - 1` categories and one "Other" summing the rest, when there are more than `keep`."""
     if len(labels) <= keep:
         return labels, values
     order = sorted(range(len(values)), key=lambda index: -(values[index] or 0))
@@ -85,7 +77,6 @@ def fold_other(labels: list[str], values: list[float | None], keep: int) -> tupl
 
 
 def attach(result: dict[str, Any], visual: dict[str, Any]) -> dict[str, Any]:
-    """The tool result with the spec riding along for the feed; the executor strips it before the model."""
     return {**result, RESULT_VISUAL_KEY: visual}
 
 

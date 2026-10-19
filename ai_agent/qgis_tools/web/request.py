@@ -13,13 +13,7 @@ TIMEOUT_MS = 30_000
 DEFAULT_LANGUAGE = "en"
 
 
-def network_request(
-    url: str,
-    headers: dict[str, str],
-    *,
-    address: str,
-    manager: Any | None = None,
-) -> QNetworkRequest:
+def network_request(url: str, *, address: str, manager: Any | None = None) -> QNetworkRequest:
     parsed = urlsplit(url)
     host = canonical_host(parsed.hostname or "")
     port = parsed.port
@@ -30,9 +24,6 @@ def network_request(
         if not hasattr(request, "setPeerVerifyName"):
             raise ValueError("This QGIS/Qt build cannot safely verify a pinned HTTPS web request.")
         request.setPeerVerifyName(host)
-    for name, value in headers.items():
-        if name.strip().lower() not in {"host", "accept-encoding"}:
-            request.setRawHeader(name.encode("utf-8"), value.encode("utf-8"))
     request.setRawHeader(b"Host", host_header(host, port).encode("ascii"))
     request.setRawHeader(b"User-Agent", USER_AGENT.encode("utf-8"))
     request.setRawHeader(b"Accept-Language", accept_language().encode("ascii"))
@@ -55,7 +46,6 @@ def network_request(
 
 
 def ui_language() -> str:
-    """The QGIS interface language as an ISO 639 code; English when unknown."""
     try:
         locale = str(QgsApplication.locale() or "")
     except Exception:

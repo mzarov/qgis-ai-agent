@@ -24,12 +24,6 @@ class ToolExecutor:
             return self._failed(call, tool, err)
 
     def start(self, call: ToolCall, done: Callable[[ToolResult], None]) -> Any:
-        """Start a call whose tool works off the main thread; `done` gets its result later, on the main thread.
-
-        Returns the running work, whose `cancel` stops it and whose `progressed` reports 0–100,
-        or None when the call runs on the main thread: call `run` then. A call that could not
-        start runs there too, and `run` reports the same error.
-        """
         tool = get_tool_by_name(call.name)
         if tool is None:
             return None

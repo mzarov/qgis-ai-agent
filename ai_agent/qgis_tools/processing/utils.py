@@ -216,16 +216,10 @@ def resolve_layer(value: Any) -> QgsMapLayer | None:
 
 
 def project_layer_ids() -> set[str]:
-    """Ids of the project's layers now: taken before a run, they tell the layers it loaded from the rest."""
     return set(QgsProject.instance().mapLayers())
 
 
 def output_layer(value: Any, layers_before: Collection[str] = ()) -> QgsMapLayer | None:
-    """The project layer an algorithm's output stands for: a layer, its id or name, or one the run loaded from it.
-
-    A file output comes back as its path, and the layer Processing loaded from that file has an id of its own;
-    a layer already in the project before the run (`layers_before`) is never taken for it.
-    """
     layer = resolve_layer(value)
     if layer is not None or not isinstance(value, str) or not value.strip():
         return layer
@@ -266,11 +260,6 @@ def normalize_output(value: Any) -> Any:
 
 
 def empty_output_warnings(result: Any, layers_before: Collection[str] = ()) -> list[str]:
-    """Name every output vector layer that came back with zero features.
-
-    An algorithm that matched nothing still reports success; without this the
-    model styles, joins and exports an empty layer for several more turns.
-    """
     if not isinstance(result, dict):
         return []
     warnings: list[str] = []

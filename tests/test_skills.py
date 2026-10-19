@@ -2,7 +2,7 @@ import os
 import pathlib
 import unittest
 
-from ai_agent.qgis_tools.registry import get_tools_for_skills
+from ai_agent.qgis_tools.registry import ALL_TOOLS
 from ai_agent.skills.base import parse_skill_markdown
 from ai_agent.skills.registry import SkillRegistry
 
@@ -42,7 +42,7 @@ class RegistryTest(unittest.TestCase):
 
     def test_every_skill_on_disk_is_found(self):
         on_disk = sorted(path.parent.name for path in pathlib.Path(SKILLS_ROOT).rglob("SKILL.md"))
-        self.assertTrue(on_disk, "в skills/ не найдено ни одного SKILL.md")
+        self.assertTrue(on_disk, "no SKILL.md found in skills/")
         self.assertEqual(self.registry.names(), on_disk)
 
     def test_every_skill_declares_description_and_body(self):
@@ -53,8 +53,8 @@ class RegistryTest(unittest.TestCase):
     def test_declared_tools_match_registry(self):
         for name in self.registry.names():
             declared = self.registry.get(name).tool_names
-            actual = [tool.name for tool in get_tools_for_skills([name])]
-            self.assertEqual(declared, actual, f"скилл {name}")
+            actual = [tool.name for tool in ALL_TOOLS if tool.skill == name]
+            self.assertEqual(declared, actual, f"skill {name}")
 
     def test_summaries_block_lists_all(self):
         block = self.registry.summaries_block()

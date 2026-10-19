@@ -101,34 +101,24 @@ def checked_url(raw: Any, *, resolve: bool = True) -> str:
         raise ValueError("Do not put credentials or signed-access parameters in a web URL.")
     require_allowed_host_syntax(host, PRIVATE_ADDRESS)
     if resolve:
-        _require_public_host(host, port or 443, epoch=epoch)
+        _require_public_host(host, epoch=epoch)
     guard_not_cancelled(epoch)
     shown_host = netloc(host, port)
     return urlunsplit(("https", shown_host, parsed.path or "/", parsed.query, ""))
 
 
-def get_text(
-    url: str,
-    extra_headers: dict[str, str] | None = None,
-    *,
-    epoch: int | None = None,
-) -> str:
-    return get_document(url, extra_headers, epoch=epoch)[0]
+def get_text(url: str, *, epoch: int | None = None) -> str:
+    return get_document(url, epoch=epoch)[0]
 
 
-def get_document(
-    url: str,
-    extra_headers: dict[str, str] | None = None,
-    *,
-    epoch: int | None = None,
-) -> tuple[str, str]:
+def get_document(url: str, *, epoch: int | None = None) -> tuple[str, str]:
     request_epoch = cancellation_epoch() if epoch is None else epoch
     guard_not_cancelled(request_epoch)
     current = checked_url(url, resolve=False)
     guard_not_cancelled(request_epoch)
     approved_origin = origin(current)
     parsed = urlsplit(current)
-    addresses = _require_public_host(parsed.hostname or "", parsed.port or 443, epoch=request_epoch)
+    addresses = _require_public_host(parsed.hostname or "", epoch=request_epoch)
     manager = QgsNetworkAccessManager.instance()
     attempts = addresses[:1] if request_uses_proxy(manager, current) else addresses
     failure: _AddressFailure | None = None
@@ -136,7 +126,6 @@ def get_document(
         try:
             return _download_document(
                 current,
-                extra_headers or {},
                 approved_origin=approved_origin,
                 address=address,
                 epoch=request_epoch,
@@ -149,7 +138,6 @@ def get_document(
 
 def _download_document(
     current: str,
-    headers: dict[str, str],
     *,
     approved_origin: tuple[str, str, int],
     address: str,
@@ -157,7 +145,7 @@ def _download_document(
 ) -> tuple[str, str]:
     for redirect_count in range(MAX_REDIRECTS + 1):
         guard_not_cancelled(epoch)
-        hop = _download_once(current, headers, address=address, epoch=epoch)
+        hop = _download_once(current, address=address, epoch=epoch)
         guard_not_cancelled(epoch)
         if hop.redirect and 300 <= hop.status < 400:
             if redirect_count >= MAX_REDIRECTS:
@@ -209,10 +197,10 @@ def confirmation_url_label(url: str) -> str:
         return safe_url_label(url)
 
 
-def _download_once(url: str, headers: dict[str, str], *, address: str, epoch: int) -> _Hop:
+def _download_once(url: str, *, address: str, epoch: int) -> _Hop:
     guard_not_cancelled(epoch)
     manager = QgsNetworkAccessManager.instance()
-    request = _network_request(url, headers, address=address, manager=manager)
+    request = _network_request(url, address=address, manager=manager)
     guard_not_cancelled(epoch)
     reply = manager.get(request)
     _ACTIVE_REPLIES.append(reply)
@@ -272,7 +260,7 @@ def _download_once(url: str, headers: dict[str, str], *, address: str, epoch: in
         reply.deleteLater()
 
 
-def _require_public_host(host: str, port: int, *, epoch: int | None = None) -> tuple[str, ...]:
+def _require_public_host(host: str, *, epoch: int | None = None) -> tuple[str, ...]:
     request_epoch = cancellation_epoch() if epoch is None else epoch
     guard_not_cancelled(request_epoch)
     normalized = (host or "").strip().lower().rstrip(".")

@@ -50,12 +50,12 @@ class ParseSlashTest(unittest.TestCase):
 
 class PromptTest(unittest.TestCase):
     def test_invoked_skills_are_named_in_the_system_prompt(self):
-        prompt = prompts.build_system_prompt("", ["inspect", "osm"], invoked_skills=["osm"])
+        prompt = "\n\n".join(prompts.build_system_parts("", ["inspect", "osm"], invoked_skills=["osm"]))
         self.assertIn(prompts.INVOKED_SKILLS_HEADER + "osm.", prompt)
         self.assertIn("# Skill: osm", prompt)
 
     def test_without_invoked_skills_the_header_is_absent(self):
-        prompt = prompts.build_system_prompt("", ["inspect"])
+        prompt = "\n\n".join(prompts.build_system_parts("", ["inspect"]))
         self.assertNotIn(prompts.INVOKED_SKILLS_HEADER, prompt)
 
     def test_the_core_prompt_asks_for_one_turn_skill_loading(self):
@@ -82,8 +82,6 @@ class SlashQueryTest(unittest.TestCase):
 
 
 class QtPositionTest(unittest.TestCase):
-    """Qt counts text positions in UTF-16 units: a character beyond the basic plane takes two, as in Qt."""
-
     def test_an_astral_character_takes_two_positions(self):
         self.assertEqual(qt_length("colour"), 6)
         self.assertEqual(qt_length("🌍🌍 @ro"), 8)

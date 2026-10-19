@@ -15,13 +15,6 @@ def split_live(messages: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], st
 
 
 def fold_live(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Merge the per-turn state message into the last real message.
-
-    The state is kept apart so a prompt-caching provider can end the cached
-    prefix before it. Endpoints without that distinction get it appended to
-    the last message, because several chat templates reject two user turns in
-    a row or a user turn right after a tool result.
-    """
     rest, live = split_live(messages)
     if not live:
         return rest

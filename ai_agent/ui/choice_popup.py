@@ -1,14 +1,3 @@
-"""A small popup of exclusive choices: the mode menu, after the design handoff.
-
-A caption, then one row per choice — its name (with an optional badge), a muted
-line saying what it does, and its number key — and an optional footer under a
-hairline. The current choice is the lit row, no check: the light follows the
-pointer and the arrows, and comes back to the current one when the pointer
-leaves. The popup is as wide as its text, never wider than its anchor. Digits,
-arrows and Enter choose; Esc or a click outside closes. Rows paint their light,
-so nothing restyles while a mouse event runs.
-"""
-
 from dataclasses import dataclass
 from typing import Any
 
@@ -40,10 +29,9 @@ class ChoiceRow(controls.RoundedFrame):
     clicked = pyqtSignal(str)
     hovered = pyqtSignal(str)
 
-    def __init__(self, choice: Choice, number: int, palette: Any, parent: QWidget | None = None, wrap: bool = False):
-        super().__init__(ROW_RADIUS, parent)
+    def __init__(self, choice: Choice, number: int, palette: Any, wrap: bool = False):
+        super().__init__(ROW_RADIUS)
         self.key = choice.key
-        self.lit = False
         self._fill = style.card(palette).name()
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         line = QHBoxLayout(self)
@@ -63,8 +51,6 @@ class ChoiceRow(controls.RoundedFrame):
         self.note = QLabel(choice.note)
         style.scale_font(self.note, NOTE_SCALE)
         style.ink(self.note, style.faint(palette))
-        # In the feed the row must shrink with the dock, so there it wraps; the popup wraps
-        # only when its anchor is narrower than the longest note.
         self.note.setWordWrap(wrap)
         text.addWidget(self.note)
         line.addLayout(text, 1)
@@ -74,7 +60,6 @@ class ChoiceRow(controls.RoundedFrame):
         line.addWidget(self.number, 0, Qt.AlignmentFlag.AlignTop)
 
     def set_highlighted(self, highlighted: bool) -> None:
-        self.lit = highlighted
         self.set_look(self._fill if highlighted else None, None)
 
     def mouseReleaseEvent(self, event: Any) -> None:
@@ -89,10 +74,8 @@ class ChoiceRow(controls.RoundedFrame):
 class ChoicePopup(controls.RoundedFrame):
     chosen = pyqtSignal(str)
 
-    def __init__(
-        self, caption: str, choices: list[Choice], palette: Any, footer: str = "", parent: QWidget | None = None
-    ):
-        super().__init__(POPUP_RADIUS, parent)
+    def __init__(self, caption: str, choices: list[Choice], palette: Any, footer: str = ""):
+        super().__init__(POPUP_RADIUS)
         self._choices = choices
         self._index = 0
         self._current = 0
@@ -118,7 +101,6 @@ class ChoicePopup(controls.RoundedFrame):
             column.addWidget(hint)
 
     def open_above(self, anchor: QWidget, current: str) -> None:
-        """Show the popup over `anchor`, left edges aligned, as wide as its text allows, `current` lit."""
         self._current = self._position(current)
         self._highlight(self._current)
         for row in self.rows:
@@ -153,7 +135,6 @@ class ChoicePopup(controls.RoundedFrame):
             super().keyPressEvent(event)
 
     def leaveEvent(self, event: Any) -> None:
-        # The light is the only mark of the current choice: it goes back there once the pointer leaves.
         self._highlight(self._current)
         super().leaveEvent(event)
 
@@ -167,7 +148,6 @@ class ChoicePopup(controls.RoundedFrame):
 
 
 def _pill(text: str, palette: Any) -> QLabel:
-    """A quiet tag that stays visible on a highlighted row, whose fill is the card colour."""
     pill = QLabel(text)
     style.scale_font(pill, controls.SMALL_SCALE)
     pill.setStyleSheet(

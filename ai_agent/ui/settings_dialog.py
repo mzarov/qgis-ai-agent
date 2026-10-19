@@ -76,7 +76,6 @@ KEY_REMOVED = tr("The stored key for this endpoint was removed.")
 KEY_HINT = tr("Kept in the QGIS authentication database.")
 KEYLESS_HINT = tr("A local server needs no key.")
 MODEL_HINT = tr("As the provider names it.")
-# The pages the window builds on their first visit (`settings_layout.build_body` explains why).
 DEFERRED_PAGES = {
     settings_layout.SKILLS: SkillsSettings,
     settings_layout.GEOCODING: GeocoderSettings,
@@ -101,11 +100,8 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         self.setMinimumHeight(MIN_HEIGHT)
         self._probe_started = 0.0
         self._probe_report = ("", "")
-        # An example request picked on a connector page, for the chat box once the dialog closes.
         self.chosen_prompt = ""
-        # What happened here that the plugin acts on once the dialog closes.
         self.history_erased = False
-        self.was_reset = False
         palette = self.palette()
         self._palette = palette
         self._built_pages: dict[int, Any] = {}
@@ -156,7 +152,6 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         return self._page(settings_layout.PERSONALISATION)
 
     def build_page(self, index: int) -> QWidget:
-        """Build a page left for its first visit; from then on its edits mark it as any other page's do."""
         page = DEFERRED_PAGES[index](self._palette)
         page.changed.connect(lambda *_args, at=index: self._mark_dirty(at))
         if index == settings_layout.CONNECTORS:
@@ -166,7 +161,6 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         return page.widget
 
     def _page(self, index: int) -> Any:
-        """A deferred page's object, built now if nobody has visited it yet."""
         settings_layout.ensure_page(self, index)
         return self._built_pages[index]
 
@@ -181,7 +175,6 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         self.status_card = StatusCard(palette, self.test_btn)
 
         fields.section(column, tr("Provider"), palette)
-        # The combo box stays the single source of truth for the preset; the tiles only draw it.
         self.preset_combo = QComboBox(holder)
         self.preset_combo.addItems(TITLES)
         self.preset_combo.hide()
@@ -192,7 +185,6 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         column.addSpacing(fields.WIDE_GAP)
         column.addWidget(self.provider_tiles)
 
-        # The section is named after the chosen provider, as the handoff draws it.
         column.addSpacing(fields.SECTION_GAP)
         self._endpoint_title = fields.heading("", palette)
         column.addWidget(self._endpoint_title)
@@ -249,10 +241,6 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         return row
 
     def _watch_changes(self) -> None:
-        """Mark a page as edited the moment one of its controls changes; Save waits for that.
-
-        A deferred page is watched from its first visit, in `build_page`: unvisited, it holds no edits.
-        """
         pages = {
             settings_layout.CONNECTION: [
                 self.preset_combo.currentTextChanged,
@@ -293,7 +281,6 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
             self._saved_dot.set_colour(style.warning(self.palette()).name())
 
     def _show_endpoint(self, *_args: Any) -> None:
-        """The Privacy page's line about where data goes follows the address being edited."""
         self.privacy_status.show_endpoint(self._edited_url())
 
     def _apply_preset(self, title: str) -> None:
@@ -323,14 +310,13 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
             fields.select(self.preset_combo, preset.title)
         finally:
             self._syncing_preset = False
-        # The combo only signals a change; the custom preset is its first item, so redraw the tiles directly.
+        # The combo signals only a change and custom is its first item: redraw the tiles directly.
         self.provider_tiles.select(preset.title)
         self._endpoint_title.setText(CUSTOM_SECTION if preset.is_custom else preset.title)
         self.model_edit.setPlaceholderText(preset.model_hint)
         self._paint_key_hint(preset.needs_key or preset.is_custom)
 
     def _paint_key_hint(self, needs_key: bool) -> None:
-        """A local server takes no key: the field greys out and says so, as the handoff draws it."""
         fields.set_row_hint(self._key_field, KEY_HINT if needs_key else KEYLESS_HINT)
         self.key_edit.setPlaceholderText(tr("Provider key") if needs_key else NOT_REQUIRED)
         self.key_edit.setEnabled(needs_key or bool(self.key_edit.text()))
@@ -381,7 +367,6 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         self._show(KEY_REMOVED, style.success(self.palette()))
 
     def _use_example(self, identifier: str, text: str) -> None:
-        """Close with the request for the chat box, turning its connector on and saving, as asking means using it."""
         self.connectors.switches[identifier].setChecked(True)
         self.chosen_prompt = text
         if self.save_btn.isEnabled():
@@ -393,7 +378,6 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         url = self._edited_url()
         if not self._valid_url(url):
             return
-        # A page never built holds what is stored already: only the built ones are saved.
         geocoder: tuple[str, str] | None = None
         if self._built(settings_layout.GEOCODING):
             try:
@@ -416,7 +400,6 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         if token_budget is None or thinking_budget is None or context_window is None:
             self._show(BUDGET_INVALID, style.danger(self.palette()))
             return
-        # The stores that can refuse go first, so a refused Save leaves every setting as it was.
         if not self._store_key_and_personalisation(url, dialect):
             return
         set_api_url(url)
@@ -443,7 +426,6 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         self.accept()
 
     def _store_key_and_personalisation(self, url: str, dialect: str) -> bool:
-        """Store the key, then the Personalisation page; False after a refusal, which leaves both as they were."""
         key = self.key_edit.text()
         stored_key = get_api_key(url, dialect) if key else ""
         if key:
@@ -457,8 +439,6 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
                 self.personalisation.save()
             except ValueError as error:
                 if key:
-                    # The key goes back to what was stored. The store took a key a moment ago; should it
-                    # refuse this one, the notes' error is still the one to show.
                     with suppress(RuntimeError):
                         set_api_key(stored_key, url, dialect)
                 self._show(str(error), style.danger(self.palette()))

@@ -59,7 +59,6 @@ class SetOpacityTool(BaseTool):
         return {**layer_reference(layer), "opacity": opacity}
 
     def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
-        # A number, not a look: the layer's opacity reads back as what was asked, so no picture is needed.
         layer = pinned_layer(params)
         if layer is None:
             return False

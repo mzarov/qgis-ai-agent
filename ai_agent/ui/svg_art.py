@@ -1,5 +1,3 @@
-"""Render a monochrome SVG at a logical size and recolour it, so artwork follows the theme."""
-
 from functools import lru_cache
 from typing import Any
 
@@ -11,11 +9,6 @@ CACHE_SIZE = 128
 
 
 def tinted(path: str, colour: Any, size: int) -> QPixmap | None:
-    """The SVG at `path` drawn `size` logical pixels square in `colour`; None when it cannot be drawn.
-
-    Drawings are cached: the popup redraws its row icons on every keystroke. A
-    QPixmap is implicitly shared, so handing out the cached one copies nothing.
-    """
     name = colour.name() if hasattr(colour, "name") else str(colour)
     return _drawn(path, name, size, _ratio())
 
@@ -36,7 +29,6 @@ def _drawn(path: str, colour: str, size: int, ratio: float) -> QPixmap | None:
     try:
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         renderer.render(painter, QRectF(0, 0, size, size))
-        # Keep the artwork's shape, replace its ink: the source files are plain black.
         painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
         painter.fillRect(QRectF(0, 0, size, size), QColor(colour))
     finally:

@@ -54,18 +54,15 @@ class RegistryTest(unittest.TestCase):
 
 
 class _Layer:
-    def __init__(self, identifier, name):
-        self._identifier, self._name = identifier, name
-
-    def id(self):
-        return self._identifier
+    def __init__(self, name):
+        self._name = name
 
     def name(self):
         return self._name
 
 
 class _Project:
-    layers = {"stations_98c97027_113b": _Layer("stations_98c97027_113b", "stations")}
+    layers = {"stations_98c97027_113b": _Layer("stations")}
 
     @classmethod
     def instance(cls):
@@ -77,8 +74,6 @@ class _Project:
 
 
 class PinnedLayerNamesTest(unittest.TestCase):
-    """A queued call carries layer ids; every line a person reads names the layer instead."""
-
     STATION = "stations_98c97027_113b"
 
     def setUp(self):
@@ -137,7 +132,6 @@ class StepMarkupTest(unittest.TestCase):
         summary = CallSummary.marking("Using style.", {})
         summary.skill = "knowledge"
         row = StepRow(summary, self.palette)
-        # A chip of its own: rich text in a label draws no border round a span.
         self.assertEqual(row.tag.text(), activity.SKILL_TAG)
         self.assertIsNone(StepRow("Reading the project.", self.palette).tag)
 

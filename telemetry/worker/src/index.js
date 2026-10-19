@@ -1,7 +1,3 @@
-// The usage statistics Worker: receives anonymous pings from the QGIS plugin and
-// publishes daily aggregates. HTTP and D1 live here; the contract checks and
-// the shaping of the public document live in payload.js.
-
 import {
   COUNTERS,
   DIMENSIONS,
@@ -18,31 +14,24 @@ import {
 const DASHBOARD_URL = "https://mzarov.github.io/qgis-ai-agent/usage-stats/";
 const JSON_TYPE = "application/json";
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "x-content-type-options": "nosniff" };
-// The aggregates are recomputed at most once per this period. The snapshot
-// lives in D1 because the Cache API is a no-op on workers.dev, and scanning a
-// month of pings for every dashboard visit would eat the free read quota.
+// Snapshot in D1: the Cache API is a no-op on workers.dev, and rescans would eat the free read quota.
 const STATS_TTL_SECONDS = 3600;
 const PREFLIGHT_MAX_AGE_SECONDS = 86400;
 
-// One row per install and day: a resend of the same day replaces the row.
 const INSERT_PING = `INSERT OR REPLACE INTO pings (${PING_COLUMNS.join(", ")})
   VALUES (${PING_COLUMNS.map(() => "?").join(", ")})`;
 
 const READ_SNAPSHOT = "SELECT generated, body FROM stats_snapshot WHERE id = 1";
 const WRITE_SNAPSHOT = "INSERT OR REPLACE INTO stats_snapshot (id, generated, body) VALUES (1, ?1, ?2)";
 
-// ?1 and ?2 are the first and last day of a window, both inclusive.
 const TOTALS = `SELECT
   (SELECT COUNT(DISTINCT install_hash) FROM pings) AS installs_total,
   (SELECT COUNT(DISTINCT install_hash) FROM pings WHERE day BETWEEN ?1 AND ?2) AS installs_30d`;
 
-// A row is one install on one day, so COUNT(*) per day counts distinct installs.
 const DAYS = `SELECT day, COUNT(*) AS installs, SUM(runs) AS runs, SUM(applies) AS applies
   FROM pings WHERE day BETWEEN ?1 AND ?2 GROUP BY day`;
 
-// One statement per facet: D1 refuses a compound SELECT this long. Column
-// names are spliced in from the fixed DIMENSIONS and COUNTERS lists, never
-// from a request; the values are bound.
+// One SELECT per facet (D1 refuses a long compound one); columns come from fixed lists, never a request.
 const FACETS = [
   ...DIMENSIONS.map(
     (column) => `SELECT '${column}' AS facet, ${column} AS value, COUNT(DISTINCT install_hash) AS n
@@ -66,7 +55,6 @@ function isJsonType(header) {
   return (header ?? "").split(";")[0].trim().toLowerCase() === JSON_TYPE;
 }
 
-/** The request body, or null once it grows past `limit` bytes. */
 async function readBody(request, limit) {
   if (Number(request.headers.get("content-length")) > limit) return null;
   if (!request.body) return new Uint8Array(0);
@@ -146,7 +134,6 @@ async function handleStats(request, env, now) {
     try {
       await env.DB.prepare(WRITE_SNAPSHOT).bind(stats.generated, body).run();
     } catch (error) {
-      // A lost snapshot only means the next visitor recomputes it.
       console.error("usage stats snapshot was not saved:", error?.message);
     }
   }
@@ -182,7 +169,6 @@ const ROUTES = new Map([
   ["/", { GET: handleRoot }],
 ]);
 
-/** Routes one request; `now` is injectable so tests can pin the server date. */
 export async function handle(request, env, now = new Date()) {
   const methods = ROUTES.get(new URL(request.url).pathname);
   if (!methods) return jsonError(404, "not found");

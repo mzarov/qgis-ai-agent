@@ -1,9 +1,3 @@
-"""Imagery from the Microsoft Planetary Computer STAC API: search scenes, read an item, sign its assets.
-
-Assets live in Azure Blob Storage and open in place through GDAL's /vsicurl/
-once a short-lived SAS token is appended; the token endpoint needs no account.
-"""
-
 import time
 from typing import Any
 from urllib.parse import quote, urlparse
@@ -12,11 +6,9 @@ from ai_agent.qgis_tools.common.http import get_json, post_json
 from ai_agent.qgis_tools.data.coverage import FULL_COVER, covered_share
 
 STAC_ROOT = "https://planetarycomputer.microsoft.com/api/stac/v1"
-# Tokens are per storage container, not per collection: one collection's token is refused by another account.
 SAS_ENDPOINT = "https://planetarycomputer.microsoft.com/api/sas/v1/token/{account}/{container}"
 BLOB_SUFFIX = ".blob.core.windows.net"
 CLOUD = "eo:cloud_cover"
-# A cached token is replaced this long before it expires, so a layer never starts with a dying link.
 TOKEN_MARGIN_S = 15 * 60
 TOKEN_FALLBACK_S = 45 * 60
 MAX_FETCHED = 30
@@ -31,7 +23,6 @@ def search(
     limit: int,
     newest_first: bool,
 ) -> list[dict[str, Any]]:
-    # More than asked for: scenes that cover the area go first, so the clearest sliver does not win.
     body: dict[str, Any] = {"collections": [collection], "bbox": list(bbox), "limit": min(MAX_FETCHED, limit * 3)}
     if dates:
         body["datetime"] = dates
@@ -61,13 +52,11 @@ def asset_href(found: dict[str, Any], asset: str) -> str:
 
 
 def signed(href: str) -> tuple[str, str]:
-    """The asset link with a read token appended, and the token's expiry text."""
     token, expiry = sas_token(href)
     return f"{href}{'&' if '?' in href else '?'}{token}", expiry
 
 
 def sas_token(href: str) -> tuple[str, str]:
-    """A read token for the storage container behind `href`; reused while it has time left."""
     account, container = _container(href)
     key = f"{account}/{container}"
     cached = _tokens.get(key)
@@ -92,7 +81,6 @@ def _container(href: str) -> tuple[str, str]:
 
 
 def scene_date(properties: dict[str, Any]) -> str:
-    """The acquisition day; composites such as WorldCover carry a start date instead."""
     return str(properties.get("datetime") or properties.get("start_datetime") or "")[:10]
 
 

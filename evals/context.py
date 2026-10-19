@@ -1,20 +1,3 @@
-"""What the agent would send for one eval case: messages and tool schemas, built by the plugin's own code.
-
-The bench measures the texts users get, not a copy of them. The system prompt,
-the loaded skills' bodies, the tool schemas and the per-turn state all come from
-`core/agent/request.py`, exactly as for a real turn. Only the project is
-described by `evals/fixture.json` instead of a live QGIS, so this runs on plain
-Python through the tests' QGIS stub.
-
-A case names the skill under test (loaded the way the model loads it: a
-`load_skill` call and its result in the transcript), the user's request, and
-optionally the reads the agent already made — `"roads"` for `describe_layer`
-on that layer, `"roads/highway"` for the field's values, or an explicit
-`{"tool", "args", "result"}`. The model's next move is what the case checks.
-`measurements: none` describes the project without an ellipsoid, in the
-plugin's own words.
-"""
-
 import json
 import sys
 from pathlib import Path
@@ -36,7 +19,6 @@ from ai_agent.core.llm.reasoning import wire_messages  # noqa: E402
 from ai_agent.core.llm.turns import PROTOCOL_NATIVE, ModelTurn, ToolCall  # noqa: E402
 
 FIXTURE_PATH = Path(__file__).with_name("fixture.json")
-# The endpoint only scopes cached capabilities; none is recorded for it, so the native tool protocol is used.
 OVERRIDES = {
     "url_override": "http://eval.invalid/v1",
     "model_override": "eval",
@@ -52,12 +34,10 @@ DESCRIBE_ALGORITHM = "describe_processing"
 ALGORITHM_SEPARATOR = ":"
 NO_MEASUREMENTS = "none"
 MEASUREMENTS = "Measurements:"
-# The fixture's layers lie in Moscow: the zone the plugin names for them.
 LOCAL_UTM = "EPSG:32637"
 
 
 def without_ellipsoid(context: str) -> str:
-    """The fixture's project context as the plugin writes it for a project with no ellipsoid."""
     line = project_context.UNMEASURED + project_context.METRIC_FALLBACK.format(LOCAL_UTM)
     return "\n".join(line if item.startswith(MEASUREMENTS) else item for item in context.splitlines())
 
@@ -74,7 +54,6 @@ def build(
     locale: str = "en",
     measurements: str = "",
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """The messages and tool schemas of the agent's next request for this case."""
     data = fixture()
     if measurements == NO_MEASUREMENTS:
         data["project_context"] = without_ellipsoid(data["project_context"])
@@ -98,13 +77,11 @@ def build(
         step = request_module.build_step_request(transcript, loaded, list(history or []), dict(OVERRIDES))
     finally:
         request_module.get_project_context, request_module._project_notes, request_module.locale_code = saved
-    # As the transport sends them to an OpenAI-style endpoint: the state folded in, no reasoning echoed.
     messages = wire_messages(fold_live(step.messages), OVERRIDES["url_override"], False)
     return messages, step.tool_schemas
 
 
 def tool_schemas(skill: str = "") -> list[dict[str, Any]]:
-    """The tools the model has once `skill` is loaded; with no skill, the first turn's."""
     return build(skill=skill, request="-")[1]
 
 
@@ -114,7 +91,6 @@ def _add_step(transcript: Transcript, call: ToolCall, result: ToolResult) -> Non
 
 
 def _read(read: Any, data: dict[str, Any]) -> tuple[str, dict[str, Any], dict[str, Any]]:
-    """A read the agent already made: `layer`, `layer/field`, `native:buffer`, or {tool, args, result}."""
     if isinstance(read, str):
         if ALGORITHM_SEPARATOR in read:
             return DESCRIBE_ALGORITHM, {"algorithm_id": read}, data[DESCRIBE_ALGORITHM][read]

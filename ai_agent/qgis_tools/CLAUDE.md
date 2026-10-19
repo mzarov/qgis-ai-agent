@@ -117,8 +117,7 @@ the schema by hand. Supported `type`s: `string`, `number`, `integer`, `boolean`,
    tool name in `tools`.
 9. **A new tool means a new test.** The contract and the schema are checked
    automatically for every tool, but `execute` logic needs its own coverage: on
-   fake PyQGIS objects, as in `tests/test_renderers.py`. Both `describe_style`
-   failures survived to live QGIS precisely because nobody called that code.
+   fake PyQGIS objects, as in `tests/test_renderers.py`.
 
 ## PyQGIS — do not hallucinate
 
@@ -127,9 +126,8 @@ the schema by hand. Supported `type`s: `string`, `number`, `integer`, `boolean`,
 2. Project state — always through `QgsProject.instance()`.
 3. Processing: `QgsApplication.processingRegistry()`, the `processing` module.
 4. `try/except` around anything risky, log through
-   `QgsMessageLog.logMessage(msg, "AI Agent", Qgis.Info)`.
-5. Imports at the top, absolute. Concise docstrings document contracts; comments
-   explain non-obvious reasons — see the root CLAUDE.md.
+   `QgsMessageLog.logMessage(msg, "AI Agent", Qgis.MessageLevel.Info)`.
+5. Imports at the top, absolute. Docstrings and comments follow the root CLAUDE.md.
 
 ## Domain boundaries
 
@@ -157,8 +155,7 @@ The machinery is shared and lives in `common/properties.py` — `StyleProperty`
 and `PropertySet` with value coercion, range checks, typo hints and the parsing
 of the `properties` parameter. Catalogues belong to the domains: `style/` keeps
 `label_catalogue.py` and `symbol_catalogue.py`, `project/` keeps
-`catalogues.py`. The machinery moved up into `common/` when a second domain
-needed it — not earlier.
+`catalogues.py`.
 
 The catalogue must be the single source of truth. The describing tool is built
 from it too, so it cannot drift from the implementation — unlike a property
@@ -167,9 +164,8 @@ no new tool, no schema edit, no skill edit.
 
 **Coercion must validate the value in `coerce`, not at execution.** A write tool
 executes after the loop has ended, and there is nobody left to return an error
-to. Exactly that broke when the machinery was extracted: the colour was checked
-in `native()` at execution time, and an invalid colour silently rode all the way
-to being applied.
+to: a colour checked only in `native()` at execution time rides, invalid, all
+the way to being applied.
 
 A property inapplicable to the layer's geometry (marker shape on lines) must not
 vanish silently: it comes back in `skipped` with a note that this is a report,

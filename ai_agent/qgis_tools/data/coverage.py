@@ -1,10 +1,3 @@
-"""How much of the searched rectangle a scene's footprint covers, in plain Python.
-
-A Sentinel-2 tile at the edge of a satellite swath holds data in a sliver only;
-"clearest" alone picked such a tile for a city it barely touched. Footprints
-are lon/lat polygons, small enough that planar area is a fair share measure.
-"""
-
 from typing import Any
 
 Point = tuple[float, float]
@@ -12,7 +5,6 @@ FULL_COVER = 95.0
 
 
 def covered_share(footprint: Any, bbox: tuple[float, float, float, float]) -> float | None:
-    """Percent of `bbox` inside the GeoJSON `footprint` (Polygon or MultiPolygon); None when unreadable."""
     rings = _outer_rings(footprint)
     if rings is None:
         return None
@@ -40,7 +32,6 @@ def _outer_rings(geometry: Any) -> list[list[Point]] | None:
 
 
 def _clip(ring: list[Point], bbox: tuple[float, float, float, float]) -> list[Point]:
-    """Sutherland–Hodgman: the part of the ring inside the rectangle."""
     west, south, east, north = bbox
     edges = (
         (lambda p: p[0] >= west, lambda a, b: _at_x(a, b, west)),

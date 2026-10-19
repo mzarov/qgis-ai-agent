@@ -1,5 +1,3 @@
-"""Keys inside layer sources never reach the model, whichever tool or briefing reads the layers."""
-
 import json
 import unittest
 from unittest import mock
@@ -22,7 +20,6 @@ PROXIED = "https://proxy.example/tiles?target=" + quote(f"{TILES}?key=FAKE-NESTE
 
 
 def xyz(url):
-    """An XYZ source as QGIS 4.2 keeps it: QgsDataSourceUri.encodedUri() percent-encodes the nested URL whole."""
     return f"type=xyz&url={quote(url, safe='')}"
 
 
@@ -79,8 +76,6 @@ class _Crs:
 
 
 class _SourceLayer:
-    """The getters the inspect tools and the briefing read; everything else fails as a broken layer would."""
-
     def __init__(self, name, source):
         self._name = name
         self._source = source
@@ -140,9 +135,6 @@ class _Vector(_SourceLayer, QgsVectorLayer):
     def selectedFeatureCount(self):
         return 0
 
-    def featureCount(self):
-        return 3
-
 
 class _Project:
     def __init__(self, layers):
@@ -177,7 +169,6 @@ class _History:
 
 
 def _run(source, kind):
-    """A Processing run as QGIS records it (`asMap`): the layer is its whole source, its provider in front."""
     layer = f"{PROVIDERS[kind]}://{source}"
     return {
         "algorithm_id": "native:buffer",

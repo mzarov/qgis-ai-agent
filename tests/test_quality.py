@@ -1,5 +1,3 @@
-"""The data check's pure parts: what a scan counts, how the report is shaped and capped, each problem's fix."""
-
 import json
 import unittest
 
@@ -21,8 +19,6 @@ from ai_agent.qgis_tools.registry import get_tool_by_name
 
 
 class NullDate:
-    """A value type that knows it is empty, as a QDate or a QVariant does."""
-
     def isNull(self):
         return True
 

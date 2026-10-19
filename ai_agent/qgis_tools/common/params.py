@@ -1,5 +1,3 @@
-"""Parameter specs that many tools share, written once so every schema says the same thing."""
-
 from typing import Any
 
 LAYER_NAME_NOTE = "Layer name exactly as in the project"

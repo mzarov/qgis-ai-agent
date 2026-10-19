@@ -1,11 +1,3 @@
-"""Print the changelog entry of one version from metadata.txt, as Markdown.
-
-Used by the release workflow for the GitHub release body. Without an argument
-it prints the entry of the version in metadata.txt.
-
-Run: python3 tools/release_notes.py [version]
-"""
-
 import configparser
 import os
 import re
@@ -24,7 +16,6 @@ def read_metadata(path: str = METADATA) -> configparser.SectionProxy:
 
 
 def notes_for(version: str, changelog: str) -> list[str]:
-    """Bullet lines of one version; the changelog lists versions newest first."""
     lines = [line.strip() for line in changelog.splitlines()]
     collected: list[str] = []
     inside = False

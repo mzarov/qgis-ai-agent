@@ -70,8 +70,6 @@ if __name__ == "__main__":
 
 
 class _AggregatingLayer(_Layer):
-    """A remote-looking layer whose native aggregate answers are recorded."""
-
     def __init__(self, answers, provider="postgres", count=250_000):
         super().__init__(size=count)
         self.answers = dict(answers)
@@ -84,9 +82,6 @@ class _AggregatingLayer(_Layer):
 
     def featureCount(self):
         return self.count
-
-    def selectedFeatureIds(self):
-        return [4, 5]
 
     def aggregate(self, kind, expression, parameters, context, fids=None):
         self.calls.append((kind, expression, getattr(parameters, "filter", ""), fids))
@@ -131,7 +126,6 @@ class NativeAggregateTest(unittest.TestCase):
         self.assertTrue(all(call[3] == [4, 5] for call in layer.calls))
 
     def test_selected_ids_that_passed_the_filter_go_without_it(self):
-        # Beside a filter QgsVectorLayer.aggregate ignores the ids and answers over the whole layer.
         layer = _AggregatingLayer({"1": (1.0, True), "n": (2.0, True)})
         params = {"selected_only": True, "filter": "n >= 2", "expression": "n"}
         result = run_aggregate(layer, _Request(), None, params, "sum", [5])

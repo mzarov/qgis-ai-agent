@@ -39,11 +39,6 @@ TEMP_NOTE = (
 
 
 def write_payload(text: str, stem: str) -> tuple[str, bool]:
-    """Write the Overpass answer; return its path and whether it sits in a temporary folder.
-
-    A saved project keeps its downloads in `<project home>/osm/`, so the layers
-    still open after a reboot; an unsaved one has no home and falls back to temp.
-    """
     home = _project_home()
     if home:
         folder = os.path.join(home, PROJECT_FOLDER)
@@ -64,7 +59,6 @@ def storage_note(temporary: bool) -> dict[str, str]:
 
 
 def load_answer(text: str, geometry: str, name: str, nothing_found: str) -> dict[str, Any]:
-    """Overpass's answer written and loaded as layers, with the payload a download tool returns."""
     path, temporary = write_payload(text, name)
     loaded = load_sublayers(path, geometry, name)
     if not loaded:
@@ -78,7 +72,6 @@ def load_answer(text: str, geometry: str, name: str, nothing_found: str) -> dict
 
 
 def load_sublayers(path: str, geometry: str, name: str) -> list[dict[str, Any]]:
-    """Add each non-empty sublayer; drop the raw .osm once no layer reads it."""
     loaded: list[dict[str, Any]] = []
     raw_in_use = False
     for sublayer in SUBLAYERS.get(geometry, SUBLAYERS["all"]):
@@ -168,7 +161,6 @@ def _project_home() -> str:
 
 
 def _unique_stem(folder: str, stem: str) -> str:
-    """A stem whose .osm and every .gpkg copy are all free in the folder."""
     for attempt in range(1, MAX_STEM_ATTEMPTS + 1):
         candidate = stem if attempt == 1 else f"{stem}_{attempt}"
         taken = [os.path.join(folder, candidate + SUFFIX)]

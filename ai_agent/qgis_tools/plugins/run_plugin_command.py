@@ -53,8 +53,7 @@ class RunPluginCommandTool(BaseTool):
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         plugin = require_plugin(params.get("plugin"))
         path, action = _command(plugin, params.get("command"))
-        # Started after this apply step returns: a plugin dialog that runs its own event loop
-        # must not block the batch halfway.
+        # Deferred: a plugin dialog with its own event loop must not block the batch halfway.
         QTimer.singleShot(0, action.trigger)
         QgsMessageLog.logMessage(f"Started plugin command {path}.", LOG_TAG, Qgis.MessageLevel.Info)
         return {"started": path, "note": STARTED_NOTE}

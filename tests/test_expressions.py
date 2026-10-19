@@ -61,7 +61,6 @@ class Layer:
 
 class CheckColumnsTest(unittest.TestCase):
     def test_an_aggregate_over_another_layer_is_not_refused(self):
-        # @parent makes QGIS reference every attribute; that marker once refused every such expression.
         check_columns(Referencing("name", ALL_ATTRIBUTES), Layer(), "expression", "aggregate(...)")
 
     def test_an_unknown_field_is_refused_with_the_text_value_hint(self):

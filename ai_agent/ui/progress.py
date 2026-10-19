@@ -1,16 +1,3 @@
-"""The status line at the foot of the conversation: the panel's one live compass and a few words.
-
-Working: the needle searches, "Working…", the time runs. A model request that
-waits to be retried says so, counting down, until the feed moves on. Waiting for the user:
-it tilts slowly, "Waiting for your answer". Done: it settles north once,
-"Done in 7 s". Failed: a short shake with a red tip. A stop hides the line.
-
-The current call is named in the open activity list above it, so the line does not repeat it.
-
-It lives in the feed under the last message, so it scrolls with the
-conversation instead of sitting on the composer.
-"""
-
 import math
 import time
 from typing import Any
@@ -30,10 +17,8 @@ from ai_agent.i18n import tr
 from ai_agent.ui import compass, controls, style
 from ai_agent.ui.durations import format_seconds
 
-# The elapsed time shows whole seconds; a quarter-second tick keeps it on time without busy repaints.
 TICK_MS = 250
 MARK = 18
-# The line's own state while a run is busy; the outcomes come from the orchestrator.
 RUNNING = "running"
 WORKING = tr("Working…")
 CHECKING = tr("Checking the changes…")
@@ -56,11 +41,9 @@ WORKING_BY_KIND = {RUN_CHECK: CHECKING, RUN_LOOK_INTO: LOOKING_INTO}
 
 
 class ProgressLine(QWidget):
-    def __init__(self, palette: Any, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self, palette: Any):
+        super().__init__()
         self._started = 0.0
-        # The clock runs from the user's last action (a request, Apply, Retry, an answer) through every
-        # phase it set going: a run, then the apply in Auto mode, then the check. A phase does not restart it.
         self._counting = False
         self._working = WORKING
         line = QHBoxLayout(self)
@@ -75,7 +58,6 @@ class ProgressLine(QWidget):
         self._elapsed.setWordWrap(False)
         line.addWidget(self._elapsed)
         self._shown_second = -1
-        # (wording, deadline, attempt, total) while a request waits to be retried.
         self._retry: tuple[str, float, int, int] | None = None
         self._retry_second = -1
         self.state = STATUS_HIDDEN
@@ -84,20 +66,13 @@ class ProgressLine(QWidget):
         self._timer.timeout.connect(self._tick)
         self.hide()
 
-    @property
-    def step_text(self) -> str:
-        return self._step.text()
-
     def begin(self) -> None:
-        """The user set work going: the time on the line counts from here, across its phases."""
         self._started = time.monotonic()
         self._counting = True
 
     def start(self, kind: str = "") -> None:
-        """The agent works; `kind` says what for, when it is a check after an apply or a look into a failure."""
         self.state = RUNNING
         if not self._counting:
-            # Work nobody announced (a compaction the window needed): it keeps its own time.
             self._started = time.monotonic()
             self._counting = True
         self._retry = None
@@ -111,25 +86,18 @@ class ProgressLine(QWidget):
         self.show()
 
     def stop(self) -> None:
-        """The agent is no longer busy: hide, unless an outcome already took the line over.
-
-        Between two phases of one piece of work the clock keeps going: Auto mode applies right after the run.
-        """
         self._timer.stop()
         if self.state == RUNNING:
             self._hide()
 
     def clear_outcome(self) -> None:
-        """Another conversation is shown: the last run's outcome belongs to the old one."""
         if self.state != RUNNING:
             self.show_outcome(STATUS_HIDDEN)
 
     def show_outcome(self, kind: str, summary: str = "") -> None:
-        """Say how the run stopped working: waiting, done (with what changed, if anything), failed — or hide it."""
         self._timer.stop()
         self._retry = None
         outcome = OUTCOMES.get(kind)
-        # Waiting for the user, a failure or a cleared line ends the work; done may still have its check to come.
         if kind != STATUS_DONE:
             self._counting = False
         if outcome is None:
@@ -152,7 +120,6 @@ class ProgressLine(QWidget):
         self.hide()
 
     def show_retry(self, seconds: float, attempt: int, total: int, busy: bool) -> None:
-        """The model request waits `seconds` before attempt `attempt` of `total`: say so, counting down."""
         if self.state != RUNNING:
             return
         self._retry = (RETRY_BUSY if busy else RETRY_FAILED, time.monotonic() + seconds, attempt, total)
@@ -160,7 +127,6 @@ class ProgressLine(QWidget):
         self._show_retry()
 
     def resume(self) -> None:
-        """Something reached the feed: a retry's note gives way to the plain "Working…"."""
         if self._retry is None:
             return
         self._retry = None
@@ -186,7 +152,6 @@ class ProgressLine(QWidget):
 
     def _tick(self) -> None:
         elapsed = time.monotonic() - self._started
-        # The text changes once a second; setting it every frame would relayout for nothing.
         if int(elapsed) != self._shown_second:
             self._shown_second = int(elapsed)
             self._elapsed.setText(format_seconds(elapsed, decimals=0))

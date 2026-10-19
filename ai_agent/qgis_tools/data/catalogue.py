@@ -1,12 +1,3 @@
-"""The open data the agent knows how to fetch: a fixed list, so every host it contacts is known in advance.
-
-Vector sets download as GeoJSON from GitHub mirrors (the Natural Earth CDN was
-too slow to rely on); imagery and rasters come from the Microsoft Planetary
-Computer STAC API as cloud-optimised GeoTIFFs read in place; web map services
-are added as tile, WMS or WFS layers. The entries live in one JSON file per
-connector (connectors.py), and the user can turn each connector off.
-"""
-
 from ai_agent.config.connectors import disabled_connectors
 from ai_agent.qgis_tools.data.connectors import DATASETS, connector_of
 from ai_agent.qgis_tools.data.dataset import (
@@ -40,7 +31,6 @@ NATURAL_EARTH_LAYERS = {
     "ports": "ports",
 }
 NATURAL_EARTH_SCALES = ("10m", "50m", "110m")
-# Layers Natural Earth publishes only at the most detailed scale.
 NATURAL_EARTH_10M_ONLY = frozenset({"urban_areas", "roads", "railroads", "airports", "ports"})
 GEOBOUNDARIES_LEVELS = ("ADM0", "ADM1", "ADM2", "ADM3", "ADM4", "ADM5")
 
@@ -53,7 +43,6 @@ def is_enabled(item: Dataset) -> bool:
 
 
 def dataset(identifier: str, kind: str = "") -> Dataset:
-    """The catalogue entry, or a ValueError listing what exists."""
     found = BY_ID.get(str(identifier or "").strip())
     if found is None or (kind and found.kind != kind):
         wanted = [item.id for item in DATASETS if (not kind or item.kind == kind) and is_enabled(item)]
@@ -65,7 +54,6 @@ def dataset(identifier: str, kind: str = "") -> Dataset:
 
 
 def search(query: str) -> list[Dataset]:
-    """Entries ranked by how many query words hit their keywords, title and summary; all of them for no query."""
     words = [word for word in str(query or "").lower().replace(",", " ").split() if len(word) > 1]
     offered = [item for item in DATASETS if is_enabled(item)]
     if not words:

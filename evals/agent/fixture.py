@@ -1,15 +1,3 @@
-"""The agent bench's project: the same small city the skill bench describes, as real layers in QGIS.
-
-Districts, roads, schools and stations in GeoPackages, a DEM in a GeoTIFF and
-two CSV files beside them. Every value is fixed, so a task can name the exact
-outcome: 3 schools hold fewer than 100 pupils, 5 more than 1000, 8 are lyceums.
-The project is in Web Mercator, as one that began on a basemap is. Each
-district is 0.08° × 0.05°, about 2798 ha on the ellipsoid.
-The schools spread unevenly, 0 to 4 per district, as real ones do: an even 2
-everywhere once made the model doubt its own count. The task cases in tasks.yaml
-rely on these numbers.
-"""
-
 import csv
 import os
 import struct
@@ -42,24 +30,20 @@ ROAD_COUNT = 30
 SCHOOL_KINDS = ["school", "lyceum", "gymnasium"]
 CAPACITIES = [1200, 85, 640, 720, 1100, 450, 95, 880, 530, 1350, 600, 60, 410, 760, 1050, 390, 820, 470, 1500, 680,
               350, 910, 560, 300]  # fmt: skip
-# Schools per district, in district order: 24 in all, one district without any.
 SCHOOLS_PER_DISTRICT = [4, 1, 3, 2, 0, 2, 3, 1, 2, 4, 1, 1]
 STATION_LINES = ["Red", "Green", "Blue"]
 STATION_COUNT = 9
 UTM_37N = "EPSG:32637"
-# What QGIS gives every new project: $area and $length measure on it, in metres, whatever a layer's CRS.
 ELLIPSOID = "EPSG:7030"
 DEM_SIZE = (80, 60)
 DEM_CELL = 250.0
 DEM_ORIGIN = (400000.0, 6190000.0)
-FILES = ("population.csv", "stops.csv")
 STOPS = [("1", "Tverskaya", 37.6056, 55.7647), ("2", "Pushkinskaya", 37.6043, 55.7656),
          ("3", "Okhotny Ryad", 37.6153, 55.7576), ("4", "Teatralnaya", 37.6186, 55.7579),
          ("5", "Lubyanka", 37.6268, 55.7597)]  # fmt: skip
 
 
 def build(folder: str) -> None:
-    """Write the layers and files into `folder` and add the layers to the open project."""
     project = QgsProject.instance()
     project.setCrs(project.crs().fromOgcWmsCrs("EPSG:3857"))
     project.setEllipsoid(ELLIPSOID)
@@ -123,7 +107,6 @@ def _schools() -> QgsVectorLayer:
     layer = QgsVectorLayer(
         "Point?crs=EPSG:4326&field=name:string&field=kind:string&field=capacity:integer", "schools", "memory"
     )
-    # Each school inside its district's cell, spread along the diagonal and away from the edges.
     places = [(district, slot, count) for district, count in enumerate(SCHOOLS_PER_DISTRICT) for slot in range(count)]
     features = []
     for index, (capacity, (district, slot, count)) in enumerate(zip(CAPACITIES, places, strict=True)):
@@ -166,7 +149,6 @@ def _write(layer: QgsVectorLayer, folder: str, name: str) -> str:
 
 
 def _dem(folder: str) -> str:
-    """A gentle slope in metres, 250 m cells in UTM 37N: enough for a hillshade or a 3D view."""
     path = os.path.join(folder, "dem.tif")
     width, height = DEM_SIZE
     dataset = gdal.GetDriverByName("GTiff").Create(path, width, height, 1, gdal.GDT_Float32)

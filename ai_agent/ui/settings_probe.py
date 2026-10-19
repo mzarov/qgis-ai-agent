@@ -1,9 +1,3 @@
-"""The connection test of the settings window: start, cancel, report, and close only once it stopped.
-
-A mixin of `SettingsDialog`: it reads the dialog's fields through `_overrides`
-and reports into its status card and test button.
-"""
-
 import time
 from typing import Any
 
@@ -51,7 +45,6 @@ class ConnectionProbeMixin:
         self._probe_started = time.monotonic()
         self._probe_was_cancelled = False
         overrides = self._overrides()
-        # The window is stored for what was tested, even if the fields change meanwhile.
         self._probe_scope = (
             overrides["url_override"],
             overrides.get("model_override") or "",
@@ -118,15 +111,11 @@ class ConnectionProbeMixin:
         self._close_once_stopped(QDialog.DialogCode.Accepted)
 
     def reject(self) -> None:
-        # A Save waiting for the test has stored everything already: a Cancel now cannot take that back.
         if self._close_after_probe != QDialog.DialogCode.Accepted:
             self._close_once_stopped(QDialog.DialogCode.Rejected)
 
     def _close_once_stopped(self, result: QDialog.DialogCode) -> None:
-        """Close now, or once the running test has stopped.
-
-        The window owns the test's thread: deleting the window while that thread runs aborts QGIS.
-        """
+        # The window owns the test's thread: deleting it while that thread runs aborts QGIS.
         if self._probe_thread is not None and self._probe_thread.isRunning():
             self._close_after_probe = result
             self._cancel_probe()

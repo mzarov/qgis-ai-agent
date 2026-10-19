@@ -6,6 +6,7 @@ from qgis.core import QgsVectorLayer
 
 from ai_agent.core.agent.batch import _model_line
 from ai_agent.core.llm.turns import ToolCall
+from ai_agent.qgis_tools.base import SAFETY_READ
 from ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call, summarize_tool_result
 from ai_agent.qgis_tools.sql import create_sql_layer as create_module
 from ai_agent.qgis_tools.sql import virtual as virtual_module
@@ -141,8 +142,6 @@ class Feature:
 
 
 class Result:
-    """What the next virtual layer reads as: its columns, rows, geometry, or the provider's error."""
-
     def __init__(self, columns=(), rows=(), geometry="", error="", total=None):
         self.columns, self.rows, self.geometry, self.error, self.total = (
             list(columns),
@@ -168,8 +167,6 @@ class Definition:
 
 
 class Vector(QgsVectorLayer):
-    """A project layer, or — built with the virtual provider — the query layer Vector.planned describes."""
-
     planned = Result()
     built = []
 
@@ -365,7 +362,6 @@ class CreateSqlLayerTest(SqlCase):
 
     def test_execute_adds_the_planned_query_and_confirms_it(self):
         prepared = self.create.prepare({"sql": JOIN, "name": "school counts"})
-        # The source was renamed after planning: the query still reads it by id.
         self.districts._name = "boroughs"
         payload = self.create.execute(prepared)
         added = self.project.mapLayer(payload["layer_id"])
@@ -400,8 +396,8 @@ class SummaryTest(unittest.TestCase):
         self.assertEqual(summarize_tool_result("create_sql_layer", {}, {"feature_count_note": "remote"}), "")
 
     def test_the_tools_are_a_read_and_a_write_of_the_sql_skill(self):
-        self.assertTrue(get_tool_by_name("query_sql").is_read_only)
-        self.assertFalse(get_tool_by_name("create_sql_layer").is_read_only)
+        self.assertEqual(get_tool_by_name("query_sql").safety, SAFETY_READ)
+        self.assertNotEqual(get_tool_by_name("create_sql_layer").safety, SAFETY_READ)
         self.assertEqual({get_tool_by_name(name).skill for name in ("query_sql", "create_sql_layer")}, {"sql"})
 
 

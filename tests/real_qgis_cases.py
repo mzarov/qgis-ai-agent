@@ -52,13 +52,10 @@ from ai_agent.qgis_tools.registry import get_tool_by_name
 from ai_agent.ui.dock_widget import AgentDockWidget
 
 BACKGROUND_WAIT_S = 120
-# Long enough for a tiny work to end in its thread while the main thread does not look.
 WORK_ENDED_S = 1.0
 MANY_POINTS = 20000
 MODEL_NAME = "Buffer in UTM"
-# Two points near Moscow in degrees: the model must reproject them before a buffer in metres means anything.
 MOSCOW_POINTS = ("POINT (37.6 55.75)", "POINT (37.7 55.8)")
-# Two transverse Mercator zones 3 degrees apart, defined by PROJ strings alone: valid CRSs without an authid.
 CUSTOM_WEST = "PROJ:+proj=tmerc +lat_0=0 +lon_0=30 +k=1 +x_0=500000 +y_0=0 +ellps=WGS84 +units=m +no_defs"
 CUSTOM_EAST = "PROJ:+proj=tmerc +lat_0=0 +lon_0=33 +k=1 +x_0=500000 +y_0=0 +ellps=WGS84 +units=m +no_defs"
 CUSTOM_POINT = (500000.0, 6000000.0)
@@ -92,7 +89,6 @@ class GisWorkflowsTest(unittest.TestCase):
         return layer
 
     def _applied(self, batch, progress=None):
-        """The batch's results, once a step working off the main thread has ended too."""
         ended = []
         batch.apply(lambda call: None, lambda call, result: None, done=ended.append, on_progress=progress)
         deadline = time.monotonic() + BACKGROUND_WAIT_S
@@ -126,7 +122,6 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual(roads.featureCount(), 2)
 
     def test_a_project_in_web_mercator_never_offers_it_for_metres(self):
-        """A project begun on a basemap is in EPSG:3857; its 'metres' are 0.56 m at Moscow's latitude."""
         schools = QgsVectorLayer("Point?crs=EPSG:4326", "schools", "memory")
         feature = QgsFeature(schools.fields())
         feature.setGeometry(QgsGeometry.fromWkt("POINT (37.62 55.75)"))
@@ -144,7 +139,6 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual(suggest_metric_crs(schools), "EPSG:2154")
 
     def test_a_text_note_and_a_marker_land_on_the_map(self):
-        # QGIS 4.2 refused the text item a QgsPoint ("argument 2 has unexpected type 'QgsPoint'"): only markers worked.
         self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:3857"))
         _, note = self._run("add_annotation", kind="text", x=37.6175, y=55.752, text="start here")
         _, marker = self._run("add_annotation", kind="marker", x=37.62, y=55.75)
@@ -156,7 +150,6 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertAlmostEqual(text.point().y(), 7_509_000, delta=5_000, msg="the note is not where Moscow is")
 
     def test_a_note_reads_back_with_its_place_in_lon_lat(self):
-        """A model once ran Python four times to find where its note was: the list and the read-back say it."""
         self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:3857"))
         queued, note = self._run("add_annotation", kind="text", x=37.6175, y=55.752, text="start here")
         tool = get_tool_by_name("add_annotation")
@@ -169,7 +162,6 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertAlmostEqual(place[1], 55.752, places=5)
 
     def test_a_marker_and_a_note_come_in_the_asked_colour(self):
-        """A blue marker once came out red, and the read-back still said the step was done."""
         tool = get_tool_by_name("add_annotation")
         for kind, extra in (("marker", {}), ("text", {"text": "start here"})):
             with self.subTest(kind=kind):
@@ -181,7 +173,6 @@ class GisWorkflowsTest(unittest.TestCase):
                 self.assertFalse(tool.confirm_applied({**queued.arguments, "color": "#d02020"}, added))
 
     def _custom_crs_target(self):
-        """Where CUSTOM_POINT in CUSTOM_WEST lies in CUSTOM_EAST: two CRSs whose authids are both empty."""
         west, east = QgsCoordinateReferenceSystem(CUSTOM_WEST), QgsCoordinateReferenceSystem(CUSTOM_EAST)
         self.assertTrue(west.isValid() and east.isValid())
         self.assertEqual((west.authid(), east.authid()), ("", ""))
@@ -225,7 +216,6 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual(legend["items"][-1]["high"], ranges[-1].upperValue())
 
     def test_a_class_count_other_than_asked_is_said_with_the_result(self):
-        # Natural breaks over two values make two classes; equal intervals always make exactly five.
         _, jenks = self._run("set_graduated", layer_name=self.layer.name(), field="count", classes=5, mode="jenks")
         self.assertLess(jenks["class_count"], 5)
         self.assertIn("mode=equal", jenks["note"])
@@ -234,7 +224,6 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertNotIn("note", equal)
 
     def test_a_one_point_layer_is_framed_with_the_area_around_it(self):
-        """One point has a box of no size; render_map once refused it as a layer with no extent."""
         from types import SimpleNamespace
 
         from qgis.gui import QgsMapCanvas
@@ -257,14 +246,12 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertTrue(result["image_base64"])
 
     def test_a_computed_value_is_written_into_a_real_field_on_the_ellipsoid(self):
-        """update_attributes with expressions: hectares in a stored column, as a virtual field measures them."""
         cell = QgsVectorLayer("Polygon?crs=EPSG:4326&field=area_ha:double", "cells", "memory")
         feature = QgsFeature(cell.fields())
         ring = "37.45 55.65, 37.53 55.65, 37.53 55.7, 37.45 55.7, 37.45 55.65"
         feature.setGeometry(QgsGeometry.fromWkt(f"POLYGON (({ring}))"))
         cell.dataProvider().addFeatures([feature])
         self.project.addMapLayer(cell)
-        # As in a desktop project: an ellipsoid takes only once the project has a CRS.
         self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:3857"))
         self.project.setEllipsoid("EPSG:7030")
         _, result = self._run("update_attributes", layer_name="cells", expressions={"area_ha": "$area / 10000"})
@@ -272,7 +259,6 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertAlmostEqual(next(cell.getFeatures())["area_ha"], 2801.9, delta=1.0)
 
     def test_a_count_from_another_layer_is_a_virtual_field(self):
-        """The aggregate over @parent the fields skill gives; its all-attributes marker was once refused."""
         district = QgsVectorLayer("Polygon?crs=EPSG:4326&field=name:string", "districts", "memory")
         feature = QgsFeature(district.fields())
         feature.setGeometry(QgsGeometry.fromWkt("POLYGON ((37 55, 38 55, 38 56, 37 56, 37 55))"))
@@ -342,7 +328,6 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual(next(self.layer.getFeatures()).geometry().asWkt(), "Point (0 0)")
 
     def test_a_file_output_takes_the_name_a_later_step_refers_to(self):
-        """A file output comes back as its path; the layer loaded from it still gets output_name."""
         centres = {"INPUT": self.layer.id(), "OUTPUT": str(self.root / "centres.gpkg")}
         zones = {"INPUT": "centres", "DISTANCE": 10, "OUTPUT": str(self.root / "zones.shp")}
         batch = WriteBatch(ToolExecutor())
@@ -434,7 +419,6 @@ class GisWorkflowsTest(unittest.TestCase):
         work.finished.connect(ended.append)
         work.start()
         self.assertTrue(worked.wait(BACKGROUND_WAIT_S), "the work never ran")
-        # run() returns at once; its finished() then waits for a main thread that has not looked yet.
         time.sleep(WORK_ENDED_S)
         work.cancel()
         deadline = time.monotonic() + BACKGROUND_WAIT_S
@@ -458,7 +442,6 @@ class GisWorkflowsTest(unittest.TestCase):
             "load_output": False,
         }
         prepared = tool.prepare(arguments)
-        # Already past the deadline: the algorithm's first progress report cancels it.
         with patch("ai_agent.config.limits.tool_seconds", return_value=0), self.assertRaises(TimeoutError) as caught:
             tool.execute(prepared)
         self.assertIn("0 s tool timeout", str(caught.exception))
@@ -466,7 +449,6 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual(payload["algorithm_id"], "native:buffer", "with the usual limit it runs")
 
     def _models_folder(self):
-        """A temporary Models folder for the provider and the tool alike: a test never writes into a profile."""
         folder = self.root / "models"
         folder.mkdir()
         saved = ProcessingConfig.getSetting(ModelerUtils.MODELS_FOLDER)
@@ -481,7 +463,6 @@ class GisWorkflowsTest(unittest.TestCase):
         return folder
 
     def test_two_steps_become_a_model_that_runs_on_other_data(self):
-        """'Build a model from these steps': reproject to a metric CRS, then buffer by a distance input."""
         folder = self._models_folder()
         arguments = {
             "name": MODEL_NAME,
@@ -547,7 +528,6 @@ class GisWorkflowsTest(unittest.TestCase):
             batch.add(ToolCall("broken", "create_processing_model", {**broken, "name": "Broken", "inputs": []}))
 
     def test_a_run_from_the_processing_dialog_is_listed_with_its_layer_named(self):
-        """What the Processing dialog records — asMap() of the run — reads back with the project layer's name."""
         algorithm = QgsApplication.processingRegistry().createAlgorithmById("native:buffer")
         context = QgsProcessingContext()
         context.setProject(self.project)
@@ -601,7 +581,6 @@ class GisWorkflowsTest(unittest.TestCase):
         )
 
     def test_undoing_a_style_change_keeps_a_scratch_layers_feature_ids(self):
-        """Ids 1 and 3 come back as 1 and 3, so a virtual field on $id reads the same after the undo."""
         third = QgsFeature(self.layer.fields())
         third.setGeometry(QgsGeometry.fromWkt("POINT (200 0)"))
         third.setAttributes(["point-2", 2])
@@ -722,8 +701,6 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual((total.payload["matched"], total.payload["value"]), (2, 3.0))
 
     def test_selected_only_answers_over_the_selected_features_the_filter_accepts(self):
-        # A real QgsFeatureRequest keeps one filter, and QgsVectorLayer.aggregate drops the ids beside a filter:
-        # rows and groups once answered over the whole selection, native aggregates over the whole filter.
         numbers = self._memory(
             "Point?crs=EPSG:3857&field=n:integer", "numbers", [(f"POINT ({n} 0)", [n]) for n in (1, 2, 3)]
         )
@@ -773,7 +750,6 @@ class GisWorkflowsTest(unittest.TestCase):
         return layer
 
     def _districts_and_schools(self):
-        """Three square districts and four schools; s4 says district 2 but lies outside every district."""
         square = "POLYGON(({0} 0, {1} 0, {1} 100, {0} 100, {0} 0))"
         districts = self._memory(
             "Polygon?crs=EPSG:3857&field=name:string&field=code:integer",
@@ -845,7 +821,6 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual((payload["feature_count"], payload["geometry"]), (3, "polygon"))
         self.assertIn("inside", payload["fields"])
         self.assertTrue(get_tool_by_name("create_sql_layer").confirm_applied(queued.arguments, payload))
-        # A view, not a copy: a school added to the source shows up in the layer.
         extra = QgsFeature(schools.fields())
         extra.setGeometry(QgsGeometry.fromWkt("POINT (450 50)"))
         extra.setAttributes(["s5", 3, 50])
@@ -887,7 +862,6 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertTrue(settings.format().font().bold())
 
     def test_a_new_label_size_comes_in_points_and_millimetres(self):
-        """Live labels in map units once kept them for a new size: 10 'points' became 10 map units."""
         self._run("set_labels", layer_name=self.layer.name(), properties={"field": "name", "buffer_size": 1})
         settings = self.layer.labeling().settings()
         text_format = settings.format()
@@ -946,7 +920,6 @@ class GisWorkflowsTest(unittest.TestCase):
         stretch = raster.renderer().contrastEnhancement()
         self.assertIsNotNone(stretch, "gray without a stretch paints the raw values, wrapping past 255")
         self.assertEqual((stretch.minimumValue(), stretch.maximumValue()), (1.0, 399.0))
-        # Cell (row, column) holds row * 20 + column: 1 goes black, 399 white, 200 halfway.
         image = self._rendered(raster, 20)
         self.assertLessEqual(image.pixelColor(1, 0).red(), 2)
         self.assertGreaterEqual(image.pixelColor(19, 19).red(), 253)
@@ -963,7 +936,6 @@ class GisWorkflowsTest(unittest.TestCase):
         return job.renderedImage()
 
     def _shapes(self, name, uri, wkts, rows=None):
-        """A memory layer of these geometries and attribute rows; returns it with its feature ids in order."""
         layer = QgsVectorLayer(uri, name, "memory")
         self.assertTrue(layer.isValid())
         features = []

@@ -116,7 +116,6 @@ class DrawFeaturesTool(BaseTool):
         return SAFETY_DESTRUCTIVE if self.has_external_effect(params) else SAFETY_WRITE
 
     def has_external_effect(self, params: dict[str, Any]) -> bool:
-        """A file or database layer is committed to its source, which a project snapshot cannot restore."""
         if _new_name(params):
             return False
         try:

@@ -1,10 +1,4 @@
-"""Join keys compared the way a cached QGIS join compares them.
-
-The join buffer keys its cache by `QVariant::toString()` of the join field and
-looks a target value up by the same text. So integer 1 and text "1" match,
-double 1.0 and integer 1 match, but text "001" and integer 1 do not. The match
-report here predicts that before the join exists and explains a miss.
-"""
+# A cached QGIS join compares QVariant::toString() texts: 1 matches "1" and 1.0, not "001".
 
 import math
 from collections.abc import Iterable
@@ -13,13 +7,10 @@ from typing import Any
 from ai_agent.qgis_tools.tables.delimited import BOOLEAN, DOUBLE, INTEGER, boolean_pair, parse_number
 
 SHOWN_KEYS = 5
-# Python prints large and tiny floats differently from Qt; past this the text
-# of a float key is a guess either way, and such keys are not codes anyway.
 EXACT_FLOAT_LIMIT = 1e15
 
 
 def key_text(value: Any) -> str | None:
-    """The text a QGIS join sees for one attribute value; None for NULL."""
     if value is None:
         return None
     try:
@@ -39,7 +30,6 @@ def key_text(value: Any) -> str | None:
 
 
 def file_key_texts(values: Iterable[str], kind: str, decimal_comma: bool = False) -> set[str]:
-    """Key texts of one delimited column once the provider has typed it as `kind`."""
     texts: set[str] = set()
     present = [raw for raw in values if raw.strip()]
     pair = boolean_pair([raw.strip() for raw in present]) if kind == BOOLEAN else None
@@ -59,7 +49,6 @@ def file_key_texts(values: Iterable[str], kind: str, decimal_comma: bool = False
 
 
 def match_report(target_keys: set[str], table_keys: set[str]) -> dict[str, Any]:
-    """How many distinct target keys find a row in the table, with samples of the misses."""
     matched = target_keys & table_keys
     missing = sorted(target_keys - table_keys)
     report: dict[str, Any] = {
@@ -77,7 +66,6 @@ def match_report(target_keys: set[str], table_keys: set[str]) -> dict[str, Any]:
 
 
 def mismatch_hint(target_keys: set[str], table_keys: set[str]) -> str:
-    """Why no key matched, when the reason is one of the usual ones."""
     if _overlap(target_keys, table_keys, str.strip):
         return 'The keys differ only by surrounding spaces; trim them with a virtual field (trim("field")).'
     if _overlap(target_keys, table_keys, _without_zeros):

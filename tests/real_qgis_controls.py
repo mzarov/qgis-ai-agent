@@ -1,12 +1,3 @@
-"""Behaviour of the redesigned controls in a live QGIS.
-
-The screen checks prove how the settings window and the composer look; these
-prove they still work: the custom controls answer like the combo boxes they
-replaced, edits are tracked until saved, the composer's states follow the run.
-
-Runs inside `real_qgis_workflows.py` against the extracted plugin ZIP.
-"""
-
 import os
 import pathlib
 import subprocess
@@ -29,7 +20,6 @@ from ai_agent.ui.settings_dialog import SettingsDialog
 from ai_agent.ui.table_card import TableCard
 from ai_agent.ui.thinking import ThinkingBlock
 
-# A connection test that ignores its cancel this long outlives any wait the main thread could afford.
 SLOW_TEST_S = 4.0
 CLOSE_WAIT_S = 20.0
 CHILD_TIMEOUT_S = 120
@@ -42,7 +32,6 @@ with tempfile.TemporaryDirectory() as root, qgis_application(pathlib.Path(root))
     code = real_qgis_controls.close_during_a_slow_test(sys.argv[1])
 sys.exit(code)
 """
-# A 360 px panel: ten columns (the most a table carries) cannot fit even at their narrowest.
 PANEL_WIDTH = 360
 LAST_CELL = "the last column holds a long value"
 WIDE_TABLE = {
@@ -70,7 +59,7 @@ class SegmentedTest(unittest.TestCase):
         self.assertEqual(self.seen, ["openai"])
 
     def test_choosing_the_current_item_again_is_silent(self) -> None:
-        self.segmented.setCurrentText("auto")
+        self.segmented.setCurrentIndex(0)
         self.assertEqual(self.seen, [])
 
     def test_a_click_slides_the_highlight_to_the_new_choice(self) -> None:
@@ -89,8 +78,6 @@ class SegmentedTest(unittest.TestCase):
 
 
 class CompassMotionTest(unittest.TestCase):
-    """The live mark really turns: a looping state keeps moving, a one-shot state settles."""
-
     def test_search_swings_and_done_settles_north(self) -> None:
         mark = compass.Compass(18, QWidget().palette())
         mark.set_state(compass.SEARCH)
@@ -106,13 +93,8 @@ class CompassMotionTest(unittest.TestCase):
 
 
 class FoldMotionTest(unittest.TestCase):
-    """Every frame of a fold leaves the whole feed laid out. Qt passes a size change up one parent per
-    round of posted events; a frame painted between rounds showed the reasoning grown inside a trace
-    that had not, and the motion stalled, then jumped."""
-
     def setUp(self) -> None:
         self.view = ConversationView()
-        # Shorter than the feed: the scroll area has to follow each frame as well.
         self.view.resize(560, 260)
         self.view.show()
         self.view.add_user_message("Which layers are in the project?", animate=False)
@@ -142,7 +124,6 @@ class FoldMotionTest(unittest.TestCase):
             if clip.isVisible():
                 self.assertEqual(clip.height(), min(clip.maximumHeight(), clip.natural_height()))
         if self.block._clip.isVisible():
-            # No slack under the box: the block shrank or grew with it, and so did every row below.
             fitted = self.block.layout().contentsMargins().top() + self.block._line.height() + self.block._clip.height()
             self.assertEqual(self.block.height(), max(fitted, self.block.parentWidget().glyph.height()))
         below = self._top(self.group) + self.group.height() + self.view._column.spacing()
@@ -150,7 +131,6 @@ class FoldMotionTest(unittest.TestCase):
         self.assertGreaterEqual(self.feed.height(), self.feed.heightForWidth(self.feed.width()))
 
     def _frames(self, fold) -> None:
-        # One frame at a time and no event processing in between: what a paint at that moment shows.
         for value in (0.15, 0.4, 0.7, 1.0):
             fold._step(value)
             self._assert_laid_out()
@@ -195,11 +175,8 @@ class TraceSpacingTest(unittest.TestCase):
         first, second = feed.findChildren(AssistantMessage)
 
         def gap(line: QWidget, answer: QWidget) -> float:
-            # From the middle of the line the eye reads to the answer: the two lines differ in height.
             return answer.mapTo(feed, QPoint(0, 0)).y() - line.mapTo(feed, QPoint(0, 0)).y() - line.height() / 2
 
-        # The reasoning title sits at the top of its glyph's box like every step's text, the header's is
-        # centred in it: a pixel or two apart, never a row gap.
         thought_line = reasoning.findChildren(ThinkingBlock)[0]._line
         self.assertLessEqual(abs(gap(thought_line, second) - gap(trace._header, first)), 3)
         view.hide()
@@ -230,8 +207,6 @@ class NoteColumnTest(unittest.TestCase):
         feed = view.widget()
         answer = feed.findChildren(AssistantMessage)[0]._browser
         label = feed.findChildren(SystemMessage)[0]._label
-        # A style sheet's lone border-left once reserved its width and padding but never painted (Qt takes
-        # the whole border's style from the top edge), so the note sat 11 px in beside nothing.
         text = label.mapTo(feed, label.contentsRect().topLeft())
         self.assertEqual(text.x(), answer.mapTo(feed, QPoint(0, 0)).x())
         view.hide()
@@ -239,8 +214,6 @@ class NoteColumnTest(unittest.TestCase):
 
 
 class WideTableTest(unittest.TestCase):
-    """A table wider than the feed slides under a bar of its own: its right columns were cut off, out of reach."""
-
     def setUp(self) -> None:
         self.view = ConversationView()
         self.view.resize(PANEL_WIDTH, 600)
@@ -282,7 +255,6 @@ class WideTableTest(unittest.TestCase):
         self.assertTrue(boxes, "the last column's long cell was not drawn")
         self.assertGreaterEqual(boxes[0].left(), 0)
         self.assertLessEqual(boxes[0].right(), card.width() + 1, "the last column is still cut off")
-        # The bar lies under the rows, inside the card: the card made room for it.
         self.assertLessEqual(bar.geometry().bottom(), card.height())
 
     def test_only_a_sideways_wheel_moves_the_table(self) -> None:
@@ -304,8 +276,6 @@ class WideTableTest(unittest.TestCase):
 
 
 class DropdownPlacementTest(unittest.TestCase):
-    """Near the bottom of the screen the menu opens above the field instead of sliding over it."""
-
     def test_the_menu_never_covers_its_field(self) -> None:
         box = Dropdown(QWidget().palette())
         for index in range(14):
@@ -351,8 +321,6 @@ class TokenPatternTest(unittest.TestCase):
 
 
 class UsageNoticeTest(PluginCase):
-    """The first load tells, in the real QGIS message bar, that usage counts are on; Turn off says no."""
-
     api_url = "http://localhost:11434/v1"
     model_name = "qwen3"
 
@@ -367,7 +335,7 @@ class UsageNoticeTest(PluginCase):
 
         settings = QgsSettings()
         settings.remove(usage_stats.CONSENT_KEY)
-        # The test profile says no again afterwards, whatever this test leaves.
+        # The test profile opts out of usage statistics again afterwards, whatever this test leaves.
         self.addCleanup(settings.remove, usage_stats.NOTICE_KEY)
         self.addCleanup(usage_stats.set_consent, False)
         bar = QgsMessageBar(self.iface.window)
@@ -509,8 +477,6 @@ class SettingsBehaviourTest(PluginCase):
         self.assertTrue(self.dialog.save_btn.isEnabled())
 
     def test_no_page_shows_a_window_of_its_own(self) -> None:
-        # Thirty hint labels were once shown before their rows took them: each became a window,
-        # and making those windows was most of the second the settings took to open.
         for index in range(self.dialog.pages.count()):
             self.dialog.show_page(index)
         self.dialog.search.field.setText("a")
@@ -531,7 +497,6 @@ class SettingsBehaviourTest(PluginCase):
     def test_a_chosen_group_sits_under_the_chips(self) -> None:
         from ai_agent.ui import connectors_settings, settings_layout
 
-        # The groups above a chosen one once left their air behind: a band of empty page under the chips.
         self.dialog._nav_buttons[settings_layout.CONNECTORS].click()
         connectors = self.dialog.connectors
         chips = connectors.chips[0][0].parentWidget()
@@ -547,10 +512,6 @@ class SettingsBehaviourTest(PluginCase):
 
 
 def close_during_a_slow_test(close: str) -> int:
-    """Save or reset while a connection test outlives its cancel; 0 once the window has closed and is gone.
-
-    Runs in a child QGIS started by `ClosingDuringATestTest`.
-    """
     from unittest import mock
 
     from qgis.PyQt.QtWidgets import QMainWindow, QMessageBox
@@ -580,15 +541,12 @@ def close_during_a_slow_test(close: str) -> int:
         while dialog.isVisible() and time.monotonic() < deadline:
             pump(0.05)
     closed = not dialog.isVisible()
-    # What the plugin does once the window's exec() returns.
     dialog.deleteLater()
     pump(0.1)
     return 0 if closed else 1
 
 
 class ClosingDuringATestTest(unittest.TestCase):
-    """Save and reset close the settings only once a running connection test has stopped."""
-
     def _close_in_a_child(self, close: str) -> subprocess.CompletedProcess[str]:
         import ai_agent
 
@@ -643,7 +601,6 @@ class ComposerBehaviourTest(PluginCase):
         self.dock.set_busy(False)
 
     def test_a_place_picked_on_the_map_lands_in_the_request(self) -> None:
-        """+ → Point on the map: the canvas takes a one-pick tool, the click becomes @point(lon, lat) in the box."""
         from qgis.core import QgsCoordinateReferenceSystem, QgsPointXY, QgsRectangle
         from qgis.gui import QgsMapCanvas, QgsMapToolPan
 
@@ -660,7 +617,6 @@ class ComposerBehaviourTest(PluginCase):
         tool = canvas.mapTool()
         self.assertIsNot(tool, pan, "the map got no picking tool")
         self.assertFalse(composer.place_hint.isHidden())
-        # Red Square in Web Mercator.
         tool.canvasClicked.emit(QgsPointXY(4187799.6, 7509040.5), Qt.MouseButton.LeftButton)
         pump(0.05)
         self.assertRegex(composer._edit.toPlainText(), r"^buffer 500 m around @point\(37\.6\d{4}, 55\.75\d{3}\) $")
@@ -677,7 +633,6 @@ class ComposerBehaviourTest(PluginCase):
         self.assertTrue(composer.place_hint.isHidden())
 
     def _type_at(self, text: str, before_end: int) -> None:
-        """Type `text` with the caret `before_end` characters before the end, as a person moving it would."""
         edit = self.dock.composer._edit
         cursor = edit.textCursor()
         cursor.movePosition(QTextCursor.MoveOperation.End)
@@ -687,8 +642,6 @@ class ComposerBehaviourTest(PluginCase):
         pump(0.05)
 
     def test_a_mention_after_astral_characters_replaces_only_itself(self) -> None:
-        """Qt counts text positions in UTF-16 units and Python in characters, and an emoji is two of the first:
-        completing `🌍🌍 @ro tail` once gave `🌍🌍 @roads ail`."""
         composer = self.dock.composer
         composer.set_layer_source(lambda: [("roads", "", "")])
         edit = composer._edit
@@ -699,7 +652,6 @@ class ComposerBehaviourTest(PluginCase):
         self.assertEqual(edit.toPlainText(), "🌍🌍 @roads  tail")
         edit.insertPlainText("by type")
         self.assertEqual(edit.toPlainText(), "🌍🌍 @roads by type tail", "the caret did not land after the mention")
-        # Not only emoji: any character beyond the basic plane, a name holding one included.
         composer.set_layer_source(lambda: [("𝄞 scores", "", "")])
         edit.setPlainText("𠀋 colour")
         self._type_at(" @𝄞", 0)
@@ -729,7 +681,6 @@ class ComposerBehaviourTest(PluginCase):
         edit.setPlainText("/style 🌍 @𝄞roads x")
         pump(0.05)
         lit = {(span.start, span.length) for span in edit.document().firstBlock().layout().formats()}
-        # In UTF-16 units: "/style " is 7, the emoji 2 and its space 1; "@𝄞roads" is 8.
         self.assertEqual(lit, {(0, 6), (10, 8)})
 
     def test_the_progress_line_follows_the_run(self) -> None:
@@ -737,8 +688,7 @@ class ComposerBehaviourTest(PluginCase):
         self.dock.set_busy(True)
         self.dock.add_tool_message("Reading layer 'districts'")
         self.assertFalse(self.dock.progress.isHidden())
-        # The open list names the call; the line below only says the agent is still at work.
-        self.assertEqual(self.dock.progress.step_text, progress.WORKING)
+        self.assertEqual(self.dock.progress._step.text(), progress.WORKING)
         self.dock.set_busy(False)
         self.assertTrue(self.dock.progress.isHidden())
 
@@ -765,7 +715,6 @@ class ComposerBehaviourTest(PluginCase):
         pump(0.05)
         try:
             self.assertTrue(toolbar.menu.isVisible())
-            # A caption, then Layer…, File or table…, Picture…, the two places on the map, a separator and Skill….
             labels = [action.text().split("\t")[0] for action in toolbar.menu.actions() if action.text()]
             expected = ["Layer…", "File or table…", "Picture…", "Point on the map…", "Area on the map…", "Skill…"]
             self.assertEqual(labels, expected)

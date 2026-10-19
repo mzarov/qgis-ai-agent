@@ -1,5 +1,5 @@
 site_name: AI Agent for QGIS
-site_description: An AI agent inside QGIS 4 — inspects your project and processes data from a plain-language request.
+site_description: An AI agent for QGIS 4 that works on your project from plain-language requests.
 site_url: https://mzarov.github.io/qgis-ai-agent/
 repo_url: https://github.com/mzarov/qgis-ai-agent
 repo_name: mzarov/qgis-ai-agent
@@ -43,7 +43,7 @@ plugins:
         - locale: ru
           name: Русский
           build: true
-          site_description: ИИ-агент внутри QGIS 4 — изучает проект и обрабатывает данные по запросу на естественном языке.
+          site_description: ИИ-агент для QGIS 4, который работает с проектом по запросам на обычном языке.
           nav_translations:
             Home: Главная
             Setup: Установка
@@ -56,7 +56,6 @@ plugins:
             Skill evals: Эвалы навыков
             Releasing: Выпуск версии
             Metrics: Метрики
-            Roadmap: План развития
             Usage statistics: Статистика использования
 
 nav:
@@ -71,7 +70,6 @@ nav:
       - Skill evals: skill_evals.md
       - Releasing: releasing.md
       - Metrics: metrics.md
-  - Roadmap: roadmap.md
   - Usage statistics: usage-stats.md
 
 # The usage statistics page draws its charts with these; the script returns

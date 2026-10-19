@@ -1,12 +1,4 @@
-// Charts for the usage statistics page (docs/usage-stats.md and its Russian
-// twin). MkDocs loads this file on every page through extra_javascript; it
-// does nothing unless the page has an element with the id "usage-stats".
-// Page text, chart titles and table headings come from data attributes, so
-// both languages share this script.
-
 (() => {
-  // The deployed Worker (telemetry/worker); the usage-stats workflow prints its
-  // URL into the job summary.
   const STATS_URL = "https://ai-agent-usage.mzarov.workers.dev/v1/stats";
 
   const SVG_NS = "http://www.w3.org/2000/svg";
@@ -15,7 +7,6 @@
   const TOP_BARS = 15;
   const RESIZE_DELAY_MS = 150;
 
-  // Geometry in CSS pixels; the SVG is drawn at the figure's width.
   const MIN_WIDTH = 160;
   const FALLBACK_WIDTH = 640;
   const SERIES_HEIGHT = 180;
@@ -73,7 +64,6 @@
     return longDay.format(new Date(`${day}T00:00:00Z`));
   }
 
-  // A rectangle with rounded corners on the data end only, square at the baseline.
   function columnPath(x, y, width, height) {
     const r = Math.min(CORNER, width / 2, height);
     const base = y + height;
@@ -86,7 +76,6 @@
     return `M${x},${y}H${end - r}Q${end},${y} ${end},${y + r}V${y + height - r}Q${end},${y + height} ${end - r},${y + height}H${x}Z`;
   }
 
-  // The smallest round step (1, 2 or 5 times a power of ten) giving at most Y_TICKS steps.
   function niceScale(max) {
     if (max <= 0) return { step: 1, top: 1 };
     const rough = max / Y_TICKS;
@@ -135,7 +124,6 @@
     return details;
   }
 
-  // Shared frame of the two 90-day charts: gridlines, y ticks and month labels.
   function seriesAxes(chart, width, days, values) {
     const m = SERIES_MARGIN;
     const plotWidth = width - m.left - m.right;
@@ -179,7 +167,6 @@
   function columnChart(figure, days, values) {
     const { chart, width } = frame(figure, SERIES_HEIGHT);
     const { y, band } = seriesAxes(chart, width, days, values);
-    // On a phone a day is under 3px wide: shrink the gap before the bar.
     const thickness = Math.max(1, Math.min(MAX_BAR, band - Math.min(BAR_GAP, band / 3)));
     days.forEach((day, i) => {
       const datum = svg("g", { class: "datum" }, chart);
@@ -270,7 +257,6 @@
     for (const figure of figures) draw(figure, stats);
   }
 
-  // The plain summary table above the charts stays as the fallback.
   function unavailable(text) {
     say(text);
     for (const figure of figures) figure.hidden = true;

@@ -9,7 +9,6 @@ from ai_agent.ui import icons, style
 USER_MAX_WIDTH_RATIO = 0.86
 BUBBLE_PADDING = 8
 BUBBLE_SIDE_PADDING = 12
-# The bubble's corner nearest the composer is tighter: it points back at where the message came from.
 BUBBLE_TAIL_RADIUS = 3
 BROWSER_EXTRA_HEIGHT = 6
 WRAP_SLACK = 10
@@ -22,12 +21,10 @@ REWIND = tr("Rewind to before this message")
 
 
 class UserMessage(QWidget):
-    """The user's bubble; with a place in the conversation it offers a rewind button on hover."""
-
     rewind_requested = pyqtSignal(int)
 
-    def __init__(self, text: str, parent=None):
-        super().__init__(parent)
+    def __init__(self, text: str):
+        super().__init__()
         palette = self.palette()
         row = QHBoxLayout(self)
         row.setContentsMargins(0, 0, 0, 0)
@@ -81,8 +78,8 @@ class UserMessage(QWidget):
 
 
 class AssistantMessage(QWidget):
-    def __init__(self, markdown: str, parent=None):
-        super().__init__(parent)
+    def __init__(self, markdown: str):
+        super().__init__()
         palette = self.palette()
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 0, 0, 0)
@@ -140,13 +137,8 @@ class AssistantMessage(QWidget):
 
 
 class SystemMessage(QWidget):
-    """The plugin's own note: smaller text in the reply's column, with no frame and no rule beside it.
-
-    An error wears the danger colour so it is not read past as a remark.
-    """
-
-    def __init__(self, text: str, parent=None, *, error: bool = False):
-        super().__init__(parent)
+    def __init__(self, text: str, *, error: bool = False):
+        super().__init__()
         palette = self.palette()
         row = QHBoxLayout(self)
         row.setContentsMargins(0, SYSTEM_VERTICAL_PADDING, 0, SYSTEM_VERTICAL_PADDING)
@@ -156,7 +148,6 @@ class SystemMessage(QWidget):
         label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         style.scale_font(label, SYSTEM_FONT_SCALE)
         style.ink(label, style.danger(palette) if error else style.muted(palette))
-        self.error = error
         row.addWidget(label, 1)
         self._label = label
 
@@ -190,7 +181,6 @@ def _rewind_button(palette: Any) -> QToolButton:
     else:
         button.setIcon(icon)
         button.setIconSize(QSize(REWIND_ICON, REWIND_ICON))
-    # Hidden until hover, but its room is kept so the bubble does not jump sideways.
     policy = button.sizePolicy()
     policy.setRetainSizeWhenHidden(True)
     button.setSizePolicy(policy)

@@ -152,7 +152,6 @@ def _call_openai(
 
 
 def _refuses_reasoning(err: ApiResponseError, reasoning: bool) -> bool:
-    """A reasoning complaint must reach _dispatch, not be taken for a tools or streaming refusal."""
     return reasoning and thinking_unsupported(err)
 
 

@@ -23,7 +23,6 @@ KINDS = (KIND_TEXT, KIND_MARKER)
 DEFAULT_SIZE = 12.0
 MAX_SIZE = 72.0
 WGS84 = "EPSG:4326"
-# Relative: a point read back after a CRS round trip differs in the last digits, metres or degrees alike.
 POSITION_TOLERANCE = 1e-6
 
 
@@ -95,7 +94,6 @@ class AddAnnotationTool(BaseTool):
         return {"id": str(item_id), "kind": kind, "note": "The annotation sits above every layer."}
 
     def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
-        # A note is a fact, not a look: it is on the map, with its words and colour, where it was asked to be.
         item = (annotation_layer().items() or {}).get(str(payload.get("id") or ""))
         if item is None:
             return False

@@ -1,11 +1,3 @@
-"""Shared harness for whole-plugin scenarios in a live QGIS.
-
-`PluginCase` loads the installed plugin into a bare main window, opens the
-dock, builds a small project and drives the chat the way a person does. The
-model behind it is up to the subclass: `real_qgis_e2e` points it at the
-scripted model, `real_qgis_live` at a real provider.
-"""
-
 import faulthandler
 import os
 import pathlib
@@ -36,8 +28,6 @@ from ai_agent.core.settings import (
 from ai_agent.plugin import QgisAiAgentPlugin
 
 SETTLE_S = 0.4
-# A test that has not ended by then is stuck, not slow: every thread's stack goes to stderr and
-# the process exits, so a hang names its place instead of eating the CI job's whole timeout.
 HANG_S = 300
 WINDOW_WIDTH = 1100
 WINDOW_HEIGHT = 760
@@ -54,8 +44,6 @@ class _MessageBar:
 
 
 class _Interface(QObject):
-    """The part of QgisInterface the plugin touches, the active layer included."""
-
     currentLayerChanged = pyqtSignal(object)
 
     def __init__(self) -> None:
@@ -98,13 +86,6 @@ class _Interface(QObject):
 
 
 class WindowSpy(QObject):
-    """Widgets shown as windows and then given a parent: each was shown before its layout took it.
-
-    Such a widget becomes a native window, made and torn down for nothing: thirty hint labels once took
-    most of the second the settings needed to open. A window a test shows on purpose keeps no parent
-    and is not counted.
-    """
-
     def __init__(self) -> None:
         super().__init__()
         self.strays: list[str] = []
@@ -133,8 +114,6 @@ def pump(seconds: float) -> None:
 
 
 class PluginCase(unittest.TestCase):
-    """One plugin instance and one fresh project per test."""
-
     api_url = ""
     model_name = ""
     idle_timeout_s = 60
@@ -173,9 +152,7 @@ class PluginCase(unittest.TestCase):
         self.assertEqual(self.window_spy.strays, [], "widgets shown before they had a parent")
 
     def _close_window(self) -> None:
-        # Freed now, at a quiet moment. Left to Python's cycle collector, the window could go in the middle of
-        # a later test's focus change, while Qt still holds it as the previous focus window: a segfault in
-        # QApplicationPrivate::notifyActiveWindowChange on QGIS 4.2, whenever the collector happened to run.
+        # Freed now: left to the cycle collector, the window can segfault a later test's focus change.
         self.iface.window.close()
         self.iface.window.deleteLater()
         pump(0.1)
@@ -225,7 +202,6 @@ class PluginCase(unittest.TestCase):
         self.dock.grab().save(str(ARTIFACTS / f"{name}.png"))
 
     def shot_now(self, name: str, after: float) -> None:
-        """A frame `after` seconds on, for a transition caught in the middle."""
         ARTIFACTS.mkdir(parents=True, exist_ok=True)
         pump(after)
         self.dock.grab().save(str(ARTIFACTS / f"{name}.png"))
@@ -237,7 +213,6 @@ class PluginCase(unittest.TestCase):
 
 
 def build_project(folder: str) -> None:
-    """Six square districts with a population field in a GeoPackage, and one river in memory."""
     districts = QgsVectorLayer("Polygon?crs=EPSG:4326&field=name:string&field=pop2020:integer", "districts", "memory")
     features = []
     for index, population in enumerate(DISTRICT_POPULATIONS):

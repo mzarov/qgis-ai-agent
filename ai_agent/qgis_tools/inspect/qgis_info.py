@@ -36,11 +36,7 @@ class GetQgisInfoTool(BaseTool):
 
     @staticmethod
     def _version() -> str:
-        for attribute in ("QGIS_VERSION", "version"):
-            with suppress(Exception):
-                value = getattr(Qgis, attribute)
-                return value() if callable(value) else str(value)
-        return ""
+        return str(Qgis.QGIS_VERSION)
 
     @staticmethod
     def _locale() -> str:

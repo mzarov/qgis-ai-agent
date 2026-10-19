@@ -86,8 +86,6 @@ class ConfigureLayoutItemTool(BaseTool):
         item = find_item(layout, params.get("item_id") or "")
         frame = _merged_frame(item, params)
         properties = params.get("properties")
-        # Properties go first: they are the step that can still fail, and a
-        # refused change must not leave the item moved but not retitled.
         if isinstance(properties, dict) and properties:
             _check_properties(item_kind(item), properties)
             _apply_properties(item, properties)

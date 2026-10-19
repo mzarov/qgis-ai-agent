@@ -24,13 +24,6 @@ def plan_verification(
     loaded_skills: list[str],
     overrides: dict[str, Any] | None = None,
 ) -> VerificationStart | None:
-    """What the check after Apply runs with, or None once the round cap is reached.
-
-    It starts with the applying run's skills (no load_skill turn, the same
-    cached prefix) and is told the user's original request, which a long run
-    may already have pushed out of the history window. A model known to reject
-    images is told to check by reading instead of being sent to render_map.
-    """
     next_round = current_round + 1
     if next_round > MAX_VERIFICATION_ROUNDS:
         QgsMessageLog.logMessage(

@@ -1,15 +1,3 @@
-"""What a task left in the project, as plain data a check can match: layers, project settings, files.
-
-Only facts a request can change and a person would look at: a layer's geometry,
-size, fields and their numeric sums (virtual fields too), its renderer and the
-field it classifies by, labels, opacity, visibility; the project CRS, layouts
-with the kinds of items they hold, and annotations; the files the run wrote into
-the task's folder. Point layers of a few features also list their points in
-EPSG:4326, so a check can tell latitude from longitude. Polygon layers carry
-their total area on the WGS 84 ellipsoid, whatever their CRS: a buffer drawn in
-Web Mercator "metres" has the right feature count and the wrong size.
-"""
-
 import os
 from typing import Any
 
@@ -34,11 +22,6 @@ LAYOUT_ITEM_PREFIX = "QgsLayoutItem"
 
 
 def snapshot(folder: str, before: set[str], layers_before: dict[str, str]) -> dict[str, Any]:
-    """The project now, against the folder's files and the layers' names by id (`layer_names`) before the task.
-
-    Layers are told apart by id, never by name: a renamed layer stays under the
-    name it began with, and a new layer that takes an old one's name is still new.
-    """
     project = QgsProject.instance()
     layers = {
         layer_id: {"name": layer.name(), **layer_state(layer, project)}
@@ -94,8 +77,6 @@ def _vector(layer: QgsVectorLayer) -> dict[str, Any]:
         state["renderer"] = renderer.type()
         symbol = renderer.symbol() if hasattr(renderer, "symbol") else None
         if symbol is not None:
-            # A single symbol made half transparent is a half transparent layer to the eye, as the layer's
-            # own opacity is: a task about transparency accepts either.
             state["symbol_opacity"] = round(float(symbol.opacity()), 3)
         if hasattr(renderer, "classAttribute"):
             state["class_attribute"] = renderer.classAttribute()
@@ -117,7 +98,6 @@ def _vector(layer: QgsVectorLayer) -> dict[str, Any]:
 
 
 def _sums(layer: QgsVectorLayer) -> dict[str, float]:
-    # By the field's type, not its type name: a virtual field's name is whatever its expression made it.
     numeric = [field.name() for field in layer.fields() if field.isNumeric()]
     sums = dict.fromkeys(numeric, 0.0)
     for feature in layer.getFeatures():
@@ -137,7 +117,6 @@ def _points(layer: QgsVectorLayer) -> list[list[float]]:
         geometry = feature.geometry()
         if geometry is None or geometry.isEmpty():
             continue
-        # asPoint() refuses a multipoint: its points are its parts.
         for part in geometry.asMultiPoint() if geometry.isMultipart() else [geometry.asPoint()]:
             point = transform.transform(part)
             points.append([round(point.x(), POINT_DECIMALS), round(point.y(), POINT_DECIMALS)])
@@ -157,7 +136,6 @@ def _area_km2(layer: QgsVectorLayer) -> float:
 
 
 def _layout_items(project: QgsProject) -> list[str]:
-    """The kinds of items across all layouts: map, legend, label, scalebar…"""
     kinds = set()
     for layout in project.layoutManager().layouts():
         for item in layout.items():
@@ -175,7 +153,6 @@ def _annotations(project: QgsProject) -> int:
 
 
 def _annotation_texts(project: QgsProject) -> list[str]:
-    """The text notes' words: a marker in place of a note looked like success once (the text item crashed)."""
     try:
         items = project.mainAnnotationLayer().items().values()
     except Exception:

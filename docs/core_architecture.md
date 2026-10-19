@@ -1,506 +1,225 @@
-# Core Architecture
+# Core architecture
 
-The architecture of `ai_agent`: an agent loop with skills.
+How the agent inside `ai_agent` works and why it is built this way.
 
-## Goals
+## Package layout
 
-- keep `plugin.py` thin: bootstrap and QGIS wiring only
-- let the agent **look** at the project before changing it
-- keep the prompt from growing with the number of domains
-- add a new domain with files, not by editing orchestration
+- `plugin.py` is the composition root: it builds the dock widget and the
+  orchestrator and wires them to QGIS.
+- `core/agent/` holds the loop: run state, request assembly, tool execution,
+  the transcript, Apply and the check after it.
+- `core/orchestrator/` connects the UI to the loop and renders a run into the
+  chat.
+- `core/llm/` is the HTTP client, the two API dialects and the parsers.
+- `core/state/` keeps the model's window and the saved conversations.
+- `qgis_tools/<domain>/` holds the tools, one class per file;
+  `qgis_tools/common/` holds code shared across domains.
+- `skills/<domain>/SKILL.md` holds the rules of each domain.
 
-## Package Layout
+## No agent framework
 
-- `core/agent/` — the agent loop: run state, request assembly, tool execution, transcript
-- `core/orchestrator/` — wires the UI to the loop and renders the run into the chat
-- `core/llm/` — HTTP client, transport adapter, parser
-- `core/context/` — the short starting summary of the project
-- `core/state/` — the model's history window and the saved conversations
-- `qgis_tools/common/` — shared across domains: layers, CRS, values, renderer summary
-- `qgis_tools/` — tools in nineteen domains: `inspect/`, `project/`, `style/`,
-  `processing/`, `osm/`, `data/`, `plugins/`, `draw/`, `edit/`, `fields/`, `layout/`, `python/`, `web/`,
-  `annotations/`, `three_d/`, `tables/`, `charts/`, `quality/`
-  `annotations/`, `three_d/`, `tables/`, `sql/`, `charts/`
-- `skills/` — knowledge packages `<skill>/SKILL.md` and the registry
+The loop is our own code. Agent frameworks do not fit a QGIS plugin:
 
-## Runtime Flow
+- Each one is a dependency, and the plugin runs in the QGIS Python, where every
+  extra package is an installation problem for the user. Today the plugin has
+  none.
+- Most are built around one vendor's SDK. The plugin must work with any
+  OpenAI-compatible endpoint and with local servers.
+- They run the loop on a background thread or with `asyncio`. PyQGIS objects
+  may be touched only from the main thread, so such a loop crashes QGIS.
+- The loop itself is small. What it needs beyond a framework is QGIS-specific:
+  a batch the user applies, a project snapshot, a check after Apply.
 
-1. `plugin.py` (the composition root above the layers) builds `AgentDockWidget`
-   and `CoreOrchestrator`.
-2. The orchestrator hands the user's request to `AgentLoop.start()`.
-3. The loop assembles the request (`request.py`) and sends the turn to
+The same reasons rule out exposing the tools over MCP instead: the agent lives
+inside QGIS and talks to a model over plain REST.
+
+## The loop
+
+The loop works act, observe, decide. It is not a one-shot planner.
+
+1. The orchestrator hands the request to `AgentLoop.start()`.
+2. The loop assembles the request (`request.py`) and sends it from
    `ModelTurnThread`.
-4. The reply arrives as a signal on the main thread — local reads execute there;
-   writes and network reads enter the confirmation queue.
-5. The loop repeats while the model keeps calling tools.
-6. When the model replies without calls, the collected changes go to the user
-   for confirmation.
+3. The reply arrives on the main thread as a signal. Local reads run at once
+   and their results go back to the model. Writes and network reads join a
+   batch.
+4. The loop repeats while the model calls tools.
+5. A run ends when the model replies without tool calls. The batch then goes
+   to the user.
 
-## Threading model
-
-PyQGIS and Qt objects may be touched only from the main thread. So the loop is
-not a background `while` but a **state machine on the main thread**: the HTTP
-request leaves it, and `_on_turn` runs as a main-thread slot.
-
-A long step leaves it too, in part. A step that held the main thread for a
-whole Processing algorithm or a download froze QGIS for as long — the window,
-the map, the Stop button. So a tool may start its heavy part as a QGIS task
-(`BaseTool.start`): a Processing algorithm through `QgsProcessingAlgRunnerTask`,
-as the Processing toolbox's "Run in background" does, a download through
-`QgsBlockingNetworkRequest`, which is safe in any thread and releases Python's
-lock while it waits. The task touches nothing but thread-safe objects; the
-project, its layers and the interface are touched only when it ends, back on
-the main thread. Applying a batch (`agent/apply_run.py`) returns to Qt's event
-loop while such a step works and goes on when its result arrives; meanwhile its
-progress reaches the plan card. Stop cancels the task and the steps after it.
-Algorithms QGIS flags NoThreading still run on the main thread.
+A step limit and a token budget from the settings stop a runaway run with a
+plain explanation.
 
 ## Safety classes
 
 Every tool declares `safety`:
 
-| Class         | Behaviour                                              |
-| ------------- | ------------------------------------------------------ |
-| `read`        | runs immediately unless it declares network access     |
-| `write`       | collected into a batch, applied after the user's button |
-| `destructive` | reserved for per-call confirmation                     |
+- `read` runs at once, unless it declares `network_access`.
+- `write` joins a batch that runs after the user presses Apply.
+- `destructive` also joins the batch and asks for a separate confirmation of
+  each call.
 
-A write call returns `{"status": "queued"}` to the model — a normal success
-response, not an error. Changes apply only after the button is pressed.
+A write call returns `{"status": "queued"}` to the model. That is success, not
+an error.
 
-Auto mode presses that button for the user. The loop decides
-(`agent/auto_apply.py`): a batch applies itself only when the mode is on and no
-call in it is destructive or unknown; a batch left over after a failed run never
-does. The orchestrator then takes the same path as the button, so the project
-snapshot, the destructive check and the verification run are unchanged — the
-invariant becomes "writes run after the user's consent", given once for the
-mode instead of per batch, and never for destructive steps.
+A read with `network_access = True` is queued too, and the run pauses for the
+user to approve that exact call. Its result then enters the transcript and the
+run resumes. A batch of network reads only does not take a project snapshot,
+because it changes nothing in QGIS.
 
-Plan mode removes the button altogether: a planning run offers only read
-tools, carries a note asking for a numbered plan in the live state, and the
-dispatcher refuses any other call. The run ends on an offer to carry the plan
-out, which switches to Ask or Auto and starts the next run with the
-original request.
+**Auto mode** presses Apply for the user (`agent/auto_apply.py`). A batch
+applies itself only when no call in it is destructive or unknown, and never
+after a failed run. It then takes the same path as the button: snapshot,
+destructive check, verification.
 
-After Apply the orchestrator checks the result. A full check is a model run:
-the agent re-reads what changed, looks at a render for visual changes, and
-queues fixes and tidy-up. It fixes only what the request asked for and did not
-get: a model that sees the render tends to polish, and once dimmed a layer
-nobody mentioned and re-exported a finished PDF. Anything beyond the request
-is a suggestion in its verdict. That run costs several requests, each carrying the
-whole prompt and tool schemas, and for a rename or a new bookmark it cost more
-than the work itself. So a batch is checked by reading first
-(`agent/quick_check.py`): every write tool may answer `confirm_applied` with the
-one read that proves its own step — the layer has the new name, the field is
-there, the join is gone, the opacity is 50 %, the labels are on and show the
-`name` field, the exported file opens with every feature. When every step of a successful batch reads back as done, the
-chat says so and no model run starts. Anything else goes to the model as
-before: a failed step, a tool that returns `None` (renderers, colours, label
-fonts and placement, Processing, new layers, virtual fields — results judged by
-eye or by their values), a step that does not read back, or a check that
-raises. A false
-"done" is the one failure this must not have, so a tool that cannot be sure
-returns `None`.
+**Plan mode** offers read tools only. The dispatcher refuses any other call.
+The run ends with a numbered plan and an offer to carry it out in Ask or Auto
+mode.
 
-Every applied batch takes a project snapshot first, and the orchestrator tags
-each new snapshot with the user message whose run applied it
-(`orchestrator/rewind.py`). Rewinding to a message restores the earliest
-snapshot tagged with that message or a later one and drops every later
-snapshot; the conversation side truncates the saved conversation before the
-message and puts the message back into the input box. A message is named by
-its place — its index plus the messages the cap has dropped from the head
-(`Session.trimmed`) — so a long conversation losing its oldest messages moves
-neither a bubble's rewind point nor a checkpoint. A project read during a
-rewind is the same project, so the lifecycle handlers do not start a new
-conversation for it.
+### Validation before the queue
 
-A read tool can also draw for the person: `charts` tools return a chart or
-table spec under `RESULT_VISUAL_KEY`. The executor strips it from the result
-before the model sees it, the loop hands it to the feed, and the conversation
-keeps it as a `visual` message that replays with the chat but is left out of
-the model's window. The model gets a short confirmation with the numbers.
+A write runs after the loop has ended, when nobody is left to read an error.
+So `BaseTool.prepare` checks and normalises the arguments when the call is
+queued, while the model can still fix them. The corrected arguments go into
+the queue, so the user confirms exactly what will run. For example, a buffer
+in metres on a layer in degrees is refused with a ready `native:reprojectlayer`
+call in the error, and the model adds that step itself.
 
-The open-data catalogue is grouped into connectors, one JSON file each in
-`qgis_tools/data/sources/`. A new source is a new file, not new code:
-`qgis_tools/data/connectors.py` loads them strictly (unknown keys, a wrong
-category or a repeated dataset id stop the plugin's tests, naming the file).
-A file holds the datasets the model sees in English and the texts a person
-reads on the connector's own settings page — summary, description, example
-prompts, licence, layer titles. `tools/update_translations.py` reads those
-texts from the files into the translation catalogue, and the page translates
-them with `tr_data()`. Which ones the user switched off lives in `config/connectors.py`, the leaf
-package both the tools and the settings page may read: the tools hide and
-refuse a switched-off connector's datasets, `core/connectors.py` hands the page
-plain rows. Personalisation lives in `config/personal.py` (a validated
-`Profile` in QgsSettings): `core/agent/profile_prompt.py` renders it, with the
-standing instructions, into the static system prompt after the language
-policy — it changes only when the user saves Settings, so the cached prefix
-still holds from turn to turn, and defaults add nothing. The feed reads it to
-fold steps and count down an unanswered question; tools read
-`follows_changes()` before moving the map. Memory notes about the user share
-the project notes' file under their own key and ride in the live state.
+### Snapshots and the check after Apply
 
-Network access is a capability separate from mutation safety. A read tool with
-`network_access = True` is queued and automatically pauses the run for explicit
-per-call confirmation. After approval its result enters the same transcript and
-the run resumes. A web-only batch does not mutate QGIS and therefore does not
-take a project snapshot; a batch containing a write still does.
+Every applied batch with a write takes a project snapshot first. Undo on the
+plan card and rewinding to an earlier message restore these snapshots
+(`orchestrator/rewind.py`).
 
-## Validation before the queue
+After Apply the orchestrator checks the result. First it reads: each write
+tool may answer `confirm_applied` with the one read that proves its step.
+When every step of a successful batch reads back as done, no model run starts.
+Otherwise a verification run starts: the model re-reads the result, looks at a
+rendered image for visual changes and queues fixes for what the request asked
+for and did not get. A tool that cannot be sure returns `None` from
+`confirm_applied`; a false "done" is the one failure this check must not have.
 
-A write executes **after** the loop has ended, so at that point there is nobody
-left to return an error to. Everything that can be checked and normalised from
-the arguments is done by `BaseTool.prepare` at queue time — the loop is still
-alive there, and the agent can rebuild the plan. The hook returns the corrected
-arguments, and exactly those go into the queue: the user confirms precisely what
-will run.
+## Main thread and background tasks
 
-That is how, for example, the CRS unit check works: a metre buffer requested on
-an `EPSG:4326` layer is rejected with a ready-made `native:reprojectlayer` call
-in the error text, and the agent adds the reprojection step itself.
+PyQGIS and Qt objects may be touched only from the main thread. So the loop is
+a state machine on the main thread. The HTTP request runs in `ModelTurnThread`;
+`_on_turn` and tool execution run as main-thread slots.
+
+A long step would freeze QGIS for as long as it runs. So a tool may hand its
+heavy part to a QGIS task (`BaseTool.start`, `qgis_tools/common/background.py`):
+
+- a Processing algorithm through `QgsProcessingAlgRunnerTask`, as the
+  Processing toolbox does for "Run in background";
+- a download through `QgsBlockingNetworkRequest`, which is safe in any thread.
+
+The task touches only thread-safe objects. The project, layers and widgets are
+touched when it ends, back on the main thread. The apply run
+(`agent/apply_run.py`) returns to the Qt event loop while the task works and
+continues on its signal; Stop cancels the task and the steps after it.
+Algorithms flagged NoThreading still run on the main thread.
+
+Never move a whole tool or the loop to a background thread, and never rewrite
+the loop as a background `while` or with `asyncio`.
 
 ## Skills and progressive disclosure
 
-A skill is a domain package: a `SKILL.md` with frontmatter (`name`,
-`description`, `tools`) plus a body of rules. The system prompt permanently
-holds only the one-liners of all skills. The body and the tool schemas load when
-the agent calls the `load_skill` meta-tool. The `inspect` skill is always loaded
-— otherwise a simple question would cost an extra turn.
+A skill is a domain package: `SKILL.md` with frontmatter (`name`,
+`description`, `tools`) and a body of rules. The system prompt always holds one
+line per skill. The body and the tool schemas load when the model calls
+`load_skill`. `inspect` is always loaded, so a simple question costs no extra
+turn. Without this, every request would carry every schema, and the prompt
+would grow with each new domain.
 
-Prompt growth as skills load (empty → inspect → +style → +processing):
-2221 → 6942 → 9326 → 12012 characters. Without disclosure every request would
-cost the maximum.
+The format follows the open Agent Skills standard (agentskills.io): `name` and
+`description` frontmatter, a Markdown body, loading on demand. The `tools` list
+is our extension; it binds a skill to its tool classes.
 
-## Alignment with current practice (checked August 2026)
-
-The format and the loading model deliberately match **Agent Skills** — the open
-standard (agentskills.io) adopted across the ecosystem: required `name` and
-`description` frontmatter, a Markdown body of instructions, and three-stage
-progressive disclosure (metadata at startup → body on activation → resources on
-demand). Our skill names satisfy the spec's naming rules and the bodies stay
-well under its recommended 500-line cap. The one extension is our `tools` list
-in the frontmatter, which binds a skill to its tool classes — the spec permits
-extra fields via `metadata`, and we parse our own frontmatter anyway.
-
-Two adjacent 2026 developments were evaluated and consciously not adopted:
-
-- **MCP.** The Model Context Protocol standardises giving *external* agents
-  access to live systems. Our plugin is the opposite shape: the agent lives
-  inside QGIS and talks to a model over plain REST. Exposing QGIS tools as an
-  MCP server would be a different product (QGIS for Claude Desktop and the
-  like), a possible future skill-set consumer but not a replacement for the
-  in-plugin loop — which vendor neutrality and the main-thread rule both
-  require.
-- **Skills served over MCP.** Useful when one organisation feeds many agents
-  from a central skill registry. We have one agent and nineteen skills shipped in
-  the same zip; a transport layer between them would add a dependency and
-  remove nothing.
+Domain rules live only in `SKILL.md`. `core/agent/prompts.py` holds
+domain-independent behaviour only.
 
 ## The Python escape hatch
 
-`run_python` executes a PyQGIS snippet inside the running QGIS. It is a
-permanent part of the design, not a temporary crutch: the agent is meant to
-reach the whole QGIS API, and no realistic number of tools covers a thousand
-classes. Everything below is a deliberate choice, so do not "optimise" it away.
+`run_python` runs a PyQGIS snippet inside QGIS. It is a permanent part of the
+design. The agent should reach the whole QGIS API, and no number of tools
+covers thousands of classes.
 
-**Why it is `destructive` rather than analysed.** Telling a reading snippet
-from a writing one by static analysis is not possible — `getattr` chains defeat
-it, and an AST allowlist would only produce a false sense of safety. So the
-plugin does not pretend to judge the code. Instead the code itself is the
-confirmation: the snippet is shown to the user in the destructive dialog before
-anything runs, and the `intent` field — one plain sentence for a human — is
-mandatory.
+- It is `destructive` rather than analysed. Static analysis cannot tell a
+  reading snippet from a writing one, so the plugin does not pretend to. The
+  user sees the code in the confirmation dialog before anything runs, with a
+  required one-sentence `intent`.
+- The bandit finding `B102: exec_used` is real. It is suppressed with
+  `#nosec B102` on the one `exec` line, not in a config file, so the check
+  stays on for the rest of the package. `tests/test_publish_ready.py` keeps
+  `exec` in one file, with one suppression, in a destructive tool.
+- There is no shell tool. Everything QGIS can do is reachable from Python; a
+  shell would only widen the attack surface.
+- A line budget (`sys.settrace`) stops a runaway loop, and the snippet is
+  compiled when queued, so a syntax error comes back while the loop can fix it.
 
-**Why the bandit finding is suppressed at the line, not in the config.**
-`B102: exec_used` is a correct finding, not a false positive. Adding it to
-`.bandit` skips would disable the check across the whole package and hide the
-riskiest property of the code from a reviewer. A `#nosec B102` sits on the exec
-line where the risk is. It is the only scanner accommodation in the package:
-there is no bandit config at all, in the repo or in the zip — the catalogue
-and CI both scan with stock rules and come back clean. Deliberately swallowed
-exceptions are written as `contextlib.suppress(...)` rather than an empty
-`except: pass`, so the intent is a construct, not a silence a scanner has to
-flag. `tests/test_publish_ready.py` keeps it honest:
-`exec` appears in exactly one file, there is exactly one suppression, and the
-tool using it must be destructive-class.
-
-**Why a shell is not offered.** Everything QGIS can do is reachable from
-Python. A system shell would widen the attack surface without widening what
-the agent can accomplish in GIS terms.
-
-Two guards sit under the confirmation: a line budget via `sys.settrace` stops a
-runaway loop from freezing QGIS, and the snippet is compiled at queue time so a
-syntax error is rejected while the loop is still alive to fix it.
-
-`skills/python/SKILL.md` tells the agent to try a real tool first and to name
-any successful snippet as a missing tool — the escape hatch doubles as a
-signal for what to cover next.
+`skills/python/SKILL.md` tells the model to try a real tool first. A snippet
+that works points at a missing tool.
 
 ## Transport
 
-The plugin is not tied to a vendor: it talks to whatever address the user set in
-the settings. The URL setting itself plays the “AI hub” role — no separate layer
-is needed. It is enough that the endpoint understands the OpenAI Chat
-Completions format, which nearly every corporate gateway does. The user provides
-the URL, the key (kept in the QGIS authentication database, not in config) and the model name.
+The plugin talks to whatever address the user sets. The endpoint needs to
+speak OpenAI Chat Completions or the Anthropic Messages API; there are no
+provider SDKs.
 
-`core/llm/transport.py` tries native function calling (`tools` +
-`tool_choice`). If the endpoint answers with an error about the unsupported
-parameter, the adapter switches to the JSON-in-prompt protocol and remembers the
-choice in `QgsSettings` under a hash of the URL. Both paths normalise into one
-`ModelTurn` — the loop does not know which one worked.
+`core/llm/transport.py` tries native function calling first. If the endpoint
+rejects the `tools` parameter, it switches to a JSON-in-prompt protocol and
+remembers that for the endpoint. Both paths produce the same `ModelTurn`.
+Streaming, images and reasoning follow the same rule: try, and remember a
+refusal per endpoint. A refusal is told apart from an outage, so a 401 or 429
+never switches a feature off.
 
-If an endpoint with a fundamentally different format appears, it gets its own
-adapter next to `transport.py`, not edits to the loop.
+All HTTP stays on the QGIS network stack, so QGIS proxy and authentication
+settings apply. Ordinary calls use `QgsBlockingNetworkRequest`. Streaming and
+the web tools use `QgsNetworkAccessManager` with a nested event loop, because
+they need the body while it arrives. The web tools also accept only public DNS
+answers, pin a checked IP while TLS verifies the original host name, follow
+only same-origin redirects they have checked, pass the host name to an
+explicit QGIS proxy and fail closed when a direct route does not match.
 
-### QGIS network stack
+### Reasoning
 
-Ordinary one-shot model calls use `QgsBlockingNetworkRequest`. Streaming and
-the web tools are the two deliberate exceptions: both use
-`QgsNetworkAccessManager` with a nested `QEventLoop`. Streaming needs access to
-the body while it arrives. Web reads need the same incremental reply access to
-enforce the response-size limit before buffering the whole body, abort promptly,
-and inspect every redirect before following it. The web runner resolves DNS
-asynchronously with Qt, rejects the host if any answer is not globally routable,
-and pins one validated address for each direct connection attempt. TLS still
-verifies the original host name (`setPeerVerifyName`), while HTTP/1.1 carries
-that host in `Host`; there is no retry through an unresolved name.
+Reasoning arrives in three shapes, and all are handled:
 
-Redirect handling is manual: at most three same-origin redirects are accepted,
-and a raw `Location` value is validated before the next hop. The validated IP
-remains pinned across those hops. A connection failure tries the next address
-from the already validated DNS set. When QGIS chooses an explicit proxy for the
-approved hostname, the request keeps that hostname so the proxy's routing and
-DNS policy are honoured. Direct requests remain pinned; if QGIS would choose a
-different route for the pinned form, the request fails closed. Cancellation
-aborts both DNS lookup and reply, and a generation guard prevents fallback
-searches from starting afterward. Cookie loading/saving and cached HTTP
-authentication reuse are disabled so hosts sharing a CDN address cannot share
-state through the pinned IP. The caller still sees a blocking operation, all
-paths stay on the QGIS network stack, and a web request starts only after its
-individual confirmation.
+- Local servers put it in `content` inside `<think>` tags. `llm/thinking.py`
+  cuts it out, also when a tag is split across chunks.
+- DeepSeek and OpenRouter send a separate `reasoning_content` field.
+- Anthropic returns signed `thinking` blocks. With tools in the same run the
+  API requires them back, so `ModelTurn` carries them and they are re-sent
+  first in the assistant message.
 
-### Streaming
-
-The answer arrives word by word instead of appearing whole after a long pause.
-This is one place where `QgsBlockingNetworkRequest` cannot be used — it
-hands back a finished reply and there is no way to read the body as it comes.
-So the streaming path goes through `QgsNetworkAccessManager` with a
-nested `QEventLoop`: from the caller's point of view the call still blocks, so
-it stays inside the same background thread and the loop above it is unchanged.
-The proxy and authentication settings of QGIS are honoured either way — both
-classes sit on the same network stack.
-
-The parsing splits in two on purpose. `llm/stream.py` is pure Python: it
-reassembles Server-Sent Events across chunk boundaries and folds the deltas
-into the ordinary completion shape, so `_parse_native_turn` handles a streamed
-answer and a normal one identically. `llm/stream_runner.py` holds everything
-Qt- and network-shaped. Only the first half needs tests, and it gets them.
-
-Streaming follows the same feature-detect rule as `tools` and images: it is
-attempted, and an endpoint that refuses is written down as `supports_streaming
-= false` under the hash of its URL and never asked again. A failed attempt
-falls through to the ordinary request, so a server without SSE loses the live
-text and nothing else.
-
-A refusal has to be told apart from an outage, or the feature disables itself
-over an unrelated problem: a mistyped key answers 401 and a busy provider
-answers 429, and neither says anything about streaming. Only the
-unsupported-parameter statuses with a matching marker in the body count as a
-refusal; everything else is raised as the error it is. A server that ignores
-`stream` and replies with one ordinary JSON body is caught the same way — the
-stream yields no events at all, which is treated as a refusal rather than as
-an empty answer.
-
-Live text is forwarded to the UI only until the first tool-call delta, but
-what the model says before calling a tool is not thrown away. When the turn
-arrives, the loop announces the whole preamble and the orchestrator saves it
-exactly like a final answer — so the feed reads as the model actually worked:
-a line of text, a box of actions, another line of text. The chat and the saved
-conversation stay equal, which is the invariant that matters.
-
-### Streaming on both dialects
-
-The two dialects frame a stream differently, so each gets its own fold while
-the socket work stays shared. OpenAI sends one `choices[].delta` shape;
-Anthropic sends a typed event per step — `content_block_start`, then
-`text_delta`, `thinking_delta`, `signature_delta` or `input_json_delta`, then
-`content_block_stop` — and ends with `message_stop` rather than a `[DONE]`
-marker. `anthropic_stream.py` folds those events back into exactly the
-response shape `parse_response` and `parse_thinking` already read, so nothing
-downstream learns that the answer arrived in pieces.
-
-Tool arguments arrive as `partial_json` split across events and are parsed
-only when the block closes. That is why a refusal on Anthropic has to be told
-apart carefully: a message about `thinking` is raised for the caller to retry
-without it, and only a genuine complaint about streaming disables streaming.
-Getting that order wrong would disable the wrong feature.
-
-### Reasoning models
-
-Reasoning arrives in three different shapes and all three are handled, because
-the plugin cannot choose its endpoint.
-
-Local servers — Ollama, llama.cpp, LM Studio — put the reasoning straight into
-`content`, wrapped in `<think>` tags. Left alone it becomes the visible answer,
-lands in the transcript and is re-sent on every later step. `llm/thinking.py`
-cuts it out with a small state machine, which is needed because a tag can be
-split across two chunks: `<thi` in one, `nk>` in the next. Stripping happens
-before the JSON protocol parses anything — a model reasoning about which tool
-to call writes candidate objects, and the parser would otherwise be free to
-pick one of them over the real answer.
-
-DeepSeek and OpenRouter send a separate `reasoning_content` (or `reasoning`)
-field. It never touches `content`, so nothing breaks — but without reading the
-deltas the panel would sit still for the whole minute a model spends thinking,
-which is exactly when a sign of life is worth most.
-
-Anthropic returns typed `thinking` blocks carrying a `signature`. These
-**must** travel back (DeepSeek, below, is the only other case): with extended thinking and
-tool use in the same run, the API rejects an assistant turn whose thinking
-blocks are missing or reordered. So `ModelTurn` carries the raw blocks, the
-transcript keeps them beside the turn, and `_assistant_message` puts them back
-first, ahead of text and tool calls. Extended thinking is off until a budget is
-set in the settings — it costs tokens — and an endpoint that refuses the
-parameter is remembered like any other unsupported feature.
-
-The reasoning **text** is not sent back to any endpoint except DeepSeek with
-reasoning switched on (below). In the chat it lives in its own collapsible
-block: open while it grows, folded into one line once the answer starts. The
-saved conversation keeps it only for the chat: `core/state/trace.py` records
-each turn's steps and reasoning — and each plan card with its outcome — as
-display-only entries beside the messages (`trace`, `plan` roles), written just
-before the next message so a reopened conversation draws them where they were.
-The model's window takes `user` and `assistant` messages only, role and content,
-so none of it reaches a model.
-
-### Asking an OpenAI-compatible endpoint to reason
+Otherwise reasoning is shown in the chat and never sent back, with one
+exception: DeepSeek in thinking mode answers 400 unless every earlier
+assistant message carries its `reasoning_content`, so with the Reasoning
+switch on it is echoed there. The saved conversation keeps reasoning for the
+chat only.
 
 Some models reason only when asked, and there is no standard way to ask. The
-**Reasoning** switch on the Advanced settings page is off by default — reasoning
-is slower and costs tokens — and `llm/reasoning.py` turns it into the parameter
-the endpoint's provider expects, picked from the host:
-
-| Host | Body field |
-| --- | --- |
-| `api.deepseek.com` | `"thinking": {"type": "enabled"}` |
-| `openrouter.ai` | `"reasoning": {"effort": "medium"}` |
-| `api.openai.com` and any other host | `"reasoning_effort": "medium"` |
-
-An unknown host gets `reasoning_effort` rather than nothing. It is the shape
-OpenAI defined and most compatible servers copied, so it is the parameter most
-likely to work; a server that ignores unknown fields loses nothing, and a server
-that rejects it costs a single retry. Sending nothing would make the switch a
-silent no-op on every custom address, which is worse than one retry. The effort
-is fixed at `medium`: the switch says "think", not "how hard".
-
-A rejection is detected by `refusals.py` like any other unsupported feature —
-the parameter named next to a refusal phrase, or a structured error pointing at
-it. The request is retried once without the parameter, and the refusal is kept
-in the same capability cache as streaming and tools (`supports_thinking`, per
-endpoint, model and dialect), so the parameter is never sent there again. The
-reasoning check runs before the streaming and tools checks: a complaint about
-`reasoning_effort` must not switch streaming off. For reasoning only, a
-rejected *value* also counts ("must be one of none, default"): the plugin sends
-one fixed value, so leaving the parameter out is the right fallback. For tools
-the same words mean a broken schema, so they never count there. Parameter names
-are matched in camelCase too (`reasoningEffort`). A successful connection test
-forgets the refusal, as it does for every detected capability, and so does
-saving the switch on after it was off.
-
-DeepSeek is the one exception to "reasoning is never sent back". V4 thinks by
-default, and in thinking mode a request with tools is answered 400 unless every
-earlier assistant message carries its `reasoning_content`. That is why the
-switch off still sends `"type": "disabled"` explicitly. With it on, the
-transcript hands each turn's reasoning to the transport under an internal key;
-for DeepSeek it goes out as `reasoning_content` (an empty string for turns from
-earlier runs, which the API accepts), for every other endpoint the key is
-stripped. The saved conversation still never holds reasoning. OpenRouter also
-accepts reasoning back, but does not require it, so nothing is echoed there.
-
-The echo has a price: each request resends the reasoning of every turn in the
-run, so a long DeepSeek run with the switch on bills noticeably more input
-tokens; with prefix caching most of it is billed at the cached rate. That the
-API accepts an empty string for turns from earlier runs is observed, not
-documented — smoke check 190 covers it. The older `deepseek-reasoner` refused
-`reasoning_content` in input messages with a 400; that error names a message
-field, not a request parameter, so it is not taken for a refusal and surfaces
-as an ordinary API error — switch Reasoning off for such a model.
-
-OpenAI's Chat Completions API reasons without returning the text, so with
-OpenAI the switch makes answers better but adds no "Thought" line. DeepSeek and
-OpenRouter stream their reasoning and the line appears as usual. Anthropic is
-unaffected: its thinking follows the separate thinking budget.
-
-## Adding a new domain
-
-1. `qgis_tools/<domain>/` — tool classes with `skill = "<domain>"` and explicit
-   `safety`, `egress`, `external_effect` and `network_access` declarations
-2. `skills/<domain>/SKILL.md` — frontmatter and the domain rules
-3. assemble the domain list in its `__init__.py` and register it in
-   `qgis_tools/registry.py`; update public capability counts in both languages
-
-`prepare` validates without mutations or service calls and binds target layers
-by ID. `execute` runs on the main thread and returns JSON-compatible values;
-errors and partial effects must be explicit. Each new tool needs behavioral
-coverage, including failures, and new PyQGIS calls need live integration checks.
-Processing algorithms that modify existing sources are listed in
-`qgis_tools/processing/effects.py::SOURCE_WRITERS`; scripts, models and unknown
-providers receive the conservative policy.
-
-Orchestration, the loop and the prompt should remain unchanged. Domains do not
-depend on each other: shared code comes from `qgis_tools/common/`. The layering
-guard discovers domain packages so new domains receive the same checks.
-
-Use concise docstrings for contracts and comments for non-obvious reasons.
-Module size is a review prompt, not a hard cap; split by responsibility. Strict
-mypy checking currently covers configuration, skills, the base tool contract,
-argument validation and Processing effect policy. Expand that scope as typed boundaries stabilize;
-Qt runtime behavior still needs execution tests.
+**Reasoning** switch (off by default) becomes the parameter the host expects
+(`llm/reasoning.py`): `thinking` for DeepSeek, `reasoning.effort` for
+OpenRouter and `reasoning_effort` for every other host. An unknown host gets
+`reasoning_effort` because most compatible servers copied it; a server that
+rejects it costs one retry, and the refusal is remembered as
+`supports_thinking = false`. This check runs before the streaming and tools
+checks, so a complaint about `reasoning_effort` never turns streaming off.
 
 ## Conversations
 
-A conversation outlives the QGIS session. `ConversationState` wraps one
-`Session`: the full transcript, the one that reaches the disk, plus the summary
-left by the last compaction. The model's window is derived from it — the
-summary, then every message after `summary_index` — so the model gets the whole
-conversation until it stops fitting the context window, and there is no second
-copy that could diverge from what the chat shows.
+`ConversationState` wraps one `Session`: the full transcript plus the summary
+left by the last compaction. The model's window is the summary and every
+message after it. The conversation is saved after every message as JSON in
+`ai_agent_sessions/` in the QGIS profile, bound to the open project. The chat
+also saves what it showed of each turn (steps, reasoning, plan cards); none of
+that reaches the model. Switching conversations is refused while a run or an
+unapplied batch is active.
 
-One message is added with one `add(role, text)` call. Saving happens right after every message, so a QGIS crash does not eat
-the conversation.
+## Prompt policy
 
-`SessionStore` writes one JSON per conversation into `ai_agent_sessions/`
-inside the QGIS profile. A conversation is bound to its project: `recent()`
-returns only those started in the currently open project, and an unsaved project
-gets the shared “no project” bucket. The title comes from the user's first
-message.
-
-An empty conversation is never written to disk, otherwise the list would fill
-with traces of accidental clicks. Old conversations are trimmed to
-`MAX_SESSIONS`, and only when a new file appears — rewriting an existing one
-must not walk the whole folder.
-
-What is saved is the conversation, not the run: tool calls and plan cards do not
-come back on restore. The outcome of applying does get recorded as an agent
-message — otherwise the model would not know on its next turn whether its
-changes landed (`confirm_pending` ends the run and does not return the result to
-the loop).
-
-Switching conversations is forbidden while the loop is running or waiting for a
-write confirmation: otherwise the collected batch would apply to a conversation
-that never asked for it.
-
-## History
-
-Print layouts were a separate domain until `0.2.0` and were removed: they are to
-be rebuilt. The working implementation is preserved in the `v0.1.0-diploma` tag.
-
-## Prompt Policy
-
-- system prompts and `SKILL.md` are written in English, like everything else
-- the reply language is set not by the prompt text but by
-  `language_policy(locale)`: the QGIS interface language goes into the prompt,
-  and the model is told to switch to the user's language when they write in a
-  different one
-- interface text is an English original inside `tr()` plus a `.qm` next to it
+- System prompts, `SKILL.md` and tool schemas are English.
+- The reply language comes from `language_policy(locale)`: the QGIS interface
+  language goes into the prompt, and the model switches to the user's language
+  when they write in another one.
+- Interface text is an English original inside `tr()` plus a compiled `.qm`.

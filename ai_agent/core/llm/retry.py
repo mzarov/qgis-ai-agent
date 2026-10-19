@@ -9,13 +9,11 @@ from ai_agent.core.llm.client import ApiResponseError
 
 LOG_TAG = "AI Agent"
 RETRYABLE_STATUSES = frozenset({408, 425, 429})
-# A busy model, not a broken request: rate limited, unavailable, Anthropic's overloaded.
 OVERLOAD_STATUSES = frozenset({429, 503, 529})
 SERVER_ERROR = 500
 MAX_RETRY_AFTER_SECONDS = 30.0
 QUOTA_MARKERS = ("insufficient_quota", "billing", "credit balance")
 MAX_ATTEMPTS = 3
-# An overload passes in a minute or two; five attempts at the 30 s cap wait two minutes at most.
 MAX_OVERLOAD_ATTEMPTS = 5
 BACKOFF_SECONDS = (1.5, 4.0, 10.0, 20.0)
 POLL_SECONDS = 0.25
@@ -27,8 +25,6 @@ CLOCK = time.monotonic
 
 @dataclass(frozen=True)
 class RetryNotice:
-    """A pause before the next attempt, for the status line: how long, which attempt of how many."""
-
     seconds: float
     attempt: int
     total: int
@@ -36,8 +32,6 @@ class RetryNotice:
 
 
 class ChunkGuard:
-    """Count what reached the user, so a retry never repeats streamed text or reasoning."""
-
     def __init__(self, target: Callable[[str], None] | None):
         self._target = target
         self.delivered = 0
@@ -66,10 +60,7 @@ def with_retries(
     clock: Callable[[], float] | None = None,
     on_retry: Callable[[RetryNotice], None] | None = None,
 ) -> Any:
-    """Run `attempt`, again after a pause when the failure is worth it; `on_retry` hears of each pause.
-
-    Called on the request's own thread: `on_retry` must only hand the notice on, e.g. emit a signal.
-    """
+    # Runs on the request's own thread: on_retry must only hand the notice on, e.g. emit a signal.
     pause = sleep or SLEEP
     now = clock or CLOCK
     attempts = 0
@@ -95,7 +86,6 @@ def with_retries(
 
 
 def retry_delay(error: Exception, attempts: int) -> float:
-    """The server's Retry-After when it sent one (capped), else the backoff table."""
     hinted = getattr(error, "retry_after", None)
     if isinstance(hinted, (int, float)) and hinted > 0:
         return min(float(hinted), MAX_RETRY_AFTER_SECONDS)
@@ -107,7 +97,6 @@ def is_overload(error: Exception) -> bool:
 
 
 def attempts_for(error: Exception) -> int:
-    """An overloaded model gets more attempts than a failing one: waiting is what cures it."""
     return MAX_OVERLOAD_ATTEMPTS if is_overload(error) else MAX_ATTEMPTS
 
 

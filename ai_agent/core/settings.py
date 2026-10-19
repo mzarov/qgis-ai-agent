@@ -20,7 +20,6 @@ GEOCODER_DISABLED = geocoder.GEOCODER_DISABLED
 GEOCODER_PHOTON = geocoder.GEOCODER_PHOTON
 GEOCODER_NOMINATIM = geocoder.GEOCODER_NOMINATIM
 GEOCODER_PHOTON_URL = geocoder.GEOCODER_PHOTON_URL
-DEFAULT_GEOCODER_PROVIDER = geocoder.DEFAULT_GEOCODER_PROVIDER
 
 FALSE_WORDS = ("false", "0", "no", "off")
 TRUE_WORDS = ("true", "1", "yes", "on")
@@ -43,8 +42,6 @@ def _stored(key: str) -> Any:
 
 
 def _read_flag(key: str, default: bool, opt_in: bool = False) -> bool:
-    """A switch: unset reads as `default`. Any stored value but a no is a yes, except for an
-    opt-in (consent, reasoning), which takes nothing short of an explicit yes."""
     stored = _stored(key)
     if stored is None:
         return default
@@ -57,7 +54,6 @@ def _write_flag(key: str, value: bool) -> None:
 
 
 def _read_count(key: str, default: int = 0) -> int:
-    """A non-negative whole number; anything unreadable reads as `default`."""
     stored = _stored(key)
     if stored is None:
         return default
@@ -72,7 +68,6 @@ def _write_count(key: str, value: int) -> None:
 
 
 def _read_capability(name: str, url: str, model: str | None, dialect: str | None) -> bool | None:
-    """What was detected about an endpoint and model: None until a request found out."""
     stored = _stored(f"{name}/{_capability_settings_key(url, model, dialect)}")
     return None if stored is None else str(stored).strip().lower() not in FALSE_WORDS
 
@@ -83,9 +78,6 @@ def _write_capability(name: str, value: bool, url: str, model: str | None, diale
 
 def _endpoint(url: str | None) -> str:
     return (url if url is not None else get_api_url()) or ""
-
-
-# Connection
 
 
 def get_api_url() -> str:
@@ -120,7 +112,6 @@ def set_auth_type(value: str | None) -> None:
     _write("auth_type", value or AUTH_TYPE_BEARER)
 
 
-# Days a conversation is kept after its last change; 0 keeps it until deleted.
 HISTORY_DAYS = (7, 30, 0)
 
 
@@ -134,7 +125,6 @@ def set_history_days(days: int) -> None:
 
 
 def get_disabled_skills() -> list[str]:
-    """Built-in skills switched off in Settings → Skills: the agent neither sees nor loads them."""
     raw = _read("disabled_skills", "")
     return sorted({name.strip() for name in raw.split(",") if name.strip()})
 
@@ -143,8 +133,7 @@ def set_disabled_skills(names: list[str]) -> None:
     _write("disabled_skills", ",".join(sorted({name.strip() for name in names if name.strip()})))
 
 
-# What "Reset agent settings" returns to its default. The connection and its headers, keys, consents,
-# the user's own words (name, work, about, instructions, notes) and their own skills all stay.
+# Reset never touches the connection, headers, keys, consents, the user's own words or skills.
 RESET_KEYS = (
     "auto_apply",
     "connectors/disabled",
@@ -165,7 +154,6 @@ PERSONAL_WORDS = ("name", "role", "about")
 
 
 def reset_preferences() -> None:
-    """Forget the preferences in `RESET_KEYS` and the personal choices; the next read gives the defaults."""
     settings = QgsSettings()
     for key in RESET_KEYS:
         settings.remove(f"{SETTINGS_PREFIX}/{key}")
@@ -176,7 +164,6 @@ def reset_preferences() -> None:
 
 
 def get_extra_headers() -> str:
-    """The user's own request headers, one "Name: value" per line; see `llm/extra_headers.py`."""
     return _read("extra_headers", "")
 
 
@@ -200,9 +187,6 @@ def set_data_sharing_consent(value: bool, url: str | None = None) -> None:
     _write_flag(f"data_sharing_consent/{_url_settings_key(_endpoint(url))}", value)
 
 
-# Geocoding lives in config/, shared with the tools.
-
-
 def get_geocoder_provider() -> str:
     return geocoder.get_provider()
 
@@ -219,14 +203,7 @@ def set_custom_nominatim_url(value: str | None) -> None:
     geocoder.set_custom_url(value)
 
 
-def get_geocoder_url() -> str:
-    return geocoder.get_url()
-
-
-# How the agent works
-
 DEFAULT_TOKEN_BUDGET = 300000
-# Personalisation text rides in the system prompt of every request; long enough for a style guide, no essay.
 MAX_CUSTOM_INSTRUCTIONS = 2000
 WORK_MODE_ASK = "ask"
 WORK_MODE_AUTO = "auto"
@@ -267,14 +244,12 @@ def set_thinking_budget(value: int) -> None:
 
 
 def get_reasoning_enabled() -> bool:
-    """Whether OpenAI-compatible endpoints are asked to reason; Anthropic uses the thinking budget."""
     return _read_flag("reasoning_enabled", False, opt_in=True)
 
 
 def set_reasoning_enabled(
     value: bool, url: str | None = None, model: str | None = None, dialect: str | None = None
 ) -> None:
-    """Store the switch; turning it on forgets a remembered refusal so the endpoint is asked again."""
     if value and not get_reasoning_enabled():
         QgsSettings().remove(
             f"{SETTINGS_PREFIX}/supports_thinking/{_capability_settings_key(_endpoint(url), model, dialect)}"
@@ -283,7 +258,6 @@ def set_reasoning_enabled(
 
 
 def get_custom_instructions() -> str:
-    """The user's standing instructions for the agent, from Settings → Personalisation."""
     stored = _stored("custom_instructions")
     return stored.strip()[:MAX_CUSTOM_INSTRUCTIONS] if isinstance(stored, str) else ""
 
@@ -293,7 +267,6 @@ def set_custom_instructions(text: str) -> None:
 
 
 def get_work_mode() -> str:
-    """How prepared changes are applied: `ask` waits for the button, `auto` applies them itself."""
     stored = _stored("work_mode")
     return stored if isinstance(stored, str) and stored in WORK_MODES else WORK_MODE_ASK
 
@@ -303,25 +276,20 @@ def set_work_mode(mode: str) -> None:
 
 
 def get_planning() -> bool:
-    """Plan mode: the agent only reads and proposes a plan; nothing is queued."""
     return get_work_mode() == WORK_MODE_PLAN
 
 
 def get_auto_apply() -> bool:
-    """Auto mode: prepared batches apply without the button, destructive ones excepted."""
     return get_work_mode() == WORK_MODE_AUTO
 
 
 def get_context_window() -> int:
-    """The model's context window set by hand, in tokens; 0 lets the plugin find it."""
     return _read_count("context_window")
 
 
 def set_context_window(tokens: int) -> None:
     _write_count("context_window", tokens)
 
-
-# What was detected about an endpoint and model; a connection test forgets it all.
 
 CAPABILITIES = ("supports_images", "supports_thinking", "supports_streaming", "supports_tools", "context_detected")
 
@@ -367,11 +335,6 @@ def set_detected_context_window(tokens: int, url: str, model: str | None = None,
 
 
 def reset_capabilities(url: str, model: str | None = None, dialect: str | None = None) -> None:
-    """Forget what was detected about an endpoint, so the next run detects it afresh.
-
-    Detection remembers refusals for good; a successful connection test is the
-    user's way to say "try everything again".
-    """
     settings = QgsSettings()
     key = _capability_settings_key(url, model, dialect)
     for capability in CAPABILITIES:
@@ -380,8 +343,6 @@ def reset_capabilities(url: str, model: str | None = None, dialect: str | None =
 
 
 # Keys live in the QGIS authentication database, never here.
-
-
 def get_api_key(url: str | None = None, dialect: str | None = None) -> str:
     endpoint = (url if url is not None else get_api_url()) or ""
     return credentials.read(_credential_account(endpoint, dialect))

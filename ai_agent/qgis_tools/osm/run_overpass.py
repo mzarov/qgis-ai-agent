@@ -100,7 +100,6 @@ class RunOverpassTool(BaseTool):
         return tr_n("%n feature(s)", int(payload.get("total_features") or 0))
 
     def start(self, params: dict[str, Any]) -> Background:
-        """The query off the main thread; the layers are made on it once the answer is in."""
         query = _checked_query(params.get("query"))
         wanted, name, url = geometry(params), wanted_name(params), endpoint()
         return InTask(

@@ -8,7 +8,6 @@ from ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call
 EFFECT_EXTERNAL = tr("writes outside the project; Undo does not restore it")
 EFFECT_NETWORK = tr("contacts an external service after confirmation")
 EFFECT_IRREVERSIBLE = tr("may be irreversible; extra confirmation required")
-# The argument that names a project layer; a `layer` argument is a service's layer key.
 LAYER_ARGUMENT = "layer_name"
 
 
@@ -25,13 +24,11 @@ def plan_line(call: Any) -> str:
     elif risk == SAFETY_DESTRUCTIVE:
         effect = EFFECT_IRREVERSIBLE
     else:
-        # The card says once that applied changes can be undone; a step notes only an exception to that.
         return summary
     return f"{summary} · {effect}"
 
 
 def plan_layer(calls: list[Any]) -> str:
-    """The layer a plan's steps name, for its card's header; "" when they name none or several."""
     names = set()
     for call in calls:
         name = call.arguments.get(LAYER_ARGUMENT) if isinstance(call.arguments, dict) else None
@@ -41,11 +38,10 @@ def plan_layer(calls: list[Any]) -> str:
 
 
 class CodeDetails(str):
-    """Confirmation details that are code to run; the dialog shows them in a fixed-font editor."""
+    pass
 
 
 def destructive_lines(calls: list[Any]) -> tuple[list[str], str]:
-    """The destructive steps' lines and their details, as CodeDetails when any of them is code."""
     lines = []
     details = []
     code = False

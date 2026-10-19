@@ -36,7 +36,6 @@ SUB_SETTINGS = (
 
 
 def build_settings(properties: dict[str, Any], base: Any = None) -> QgsPalLayerSettings:
-    """Fresh label settings, or `base` (the layer's current ones) changed only where given."""
     if base is None:
         settings = QgsPalLayerSettings()
         settings.isExpression = False
@@ -46,8 +45,7 @@ def build_settings(properties: dict[str, Any], base: Any = None) -> QgsPalLayerS
         settings = base
         if "field" in properties:
             settings.isExpression = False
-        # Catalogue offsets and distances are millimetres; untouched ones keep
-        # whatever unit the user chose.
+        # Catalogue offsets and distances are millimetres; untouched ones keep the user's unit.
         if OFFSET_KEYS & properties.keys():
             settings.offsetUnits = MILLIMETRES
         if DISTANCE_KEYS & properties.keys():
@@ -63,7 +61,7 @@ def build_format(properties: dict[str, Any], base: Any = None) -> QgsTextFormat:
     _apply_group(font, properties, TARGET_FONT)
     text_format.setFont(font)
     _apply_group(text_format, properties, TARGET_FORMAT)
-    # Catalogue sizes are points and millimetres; an untouched size keeps whatever unit the user chose.
+    # Catalogue sizes are points; an untouched size keeps the user's unit.
     if "size" in properties:
         text_format.setSizeUnit(POINTS)
     for target, getter, setter_name in SUB_SETTINGS:
@@ -83,7 +81,6 @@ def _fresh_sub(target: str) -> Any:
 
 
 def current_simple_settings(layer: Any) -> Any:
-    """The layer's live simple label settings (a copy), or None when labels are off or rule-based."""
     try:
         if not layer.labelsEnabled():
             return None

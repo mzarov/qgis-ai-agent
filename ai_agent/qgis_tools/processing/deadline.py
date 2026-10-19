@@ -1,11 +1,4 @@
-"""A Processing feedback that cancels its algorithm once it has run past the tool timeout.
-
-Algorithms run on the main thread, so no timer can fire while one works. They do
-report as they go — progress, info lines — and check for cancellation between
-chunks of work, so every report is a moment to look at the clock and cancel.
-An algorithm that never reports cannot be stopped this way; the limit still
-names itself in the error once it returns.
-"""
+# No timer fires while an algorithm runs on the main thread: each feedback report checks the clock.
 
 import time
 from collections.abc import Callable

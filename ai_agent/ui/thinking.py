@@ -1,11 +1,3 @@
-"""A reasoning step on the work trace: "Thinking" while it streams, "Thought" with its time after.
-
-The line opens a sunken box with the text, the chevron after the title turning
-as the box grows or shrinks; it is open while the reasoning streams and folds
-when it ends, so the trace stays a list of steps. A reopened conversation
-restores the text and the time folded, without animation.
-"""
-
 import time
 from typing import Any
 
@@ -29,12 +21,10 @@ THOUGHT_TITLE = tr("Thought")
 
 
 class ClickLine(QWidget):
-    """A line that is clicked as a whole."""
-
     clicked = pyqtSignal()
 
-    def __init__(self, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self):
+        super().__init__()
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
     def mouseReleaseEvent(self, event: Any) -> None:
@@ -43,11 +33,9 @@ class ClickLine(QWidget):
 
 
 class ThinkingBlock(QFrame):
-    """The reasoning row's content: a clickable line with the time on the right, and the text box."""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        palette = self._palette = self.palette()
+    def __init__(self):
+        super().__init__()
+        palette = self.palette()
         self.setStyleSheet("QFrame { background: transparent; border: none; }")
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 1, 0, 0)
@@ -70,7 +58,6 @@ class ThinkingBlock(QFrame):
         column.addWidget(self._line)
         self._clip = folding.ClipBox(self._build_body(palette))
         column.addWidget(self._clip)
-        # Room the row gives beyond the line and the box goes below them: the title never moves.
         column.addStretch(1)
         self._recorded: float | None = None
         self._text = ""
@@ -86,7 +73,6 @@ class ThinkingBlock(QFrame):
         self._refresh()
 
     def _build_body(self, palette: Any) -> QWidget:
-        """The sunken box, in a holder whose top margin is the gap: it opens with the box, no jump."""
         holder = QWidget()
         box = QVBoxLayout(holder)
         box.setContentsMargins(0, BOX_GAP, 0, 0)
@@ -113,12 +99,10 @@ class ThinkingBlock(QFrame):
         self._clip.set_open(expanded, animate)
 
     def finish_folding(self) -> None:
-        """End a fold or a turn at once, as a screenshot wants it."""
         self._clip.finish()
         self._chevron.finish()
 
     def restore(self, text: str, seconds: Any = None) -> None:
-        """A saved reasoning step: its text and time, folded at once."""
         self._text = text
         self._render_text()
         self._finished = True
@@ -157,6 +141,5 @@ class ThinkingBlock(QFrame):
             self.time.setText(format_seconds(self._recorded) if self._recorded >= SHORTEST_SHOWN else "")
             return
         took = time.monotonic() - self._started
-        # "0.0 s" claims a measurement that did not happen: reasoning that arrived in one burst.
         shown = self._finished and self._watched_live and took >= SHORTEST_SHOWN
         self.time.setText(format_seconds(took) if shown else "")

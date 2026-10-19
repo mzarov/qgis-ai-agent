@@ -44,7 +44,6 @@ def render_journal(
 
 
 def _request_lines(requests: Sequence[tuple[int, int, float]]) -> list[str]:
-    """Each model request's tokens and seconds, then the run's totals: where a slow or costly run went."""
     if not requests:
         return []
     lines = ["", "## Model requests", "", "| # | input tokens | output tokens | seconds |", "| --- | --- | --- | --- |"]
@@ -89,9 +88,8 @@ def write_journal(markdown: str, folder: str | None = None) -> str:
     return path
 
 
-def usage(folder: str | None = None) -> tuple[int, int]:
-    """How many run journals there are, and their size in bytes."""
-    paths = _journals(folder)
+def usage() -> tuple[int, int]:
+    paths = _journals()
     size = 0
     for path in paths:
         try:
@@ -101,17 +99,16 @@ def usage(folder: str | None = None) -> tuple[int, int]:
     return len(paths), size
 
 
-def erase(folder: str | None = None) -> None:
-    """Delete every run journal; the folder itself stays."""
-    for path in _journals(folder):
+def erase() -> None:
+    for path in _journals():
         try:
             os.remove(path)
         except OSError:
             continue
 
 
-def _journals(folder: str | None) -> list[str]:
-    target = os.path.abspath(os.path.expanduser(folder or default_root()))
+def _journals() -> list[str]:
+    target = os.path.abspath(os.path.expanduser(default_root()))
     try:
         names = os.listdir(target)
     except OSError:

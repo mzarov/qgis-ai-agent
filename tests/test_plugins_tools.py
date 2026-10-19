@@ -15,7 +15,6 @@ META = {
 class Action:
     def __init__(self, text, menu=None, separator=False):
         self._text, self._menu, self._separator = text, menu, separator
-        self.triggered = 0
 
     def text(self):
         return self._text
@@ -27,7 +26,7 @@ class Action:
         return self._separator
 
     def trigger(self):
-        self.triggered += 1
+        pass
 
 
 class Menu:
@@ -142,8 +141,6 @@ ORS = {
     "downloads": 415495,
     "experimental": False,
     "deprecated": False,
-    "trusted": True,
-    "homepage": "",
     "download_url": "https://plugins.qgis.org/plugins/ORStools/version/2.2.0/download/",
 }
 QNEAT = {

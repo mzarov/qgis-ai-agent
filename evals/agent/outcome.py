@@ -1,23 +1,3 @@
-"""The agent bench's assertion: did the task leave the project the way the request asked?
-
-The server answers with what the run did and a snapshot of the project (state.py).
-A task's `expect` names the outcome, never the route:
-
-    answer: "re:\\b5\\b"                       # the final answer
-    layers: {districts: {renderer: graduatedSymbol, class_attribute: pop2020, classes: 5}}
-    new_layers: [{geometry: polygon, feature_count: 9}]   # each matches some layer the run added
-    files: [roads.gpkg]                         # files the run wrote into the task folder
-    project: {crs: EPSG:32637}
-    calls: [chart_layer]                        # tools that ran and succeeded; `not_calls` for tools that must not run
-    asked: true                                 # the agent was right to stop and ask
-    any_of: [{...}, {...}]                      # any one of these outcomes
-
-Values match like the skill bench's (evals/checks.py): case-insensitive strings,
-numbers as numbers, dicts by their keys, `re:` patterns, `*` for presence. A run
-that stopped to ask, left a batch unapplied or timed out fails unless the task
-expects it.
-"""
-
 import json
 import sys
 from pathlib import Path
@@ -56,7 +36,6 @@ def problems_in(result: dict[str, Any], expect: dict[str, Any]) -> list[str]:
         return ["the server failed: " + " | ".join(lines[-FIRST_LINES:])]
     problems = []
     if not (result.get("usage") or {}).get("requests"):
-        # Nothing reached the model: the server's address, model or key is wrong, not the agent.
         failures = "; ".join(result.get("failures") or []) or "no failure was reported"
         return [f"no model request succeeded ({_short(failures)}); check EVAL_API_URL, EVAL_MODEL and EVAL_API_KEY"]
     if result.get("timed_out"):
@@ -88,7 +67,6 @@ def problems_in(result: dict[str, Any], expect: dict[str, Any]) -> list[str]:
         problems.append(f"the project is {_relevant(state.get('project') or {}, expect['project'])}")
     calls = result.get("calls") or []
     names = [call.get("name") for call in calls]
-    # A tool that ran and failed did not do the task: a chart that never drew is no chart.
     succeeded = [call.get("name") for call in calls if call.get("ok")]
     for name in expect.get("calls") or []:
         if name not in succeeded:
@@ -108,7 +86,6 @@ def _parsed(output: Any) -> dict[str, Any]:
 
 
 def _relevant(actual: dict[str, Any], wanted: dict[str, Any]) -> str:
-    """The actual values of the keys a check asked about, so a failure reads as a comparison."""
     shown = {key: actual.get(key) for key in wanted} if isinstance(wanted, dict) else actual
     if isinstance(actual, dict) and "name" in actual:
         shown = {"name": actual["name"], **shown}

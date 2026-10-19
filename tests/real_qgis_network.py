@@ -112,7 +112,6 @@ class _Observer(QObject):
         self._record_thread()
         self.turns.append(turn)
 
-    # A TurnFailure: the message as a str, with its kind.
     @pyqtSlot(object)
     def on_error(self, message):
         self._record_thread()
@@ -283,8 +282,6 @@ class _SlowOverpass(BaseHTTPRequestHandler):
 
 
 class DownloadInBackgroundTest(unittest.TestCase):
-    """An Overpass download waits off the main thread; the layers are made on it once the answer is in."""
-
     def setUp(self):
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), _SlowOverpass)
         self.server.daemon_threads = True
@@ -323,8 +320,6 @@ class DownloadInBackgroundTest(unittest.TestCase):
 
 
 class _RecordingOverpass(BaseHTTPRequestHandler):
-    """Keeps every posted form and answers it with the server's `answer`."""
-
     def do_POST(self):
         body = self.rfile.read(int(self.headers.get("Content-Length", "0")))
         self.server.forms.append(parse_qs(body.decode("utf-8")))
@@ -339,8 +334,6 @@ class _RecordingOverpass(BaseHTTPRequestHandler):
 
 
 class OverpassExchangeTest(unittest.TestCase):
-    """What a query sends to Overpass, and what an answer Overpass broke off leaves in the project."""
-
     def setUp(self):
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), _RecordingOverpass)
         self.server.daemon_threads = True

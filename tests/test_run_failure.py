@@ -1,5 +1,3 @@
-"""A failed run in words: which sentence, which address, and whether Retry is worth offering."""
-
 import unittest
 
 from ai_agent.core.agent.run_failure import (
