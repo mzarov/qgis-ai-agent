@@ -97,6 +97,31 @@ class UsageStatsTest(unittest.TestCase):
             self.stats.note("runs")
         self.assertNotIn(usage_stats.COUNTS_KEY, MemorySettings.values)
 
+    def test_a_day_the_plugin_loaded_goes_out_without_runs(self):
+        usage_stats.mark_noticed()
+        self.stats.note(usage_stats.ACTIVE)
+        manager = mock.Mock(post=lambda request, body: Reply())
+        self.today = "2026-10-18"
+        with (
+            mock.patch.object(usage_stats.QgsNetworkAccessManager, "instance", return_value=manager),
+            mock.patch.object(usage_stats, "payload", wraps=usage_stats.payload) as built,
+        ):
+            self.stats.flush()
+        install, day, counts = built.call_args.args
+        self.assertEqual(day, "2026-10-17")
+        body = usage_stats.payload(install, day, counts)
+        self.assertEqual((body["runs"], body["applies"], body["tools"]), (0, 0, {}))
+
+    def test_a_day_waits_a_week_for_the_next_start(self):
+        usage_stats.mark_noticed()
+        self.stats.note("runs")
+        posted = []
+        manager = mock.Mock(post=lambda request, body: posted.append(body) or Reply())
+        self.today = "2026-10-24"
+        with mock.patch.object(usage_stats.QgsNetworkAccessManager, "instance", return_value=manager):
+            self.stats.flush()
+        self.assertEqual(len(posted), 1)
+
     def test_the_test_profile_never_counts(self):
         # The profile helper runs before the plugin is importable, so it spells the setting out.
         source = (pathlib.Path(__file__).parent / "real_qgis_smoke.py").read_text(encoding="utf-8")

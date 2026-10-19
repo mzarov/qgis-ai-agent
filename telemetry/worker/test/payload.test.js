@@ -78,8 +78,8 @@ describe("validatePing", () => {
     for (const dialect of ["openai", "anthropic"]) validatePing(ping({ dialect }), NOW);
   });
 
-  it("accepts days up to two days either side of the server date", () => {
-    for (const day of ["2026-10-15", "2026-10-19"]) validatePing(ping({ day }), NOW);
+  it("accepts days up to a week either side of the server date", () => {
+    for (const day of ["2026-10-10", "2026-10-24"]) validatePing(ping({ day }), NOW);
   });
 
   it("accepts the limits themselves", () => {
@@ -114,7 +114,7 @@ describe("validatePing", () => {
   it("rejects days that are malformed, unreal or too far away", () => {
     for (const day of ["2026-10-7", "17.10.2026", 20261017]) rejects(ping({ day }), "YYYY-MM-DD");
     for (const day of ["2026-02-30", "2026-13-01", "2026-10-00"]) rejects(ping({ day }), "real date");
-    for (const day of ["2026-10-14", "2026-10-20", "2025-10-17"]) rejects(ping({ day }), "too far");
+    for (const day of ["2026-10-09", "2026-10-25", "2025-10-17"]) rejects(ping({ day }), "too far");
   });
 
   it("rejects malformed version strings and locales", () => {
