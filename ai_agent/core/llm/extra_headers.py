@@ -1,11 +1,3 @@
-"""Headers the user adds to every model request, one "Name: value" per line (Settings → Advanced).
-
-Some gateways want one of their own, such as Yandex Cloud's x-folder-id. The
-text lives in QGIS settings, and keys never go to config: names that carry
-credentials, or that the transport sets itself, are refused when the settings
-are saved and skipped if a hand-edited file holds them anyway.
-"""
-
 import re
 
 from ai_agent.i18n import tr
@@ -13,7 +5,7 @@ from ai_agent.i18n import tr
 MAX_HEADERS = 20
 MAX_VALUE = 1024
 NAME_PATTERN = re.compile(r"^[A-Za-z0-9!#$%&'*+.^_`|~-]+$")
-# What the transport sets itself, and what would carry a credential into config.
+# Headers the transport sets itself, and those that would carry a credential into config.
 RESERVED = frozenset(
     {
         "anthropic-version",
@@ -39,7 +31,6 @@ BAD_VALUE = tr("Line {0}: the value must be plain text of at most {1} characters
 
 
 def parse(text: str) -> dict[str, str]:
-    """The headers in `text`; ValueError, naming the line, at the first one that cannot be sent."""
     headers: dict[str, str] = {}
     for number, raw in enumerate((text or "").splitlines(), 1):
         line = raw.strip()
@@ -65,7 +56,6 @@ def parse(text: str) -> dict[str, str]:
 
 
 def lenient(text: str) -> dict[str, str]:
-    """The headers that can be sent, one bad line skipped rather than failing the request."""
     headers: dict[str, str] = {}
     for line in (text or "").splitlines():
         try:

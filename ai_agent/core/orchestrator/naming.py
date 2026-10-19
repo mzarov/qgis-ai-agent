@@ -1,9 +1,3 @@
-"""Conversations by name: the model names a new one after its first answer; the user renames and deletes.
-
-The model is asked once per conversation, and only while the title is still the start
-of the first message: a title the user chose is never overwritten.
-"""
-
 from collections.abc import Callable
 
 from ai_agent.core.agent.titling import Titler
@@ -20,7 +14,6 @@ class SessionNaming:
         self._scope = ""
 
     def after_answer(self) -> None:
-        """Ask for a name once the conversation has its first exchange."""
         conversation = self._conversation()
         identifier = conversation.session_identifier
         if conversation.named or identifier in self._asked or self._titler.is_running:

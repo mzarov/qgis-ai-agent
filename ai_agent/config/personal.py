@@ -1,11 +1,3 @@
-"""The user's profile and preferences from Settings → Personalisation, read by the prompt, the feed and tools.
-
-A leaf module: the system prompt renders the profile, the feed reads how to
-show steps and answer questions, and tools ask whether they may move the map.
-Every value is validated on read, so a hand-edited settings file can only fall
-back to a default, never break a run.
-"""
-
 from dataclasses import dataclass, fields
 from typing import Any
 
@@ -20,11 +12,8 @@ UNITS = ("metric", "imperial")
 LAYER_NAMES = ("plain", "technical")
 STYLES = ("concise", "balanced", "detailed")
 QUESTIONS = ("rarely", "when_needed", "often")
-# Seconds before an unanswered question takes the recommended answer; 0 waits for the user.
 AUTO_ANSWER = (0, 60, 180, 300)
-# The panel's colours: as QGIS (its palette decides), or always light, or always dark.
 PANEL_THEMES = ("auto", "light", "dark")
-# Answer languages beyond "the QGIS language"; names are English because the model reads them.
 LANGUAGES = {
     "en": "English",
     "ru": "Russian",
@@ -93,7 +82,6 @@ def save(profile: Profile) -> None:
 
 
 def follows_changes() -> bool:
-    """Whether a tool may move the map to what it just changed or added."""
     return load().follow_changes
 
 

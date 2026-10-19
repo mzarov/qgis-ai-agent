@@ -1,5 +1,3 @@
-"""Conversations: start a new one, pick a past one, and what a switch does to running work."""
-
 from ai_agent.core.orchestrator.notices import SESSION_MISSING, SWITCH_WHILE_APPLYING
 from ai_agent.core.orchestrator.presentation import project_line
 
@@ -34,7 +32,6 @@ class SessionsMixin:
             self._replay()
 
     def on_history_erased(self) -> None:
-        """Settings erased every kept conversation: the open one goes too, a fresh one takes its place."""
         self.on_session_deleted(self.conversation.session_identifier)
 
     def _busy_with_current(self) -> bool:
@@ -52,7 +49,7 @@ class SessionsMixin:
         self._restorable_plan_id = None
         self.agent.forget_declined()
         self._active_tool_message_id = None
-        # The replay draws no plan cards, and their ids are the view's: nothing is left to undo from a card.
+        # Plan card ids belong to the view: after a replay none may undo a snapshot.
         self._plan_snapshots.clear()
         self._plan_keys.clear()
         self.dock_widget.set_project_line(project_line())

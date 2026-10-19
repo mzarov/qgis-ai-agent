@@ -31,8 +31,7 @@ class ProbeThread(QThread):
         self.completed.emit(ok, message)
         if not ok:
             return
-        # A model that answers is worth asking how much it can read and whether it sees a picture. Both
-        # are stored on the main thread, after `completed` has reset what was known about the model.
+        # Emitted after `completed`: the main thread resets what it knew there before storing these.
         window = detect(overrides)
         if window and not self._cancelled:
             self.window_found.emit(window)

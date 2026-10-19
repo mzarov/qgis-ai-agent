@@ -1,12 +1,3 @@
-"""The orchestrator's half of the context window: the meter, and compacting by hand or on the way in.
-
-Before a request the conversation is compacted when the conversation's request
-size reached AUTO_COMPACT_SHARE of the model's window; the request then starts
-from the summary. The chat keeps every message and gains one line saying what
-was saved. A compaction belongs to the conversation it started in: switched,
-stopped or unloaded midway, its answer is dropped.
-"""
-
 from collections.abc import Callable
 
 from ai_agent.core.agent.compaction import Compactor, estimated_tokens
@@ -26,7 +17,6 @@ NOTHING_TO_COMPACT = tr("There is nothing to compact yet.")
 class SessionCompaction:
     def __init__(self, dock: DockWidgetContract, conversation: Callable[[], ConversationState]):
         self._dock = dock
-        # The orchestrator may swap its ConversationState (tests do): always ask for the current one.
         self._conversation = conversation
         self._compactor = Compactor()
         self._compactor.finished.connect(self._on_finished)
@@ -63,7 +53,6 @@ class SessionCompaction:
         after: Callable[[], None] | None = None,
         cancelled: Callable[[], None] | None = None,
     ) -> bool:
-        """Compact now. `after` runs once it is done, worked or not; `cancelled` if it is stopped."""
         conversation = self._conversation()
         history = conversation.window()
         if self._running or not history:
@@ -82,7 +71,6 @@ class SessionCompaction:
         return True
 
     def cancel(self) -> None:
-        """Stop a running compaction without waiting; the request that waited for it does not run."""
         if not self._running:
             return
         self._compactor.abort()
@@ -100,12 +88,10 @@ class SessionCompaction:
     def _on_finished(self, summary: str, read: int, written: int) -> None:
         conversation = self._conversation()
         if conversation.session_identifier != self._scope:
-            # The user moved to another conversation meanwhile: this summary is not theirs.
             self._abandon()
             return
         used_before, history_before = self._before
         conversation.compact(summary, self._upto)
-        # Only the history part of the request shrank; the system prompt and tools stay as measured.
         saved = max(0, history_before - estimated_tokens(conversation.window()))
         conversation.set_context(used_before - saved)
         conversation.count_turn(0, read + written)

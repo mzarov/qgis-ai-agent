@@ -1,21 +1,3 @@
-"""Anonymous daily usage counts: how much the agent was used — never what for.
-
-On by default, and the user is told so once: the first time the plugin loads, a
-notice in the QGIS message bar says what is counted and offers to turn it off.
-Nothing is counted before that notice was shown, and a no — there or in
-Settings → Privacy — deletes what waits to be sent. What is counted: runs,
-applied batches, the names of the tools and skills used, the kinds of failures,
-and the versions around them (plugin, QGIS, the OS family, the interface
-language, a local or remote model and its API format). Never a request, an
-answer, a layer, a value or a place. A random id, kept in the QGIS settings,
-tells one install from another; the collector stores only its hash.
-
-The counts of a day go out once that day is over, in one small request on the
-QGIS network stack, to the collector in `telemetry/worker`. A failed send keeps
-them for the next try. The collector's aggregates are public: see the usage
-statistics page of the documentation.
-"""
-
 import datetime
 import json
 import re
@@ -32,7 +14,6 @@ from ai_agent.core.llm.client import is_local
 from ai_agent.core.settings import get_api_url, get_dialect
 from ai_agent.i18n import locale_code
 
-# The deployed collector (telemetry/worker); empty keeps the whole feature off, the notice included.
 COLLECTOR_URL = "https://ai-agent-usage.mzarov.workers.dev"
 PING_PATH = "/v1/ping"
 PAYLOAD_VERSION = 1
@@ -53,7 +34,6 @@ LOG_TAG = "AI Agent"
 OS_FAMILIES = (("darwin", "macos"), ("win", "windows"), ("linux", "linux"))
 DIALECTS = ("openai", "anthropic")
 OK_STATUSES = (200, 204)
-# The collector takes a day at most this far from its own date; an older pending day is dropped, not retried.
 MAX_DAY_AGE = 2
 REFUSED = 400
 
@@ -63,7 +43,6 @@ def collector_url() -> str:
 
 
 def consent() -> str:
-    """'yes' or 'no' once the user chose in the notice or in Settings; '' while they never did."""
     value = QgsSettings().value(CONSENT_KEY, "", type=str)
     return value if value in (CONSENT_YES, CONSENT_NO) else ""
 
@@ -72,7 +51,6 @@ def set_consent(agreed: bool) -> None:
     settings = QgsSettings()
     settings.setValue(CONSENT_KEY, CONSENT_YES if agreed else CONSENT_NO)
     if not agreed:
-        # A no takes back what was counted before it.
         for key in (COUNTS_KEY, DAY_KEY, PENDING_KEY):
             settings.remove(key)
 
@@ -86,18 +64,15 @@ def mark_noticed() -> None:
 
 
 def should_notify() -> bool:
-    """The notice is due: a collector exists, the user never chose, and the notice was never shown."""
     return bool(collector_url()) and consent() == "" and not noticed()
 
 
 def enabled() -> bool:
-    """On by default, but only once the user was told; a no turns it off."""
     choice = consent()
     return bool(collector_url()) and choice != CONSENT_NO and (choice == CONSENT_YES or noticed())
 
 
 def add(counts: dict[str, Any], kind: str, name: str = "") -> dict[str, Any]:
-    """`counts` with one more `kind` (runs, applies) or one more `name` under failures, tools or skills."""
     if kind in ("runs", "applies"):
         counts[kind] = min(MAX_COUNT, int(counts.get(kind, 0)) + 1)
         return counts
@@ -110,7 +85,6 @@ def add(counts: dict[str, Any], kind: str, name: str = "") -> dict[str, Any]:
 
 
 def payload(install: str, day: str, counts: dict[str, Any]) -> dict[str, Any]:
-    """The day's ping, exactly the fields the collector accepts."""
     url = get_api_url()
     dialect = get_dialect()
     return {
@@ -144,8 +118,6 @@ def _version(text: str) -> str:
 
 
 class UsageStats:
-    """The day's counts in the QGIS settings; a day that is over waits as pending until it is sent."""
-
     def __init__(self, today: Any = None) -> None:
         self._today = today or (lambda: datetime.date.today().isoformat())
         self._reply: Any = None
@@ -160,7 +132,6 @@ class UsageStats:
         settings.setValue(DAY_KEY, self._today())
 
     def flush(self) -> None:
-        """Send a day that is over; nothing while one send is still on its way."""
         if not enabled() or self._reply is not None:
             return
         self._roll_over()
@@ -176,7 +147,6 @@ class UsageStats:
         self._reply.finished.connect(self._sent)
 
     def _roll_over(self) -> None:
-        """Counts of an earlier day become the pending ping; a newer pending day replaces an older one."""
         settings = QgsSettings()
         day = settings.value(DAY_KEY, "", type=str) or ""
         if not day or day >= self._today():

@@ -1,12 +1,3 @@
-"""Telling "this endpoint does not support feature X" apart from any other 4xx.
-
-A refusal is remembered per endpoint and model and switches the feature off for
-good, so a false positive is expensive: a context-length overflow or a bad tool
-schema must not disable anything. A body counts as a refusal only when it names
-the feature next to a refusal phrase, or when a structured error points at the
-feature's parameter.
-"""
-
 import json
 import re
 from typing import Any
@@ -35,9 +26,6 @@ FEATURE_PARAMETERS = {
     "streaming": ("stream", "stream_options"),
     "thinking": ("thinking", "reasoning", "reasoning_effort", "reasoningeffort"),
 }
-# Rejecting a value counts only for thinking: the plugin sends one fixed reasoning
-# value, so a server that accepts others ("must be one of none, default") is best
-# served by leaving the parameter out. For tools the same words mean a bad schema.
 VALUE_REFUSALS = {"thinking": r"must be one of|invalid value|not a valid"}
 NEARBY = 60
 
@@ -78,10 +66,6 @@ def streaming_unsupported(err: ApiResponseError) -> bool:
 
 
 def may_reject_images(err: ApiResponseError, statuses: tuple[int, ...]) -> bool:
-    """Worth one retry without images: an image-shaped status that is not a size or quota error.
-
-    The capability is remembered only when that retry succeeds.
-    """
     return err.status_code in statuses and not NEVER_A_REFUSAL.search(err.body or "")
 
 

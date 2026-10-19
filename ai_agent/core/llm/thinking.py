@@ -33,12 +33,6 @@ class ThinkSplitter:
 
 
 def split_thinking(text: str) -> tuple[str, str]:
-    """Separate reasoning from the answer in a whole reply.
-
-    Local servers whose chat template opens `<think>` inside the prompt send
-    the reasoning with only a closing tag; everything before an unopened
-    closing tag is reasoning too.
-    """
     text = text or ""
     close_index, close_tag = _earliest(text, CLOSE_TAGS)
     open_index, _ = _earliest(text, OPEN_TAGS)

@@ -1,13 +1,3 @@
-"""A place picked on the map for the request: a point clicked or an area dragged.
-
-The composer's + menu asks for one; the canvas gets a map tool for that single
-pick and has its previous tool back afterwards. The place goes into the request
-as text the model reads, in EPSG:4326 degrees and in the order the prompt
-explains: `@point(lon, lat)` or `@area(west, south, east, north)`. Typing
-coordinates by hand was the alternative, and the model guessing which number is
-the latitude.
-"""
-
 from contextlib import suppress
 from typing import Any
 
@@ -37,8 +27,6 @@ def area_text(west: float, south: float, east: float, north: float) -> str:
 
 
 class MapPicker(QObject):
-    """One pick at a time; `picked` carries the request text, `ended` follows every pick and every cancel."""
-
     picked = pyqtSignal(str)
     ended = pyqtSignal()
 
@@ -61,7 +49,6 @@ class MapPicker(QObject):
         else:
             tool = QgsMapToolEmitPoint(canvas)
             tool.canvasClicked.connect(self._point)
-        # Another tool chosen in QGIS ends the pick: the user moved on.
         tool.deactivated.connect(self._deactivated)
         self._tool = tool
         canvas.setMapTool(tool)
@@ -101,7 +88,7 @@ class MapPicker(QObject):
 
     def _deactivated(self) -> None:
         if self._tool is not None:
-            # Deactivated by QGIS itself: do not hand back a tool over the one the user chose.
+            # QGIS deactivated it for the user's own tool: do not hand back the previous one over it.
             self._previous = None
             self.cancel()
 

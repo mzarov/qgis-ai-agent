@@ -1,10 +1,3 @@
-"""Naming a conversation: one small request, no tools, a few words back, as Claude names its chats.
-
-The first message makes a poor title — "What layers do I have?" five times over in the
-menu tells the conversations apart by nothing. After the first answer the model
-reads that exchange and names it in a few words of the user's language.
-"""
-
 from typing import Any
 
 from qgis.PyQt.QtCore import QObject, pyqtSignal
@@ -23,13 +16,11 @@ TRIMMED = " \"'«»“”„.:;!"
 
 
 def clean_title(text: str) -> str:
-    """The first line of the model's reply, without quotes or a closing full stop; empty if nothing is left."""
     line = next((part for part in str(text or "").splitlines() if part.strip()), "")
     return line.strip().strip(TRIMMED).strip()[:TITLE_CHARS].strip()
 
 
 class Titler(QObject):
-    # The title, then the request's prompt and completion tokens.
     finished = pyqtSignal(str, int, int)
 
     def __init__(self) -> None:
@@ -59,5 +50,4 @@ class Titler(QObject):
             self.finished.emit(title, int(turn.input_tokens or 0), int(turn.output_tokens or 0))
 
     def _on_error(self, _message: str) -> None:
-        # A name is a nicety: the first-message title stays and nobody is bothered.
         self._turn.release()

@@ -1,5 +1,3 @@
-"""The orchestrator's half of attachments: what the chat shows and what the model receives."""
-
 import os
 from dataclasses import dataclass, field
 
@@ -22,7 +20,6 @@ class Pictures:
 
 
 def files_attached(dock: DockWidgetContract, paths: list[str]) -> None:
-    """Data files become layers mentioned in the request; pictures wait in the composer."""
     outcome = attach(paths)
     if outcome.added:
         dock.mention_layers(outcome.added)
@@ -35,7 +32,6 @@ def files_attached(dock: DockWidgetContract, paths: list[str]) -> None:
 
 
 def take_pictures(dock: DockWidgetContract) -> Pictures:
-    """The composer's pictures, encoded for the request; a model known to be blind gets none."""
     pictures = Pictures()
     paths = dock.take_attachments()
     if not paths:
@@ -55,7 +51,6 @@ def take_pictures(dock: DockWidgetContract) -> Pictures:
 
 
 def with_names(text: str, pictures: Pictures) -> str:
-    """The request as the chat and the history keep it: the pictures named on a line of their own."""
     if not pictures.names:
         return text
     return f"{text}\n{ATTACHED.format(NAME_SEPARATOR.join(pictures.names))}"

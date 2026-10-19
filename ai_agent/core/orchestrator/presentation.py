@@ -29,7 +29,6 @@ def where_to_look(results: list) -> str:
 
 
 def applied_summary(results: list) -> str:
-    """The status line's few words on what an apply changed: the new layer, the layer redrawn, or how much."""
     done = [result for result in results if result.ok]
     if not done:
         return ""
@@ -49,7 +48,6 @@ def applied_summary(results: list) -> str:
 
 
 def _layer_of(result: Any) -> str:
-    # Queued calls are pinned to layer ids; the person reads the name.
     arguments = with_layer_names(getattr(result.call, "arguments", None) or {})
     name = arguments.get(LAYER_ARGUMENT) if isinstance(arguments, dict) else None
     return name.strip() if isinstance(name, str) else ""
@@ -74,14 +72,13 @@ def is_configured() -> bool:
 
 
 def active_layer_chip(iface: Any) -> tuple[str, str]:
-    """The active layer for the composer's chip: its name and what it holds; empty strings without one."""
     try:
         layer = iface.activeLayer()
         if layer is None:
             return "", ""
         name = str(layer.name())
         if isinstance(layer, QgsVectorLayer):
-            # Counting a remote layer is a server round trip on the main thread; its chip shows the name only.
+            # Counting a remote layer is a server round trip on the main thread: the chip shows the name only.
             count = feature_count_if_cheap(layer)
             return name, tr_n("%n feature(s)", count) if count is not None else ""
         if isinstance(layer, QgsRasterLayer):
@@ -92,7 +89,6 @@ def active_layer_chip(iface: Any) -> tuple[str, str]:
 
 
 def project_line() -> str:
-    """The open project for the welcome card: its file, the number of layers, the CRS; "" when unreadable."""
     try:
         project = QgsProject.instance()
         name = os.path.basename(project.fileName() or "") or tr("Unsaved project")

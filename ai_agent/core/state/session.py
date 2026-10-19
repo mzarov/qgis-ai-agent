@@ -5,7 +5,6 @@ from typing import Any
 
 from ai_agent.i18n import tr
 
-# Display entries ride along (a turn's trace, a plan card): a turn writes up to four, not two.
 MAX_MESSAGES = 400
 TITLE_LIMIT = 48
 UNTITLED = tr("Untitled")
@@ -20,17 +19,13 @@ class Session:
     created: float = 0.0
     updated: float = 0.0
     messages: list[dict[str, str]] = field(default_factory=list)
-    # Messages the cap dropped from the head. A message's place, `trimmed` plus its index, never changes:
-    # rewind points and checkpoints hold places, so trimming the head does not move them onto other messages.
+    # A message's place (trimmed + index) never changes: rewind points and checkpoints hold places.
     trimmed: int = 0
-    # Messages before `summary_index` reach the model only through `summary` (see compact()).
     summary: str = ""
     summary_index: int = 0
-    # The prompt size of the latest model request and the tokens this conversation spent.
     context_tokens: int = 0
     spent_tokens: int = 0
     requests: int = 0
-    # The title was chosen by the user or written by the model: no longer the first message's start.
     named: bool = False
 
     @classmethod
@@ -63,20 +58,13 @@ class Session:
 
     @property
     def end(self) -> int:
-        """The place the next message takes."""
         return self.trimmed + len(self.messages)
 
     def at(self, place: int) -> dict[str, str] | None:
-        """The message at `place`; None once the cap has dropped it, or past the end."""
         index = place - self.trimmed
         return self.messages[index] if 0 <= index < len(self.messages) else None
 
     def compact(self, summary: str, keep: int, upto: int | None = None) -> None:
-        """Let `summary` stand for the messages before place `upto` but their last `keep`, starting at a user message.
-
-        `upto` is where the summarised history ended: messages added while the
-        summary was being written stay in the window.
-        """
         covered = len(self.messages) if upto is None else min(max(0, upto - self.trimmed), len(self.messages))
         start = max(0, covered - max(0, keep))
         while start < len(self.messages) and self.messages[start]["role"] != "user":
@@ -86,17 +74,14 @@ class Session:
         self.updated = time.time()
 
     def truncate(self, place: int) -> None:
-        """Keep only the messages before `place`; a summary of anything later is dropped with them."""
         self.messages = self.messages[: max(0, place - self.trimmed)]
         if self.summary_index > len(self.messages):
             self.summary = ""
             self.summary_index = 0
-        # The measured request size described the longer conversation; the next request measures anew.
         self.context_tokens = 0
         self.updated = time.time()
 
     def rename(self, title: str) -> bool:
-        """Give the conversation a chosen title; an empty one changes nothing."""
         cleaned = shorten(title)
         if not cleaned:
             return False
@@ -144,7 +129,6 @@ class Session:
             created=_as_float(raw.get("created")),
             updated=_as_float(raw.get("updated")),
             messages=messages[-MAX_MESSAGES:],
-            # A file from before places were kept has no count: its messages start at place 0.
             trimmed=_as_int(raw.get("trimmed")) + max(0, len(messages) - MAX_MESSAGES),
             summary=str(raw.get("summary") or ""),
             summary_index=min(_as_int(raw.get("summary_index")), len(messages[-MAX_MESSAGES:])),

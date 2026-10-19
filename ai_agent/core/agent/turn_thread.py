@@ -75,13 +75,7 @@ class TurnThreadOwner:
             self._retire(thread)
 
     def stop(self) -> None:
-        """Stop every thread this owner started, for plugin unload.
-
-        Threads left running after abort() are retired, not forgotten: a QThread
-        destroyed while running aborts the whole QGIS process. Each one is
-        cancelled and waited for; one that still runs is kept alive at module
-        level until it finishes.
-        """
+        # A QThread destroyed while running aborts QGIS: one that outlives the wait stays referenced.
         threads = [thread for thread in (self._thread, *self._retired) if thread is not None]
         self._thread = None
         self._retired = []

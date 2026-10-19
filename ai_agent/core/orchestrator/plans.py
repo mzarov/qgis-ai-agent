@@ -1,5 +1,3 @@
-"""Plans: the card, Apply and Cancel, what an apply reports, and the check that follows it."""
-
 import time
 
 from qgis.core import Qgis
@@ -36,7 +34,6 @@ from ai_agent.core.state.trace import APPLIED, CANCELLED, FAILED, PENDING
 from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.project.snapshots import last_snapshot
 
-# The clock time a kept plan card shows, as the live card writes it.
 TIME_FORMAT = "%H:%M"
 
 
@@ -46,23 +43,15 @@ class PlanMixin:
             self._render_answer(final_text)
         lines = [self._plan_line(call) for call in calls]
         layer = plan_layer(calls)
-        # The plan card asks for the next step now; the status line has nothing to add.
         self.dock_widget.show_outcome(STATUS_HIDDEN)
         self._plan_message_id = self.dock_widget.add_plan_message(lines, applies_itself, layer)
-        # Kept for a reopened conversation; settled below as the plan is applied, cancelled or undone.
         self._plan_keys[self._plan_message_id] = self.conversation.add_plan(lines, layer)
         self._plan_marks = []
         self._plan_step = -1
         if applies_itself:
-            # Pressed for the user once the card is on screen; the same path as the button.
             QTimer.singleShot(0, self.on_confirm_plan)
 
     def on_run_plan(self, mode: str) -> None:
-        """Leave plan mode for `mode` and ask the agent to carry out the plan it just wrote.
-
-        The chat shows the user's words; the model gets them in English with the original
-        request, which the check after Apply also needs.
-        """
         busy = (
             self.agent.is_running
             or self.agent.is_awaiting_answer
@@ -109,14 +98,12 @@ class PlanMixin:
     def on_cancel_plan(self) -> None:
         self.agent.cancel_pending()
         if self._plan_message_id is not None:
-            # Until anything else happens the card offers the plan back.
             self.dock_widget.mark_plan_cancelled(self._plan_message_id, restorable=True)
             self._plan_settled(CANCELLED)
             self._restorable_plan_id = self._plan_message_id
         self._plan_message_id = None
 
     def on_restore_plan(self, message_id: int) -> None:
-        """Bring a cancelled plan back to Apply and Cancel, if nothing has happened since it was cancelled."""
         restorable = message_id == self._restorable_plan_id and self.is_idle
         if not (restorable and self.agent.restore_declined()):
             self._forget_restore()
@@ -130,14 +117,12 @@ class PlanMixin:
         self._plan_settled(PENDING, marks=[])
 
     def _forget_restore(self) -> None:
-        """Something happened after a cancel: the cancelled plan stays cancelled."""
         if self._restorable_plan_id is not None:
             self.dock_widget.forget_plan_restore(self._restorable_plan_id)
         self._restorable_plan_id = None
         self.agent.forget_declined()
 
     def _plan_settled(self, state: str, marks: list[list[str]] | None = None, plan_id: int | None = None) -> None:
-        """Keep how a plan card ended, for a reopened conversation."""
         key = self._plan_keys.get(self._plan_message_id if plan_id is None else plan_id)
         if not key:
             return
@@ -147,7 +132,6 @@ class PlanMixin:
         self.conversation.update_plan(key, **changes)
 
     def _close_plan_card(self, results: list, failed: bool) -> None:
-        """The applied card's outcome, on screen and kept for a reopened conversation."""
         self._apply_scope = None
         undoable = self._keep_plan_snapshot()
         self._settle_plan_steps(results)
@@ -170,11 +154,8 @@ class PlanMixin:
         self._done_summary = "" if failed else applied_summary(results)
         self.dock_widget.show_outcome(STATUS_FAILED if failed else STATUS_DONE, self._done_summary)
         if failed:
-            # The reasons stand under the failed steps in the card; the model reads the exact errors
-            # in the tool results and the check's prompt.
             outcome = tr_n("%n step(s) did not run — the reasons are in the plan above.", len(failed))
             self.dock_widget.add_system_message(outcome)
-            # The next request starts from the conversation: it keeps the exact errors for the model.
             details = "; ".join(_error(result) for result in failed)
             self.conversation.add("assistant", f"{outcome}\n{details}")
             self._push_message(tr("Not all changes were applied."), Qgis.MessageLevel.Warning)
@@ -187,7 +168,6 @@ class PlanMixin:
         self._maybe_verify(results)
 
     def _show_visuals(self, results: list) -> None:
-        """What applied steps drew for the person — a restyled layer's legend — under the outcome."""
         for result in results:
             spec = getattr(result, "visual", None)
             if isinstance(spec, dict):
@@ -205,7 +185,6 @@ class PlanMixin:
         if start is None:
             return
         failed = any(not result.ok for result in results)
-        # No note in the feed: the run's own trace and the status line say what it is doing.
         kind = RUN_LOOK_INTO if failed else RUN_CHECK
         self.dock_widget.set_run_kind(kind)
         self.conversation.trace.kind = kind
@@ -218,7 +197,6 @@ class PlanMixin:
         )
 
     def _keep_plan_snapshot(self) -> bool:
-        """Tag the snapshot this apply took and remember it for the card's Undo; False when none was taken."""
         before = getattr(self, "_snapshot_before_apply", "")
         self._record_checkpoint()
         taken = last_snapshot()
@@ -228,7 +206,6 @@ class PlanMixin:
         return True
 
     def _settle_plan_steps(self, results: list) -> None:
-        """Every step's final state on the card, including those that never started."""
         if self._plan_message_id is None:
             return
         self._plan_marks = []

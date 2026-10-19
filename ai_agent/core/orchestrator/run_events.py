@@ -1,5 +1,3 @@
-"""Run events drawn into the chat: tool steps, plan updates, answers, failures and stops."""
-
 from qgis.core import Qgis, QgsMessageLog
 
 from ai_agent.core.agent.run_failure import explain_run_failure
@@ -20,7 +18,6 @@ from ai_agent.core.state.trace import FAILED as PLAN_FAILED
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.call_summary import CallSummary
 
-# The feed's icon for a skill being loaded; tool calls carry their own skill.
 KNOWLEDGE = "knowledge"
 RUN_FAILED_LOG = "The model request failed: {0}"
 
@@ -42,7 +39,6 @@ class RunEventsMixin:
         self._keep_partial_answer()
         self.conversation.keep_trace()
         self.dock_widget.show_outcome(STATUS_HIDDEN)
-        # A stop is deliberate: the request stays in the chat but not back in the box (the user's call).
         self.dock_widget.add_system_message(APPLY_STOPPED if applying else RUN_STOPPED)
 
     def on_visual_ready(self, spec: dict) -> None:
@@ -57,7 +53,6 @@ class RunEventsMixin:
         options = list(getattr(self.agent, "question_options", None) or [])
         if options:
             self.dock_widget.add_question(question, options)
-            # The saved conversation keeps the choices, so a reopened chat still shows what was offered.
             self.conversation.add("assistant", question + "\n\n" + "\n".join(f"- {option}" for option in options))
             return
         self.dock_widget.add_result_message(question)
@@ -66,7 +61,6 @@ class RunEventsMixin:
 
     def on_tool_started(self, summary: str) -> None:
         if self._applying_plan():
-            # The plan card already lists this step: it shows the progress, a feed row would repeat it.
             self._plan_step += 1
             self.dock_widget.mark_plan_step(self._plan_message_id, self._plan_step, STEP_RUNNING)
             return
@@ -74,7 +68,6 @@ class RunEventsMixin:
         self.conversation.trace.call(summary)
 
     def on_tool_progressed(self, percent: float, done: int = 0) -> None:
-        """A plan step working off the main thread says how far it is; its line on the card shows it."""
         if self._applying_plan() and self._plan_step >= 0:
             self.dock_widget.mark_plan_progress(self._plan_message_id, self._plan_step, percent, done)
 
@@ -112,7 +105,6 @@ class RunEventsMixin:
         self._instant_step(summary)
 
     def _instant_step(self, summary: str) -> None:
-        """A step that is over as it is drawn: settled at once, or it would pulse as running forever."""
         entry = self.dock_widget.add_tool_message(summary)
         self.dock_widget.mark_tool_done(entry, True)
         self.conversation.trace.done(summary)
@@ -126,11 +118,9 @@ class RunEventsMixin:
             self.dock_widget.add_system_message(tr("The model returned nothing. Try rephrasing."))
             return
         self._render_answer(message)
-        # A check after an apply ends the request: the line still says what the apply changed.
         self.dock_widget.show_outcome(STATUS_DONE, self._done_summary)
         self.naming.after_answer()
         if getattr(self.agent, "is_planning", False) and not getattr(self.agent, "ended_on_limit", False):
-            # Plan mode ends on a plan: offer to run it, as Claude Code does.
             self.dock_widget.offer_plan()
 
     def _render_answer(self, message: str) -> None:
@@ -151,7 +141,6 @@ class RunEventsMixin:
             str(overrides.get("model_override") or ""),
         )
         self.usage.note("failures", failure.kind)
-        # Retry only where it can help: a wrong path or key fails the same way until the settings change.
         retryable = self._retry_args is not None and not getattr(self.agent, "is_verification", False)
         self.dock_widget.add_run_failure(
             failure.title,
@@ -164,7 +153,6 @@ class RunEventsMixin:
         self.conversation.add_failure(
             {"title": failure.title, "detail": failure.detail, "message": str(message), "kind": failure.kind}
         )
-        # The card is the run's outcome: no status line under it, no banner over the map repeating it.
         QgsMessageLog.logMessage(RUN_FAILED_LOG.format(message), LOG_TAG, Qgis.MessageLevel.Critical)
         self._offer_request_again()
 

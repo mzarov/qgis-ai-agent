@@ -1,10 +1,3 @@
-"""Noticing the same failure twice in one run, so the model changes course instead of retrying it.
-
-A prompt rule alone does not stop a model from resending a failing call. The
-second identical failure carries a note in its result, which the model reads at
-the moment it decides the next call.
-"""
-
 from collections import Counter
 
 from ai_agent.core.agent.transcript import ToolResult
@@ -19,8 +12,6 @@ REPEATED_NOTE = (
 
 
 class FailureMemory:
-    """Counts failures by tool and error within one run."""
-
     def __init__(self) -> None:
         self._seen: Counter[tuple[str, str]] = Counter()
 
@@ -28,7 +19,6 @@ class FailureMemory:
         self._seen.clear()
 
     def note(self, result: ToolResult) -> ToolResult:
-        """The result, with a note on its second and later identical failures; successes pass untouched."""
         if result.ok:
             return result
         error = str(result.payload.get("error") or "").strip()[:ERROR_KEY_CHARS]

@@ -44,7 +44,6 @@ def render_journal(
 
 
 def _request_lines(requests: Sequence[tuple[int, int, float]]) -> list[str]:
-    """Each model request's tokens and seconds, then the run's totals: where a slow or costly run went."""
     if not requests:
         return []
     lines = ["", "## Model requests", "", "| # | input tokens | output tokens | seconds |", "| --- | --- | --- | --- |"]
@@ -90,7 +89,6 @@ def write_journal(markdown: str, folder: str | None = None) -> str:
 
 
 def usage() -> tuple[int, int]:
-    """How many run journals there are, and their size in bytes."""
     paths = _journals()
     size = 0
     for path in paths:
@@ -102,7 +100,6 @@ def usage() -> tuple[int, int]:
 
 
 def erase() -> None:
-    """Delete every run journal; the folder itself stays."""
     for path in _journals():
         try:
             os.remove(path)

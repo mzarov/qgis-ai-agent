@@ -1,13 +1,3 @@
-"""Applying one batch, step by step; a step that works off the main thread is waited for, never blocked on.
-
-Before every step the run checks what would make it wrong now: an earlier step
-failed, the run was stopped, the project is another one, a pinned layer moved.
-A step whose tool works long goes to the background (`ToolExecutor.start`): the
-run returns to Qt's event loop and goes on when the step's result arrives, so
-the window, the map and Stop stay alive. With no such step the whole batch is
-applied before `WriteBatch.apply` returns.
-"""
-
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
@@ -33,8 +23,6 @@ UNKNOWN = -1.0
 
 
 class ApplyRun:
-    """One batch being applied; `done` gets every step's result once the last one has ended."""
-
     def __init__(
         self,
         batch: "WriteBatch",
@@ -55,8 +43,6 @@ class ApplyRun:
         self._names_at_start = layer_names_by_id()
         self._results: list[ToolResult] = []
         self._failed: ToolResult | None = None
-        # The step working off the main thread, while it works, and how far it is: a percent (-1 while
-        # the whole is unknown) and what is done so far, bytes of a download.
         self._work: Any = None
         self._call: ToolCall | None = None
         self._percent = UNKNOWN
@@ -64,7 +50,6 @@ class ApplyRun:
         self._detached = False
 
     def advance(self) -> None:
-        """Apply steps until one goes to the background or none is left."""
         try:
             while self._calls and not self._detached:
                 call = self._calls.pop(0)
@@ -79,7 +64,6 @@ class ApplyRun:
                         self._percent, self._done_count = UNKNOWN, 0
                         work.progressed.connect(self._progressed)
                         work.counted.connect(self._counted)
-                        # The step is under way before it says how far: its line shows it working at once.
                         self._tell_progress()
                         return
                     try:
@@ -106,12 +90,10 @@ class ApplyRun:
             self._on_progress(self._percent, self._done_count)
 
     def cancel(self) -> None:
-        """Stop the step working in the background; its result comes back as a failure, as usual."""
         if self._work is not None:
             self._work.cancel()
 
     def detach(self) -> None:
-        """Stop and forget: whatever the background step reports later reaches nobody (plugin unload)."""
         self._detached = True
         self.cancel()
 
@@ -126,14 +108,12 @@ class ApplyRun:
         try:
             self._record(call, result)
         except Exception as err:
-            # A hook failed after the step's work was done: end the run rather than leave it applying forever.
             QgsMessageLog.logMessage(f"Applying stopped ({type(err).__name__}).", LOG_TAG, Qgis.MessageLevel.Warning)
             self._finish()
             return
         self.advance()
 
     def _blocked(self, call: ToolCall) -> ToolResult | None:
-        """The result of a step that must not run now, or None when it may."""
         if self._failed is not None:
             return _skipped_result(call, self._failed.call)
         if self._batch._cancel_requested:
@@ -175,7 +155,6 @@ def _failure(call: ToolCall, message: str) -> ToolResult:
 
 
 def _follow(call: ToolCall, names_at_start: dict[str, str]) -> dict[str, Any]:
-    """The call's arguments after renames earlier in this batch, updated in place: the call is tracked by identity."""
     followed = follow_batch_renames(call.arguments, names_at_start)
     if followed is not call.arguments:
         call.arguments.clear()

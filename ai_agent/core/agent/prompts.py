@@ -193,7 +193,6 @@ OUTCOME_FAILED = "FAILED — {error}"
 
 
 def build_verification_prompt(outcomes: list[dict[str, Any]], request: str = "", images: bool = True) -> str:
-    """The check after Apply; `images=False` swaps the rendered-image check for read tools only."""
     lines = []
     for outcome in outcomes:
         status = OUTCOME_OK if outcome.get("ok") else OUTCOME_FAILED.format(error=outcome.get("error", ""))
@@ -373,7 +372,6 @@ def build_system_parts(
     if profile:
         static.append(profile)
     if custom_instructions.strip():
-        # Changes only when the user saves Settings, so the cached prefix holds from turn to turn.
         static.append(CUSTOM_INSTRUCTIONS_HEADER + "\n" + custom_instructions.strip())
     if json_protocol:
         static.append(JSON_PROTOCOL_PROMPT)
@@ -383,7 +381,6 @@ def build_system_parts(
         if invoked_skills:
             static.append(INVOKED_SKILLS_HEADER + ", ".join(invoked_skills) + ".")
         static.append(SKILL_REGISTRY.bodies_block(loaded_skills))
-    # The mode rides in the live state: the system prompt stays the cached prefix.
     live = [PLAN_MODE_NOTE if planning else "", project_notes, task_plan, queued_steps]
     if project_context:
         live.append(PROJECT_CONTEXT_HEADER + "\n" + project_context)
