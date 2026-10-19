@@ -38,6 +38,8 @@ def geometry(params: dict[str, Any]) -> str:
 def territory(params: dict[str, Any]) -> tuple[str, tuple[float, float, float, float] | None]:
     area = (params.get("area") or "").strip()
     raw_bbox = (params.get("bbox") or "").strip()
+    if area.lower() == CANVAS and not raw_bbox:
+        area, raw_bbox = "", CANVAS
     if area and raw_bbox:
         raise ValueError("Give one of the two: area or bbox — not both at once.")
     if area:
