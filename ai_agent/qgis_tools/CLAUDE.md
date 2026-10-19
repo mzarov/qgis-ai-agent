@@ -127,8 +127,7 @@ the schema by hand. Supported `type`s: `string`, `number`, `integer`, `boolean`,
 3. Processing: `QgsApplication.processingRegistry()`, the `processing` module.
 4. `try/except` around anything risky, log through
    `QgsMessageLog.logMessage(msg, "AI Agent", Qgis.MessageLevel.Info)`.
-5. Imports at the top, absolute. Concise docstrings document contracts; comments
-   explain non-obvious reasons — see the root CLAUDE.md.
+5. Imports at the top, absolute. Docstrings and comments follow the root CLAUDE.md.
 
 ## Domain boundaries
 

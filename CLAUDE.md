@@ -123,9 +123,9 @@ and never rewrite the loop as a background `while` or as `asyncio`: that crashes
 
 ## Code style
 
-- Prefer clear names and small functions. Concise docstrings describe public contracts,
-  errors and side effects. Comments explain non-obvious reasons, especially Qt lifetime,
-  threading and data-integrity constraints; they do not repeat the code.
+- Prefer clear names and small functions. No docstrings. A comment is one short line,
+  and only where code that looks right would be wrong without it: Qt lifetime, threads,
+  cancellation, Undo, data integrity, security. Long reasoning goes to `docs/`.
 - Magic values become named module constants (`SUSPICIOUS_DEGREES`, `DEFAULT_STEPS`,
   `MAX_DAY_AGE`).
 - PEP 8, type hints everywhere:

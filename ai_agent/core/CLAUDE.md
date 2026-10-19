@@ -258,8 +258,8 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     (`agent/announcements.py`: "I'll load the export tool." with no call;
     English phrasing only, as the source stays English).
     After real work a short reply is an answer or an offer, never nudged.
-23. **Imports** — all at the top, absolute. Use concise contract docstrings and
-    comments for non-obvious reasons — see the root CLAUDE.md.
+23. **Imports** — all at the top, absolute. Docstrings and comments follow the root
+    CLAUDE.md.
 
 ## What lives where
 
