@@ -194,10 +194,12 @@ class FeedEventsTest(OrchestratorCase):
 
 class PlanCardTest(OrchestratorCase):
     def test_the_last_words_come_before_the_card_and_are_saved(self):
+        shown = []
+        self.dock.add_result_message = lambda text: shown.append(("answer", text)) or 1
+        self.dock.add_plan_message = lambda lines, *options: shown.append(("card", len(lines))) or 7
         self.orchestrator.on_confirm_needed([Call()], "I will colour the rivers blue.")
-        self.assertEqual(self.dock.results, ["I will colour the rivers blue."])
+        self.assertEqual(shown, [("answer", "I will colour the rivers blue."), ("card", 1)])
         self.assertEqual(self.contents("assistant"), ["I will colour the rivers blue."])
-        self.assertEqual(self.dock.plan_lines and len(self.dock.plan_lines), 1)
 
     def test_apply_with_nothing_queued_or_during_compaction_does_nothing(self):
         self.orchestrator.on_confirm_plan()
