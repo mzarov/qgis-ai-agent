@@ -104,8 +104,6 @@
                 results: {OUTPUT: Buffered_88aa}
                 result_layers: {OUTPUT: Buffered}
             note: "Runs started from Processing dialogs, oldest first. The agent's own run_processing calls are not recorded here: take those from this conversation."
-        - native:reprojectlayer
-        - native:buffer
     expect:
       call: create_processing_model
       args:

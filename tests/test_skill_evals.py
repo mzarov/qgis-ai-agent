@@ -1,5 +1,6 @@
 import json
 import re
+import shutil
 import sys
 import tempfile
 import unittest
@@ -12,6 +13,7 @@ sys.path.insert(0, str(EVALS))
 import checks  # noqa: E402
 import context as agent_request  # noqa: E402
 import prompt as prompt_function  # noqa: E402
+import provider  # noqa: E402
 import run as runner  # noqa: E402
 import thresholds  # noqa: E402
 
@@ -164,6 +166,90 @@ class ChecksTest(unittest.TestCase):
                 self.assertEqual(checks.tool_calls(output), [("save_project", {})])
 
 
+def model_call(name, **arguments):
+    return {"id": f"call_{name}", "type": "function", "function": {"name": name, "arguments": json.dumps(arguments)}}
+
+
+def model_answer(*calls, tokens=10):
+    usage = {"prompt_tokens": tokens, "completion_tokens": 1, "total_tokens": tokens + 1}
+    return {"choices": [{"message": {"content": "", "tool_calls": list(calls)}}], "usage": usage}
+
+
+class ProviderTest(unittest.TestCase):
+    def setUp(self):
+        folder = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, folder, True)
+        tools = Path(folder) / "tools.json"
+        tools.write_text("[]", encoding="utf-8")
+        self.options = {"config": {"tools": str(tools), "model": "m", "url": "http://127.0.0.1:9/v1"}}
+        self.sent = []
+
+    def run_with(self, *answers):
+        replies = iter(answers)
+
+        def chat(config, messages, tools):
+            self.sent.append([dict(message) for message in messages])
+            return next(replies)
+
+        with mock.patch.object(provider, "chat", chat):
+            return provider.call_api(json.dumps([{"role": "user", "content": "Set capacity"}]), self.options, {})
+
+    def test_reads_the_fixture_holds_are_answered_and_the_action_is_judged(self):
+        result = self.run_with(
+            model_answer(model_call("get_field_values", layer_name="schools", field_name="kind")),
+            model_answer(model_call("load_skill", names=["edit"])),
+        )
+        self.assertEqual([name for name, _ in checks.tool_calls(result["output"])], ["get_field_values", "load_skill"])
+        answered = json.loads(self.sent[1][-1]["content"])
+        self.assertIn("lyceum", answered["unique_values"])
+        self.assertEqual(self.sent[1][-1]["tool_call_id"], "call_get_field_values")
+        self.assertEqual(result["tokenUsage"], {"prompt": 20, "completion": 2, "total": 22})
+
+    def test_a_read_the_fixture_lacks_ends_the_case_there(self):
+        result = self.run_with(model_answer(model_call("get_project_info")))
+        self.assertEqual(len(self.sent), 1)
+        self.assertEqual([name for name, _ in checks.tool_calls(result["output"])], ["get_project_info"])
+
+    def test_reads_stop_after_the_last_round(self):
+        read = model_call("describe_layer", layer_name="schools")
+        result = self.run_with(*[model_answer(read)] * (provider.MAX_READ_ROUNDS + 1))
+        self.assertEqual(len(self.sent), provider.MAX_READ_ROUNDS + 1)
+        self.assertEqual(len(checks.tool_calls(result["output"])), provider.MAX_READ_ROUNDS + 1)
+
+    def test_a_failed_request_is_an_error_not_a_verdict(self):
+        with mock.patch.object(provider, "chat", side_effect=OSError("refused")):
+            result = provider.call_api("[]", self.options, {})
+        self.assertIn("refused", result["error"])
+
+    def test_the_key_comes_from_the_environment_with_the_auth_scheme(self):
+        sent = []
+
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return json.dumps(model_answer()).encode()
+
+        def urlopen(request, timeout):
+            sent.append(request)
+            return Response()
+
+        config = {**self.options["config"], "key_variable": "EVAL_TEST_KEY", "auth": "OAuth"}
+        with (
+            mock.patch.dict("os.environ", {"EVAL_TEST_KEY": "secret"}),
+            mock.patch.object(provider.urllib.request, "urlopen", urlopen),
+        ):
+            provider.chat(config, [], [])
+            provider.chat({**config, "key_variable": ""}, [], [])
+        self.assertEqual(sent[0].get_header("Authorization"), "OAuth secret")
+        self.assertIsNone(sent[1].get_header("Authorization"), "a local server gets no key")
+        self.assertTrue(sent[0].full_url.endswith("/v1/chat/completions"))
+
+
 class RunnerTest(unittest.TestCase):
     def test_a_config_points_at_the_suites_tools_cases_and_check(self):
         with tempfile.TemporaryDirectory() as folder, mock.patch.object(runner, "OUT", Path(folder)):
@@ -171,7 +257,8 @@ class RunnerTest(unittest.TestCase):
             config = json.loads(path.read_text(encoding="utf-8"))
             tools = json.loads((Path(folder) / "style.tools.json").read_text(encoding="utf-8"))
         self.assertEqual([provider["label"] for provider in config["providers"]], ["m1", "m2"])
-        self.assertFalse(config["providers"][0]["config"]["apiKeyRequired"], "a local server needs no key")
+        self.assertEqual(config["providers"][0]["config"]["key_variable"], "", "a local server needs no key")
+        self.assertEqual(config["providers"][1]["config"]["model"], "m2")
         self.assertEqual(config["defaultTest"]["vars"], {"skill": "style", "locale": "ru"})
         self.assertTrue(config["tests"].endswith("skills/style/evals/cases.yaml"))
         self.assertIn("set_categories", [schema["function"]["name"] for schema in tools])
@@ -182,7 +269,9 @@ class RunnerTest(unittest.TestCase):
                 "fields", runner.suites()["fields"], ["m"], "https://gw.example/v1", "en", "OAuth"
             )
             text = path.read_text(encoding="utf-8")
-        self.assertIn('"Authorization": "OAuth {{ env.EVAL_API_KEY }}"', text)
+        config = json.loads(text)["providers"][0]["config"]
+        self.assertEqual((config["auth"], config["key_variable"]), ("OAuth", "EVAL_API_KEY"))
+        self.assertNotIn("Authorization", text)
 
     def test_a_key_typed_in_a_cyrillic_layout_is_caught_before_the_run(self):
         self.assertEqual(runner.key_problem("sk-abc123"), "")

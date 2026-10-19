@@ -42,23 +42,22 @@ def write_config(suite: str, cases: Path, models: list[str], url: str, locale: s
     tools = OUT / f"{suite}.tools.json"
     tools.write_text(json.dumps(agent_request.tool_schemas(skill), ensure_ascii=False, indent=1), encoding="utf-8")
     keyless = urlsplit(url).hostname in LOCAL_HOSTS and not os.environ.get(KEY_VARIABLE)
+    # The key stays in the environment: the provider reads it when it sends, so it never lands on disk.
     provider_config: dict[str, Any] = {
-        "apiBaseUrl": url,
-        "apiKeyEnvar": KEY_VARIABLE,
-        "tools": f"file://{tools}",
-        "tool_choice": "auto",
+        "url": url,
+        "tools": str(tools),
         "temperature": 0,
         "max_tokens": MAX_TOKENS,
+        "key_variable": "" if keyless else KEY_VARIABLE,
+        "auth": auth.strip() or BEARER,
     }
-    if keyless:
-        provider_config["apiKeyRequired"] = False
-    elif auth.strip().casefold() != BEARER.casefold():
-        # promptfoo fills the key in from the environment when it sends, so it is never written into the config.
-        provider_config["headers"] = {"Authorization": f"{auth.strip()} {{{{ env.{KEY_VARIABLE} }}}}"}
     config = {
         "description": f"AI Agent skill evals: {suite}",
         "prompts": [{"id": f"file://{EVALS / 'prompt.py'}:build", "label": "agent request"}],
-        "providers": [{"id": f"openai:chat:{model}", "label": model, "config": provider_config} for model in models],
+        "providers": [
+            {"id": f"file://{EVALS / 'provider.py'}", "label": model, "config": {**provider_config, "model": model}}
+            for model in models
+        ],
         "defaultTest": {
             "vars": {"skill": skill, "locale": locale},
             "assert": [{"type": "python", "value": f"file://{EVALS / 'checks.py'}:expected"}],

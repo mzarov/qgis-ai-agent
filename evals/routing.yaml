@@ -39,7 +39,6 @@
 - description: Changing attribute values is the edit skill
   vars:
     request: Set the capacity to 0 for every lyceum
-    reads: schools/kind
     expect: {loads: [edit], not_loads: [python]}
 
 - description: Downloading from OpenStreetMap is the osm skill

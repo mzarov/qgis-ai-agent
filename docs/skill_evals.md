@@ -17,6 +17,12 @@ schemas after the skill under test is loaded, the project context and the
 user's request. The project is described by `evals/fixture.json`. A change to a
 `SKILL.md` or a tool description is measured on the next run.
 
+A model that reads first is not marked down for it. When a turn holds only
+reads the fixture can answer (`describe_layer`, `get_field_values`,
+`describe_processing`), `evals/provider.py` answers them and asks again, up to
+three times. The case is judged on every call made, so a forbidden call still
+fails it wherever it appears.
+
 Suites:
 
 - **routing** (`evals/routing.yaml`): the first turn, with only `inspect`
