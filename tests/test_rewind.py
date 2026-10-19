@@ -130,7 +130,6 @@ class RewindTest(unittest.TestCase):
         conversation = orchestrator.conversation
         self.assertEqual(len(conversation.messages), MAX_MESSAGES, "the cap dropped the head")
         for checkpoint in orchestrator._checkpoints:
-            # Snapshot "s15" was taken by the run of "request 15".
             tagged = conversation.message_at(checkpoint.message)
             self.assertEqual(tagged["content"], f"request {checkpoint.snapshot[1:]}")
 

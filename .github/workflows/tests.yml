@@ -57,7 +57,6 @@ jobs:
 
   real-qgis-smoke:
     runs-on: ubuntu-latest
-    # A run takes minutes; a stuck test dumps its stacks and exits after five (tests/e2e_harness.py).
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -85,9 +84,7 @@ jobs:
           if-no-files-found: ignore
 
   ui-pixels:
-    # Pixel goldens are only valid for one font stack, so this job runs on one
-    # QGIS image pinned by digest. After an intended UI change, or a new pin,
-    # copy the ui-actual images of the artifact into tests/data/ui/pixels.
+    # Pixel goldens hold for one font stack only, so this job pins one QGIS image by digest.
     runs-on: ubuntu-latest
     timeout-minutes: 30
     container:

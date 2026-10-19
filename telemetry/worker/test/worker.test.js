@@ -1,6 +1,3 @@
-// The Worker end to end against real SQLite: node:sqlite runs schema.sql and
-// every query, behind a thin adapter with the D1 calls the Worker uses.
-
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
@@ -20,7 +17,6 @@ const INSTALLS = {
   d: "c4d5e6f7-0819-4a2b-bc3d-4e5f60718293",
 };
 
-/** The subset of the D1 binding the Worker calls, executed by node:sqlite. */
 function d1(database) {
   class Statement {
     constructor(sql, params = []) {
@@ -186,8 +182,6 @@ describe("usage worker", () => {
   });
 
   it("publishes aggregates and nothing per install", async () => {
-    // d pinged in January and c in August: both count only towards the total;
-    // c also appears in the 90-day series.
     await send(ping(INSTALLS.d, "2026-01-10"), new Date("2026-01-10T12:00:00Z"));
     await send(ping(INSTALLS.c, "2026-08-01"), new Date("2026-08-01T12:00:00Z"));
     await send(

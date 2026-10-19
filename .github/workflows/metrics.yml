@@ -1,16 +1,5 @@
 name: metrics
 
-# The plugin's public numbers, once a day: downloads per version from
-# plugins.qgis.org and the repository's GitHub traffic. Neither source keeps a
-# history, so tools/collect_metrics.py appends a snapshot to the `metrics`
-# branch and rewrites its README and chart. No user data is involved.
-#
-# Traffic needs a token that may read the repository's administration data:
-#   secret METRICS_TOKEN  fine-grained token, this repository, Administration: read
-# Without it only downloads are collected.
-#
-# The branch holds data only; pushing to it starts no other workflow.
-
 on:
   schedule:
     - cron: "23 4 * * *"

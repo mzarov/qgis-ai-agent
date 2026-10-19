@@ -1,24 +1,3 @@
-"""The one assertion every case uses: did the model's next move match the case's `expect`?
-
-`expect` sits in the case's vars, so a case reads as a request and its answer:
-
-    call: set_categories                  # a tool the model called; a list means any of them
-    args: {layer_name: roads, field: highway}
-    loads: [osm, processing]              # skills named by its load_skill calls, at least these
-    not: [run_python]                     # tools it must not call
-    not_loads: [python]                   # skills it must not load
-    answer: true                          # it answered in words, no tool call
-    any_of: [{...}, {...}]                # any one of these expectations, and the keys above still hold
-
-Values match leniently, the way a person reads them: strings ignore case and
-surrounding space, numbers compare as numbers ("500" is 500), a dict matches
-when its keys do, a list against a list means "at least these", a list against
-one value means "any of these", "re:<pattern>" searches, "*" only asks
-for the argument to be there, and "~33580±1%" is a number within 1 % of 33580
-(within 1 % when the "±" part is left out) — for measured sizes, which differ
-in the last digits between ellipsoids, projections and buffer segments.
-"""
-
 import json
 import re
 from typing import Any
@@ -32,7 +11,6 @@ DEFAULT_PERCENT = 1.0
 
 
 def expected(output: Any, context: dict[str, Any]) -> dict[str, Any]:
-    """Promptfoo's grading result for this case."""
     expect = (context.get("vars") or {}).get("expect") or {}
     calls = tool_calls(output)
     problem = mismatch(expect, calls)
@@ -45,10 +23,8 @@ def expected(output: Any, context: dict[str, Any]) -> dict[str, Any]:
 
 
 def mismatch(expect: dict[str, Any], calls: list[tuple[str, dict[str, Any]]]) -> str | None:
-    """None when the calls meet the expectation, else what is missing."""
     alternatives = expect.get("any_of")
     if alternatives:
-        # The other keys hold beside whichever alternative matches: a forbidden call fails next to an allowed one.
         others = mismatch({key: value for key, value in expect.items() if key != "any_of"}, calls)
         if others is not None:
             return others
@@ -79,7 +55,6 @@ def mismatch(expect: dict[str, Any], calls: list[tuple[str, dict[str, Any]]]) ->
 
 
 def tool_calls(output: Any) -> list[tuple[str, dict[str, Any]]]:
-    """(name, arguments) of every tool call in a promptfoo output, whatever shape it came in."""
     if isinstance(output, str):
         try:
             output = json.loads(output)

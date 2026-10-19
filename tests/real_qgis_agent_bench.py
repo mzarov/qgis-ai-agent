@@ -1,10 +1,3 @@
-"""The agent bench's server in live QGIS, against the scripted model: fixture, run, Apply, snapshot, check.
-
-The bench itself needs a real model; this proves its plumbing on every CI run:
-the fixture holds the numbers the tasks rely on, a task's writes are applied,
-and the snapshot reads back what the outcome check expects.
-"""
-
 import pathlib
 import shutil
 import sys
@@ -95,7 +88,6 @@ class AgentBenchServerTest(unittest.TestCase):
         )
         result = self.runner.run({"request": "Add a field area_ha with each district's area in hectares"})
         self.assertNotIn("error", result, result.get("error"))
-        # The fixture's ellipsoid makes $area metres on the layer in degrees, as in a new desktop project.
         self.assertEqual(problems_in(result, {"layers": {"districts": {"sums": {"area_ha": "~33580±1%"}}}}), [])
 
     def test_a_new_layer_is_seen_with_its_points(self) -> None:
@@ -118,7 +110,6 @@ class AgentBenchServerTest(unittest.TestCase):
         self.assertEqual(problems_in(result, expect), [])
 
     def test_a_renamed_layer_is_the_same_layer_not_a_new_one(self) -> None:
-        # The districts renamed and coloured by population must not pass for a new layer of school counts.
         self.model.script(
             call("load_skill", names=["project", "style"]),
             calls(
@@ -140,8 +131,6 @@ class AgentBenchServerTest(unittest.TestCase):
 
 
 class SnapshotTest(unittest.TestCase):
-    """The snapshot on its own, no model: layers are told apart by id, and multipoints list their points."""
-
     def setUp(self) -> None:
         self.folder = tempfile.mkdtemp(prefix="ai-agent-snapshot-")
         fixture.build(self.folder)

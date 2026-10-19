@@ -14,7 +14,6 @@ URL = "https://api.example/v1"
 
 
 def consume(chunks, on_text=None, on_thinking=None):
-    """Fold raw SSE chunks into a response, as post_stream does with what the network delivers."""
     accumulator = SseAccumulator()
     completion = StreamedCompletion(on_text, on_thinking)
     for chunk in chunks:

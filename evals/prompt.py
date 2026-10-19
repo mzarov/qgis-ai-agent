@@ -1,5 +1,3 @@
-"""Promptfoo's prompt function: a case's messages, built by the plugin's own request code (see context.py)."""
-
 import json
 import sys
 from pathlib import Path
@@ -20,15 +18,11 @@ def build(context: dict[str, Any]) -> str:
         locale=str(variables.get("locale") or "en"),
         measurements=str(variables.get("measurements") or ""),
     )
-    # A JSON array of messages is what promptfoo sends as a chat.
     return json.dumps(messages, ensure_ascii=False)
 
 
 def reads(value: Any) -> list[Any]:
-    """The case's reads: "roads, roads/highway", or {steps: [...]} when a step needs its own result.
-
-    Never a bare list: promptfoo turns a list in vars into one test per item.
-    """
+    # Never a bare list in a case: promptfoo turns a list in vars into one test per item.
     if isinstance(value, str):
         return [item.strip() for item in value.split(",") if item.strip()]
     if isinstance(value, dict):

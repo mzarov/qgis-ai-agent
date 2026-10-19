@@ -1,29 +1,20 @@
-// Validation of usage pings and shaping of the public aggregates.
-//
-// Pure functions only: index.js owns HTTP and D1, so this module runs under
-// `node --test` without a Workers runtime.
-
 export const PING_VERSION = 1;
 export const MAX_BODY_BYTES = 4096;
 export const MAX_COUNT = 100000;
 export const MAX_MAP_KEYS = 150;
-// A client reports its local calendar day, which may sit a day off UTC, and
-// may resend yesterday's ping after a restart.
+// A client's local day may sit a day off UTC, and it may resend yesterday's ping after a restart.
 export const MAX_DAY_SKEW = 2;
 export const SERIES_DAYS = 90;
 export const RECENT_DAYS = 30;
-// Bounds the public response however many distinct values clients invent.
 export const MAX_VALUES_PER_FACET = 100;
 
 export const OS_VALUES = ["macos", "windows", "linux", "other"];
 export const PROVIDER_VALUES = ["local", "remote"];
 export const DIALECT_VALUES = ["openai", "anthropic"];
 
-// Columns counted as distinct installs per value, and JSON columns summed per key.
 export const DIMENSIONS = ["plugin", "qgis", "os", "locale", "provider", "dialect"];
 export const COUNTERS = ["tools", "skills", "failures"];
 
-// Column order of the pings table; pingRow() returns values in the same order.
 export const PING_COLUMNS = [
   "install_hash",
   "day",
@@ -42,10 +33,8 @@ const MS_PER_DAY = 86_400_000;
 const ECHOED_KEY_CHARS = 40;
 
 const REQUIRED_FIELDS = ["v", "install", "day", ...DIMENSIONS, "runs", "applies"];
-// The counter maps may be omitted: an install that called nothing has nothing to send.
 const KNOWN_FIELDS = new Set([...REQUIRED_FIELDS, ...COUNTERS]);
 
-/** A ping that breaks the contract; the message is safe to return to the client. */
 export class PingError extends Error {}
 
 function fail(message) {
@@ -102,13 +91,6 @@ function reportedDay(value, now) {
   return value;
 }
 
-/**
- * Checks a parsed ping body against the v1 contract.
- *
- * Returns a normalized copy: a lower-case install id and counter maps with
- * sorted keys, so a resend of the same ping stores identical text.
- * Throws PingError naming the first violation.
- */
 export function validatePing(body, now = new Date()) {
   if (!isPlainObject(body)) fail("body must be a JSON object");
   for (const key of Object.keys(body)) {
@@ -135,13 +117,12 @@ export function validatePing(body, now = new Date()) {
   };
 }
 
-/** Lower-case hex SHA-256 of the install id: the only form of it that is stored. */
+// SHA-256 hex of the install id: the only form of it that is ever stored.
 export async function hashInstall(install) {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(install));
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-/** Values for PING_COLUMNS, in order; the counter maps are stored as JSON text. */
 export function pingRow(ping, installHash) {
   return PING_COLUMNS.map((column) => {
     if (column === "install_hash") return installHash;
@@ -157,7 +138,6 @@ export function shiftDay(day, offset) {
   return utcDay(new Date(Date.parse(`${day}T00:00:00Z`) + offset * MS_PER_DAY));
 }
 
-/** Inclusive day ranges of the public aggregates, ending on the current UTC day. */
 export function statsWindow(now) {
   const today = utcDay(now);
   return {
@@ -171,7 +151,6 @@ function number(value) {
   return Number(value) || 0;
 }
 
-/** One entry per day of the series window, zero where no install pinged. */
 export function fillDays(rows, window) {
   const byDay = new Map(rows.map((row) => [row.day, row]));
   const days = [];
@@ -182,7 +161,6 @@ export function fillDays(rows, window) {
   return days;
 }
 
-/** {value: n} for one facet of {facet, value, n} rows, largest first, capped. */
 export function rankFacet(rows, facet) {
   const entries = rows
     .filter((row) => row.facet === facet && row.value !== null && row.value !== undefined)
@@ -193,7 +171,6 @@ export function rankFacet(rows, facet) {
   return Object.fromEntries(entries);
 }
 
-/** The public /v1/stats document from the aggregate query rows. */
 export function shapeStats({ generated, window, totals, days, facets }) {
   const stats = {
     generated,

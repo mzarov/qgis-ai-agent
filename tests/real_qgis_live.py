@@ -1,35 +1,3 @@
-"""Live-model scenarios: the installed plugin, live QGIS, a real provider.
-
-The scripted scenarios in `real_qgis_e2e` prove the plumbing; these prove
-that a real model, given our prompts, skills and tool schemas, gets ordinary
-requests right. Assertions are on outcomes only — the renderer, the label
-field, the new layer, the number in the answer — never on the exact calls,
-because a model is free to choose its own route.
-
-Spending is capped three ways: a per-run token budget through the plugin's
-own setting, a total for the whole suite after which the remaining scenarios
-are skipped, and the CI job timeout.
-
-Usage lands in `live_usage.json` next to the screenshots: per scenario the
-prompt tokens, completion tokens and model requests of every run, the
-verification run included. A scenario that spends more than its ceiling in
-`tests/data/token_ceilings.json` fails, so a token regression cannot ship
-unnoticed; the ceilings apply only to the model they were measured on.
-`tests/token_ceilings.py` refreshes them from reports.
-
-Configuration comes from the environment; without a key the module skips:
-
-    LIVE_MODEL_URL      OpenAI-compatible base URL
-    LIVE_MODEL          model id
-    LIVE_MODEL_KEY      API key
-    LIVE_TOTAL_TOKENS   suite-wide cap (default 1 500 000)
-    LIVE_RUN_TOKENS     per-run cap (default 150 000)
-    LIVE_ONLY           comma-separated scenario names to run, e.g. LiveBufferScenario
-    LIVE_REQUIRE_CEILINGS  1 fails a scenario that has no ceiling for this model (CI sets it)
-
-Run: `python3 tests/real_qgis_workflows.py real_qgis_live`.
-"""
-
 import json
 import os
 import unittest
@@ -46,7 +14,6 @@ LIVE_KEY = os.environ.get("LIVE_MODEL_KEY", "").strip()
 TOTAL_TOKENS = int(os.environ.get("LIVE_TOTAL_TOKENS") or 1_500_000)
 RUN_TOKENS = int(os.environ.get("LIVE_RUN_TOKENS") or 150_000)
 LIVE_IDLE_TIMEOUT_S = 300
-# Only unlocks the throwaway authentication database of the temporary CI profile.
 PROFILE_MASTER_PASSWORD = "ai-agent-live-profile"  # pragma: allowlist secret
 POPULATION_THRESHOLD = 50000
 USAGE_FILE = "live_usage.json"
@@ -56,7 +23,6 @@ REQUIRE_CEILINGS = os.environ.get("LIVE_REQUIRE_CEILINGS", "").strip() == "1"
 
 CEILINGS = token_ceilings.load()
 
-# Scenario class name -> its usage: the totals plus one entry per agent run.
 USAGE: dict[str, dict] = {}
 
 
@@ -104,7 +70,6 @@ class LiveCase(PluginCase):
         self.usage = USAGE[self.scenario] = dict.fromkeys(token_ceilings.LIVE_METRICS, 0)
         self.usage["runs"] = []
         QgsApplication.messageLog().messageReceived.connect(self._logged)
-        # Instrumentation only: record each run that really starts, then hand over unchanged.
         start = self.agent.start
 
         def counted_start(*args: object, **kwargs: object) -> bool:
@@ -145,7 +110,6 @@ class LiveCase(PluginCase):
             self.fail(f"{missing}; refresh tests/data/token_ceilings.json (docs/smoke_checklist.md)")
 
     def _close_run(self, usage: dict[str, int] | None = None) -> None:
-        """Fold the last run's usage in, read before the next start resets the agent's counters."""
         if len(self.usage["runs"]) == len(self.runs):
             return
         run = dict(self.agent.usage if usage is None else usage)

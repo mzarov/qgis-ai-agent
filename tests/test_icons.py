@@ -38,7 +38,6 @@ class ApiTest(unittest.TestCase):
         with mock.patch.object(icons, "glyph", side_effect=RuntimeError("no QtSvg")):
             self.assertIsNone(icons.drawn("new", None, 15))
             button = IconButton("new", "+", "New conversation", QWidget().palette(), 28, 16)
-        # No artwork: the button paints its text glyph instead.
         self.assertIsNone(button._rest)
         self.assertEqual(button._fallback, "+")
 

@@ -1,32 +1,3 @@
-"""The agent bench's provider: the whole plugin in a headless QGIS, one task per HTTP request.
-
-promptfoo posts a task — `{"request": "..."}` — to `/run`. The server builds the
-fixture project in a fresh folder, starts the plugin in a main window with a map
-canvas (so the map renders for the agent's look, as in the desktop app), sends
-the request the way the composer does, presses Apply for every prepared batch
-(destructive steps are confirmed), waits for the check after Apply, and answers
-with what happened: the
-final answer, the tools that ran, the skills, tokens, requests and seconds, and
-a snapshot of the project (state.py). `steps` lists every call the model made
-with its arguments and what came back (a result, "queued", or the error it
-read), and what Apply then did with each queued one: a run that went the long
-way can be read afterwards. A question the agent asks ends the task.
-
-Qt and PyQGIS live on the main thread, so the HTTP server only queues tasks; the
-main thread runs them between rounds of event processing.
-
-Before the first task the server asks the model about a picture, as the
-connection test in the settings does, so a model that cannot see one checks
-its work by reading, as it would for a user.
-
-The model comes from the environment, like the skill bench: EVAL_API_URL,
-EVAL_MODEL, EVAL_API_KEY (kept in the throwaway profile's authentication
-database), EVAL_AUTH, EVAL_DIALECT. Run inside QGIS's Python — evals/run.py
-starts it in the pinned QGIS image:
-
-    python3 evals/agent/server.py [--port 8765]
-"""
-
 import argparse
 import contextlib
 import importlib
@@ -57,11 +28,8 @@ PORT = 8765
 TASK_TIMEOUT_S = 600
 SETTLE_S = 1.0
 MAX_APPLIES = 4
-# A busy or flaky provider can drop the one picture request; an unknown answer would leave the
-# picture tools on for a model that may not see, so one more try before giving up.
 IMAGE_PROBE_TRIES = 2
 RUN_TOKENS = int(os.environ.get("EVAL_RUN_TOKENS") or 200_000)
-# Only unlocks the throwaway authentication database of the server's temporary profile.
 PROFILE_MASTER_PASSWORD = "ai-agent-eval-profile"  # pragma: allowlist secret
 FOLDER_MARKER = "{folder}"
 LOG_TAG = "AI Agent"
@@ -98,6 +66,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(400, {"error": "the body is not JSON"})
             return
         task = Task(body)
+        # Qt and PyQGIS live on the main thread: this HTTP thread only queues the task.
         TASKS.put(task)
         if not task.done.wait(TASK_TIMEOUT_S + 60):
             self._send(504, {"error": "the task did not finish in time"})
@@ -117,8 +86,6 @@ class Handler(BaseHTTPRequestHandler):
 
 
 class Runner:
-    """Runs one task at a time on the main thread, with the plugin installed from the built zip."""
-
     def __init__(
         self,
         url: str,
@@ -139,7 +106,6 @@ class Runner:
 
         self.harness, self.fixture, self.state, self.settings = e2e_harness, fixture, state, settings
         self.build_overrides, self.probe_images = build_overrides, sees_images
-        # None until asked, and after an answer that never came; a scripted model has no picture turn.
         self.sees_images: bool | None = None
         self._images_pending = check_images
         self.plugin_class = QgisAiAgentPlugin
@@ -176,7 +142,6 @@ class Runner:
             self._restore_settings(saved)
 
     def _saved_settings(self) -> dict[str, Any]:
-        """What a task changes in the profile, so it can be put back: a shared test profile stays as it was."""
         settings = self.settings
         return {
             "api_url": settings.get_api_url(),
@@ -214,7 +179,6 @@ class Runner:
         self._check_images()
 
     def _check_images(self) -> None:
-        """Ask once per server, then restore it after every task's reset, like a tested connection."""
         if self._images_pending:
             self._images_pending = False
             for _ in range(IMAGE_PROBE_TRIES):
@@ -231,19 +195,16 @@ class Runner:
         self._add_canvas(interface)
         interface.window.show()
         self.interface = interface
-        # The tools reach the canvas through qgis.utils.iface, as in the desktop app.
         qgis.utils.iface = interface
         plugin = self.plugin_class(interface)
         plugin.initGui()
         plugin.run()
-        # The task asked for the change; the bench stands in for the person who confirms it.
         plugin.dock_widget.confirm_destructive = lambda lines, details="": True
         plugin._orchestrator.on_new_session()
         return plugin
 
     @staticmethod
     def _add_canvas(interface: Any) -> None:
-        """The main window's map: the project's layers, its CRS, the whole extent in view."""
         project = QgsProject.instance()
         canvas = QgsMapCanvas()
         canvas.setDestinationCrs(project.crs())
@@ -260,7 +221,7 @@ class Runner:
         interface.mapCanvas = lambda: canvas
 
     def _close_window(self) -> None:
-        """Free the window and its canvas now: left to the cycle collector they could go mid focus change."""
+        # Freed now: left to the cycle collector, the window could go mid focus change (a segfault).
         interface, self.interface = self.interface, None
         qgis.utils.iface = None
         if interface is None:
@@ -338,11 +299,6 @@ class Runner:
 
 
 def _record_steps(agent: Any) -> list[dict[str, Any]]:
-    """Every model call and every applied step, with arguments and outcome, kept in order as they happen.
-
-    The loop's own records end with each run, and the check after Apply is a run of its own; the two
-    methods every call passes through are wrapped on this one agent instead.
-    """
     steps: list[dict[str, Any]] = []
     dispatch, applied = agent._dispatch, agent._on_apply_finish
 
@@ -372,7 +328,6 @@ def _short_json(value: Any) -> str:
 
 
 def _progress(body: dict[str, Any], result: dict[str, Any], seconds: float) -> str:
-    """One line per task in the server's log: what was asked, how it ended, at what cost."""
     usage = result.get("usage") or {}
     ending = "server error" if result.get("error") else ("asked a question" if result.get("asked") else "done")
     request = " ".join(str(body.get("request") or "").split())[:70]
@@ -380,11 +335,6 @@ def _progress(body: dict[str, Any], result: dict[str, Any], seconds: float) -> s
 
 
 def _record_plugin_log(lines: list[str]) -> None:
-    """Keep the plugin's log lines for the task's answer.
-
-    The message log's own signal stays silent in a QGIS without its main
-    window, so the call itself is wrapped; every message still reaches QGIS.
-    """
     original = QgsMessageLog.logMessage
 
     def recording(message: str, tag: str = "", *args: Any, **kwargs: Any) -> Any:
@@ -396,7 +346,6 @@ def _record_plugin_log(lines: list[str]) -> None:
 
 
 def _failure(content: Any) -> str:
-    """A kept failure card as one line: its title and the server's own words."""
     try:
         record = json.loads(content)
     except (TypeError, ValueError):

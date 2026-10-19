@@ -13,7 +13,6 @@ CONTEXT = "QgisAiAgent"
 PREFIX = "ai_agent"
 LANGUAGES = ("ru",)
 CALLS = ("tr", "tr_n")
-# Connector files carry texts a person reads; the UI translates them with tr_data().
 DATA_SOURCES = PACKAGE / "qgis_tools" / "data" / "sources"
 CONNECTOR_TEXTS = ("summary", "description", "licence")
 UNFINISHED = "unfinished"
@@ -41,7 +40,6 @@ def sources() -> list[tuple[str, str, int, bool]]:
 
 
 def data_sources() -> list[tuple[str, str, int, bool]]:
-    """The person-facing texts of every connector file, located at the line that holds them."""
     found: list[tuple[str, str, int, bool]] = []
     for path in sorted(DATA_SOURCES.glob("*.json")):
         text = path.read_text(encoding="utf-8")
@@ -56,7 +54,6 @@ def data_sources() -> list[tuple[str, str, int, bool]]:
 
 def connector_texts(connector: dict) -> list[str]:
     texts = [connector[key] for key in CONNECTOR_TEXTS] + list(connector["examples"])
-    # The settings page lists a web service by its layers; other datasets go by their names, or a label.
     for dataset in connector["datasets"]:
         texts.extend(layer["title"] for layer in dataset.get("layers", []))
         if "label" in dataset:

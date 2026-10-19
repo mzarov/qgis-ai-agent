@@ -909,8 +909,6 @@ class StepDock(PlanDock):
 
 
 class PlanProgressTest(unittest.TestCase):
-    """While a plan applies, its card shows each step's progress; the feed gets no duplicate rows."""
-
     def setUp(self):
         self.dock = StepDock()
         self.orchestrator = CoreOrchestrator(Iface(), self.dock)
@@ -996,8 +994,6 @@ class AttachDockTest(unittest.TestCase):
 
 
 class PlanUndoTest(unittest.TestCase):
-    """The card's Undo restores the snapshot its apply took, and only when one exists and nothing runs."""
-
     def setUp(self):
         from unittest import mock
 
@@ -1123,8 +1119,6 @@ class AppliedVisualTest(unittest.TestCase):
 
 
 class StatusOutcomeTest(unittest.TestCase):
-    """The status line under the feed hears how each run stopped working."""
-
     def setUp(self):
         self.dock = OutcomeDock()
         self.orchestrator = CoreOrchestrator(Iface(), self.dock)
@@ -1191,8 +1185,6 @@ class ChromeDock(PlanDock):
 
 
 class ChromeFlowTest(unittest.TestCase):
-    """What the panel's chrome hears: the title, the saved note, the active layer and its mention."""
-
     def setUp(self):
         self.root = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, self.root, True)
@@ -1272,8 +1264,6 @@ class StepDockWithMarks(PlanDock):
 
 
 class KeptTurnTest(unittest.TestCase):
-    """What the feed showed of a turn is kept for a reopened conversation."""
-
     def setUp(self):
         from ai_agent.core.state.trace import TRACE_ROLE
 
@@ -1339,8 +1329,6 @@ class LongStepProgressTest(unittest.TestCase):
 
 
 class PlanRestoreTest(unittest.TestCase):
-    """A cancelled plan comes back to Apply and Cancel until anything else happens."""
-
     def setUp(self):
         self.root = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, self.root, True)

@@ -90,8 +90,6 @@ class Project:
 
 
 class LocalProjectCrsTest(unittest.TestCase):
-    """The project CRS is offered for measuring only when it keeps sizes: never Web Mercator."""
-
     def test_a_national_grid_is_kept(self):
         self.assertEqual(local_project_crs(Project(Crs("EPSG:27700", "tmerc"))), "EPSG:27700")
 

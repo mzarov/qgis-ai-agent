@@ -14,8 +14,6 @@ class _UnitProject(_Project):
 
 
 class _Units:
-    """Only stable codes exist here: a call to the translated toString fails the test."""
-
     @staticmethod
     def encodeUnit(unit):
         return {"distance": "meters", "area": "m2"}[unit]

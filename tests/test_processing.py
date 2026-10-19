@@ -93,8 +93,6 @@ class ProcessingParameterIdentityTest(unittest.TestCase):
 
 
 class _Loaded:
-    """A project layer: its id, the data source it reads and its name."""
-
     def __init__(self, layer_id, source, name):
         self._id, self._source, self._name = layer_id, source, name
 
@@ -123,8 +121,6 @@ class _LoadedProject:
 
 
 class OutputNameTest(unittest.TestCase):
-    """A file output comes back as its path: the name goes to the layer the run loaded from that file."""
-
     PATH = "/data/centres.gpkg"
 
     def setUp(self):

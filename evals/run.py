@@ -1,29 +1,3 @@
-"""Run the skill evals through promptfoo and print what passed, per suite.
-
-A suite is the routing cases (`evals/routing.yaml`: which skills the model loads
-for a request) or one skill's cases (`ai_agent/skills/<skill>/evals/cases.yaml`:
-with that skill loaded, the model's next call). For each suite this writes the
-tool schemas the model would have and a promptfoo config under `build/evals/`,
-runs `promptfoo eval`, and sums the results up in `build/evals/summary.md`.
-
-The model is any OpenAI-compatible endpoint:
-
-    EVAL_API_URL   base URL with the API prefix, e.g. https://api.deepseek.com/v1
-    EVAL_MODEL     model id; several, comma-separated, are compared side by side
-    EVAL_API_KEY   read by promptfoo itself; not needed for a local server
-    EVAL_AUTH      the Authorization scheme, as in the plugin's settings (default Bearer, e.g. OAuth)
-    EVAL_LOCALE    the UI language the prompt assumes (default en)
-    EVAL_REQUIRE_THRESHOLDS  1 fails --check for a suite or model without a floor (CI sets it once floors exist)
-
-    python3 evals/run.py                      # every suite
-    python3 evals/run.py --suites routing,style --repeat 3
-    python3 evals/run.py --repeat 3 --fresh --save-thresholds   # the floors CI holds a model to
-    python3 evals/run.py --check                                # fail below a floor (CI)
-    npx promptfoo@<version> view              # the results, case by case
-
-Needs Node for `npx`; the plugin and its tests do not.
-"""
-
 import argparse
 import json
 import os
@@ -52,12 +26,10 @@ BEARER = "Bearer"
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
 MAX_CONCURRENCY = 2
 MAX_TOKENS = 4096
-# promptfoo's ResultFailureReason: 1 is a failed assertion, 2 an error before any grading.
 FAILURE_ERROR = 2
 
 
 def suites() -> dict[str, Path]:
-    """Every suite and its cases file: routing first, then the skills that have cases."""
     found = {ROUTING: ROUTING_CASES}
     for cases in sorted(SKILLS.glob(f"*/{CASES}")):
         found[cases.parent.parent.name] = cases
@@ -81,8 +53,7 @@ def write_config(suite: str, cases: Path, models: list[str], url: str, locale: s
     if keyless:
         provider_config["apiKeyRequired"] = False
     elif auth.strip().casefold() != BEARER.casefold():
-        # The plugin's "Authorization: <type> <key>" for gateways that want OAuth; promptfoo fills the key in
-        # from the environment when it sends the request, so it is never written into the config.
+        # promptfoo fills the key in from the environment when it sends, so it is never written into the config.
         provider_config["headers"] = {"Authorization": f"{auth.strip()} {{{{ env.{KEY_VARIABLE} }}}}"}
     config = {
         "description": f"AI Agent skill evals: {suite}",
@@ -131,19 +102,16 @@ def run_suite(
         command.append("--no-cache")
     environment = {
         **os.environ,
-        # The same Python builds the prompts and runs the checks; nothing about the run leaves the machine.
         "PROMPTFOO_PYTHON": sys.executable,
         "PROMPTFOO_DISABLE_TELEMETRY": "1",
         "PROMPTFOO_DISABLE_UPDATE": "1",
         "PROMPTFOO_DISABLE_SHARING": "1",
         **(extra_env or {}),
     }
-    # promptfoo exits non-zero when a case fails; failures are the point of a bench, not an error here.
     subprocess.run(command, cwd=REPO, env=environment, check=False)
 
 
 def key_problem(key: str) -> str:
-    """Why the key cannot go into an HTTP header, or "" — a key typed in a non-Latin layout is the usual case."""
     position = next((index for index, character in enumerate(key) if not character.isascii()), None)
     if position is None:
         return ""
@@ -154,7 +122,6 @@ def key_problem(key: str) -> str:
 
 
 def summarise(suite: str, results: Path) -> dict[str, Any]:
-    """Passed and total cases, tokens, mean latency and the failures of one suite's run."""
     if not results.is_file():
         return {
             "suite": suite,
@@ -193,7 +160,6 @@ def summarise(suite: str, results: Path) -> dict[str, Any]:
 
 
 def _unreached(row: dict[str, Any]) -> bool:
-    """A case whose request failed before the model answered; promptfoo also fills `error` for a failed check."""
     if row.get("success"):
         return False
     reason = row.get("failureReason")
@@ -203,8 +169,6 @@ def _unreached(row: dict[str, Any]) -> bool:
 
 
 def report(rows: list[dict[str, Any]]) -> str:
-    # A case that never reached the model (a timeout, a refused request) says nothing about the skill:
-    # it is counted apart, not as a failure.
     lines = ["| suite | passed | not reached | tokens | mean latency |", "| --- | --- | --- | --- | --- |"]
     for row in rows:
         graded = row["total"] - row["errors"]
@@ -227,8 +191,6 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run the skill evals through promptfoo.")
     parser.add_argument("--suites", default="", help="comma-separated suites (default: all)")
     parser.add_argument("--repeat", type=int, default=1, help="runs per case, for a pass rate")
-    # promptfoo answers an unchanged request from its cache: right for a suite nobody touched, wrong for
-    # measuring how much a model's answers vary.
     parser.add_argument("--fresh", action="store_true", help="ask the model again even for cached requests")
     parser.add_argument("--configs-only", action="store_true", help="write the configs and stop")
     parser.add_argument("--check", action="store_true", help="fail when a suite falls below its floor")
@@ -285,14 +247,12 @@ def main() -> int:
         row = summarise(suite, results)
         rows.append(row)
         if row["total"] and row["errors"] == row["total"]:
-            # Every request failed before the model answered: the endpoint or the key is wrong, not the skill.
             print(f"Every case of {suite} failed to reach the model, stopping: {row['first_error']}", file=sys.stderr)
             break
     return finish(rows, models, options)
 
 
 def run_agent(model: str, server: str, repeat: int, mode: str = "", only: str = "") -> list[dict[str, Any]] | None:
-    """The agent suite's row, with a server started for it unless one is given; None when none came up."""
     started = not server
     server = server or f"http://127.0.0.1:{bench.PORT}"
     mode = mode or bench.default_mode()
@@ -319,7 +279,6 @@ def run_agent(model: str, server: str, repeat: int, mode: str = "", only: str = 
         config = bench.write_config(OUT, model, server)
         timeout = {"REQUEST_TIMEOUT_MS": str(bench.REQUEST_TIMEOUT_MS)}
         # One task at a time: QGIS runs on one main thread, and a cached run would measure nothing.
-        # A task takes minutes, so the progress bar is the only sign that the run is alive.
         run_suite(config, results, repeat, fresh=True, concurrency=1, extra_env=timeout, progress=True, only=only)
         return [summarise(bench.AGENT, results)]
     finally:
@@ -330,7 +289,6 @@ def run_agent(model: str, server: str, repeat: int, mode: str = "", only: str = 
 
 
 def finish(rows: list[dict[str, Any]], models: list[str], options: argparse.Namespace) -> int:
-    """Print and keep the summary; set or check the floors when asked. 1 when a suite falls below its floor."""
     if not rows:
         return 0
     summary = report(rows)

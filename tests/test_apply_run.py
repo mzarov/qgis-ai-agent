@@ -1,5 +1,3 @@
-"""A step that works off the main thread: the batch waits for it without blocking, then goes on."""
-
 import unittest
 from unittest import mock
 
@@ -27,8 +25,6 @@ class FakeWork(QObject):
 
 
 class BackgroundExecutor:
-    """run_processing works in the background; every other call runs on the main thread."""
-
     def __init__(self):
         self.ran = []
         self.works = []

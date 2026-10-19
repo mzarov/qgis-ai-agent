@@ -1,5 +1,3 @@
-"""The functional additions of Settings: step and time limits, history keeping, skill switches, reset."""
-
 import os
 import tempfile
 import time
@@ -37,8 +35,6 @@ class LimitsSettingsTest(SettingsCase):
 
 
 class HistoryKeepingTest(SettingsCase):
-    """Conversations older than the chosen days go; the open one never does; erasing takes everything."""
-
     def setUp(self):
         super().setUp()
         self.root = tempfile.mkdtemp()
@@ -87,8 +83,6 @@ class HistoryKeepingTest(SettingsCase):
 
 
 class SkillSwitchTest(SettingsCase):
-    """A built-in skill switched off is gone for the agent: no line in the prompt, no loading, no tools."""
-
     def tearDown(self):
         SKILL_REGISTRY.set_disabled(())
 
@@ -122,8 +116,6 @@ class SkillSummaryTest(unittest.TestCase):
 
 
 class DeferredPagesTest(SettingsCase):
-    """Pages the Connection page does not edit with it are built on their first visit, and saved only then."""
-
     def setUp(self):
         super().setUp()
         self.dialog = settings_dialog.SettingsDialog()
@@ -162,8 +154,6 @@ class DeferredPagesTest(SettingsCase):
 
 
 class RefusedSaveTest(SettingsCase):
-    """A store that refuses the key or the notes leaves every setting as it was, so Cancel still means it."""
-
     OLD = ("https://api.example.com/v1", "old-model")
 
     def setUp(self):

@@ -11,7 +11,6 @@ URL = "https://api.anthropic.com"
 
 
 def consume_anthropic(chunks, on_text=None, on_thinking=None):
-    """Fold raw SSE chunks into a Messages response, as post_stream does with what the network delivers."""
     accumulator = SseAccumulator()
     message = StreamedMessage(on_text, on_thinking)
     for chunk in chunks:

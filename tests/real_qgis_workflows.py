@@ -11,7 +11,6 @@ from real_qgis_smoke import _build_and_extract, qgis_application
 
 
 def _select_locale() -> None:
-    """Pick the UI language before `import ai_agent` installs the translator and builds translated constants."""
     language = os.environ.get("UI_LOCALE", "").strip()
     if language:
         QgsSettings().setValue("locale/userLocale", language)
@@ -29,7 +28,6 @@ DEFAULT_MODULES = (
 
 
 def main(modules: tuple[str, ...] = DEFAULT_MODULES) -> int:
-    """Run behavior tests against an installed ZIP in an isolated QGIS profile."""
     with tempfile.TemporaryDirectory(prefix="ai-agent-integration-") as temporary:
         root = pathlib.Path(temporary)
         package = _build_and_extract(root)
@@ -43,6 +41,7 @@ def main(modules: tuple[str, ...] = DEFAULT_MODULES) -> int:
                     sys.path.append(os.fspath(candidate))
             processing = importlib.import_module("processing.core.Processing")
             processing.Processing.initialize()
+            # Before `import ai_agent`: it installs the translator and builds translated constants.
             _select_locale()
             installed = importlib.import_module("ai_agent")
             if pathlib.Path(installed.__file__).resolve().parent != package.resolve():

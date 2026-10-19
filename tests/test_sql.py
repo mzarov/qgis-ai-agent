@@ -142,8 +142,6 @@ class Feature:
 
 
 class Result:
-    """What the next virtual layer reads as: its columns, rows, geometry, or the provider's error."""
-
     def __init__(self, columns=(), rows=(), geometry="", error="", total=None):
         self.columns, self.rows, self.geometry, self.error, self.total = (
             list(columns),
@@ -169,8 +167,6 @@ class Definition:
 
 
 class Vector(QgsVectorLayer):
-    """A project layer, or — built with the virtual provider — the query layer Vector.planned describes."""
-
     planned = Result()
     built = []
 
@@ -366,7 +362,6 @@ class CreateSqlLayerTest(SqlCase):
 
     def test_execute_adds_the_planned_query_and_confirms_it(self):
         prepared = self.create.prepare({"sql": JOIN, "name": "school counts"})
-        # The source was renamed after planning: the query still reads it by id.
         self.districts._name = "boroughs"
         payload = self.create.execute(prepared)
         added = self.project.mapLayer(payload["layer_id"])

@@ -410,8 +410,6 @@ class ProbeTest(unittest.TestCase):
 
 
 class ImageProbeTest(unittest.TestCase):
-    """Whether the model sees a picture: an endpoint can take one and drop it before the model."""
-
     def _replying(self, text, seen=None):
         def fake(messages, schemas, overrides=None, timeout=0):
             if seen is not None:
@@ -513,8 +511,6 @@ class ProbeWorkerTest(unittest.TestCase):
 
 
 class RunningProbe:
-    """A connection test still on its way: it runs until the test says it stopped."""
-
     def __init__(self):
         self.running = True
         self.cancelled = False
@@ -530,8 +526,6 @@ class RunningProbe:
 
 
 class ClosingDialog(SettingsDialog):
-    """The settings window, remembering the result it closed with."""
-
     closed_with = None
 
     def done(self, result):
@@ -539,8 +533,6 @@ class ClosingDialog(SettingsDialog):
 
 
 class ClosingDuringAProbeTest(unittest.TestCase):
-    """Every way out of the window waits for a running connection test: its thread dies with the window."""
-
     def setUp(self):
         MemorySettings.values = {}
         for module in (settings, geocoder_config):
@@ -596,8 +588,6 @@ class ClosingDuringAProbeTest(unittest.TestCase):
 
 
 class ReasoningSwitchTest(unittest.TestCase):
-    """The switch built, toggled and saved through the real dialog, on in-memory settings."""
-
     def setUp(self):
         MemorySettings.values = {}
         for module in (settings, geocoder_config):

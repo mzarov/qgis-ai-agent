@@ -1,5 +1,3 @@
-"""The skill bench: its request is the plugin's own, its cases name real tools, its check reads calls right."""
-
 import json
 import re
 import sys
@@ -148,7 +146,6 @@ class ChecksTest(unittest.TestCase):
         self.assertIsNotNone(checks.mismatch({"answer": True}, calls))
 
     def test_a_forbidden_call_fails_beside_an_allowed_alternative(self):
-        # The draw and annotations cases: a place is geocoded or asked about, never drawn at made-up coordinates.
         expect = {"not": ["draw_features"], "any_of": [{"loads": ["web"]}, {"call": "ask_user"}]}
         geocoding = [self.call("load_skill", names=["web"])]
         guessing = [
@@ -286,7 +283,6 @@ class WorkflowTest(unittest.TestCase):
         self.assertNotRegex(text, r"(?m)^  push:", "the bench spends tokens; it must not run on every push")
 
 
-# The chain task in tasks.yaml: the school counts exist, 24 in all, and colour the districts or a new layer of them.
 COUNTED = 're:": 24(\\.0)?[,}]'
 COLOURED = "re:graduated|categorized"
 CHAIN_TASK = {
@@ -376,7 +372,6 @@ class AgentOutcomeTest(unittest.TestCase):
             "sums": {"fid": 78.0, "pop2020": 993209.0, "area_km2": 334.8},
         }
         renamed = {**districts, "name": "School counts"}
-        # The snapshot keeps a renamed layer under its old name; a restyled copy is a new layer, still no count.
         for state in (
             {"layers": {"districts": renamed}, "new_layers": []},
             {"layers": {"districts": districts}, "new_layers": [renamed]},

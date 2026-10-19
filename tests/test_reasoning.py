@@ -118,8 +118,6 @@ class WireMessagesTest(unittest.TestCase):
 
 
 class ReasoningDispatchTest(unittest.TestCase):
-    """The switch, the refusal fallback and its memory, through the real openai dispatch."""
-
     def setUp(self):
         self.bodies: list[dict] = []
         self.supports_thinking: bool | None = None

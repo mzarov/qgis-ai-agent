@@ -81,8 +81,6 @@ if __name__ == "__main__":
 
 
 class ThemeSwitchTest(unittest.TestCase):
-    """A saved panel theme rebuilds the panel at once when the agent is idle, later otherwise."""
-
     class Iface:
         def __init__(self):
             self.messages = []
@@ -148,8 +146,6 @@ class ThemeSwitchTest(unittest.TestCase):
 
 
 class SettingsWhileUnloadingTest(unittest.TestCase):
-    """A reload while the settings dialog is open must not touch the deleted panel afterwards."""
-
     def test_the_dialog_belongs_to_the_main_window_and_an_unload_ends_quietly(self):
         window = object()
         iface = mock.Mock()
@@ -181,8 +177,6 @@ class SettingsWhileUnloadingTest(unittest.TestCase):
 
 
 class UsageNoticeTest(unittest.TestCase):
-    """The first load says that usage counts are on, once; a notice that fails is due again."""
-
     def setUp(self):
         self.states = {"notify": True, "noticed": False}
         stats = mock.Mock()

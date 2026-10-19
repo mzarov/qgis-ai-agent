@@ -535,8 +535,6 @@ TIMED_OUT_ANSWER = (
 
 
 class _Overpass:
-    """A QgsBlockingNetworkRequest that keeps the bodies it posted and answers every request with `answer`."""
-
     class ErrorCode:
         NoError = 0
 
@@ -557,8 +555,6 @@ class _Overpass:
 
 
 class FetchTest(unittest.TestCase):
-    """What reaches Overpass and what is made of its answer; no request ever leaves the test."""
-
     def setUp(self):
         for name, fake in (("QgsBlockingNetworkRequest", _Overpass), ("QByteArray", bytes)):
             patcher = mock.patch.object(fetch, name, fake)
