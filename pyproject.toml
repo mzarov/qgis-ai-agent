@@ -44,6 +44,7 @@ strict = true
 files = [
     "ai_agent/config",
     "ai_agent/core/agent",
+    "ai_agent/core/llm",
     "ai_agent/core/state",
     "ai_agent/skills",
     "ai_agent/qgis_tools/base.py",

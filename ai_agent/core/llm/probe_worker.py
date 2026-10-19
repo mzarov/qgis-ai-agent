@@ -7,12 +7,12 @@ from ai_agent.core.llm.context_window import detect
 from ai_agent.core.llm.probe import probe, sees_images
 
 
-class ProbeThread(QThread):
+class ProbeThread(QThread):  # type: ignore[misc]
     completed = pyqtSignal(bool, str)
     window_found = pyqtSignal(int)
     images_checked = pyqtSignal(bool)
 
-    def __init__(self, overrides: dict[str, Any], parent: Any = None):
+    def __init__(self, overrides: dict[str, Any], parent: Any = None) -> None:
         super().__init__(parent)
         self._overrides = dict(overrides)
         self._feedback = QgsFeedback()

@@ -1,11 +1,12 @@
 import json
 import re
+from typing import Any
 
 PRIORITY_KEYS = ("tool_calls", "text", "done")
 FENCE_PATTERN = re.compile(r"```(?:json)?\s*([\s\S]*?)```")
 
 
-def parse_model_json(reply: str) -> dict:
+def parse_model_json(reply: str) -> dict[str, Any]:
     raw = (reply or "").strip()
     if "```" in raw:
         match = FENCE_PATTERN.search(raw)
@@ -18,9 +19,9 @@ def parse_model_json(reply: str) -> dict:
     return parsed if isinstance(parsed, dict) else _parse_best_object(raw)
 
 
-def _parse_best_object(raw: str) -> dict:
+def _parse_best_object(raw: str) -> dict[str, Any]:
     decoder = json.JSONDecoder()
-    candidates: list[tuple[int, dict]] = []
+    candidates: list[tuple[int, dict[str, Any]]] = []
     for index, char in enumerate(raw):
         if char not in "{[":
             continue
@@ -37,11 +38,11 @@ def _parse_best_object(raw: str) -> dict:
     return max(candidates, key=lambda item: (_priority_score(item[1]), item[0]))[1]
 
 
-def _priority_score(candidate: dict) -> int:
+def _priority_score(candidate: dict[str, Any]) -> int:
     return sum(1 for key in PRIORITY_KEYS if key in candidate)
 
 
-def parse_tool_arguments(raw_arguments) -> dict:
+def parse_tool_arguments(raw_arguments: object) -> dict[str, Any]:
     if isinstance(raw_arguments, dict):
         return dict(raw_arguments)
     text = raw_arguments.strip() if isinstance(raw_arguments, str) else ""
