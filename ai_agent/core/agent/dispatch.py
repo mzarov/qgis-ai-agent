@@ -1,8 +1,10 @@
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from qgis.core import Qgis, QgsMessageLog
+from qgis.PyQt.QtCore import pyqtSignal
 
 from ai_agent.core.agent import notices
+from ai_agent.core.agent.batch import WriteBatch
 from ai_agent.core.agent.executor import ToolExecutor
 from ai_agent.core.agent.failures import outcome_note
 from ai_agent.core.agent.prompts import (
@@ -14,7 +16,7 @@ from ai_agent.core.agent.prompts import (
 )
 from ai_agent.core.agent.request import detect_images_unsupported
 from ai_agent.core.agent.skills import load_skill
-from ai_agent.core.agent.transcript import ToolResult
+from ai_agent.core.agent.transcript import QUEUED_STATUS, ToolResult
 from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.base import SAFETY_READ
 from ai_agent.qgis_tools.registry import (
@@ -34,6 +36,26 @@ NO_IMAGE_INPUT = (
 
 
 class DispatchMixin:
+    if TYPE_CHECKING:
+        _executor: ToolExecutor
+        _batch: WriteBatch
+        _overrides: dict[str, Any]
+        _loaded_skills: list[str]
+        _planning: bool
+        _staged: bool
+        _stage_call: ToolCall | None
+        _question: str
+        _question_options: list[str]
+        _plan_steps: list[str]
+        _plan_done: int
+        tool_started: pyqtSignal
+        tool_finished: pyqtSignal
+        tool_queued: pyqtSignal
+        tool_rejected: pyqtSignal
+        skill_loaded: pyqtSignal
+        visual_ready: pyqtSignal
+        plan_changed: pyqtSignal
+
     def _dispatch(self, call: ToolCall) -> ToolResult:
         try:
             validate_tool_arguments(call.name, call.arguments)
@@ -92,7 +114,7 @@ class DispatchMixin:
         if len(self._batch.pending()) == before:
             # The prepared call, not the model's: Apply matches the duplicate to its twin by prepared arguments.
             return ToolResult(
-                call=queued, ok=True, payload={"status": "queued", "duplicate": True, "note": DUPLICATE_NOTE}
+                call=queued, ok=True, payload={"status": QUEUED_STATUS, "duplicate": True, "note": DUPLICATE_NOTE}
             )
         tool = get_tool_by_name(queued.name)
         if tool is not None and tool.safety_for(queued.arguments) == SAFETY_READ:

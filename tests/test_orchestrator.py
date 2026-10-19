@@ -3,7 +3,9 @@ import tempfile
 import unittest
 from types import SimpleNamespace
 
+from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.core.llm.retry import RetryNotice
+from ai_agent.core.llm.turns import ToolCall
 from ai_agent.core.orchestrator import notices
 from ai_agent.core.orchestrator import orchestrator as orchestrator_module
 from ai_agent.core.orchestrator.orchestrator import CoreOrchestrator
@@ -171,17 +173,12 @@ class PlanDock(Dock):
         self.forgotten_restores.append(message_id)
 
 
-class Call:
-    def __init__(self, name="set_symbol"):
-        self.name = name
-        self.arguments = {}
+def Call(name="set_symbol"):
+    return ToolCall(id=name, name=name)
 
 
-class Result:
-    def __init__(self, ok=True, payload=None, name="set_symbol"):
-        self.ok = ok
-        self.payload = payload or {}
-        self.call = Call(name)
+def Result(ok=True, payload=None, name="set_symbol"):
+    return ToolResult(call=Call(name), ok=ok, payload=payload or {})
 
 
 class OrchestratorSessionTest(unittest.TestCase):

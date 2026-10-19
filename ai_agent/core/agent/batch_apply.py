@@ -1,9 +1,14 @@
+from collections import Counter
+from typing import TYPE_CHECKING
+
 from qgis.core import Qgis, QgsMessageLog, QgsProject
+from qgis.PyQt.QtCore import pyqtSignal
 
 from ai_agent.core.agent import notices
-from ai_agent.core.agent.apply_run import SKIPPED_STATUS
+from ai_agent.core.agent.batch import WriteBatch
 from ai_agent.core.agent.failures import outcome_note
-from ai_agent.core.agent.transcript import ToolResult
+from ai_agent.core.agent.run_journal import RunJournal
+from ai_agent.core.agent.transcript import StepOutcome, ToolResult, Transcript
 from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.base import SAFETY_READ
 from ai_agent.qgis_tools.common.project_identity import project_identity
@@ -15,6 +20,39 @@ INTERRUPTED_JOURNAL_OUTCOME = "Run interrupted during apply; completed changes r
 
 
 class BatchApplyMixin:
+    if TYPE_CHECKING:
+        _batch: WriteBatch
+        _transcript: Transcript
+        _journal: RunJournal
+        _generation: int
+        _pending_protocol: str
+        _question: str
+        _staged: bool
+        _stage_call: ToolCall | None
+        _active_apply_call: ToolCall | None
+        _declined: list[ToolCall]
+        _declined_project: str
+        busy_changed: pyqtSignal
+        tool_started: pyqtSignal
+        tool_finished: pyqtSignal
+        tool_progressed: pyqtSignal
+        applied: pyqtSignal
+        stage_applied: pyqtSignal
+        apply_interrupted: pyqtSignal
+
+        @property
+        def is_running(self) -> bool: ...
+
+        def abort(self) -> None: ...
+
+        def _is_current(self, generation: int | None) -> bool: ...
+
+        def _request_step(self) -> None: ...
+
+        def _complete(self, text: str, generation: int | None = None) -> None: ...
+
+        def _write_journal(self, outcome: str) -> None: ...
+
     @property
     def has_pending_writes(self) -> bool:
         return bool(self._batch)
@@ -172,15 +210,11 @@ def _call_requires_snapshot(call: ToolCall) -> bool:
 
 
 def _apply_journal_outcome(results: list[ToolResult]) -> str:
-    deduplicated = sum(1 for result in results if result.payload.get("deduplicated") is True)
-    applied = sum(1 for result in results if result.ok and result.payload.get("deduplicated") is not True)
-    skipped = sum(
-        1
-        for result in results
-        if result.payload.get("status") == SKIPPED_STATUS and result.payload.get("deduplicated") is not True
+    counts = Counter(result.outcome for result in results)
+    outcome = (
+        f"Apply finished: {counts[StepOutcome.DONE]} applied, {counts[StepOutcome.FAILED]} failed, "
+        f"{counts[StepOutcome.SKIPPED]} skipped"
     )
-    failed = len(results) - applied - skipped - deduplicated
-    outcome = f"Apply finished: {applied} applied, {failed} failed, {skipped} skipped"
-    if deduplicated:
-        outcome += f", {deduplicated} deduplicated"
+    if counts[StepOutcome.DEDUPLICATED]:
+        outcome += f", {counts[StepOutcome.DEDUPLICATED]} deduplicated"
     return outcome + "."

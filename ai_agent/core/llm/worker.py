@@ -1,3 +1,5 @@
+from typing import Any
+
 from qgis.core import QgsFeedback
 from qgis.PyQt.QtCore import QThread, pyqtSignal
 
@@ -6,7 +8,7 @@ from ai_agent.core.llm.failure_kinds import turn_failure
 from ai_agent.core.llm.transport import call_model
 
 
-class ModelTurnThread(QThread):
+class ModelTurnThread(QThread):  # type: ignore[misc]
     finished_turn = pyqtSignal(object)
     chunk = pyqtSignal(str)
     thinking = pyqtSignal(str)
@@ -14,7 +16,13 @@ class ModelTurnThread(QThread):
     # object, not str: a str signal would drop the TurnFailure's kind.
     error = pyqtSignal(object)
 
-    def __init__(self, messages, tool_schemas, overrides, timeout=DEFAULT_TIMEOUT):
+    def __init__(
+        self,
+        messages: list[dict[str, Any]],
+        tool_schemas: list[dict[str, Any]],
+        overrides: dict[str, Any] | None,
+        timeout: int = DEFAULT_TIMEOUT,
+    ) -> None:
         super().__init__()
         self._messages = messages
         self._tool_schemas = tool_schemas

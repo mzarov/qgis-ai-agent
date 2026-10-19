@@ -3,10 +3,11 @@ import time
 from qgis.core import Qgis
 from qgis.PyQt.QtCore import QTimer
 
-from ai_agent.core.agent.batch_apply import SKIPPED_STATUS
 from ai_agent.core.agent.failures import explain_failure
 from ai_agent.core.agent.quick_check import confirmed_by_reading
+from ai_agent.core.agent.transcript import StepOutcome, ToolResult
 from ai_agent.core.agent.verification import plan_verification
+from ai_agent.core.llm.turns import ToolCall
 from ai_agent.core.orchestrator.notices import (
     CHECKED_BY_READING,
     DESTRUCTIVE_DECLINED,
@@ -38,7 +39,7 @@ TIME_FORMAT = "%H:%M"
 
 
 class PlanMixin:
-    def on_confirm_needed(self, calls: list, final_text: str, applies_itself: bool = False) -> None:
+    def on_confirm_needed(self, calls: list[ToolCall], final_text: str, applies_itself: bool = False) -> None:
         if final_text:
             self._render_answer(final_text)
         lines = [self._plan_line(call) for call in calls]
@@ -73,7 +74,7 @@ class PlanMixin:
             self.dock_widget.add_system_message(MODE_NEXT_REQUEST)
 
     @staticmethod
-    def _plan_line(call) -> str:
+    def _plan_line(call: ToolCall) -> str:
         return plan_line(call)
 
     def on_confirm_plan(self) -> None:
@@ -131,7 +132,7 @@ class PlanMixin:
             changes["marks"] = marks
         self.conversation.update_plan(key, **changes)
 
-    def _close_plan_card(self, results: list, failed: bool) -> None:
+    def _close_plan_card(self, results: list[ToolResult], failed: bool) -> None:
         self._apply_scope = None
         undoable = self._keep_plan_snapshot()
         self._settle_plan_steps(results)
@@ -143,11 +144,11 @@ class PlanMixin:
             self._plan_settled(FAILED if failed else APPLIED, self._plan_marks)
         self._plan_message_id = None
 
-    def on_stage_applied(self, results: list) -> None:
+    def on_stage_applied(self, results: list[ToolResult]) -> None:
         self._close_plan_card(results, any(not result.ok for result in results))
         self._show_visuals(results)
 
-    def on_applied(self, results: list) -> None:
+    def on_applied(self, results: list[ToolResult]) -> None:
         failed = [result for result in results if not result.ok]
         self.usage.note("applies")
         self._close_plan_card(results, bool(failed))
@@ -156,7 +157,7 @@ class PlanMixin:
         if failed:
             outcome = tr_n("%n step(s) did not run — the reasons are in the plan above.", len(failed))
             self.dock_widget.add_system_message(outcome)
-            details = "; ".join(_error(result) for result in failed)
+            details = "; ".join(result.error for result in failed)
             self.conversation.add("assistant", f"{outcome}\n{details}")
             self._push_message(tr("Not all changes were applied."), Qgis.MessageLevel.Warning)
         else:
@@ -167,13 +168,13 @@ class PlanMixin:
         self._show_visuals(results)
         self._maybe_verify(results)
 
-    def _show_visuals(self, results: list) -> None:
+    def _show_visuals(self, results: list[ToolResult]) -> None:
         for result in results:
             spec = getattr(result, "visual", None)
             if isinstance(spec, dict):
                 self.on_visual_ready(spec)
 
-    def _maybe_verify(self, results: list) -> None:
+    def _maybe_verify(self, results: list[ToolResult]) -> None:
         if not results or self.agent.is_running or not get_verify_after_apply():
             return
         if confirmed_by_reading(results):
@@ -205,15 +206,15 @@ class PlanMixin:
         self._plan_snapshots[self._plan_message_id] = taken
         return True
 
-    def _settle_plan_steps(self, results: list) -> None:
+    def _settle_plan_steps(self, results: list[ToolResult]) -> None:
         if self._plan_message_id is None:
             return
         self._plan_marks = []
         for index, result in enumerate(results):
-            if result.payload.get("status") == SKIPPED_STATUS:
+            if result.outcome is StepOutcome.SKIPPED:
                 state, note = STEP_SKIPPED, ""
             else:
-                state, note = (STEP_DONE, "") if result.ok else (STEP_FAILED, explain_failure(_error(result)))
+                state, note = (STEP_DONE, "") if result.ok else (STEP_FAILED, explain_failure(result.error))
             self._plan_marks.append([state, note])
             if state != STEP_DONE or index > self._plan_step:
                 self.dock_widget.mark_plan_step(self._plan_message_id, index, state, note)
@@ -227,7 +228,3 @@ class PlanMixin:
                 self._plan_settled(CANCELLED)
             self.dock_widget.add_system_message(PLAN_DROPPED)
         self._plan_message_id = None
-
-
-def _error(result: object) -> str:
-    return str(getattr(result, "payload", {}).get("error", ""))

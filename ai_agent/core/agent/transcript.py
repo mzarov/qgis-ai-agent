@@ -1,6 +1,7 @@
 import json
 from dataclasses import dataclass, field, replace
-from typing import Any
+from enum import StrEnum
+from typing import Any, Literal, TypedDict
 
 from ai_agent.core.llm.anthropic import THINKING_KEY
 from ai_agent.core.llm.reasoning import REASONING_KEY
@@ -18,6 +19,16 @@ IMAGE_MEDIA = "image/png"
 IMAGE_INTRO = "Image rendered by {tool}:"
 IMAGE_OMITTED_NOTE = "[image omitted: this endpoint does not accept image input]"
 USER_IMAGE_OMITTED_NOTE = "[the user attached a picture, but this endpoint does not accept image input]"
+QUEUED_STATUS = "queued"
+SKIPPED_STATUS = "skipped"
+DEDUPLICATED_KEY = "deduplicated"
+
+
+class StepOutcome(StrEnum):
+    DONE = "done"
+    FAILED = "failed"
+    SKIPPED = "skipped"
+    DEDUPLICATED = "deduplicated"
 
 
 @dataclass
@@ -38,6 +49,22 @@ class ToolResult:
             egress=egress,
         )
 
+    @property
+    def error(self) -> str:
+        return str(self.payload.get("error") or "")
+
+    @property
+    def status(self) -> str:
+        return str(self.payload.get("status") or "")
+
+    @property
+    def outcome(self) -> StepOutcome:
+        if self.payload.get(DEDUPLICATED_KEY) is True:
+            return StepOutcome.DEDUPLICATED
+        if self.status == SKIPPED_STATUS:
+            return StepOutcome.SKIPPED
+        return StepOutcome.DONE if self.ok else StepOutcome.FAILED
+
     def to_text(self, limit: int = MAX_RESULT_CHARS) -> str:
         try:
             text = json.dumps(self.payload, ensure_ascii=False)
@@ -49,9 +76,29 @@ class ToolResult:
         return text
 
 
+class UserEntry(TypedDict):
+    kind: Literal["user"]
+    text: str
+    images: list[str]
+
+
+class TurnEntry(TypedDict):
+    kind: Literal["turn"]
+    turn: ModelTurn
+
+
+class ResultsEntry(TypedDict):
+    kind: Literal["results"]
+    results: list[ToolResult]
+    protocol: str
+
+
+TranscriptEntry = UserEntry | TurnEntry | ResultsEntry
+
+
 @dataclass
 class Transcript:
-    entries: list[dict[str, Any]] = field(default_factory=list)
+    entries: list[TranscriptEntry] = field(default_factory=list)
 
     def add_user(self, text: str, images: list[str] | None = None) -> None:
         self.entries.append({"kind": "user", "text": text, "images": list(images or [])})
@@ -69,11 +116,11 @@ class Transcript:
         remaining = {result.call.id: result for result in results}
         by_signature = {_result_signature(result): result for result in results}
         for entry in reversed(self.entries):
-            if entry.get("kind") != "results":
+            if entry["kind"] != "results":
                 continue
             for index, existing in enumerate(entry["results"]):
                 replacement = remaining.pop(existing.call.id, None)
-                if replacement is None and existing.payload.get("status") == "queued":
+                if replacement is None and existing.status == QUEUED_STATUS:
                     canonical = by_signature.get(_result_signature(existing))
                     if canonical is not None:
                         replacement = _deduplicated_result(canonical, existing.call)
@@ -129,17 +176,16 @@ class Transcript:
     @classmethod
     def _render(
         cls,
-        entry: dict[str, Any],
+        entry: TranscriptEntry,
         fresh: bool,
         carries_image: bool,
         images_allowed: bool,
     ) -> list[dict[str, Any]]:
-        kind = entry["kind"]
-        if kind == "user":
+        if entry["kind"] == "user":
             return [cls._render_user(entry["text"], entry.get("images") or [], images_allowed)]
-        if kind == "turn":
+        if entry["kind"] == "turn":
             return [cls._render_turn(entry["turn"])]
-        if kind == "results":
+        if entry["kind"] == "results":
             return cls._render_results(
                 entry["results"],
                 entry["protocol"],
@@ -265,5 +311,5 @@ def _result_signature(result: ToolResult) -> str:
 
 def _deduplicated_result(result: ToolResult, alias: ToolCall) -> ToolResult:
     payload = dict(result.payload)
-    payload.update({"deduplicated": True, "covered_by": result.call.id})
+    payload.update({DEDUPLICATED_KEY: True, "covered_by": result.call.id})
     return replace(result, call=alias, payload=payload)

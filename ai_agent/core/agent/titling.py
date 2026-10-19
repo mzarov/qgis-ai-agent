@@ -1,9 +1,8 @@
-from typing import Any
-
 from qgis.PyQt.QtCore import QObject, pyqtSignal
 
 from ai_agent.core.agent.request import build_overrides
 from ai_agent.core.agent.turn_thread import TurnThreadOwner
+from ai_agent.core.llm.turns import ModelTurn
 
 TITLE_SYSTEM = (
     "Name this conversation between a QGIS user and an AI agent in two to five words, in the "
@@ -20,7 +19,7 @@ def clean_title(text: str) -> str:
     return line.strip().strip(TRIMMED).strip()[:TITLE_CHARS].strip()
 
 
-class Titler(QObject):
+class Titler(QObject):  # type: ignore[misc]
     finished = pyqtSignal(str, int, int)
 
     def __init__(self) -> None:
@@ -43,7 +42,7 @@ class Titler(QObject):
         self._turn.detach(self._on_turn, self._on_error)
         self._turn.stop()
 
-    def _on_turn(self, turn: Any) -> None:
+    def _on_turn(self, turn: ModelTurn) -> None:
         self._turn.release()
         title = clean_title(getattr(turn, "text", ""))
         if title:

@@ -7,6 +7,8 @@ import uuid
 from collections.abc import Sequence
 from typing import Any
 
+from ai_agent.core.agent.transcript import StepOutcome, ToolResult, TranscriptEntry
+
 FOLDER = "ai_agent_runs"
 JOURNAL_PREFIX = "run_"
 OK_MARK = "[ok]"
@@ -20,7 +22,7 @@ MARKDOWN_PUNCTUATION = "\\`*_{}[]()#+!|~"
 
 def record_run(
     prompt: str,
-    entries: list[dict[str, Any]],
+    entries: Sequence[TranscriptEntry],
     outcome: str,
     applied: int,
     requests: Sequence[tuple[int, int, float]] = (),
@@ -30,7 +32,7 @@ def record_run(
 
 def render_journal(
     prompt: str,
-    entries: list[dict[str, Any]],
+    entries: Sequence[TranscriptEntry],
     outcome: str,
     applied: int,
     requests: Sequence[tuple[int, int, float]] = (),
@@ -157,11 +159,10 @@ def _sync_folder(folder: str) -> None:
         os.close(descriptor)
 
 
-def _entry_lines(entry: dict[str, Any]) -> list[str]:
-    kind = entry.get("kind")
-    if kind == "user":
+def _entry_lines(entry: TranscriptEntry) -> list[str]:
+    if entry["kind"] == "user":
         return [f"- **user:** {_safe_text(entry.get('text', ''))}"]
-    if kind == "turn":
+    if entry["kind"] == "turn":
         turn = entry["turn"]
         lines = []
         if turn.text.strip():
@@ -169,17 +170,17 @@ def _entry_lines(entry: dict[str, Any]) -> list[str]:
         for call in turn.tool_calls:
             lines.append(f"- call `{_safe_identifier(call.name)}`")
         return lines
-    if kind == "results":
+    if entry["kind"] == "results":
         return [_result_line(result) for result in entry.get("results", [])]
     return []
 
 
-def _result_line(result: Any) -> str:
+def _result_line(result: ToolResult) -> str:
     name = _safe_identifier(result.call.name)
-    if result.payload.get("deduplicated") is True:
+    if result.outcome is StepOutcome.DEDUPLICATED:
         return f"  - `{name}` {DEDUPLICATED_MARK}"
     mark = OK_MARK if result.ok else FAIL_MARK
-    error = f" — {_safe_text(result.payload.get('error', ''))}" if not result.ok else ""
+    error = f" — {_safe_text(result.error)}" if not result.ok else ""
     return f"  - `{name}` {mark}{error}"
 
 

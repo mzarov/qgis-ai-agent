@@ -4,6 +4,7 @@ from qgis.PyQt.QtCore import QObject, pyqtSignal
 
 from ai_agent.core.agent.request import build_overrides
 from ai_agent.core.agent.turn_thread import TurnThreadOwner
+from ai_agent.core.llm.turns import ModelTurn
 
 COMPACT_SYSTEM = (
     "You are compacting a conversation between a QGIS user and an AI agent that works in their "
@@ -29,7 +30,7 @@ def estimated_tokens(messages: list[dict[str, Any]]) -> int:
     return int(latin / CHARS_PER_TOKEN + (len(text) - latin) / WIDE_CHARS_PER_TOKEN)
 
 
-class Compactor(QObject):
+class Compactor(QObject):  # type: ignore[misc]
     finished = pyqtSignal(str, int, int)
     failed = pyqtSignal(str)
 
@@ -60,7 +61,7 @@ class Compactor(QObject):
         self._turn.detach(self._on_turn, self._on_error)
         self._turn.stop()
 
-    def _on_turn(self, turn: Any) -> None:
+    def _on_turn(self, turn: ModelTurn) -> None:
         self._turn.release()
         summary = str(getattr(turn, "text", "") or "").strip()
         if not summary:

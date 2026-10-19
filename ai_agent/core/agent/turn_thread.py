@@ -1,10 +1,20 @@
 from collections.abc import Callable
 from typing import Any
 
+from ai_agent.core.llm.retry import RetryNotice
+from ai_agent.core.llm.turns import ModelTurn
 from ai_agent.core.llm.worker import ModelTurnThread
 
 THREAD_STOP_TIMEOUT_MS = 3000
 _ORPHANS: list[ModelTurnThread] = []
+
+TurnCallbacks = tuple[
+    Callable[[ModelTurn], None],
+    Callable[[str], None],
+    Callable[[str], None],
+    Callable[[str], None],
+    Callable[[RetryNotice], None],
+]
 
 
 class TurnThreadOwner:
@@ -21,11 +31,11 @@ class TurnThreadOwner:
         messages: list[dict[str, Any]],
         tool_schemas: list[dict[str, Any]],
         overrides: dict[str, Any],
-        on_turn: Callable[[Any], None],
+        on_turn: Callable[[ModelTurn], None],
         on_error: Callable[[str], None],
         on_chunk: Callable[[str], None] | None = None,
         on_thinking: Callable[[str], None] | None = None,
-        on_retry: Callable[[Any], None] | None = None,
+        on_retry: Callable[[RetryNotice], None] | None = None,
     ) -> None:
         thread = ModelTurnThread(messages, tool_schemas, overrides)
         thread.finished_turn.connect(on_turn)
@@ -48,11 +58,11 @@ class TurnThreadOwner:
 
     def detach(
         self,
-        on_turn: Callable[[Any], None],
+        on_turn: Callable[[ModelTurn], None],
         on_error: Callable[[str], None],
         on_chunk: Callable[[str], None] | None = None,
         on_thinking: Callable[[str], None] | None = None,
-        on_retry: Callable[[Any], None] | None = None,
+        on_retry: Callable[[RetryNotice], None] | None = None,
     ) -> None:
         thread = self._thread
         self._thread = None
