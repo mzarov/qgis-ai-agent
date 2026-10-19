@@ -9,6 +9,7 @@ MAX_MESSAGES = 400
 TITLE_LIMIT = 48
 UNTITLED = tr("Untitled")
 NO_PROJECT = "no project"
+MODEL_ROLES = frozenset({"user", "assistant"})
 
 
 class StoredMessage(TypedDict):
@@ -72,7 +73,7 @@ class Session:
 
     def compact(self, summary: str, keep: int, upto: int | None = None) -> None:
         covered = len(self.messages) if upto is None else min(max(0, upto - self.trimmed), len(self.messages))
-        start = max(0, covered - max(0, keep))
+        start = _start_of_last(self.messages, covered, keep)
         while start < len(self.messages) and self.messages[start]["role"] != "user":
             start += 1
         self.summary = summary.strip()
@@ -139,6 +140,16 @@ class Session:
             requests=_as_int(raw.get("requests")),
             named=bool(raw.get("named")),
         )
+
+
+def _start_of_last(messages: list[StoredMessage], end: int, count: int) -> int:
+    # Display-only entries sit between the messages: only what the model reads counts towards the kept tail.
+    start, kept = end, 0
+    while start > 0 and kept < count:
+        start -= 1
+        if messages[start]["role"] in MODEL_ROLES:
+            kept += 1
+    return start
 
 
 def _stored(item: dict[str, Any]) -> StoredMessage:

@@ -3,7 +3,7 @@ import uuid
 from typing import Any, Final
 
 from ai_agent.core.settings import get_history_days
-from ai_agent.core.state.session import Session, StoredMessage
+from ai_agent.core.state.session import MODEL_ROLES, Session, StoredMessage
 from ai_agent.core.state.store import SessionStore, current_project_key
 from ai_agent.core.state.trace import PENDING, PLAN_ROLE, TRACE_ROLE, TraceLog
 
@@ -13,7 +13,6 @@ SUMMARY_ACK = "Understood. I will continue from this summary."
 KEEP_AFTER_COMPACTION = 2
 VISUAL_ROLE = "visual"
 FAILURE_ROLE = "failure"
-MODEL_ROLES = frozenset({"user", "assistant"})
 DISPLAY_ROLES = frozenset({VISUAL_ROLE, TRACE_ROLE, PLAN_ROLE, FAILURE_ROLE})
 CHOSEN: Final = "chosen"
 PLACE = "place"
