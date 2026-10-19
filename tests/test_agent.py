@@ -536,6 +536,28 @@ class BatchDedupTest(unittest.TestCase):
                 self.assertTrue(by_id["write_2"].payload["deduplicated"])
                 self.assertEqual(by_id["write_2"].payload["covered_by"], "write_1")
 
+    def test_a_duplicate_queued_by_the_model_gets_the_result_when_prepare_adds_arguments(self):
+        batch_module.prepare_tool_call = lambda name, params: {**params, "_prepared": True}
+        executor = FakeExecutor()
+        loop = AgentLoop()
+        loop._batch = WriteBatch(executor)
+        arguments = {"layer_name": "Дороги", "opacity": 0.5}
+        acknowledgements = [
+            loop._dispatch(ToolCall(id="write_1", name="set_opacity", arguments=dict(arguments))),
+            loop._dispatch(ToolCall(id="write_2", name="set_opacity", arguments=dict(arguments))),
+        ]
+        loop._transcript.add_results(acknowledgements, "native")
+        loop._journal.saved = True
+
+        with mock.patch.object(batch_apply_module, "take_snapshot", return_value="/tmp/snapshot.qgz"):
+            loop.confirm_pending()
+
+        by_id = {result.call.id: result for result in loop._transcript.entries[0]["results"]}
+        self.assertEqual(executor.ran, ["set_opacity"])
+        self.assertNotEqual(by_id["write_2"].payload.get("status"), "queued")
+        self.assertTrue(by_id["write_2"].payload["deduplicated"])
+        self.assertEqual(by_id["write_2"].payload["covered_by"], "write_1")
+
     def test_undo_cannot_be_mixed_with_other_writes(self):
         self.batch.add(call("undo_last_apply"))
         with self.assertRaisesRegex(ValueError, "by itself"):

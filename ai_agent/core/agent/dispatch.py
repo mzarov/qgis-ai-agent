@@ -90,8 +90,9 @@ class DispatchMixin:
             )
             return ToolResult.failure(call, str(err))
         if len(self._batch.pending()) == before:
+            # The prepared call, not the model's: Apply matches the duplicate to its twin by prepared arguments.
             return ToolResult(
-                call=call, ok=True, payload={"status": "queued", "duplicate": True, "note": DUPLICATE_NOTE}
+                call=queued, ok=True, payload={"status": "queued", "duplicate": True, "note": DUPLICATE_NOTE}
             )
         tool = get_tool_by_name(queued.name)
         if tool is not None and tool.safety_for(queued.arguments) == SAFETY_READ:
