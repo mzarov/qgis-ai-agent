@@ -1,8 +1,9 @@
+from ai_agent.core.orchestrator.contracts import OrchestratorHost
 from ai_agent.core.orchestrator.notices import SESSION_MISSING, SWITCH_WHILE_APPLYING
 from ai_agent.core.orchestrator.presentation import project_line
 
 
-class SessionsMixin:
+class SessionsMixin(OrchestratorHost):
     def on_new_session(self) -> None:
         if self._busy_with_current():
             return

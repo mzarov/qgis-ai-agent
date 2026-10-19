@@ -8,6 +8,7 @@ from ai_agent.core.agent.quick_check import confirmed_by_reading
 from ai_agent.core.agent.transcript import StepOutcome, ToolResult
 from ai_agent.core.agent.verification import plan_verification
 from ai_agent.core.llm.turns import ToolCall
+from ai_agent.core.orchestrator.contracts import OrchestratorHost
 from ai_agent.core.orchestrator.notices import (
     CHECKED_BY_READING,
     DESTRUCTIVE_DECLINED,
@@ -38,7 +39,7 @@ from ai_agent.qgis_tools.project.snapshots import last_snapshot
 TIME_FORMAT = "%H:%M"
 
 
-class PlanMixin:
+class PlanMixin(OrchestratorHost):
     def on_confirm_needed(self, calls: list[ToolCall], final_text: str, applies_itself: bool = False) -> None:
         if final_text:
             self._render_answer(final_text)
@@ -124,7 +125,8 @@ class PlanMixin:
         self.agent.forget_declined()
 
     def _plan_settled(self, state: str, marks: list[list[str]] | None = None, plan_id: int | None = None) -> None:
-        key = self._plan_keys.get(self._plan_message_id if plan_id is None else plan_id)
+        card = self._plan_message_id if plan_id is None else plan_id
+        key = self._plan_keys.get(card) if card is not None else None
         if not key:
             return
         changes: dict[str, object] = {"state": state, "at": time.strftime(TIME_FORMAT)}

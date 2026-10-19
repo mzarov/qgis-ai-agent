@@ -26,7 +26,7 @@ def area_text(west: float, south: float, east: float, north: float) -> str:
     return f"@area({west:.{DECIMALS}f}, {south:.{DECIMALS}f}, {east:.{DECIMALS}f}, {north:.{DECIMALS}f})"
 
 
-class MapPicker(QObject):
+class MapPicker(QObject):  # type: ignore[misc]
     picked = pyqtSignal(str)
     ended = pyqtSignal()
 

@@ -1,5 +1,15 @@
 from collections.abc import Callable
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
+
+if TYPE_CHECKING:
+    from ai_agent.core.agent.loop import AgentLoop
+    from ai_agent.core.orchestrator.compacting import SessionCompaction
+    from ai_agent.core.orchestrator.naming import SessionNaming
+    from ai_agent.core.orchestrator.rewind import Checkpoint
+    from ai_agent.core.state.conversation import ConversationState
+    from ai_agent.core.usage_stats import UsageStats
+
+RetryArgs = tuple[str, str, str, list[str] | None, list[str] | None, bool]
 
 
 class DockWidgetContract(Protocol):
@@ -109,3 +119,64 @@ class DockWidgetContract(Protocol):
     def set_work_mode(self, mode: str) -> None: ...
 
     def offer_plan(self) -> None: ...
+
+
+class OrchestratorHost:
+    if TYPE_CHECKING:
+        iface: Any
+        dock_widget: DockWidgetContract
+        conversation: ConversationState
+        agent: AgentLoop
+        compaction: SessionCompaction
+        naming: SessionNaming
+        usage: UsageStats
+        _active_tool_message_id: int | None
+        _plan_message_id: int | None
+        _plan_step: int
+        _plan_marks: list[list[str]]
+        _plan_keys: dict[int, str]
+        _plan_snapshots: dict[int, str]
+        _restorable_plan_id: int | None
+        _apply_scope: tuple[str, str] | None
+        _invalidated_scope: tuple[str, str] | None
+        _deferred_interrupted_outcome: str
+        _checkpoints: list[Checkpoint]
+        _snapshot_before_apply: str
+        _restoring_snapshot: bool
+        _retry_args: RetryArgs | None
+        _done_summary: str
+        _last_request: str
+
+        @property
+        def is_idle(self) -> bool: ...
+
+        def _show_title(self) -> None: ...
+
+        def _push_message(self, text: str, level: Any) -> None: ...
+
+        def _start_run(
+            self,
+            shown: str,
+            prompt: str,
+            request: str,
+            skills: list[str] | None = None,
+            images: list[str] | None = None,
+        ) -> None: ...
+
+        def _replay(self) -> None: ...
+
+        def _render_answer(self, message: str) -> None: ...
+
+        def on_visual_ready(self, spec: dict[str, Any]) -> None: ...
+
+        def _plan_settled(
+            self, state: str, marks: list[list[str]] | None = None, plan_id: int | None = None
+        ) -> None: ...
+
+        def _forget_restore(self) -> None: ...
+
+        def _drop_pending_plan(self) -> None: ...
+
+        def _note_apply_start(self) -> None: ...
+
+        def _record_checkpoint(self) -> None: ...

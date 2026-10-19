@@ -1,3 +1,5 @@
+from ai_agent.core.agent.transcript import ToolResult
+from ai_agent.core.orchestrator.contracts import OrchestratorHost
 from ai_agent.core.orchestrator.notices import PREVIOUS_APPLY_INTERRUPTED, PROJECT_CHANGED
 from ai_agent.core.orchestrator.presentation import interrupted_outcome
 from ai_agent.core.orchestrator.scope import conversation_scope
@@ -5,7 +7,7 @@ from ai_agent.core.orchestrator.scope import conversation_scope
 UNDO_TOOL = "undo_last_apply"
 
 
-class ProjectLifecycleMixin:
+class ProjectLifecycleMixin(OrchestratorHost):
     def on_project_changed(self, force_new: bool = False) -> None:
         if not force_new and getattr(self.agent, "active_apply_tool", "") == UNDO_TOOL:
             return
@@ -27,7 +29,7 @@ class ProjectLifecycleMixin:
         self._abort_project_work()
         return True
 
-    def on_apply_interrupted(self, results: list) -> None:
+    def on_apply_interrupted(self, results: list[ToolResult]) -> None:
         scope = self._apply_scope
         self._apply_scope = None
         self._record_checkpoint()

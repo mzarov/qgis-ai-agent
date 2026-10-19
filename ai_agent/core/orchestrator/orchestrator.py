@@ -10,7 +10,7 @@ from ai_agent.core.llm.retry import RetryNotice
 from ai_agent.core.local_skills import register_local_skills
 from ai_agent.core.orchestrator import attaching
 from ai_agent.core.orchestrator.compacting import SessionCompaction
-from ai_agent.core.orchestrator.contracts import DockWidgetContract
+from ai_agent.core.orchestrator.contracts import DockWidgetContract, RetryArgs
 from ai_agent.core.orchestrator.naming import SessionNaming
 from ai_agent.core.orchestrator.notices import (
     DATA_SHARING_DECLINED,
@@ -55,7 +55,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self._plan_keys: dict[int, str] = {}
         self._plan_marks: list[list[str]] = []
         self._restorable_plan_id: int | None = None
-        self._retry_args: tuple[Any, ...] | None = None
+        self._retry_args: RetryArgs | None = None
         self._done_summary = ""
         self._snapshot_before_apply = ""
         self._invalidated_scope: tuple[str, str] | None = None
@@ -299,7 +299,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.compaction.stop()
         self.naming.stop()
 
-    def _push_message(self, text: str, level) -> None:
+    def _push_message(self, text: str, level: Any) -> None:
         self.iface.messageBar().pushMessage("AI Agent", text, level=level, duration=MESSAGE_DURATION_SEC)
 
 

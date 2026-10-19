@@ -317,7 +317,7 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `orchestrator/plans.py`  | the plan card, Apply and Cancel, apply outcomes, verification |
 | `orchestrator/run_events.py` | tool steps, answers, failures and stops drawn into the chat |
 | `orchestrator/notices.py` | every chat and message-bar text of the orchestrator |
-| `orchestrator/contracts.py` | the DockWidget contract                          |
+| `orchestrator/contracts.py` | the DockWidget contract; `OrchestratorHost`, the state the mixins share |
 | `state/conversation.py`  | the model window and the current dialogue, one entry point |
 | `state/session.py`       | the conversation model: title, messages, serialising |
 | `state/trace.py`         | what a turn showed besides its messages — steps, reasoning, plan cards — kept for the replay |
