@@ -25,7 +25,7 @@ class RemoveLayerTool(BaseTool):
     ]
 
     def has_external_effect(self, params: dict[str, Any]) -> bool:
-        """A scratch layer too large to copy beside the snapshot is gone for good once removed."""
+        # A scratch layer too large to copy beside the snapshot is gone for good once removed.
         try:
             layer = find_layer(params.get("layer_name") or "")
         except Exception:

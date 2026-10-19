@@ -1,5 +1,3 @@
-"""Reading a project snapshot back: the shared core of undo_last_apply and rewinding to a message."""
-
 from typing import Any
 
 from qgis.core import QgsProject
@@ -35,11 +33,6 @@ OTHER_PROJECT = (
 
 
 def restore_snapshot(path: str) -> dict[str, Any]:
-    """Read the snapshot at `path` into the current project and drop it; raises ValueError when that is unsafe.
-
-    The project keeps its own file name and identity, marked as changed; memory
-    layers are refilled from the copies kept beside the snapshot.
-    """
     project = QgsProject.instance()
     ensure_project_read_safe(project)
     before_read = capture_project_state(project)

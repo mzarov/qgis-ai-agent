@@ -128,12 +128,7 @@ class QueryLayerTool(BaseTool):
 
 
 def _restrict_to_selection(layer: QgsVectorLayer, request: QgsFeatureRequest) -> list[int]:
-    """Narrow the request to the selected features its filter accepts; returns their ids.
-
-    A request holds one filter: setFilterFids drops the filter expression, and
-    QgsVectorLayer.aggregate drops the ids beside a filter. So the two are
-    intersected here once, and every path reads these ids alone.
-    """
+    # A request holds one filter: setFilterFids drops the expression, aggregate drops ids beside one.
     try:
         ids = list(layer.selectedFeatureIds())
     except Exception:

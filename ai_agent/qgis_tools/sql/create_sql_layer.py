@@ -39,7 +39,6 @@ class CreateSqlLayerTool(BaseTool):
         sql = checked_sql(params.get("sql"))
         name = _free_name(params.get("name"))
         sources = resolve_sources(sql)
-        # Built once and dropped: the provider checks the SQL and its tables now, while the model can still fix them.
         open_query(sql, sources, name)
         return {**params, "name": name, SOURCES_KEY: sources}
 
@@ -66,7 +65,6 @@ class CreateSqlLayerTool(BaseTool):
         return result
 
     def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
-        # The step's fact is one layer: in the project under the asked name, and valid, so its query runs.
         identifier = str(payload.get("layer_id") or "")
         layer = QgsProject.instance().mapLayer(identifier) if identifier else None
         if layer is None:

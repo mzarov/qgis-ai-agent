@@ -185,8 +185,6 @@ def wikipedia_results(query: str, *, epoch: int | None = None) -> list[dict[str,
 
 
 def _wikipedia_request(query: str) -> tuple[str, str]:
-    # A plain-ASCII query is most likely English; anything else is searched in
-    # the Wikipedia of the user's interface language.
     lang = DEFAULT_LANGUAGE if query.isascii() else ui_language()
     return lang, WIKIPEDIA_ENDPOINT.format(lang=lang, query=encoded(query), limit=MAX_RESULTS)
 

@@ -31,19 +31,16 @@ MAX_CLASSES = 30
 DEFAULT_RAMPS = ("Viridis", "Spectral", "Blues")
 DEFAULT_AZIMUTH = 315.0
 DEFAULT_ALTITUDE = 45.0
-# Roughly 500 x 500 cells: enough for a stable min/max, and a large raster is
-# not read whole on the main thread. An empty extent means the whole raster.
+# Sampled: a large raster is not read whole on the main thread. An empty extent means all of it.
 STATISTICS_SAMPLE_CELLS = 250_000
-# Web rasters are already rendered pictures: no band values to stretch, and
-# statistics would download tiles on the main thread.
+# Statistics on a web raster would download tiles on the main thread.
 WEB_RASTER_PROVIDERS = frozenset({"wms", "wcs", "xyz", "arcgismapserver", "arcgisfeatureserver"})
 
 
 def band_range(layer: Any, band: int) -> tuple[float, float]:
     provider = layer.dataProvider()
     wanted = Qgis.RasterBandStatistic.Min | Qgis.RasterBandStatistic.Max
-    # sip resolves any combined flag to the deprecated int overload (QGIS 4.2);
-    # the call is still the supported one, so its warning is only noise.
+    # sip picks the deprecated int overload for combined flags (QGIS 4.2): the warning is noise.
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", DeprecationWarning)
         stats = provider.bandStatistics(band, wanted, QgsRectangle(), STATISTICS_SAMPLE_CELLS)
@@ -148,7 +145,6 @@ def checked_no_data(values: Any) -> list[float]:
 
 
 def apply_no_data(layer: Any, numbers: list[float]) -> dict[int, list[Any]]:
-    """Hide the values in every band; return the previous per-band ranges for restore_no_data."""
     previous: dict[int, list[Any]] = {}
     if not numbers:
         return previous

@@ -12,7 +12,6 @@ FOLDER_NAME = "ai_agent_sessions"
 FILE_NAME = "project_notes.json"
 MAX_NOTES = 40
 MAX_NOTE_CHARS = 300
-# Notes about the user rather than a project, kept in the same file under a key no project identity takes.
 USER_KEY = "user:"
 
 
@@ -74,7 +73,6 @@ class NoteStore:
         return _notes_for(self.all_notes(), USER_KEY)
 
     def replace_user_notes(self, notes: list[str]) -> list[str]:
-        """Store the user's notes as edited in Settings: trimmed, deduplicated, within the limits."""
         kept: list[str] = []
         for item in notes:
             note = str(item or "").strip()[:MAX_NOTE_CHARS]

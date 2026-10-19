@@ -13,8 +13,7 @@ from ai_agent.qgis_tools.common.values import plain_value, suggest_fields
 DESCENDING_MARKERS = ("desc", "descending")
 ASCENDING_MARKERS = ("asc", "ascending")
 SPECIAL_COLUMNS = {"*", "$geometry", "$id", "$area", "$length", "$perimeter", "$x", "$y"}
-# QgsFeatureRequest.ALL_ATTRIBUTES: what an expression using @parent (aggregate over another layer) references.
-# It names no field; refusing it would refuse every correct "count the points in each polygon" expression.
+# An @parent aggregate references ALL_ATTRIBUTES; refusing it breaks valid expressions.
 ALL_ATTRIBUTES = "#!allattributes!#"
 QUOTED_EXPRESSION_HINT = (
     "A name in double quotes is a field; an expression goes without quotes — inside aggregate, for one: "

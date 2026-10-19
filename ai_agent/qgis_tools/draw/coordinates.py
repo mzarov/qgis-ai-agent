@@ -1,5 +1,3 @@
-"""Coordinates typed by the model: parsing, sanity checks, CRS and geometry building."""
-
 import math
 from typing import Any
 
@@ -22,7 +20,6 @@ MAX_FEATURES = 1000
 MAX_VERTICES = 10000
 MAX_LONGITUDE = 180.0
 MAX_LATITUDE = 90.0
-# UTM zones stop at these latitudes; beyond them a polar CRS is needed.
 UTM_LATITUDE_LIMIT = 84.0
 UTM_NORTH_BASE = 32600
 UTM_SOUTH_BASE = 32700
@@ -51,10 +48,6 @@ def crs_label(crs: QgsCoordinateReferenceSystem, fallback: Any) -> str:
 
 
 def parse_vertices(raw: Any, geometry: str, position: int) -> list[Vertex]:
-    """The `coordinates` of feature number `position` as (x, y) pairs.
-
-    A point also accepts a bare [x, y] pair; every geometry accepts a list of pairs.
-    """
     where = f"features[{position}].coordinates"
     if geometry == POINT and _is_pair(raw):
         raw = [raw]
@@ -70,11 +63,6 @@ def parse_vertices(raw: Any, geometry: str, position: int) -> list[Vertex]:
 def check_ranges(
     shapes: list[list[Vertex]], crs: QgsCoordinateReferenceSystem, crs_text: str, small_values_confirmed: bool = False
 ) -> None:
-    """Refuse coordinates that cannot be in `crs`: swapped lat/lon, or degrees in a metric CRS.
-
-    Genuine small projected values (a local grid, EPSG:3857 near 0,0) pass once
-    `small_values_confirmed` says the caller has independent evidence for them.
-    """
     pairs = [vertex for vertices in shapes for vertex in vertices]
     if not pairs:
         return
@@ -137,7 +125,6 @@ def transformed_points(
 
 
 def utm_crs_for(shapes: list[list[Vertex]], source: QgsCoordinateReferenceSystem) -> QgsCoordinateReferenceSystem:
-    """The UTM zone around the middle of the coordinates."""
     pairs = [vertex for vertices in shapes for vertex in vertices]
     if not pairs:
         raise ValueError("layer_crs 'utm' needs coordinates to pick the zone from; give an explicit CRS instead.")

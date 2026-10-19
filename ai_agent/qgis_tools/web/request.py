@@ -46,7 +46,6 @@ def network_request(url: str, *, address: str, manager: Any | None = None) -> QN
 
 
 def ui_language() -> str:
-    """The QGIS interface language as an ISO 639 code; English when unknown."""
     try:
         locale = str(QgsApplication.locale() or "")
     except Exception:

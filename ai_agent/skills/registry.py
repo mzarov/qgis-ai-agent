@@ -22,7 +22,6 @@ class SkillRegistry:
         self._local_root: str | None = None
         self._local: dict[str, Skill] = {}
         self._local_problems: list[str] = []
-        # Built-in skills the user switched off: the agent neither sees nor loads them.
         self._disabled: frozenset[str] = frozenset()
 
     def all_skills(self) -> list[Skill]:
@@ -37,7 +36,6 @@ class SkillRegistry:
         return sorted({*self._enabled(), *self._local})
 
     def builtin_skills(self) -> list[Skill]:
-        """Every built-in skill, switched off or not: the settings page lists them all."""
         builtin = self._load()
         return [builtin[name] for name in sorted(builtin)]
 

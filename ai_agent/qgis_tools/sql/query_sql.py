@@ -10,7 +10,6 @@ from ai_agent.qgis_tools.sql.statement import SQL_PARAM, checked_sql, short_sql
 from ai_agent.qgis_tools.sql.virtual import open_query, resolve_sources
 
 MAX_ROWS = 200
-# A cell is a value to read, not a document: a polygon's WKT would fill the model's window on its own.
 MAX_TEXT_CHARS = 300
 QUERY_LAYER_NAME = "query_sql"
 TRUNCATED_NOTE = "Only the first {0} rows are shown. Aggregate, filter or ORDER BY ... LIMIT to see what matters."
@@ -70,7 +69,6 @@ class QuerySqlTool(BaseTool):
 
 
 def cell(value: Any) -> Any:
-    """A result value the model can read: plain JSON, long texts cut, binary data named by its size."""
     if isinstance(value, (bytes, bytearray)) or type(value).__name__ == "QByteArray":
         return f"<binary, {len(value)} bytes>"
     plain = plain_value(value)
@@ -84,7 +82,6 @@ def _counted(layer: Any, rows: list[list[Any]]) -> dict[str, Any]:
         return {"rows": [], "row_count": 0, "note": EMPTY_NOTE}
     if len(rows) <= MAX_ROWS:
         return {"rows": rows, "row_count": len(rows)}
-    # Past the cap the provider counts with one COUNT(*) over the query instead of rows read here.
     total = safe_feature_count(layer)
     counted: dict[str, Any] = {"rows": rows[:MAX_ROWS], "shown": MAX_ROWS, "note": TRUNCATED_NOTE.format(MAX_ROWS)}
     if total is not None and total > MAX_ROWS:

@@ -131,7 +131,6 @@ class RunProcessingTool(BaseTool):
         return "\n".join(lines)
 
     def start(self, params: dict[str, Any]) -> Background | None:
-        """Most algorithms run in QGIS's task, off the main thread; NoThreading ones run in `execute`."""
         algorithm, prepared, load_output = self._ready(params)
         if not runs_in_background(algorithm):
             return None

@@ -17,7 +17,6 @@ HISTORY_DAYS = 30
 MAX_PARAMETERS = 25
 MAX_VALUE_CHARS = 160
 MAX_LIST_ITEMS = 10
-# Model runs report every child's inputs and results too: noise for picking steps.
 MODEL_RESULT_KEYS = frozenset({"CHILD_INPUTS", "CHILD_RESULTS"})
 SCOPE_NOTE = (
     "Runs started from Processing dialogs, oldest first. The agent's own run_processing calls are not "
@@ -71,10 +70,8 @@ class ListProcessingHistoryTool(BaseTool):
 
 
 def history_entry(details: dict[str, Any], when: str, layers: dict[str, str]) -> dict[str, Any]:
-    """One run as the model reads it: parameters shortened, project layers named."""
     shaped: dict[str, Any] = {"when": when, "algorithm_id": str(details.get("algorithm_id") or "")}
     parameters = details.get("parameters")
-    # The Processing dialog stores asMap(): the values under "inputs", the project's units beside them.
     if isinstance(parameters, dict) and isinstance(parameters.get("inputs"), dict):
         parameters = parameters["inputs"]
     if isinstance(parameters, dict):
@@ -97,11 +94,10 @@ def history_entry(details: dict[str, Any], when: str, layers: dict[str, str]) ->
 
 
 def shorten(value: Any, depth: int = 0) -> Any:
-    """A JSON-safe value no longer than a line: keys masked, long text cut, long lists capped, objects as text."""
     if value is None or isinstance(value, (bool, int, float)):
         return value
     if isinstance(value, str):
-        # A layer parameter is recorded as the layer's whole source, keys and passwords included.
+        # A layer parameter is recorded as its whole source, keys and passwords included.
         value = sanitize_source(value)
         return value if len(value) <= MAX_VALUE_CHARS else value[: MAX_VALUE_CHARS - 1] + "…"
     if isinstance(value, (list, tuple)) and depth < 2:
@@ -113,7 +109,6 @@ def shorten(value: Any, depth: int = 0) -> Any:
 
 
 def project_layer_names() -> dict[str, str]:
-    """Every way a history entry can point at a layer of the open project — id, source, Processing's string."""
     names: dict[str, str] = {}
     for layer in QgsProject.instance().mapLayers().values():
         name = layer.name()
@@ -135,7 +130,6 @@ def _processing_identifier(layer: Any) -> str:
 
 
 def _recent_entries() -> list[Any] | None:
-    """Entries of the last HISTORY_DAYS days, or None when this QGIS keeps no history to read."""
     try:
         registry = QgsGui.historyProviderRegistry()
         if registry is None:

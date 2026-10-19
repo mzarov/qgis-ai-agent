@@ -1,5 +1,3 @@
-"""Everything a join needs, checked once and used by both prepare and execute."""
-
 from dataclasses import dataclass
 from typing import Any
 
@@ -42,7 +40,6 @@ class JoinPlan:
     table_file: DelimitedTable | None = None
 
     def match(self) -> dict[str, Any] | None:
-        """The predicted match of distinct keys; None when a side is too costly to read."""
         target_keys = layer_key_texts(self.target, self.layer_field)
         table_keys = self._table_keys()
         if target_keys is None or table_keys is None:
@@ -54,8 +51,7 @@ class JoinPlan:
         info.setJoinLayer(table_layer)
         info.setJoinFieldName(self.table_field)
         info.setTargetFieldName(self.layer_field)
-        # The cache is what the QGIS join dialog uses by default, and it fixes
-        # the comparison to key text — the one `keys.py` predicts.
+        # The memory cache fixes the key comparison to text, the one keys.py predicts.
         info.setUsingMemoryCache(True)
         info.setPrefix(self.prefix)
         if self.subset:
@@ -117,10 +113,6 @@ def target_layer(params: dict[str, Any]) -> QgsVectorLayer:
 
 
 def _table_source(reference: str, table_id: str) -> QgsVectorLayer | DelimitedTable:
-    """A project layer, or a file not loaded yet; a file already in the project is its layer.
-
-    A pinned id wins, so a join planned against one layer never lands on a namesake at apply time.
-    """
     if table_id:
         layer = find_layer_by_id(table_id)
         named = looks_like_file(reference) or (layer.name() or "").strip().casefold() == reference.casefold()

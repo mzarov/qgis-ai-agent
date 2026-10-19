@@ -103,7 +103,7 @@ class UpdateAttributesTool(BaseTool):
         features = _prepared_features(layer, params)
         context = build_context(layer)
         compiled = {name: _measuring(prepared(text, name, context, layer), layer) for name, text in expressions.items()}
-        # Every value is computed before the first write: an expression failing halfway leaves nothing changed.
+        # Every value is computed before the first write: a failing expression leaves nothing changed.
         rows = [
             (feature.id(), {**values, **{name: evaluate(expr, context, feature) for name, expr in compiled.items()}})
             for feature in features
@@ -124,7 +124,6 @@ def _require_editable(layer_name: str, layer_id: str = "") -> QgsVectorLayer:
 
 
 def _checked_changes(layer: QgsVectorLayer, params: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
-    """The constant values and the expressions, checked against the layer; at least one field changes."""
     values, expressions = params.get("values") or {}, params.get("expressions") or {}
     if not isinstance(values, dict) or not isinstance(expressions, dict) or not (values or expressions):
         raise ValueError(
@@ -149,7 +148,7 @@ def _checked_changes(layer: QgsVectorLayer, params: dict[str, Any]) -> tuple[dic
 
 
 def _measuring(expression: Any, layer: QgsVectorLayer) -> Any:
-    """$area and $length on the project's ellipsoid and units, as a virtual field or the field calculator measures."""
+    # $area and $length need the project's ellipsoid and units, as the field calculator sets them.
     project = QgsProject.instance()
     with suppress(Exception):
         calculator = QgsDistanceArea()
@@ -166,7 +165,6 @@ def _names(raw: Any) -> list[str]:
 
 
 def _check_convertible(layer: QgsVectorLayer, name: str, value: Any) -> None:
-    """Refuse a value the field cannot hold before apply, where the model can still fix it."""
     try:
         field = layer.fields().field(name)
         convert = field.convertCompatible

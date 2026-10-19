@@ -1,21 +1,11 @@
-"""What the other installed plugins offer: metadata, their Processing algorithms, their menu commands.
-
-A plugin is known by its package folder name, the key QGIS itself uses
-(qgis.utils.active_plugins). Processing providers belong to a plugin when their
-class lives in its package; menu commands are the actions under the submenu a
-plugin adds to Plugins, Vector, Raster, Database, Web or Mesh.
-"""
-
 from typing import Any
 
 from qgis.core import QgsApplication
 
-# This plugin's own package; it is never offered as something to drive.
 SELF = __name__.split(".")[0]
 MISSING = "__error__"
 PATH_SEPARATOR = " › "
 ABOUT_CHARS = 600
-# A menu title must cover this much of a plugin name to count as the plugin's own menu.
 NAME_SHARE = 0.6
 
 
@@ -42,7 +32,6 @@ def metadata(plugin: str, key: str) -> str:
 
 
 def require_plugin(name: Any) -> str:
-    """The package name of an active plugin, matched by package or display name; else a ValueError with the list."""
     wanted = str(name or "").strip()
     active = active_plugins()
     for plugin in active:
@@ -68,7 +57,6 @@ def algorithms(provider: Any) -> list[dict[str, str]]:
 
 
 def menu_commands(plugin: str) -> dict[str, Any]:
-    """Command path → QAction for every leaf under the plugin's own menus: a submenu of a top menu, or a top menu."""
     names = {_key(plugin), _key(metadata(plugin, "name"))} - {""}
     found: dict[str, Any] = {}
     for top in _menu_bar_actions():
@@ -86,11 +74,6 @@ def menu_commands(plugin: str) -> dict[str, Any]:
 
 
 def _matches(title: Any, names: set[str]) -> bool:
-    """A menu titled after the plugin: the same letters, or most of its name.
-
-    QuickMapServices files its menu as "QuickMapServices" while its name is "NextGIS
-    QuickMapServices"; "Processing" is only a fragment of "GRASS Processing Provider".
-    """
     key = _key(_clean(title))
     return bool(key) and any(key == name or (key in name and len(key) >= NAME_SHARE * len(name)) for name in names)
 
@@ -118,7 +101,6 @@ def _collect(menu: Any, trail: list[str], found: dict[str, Any]) -> None:
 
 
 def _clean(text: Any) -> str:
-    """Menu text without the & mnemonic marker or a trailing ellipsis."""
     return (
         " ".join(str(text or "").replace("&&", "\0").replace("&", "").replace("\0", "&").split()).rstrip(".…").strip()
     )

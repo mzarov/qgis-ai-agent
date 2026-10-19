@@ -18,24 +18,17 @@ COORD_PRECISION = 6
 FALLBACK_EXTENT = (0.0, 0.0, 100.0, 100.0)
 FALLBACK_CRS = "EPSG:3857"
 WGS84 = "EPSG:4326"
-# World map projections keep shapes or the whole globe in view, not sizes: in Web Mercator a "metre" at 55° N
-# is 0.56 m on the ground and an area comes out three times too big. A project in one is no CRS to measure or
-# buffer in, however metric its units.
+# World projections distort sizes (Web Mercator triples areas at 55° N): never measure in them.
 WORLD_PROJECTIONS = frozenset({"merc", "eqc", "robin", "moll", "eck4", "natearth", "wintri", "igh"})
 GEOMETRY_NAMES = ("point", "line", "polygon")
 LAYER_PINS_KEY = "_ai_agent_layer_pins"
-# Providers whose featureCount() is a cheap local answer. Remote ones may run
-# COUNT(*) over a big table on the main thread, or answer -1 (unknown).
+# Remote featureCount() may run COUNT(*) on the main thread, or answer -1.
 COUNTABLE_PROVIDERS = frozenset({"ogr", "memory", "delimitedtext", "spatialite", "virtual"})
 NOT_COUNTED_NOTE = "Features are not counted for remote sources; use query_layer with aggregate=count."
 
 
 def enum_name(value: Any) -> str:
-    """The readable name of a Qt or QGIS enum member.
-
-    A Qt6 member is an IntEnum: str() gives its number ("2") and repr() a
-    dotted path, so only `.name` is the word a model can read.
-    """
+    # A Qt6 enum member is an IntEnum: str() gives its number, only `.name` is the word.
     name = getattr(value, "name", "")
     if isinstance(name, str) and name:
         return name
@@ -43,7 +36,6 @@ def enum_name(value: Any) -> str:
 
 
 def field_type_name(field: Any) -> str:
-    """A field's type as a word: the provider's own name, else the variant type."""
     try:
         name = field.typeName()
     except Exception:
@@ -97,13 +89,11 @@ def crs_units(layer: QgsMapLayer) -> str:
 
 
 def suggest_metric_crs(layer: QgsMapLayer) -> str:
-    """A CRS to measure or buffer the layer in: the project's when it is a local projected one, else the UTM zone."""
     authid = local_project_crs(QgsProject.instance())
     return authid or utm_authid(layer)
 
 
 def local_project_crs(project: Any) -> str:
-    """The project CRS when it is projected and keeps sizes (no world map projection), else ""."""
     with suppress(Exception):
         crs = project.crs()
         if crs.isValid() and not crs.isGeographic() and str(crs.projectionAcronym()).lower() not in WORLD_PROJECTIONS:
@@ -112,7 +102,6 @@ def local_project_crs(project: Any) -> str:
 
 
 def project_metric_crs(project: Any) -> str:
-    """Where to measure in metres: the local project CRS, else the UTM zone at the first local layer, else ""."""
     authid = local_project_crs(project)
     if authid:
         return authid
@@ -120,7 +109,6 @@ def project_metric_crs(project: Any) -> str:
         layers = list(project.mapLayers().values())
     except Exception:
         return ""
-    # A basemap's extent is the whole world; only a layer of the user's own data says where the work is.
     local = [layer for layer in layers if isinstance(layer, QgsVectorLayer)]
     local += [layer for layer in layers if isinstance(layer, QgsRasterLayer) and layer.providerType() == "gdal"]
     for layer in local:
@@ -146,7 +134,6 @@ def utm_authid(layer: QgsMapLayer) -> str:
 
 
 def utm_at(longitude: float, latitude: float) -> str:
-    """The WGS 84 UTM zone at a point in degrees, or "" when the numbers are no degrees."""
     if not (-180.0 <= longitude <= 180.0 and -90.0 <= latitude <= 90.0):
         return ""
     zone = max(1, min(60, int((longitude + 180.0) / 6.0) + 1))
@@ -225,7 +212,6 @@ def safe_feature_count(layer: QgsMapLayer) -> int | None:
 
 
 def feature_count_if_cheap(layer: QgsMapLayer) -> int | None:
-    """The feature count of a local provider; None for remote or unknown counts."""
     provider = ""
     with suppress(Exception):
         provider = str(layer.providerType() or "").lower()
@@ -236,7 +222,6 @@ def feature_count_if_cheap(layer: QgsMapLayer) -> int | None:
 
 
 def feature_count_block(layer: QgsMapLayer, key: str = "feature_count") -> dict[str, Any]:
-    """`{key: count}` when counting is cheap, otherwise a note telling how to count."""
     count = feature_count_if_cheap(layer)
     if count is None:
         return {f"{key}_note": NOT_COUNTED_NOTE}
@@ -244,7 +229,6 @@ def feature_count_block(layer: QgsMapLayer, key: str = "feature_count") -> dict[
 
 
 def layer_reference(layer: QgsMapLayer) -> dict[str, str]:
-    """The standard result keys naming a layer: layer_name and, when known, layer_id."""
     reference = {"layer_name": (layer.name() or "").strip()}
     identifier = layer_identifier(layer)
     if identifier:
@@ -253,7 +237,6 @@ def layer_reference(layer: QgsMapLayer) -> dict[str, str]:
 
 
 def find_layer_by_name(name: str) -> QgsMapLayer:
-    """Resolve a layer by exact id first, then by name; ids break name ties."""
     wanted = (name or "").strip()
     project = QgsProject.instance()
     if wanted:
@@ -377,7 +360,6 @@ def layer_pin_error(params: dict[str, Any]) -> str:
 
 
 def layer_names_by_id() -> dict[str, str]:
-    """Every project layer's current name, by id: the state a batch starts from."""
     try:
         layers = QgsProject.instance().mapLayers()
     except Exception:
@@ -386,14 +368,6 @@ def layer_names_by_id() -> dict[str, str]:
 
 
 def follow_batch_renames(params: dict[str, Any], names_at_start: dict[str, str]) -> dict[str, Any]:
-    """Point a queued call at the new name of a layer an earlier step of the same batch renamed.
-
-    The pin check refuses a target whose name changed since planning, which
-    guards against the user editing the project between plan and Apply. A layer
-    that still had its planned name when Apply began and differs now was renamed
-    by the batch itself — "rename roads, then style roads" — so the later steps
-    follow it by id instead of failing.
-    """
     raw_pins = params.get(LAYER_PINS_KEY)
     if not isinstance(raw_pins, list):
         return params
@@ -425,15 +399,6 @@ def follow_batch_renames(params: dict[str, Any], names_at_start: dict[str, str])
 
 
 def with_layer_names(params: dict[str, Any]) -> dict[str, Any]:
-    """A copy of a call's arguments for a person to read: every layer id among the values becomes the layer's name.
-
-    Queued calls are pinned to layer ids (`pin_layer_references`, Processing's
-    layer parameters), and an id on a plan card means nothing to the user. Only
-    a whole value equal to a project layer's id is replaced, and only when no
-    other layer has the same name: then the id is the one thing that tells them
-    apart. Private keys stay as they are. The copy is for summaries only; the
-    call itself, as executed and as the model sees it, keeps its ids.
-    """
     if not isinstance(params, dict):
         return params
     try:
@@ -442,7 +407,6 @@ def with_layer_names(params: dict[str, Any]) -> dict[str, Any]:
             return params
         return {key: value if str(key).startswith("_") else _named(value, names) for key, value in params.items()}
     except Exception:
-        # A summary must never fail: the ids are still the truth to show.
         return params
 
 
@@ -463,7 +427,6 @@ def _named(value: Any, names: dict[str, str]) -> Any:
 
 
 def pinned_ids(params: dict[str, Any]) -> list[str]:
-    """The layer ids a queued call was pinned to, in order; the named target comes first."""
     raw_pins = params.get(LAYER_PINS_KEY)
     if not isinstance(raw_pins, list):
         return []
@@ -471,7 +434,6 @@ def pinned_ids(params: dict[str, Any]) -> list[str]:
 
 
 def pinned_layer(params: dict[str, Any]) -> QgsMapLayer | None:
-    """The layer a queued call targets, by its pinned id: renames cannot fool it. None once it is gone."""
     identifiers = pinned_ids(params)
     if not identifiers or not identifiers[0]:
         return None

@@ -67,7 +67,6 @@ class LoadServiceTool(BaseTool):
         if protocol == SERVICE_WFS:
             project.addMapLayer(added)
         else:
-            # Tiles and WMS pictures are backdrops: they go under the vector layers.
             project.addMapLayer(added, False)
             root = project.layerTreeRoot()
             root.insertLayer(len(root.children()), added)
@@ -117,7 +116,6 @@ def _wfs_source(entry: Dataset, layer: ServiceLayer) -> str:
         ("typename", layer.source),
         ("version", "auto"),
         ("srsname", WFS_CRS),
-        # Only what the map shows: thirty-five thousand French communes must not download at once.
         ("restrictToRequestBBOX", "1"),
         ("pagingEnabled", "true"),
     ):

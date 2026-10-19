@@ -132,7 +132,6 @@ class DownloadOsmTool(BaseTool):
         return tr_n("%n feature(s)", int(payload.get("total_features") or 0))
 
     def start(self, params: dict[str, Any]) -> Background:
-        """The download off the main thread; the layers are made on it once the answer is in."""
         query, wanted, name = _request(params)
         url = endpoint()
         return InTask(
@@ -147,7 +146,6 @@ class DownloadOsmTool(BaseTool):
 
 
 def _request(params: dict[str, Any]) -> tuple[str, str, str]:
-    """The Overpass query, the geometries wanted and the layer name; the territory is read here."""
     chosen = selectors(params)
     key = "" if chosen else required_key(params)
     wanted = geometry(params)

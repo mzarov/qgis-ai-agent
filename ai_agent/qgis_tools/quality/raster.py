@@ -1,5 +1,3 @@
-"""A raster's quick check: bands, nodata, CRS and extent — metadata only, no pixel is read."""
-
 import math
 from contextlib import suppress
 from typing import Any
@@ -17,7 +15,6 @@ from ai_agent.qgis_tools.quality.findings import (
 from ai_agent.qgis_tools.quality.tally import Bounds
 
 MAX_RASTER_BANDS = 20
-# Nodata matters for files; a web map has no stored cells to mark as missing.
 FILE_PROVIDER = "gdal"
 NAN_TEXT = "NaN"
 NODATA_NOTE = (
@@ -27,10 +24,6 @@ NODATA_NOTE = (
 
 
 def raster_findings(layer: QgsRasterLayer, geographic: bool, crs_valid: bool) -> tuple[dict[str, Any], str]:
-    """Band count, the problems found and nodata per band, with the kind of coordinate problem ("" for none).
-
-    `nodata_note` in the report marks a file that declares no nodata at all.
-    """
     band_count = _band_count(layer)
     bounds = _extent(layer)
     coordinates = coordinate_block(geographic, bounds) if crs_valid else {}
@@ -72,7 +65,6 @@ def _extent(layer: QgsRasterLayer) -> Bounds | None:
 
 
 def _nodata(layer: QgsRasterLayer, band: int) -> float | str | None:
-    """The band's nodata value: the source's own, else the first value the user hid; None when there is none."""
     with suppress(Exception):
         provider = layer.dataProvider()
         if provider.sourceHasNoDataValue(band) and provider.useSourceNoDataValue(band):
@@ -84,7 +76,6 @@ def _nodata(layer: QgsRasterLayer, band: int) -> float | str | None:
 
 
 def _plain(value: float) -> float | str:
-    # A float raster often marks nodata with NaN, which strict JSON cannot carry as a number.
     return NAN_TEXT if math.isnan(value) else value
 
 

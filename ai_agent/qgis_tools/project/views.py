@@ -14,8 +14,7 @@ NO_THEMES_NOTE = (
 
 
 def bookmark_manager() -> Any:
-    # The project's manager, not the application's: its bookmarks are saved
-    # with the project and restored by a snapshot, the user-wide ones are not.
+    # The project's manager: its bookmarks are saved with the project and restored by a snapshot.
     return project().bookmarkManager()
 
 
