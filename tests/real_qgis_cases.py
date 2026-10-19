@@ -427,6 +427,52 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual(made, [], "the work's value was used after the stop")
         self.assertEqual([str(outcome) for outcome in ended], [STOPPED])
 
+    def _ended_with(self, work):
+        ended = []
+        work.finished.connect(ended.append)
+        work.start()
+        self.assertEqual(ended, [], "finished arrived before start returned")
+        deadline = time.monotonic() + BACKGROUND_WAIT_S
+        while not ended and time.monotonic() < deadline:
+            QCoreApplication.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 20)
+        self.assertEqual(len(ended), 1, "the work never ended")
+        return ended[0]
+
+    def test_a_work_runs_off_the_main_thread_and_its_result_is_made_on_it(self):
+        threads = {}
+
+        def work(feedback):
+            threads["work"] = threading.current_thread() is threading.main_thread()
+            return 42
+
+        def complete(value):
+            threads["complete"] = threading.current_thread() is threading.main_thread()
+            return {"value": value}
+
+        self.assertEqual(self._ended_with(InTask("threads", work, complete)), {"value": 42})
+        self.assertEqual(threads, {"work": False, "complete": True})
+
+    def test_a_work_that_raises_ends_with_its_error_and_keeps_nothing(self):
+        made = []
+        outcome = self._ended_with(InTask("broken", lambda feedback: 1 / 0, made.append))
+        self.assertIsInstance(outcome, ZeroDivisionError)
+        self.assertEqual(made, [])
+
+    def test_a_result_that_cannot_be_made_is_the_outcome(self):
+        def complete(value):
+            raise ValueError(f"no features in the {value}")
+
+        outcome = self._ended_with(InTask("empty", lambda feedback: "answer", complete))
+        self.assertEqual(str(outcome), "no features in the answer")
+
+    def test_a_work_that_cannot_launch_ends_after_start_returns(self):
+        class Unlaunchable(InTask):
+            def _launch(self):
+                raise RuntimeError("no task manager")
+
+        outcome = self._ended_with(Unlaunchable("never", lambda feedback: None, lambda value: {}))
+        self.assertEqual(str(outcome), "no task manager")
+
     def test_truncate_is_classified_destructive_using_the_real_algorithm(self):
         tool = RunProcessingTool()
         prepared = tool.prepare({"algorithm_id": "native:truncatetable", "parameters": {"INPUT": self.layer.id()}})

@@ -1,15 +1,21 @@
 import unittest
+from urllib.parse import quote
+
+from qgis.core import QgsVectorLayer
 
 from ai_agent.qgis_tools.common import layers as layers_module
-from ai_agent.qgis_tools.common.layer_meta import sanitize_source
+from ai_agent.qgis_tools.common.layer_meta import describe_source, provider_name, sanitize_source
 from ai_agent.qgis_tools.common.layers import (
     LAYER_PINS_KEY,
     bind_layer_reference,
     find_layer_by_id,
     find_layer_by_name,
+    follow_batch_renames,
+    layer_names_by_id,
     layer_pin_error,
     local_project_crs,
     pin_layer_references,
+    pinned_layer,
     utm_at,
     utm_authid,
     with_layer_names,
@@ -165,6 +171,77 @@ class SanitizeSourceTest(unittest.TestCase):
     def test_long_source_is_truncated(self):
         self.assertLessEqual(len(sanitize_source("x" * 900)), 320)
 
+    def test_a_key_in_a_plain_nested_url_is_hidden(self):
+        cleaned = sanitize_source("type=xyz&url=https://tiles.example/{z}/{x}/{y}.png?map_token=SUPERSECRET&zmax=19")
+        self.assertNotIn("SUPERSECRET", cleaned)
+        self.assertIn("map_token=<hidden>", cleaned)
+        self.assertIn("zmax=19", cleaned)
+
+    def test_a_value_nested_past_the_last_level_is_hidden_unread(self):
+        value = "f=public"
+        for name in "edcba":
+            value = f"{name}={quote(value, safe='')}"
+        cleaned = sanitize_source(value)
+        self.assertIn("<hidden>", cleaned)
+        self.assertNotIn("public", cleaned)
+        self.assertTrue(cleaned.startswith("a=b%3D"), cleaned)
+
+
+class SourceLayer(QgsVectorLayer):
+    def __init__(self, **answers):
+        super().__init__()
+        self.answers = answers
+
+    def _answer(self, name):
+        value = self.answers[name]
+        if isinstance(value, Exception):
+            raise value
+        return value
+
+    def providerType(self):
+        return self._answer("provider")
+
+    def source(self):
+        return self._answer("source")
+
+    def isValid(self):
+        return self._answer("valid")
+
+    def subsetString(self):
+        return self._answer("subset")
+
+    def selectedFeatureCount(self):
+        return self._answer("selected")
+
+    def opacity(self):
+        return self._answer("opacity")
+
+
+class DescribeSourceTest(unittest.TestCase):
+    def test_a_broken_filtered_half_transparent_layer_says_all_of_it(self):
+        layer = SourceLayer(
+            provider="postgres",
+            source="dbname='gis' password='S3cr3t' table=roads",  # pragma: allowlist secret
+            valid=False,
+            subset='"kind" = 1',
+            selected=3,
+            opacity=0.4,
+        )
+        info = describe_source(layer)
+        self.assertNotIn("S3cr3t", info["source"])
+        self.assertFalse(info["is_valid"])
+        self.assertIn("failed to load", info["warning"])
+        self.assertEqual((info["subset_filter"], info["selected_count"], info["opacity"]), ('"kind" = 1', 3, 0.4))
+        self.assertIn("filter_note", info)
+
+    def test_a_layer_that_cannot_answer_reads_as_plain_and_valid(self):
+        gone = RuntimeError("wrapped C++ object has been deleted")
+        layer = SourceLayer(provider=gone, source=gone, valid=gone, subset=gone, selected=gone, opacity=gone)
+        layer.dataProvider = lambda: type("Provider", (), {"name": lambda self: "ogr"})()
+        self.assertEqual(describe_source(layer), {"provider": "ogr", "source": "", "is_valid": True})
+        layer.dataProvider = lambda: None
+        self.assertEqual(provider_name(layer), "")
+
 
 class NamedLayer:
     def __init__(self, identifier, name):
@@ -276,6 +353,61 @@ class LayerIdentityTest(unittest.TestCase):
         project.layers.pop("rivers")
 
         self.assertIn("rivers", layer_pin_error(prepared))
+
+    def _project(self, *layers):
+        project = LayerProject(list(layers))
+        layers_module.QgsProject = type("ProjectHolder", (), {"instance": staticmethod(lambda: project)})
+        return project
+
+    def test_a_rename_earlier_in_the_batch_is_followed_in_layer_name_lists(self):
+        roads = NamedLayer("roads_id", "roads")
+        self._project(roads, NamedLayer("rivers_id", "rivers"))
+        prepared = pin_layer_references({"layer_names": ["roads", " ", "rivers"]})
+        at_start = layer_names_by_id()
+        roads._name = "streets"
+
+        followed = follow_batch_renames(prepared, at_start)
+
+        self.assertEqual(followed["layer_names"], ["streets", " ", "rivers"])
+        self.assertEqual([pin["name"] for pin in followed[LAYER_PINS_KEY]], ["streets", "rivers"])
+        self.assertEqual(layer_pin_error(followed), "")
+        self.assertEqual(prepared["layer_names"], ["roads", " ", "rivers"], "the queued call itself changed")
+
+    def test_a_rename_by_the_user_or_a_damaged_pin_is_not_followed(self):
+        roads = NamedLayer("roads_id", "roads")
+        self._project(roads)
+        prepared = pin_layer_references({"layer_name": "roads"})
+        roads._name = "streets"
+        self.assertIs(follow_batch_renames(prepared, {"roads_id": "streets"}), prepared)
+        damaged = {LAYER_PINS_KEY: ["roads_id", {"name": "roads", "id": "roads_id"}]}
+        self.assertEqual(follow_batch_renames(damaged, {"roads_id": "roads"})[LAYER_PINS_KEY][0], "roads_id")
+        self.assertIn("became invalid", layer_pin_error(damaged))
+
+    def test_a_project_that_cannot_list_its_layers_stops_every_pinned_step(self):
+        self._project(NamedLayer("roads_id", "roads"))
+        prepared = pin_layer_references({"layer_name": "roads"})
+
+        class Closing:
+            def mapLayers(self):
+                raise RuntimeError("project closing")
+
+            def mapLayer(self, layer_id):
+                raise RuntimeError("project closing")
+
+        layers_module.QgsProject = type("ProjectHolder", (), {"instance": staticmethod(Closing)})
+        self.assertIn("changed or disappeared", layer_pin_error(prepared))
+        self.assertEqual(layer_names_by_id(), {})
+        self.assertIsNone(pinned_layer(prepared))
+
+    def test_a_pinned_layer_is_found_by_its_id_whatever_its_name(self):
+        roads = NamedLayer("roads_id", "roads")
+        project = self._project(roads)
+        project.mapLayer = project.layers.get
+        prepared = pin_layer_references({"layer_name": "roads"})
+        roads._name = "streets"
+        self.assertIs(pinned_layer(prepared), roads)
+        self.assertIsNone(pinned_layer({"layer_name": "roads"}))
+        self.assertIsNone(pinned_layer({LAYER_PINS_KEY: [{"name": "roads", "id": ""}]}))
 
 
 class LayerNamesShownTest(unittest.TestCase):

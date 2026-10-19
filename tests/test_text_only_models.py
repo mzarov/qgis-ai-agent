@@ -5,7 +5,7 @@ from ai_agent.core.agent import request, verification
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.prompts import TOOLS_BLOCK_HEADER, build_verification_prompt
 from ai_agent.core.agent.skills import load_skill, tools_for_skills
-from ai_agent.core.agent.transcript import Transcript
+from ai_agent.core.agent.transcript import ToolResult, Transcript
 from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.registry import ALL_TOOLS, get_tool_by_name
 
@@ -17,11 +17,8 @@ def _names(schemas: list[dict]) -> set[str]:
     return {schema["function"]["name"] for schema in schemas}
 
 
-class _Result:
-    def __init__(self, name: str) -> None:
-        self.call = ToolCall(id="c1", name=name)
-        self.ok = True
-        self.payload: dict = {}
+def _Result(name: str) -> ToolResult:
+    return ToolResult(call=ToolCall(id="c1", name=name), payload={})
 
 
 class ImageToolDeclarationTest(unittest.TestCase):

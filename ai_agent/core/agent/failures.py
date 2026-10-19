@@ -1,6 +1,7 @@
 import re
-from typing import Any
 
+from ai_agent.core.agent.transcript import ToolResult
+from ai_agent.core.llm.turns import ToolCall
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.registry import summarize_tool_result
 
@@ -28,7 +29,7 @@ def explain_failure(error: str) -> str:
     return GENERIC
 
 
-def outcome_note(call: Any, result: Any) -> str:
+def outcome_note(call: ToolCall, result: ToolResult) -> str:
     if result.ok:
         return summarize_tool_result(call.name, call.arguments, result.payload)
-    return explain_failure(str(result.payload.get("error", "")))
+    return explain_failure(result.error)

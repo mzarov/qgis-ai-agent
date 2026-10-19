@@ -1,9 +1,12 @@
 import {
   COUNTERS,
   DIMENSIONS,
+  EXTRA_COLUMNS,
   MAX_BODY_BYTES,
   PING_COLUMNS,
   PingError,
+  RETENTION_DAYS,
+  extrasRow,
   hashInstall,
   pingRow,
   shapeStats,
@@ -20,6 +23,12 @@ const PREFLIGHT_MAX_AGE_SECONDS = 86400;
 
 const INSERT_PING = `INSERT OR REPLACE INTO pings (${PING_COLUMNS.join(", ")})
   VALUES (${PING_COLUMNS.map(() => "?").join(", ")})`;
+
+const INSERT_EXTRAS = `INSERT OR REPLACE INTO ping_extras (${EXTRA_COLUMNS.join(", ")})
+  VALUES (${EXTRA_COLUMNS.map(() => "?").join(", ")})`;
+
+// A v1 resend replaces the pings row, so a v2 row left beside it would describe another ping.
+const DELETE_EXTRAS = "DELETE FROM ping_extras WHERE install_hash = ?1 AND day = ?2";
 
 const READ_SNAPSHOT = "SELECT generated, body FROM stats_snapshot WHERE id = 1";
 const WRITE_SNAPSHOT = "INSERT OR REPLACE INTO stats_snapshot (id, generated, body) VALUES (1, ?1, ?2)";
@@ -42,6 +51,42 @@ const FACETS = [
       FROM pings, json_each(pings.${column}) AS entry WHERE pings.day BETWEEN ?1 AND ?2 GROUP BY entry.key`,
   ),
 ];
+
+// v1 rows carry no configured flag; a run needs a configured model, so a run counts as one.
+const FUNNEL = `SELECT COUNT(*) AS active, SUM(configured) AS configured, SUM(ran) AS ran, SUM(applied) AS applied
+  FROM (
+    SELECT MAX(COALESCE(extra.configured, 0) OR ping.runs > 0 OR ping.applies > 0) AS configured,
+      MAX(ping.runs > 0 OR ping.applies > 0) AS ran,
+      MAX(ping.applies > 0) AS applied
+    FROM pings AS ping LEFT JOIN ping_extras AS extra USING (install_hash, day)
+    WHERE ping.day BETWEEN ?1 AND ?2
+    GROUP BY ping.install_hash
+  )`;
+
+const WEEK_OF = (column) => `date(${column}, 'weekday 0', '-6 days')`;
+
+const WEEKS = `WITH firsts AS (
+    SELECT install_hash, ${WEEK_OF("MIN(day)")} AS first_week FROM pings GROUP BY install_hash
+  ), weekly AS (
+    SELECT DISTINCT install_hash, ${WEEK_OF("day")} AS week FROM pings WHERE day BETWEEN ?1 AND ?2
+  )
+  SELECT week, SUM(first_week = week) AS new_installs, SUM(first_week < week) AS returning_installs
+  FROM weekly JOIN firsts USING (install_hash) GROUP BY week`;
+
+const RETENTION = `SELECT ${RETENTION_DAYS.map(
+  (days) => `SUM(first_day <= date(?1, '-${days} days')) AS installs_${days},
+    SUM(first_day <= date(?1, '-${days} days') AND last_day >= date(first_day, '+${days} days')) AS kept_${days}`,
+).join(",\n    ")}
+  FROM (SELECT MIN(day) AS first_day, MAX(day) AS last_day FROM pings GROUP BY install_hash)`;
+
+// Only v2 rows report errors, so only their calls count towards the rate.
+const TOOL_ERRORS = `SELECT entry.key AS tool, SUM(entry.value) AS calls,
+    SUM(COALESCE(json_extract(extra.tool_errors, '$.' || entry.key), 0)) AS errors
+  FROM pings AS ping
+    JOIN ping_extras AS extra USING (install_hash, day)
+    JOIN json_each(ping.tools) AS entry
+  WHERE ping.day BETWEEN ?1 AND ?2
+  GROUP BY entry.key`;
 
 function json(status, body, headers = {}) {
   return new Response(JSON.stringify(body), { status, headers: { ...JSON_HEADERS, ...headers } });
@@ -99,18 +144,24 @@ async function handlePing(request, env, now) {
     if (error instanceof PingError) return jsonError(400, error.message);
     throw error;
   }
-  const row = pingRow(ping, await hashInstall(ping.install));
-  await env.DB.prepare(INSERT_PING)
-    .bind(...row)
-    .run();
+  const installHash = await hashInstall(ping.install);
+  const extras =
+    ping.version >= 2
+      ? env.DB.prepare(INSERT_EXTRAS).bind(...extrasRow(ping, installHash))
+      : env.DB.prepare(DELETE_EXTRAS).bind(installHash, ping.day);
+  await env.DB.batch([env.DB.prepare(INSERT_PING).bind(...pingRow(ping, installHash)), extras]);
   return new Response(null, { status: 204 });
 }
 
 async function computeStats(db, now) {
   const window = statsWindow(now);
-  const [totals, days, ...facets] = await db.batch([
+  const [totals, days, funnel, weeks, retention, toolErrors, ...facets] = await db.batch([
     db.prepare(TOTALS).bind(window.recentSince, window.today),
     db.prepare(DAYS).bind(window.seriesSince, window.today),
+    db.prepare(FUNNEL).bind(window.recentSince, window.today),
+    db.prepare(WEEKS).bind(window.weeksSince, window.today),
+    db.prepare(RETENTION).bind(window.today),
+    db.prepare(TOOL_ERRORS).bind(window.recentSince, window.today),
     ...FACETS.map((sql) => db.prepare(sql).bind(window.recentSince, window.today)),
   ]);
   return shapeStats({
@@ -119,6 +170,10 @@ async function computeStats(db, now) {
     totals: totals.results[0],
     days: days.results,
     facets: facets.flatMap((facet) => facet.results),
+    funnel: funnel.results[0],
+    weeks: weeks.results,
+    retention: retention.results[0],
+    toolErrors: toolErrors.results,
   });
 }
 

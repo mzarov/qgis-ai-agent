@@ -2,10 +2,14 @@ import shutil
 import tempfile
 import unittest
 from types import SimpleNamespace
+from unittest import mock
 
+from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.core.llm.retry import RetryNotice
+from ai_agent.core.llm.turns import ToolCall
 from ai_agent.core.orchestrator import notices
 from ai_agent.core.orchestrator import orchestrator as orchestrator_module
+from ai_agent.core.orchestrator import rewind as rewind_module
 from ai_agent.core.orchestrator.orchestrator import CoreOrchestrator
 from ai_agent.core.state import conversation as conversation_module
 from ai_agent.core.state.conversation import ConversationState
@@ -171,17 +175,12 @@ class PlanDock(Dock):
         self.forgotten_restores.append(message_id)
 
 
-class Call:
-    def __init__(self, name="set_symbol"):
-        self.name = name
-        self.arguments = {}
+def Call(name="set_symbol"):
+    return ToolCall(id=name, name=name)
 
 
-class Result:
-    def __init__(self, ok=True, payload=None, name="set_symbol"):
-        self.ok = ok
-        self.payload = payload or {}
-        self.call = Call(name)
+def Result(ok=True, payload=None, name="set_symbol"):
+    return ToolResult(call=Call(name), ok=ok, payload=payload or {})
 
 
 class OrchestratorSessionTest(unittest.TestCase):
@@ -937,6 +936,15 @@ class PlanProgressTest(unittest.TestCase):
         self.orchestrator.on_tool_started("Reading layer roads")
         self.assertEqual(self.dock.tool_rows, ["Reading layer roads"])
 
+    def test_a_failed_call_is_counted_as_a_call_and_as_an_error(self):
+        noted = []
+        self.orchestrator.usage = SimpleNamespace(note=lambda kind, name="": noted.append((kind, name)))
+        self.orchestrator.on_tool_finished("describe_layer", True, "")
+        self.orchestrator.on_tool_finished("download_osm", False, "The service did not answer in time.")
+        self.assertEqual(
+            noted, [("tools", "describe_layer"), ("tools", "download_osm"), ("tool_errors", "download_osm")]
+        )
+
 
 class FailureWordsTest(unittest.TestCase):
     def test_network_failures_read_as_plain_sentences(self):
@@ -1083,6 +1091,27 @@ class PlanUndoTest(unittest.TestCase):
         self.orchestrator._note_apply_start()
         self.orchestrator.on_applied([Result(ok=True)])
         self.assertFalse(self.dock.undoable)
+
+    def test_a_failed_undo_says_why_and_keeps_the_plan_undoable(self):
+        errors = []
+        self.dock.add_error_message = errors.append
+        self._apply()
+        refusal = ValueError("QGIS has an active edit buffer on: districts.")
+        with mock.patch.object(rewind_module, "restore_snapshot", side_effect=refusal):
+            self.orchestrator.on_undo_plan(7)
+        self.assertEqual(errors, ["Could not restore the project: QGIS has an active edit buffer on: districts."])
+        self.assertEqual(self.dock.undone_plans, [])
+        self.assertNotIn("undone", self.orchestrator.conversation.messages[-1]["content"])
+        self.orchestrator.on_undo_plan(7)
+        self.assertEqual(self.restored, ["/tmp/after-plan.qgz"], "the plan could not be undone once the edits ended")
+
+    def test_a_plan_applied_before_any_message_is_still_undone_from_its_card(self):
+        self.orchestrator.conversation.start_new()
+        self._apply()
+        self.assertEqual(self.orchestrator._checkpoints, [])
+        self.orchestrator.on_undo_plan(7)
+        self.assertEqual(self.restored, ["/tmp/after-plan.qgz"])
+        self.assertEqual(self.dock.undone_plans, [7])
 
 
 class OutcomeDock(PlanDock):
@@ -1376,3 +1405,15 @@ def summary_of(text):
     from ai_agent.qgis_tools.call_summary import CallSummary
 
     return CallSummary.marking(text, {})
+
+
+class ConversationNotSavedTest(unittest.TestCase):
+    def test_a_failed_save_is_said_once_a_session(self):
+        from ai_agent.core.orchestrator.notices import NOT_SAVED
+
+        dock = Dock()
+        orchestrator = CoreOrchestrator(Iface(), dock)
+        self.assertEqual(orchestrator.conversation._store.on_failure, orchestrator._on_save_failed)
+        orchestrator._on_save_failed("No space left on device")
+        orchestrator._on_save_failed("No space left on device")
+        self.assertEqual(dock.system.count(NOT_SAVED.format("No space left on device")), 1)

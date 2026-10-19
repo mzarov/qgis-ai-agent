@@ -1,11 +1,11 @@
 import json
 from typing import Any
 
-from qgis.core import QgsBlockingNetworkRequest
-from qgis.PyQt.QtCore import QByteArray, QUrl
+from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtNetwork import QNetworkRequest
 
 from ai_agent.qgis_tools.common.background import download_progress
+from ai_agent.qgis_tools.common.network import send
 
 USER_AGENT = b"AI Agent (QGIS plugin)"
 JSON_TYPE = "application/json"
@@ -33,17 +33,14 @@ def get_bytes(url: str, limit: int, feedback: Any = None) -> bytes:
 def _send(url: str, body: bytes | None = None, feedback: Any = None) -> bytes:
     request = QNetworkRequest(QUrl(url))
     request.setRawHeader(b"User-Agent", USER_AGENT)
-    caller = QgsBlockingNetworkRequest()
-    if feedback is not None:
-        caller.downloadProgress.connect(download_progress(feedback))
-    if body is None:
-        code = caller.get(request, False, feedback)
-    else:
+    if body is not None:
         request.setHeader(QNetworkRequest.KnownHeaders.ContentTypeHeader, JSON_TYPE)
-        code = caller.post(request, QByteArray(body), False, feedback)
-    if code != QgsBlockingNetworkRequest.ErrorCode.NoError:
-        raise ValueError(f"{_host(url)} did not answer: {_message(caller)}. The service may be busy — retry later.")
-    return bytes(caller.reply().content())
+    progress = download_progress(feedback) if feedback is not None else None
+    answer = send(request, body, feedback, progress)
+    if answer.failed:
+        reason = answer.error or "no answer"
+        raise ValueError(f"{_host(url)} did not answer: {reason}. The service may be busy — retry later.")
+    return answer.body
 
 
 def _decoded(payload: bytes, url: str) -> Any:
@@ -53,13 +50,6 @@ def _decoded(payload: bytes, url: str) -> Any:
         return json.loads(payload.decode("utf-8"))
     except (UnicodeDecodeError, ValueError):
         raise ValueError(f"{_host(url)} sent something that is not JSON: {payload[:160]!r}.") from None
-
-
-def _message(caller: Any) -> str:
-    try:
-        return str(caller.errorMessage()) or "no answer"
-    except Exception:
-        return "no answer"
 
 
 def _host(url: str) -> str:

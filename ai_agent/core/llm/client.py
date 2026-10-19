@@ -4,8 +4,7 @@ import time
 from typing import Any
 from urllib.parse import parse_qsl, urlsplit
 
-from qgis.core import QgsBlockingNetworkRequest
-from qgis.PyQt.QtCore import QByteArray, QUrl
+from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtNetwork import QNetworkRequest, QSslSocket
 
 from ai_agent.core.llm import extra_headers
@@ -29,11 +28,12 @@ from ai_agent.core.settings import (
     get_verify_ssl,
 )
 from ai_agent.i18n import tr
+from ai_agent.qgis_tools.common.network import Answer, send
 
 DEFAULT_TIMEOUT = 120
 TIMEOUT_TOLERANCE = 0.95
 BLOCKING_TIMEOUT_FACTOR = 5
-RETRY_AFTER_HEADER = b"retry-after"
+RETRY_AFTER_HEADER = "retry-after"
 MODEL_TIMED_OUT = tr(
     "{endpoint} did not answer within {seconds} s. The model may still be working on it; "
     "try again, or use a faster model."
@@ -42,7 +42,6 @@ MISSING_KEY_MSG = tr(
     "No API key. Set one in Settings — or connect to a local model: an address on localhost needs no key."
 )
 ERROR_BODY_LIMIT = 300
-STATUS_ATTRIBUTE = QNetworkRequest.Attribute.HttpStatusCodeAttribute
 TRANSPORT_FAILED = tr(
     "Could not reach {endpoint}: {reason}. Check the address, the network and the QGIS proxy settings."
 )
@@ -132,11 +131,8 @@ def blocking_timeout(idle_timeout: int) -> int:
     return int(idle_timeout) * BLOCKING_TIMEOUT_FACTOR
 
 
-def retry_after_of(reply: Any) -> float | None:
-    try:
-        raw = bytes(reply.rawHeader(QByteArray(RETRY_AFTER_HEADER))).decode("ascii", errors="ignore").strip()
-    except Exception:
-        return None
+def retry_after_of(answer: Answer) -> float | None:
+    raw = answer.headers.get(RETRY_AFTER_HEADER, "").strip()
     try:
         return float(raw) if raw else None
     except ValueError:
@@ -211,22 +207,19 @@ def post_json(
     feedback: Any = None,
 ) -> dict[str, Any]:
     request = build_network_request(endpoint, headers, verify_override, timeout)
-    caller = QgsBlockingNetworkRequest()
-    payload = QByteArray(json.dumps(body, ensure_ascii=False).encode("utf-8"))
+    payload = json.dumps(body, ensure_ascii=False).encode("utf-8")
     started = time.monotonic()
-    error_code = caller.post(request, payload, False, feedback)
-    reply = caller.reply()
-    status = _status_of(reply)
-    if status >= 400:
-        text = bytes(reply.content()).decode("utf-8", errors="replace")
-        raise ApiResponseError(status, text, retry_after=retry_after_of(reply))
-    if error_code != QgsBlockingNetworkRequest.ErrorCode.NoError:
-        cancelled = feedback is not None and bool(feedback.isCanceled())
+    answer = send(request, payload, feedback)
+    text = answer.body.decode("utf-8", errors="replace")
+    if answer.status >= 400:
+        raise ApiResponseError(answer.status, text, retry_after=retry_after_of(answer))
+    if answer.failed:
+        cancelled = answer.cancelled or (feedback is not None and bool(feedback.isCanceled()))
         if not cancelled and time.monotonic() - started >= timeout * TIMEOUT_TOLERANCE:
             raise ModelTimeout(MODEL_TIMED_OUT.format(endpoint=safe_endpoint_label(endpoint), seconds=int(timeout)))
-        raise ConnectionError(TRANSPORT_FAILED.format(endpoint=safe_endpoint_label(endpoint), reason=_reason(caller)))
-    text = bytes(reply.content()).decode("utf-8", errors="replace")
-    return _decoded(text, status)
+        reason = answer.error or tr("service unavailable")
+        raise ConnectionError(TRANSPORT_FAILED.format(endpoint=safe_endpoint_label(endpoint), reason=reason))
+    return _decoded(text, answer.status)
 
 
 def build_network_request(
@@ -273,13 +266,6 @@ def _verify_none_mode() -> Any:
     return QSslSocket.PeerVerifyMode.VerifyNone
 
 
-def _status_of(reply: Any) -> int:
-    try:
-        return int(reply.attribute(STATUS_ATTRIBUTE))
-    except Exception:
-        return 0
-
-
 def _decoded(text: str, status: int) -> dict[str, Any]:
     try:
         parsed = json.loads(text)
@@ -290,13 +276,6 @@ def _decoded(text: str, status: int) -> dict[str, Any]:
     if not isinstance(parsed, dict):
         raise ApiResponseError(status, text, tr("The API returned something that is not a JSON object."))
     return parsed
-
-
-def _reason(caller: Any) -> str:
-    try:
-        return caller.errorMessage() or tr("service unavailable")
-    except Exception:
-        return tr("service unavailable")
 
 
 def post_chat_completion(

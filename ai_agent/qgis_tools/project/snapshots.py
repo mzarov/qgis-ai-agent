@@ -2,6 +2,7 @@ import atexit
 import os
 import tempfile
 import time
+import zipfile
 from dataclasses import dataclass
 
 from qgis.core import Qgis, QgsMessageLog, QgsProject
@@ -14,6 +15,7 @@ FOLDER = "ai_agent_snapshots"
 PREFIX = "before_apply"
 SUFFIX = ".qgz"
 MAX_SNAPSHOTS = 10
+MAX_WRITE_ATTEMPTS = 3
 _LAST: list[str] = []
 _STATES: dict[str, "ProjectState"] = {}
 _SCRATCH: dict[str, ScratchCopies] = {}
@@ -65,7 +67,7 @@ def _write_snapshot() -> str:
     ensure_project_read_safe(project)
     state = capture_project_state(project)
     try:
-        written = bool(project.write(path))
+        written = _write_own_archive(project, path)
     except Exception:
         _remove_file(path)
         raise
@@ -84,6 +86,36 @@ def _write_snapshot() -> str:
     _trim()
     QgsMessageLog.logMessage(f"Project snapshot written: {path}", LOG_TAG, Qgis.MessageLevel.Info)
     return path
+
+
+def _write_own_archive(project: QgsProject, path: str) -> bool:
+    # QGIS zips every .qgz through one fixed file in the system temp folder, shared by all its processes.
+    for _ in range(MAX_WRITE_ATTEMPTS):
+        if project.write(path) and _holds_own_project(path):
+            return True
+        QgsMessageLog.logMessage(
+            f"The project snapshot failed or another QGIS overwrote it ({_project_error(project)}).",
+            LOG_TAG,
+            Qgis.MessageLevel.Warning,
+        )
+        _remove_file(path)
+    return False
+
+
+def _holds_own_project(path: str) -> bool:
+    expected = os.path.basename(path).split(".", 1)[0] + ".qgs"
+    try:
+        with zipfile.ZipFile(path) as archive:
+            return expected in archive.namelist()
+    except (OSError, zipfile.BadZipFile):
+        return False
+
+
+def _project_error(project: QgsProject) -> str:
+    try:
+        return str(project.error()).strip() or "QGIS gave no reason"
+    except Exception:
+        return "QGIS gave no reason"
 
 
 def last_snapshot() -> str:

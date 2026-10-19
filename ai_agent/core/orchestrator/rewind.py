@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from qgis.core import Qgis, QgsMessageLog
 
+from ai_agent.core.orchestrator.contracts import OrchestratorHost
 from ai_agent.core.orchestrator.notices import (
     LOG_TAG,
     REWIND_BOTH,
@@ -20,6 +21,7 @@ REWOUND_PROJECT = tr("The project is back to how it was before this message.")
 UNDONE_PROJECT = tr("The plan is undone: the project is back to how it was before it.")
 UNDO_GONE = tr("This plan can no longer be undone: its snapshot is gone (only the latest {0} are kept).")
 REWIND_FAILED = tr("Could not restore the project: {0}")
+SNAPSHOT_GONE = tr("The project snapshot for this message is gone, so the project was not rewound.")
 DATA_EDITS_NOTE = tr("Edits written into data sources are not undone.")
 
 
@@ -30,7 +32,7 @@ class Checkpoint:
     message: int
 
 
-class RewindMixin:
+class RewindMixin(OrchestratorHost):
     def _note_apply_start(self) -> None:
         self._snapshot_before_apply = last_snapshot()
 
@@ -62,7 +64,9 @@ class RewindMixin:
         if checkpoint is not None and not snapshot_exists(checkpoint.snapshot):
             # The question is modal, but an undo may still have consumed the snapshot meanwhile.
             checkpoint = None
-        restored = ""
+            restored = SNAPSHOT_GONE if choice in (REWIND_BOTH, REWIND_PROJECT) else ""
+        else:
+            restored = ""
         if choice in (REWIND_BOTH, REWIND_PROJECT) and checkpoint is not None:
             restored = self._rewind_project(checkpoint)
             if not restored:
@@ -132,7 +136,8 @@ class RewindMixin:
         return " ".join(notes)
 
     def _rewind_conversation(self, message: int) -> None:
-        text = str((self.conversation.message_at(message) or {}).get("content") or "")
+        target = self.conversation.message_at(message)
+        text = str(target.get("content") or "") if target is not None else ""
         self._drop_pending_plan()
         self.conversation.truncate(message)
         self._replay()

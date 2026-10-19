@@ -36,7 +36,7 @@ jobs:
       LIVE_ONLY: ${{ inputs.only }}
       LIVE_REQUIRE_CEILINGS: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Check the configuration
         run: |
           if [ -z "${LIVE_MODEL_URL}" ] || [ -z "${LIVE_MODEL}" ] || [ -z "${LIVE_MODEL_KEY}" ]; then
@@ -47,14 +47,14 @@ jobs:
         run: python3 tests/real_qgis_workflows.py real_qgis_live
       - name: Upload screenshots and token usage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: live-model
           path: build/live
           if-no-files-found: ignore
       - name: Upload the token usage report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: live-token-usage
           path: build/live/live_usage.json

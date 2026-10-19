@@ -8,6 +8,7 @@ from urllib.parse import parse_qs
 
 from ai_agent.qgis_tools.base import SAFETY_READ
 from ai_agent.qgis_tools.common.editing import edit_session
+from ai_agent.qgis_tools.common.network import Answer
 from ai_agent.qgis_tools.osm import download_osm, extent, fetch, load, overpass, run_overpass, selectors, tags
 from ai_agent.qgis_tools.osm.run_overpass import RunOverpassTool
 
@@ -535,36 +536,27 @@ TIMED_OUT_ANSWER = (
 
 
 class _Overpass:
-    class ErrorCode:
-        NoError = 0
-
     answer = b'<?xml version="1.0"?><osm version="0.6"></osm>'
-    last = None
 
     def __init__(self):
-        self.downloadProgress = mock.Mock()
         self.posted = []
-        _Overpass.last = self
 
-    def post(self, request, data, *rest):
-        self.posted.append(bytes(data))
-        return self.ErrorCode.NoError
-
-    def reply(self):
-        return mock.Mock(content=lambda: self.answer)
+    def send(self, request, payload=None, feedback=None, on_progress=None):
+        self.posted.append(payload)
+        return Answer(status=200, body=self.answer)
 
 
 class FetchTest(unittest.TestCase):
     def setUp(self):
-        for name, fake in (("QgsBlockingNetworkRequest", _Overpass), ("QByteArray", bytes)):
-            patcher = mock.patch.object(fetch, name, fake)
-            patcher.start()
-            self.addCleanup(patcher.stop)
+        self.overpass = _Overpass()
+        patcher = mock.patch.object(fetch, "send", self.overpass.send)
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def test_the_query_reaches_overpass_whole(self):
         query = '[out:xml];node["name"~"A+B&C=D %"](55,37,56,38);out body;'
         fetch.fetch(query, OVERPASS_URL)
-        (body,) = _Overpass.last.posted
+        (body,) = self.overpass.posted
         self.assertEqual(parse_qs(body.decode("ascii")), {"data": [query]})
 
     def test_a_query_overpass_broke_off_is_a_failure_not_a_partial_download(self):

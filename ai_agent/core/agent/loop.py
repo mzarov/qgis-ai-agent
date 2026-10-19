@@ -1,3 +1,5 @@
+from typing import Any
+
 from qgis.core import Qgis, QgsMessageLog
 from qgis.PyQt.QtCore import QObject, pyqtSignal
 
@@ -17,8 +19,9 @@ from ai_agent.core.agent.request import build_overrides, build_step_request
 from ai_agent.core.agent.run_journal import RunJournal
 from ai_agent.core.agent.skills import extend_loaded
 from ai_agent.core.agent.transcript import ToolResult, Transcript
-from ai_agent.core.agent.turn_thread import TurnThreadOwner
+from ai_agent.core.agent.turn_thread import TurnCallbacks, TurnThreadOwner
 from ai_agent.core.llm.failure_kinds import OTHER
+from ai_agent.core.llm.retry import RetryNotice
 from ai_agent.core.llm.turns import PROTOCOL_JSON, PROTOCOL_NATIVE, ModelTurn, ToolCall
 from ai_agent.core.settings import get_token_budget
 from ai_agent.qgis_tools.web.http import cancel_active_requests
@@ -28,7 +31,7 @@ LOG_TAG = "AI Agent"
 PRELOADED_SKILLS = ("inspect",)
 
 
-class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
+class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):  # type: ignore[misc]
     # object, not str: a str signal hands the slot a plain copy without the CallSummary's marks.
     tool_started = pyqtSignal(object)
     tool_finished = pyqtSignal(str, bool, str)
@@ -66,7 +69,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._max_steps = limits.DEFAULT_STEPS
         self._turn = TurnThreadOwner()
         self._prompt_protocol = PROTOCOL_NATIVE
-        self._overrides: dict = {}
+        self._overrides: dict[str, Any] = {}
         self._protocol_retried = False
         self._nudged = False
         self._tools_called = False
@@ -89,7 +92,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._declined: list[ToolCall] = []
         self._declined_project = ""
         self._generation = 0
-        self._turn_callbacks: tuple | None = None
+        self._turn_callbacks: TurnCallbacks | None = None
         self._active_apply_call: ToolCall | None = None
         self._journal = RunJournal()
         self._failures = FailureMemory()
@@ -103,7 +106,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         return str(self._overrides.get("url_override") or "")
 
     @property
-    def overrides(self) -> dict:
+    def overrides(self) -> dict[str, Any]:
         return dict(self._overrides)
 
     @property
@@ -292,7 +295,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._streamed_thinking = True
         self.thinking_chunk.emit(text)
 
-    def _on_retry(self, notice: object, generation: int | None = None) -> None:
+    def _on_retry(self, notice: RetryNotice, generation: int | None = None) -> None:
         if self._is_current(generation):
             self.retrying.emit(notice)
 

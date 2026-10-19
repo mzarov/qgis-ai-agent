@@ -43,9 +43,11 @@ Do not ask permission for routine decisions — write the code.
   dependency is an installation problem for the user. Today there are none; add one only
   when strictly necessary.
 - **All HTTP stays on the QGIS network stack**, never `requests`. Ordinary calls use
-  `QgsBlockingNetworkRequest`; streaming and web redirects use `QgsNetworkAccessManager`
-  with a nested event loop. Web requests validate all DNS answers, try pinned public IPs
-  while verifying the original TLS host, and follow only manually checked same-origin
+  `QgsBlockingNetworkRequest`; streaming uses `QgsNetworkAccessManager` with a nested
+  event loop; both only through `qgis_tools/common/network.py::send`, which defuses the
+  GIL deadlock a worker thread can otherwise hit. Web redirects keep their own
+  main-thread loop. Web requests validate all DNS answers, try pinned public IPs while
+  verifying the original TLS host, and follow only manually checked same-origin
   redirects. An explicit QGIS proxy receives the original hostname; direct-route
   mismatches fail closed.
 
@@ -88,7 +90,7 @@ while `_on_turn` and tool execution run as main-thread slots.
 
 A long step may hand **only its heavy part** to a QGIS task (`BaseTool.start`,
 `qgis_tools/common/background.py`): a Processing algorithm through
-`QgsProcessingAlgRunnerTask`, a download through `QgsBlockingNetworkRequest`. The task
+`QgsProcessingAlgRunnerTask`, a download through `common/network.py::send`. The task
 touches only thread-safe objects; the project, layers and widgets are touched when it
 ends, on the main thread, and the apply run waits for its signal without blocking
 (`core/agent/apply_run.py`). Never move a whole tool or the loop to a background thread,
@@ -196,7 +198,7 @@ survive, the `.qm` ships and the `.ts` stays out.
 ### Tests
 
 Tests are stdlib `unittest`, with no dependencies. `tests/stub.py` fakes the `qgis`
-modules when QGIS is absent, so the suite runs on plain Python and in the QGIS Python.
+modules, so the fast suite runs on plain Python; real QGIS runs the `real_qgis_*` modules.
 Most names become an inert `_Stub`, but value types are real (`QColor`, `QLabel`,
 `QToolButton`, `QTimer` keep their state), so behaviour is checked by running widgets,
 not by grepping the source. Fake behaviour, never; fake a value, gladly. CI records

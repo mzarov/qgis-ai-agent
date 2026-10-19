@@ -2,7 +2,13 @@ import unittest
 
 from qgis.core import QgsVectorLayer
 
-from ai_agent.core.orchestrator.presentation import active_layer_chip, applied_summary
+from ai_agent.core.orchestrator.presentation import (
+    active_layer_chip,
+    applied_summary,
+    compact_number,
+    interrupted_outcome,
+    where_to_look,
+)
 
 
 class Call:
@@ -41,6 +47,31 @@ class AppliedSummaryTest(unittest.TestCase):
         results = [Result("configure_project"), Result("zoom_to_layer", ok=False, layer_name="roads")]
         self.assertEqual(applied_summary(results), "1 change applied")
         self.assertEqual(applied_summary([Result("set_opacity", ok=False, layer_name="roads")]), "")
+
+    def test_several_new_layers_are_counted(self):
+        results = [Result("run_processing", payload={"result_layer_name": name}) for name in ("Buffer", "Centroids")]
+        self.assertEqual(applied_summary(results), "2 new layers")
+
+
+class AfterApplyTest(unittest.TestCase):
+    def test_new_layers_are_named_and_unnamed_outputs_point_to_the_panel(self):
+        made = [Result("run_processing", payload={"result_layer_name": "Buffer"}), Result("set_opacity")]
+        self.assertEqual(where_to_look(made), " New layers: «Buffer».")
+        self.assertEqual(
+            where_to_look([Result("run_processing", payload={"outputs": {}})]), " The result is in the layer panel."
+        )
+        self.assertEqual(where_to_look([Result("set_opacity")]), "")
+
+    def test_a_stop_reports_what_was_done_and_nothing_when_nothing_was(self):
+        results = [Result("run_processing", payload={"result_layer_name": "Buffer"}), Result("set_symbol", ok=False)]
+        self.assertEqual(
+            interrupted_outcome(results),
+            "Stopped after 1 completed step; pending steps were cancelled. New layers: «Buffer».",
+        )
+        self.assertEqual(interrupted_outcome([Result("set_symbol", ok=False)]), "")
+
+    def test_token_counts_read_short(self):
+        self.assertEqual((compact_number(950), compact_number(21_340)), ("950", "21.3k"))
 
 
 class CountedLayer(QgsVectorLayer):

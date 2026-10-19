@@ -1,3 +1,6 @@
+from collections.abc import Iterable
+from typing import Any
+
 from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.base import SAFETY_READ, BaseTool
@@ -5,7 +8,7 @@ from ai_agent.qgis_tools.registry import ALL_TOOLS
 from ai_agent.skills.registry import LOCAL, SKILL_REGISTRY
 
 
-def requested_skills(arguments: dict) -> list[str]:
+def requested_skills(arguments: dict[str, Any]) -> list[str]:
     raw = arguments.get("names")
     if raw is None:
         raw = [arguments.get("name")]
@@ -52,7 +55,10 @@ def load_skill(
         if name not in loaded_skills:
             extend_loaded(loaded_skills, name)
             newly_loaded.append(name)
-    payload: dict = {"loaded": known, "tools": [tool.name for tool in tools_for_skills(known, images, writes)]}
+    payload: dict[str, Any] = {
+        "loaded": known,
+        "tools": [tool.name for tool in tools_for_skills(known, images, writes)],
+    }
     if unknown:
         payload.update({"not_found": unknown, "available": SKILL_REGISTRY.names()})
     return ToolResult(call=call, ok=True, payload=payload), newly_loaded
@@ -76,7 +82,7 @@ def skills_to_load(name: str) -> list[str]:
     return names
 
 
-def tools_for_skills(loaded_skills, images: bool = True, writes: bool = True) -> list[BaseTool]:
+def tools_for_skills(loaded_skills: Iterable[str], images: bool = True, writes: bool = True) -> list[BaseTool]:
     domains: set[str] = set()
     named: set[str] = set()
     for name in loaded_skills:
@@ -97,6 +103,6 @@ def tools_for_skills(loaded_skills, images: bool = True, writes: bool = True) ->
     ]
 
 
-def _named_tools(names) -> list[BaseTool]:
+def _named_tools(names: Iterable[str]) -> list[BaseTool]:
     wanted = set(names)
     return [tool for tool in ALL_TOOLS if tool.name in wanted]

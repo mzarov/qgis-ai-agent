@@ -15,7 +15,16 @@ const INSTALLS = {
   b: "7d1e2f3a-4b5c-4d6e-9f80-a1b2c3d4e5f6",
   c: "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
   d: "c4d5e6f7-0819-4a2b-bc3d-4e5f60718293",
+  e: "5e6f7081-92a3-4b4c-8d5e-6f708192a3b4",
 };
+// The pings table as the first deploy created it, before ping_extras existed.
+const FIRST_SCHEMA = `CREATE TABLE pings (
+  install_hash TEXT NOT NULL, day TEXT NOT NULL, plugin TEXT NOT NULL, qgis TEXT NOT NULL,
+  os TEXT NOT NULL, locale TEXT NOT NULL, provider TEXT NOT NULL, dialect TEXT NOT NULL,
+  runs INTEGER NOT NULL, applies INTEGER NOT NULL, tools TEXT NOT NULL DEFAULT '{}',
+  skills TEXT NOT NULL DEFAULT '{}', failures TEXT NOT NULL DEFAULT '{}',
+  PRIMARY KEY (install_hash, day)
+)`;
 
 function d1(database) {
   class Statement {
@@ -60,6 +69,14 @@ function ping(install, day, overrides = {}) {
   };
 }
 
+function ping2(install, day, overrides = {}) {
+  return ping(install, day, { v: 2, configured: true, ...overrides });
+}
+
+function noon(day) {
+  return new Date(`${day}T12:00:00Z`);
+}
+
 function post(body, headers = { "content-type": "application/json" }) {
   const text = typeof body === "string" ? body : JSON.stringify(body);
   return new Request(`${BASE}/v1/ping`, { method: "POST", headers, body: text });
@@ -87,6 +104,78 @@ describe("usage worker", () => {
 
   it("applies the schema idempotently", () => {
     sqlite.exec(SCHEMA);
+  });
+
+  it("adds the v2 table to the first database without touching its rows", async () => {
+    sqlite = new DatabaseSync(":memory:");
+    sqlite.exec(FIRST_SCHEMA);
+    sqlite
+      .prepare("INSERT INTO pings VALUES (?, ?, '0.4.0', '4.2.1', 'macos', 'en', 'remote', 'openai', 2, 1, ?, '{}', '{}')")
+      .run(await hashInstall(INSTALLS.a), "2026-10-16", '{"run_python":3}');
+    const before = sqlite.prepare("SELECT * FROM pings").all();
+    sqlite.exec(SCHEMA);
+    sqlite.exec(SCHEMA);
+    env = { DB: d1(sqlite) };
+    assert.deepEqual(sqlite.prepare("SELECT * FROM pings").all(), before);
+    assert.equal((await send(ping2(INSTALLS.b, "2026-10-17"))).status, 204);
+    const body = JSON.parse((await stats()).text);
+    assert.deepEqual(body.funnel, { active: 2, configured: 2, ran: 2, applied: 1 });
+    assert.deepEqual(body.tools, { run_python: 3 });
+  });
+
+  it("stores the v2 fields beside the ping and none for a v1 ping", async () => {
+    await send(ping2(INSTALLS.a, "2026-10-17", { configured: false, tool_errors: { run_python: 2 } }));
+    await send(ping(INSTALLS.b, "2026-10-17"));
+    const extras = sqlite.prepare("SELECT * FROM ping_extras").all();
+    assert.deepEqual(
+      extras.map((row) => ({ ...row })),
+      [{ install_hash: await hashInstall(INSTALLS.a), day: "2026-10-17", configured: 0, tool_errors: '{"run_python":2}' }],
+    );
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM pings").get().n, 2);
+  });
+
+  it("drops the v2 fields when a v1 ping replaces the day", async () => {
+    await send(ping2(INSTALLS.a, "2026-10-17", { tool_errors: { run_python: 1 } }));
+    await send(ping(INSTALLS.a, "2026-10-17"));
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM ping_extras").get().n, 0);
+  });
+
+  it("counts the funnel, the weeks, retention and tool errors from the stored days", async () => {
+    // a: first seen in August, back in October with a configured model, a run and an apply.
+    await send(ping2(INSTALLS.a, "2026-08-01"), noon("2026-08-01"));
+    await send(
+      ping2(INSTALLS.a, "2026-10-16", {
+        runs: 2,
+        applies: 1,
+        tools: { run_python: 4, inspect_project: 2 },
+        tool_errors: { run_python: 1 },
+      }),
+    );
+    // b: configured, never ran. c: loaded the plugin without a model.
+    await send(ping2(INSTALLS.b, "2026-10-16", { runs: 0 }));
+    await send(ping2(INSTALLS.c, "2026-10-15", { runs: 0, configured: false }));
+    // d: a 0.4.0 client that ran; its calls have no error counts.
+    await send(ping(INSTALLS.d, "2026-10-10", { runs: 3, tools: { run_python: 10 } }), noon("2026-10-10"));
+    // e: one day in September, outside the 30 days.
+    await send(ping(INSTALLS.e, "2026-09-01", { runs: 0 }), noon("2026-09-01"));
+
+    const body = JSON.parse((await stats()).text);
+    assert.deepEqual(body.funnel, { active: 4, configured: 3, ran: 2, applied: 1 });
+    assert.deepEqual(
+      body.weeks.filter((week) => week.new || week.returning),
+      [
+        { week: "2026-07-27", new: 1, returning: 0 },
+        { week: "2026-08-31", new: 1, returning: 0 },
+        { week: "2026-10-05", new: 1, returning: 0 },
+        { week: "2026-10-12", new: 2, returning: 1 },
+      ],
+    );
+    assert.deepEqual(body.retention, [
+      { days: 7, installs: 3, kept: 1 },
+      { days: 30, installs: 2, kept: 1 },
+    ]);
+    assert.deepEqual(body.tool_errors, { run_python: { errors: 1, calls: 4 } });
+    assert.deepEqual(body.tools, { run_python: 14, inspect_project: 2 });
   });
 
   it("stores a ping under the hash of the install id", async () => {

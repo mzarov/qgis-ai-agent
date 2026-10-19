@@ -52,7 +52,8 @@ def _first_choice(data: dict[str, Any]) -> dict[str, Any]:
     choices = data.get("choices") or []
     if not choices:
         raise ValueError("The API returned an empty answer.")
-    return choices[0]
+    choice: dict[str, Any] = choices[0]
+    return choice
 
 
 def parse_native_turn(data: dict[str, Any]) -> ModelTurn:

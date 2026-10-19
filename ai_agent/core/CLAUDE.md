@@ -51,9 +51,10 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    The user's extra headers (`llm/extra_headers.py`, Settings → Advanced) ride
    on every model request through `build_request`; the transport's own headers
    always win, and names that would carry a key are refused on save.
-   Streaming and web redirects are the two exceptions to
-   `QgsBlockingNetworkRequest`; both use `QgsNetworkAccessManager` with a nested
-   `QEventLoop`. Streaming needs a body as it arrives. The web runner resolves
+   Model calls go through `qgis_tools/common/network.py::send`: a blocking one on
+   `QgsBlockingNetworkRequest`, a streamed one on `QgsNetworkAccessManager` with
+   a nested `QEventLoop` (docs/core_architecture.md, "Network calls off the main
+   thread"). Streaming needs a body as it arrives. The web runner resolves
    with Qt, requires every DNS answer to be public, tries pinned addresses while
    TLS verifies the approved host, and follows only manually checked same-origin
    redirects. Explicit QGIS proxies receive the hostname; direct-route mismatches
@@ -317,7 +318,7 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `orchestrator/plans.py`  | the plan card, Apply and Cancel, apply outcomes, verification |
 | `orchestrator/run_events.py` | tool steps, answers, failures and stops drawn into the chat |
 | `orchestrator/notices.py` | every chat and message-bar text of the orchestrator |
-| `orchestrator/contracts.py` | the DockWidget contract                          |
+| `orchestrator/contracts.py` | the DockWidget contract; `OrchestratorHost`, the state the mixins share |
 | `state/conversation.py`  | the model window and the current dialogue, one entry point |
 | `state/session.py`       | the conversation model: title, messages, serialising |
 | `state/trace.py`         | what a turn showed besides its messages — steps, reasoning, plan cards — kept for the replay |

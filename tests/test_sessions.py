@@ -3,8 +3,12 @@ import os
 import shutil
 import tempfile
 import unittest
+from unittest import mock
+
+from qgis.core import QgsApplication
 
 from ai_agent.core.state import conversation as conversation_module
+from ai_agent.core.state import store as store_module
 from ai_agent.core.state.conversation import ConversationState
 from ai_agent.core.state.session import MAX_MESSAGES, Session, shorten
 from ai_agent.core.state.store import MAX_SESSIONS, SessionStore, current_project_key
@@ -121,6 +125,14 @@ class SessionStoreTest(unittest.TestCase):
         self.store.save(session)
         return session
 
+    def test_a_save_the_disk_refuses_names_the_reason(self):
+        reasons = []
+        self.store.on_failure = reasons.append
+        with mock.patch.object(store_module, "atomic_write_json", side_effect=OSError(28, "No space left on device")):
+            self._saved()
+        self.assertEqual(reasons, ["No space left on device"])
+        self.assertEqual(self.store.recent("/p.qgz"), [])
+
     def test_save_and_load(self):
         session = self._saved()
         loaded = self.store.load(session.identifier)
@@ -201,6 +213,22 @@ class SessionStoreTest(unittest.TestCase):
     def test_unwritable_root_does_not_raise(self):
         SessionStore("/proc/недоступно/сессии").save(self._saved())
 
+    def test_a_save_that_cannot_be_written_keeps_the_last_copy(self):
+        session = self._saved(text="first")
+        session.add("assistant", "answer")
+        with mock.patch.object(store_module, "atomic_write_json", side_effect=OSError("disk full")):
+            self.store.save(session)
+        self.assertEqual([m["content"] for m in self.store.load(session.identifier).messages], ["first"])
+
+    def test_a_missing_root_lists_no_conversations(self):
+        store = SessionStore(os.path.join(self.root, "never-made"))
+        self.assertEqual((store.recent("/p.qgz"), store.usage()), ([], (0, 0)))
+        store.erase()
+
+    def test_without_a_qgis_profile_conversations_live_in_the_home_folder(self):
+        with mock.patch.object(QgsApplication, "qgisSettingsDirPath", side_effect=RuntimeError("no profile")):
+            self.assertEqual(store_module.default_root(), os.path.join(os.path.expanduser("~"), "ai_agent_sessions"))
+
 
 class ConversationStateTest(unittest.TestCase):
     def setUp(self):
@@ -251,6 +279,17 @@ class ConversationStateTest(unittest.TestCase):
         self.assertEqual([item["content"] for item in window[2:]], ["сообщение 8", "сообщение 9"])
         self.assertEqual(len(self.state.messages), 10, "the chat keeps every message")
         self.assertEqual(self.state.context_tokens, 1200)
+
+    def test_compaction_keeps_the_last_exchange_past_the_turns_display_entries(self):
+        self.state.add("user", "first")
+        self.state.trace.done("Using inspect")
+        self.state.add("assistant", "one")
+        self.state.add("user", "second")
+        self.state.trace.done("Using style")
+        self.state.add_plan(["Styling 'rivers' blue"])
+        self.state.add("assistant", "two")
+        self.state.compact("summary")
+        self.assertEqual([item["content"] for item in self.state.window()[2:]], ["second", "two"])
 
     def test_compaction_survives_a_restore(self):
         for index in range(6):
@@ -415,6 +454,53 @@ class ProjectIdentityTest(unittest.TestCase):
         self.assertNotEqual(project_identity(project), original)
         restore_project_identity(project, original)
         self.assertEqual(project_identity(project), original)
+
+    def test_a_saved_project_is_known_by_its_absolute_file(self):
+        with tempfile.TemporaryDirectory() as root:
+            project = Project("map.qgz")
+            project.absoluteFilePath = lambda: os.path.join(root, "maps", "..", "map.qgz")
+            self.assertEqual(project_identity(project), os.path.realpath(os.path.join(root, "map.qgz")))
+
+    def test_a_database_project_without_its_storage_is_still_hashed_without_credentials(self):
+        names = (
+            "postgresql://alice:pw@db.example/projects?project=city",  # pragma: allowlist secret
+            "postgresql://[::1/projects",
+        )
+        for name in names:
+            identity = project_identity(Project(name))
+            self.assertTrue(identity.startswith(STORAGE_PREFIX), identity)
+            self.assertNotIn("alice", identity)
+
+    def test_a_project_without_a_readable_file_name_is_unsaved(self):
+        class Closing(Project):
+            def fileName(self):
+                raise RuntimeError("wrapped C++ object has been deleted")
+
+        self.assertTrue(project_identity(Closing()).startswith("unsaved:"))
+        restore_project_identity(Closing(), "unsaved:")
+        restore_project_identity(Closing(), "/p.qgz")
+
+    def test_a_project_that_refuses_attributes_keeps_one_identity_until_cleared(self):
+        class Sealed(Project):
+            def __setattr__(self, name, value):
+                if name.startswith("_ai_agent"):
+                    raise AttributeError(name)
+                super().__setattr__(name, value)
+
+        project = Sealed()
+        first = project_identity(project)
+        self.assertEqual(project_identity(project), first)
+        self.assertEqual(len(project.cleared._slots), 1, "the clear signal was connected twice")
+        project.cleared.emit()
+        self.assertNotEqual(project_identity(project), first)
+
+    def test_a_project_without_a_clear_signal_still_gets_an_identity(self):
+        class Bare:
+            def fileName(self):
+                return ""
+
+        bare = Bare()
+        self.assertEqual(project_identity(bare), project_identity(bare))
 
 
 class AtomicPersistenceTest(unittest.TestCase):

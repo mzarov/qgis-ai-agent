@@ -1,4 +1,4 @@
-export const PING_VERSION = 1;
+export const PING_VERSIONS = [1, 2];
 export const MAX_BODY_BYTES = 4096;
 export const MAX_COUNT = 100000;
 export const MAX_MAP_KEYS = 150;
@@ -6,6 +6,8 @@ export const MAX_MAP_KEYS = 150;
 export const MAX_DAY_SKEW = 7;
 export const SERIES_DAYS = 90;
 export const RECENT_DAYS = 30;
+export const SERIES_WEEKS = 13;
+export const RETENTION_DAYS = [7, 30];
 export const MAX_VALUES_PER_FACET = 100;
 
 export const OS_VALUES = ["macos", "windows", "linux", "other"];
@@ -14,6 +16,7 @@ export const DIALECT_VALUES = ["openai", "anthropic"];
 
 export const DIMENSIONS = ["plugin", "qgis", "os", "locale", "provider", "dialect"];
 export const COUNTERS = ["tools", "skills", "failures"];
+export const EXTRA_COLUMNS = ["install_hash", "day", "configured", "tool_errors"];
 
 export const PING_COLUMNS = [
   "install_hash",
@@ -32,8 +35,14 @@ const MAP_KEY = /^[a-z][a-z0-9_]{0,48}$/;
 const MS_PER_DAY = 86_400_000;
 const ECHOED_KEY_CHARS = 40;
 
-const REQUIRED_FIELDS = ["v", "install", "day", ...DIMENSIONS, "runs", "applies"];
-const KNOWN_FIELDS = new Set([...REQUIRED_FIELDS, ...COUNTERS]);
+const V1_FIELDS = ["v", "install", "day", ...DIMENSIONS, "runs", "applies"];
+const FIELDS = {
+  1: { required: V1_FIELDS, known: new Set([...V1_FIELDS, ...COUNTERS]) },
+  2: {
+    required: [...V1_FIELDS, "configured"],
+    known: new Set([...V1_FIELDS, "configured", ...COUNTERS, "tool_errors"]),
+  },
+};
 
 export class PingError extends Error {}
 
@@ -91,16 +100,24 @@ function reportedDay(value, now) {
   return value;
 }
 
+function flag(name, value) {
+  if (typeof value !== "boolean") fail(`${name} must be true or false`);
+  return value;
+}
+
 export function validatePing(body, now = new Date()) {
   if (!isPlainObject(body)) fail("body must be a JSON object");
+  if (!Object.hasOwn(body, "v")) fail("missing field v");
+  if (!PING_VERSIONS.includes(body.v)) fail(`v must be ${PING_VERSIONS.join(" or ")}`);
+  const fields = FIELDS[body.v];
   for (const key of Object.keys(body)) {
-    if (!KNOWN_FIELDS.has(key)) fail(`unknown field ${JSON.stringify(key.slice(0, ECHOED_KEY_CHARS))}`);
+    if (!fields.known.has(key)) fail(`unknown field ${JSON.stringify(key.slice(0, ECHOED_KEY_CHARS))}`);
   }
-  for (const key of REQUIRED_FIELDS) {
+  for (const key of fields.required) {
     if (!Object.hasOwn(body, key)) fail(`missing field ${key}`);
   }
-  if (body.v !== PING_VERSION) fail(`v must be ${PING_VERSION}`);
   return {
+    version: body.v,
     install: matching("install", body.install, UUID).toLowerCase(),
     day: reportedDay(body.day, now),
     plugin: matching("plugin", body.plugin, VERSION),
@@ -114,6 +131,8 @@ export function validatePing(body, now = new Date()) {
     tools: counts("tools", body.tools),
     skills: counts("skills", body.skills),
     failures: counts("failures", body.failures),
+    configured: body.v >= 2 ? flag("configured", body.configured) : null,
+    tool_errors: counts("tool_errors", body.tool_errors),
   };
 }
 
@@ -130,6 +149,10 @@ export function pingRow(ping, installHash) {
   });
 }
 
+export function extrasRow(ping, installHash) {
+  return [installHash, ping.day, ping.configured ? 1 : 0, JSON.stringify(ping.tool_errors)];
+}
+
 export function utcDay(date) {
   return date.toISOString().slice(0, 10);
 }
@@ -138,12 +161,20 @@ export function shiftDay(day, offset) {
   return utcDay(new Date(Date.parse(`${day}T00:00:00Z`) + offset * MS_PER_DAY));
 }
 
+export function weekStart(day) {
+  const weekday = (new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7;
+  return shiftDay(day, -weekday);
+}
+
 export function statsWindow(now) {
   const today = utcDay(now);
+  const thisWeek = weekStart(today);
   return {
     today,
     recentSince: shiftDay(today, 1 - RECENT_DAYS),
     seriesSince: shiftDay(today, 1 - SERIES_DAYS),
+    thisWeek,
+    weeksSince: shiftDay(thisWeek, -7 * (SERIES_WEEKS - 1)),
   };
 }
 
@@ -171,12 +202,52 @@ export function rankFacet(rows, facet) {
   return Object.fromEntries(entries);
 }
 
-export function shapeStats({ generated, window, totals, days, facets }) {
+export function fillWeeks(rows, window) {
+  const byWeek = new Map(rows.map((row) => [row.week, row]));
+  const weeks = [];
+  for (let week = window.weeksSince; week <= window.thisWeek; week = shiftDay(week, 7)) {
+    const row = byWeek.get(week);
+    weeks.push({ week, new: number(row?.new_installs), returning: number(row?.returning_installs) });
+  }
+  return weeks;
+}
+
+export function shapeFunnel(row) {
+  return {
+    active: number(row?.active),
+    configured: number(row?.configured),
+    ran: number(row?.ran),
+    applied: number(row?.applied),
+  };
+}
+
+export function shapeRetention(row) {
+  return RETENTION_DAYS.map((days) => ({
+    days,
+    installs: number(row?.[`installs_${days}`]),
+    kept: number(row?.[`kept_${days}`]),
+  }));
+}
+
+export function rankToolErrors(rows) {
+  const entries = rows
+    .map((row) => [String(row.tool), { errors: number(row.errors), calls: number(row.calls) }])
+    .filter(([, counts]) => counts.errors > 0)
+    .sort(([a, x], [b, y]) => y.errors - x.errors || (a < b ? -1 : 1))
+    .slice(0, MAX_VALUES_PER_FACET);
+  return Object.fromEntries(entries);
+}
+
+export function shapeStats({ generated, window, totals, days, facets, funnel, weeks, retention, toolErrors }) {
   const stats = {
     generated,
     installs_total: number(totals?.installs_total),
     installs_30d: number(totals?.installs_30d),
     days: fillDays(days, window),
+    funnel: shapeFunnel(funnel),
+    weeks: fillWeeks(weeks ?? [], window),
+    retention: shapeRetention(retention),
+    tool_errors: rankToolErrors(toolErrors ?? []),
   };
   for (const facet of [...DIMENSIONS, ...COUNTERS]) stats[facet] = rankFacet(facets, facet);
   return stats;

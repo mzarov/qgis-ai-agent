@@ -8,13 +8,19 @@ import {
   PING_COLUMNS,
   PingError,
   SERIES_DAYS,
+  SERIES_WEEKS,
+  extrasRow,
   fillDays,
+  fillWeeks,
   hashInstall,
   pingRow,
   rankFacet,
+  rankToolErrors,
+  shapeRetention,
   shapeStats,
   statsWindow,
   validatePing,
+  weekStart,
 } from "../src/payload.js";
 
 const NOW = new Date("2026-10-17T12:00:00Z");
@@ -102,7 +108,32 @@ describe("validatePing", () => {
   });
 
   it("rejects another contract version", () => {
-    for (const v of [2, "1", 0]) rejects(ping({ v }), "v must be 1");
+    for (const v of [3, "1", "2", 0, null]) rejects(ping({ v }), "v must be 1 or 2");
+  });
+
+  it("accepts a v2 ping and carries its new fields", () => {
+    const result = validatePing(ping({ v: 2, configured: true, tool_errors: { run_python: 1 } }), NOW);
+    assert.equal(result.version, 2);
+    assert.equal(result.configured, true);
+    assert.deepEqual(result.tool_errors, { run_python: 1 });
+    assert.deepEqual(validatePing(ping({ v: 2, configured: false }), NOW).tool_errors, {});
+  });
+
+  it("leaves the v2 fields out of a v1 ping", () => {
+    const result = validatePing(ping(), NOW);
+    assert.equal(result.version, 1);
+    assert.equal(result.configured, null);
+    assert.deepEqual(result.tool_errors, {});
+    rejects(ping({ configured: true }), "unknown field");
+    rejects(ping({ tool_errors: { run_python: 1 } }), "unknown field");
+  });
+
+  it("requires a true or false configured in v2 and checks the tool errors map", () => {
+    rejects(ping({ v: 2 }), "missing field configured");
+    for (const configured of [1, "true", null]) rejects(ping({ v: 2, configured }), "configured must be true or false");
+    rejects(ping({ v: 2, configured: true, tool_errors: { "Run Python": 1 } }), "tool_errors has a malformed key");
+    rejects(ping({ v: 2, configured: true, tool_errors: { run_python: -1 } }), "tool_errors.run_python");
+    rejects(ping({ v: 2, configured: true, url: "http://localhost" }), "unknown field");
   });
 
   it("rejects an install that is not a UUID", () => {
@@ -173,9 +204,23 @@ describe("pingRow", () => {
   });
 });
 
+describe("extrasRow", () => {
+  it("stores the v2 flag as a number and the errors as JSON", async () => {
+    const hash = await hashInstall(INSTALL);
+    const body = ping({ v: 2, configured: true, tool_errors: { b_tool: 1, a_tool: 2 } });
+    assert.deepEqual(extrasRow(validatePing(body, NOW), hash), [hash, "2026-10-17", 1, '{"a_tool":2,"b_tool":1}']);
+  });
+});
+
 describe("statsWindow", () => {
-  it("ends today and spans thirty and ninety inclusive days", () => {
-    assert.deepEqual(statsWindow(NOW), { today: "2026-10-17", recentSince: "2026-09-18", seriesSince: "2026-07-20" });
+  it("ends today and spans thirty and ninety inclusive days and thirteen weeks", () => {
+    assert.deepEqual(statsWindow(NOW), {
+      today: "2026-10-17",
+      recentSince: "2026-09-18",
+      seriesSince: "2026-07-20",
+      thisWeek: "2026-10-12",
+      weeksSince: "2026-07-20",
+    });
   });
 
   it("crosses a year boundary", () => {
@@ -183,7 +228,57 @@ describe("statsWindow", () => {
       today: "2027-01-05",
       recentSince: "2026-12-07",
       seriesSince: "2026-10-08",
+      thisWeek: "2027-01-04",
+      weeksSince: "2026-10-12",
     });
+  });
+});
+
+describe("weekStart", () => {
+  it("is the Monday of the ISO week", () => {
+    assert.equal(weekStart("2026-10-12"), "2026-10-12");
+    assert.equal(weekStart("2026-10-18"), "2026-10-12");
+    assert.equal(weekStart("2027-01-01"), "2026-12-28");
+  });
+});
+
+describe("fillWeeks", () => {
+  it("returns every week of the window, zero where nobody was active", () => {
+    const weeks = fillWeeks([{ week: "2026-10-05", new_installs: 2, returning_installs: 3 }], statsWindow(NOW));
+    assert.equal(weeks.length, SERIES_WEEKS);
+    assert.deepEqual(weeks[0], { week: "2026-07-20", new: 0, returning: 0 });
+    assert.deepEqual(weeks.at(-2), { week: "2026-10-05", new: 2, returning: 3 });
+    assert.deepEqual(weeks.at(-1), { week: "2026-10-12", new: 0, returning: 0 });
+  });
+});
+
+describe("shapeRetention", () => {
+  it("lists each period with its installs and the ones kept", () => {
+    assert.deepEqual(shapeRetention({ installs_7: 4, kept_7: 1, installs_30: 2, kept_30: null }), [
+      { days: 7, installs: 4, kept: 1 },
+      { days: 30, installs: 2, kept: 0 },
+    ]);
+  });
+});
+
+describe("rankToolErrors", () => {
+  it("orders tools by errors, keeps their calls and drops the ones without errors", () => {
+    const ranked = rankToolErrors([
+      { tool: "inspect_project", calls: 50, errors: 0 },
+      { tool: "run_python", calls: 10, errors: 2 },
+      { tool: "download_osm", calls: 4, errors: 3 },
+      { tool: "add_layer", calls: 9, errors: 2 },
+    ]);
+    assert.deepEqual(Object.entries(ranked), [
+      ["download_osm", { errors: 3, calls: 4 }],
+      ["add_layer", { errors: 2, calls: 9 }],
+      ["run_python", { errors: 2, calls: 10 }],
+    ]);
+  });
+
+  it("caps the number of tools", () => {
+    const rows = Array.from({ length: MAX_VALUES_PER_FACET + 5 }, (_, i) => ({ tool: `t${i}`, calls: 99, errors: i + 1 }));
+    assert.equal(Object.keys(rankToolErrors(rows)).length, MAX_VALUES_PER_FACET);
   });
 });
 
@@ -240,6 +335,10 @@ describe("shapeStats", () => {
       "installs_total",
       "installs_30d",
       "days",
+      "funnel",
+      "weeks",
+      "retention",
+      "tool_errors",
       "plugin",
       "qgis",
       "os",
@@ -252,5 +351,8 @@ describe("shapeStats", () => {
     ]);
     assert.deepEqual(stats.tools, { inspect_project: 7 });
     assert.deepEqual(stats.os, {});
+    assert.deepEqual(stats.funnel, { active: 0, configured: 0, ran: 0, applied: 0 });
+    assert.equal(stats.weeks.length, SERIES_WEEKS);
+    assert.deepEqual(stats.tool_errors, {});
   });
 });

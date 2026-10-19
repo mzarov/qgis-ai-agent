@@ -33,7 +33,10 @@ def main() -> int:
 def qgis_application(root: pathlib.Path) -> Iterator[QgsApplication]:
     QSettings.setDefaultFormat(QSettings.Format.IniFormat)
     QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, os.fspath(root / "settings"))
-    with patch.dict(os.environ, {"QGIS_CUSTOM_CONFIG_PATH": os.fspath(root / "config")}):
+    # QGIS zips every project it writes through one fixed file in the temp folder: parallel runs must not share it.
+    (root / "tmp").mkdir(exist_ok=True)
+    private = {"QGIS_CUSTOM_CONFIG_PATH": os.fspath(root / "config"), "TMPDIR": os.fspath(root / "tmp")}
+    with patch.dict(os.environ, private):
         application = QgsApplication([], False)
         application.initQgis()
         try:

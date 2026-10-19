@@ -5,10 +5,14 @@ from qgis.PyQt.QtCore import QObject, pyqtSignal
 
 from ai_agent.core.agent import apply_run as apply_run_module
 from ai_agent.core.agent import batch_apply as batch_apply_module
+from ai_agent.core.agent import executor as executor_module
 from ai_agent.core.agent.batch import WriteBatch
+from ai_agent.core.agent.executor import ToolExecutor
 from ai_agent.core.agent.loop import AgentLoop
+from ai_agent.core.agent.prompts import APPLY_NOW_TOOL
 from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.core.llm.turns import ToolCall
+from ai_agent.qgis_tools.base import RESULT_IMAGE_KEY, RESULT_VISUAL_KEY
 
 
 class FakeWork(QObject):
@@ -19,6 +23,10 @@ class FakeWork(QObject):
     def __init__(self):
         super().__init__()
         self.cancelled = False
+        self.started = False
+
+    def start(self):
+        self.started = True
 
     def cancel(self):
         self.cancelled = True
@@ -107,9 +115,58 @@ class ApplyRunTest(unittest.TestCase):
         self.batch.detach()
         self.assertTrue(self.executor.works[0].cancelled)
         self.assertFalse(self.batch.is_applying)
+        self.executor.works[0].progressed.emit(50.0)
         self.executor.finish()
         self.assertEqual(self.finished, [])
+        self.assertEqual(self.progress, [(-1.0, 0)])
         self.assertEqual(self.executor.ran, ["set_opacity", "run_processing"])
+
+    def test_nothing_is_queued_restored_or_applied_again_while_a_plan_applies(self):
+        self.apply()
+        with self.assertRaisesRegex(ValueError, "Wait for the current plan"):
+            self.batch.add(ToolCall(id="late", name="set_opacity", arguments={}))
+        with self.assertRaisesRegex(ValueError, "Wait for the current plan"):
+            self.batch.restore(calls("set_opacity"))
+        with self.assertRaisesRegex(RuntimeError, "already being applied"):
+            self.apply()
+        self.executor.finish()
+        self.assertEqual(self.executor.ran, ["set_opacity", "run_processing", "set_symbol"])
+
+    def test_a_step_that_raises_frees_the_batch_for_the_next_plan(self):
+        class Raising(BackgroundExecutor):
+            def run(self, call):
+                if call.name == "set_symbol":
+                    raise RuntimeError("renderer crashed")
+                return super().run(call)
+
+        self.batch._executor = Raising()
+        self.batch._calls = calls("set_opacity", "set_symbol", "configure_layer")
+        with self.assertRaisesRegex(RuntimeError, "renderer crashed"):
+            self.apply()
+        self.assertFalse(self.batch.is_applying)
+        self.assertFalse(self.batch)
+        self.assertEqual(self.batch.executing_tool, "")
+        self.batch._calls = calls("set_opacity")
+        self.assertEqual([result.ok for result in self.apply()], [True])
+
+    def test_a_background_step_that_reports_twice_is_counted_once(self):
+        self.apply()
+        call, done = self.executor._waiting[0]
+        self.executor.finish()
+        done(ToolResult(call=call, payload={"again": True}))
+        self.assertEqual(len(self.finished), 1)
+        self.assertEqual([result.payload for result in self.finished[0]], [{"ok": True}, {"done": True}, {"ok": True}])
+
+    def test_a_report_that_cannot_be_shown_stops_the_batch_without_running_more(self):
+        def on_finish(call, result):
+            if call.name == "run_processing":
+                raise RuntimeError("the feed is gone")
+
+        self.batch.apply(lambda call: None, on_finish, "project", self.finished.append)
+        self.executor.finish()
+        self.assertEqual(self.executor.ran, ["set_opacity", "run_processing"])
+        self.assertEqual(len(self.finished), 1)
+        self.assertFalse(self.batch.is_applying)
 
 
 class LoopBackgroundTest(unittest.TestCase):
@@ -136,6 +193,178 @@ class LoopBackgroundTest(unittest.TestCase):
         self.assertEqual(len(applied), 1)
         self.assertEqual(busy, [True, False])
         self.assertFalse(loop.is_applying)
+
+
+class LoopApplyFailureTest(unittest.TestCase):
+    def setUp(self):
+        self.loop = AgentLoop()
+        self.executor = BackgroundExecutor()
+        self.loop._batch._executor = self.executor
+        self.applied, self.interrupted, self.busy, self.aborted = [], [], [], []
+        self.loop.applied.connect(self.applied.append)
+        self.loop.apply_interrupted.connect(self.interrupted.append)
+        self.loop.busy_changed.connect(self.busy.append)
+        self.loop.aborted.connect(lambda: self.aborted.append(True))
+        for target, name, value in (
+            (batch_apply_module, "take_snapshot", "/tmp/snapshot.qgz"),
+            (batch_apply_module, "project_identity", "project"),
+            (apply_run_module, "project_identity", "project"),
+        ):
+            patcher = mock.patch.object(target, name, return_value=value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def test_unloading_during_a_long_step_reports_to_nobody(self):
+        self.loop._batch._calls = calls("run_processing", "set_symbol")
+        self.loop.confirm_pending()
+        self.loop.shutdown()
+        self.assertTrue(self.executor.works[0].cancelled)
+        self.assertFalse(self.loop.is_applying)
+        self.executor.finish(ok=False)
+        self.assertEqual((self.applied, self.interrupted), ([], []))
+        self.assertEqual(self.executor.ran, ["run_processing"])
+
+    def test_cancel_during_a_long_step_stops_it_and_reports_the_partial_apply(self):
+        progress = []
+        self.loop.tool_progressed.connect(lambda percent, done: progress.append(percent))
+        self.loop._batch._calls = calls("set_opacity", "run_processing", "set_symbol")
+        self.loop.confirm_pending()
+        self.loop.cancel_pending()
+        self.assertTrue(self.executor.works[0].cancelled)
+        self.assertEqual((self.busy, self.aborted), ([True, False], [True]))
+        self.executor.works[0].progressed.emit(80.0)
+        self.assertEqual(progress, [-1.0], "a stopped step kept moving its bar")
+        self.executor.finish(ok=False)
+        self.assertEqual(self.applied, [])
+        self.assertEqual([result.ok for result in self.interrupted[0]], [True, False, False])
+        self.assertEqual(self.interrupted[0][2].payload["status"], "skipped")
+        self.assertEqual(self.executor.ran, ["set_opacity", "run_processing"])
+
+    def test_an_exception_while_applying_frees_the_loop(self):
+        class Raising(BackgroundExecutor):
+            def run(self, call):
+                raise RuntimeError("renderer crashed")
+
+        self.loop._batch._executor = Raising()
+        self.loop._batch._calls = calls("set_opacity")
+        with self.assertRaisesRegex(RuntimeError, "renderer crashed"):
+            self.loop.confirm_pending()
+        self.assertEqual(self.busy, [True, False])
+        self.assertFalse(self.loop.is_applying)
+        self.assertFalse(self.loop.has_pending_writes)
+        self.assertEqual(self.loop.active_apply_tool, "")
+
+
+class StageTest(unittest.TestCase):
+    REASON = "QGIS has an active edit buffer on: roads."
+
+    def setUp(self):
+        self.loop = loop = AgentLoop()
+        write = ToolCall(id="write", name="set_opacity", arguments={})
+        control = ToolCall(id="apply", name=APPLY_NOW_TOOL, arguments={})
+        loop._transcript.add_results(
+            [
+                ToolResult(call=write, payload={"status": "queued"}),
+                ToolResult(call=control, payload={"status": "awaiting_user"}),
+            ],
+            "native",
+        )
+        loop._batch._executor = BackgroundExecutor()
+        loop._batch._calls = [write]
+        loop._staged = True
+        loop._stage_call = control
+        self.resumed, self.busy, self.staged, self.applied = [], [], [], []
+        loop._request_step = lambda: self.resumed.append(loop.is_applying)
+        loop.busy_changed.connect(self.busy.append)
+        loop.stage_applied.connect(self.staged.append)
+        loop.applied.connect(self.applied.append)
+        for target, name, value in (
+            (batch_apply_module, "snapshot_error", self.REASON),
+            (batch_apply_module, "project_identity", "project"),
+            (apply_run_module, "project_identity", "project"),
+        ):
+            patcher = mock.patch.object(target, name, return_value=value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def confirm(self, snapshot):
+        with mock.patch.object(batch_apply_module, "take_snapshot", return_value=snapshot):
+            self.loop.confirm_pending()
+
+    def test_a_refused_snapshot_is_told_to_the_model_and_the_resumed_run_can_be_stopped(self):
+        self.confirm("")
+        self.assertEqual([result.payload["error"] for result in self.staged[0]], [self.REASON])
+        self.assertEqual((self.resumed, self.applied), ([False], []))
+        self.assertEqual(self.busy, [True], "the run goes on with the model, so Stop must be offered")
+        self.assertFalse(self.loop.has_pending_writes)
+        rendered = self.loop._transcript.build_messages("S")
+        self.assertIn("edit buffer", rendered[1]["content"])
+        self.assertIn("failed", rendered[2]["content"])
+
+    def test_a_stop_while_the_refused_stage_shows_does_not_resume(self):
+        self.loop.stage_applied.connect(lambda results: self.loop.abort())
+        self.confirm("")
+        self.assertEqual(self.resumed, [])
+        self.assertEqual(self.busy, [False])
+
+    def test_a_stop_while_the_applied_stage_shows_does_not_resume(self):
+        self.loop.stage_applied.connect(lambda results: self.loop.abort())
+        self.confirm("/tmp/snapshot.qgz")
+        self.assertEqual([result.ok for result in self.staged[0]], [True])
+        self.assertEqual(self.resumed, [])
+        self.assertEqual(self.busy, [True, False])
+
+
+class ExecutorStartTest(unittest.TestCase):
+    def setUp(self):
+        self.work = FakeWork()
+        self.ended = []
+
+    def start(self, name="run_processing"):
+        with mock.patch.object(executor_module, "start_tool", return_value=self.work):
+            return ToolExecutor().start(ToolCall(id="long", name=name, arguments={}), self.ended.append)
+
+    def test_a_long_step_starts_its_work_and_hands_back_the_outcome(self):
+        self.assertIs(self.start(), self.work)
+        self.assertTrue(self.work.started)
+        legend = {"kind": "legend"}
+        self.work.finished.emit({"result_layer_name": "Buffered", RESULT_IMAGE_KEY: "aGk=", RESULT_VISUAL_KEY: legend})
+        result = self.ended[0]
+        self.assertTrue(result.ok)
+        self.assertEqual(result.payload, {"result_layer_name": "Buffered", "image_attached": True})
+        self.assertEqual((result.image, result.visual, result.egress), ("aGk=", legend, "feature_values"))
+
+    def test_a_work_that_ends_with_an_exception_is_a_failed_step(self):
+        self.start()
+        self.work.finished.emit(TimeoutError("Stopped at the 0 s tool timeout."))
+        self.assertFalse(self.ended[0].ok)
+        self.assertEqual(self.ended[0].payload["error"], "Stopped at the 0 s tool timeout.")
+
+    def test_a_work_that_reports_an_error_is_a_failed_step_without_its_visual(self):
+        self.start()
+        self.work.finished.emit({"error": "INPUT is empty", RESULT_VISUAL_KEY: {"x": 1}})
+        self.assertFalse(self.ended[0].ok)
+        self.assertIsNone(self.ended[0].visual)
+
+    def test_an_unknown_tool_or_a_refused_start_leaves_the_step_to_the_main_thread(self):
+        self.assertIsNone(self.start("no_such_tool"))
+        call = ToolCall(id="x", name="run_processing", arguments={})
+        with mock.patch.object(executor_module, "start_tool", side_effect=ValueError("bad parameters")):
+            self.assertIsNone(ToolExecutor().start(call, self.ended.append))
+        with mock.patch.object(executor_module, "start_tool", return_value=None):
+            self.assertIsNone(ToolExecutor().start(call, self.ended.append))
+        self.assertEqual(self.ended, [])
+
+    def test_a_refused_start_still_runs_the_step_through_execute(self):
+        batch = WriteBatch(ToolExecutor())
+        batch._calls = [ToolCall(id="x", name="run_processing", arguments={})]
+        with (
+            mock.patch.object(executor_module, "start_tool", side_effect=RuntimeError("no task manager")),
+            mock.patch.object(executor_module, "execute_tool", return_value={"result_layer_name": "Buffered"}),
+            mock.patch.object(apply_run_module, "project_identity", return_value="project"),
+        ):
+            results = batch.apply(lambda call: None, lambda call, result: None, "project")
+        self.assertEqual([result.payload for result in results], [{"result_layer_name": "Buffered"}])
 
 
 if __name__ == "__main__":

@@ -32,3 +32,12 @@ CREATE TABLE IF NOT EXISTS stats_snapshot (
   generated TEXT NOT NULL,
   body TEXT NOT NULL
 );
+
+-- Fields added in ping v2, a table of its own because ADD COLUMN fails when this file runs again.
+CREATE TABLE IF NOT EXISTS ping_extras (
+  install_hash TEXT NOT NULL,
+  day TEXT NOT NULL,
+  configured INTEGER NOT NULL,
+  tool_errors TEXT NOT NULL DEFAULT '{}',
+  PRIMARY KEY (install_hash, day)
+);

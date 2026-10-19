@@ -1,5 +1,6 @@
-from typing import Any
+from collections.abc import Sequence
 
+from ai_agent.core.llm.turns import ToolCall
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
 from ai_agent.qgis_tools.common.layers import with_layer_names
@@ -11,7 +12,7 @@ EFFECT_IRREVERSIBLE = tr("may be irreversible; extra confirmation required")
 LAYER_ARGUMENT = "layer_name"
 
 
-def plan_line(call: Any) -> str:
+def plan_line(call: ToolCall) -> str:
     summary = summarize_tool_call(call.name, call.arguments)
     tool = get_tool_by_name(call.name)
     if tool is None:
@@ -28,7 +29,7 @@ def plan_line(call: Any) -> str:
     return f"{summary} · {effect}"
 
 
-def plan_layer(calls: list[Any]) -> str:
+def plan_layer(calls: Sequence[ToolCall]) -> str:
     names = set()
     for call in calls:
         name = call.arguments.get(LAYER_ARGUMENT) if isinstance(call.arguments, dict) else None
@@ -41,8 +42,8 @@ class CodeDetails(str):
     pass
 
 
-def destructive_lines(calls: list[Any]) -> tuple[list[str], str]:
-    lines = []
+def destructive_lines(calls: Sequence[ToolCall]) -> tuple[list[str], str]:
+    lines: list[str] = []
     details = []
     code = False
     for call in calls:

@@ -3,11 +3,11 @@ import re
 from typing import Any
 from urllib.parse import urlencode
 
-from qgis.core import QgsBlockingNetworkRequest
-from qgis.PyQt.QtCore import QByteArray, QUrl
+from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtNetwork import QNetworkRequest
 
 from ai_agent.qgis_tools.common.background import download_progress
+from ai_agent.qgis_tools.common.network import send
 from ai_agent.qgis_tools.osm.overpass import endpoint
 
 CONTENT_TYPE = "application/x-www-form-urlencoded"
@@ -33,14 +33,12 @@ def fetch(query: str, url: str = "", feedback: Any = None) -> str:
     request.setHeader(QNetworkRequest.KnownHeaders.ContentTypeHeader, CONTENT_TYPE)
     request.setRawHeader(b"User-Agent", USER_AGENT.encode("utf-8"))
 
-    caller = QgsBlockingNetworkRequest()
-    if feedback is not None:
-        caller.downloadProgress.connect(download_progress(feedback))
-    code = caller.post(request, QByteArray(urlencode({"data": query}).encode("ascii")), False, feedback)
-    if code != QgsBlockingNetworkRequest.ErrorCode.NoError:
-        raise ValueError(_failure(caller))
+    progress = download_progress(feedback) if feedback is not None else None
+    answer = send(request, urlencode({"data": query}).encode("ascii"), feedback, progress)
+    if answer.failed:
+        raise ValueError(_failure(answer.error))
 
-    payload = bytes(caller.reply().content())
+    payload = answer.body
     _check_size(payload)
     text = payload.decode("utf-8", errors="replace")
     _check_shape(text)
@@ -72,11 +70,7 @@ def _check_remark(text: str) -> None:
     raise ValueError(BROKEN_OFF.format(remark=remark))
 
 
-def _failure(caller: Any) -> str:
-    try:
-        message = caller.errorMessage()
-    except Exception:
-        message = ""
+def _failure(message: str) -> str:
     return (
         f"Could not fetch data from Overpass: {message or 'the service is unavailable'}. "
         "The service is public and often busy — retry later or narrow the query down."

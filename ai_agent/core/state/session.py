@@ -1,7 +1,7 @@
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 from ai_agent.i18n import tr
 
@@ -9,6 +9,13 @@ MAX_MESSAGES = 400
 TITLE_LIMIT = 48
 UNTITLED = tr("Untitled")
 NO_PROJECT = "no project"
+MODEL_ROLES = frozenset({"user", "assistant"})
+
+
+class StoredMessage(TypedDict):
+    role: str
+    content: str
+    chosen: NotRequired[bool]
 
 
 @dataclass
@@ -18,7 +25,7 @@ class Session:
     title: str = ""
     created: float = 0.0
     updated: float = 0.0
-    messages: list[dict[str, str]] = field(default_factory=list)
+    messages: list[StoredMessage] = field(default_factory=list)
     # A message's place (trimmed + index) never changes: rewind points and checkpoints hold places.
     trimmed: int = 0
     summary: str = ""
@@ -60,13 +67,13 @@ class Session:
     def end(self) -> int:
         return self.trimmed + len(self.messages)
 
-    def at(self, place: int) -> dict[str, str] | None:
+    def at(self, place: int) -> StoredMessage | None:
         index = place - self.trimmed
         return self.messages[index] if 0 <= index < len(self.messages) else None
 
     def compact(self, summary: str, keep: int, upto: int | None = None) -> None:
         covered = len(self.messages) if upto is None else min(max(0, upto - self.trimmed), len(self.messages))
-        start = max(0, covered - max(0, keep))
+        start = _start_of_last(self.messages, covered, keep)
         while start < len(self.messages) and self.messages[start]["role"] != "user":
             start += 1
         self.summary = summary.strip()
@@ -117,11 +124,7 @@ class Session:
         raw_messages = raw.get("messages")
         if not isinstance(raw_messages, list):
             raw_messages = []
-        messages = [
-            {"role": str(item.get("role", "")), "content": str(item.get("content", ""))}
-            for item in raw_messages
-            if isinstance(item, dict) and item.get("content")
-        ]
+        messages = [_stored(item) for item in raw_messages if isinstance(item, dict) and item.get("content")]
         return cls(
             identifier=identifier,
             project=str(raw.get("project") or NO_PROJECT),
@@ -137,6 +140,23 @@ class Session:
             requests=_as_int(raw.get("requests")),
             named=bool(raw.get("named")),
         )
+
+
+def _start_of_last(messages: list[StoredMessage], end: int, count: int) -> int:
+    # Display-only entries sit between the messages: only what the model reads counts towards the kept tail.
+    start, kept = end, 0
+    while start > 0 and kept < count:
+        start -= 1
+        if messages[start]["role"] in MODEL_ROLES:
+            kept += 1
+    return start
+
+
+def _stored(item: dict[str, Any]) -> StoredMessage:
+    message: StoredMessage = {"role": str(item.get("role", "")), "content": str(item.get("content", ""))}
+    if item.get("chosen") is True:
+        message["chosen"] = True
+    return message
 
 
 def shorten(text: str) -> str:

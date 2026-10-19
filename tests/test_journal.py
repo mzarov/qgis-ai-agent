@@ -118,6 +118,44 @@ class WriteTest(unittest.TestCase):
         finally:
             shutil.rmtree(folder, ignore_errors=True)
 
+    def test_a_symlinked_or_file_folder_is_refused(self):
+        root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, root, True)
+        target = os.path.join(root, "elsewhere")
+        os.mkdir(target)
+        link = os.path.join(root, "link")
+        os.symlink(target, link)
+        with self.assertRaisesRegex(OSError, "symbolic link"):
+            write_journal("redirected", link)
+        self.assertEqual(os.listdir(target), [])
+        blocker = os.path.join(root, "file")
+        open(blocker, "w").close()
+        with self.assertRaises(OSError):
+            write_journal("blocked", blocker)
+
+    def test_erasing_removes_the_journals_and_only_them(self):
+        folder = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, folder, True)
+        with mock.patch.object(journal_module, "default_root", return_value=folder):
+            self.assertEqual(journal_module.usage(), (0, 0))
+            write_journal("12345", folder)
+            write_journal("123", folder)
+            with open(os.path.join(folder, "notes.md"), "w") as handle:
+                handle.write("mine")
+            self.assertEqual(journal_module.usage(), (2, 8))
+            journal_module.erase()
+            self.assertEqual(os.listdir(folder), ["notes.md"])
+        with mock.patch.object(journal_module, "default_root", return_value=os.path.join(folder, "missing")):
+            self.assertEqual(journal_module.usage(), (0, 0))
+            journal_module.erase()
+
+    def test_without_a_qgis_profile_journals_live_in_the_home_folder(self):
+        with (
+            mock.patch.object(journal_module.os.path, "expanduser", return_value="/home/someone"),
+            mock.patch("qgis.core.QgsApplication.qgisSettingsDirPath", side_effect=RuntimeError("no profile")),
+        ):
+            self.assertEqual(journal_module.default_root(), os.path.join("/home/someone", journal_module.FOLDER))
+
     def test_a_failed_atomic_replace_leaves_no_journal_or_temporary_file(self):
         folder = tempfile.mkdtemp()
         try:
@@ -172,6 +210,25 @@ class LoopJournalTest(unittest.TestCase):
         self.loop._journal.applied = 1
         self.loop._write_journal("готово")
         self.assertEqual(self.requests, [(900, 40, 3.5)])
+
+    def test_a_journal_that_cannot_be_written_is_skipped_and_tried_again(self):
+        run_journal_module.record_run = mock.Mock(side_effect=[OSError("read-only"), "/tmp/run_y.md"])
+        self.loop._journal.applied = 1
+        self.loop._write_journal("готово")
+        self.assertEqual(self.emitted, [])
+        self.loop._write_journal("готово")
+        self.assertEqual(self.emitted, ["/tmp/run_y.md"])
+
+    def test_a_deduplicated_step_is_counted_on_its_own(self):
+        call = ToolCall(id="alias", name="add_layer")
+        results = [
+            ToolResult(call=call, payload={"status": "done"}),
+            ToolResult(call=call, payload={"status": "done", "deduplicated": True}),
+        ]
+        self.assertEqual(
+            batch_apply_module._apply_journal_outcome(results),
+            "Apply finished: 1 applied, 0 failed, 0 skipped, 1 deduplicated.",
+        )
 
     def test_a_journal_is_announced_only_once(self):
         self.loop._journal.applied = 1

@@ -96,6 +96,10 @@ def set_model(value: str | None) -> None:
     _write("model", value or DEFAULT_MODEL)
 
 
+def has_saved_model() -> bool:
+    return all(str(_stored(key) or "").strip() for key in ("api_url", "model"))
+
+
 def get_dialect() -> str:
     return _read("api_dialect", DIALECT_AUTO)
 

@@ -1,13 +1,14 @@
-from typing import Any
+from collections.abc import Sequence
 
 from qgis.core import Qgis, QgsMessageLog
 
+from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.qgis_tools.registry import get_tool_by_name
 
 LOG_TAG = "AI Agent"
 
 
-def confirmed_by_reading(results: list[Any]) -> bool:
+def confirmed_by_reading(results: Sequence[ToolResult]) -> bool:
     if not results:
         return False
     for result in results:
@@ -19,7 +20,7 @@ def confirmed_by_reading(results: list[Any]) -> bool:
     return True
 
 
-def _verdict(result: Any) -> bool | None:
+def _verdict(result: ToolResult) -> bool | None:
     tool = get_tool_by_name(result.call.name)
     if tool is None:
         return None

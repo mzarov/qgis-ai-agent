@@ -17,7 +17,7 @@ from ai_agent.qgis_tools.web.geocode import GeocodeTool, parse_matches
 from ai_agent.qgis_tools.web.html_text import html_to_text
 from ai_agent.qgis_tools.web.http import RequestCancelled, checked_url, safe_url_label
 from ai_agent.qgis_tools.web.search_web import SearchWebTool, parse_results
-from ai_agent.qgis_tools.web.url_policy import embedded_ipv4, is_public_address
+from ai_agent.qgis_tools.web.url_policy import canonical_host, embedded_ipv4, is_public_address
 
 PAGE = """<html><head><title>t</title><style>.a{color:red}</style></head>
 <body><script>alert(1)</script><h1>Заголовок</h1><p>Первый  абзац &amp; хвост.</p>
@@ -236,6 +236,16 @@ class UrlTest(unittest.TestCase):
     def test_safe_label_hides_query_fragment_and_userinfo(self):
         label = safe_url_label("https://user:password@example.com:8443/path?token=secret#fragment")
         self.assertEqual(label, "https://example.com:8443/path")
+
+    def test_an_address_that_cannot_be_read_gets_a_generic_label(self):
+        for url in ("https://example.com:99999/path", "https://" + "a" * 64 + ".example/path", "https:///path"):
+            with self.subTest(url=url):
+                self.assertEqual(safe_url_label(url), "configured web address")
+
+    def test_an_international_host_name_that_cannot_be_encoded_is_refused(self):
+        with self.assertRaisesRegex(ValueError, "invalid international host name"):
+            canonical_host("a..example")
+        self.assertEqual(canonical_host("Пример.РФ."), "xn--e1afmkfd.xn--p1ai")
 
     def test_the_limit_is_clamped(self):
         self.assertEqual(_limit(999999), 3000)
