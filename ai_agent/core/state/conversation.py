@@ -8,6 +8,7 @@ from ai_agent.core.state.store import SessionStore, current_project_key
 from ai_agent.core.state.trace import PENDING, PLAN_ROLE, TRACE_ROLE, TraceLog
 
 SUMMARY_INTRO = "Summary of our conversation so far, written when it was compacted to save space:\n"
+# Chat templates reject two user turns in a row: the summary gets an assistant reply.
 SUMMARY_ACK = "Understood. I will continue from this summary."
 KEEP_AFTER_COMPACTION = 2
 VISUAL_ROLE = "visual"

@@ -103,6 +103,7 @@ def _family(model: str, prefixes: tuple[str, ...]) -> bool:
 def _max_tokens(requested: int | None, thinking: dict[str, Any]) -> int:
     kind = thinking.get("type")
     if kind == "enabled":
+        # The API refuses max_tokens at or below budget_tokens.
         return max(requested or DEFAULT_MAX_TOKENS, int(thinking.get("budget_tokens") or 0) + ANSWER_HEADROOM)
     if requested is not None:
         return requested
