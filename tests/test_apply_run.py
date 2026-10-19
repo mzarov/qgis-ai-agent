@@ -214,11 +214,15 @@ class LoopApplyFailureTest(unittest.TestCase):
         self.assertEqual(self.executor.ran, ["run_processing"])
 
     def test_cancel_during_a_long_step_stops_it_and_reports_the_partial_apply(self):
+        progress = []
+        self.loop.tool_progressed.connect(lambda percent, done: progress.append(percent))
         self.loop._batch._calls = calls("set_opacity", "run_processing", "set_symbol")
         self.loop.confirm_pending()
         self.loop.cancel_pending()
         self.assertTrue(self.executor.works[0].cancelled)
         self.assertEqual((self.busy, self.aborted), ([True, False], [True]))
+        self.executor.works[0].progressed.emit(80.0)
+        self.assertEqual(progress, [-1.0], "a stopped step kept moving its bar")
         self.executor.finish(ok=False)
         self.assertEqual(self.applied, [])
         self.assertEqual([result.ok for result in self.interrupted[0]], [True, False, False])
@@ -240,9 +244,11 @@ class LoopApplyFailureTest(unittest.TestCase):
         self.assertEqual(self.loop.active_apply_tool, "")
 
 
-class StagedSnapshotFailureTest(unittest.TestCase):
-    def test_the_model_hears_why_and_the_resumed_run_can_be_stopped(self):
-        loop = AgentLoop()
+class StageTest(unittest.TestCase):
+    REASON = "QGIS has an active edit buffer on: roads."
+
+    def setUp(self):
+        self.loop = loop = AgentLoop()
         write = ToolCall(id="write", name="set_opacity", arguments={})
         control = ToolCall(id="apply", name=APPLY_NOW_TOOL, arguments={})
         loop._transcript.add_results(
@@ -252,28 +258,50 @@ class StagedSnapshotFailureTest(unittest.TestCase):
             ],
             "native",
         )
+        loop._batch._executor = BackgroundExecutor()
         loop._batch._calls = [write]
         loop._staged = True
         loop._stage_call = control
-        resumed, busy, staged, applied = [], [], [], []
-        loop._request_step = lambda: resumed.append(loop.is_applying)
-        loop.busy_changed.connect(busy.append)
-        loop.stage_applied.connect(staged.append)
-        loop.applied.connect(applied.append)
-        reason = "QGIS has an active edit buffer on: roads."
-        with (
-            mock.patch.object(batch_apply_module, "take_snapshot", return_value=""),
-            mock.patch.object(batch_apply_module, "snapshot_error", return_value=reason),
+        self.resumed, self.busy, self.staged, self.applied = [], [], [], []
+        loop._request_step = lambda: self.resumed.append(loop.is_applying)
+        loop.busy_changed.connect(self.busy.append)
+        loop.stage_applied.connect(self.staged.append)
+        loop.applied.connect(self.applied.append)
+        for target, name, value in (
+            (batch_apply_module, "snapshot_error", self.REASON),
+            (batch_apply_module, "project_identity", "project"),
+            (apply_run_module, "project_identity", "project"),
         ):
-            loop.confirm_pending()
+            patcher = mock.patch.object(target, name, return_value=value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
 
-        self.assertEqual([result.payload["error"] for result in staged[0]], [reason])
-        self.assertEqual((resumed, applied), ([False], []))
-        self.assertEqual(busy, [True], "the run goes on with the model, so Stop must be offered")
-        self.assertFalse(loop.has_pending_writes)
-        rendered = loop._transcript.build_messages("S")
+    def confirm(self, snapshot):
+        with mock.patch.object(batch_apply_module, "take_snapshot", return_value=snapshot):
+            self.loop.confirm_pending()
+
+    def test_a_refused_snapshot_is_told_to_the_model_and_the_resumed_run_can_be_stopped(self):
+        self.confirm("")
+        self.assertEqual([result.payload["error"] for result in self.staged[0]], [self.REASON])
+        self.assertEqual((self.resumed, self.applied), ([False], []))
+        self.assertEqual(self.busy, [True], "the run goes on with the model, so Stop must be offered")
+        self.assertFalse(self.loop.has_pending_writes)
+        rendered = self.loop._transcript.build_messages("S")
         self.assertIn("edit buffer", rendered[1]["content"])
         self.assertIn("failed", rendered[2]["content"])
+
+    def test_a_stop_while_the_refused_stage_shows_does_not_resume(self):
+        self.loop.stage_applied.connect(lambda results: self.loop.abort())
+        self.confirm("")
+        self.assertEqual(self.resumed, [])
+        self.assertEqual(self.busy, [False])
+
+    def test_a_stop_while_the_applied_stage_shows_does_not_resume(self):
+        self.loop.stage_applied.connect(lambda results: self.loop.abort())
+        self.confirm("/tmp/snapshot.qgz")
+        self.assertEqual([result.ok for result in self.staged[0]], [True])
+        self.assertEqual(self.resumed, [])
+        self.assertEqual(self.busy, [True, False])
 
 
 class ExecutorStartTest(unittest.TestCase):

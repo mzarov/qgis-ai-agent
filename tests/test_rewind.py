@@ -33,10 +33,16 @@ class RewindDock(Dock):
         self.offered = None
         self.restored = None
         self.marks = []
+        self.errors = []
+        self.while_asked = lambda: None
 
     def choose_rewind(self, project_available):
         self.offered = project_available
+        self.while_asked()
         return self.choice
+
+    def add_error_message(self, text):
+        self.errors.append(text)
 
     def restore_prompt(self, text):
         self.restored = text
@@ -148,6 +154,56 @@ class RewindTest(unittest.TestCase):
         orchestrator.on_rewind(0)
         self.assertIsNone(dock.offered)
         self.assertEqual(self.restored, [])
+
+    def test_a_failed_restore_says_why_and_leaves_the_conversation_and_snapshots(self):
+        orchestrator, dock = self.orchestrator(REWIND_BOTH)
+        self._turn(orchestrator, "first", "s1")
+        self._turn(orchestrator, "second", "s2")
+        with mock.patch.object(rewind, "restore_snapshot", side_effect=ValueError("Commit or roll back roads")):
+            orchestrator.on_rewind(0)
+        self.assertEqual(dock.errors, ["Could not restore the project: Commit or roll back roads"])
+        self.assertEqual(len(orchestrator.conversation.messages), 4)
+        self.assertIsNone(dock.restored)
+        self.assertEqual(self.live, {"s1", "s2"})
+        self.assertEqual(orchestrator.checkpoint_for(0).snapshot, "s1")
+        self.assertFalse(orchestrator._restoring_snapshot)
+
+    def test_a_snapshot_gone_while_the_choice_was_open_rewinds_the_conversation_only(self):
+        orchestrator, dock = self.orchestrator(REWIND_BOTH)
+        self._turn(orchestrator, "first", "s1")
+        dock.while_asked = lambda: self.live.discard("s1")
+        orchestrator.on_rewind(0)
+        self.assertTrue(dock.offered)
+        self.assertEqual(self.restored, [])
+        self.assertEqual(orchestrator.conversation.messages, [])
+        self.assertEqual(dock.restored, "first")
+        self.assertNotIn(rewind.REWOUND_PROJECT + " " + rewind.DATA_EDITS_NOTE, dock.system)
+
+    def test_only_a_users_message_offers_a_rewind(self):
+        orchestrator, dock = self.orchestrator(REWIND_BOTH)
+        self._turn(orchestrator, "first", "s1")
+        orchestrator.on_rewind(1)
+        orchestrator.on_rewind(99)
+        self.assertIsNone(dock.offered)
+        self.assertEqual(len(orchestrator.conversation.messages), 2)
+
+    def test_temporary_layers_that_came_back_empty_are_named(self):
+        orchestrator, dock = self.orchestrator(REWIND_PROJECT)
+        self._turn(orchestrator, "first", "s1")
+        with mock.patch.object(rewind, "restore_snapshot", return_value={"empty_scratch_layers": ["buffer", "zones"]}):
+            orchestrator.on_rewind(0)
+        note = dock.system[-1]
+        self.assertTrue(note.startswith(rewind.REWOUND_PROJECT), note)
+        self.assertIn(rewind.DATA_EDITS_NOTE, note)
+        self.assertIn("buffer, zones", note)
+
+    def test_an_apply_before_any_message_leaves_no_rewind_point(self):
+        orchestrator, _dock = self.orchestrator(REWIND_BOTH)
+        orchestrator._note_apply_start()
+        self.snapshots.append("s0")
+        self.live.add("s0")
+        orchestrator._record_checkpoint()
+        self.assertEqual(orchestrator._checkpoints, [])
 
 
 class ReplayPlaceTest(unittest.TestCase):
