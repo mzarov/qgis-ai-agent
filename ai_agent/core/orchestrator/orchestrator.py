@@ -184,9 +184,11 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
     ) -> None:
         self.dock_widget.begin_work()
         self.usage.note("runs")
-        self._show_user_message(shown)
+        entry = self._show_user_bubble(shown)
         self._forget_restore()
         self._drop_pending_plan()
+        # Dropping a staged plan ends its run with an answer, saved before this request: the place follows it.
+        self.dock_widget.mark_rewind_point(entry, self.conversation.next_place)
         planning = get_planning()
 
         def begin() -> None:
@@ -288,10 +290,13 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.conversation.add("user", text)
 
     def _show_user_message(self, text: str) -> None:
+        entry = self._show_user_bubble(text)
+        self.dock_widget.mark_rewind_point(entry, self.conversation.next_place)
+
+    def _show_user_bubble(self, text: str) -> int:
         # The steps so far are written first: they come before the message, and so does its place.
         self.conversation.keep_trace()
-        entry = self.dock_widget.add_user_message(text)
-        self.dock_widget.mark_rewind_point(entry, self.conversation.next_place)
+        return self.dock_widget.add_user_message(text)
 
     def shutdown(self) -> None:
         self.conversation.save()
