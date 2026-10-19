@@ -91,6 +91,14 @@ Every applied batch with a write takes a project snapshot first. Undo on the
 plan card and rewinding to an earlier message restore these snapshots
 (`orchestrator/rewind.py`).
 
+QGIS 4 writes every `.qgz` through one fixed file in the system temp folder,
+`qgis-project-XXXXXX.zip`, then renames it into place. Two QGIS processes
+saving at the same moment share that file: one save fails, or one project file
+ends up holding the other process's project. A snapshot therefore checks that
+the archive it wrote holds its own project file and writes it again if not
+(`project/snapshots.py`). The real-QGIS tests give every QGIS process its own
+temp folder, so parallel runs never meet in that file.
+
 After Apply the orchestrator checks the result. First it reads: each write
 tool may answer `confirm_applied` with the one read that proves its step.
 When every step of a successful batch reads back as done, no model run starts.
