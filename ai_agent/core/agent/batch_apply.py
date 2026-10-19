@@ -90,6 +90,8 @@ class BatchApplyMixin:
         if staged:
             self.stage_applied.emit(results)
             if self._is_current(generation):
+                # The pause for the stage ended busy, and the run now goes on with the model.
+                self.busy_changed.emit(True)
                 self._resume_after_stage(results)
         else:
             self._transcript.replace_results(results, self._pending_protocol)
