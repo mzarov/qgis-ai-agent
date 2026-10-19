@@ -110,12 +110,7 @@ def _normalized_storage_uri(uri: str) -> str:
 
 
 def _unsaved_identity(project: Any) -> str:
-    """A random token that names an unsaved project until it is cleared.
-
-    The token lives on the project object. The id()-keyed fallback is only for
-    objects that refuse attributes: ids are reused after garbage collection, so
-    consulting it first would hand a new project the token of a dead one.
-    """
+    # id() keys are reused after garbage collection: the fallback comes only after the attribute.
     token = getattr(project, UNSAVED_ATTRIBUTE, "")
     if not isinstance(token, str) or not token:
         remembered = _UNSAVED_BY_OBJECT.get(id(project), "")

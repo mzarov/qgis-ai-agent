@@ -100,7 +100,6 @@ class SearchImageryTool(BaseTool):
 
 
 def _max_cloud(raw: Any) -> float:
-    """The highest cloud cover in percent; 0 asks for cloud-free scenes, so only a missing value defaults."""
     return DEFAULT_MAX_CLOUD if raw in (None, "") else float(raw)
 
 

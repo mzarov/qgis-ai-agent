@@ -132,8 +132,7 @@ class SetRasterStyleTool(BaseTool):
         band = checked_band(layer, params.get("band"))
         require_local_raster(layer)
         hidden = checked_no_data(params.get("no_data_values"))
-        # No-data goes in before the renderer is built, so the statistics skip
-        # the hidden values; a failed build puts the old no-data back.
+        # No-data first so statistics skip hidden values; a failed build restores the old no-data.
         previous = apply_no_data(layer, hidden)
         try:
             renderer, details = _built(layer, mode, band, params)

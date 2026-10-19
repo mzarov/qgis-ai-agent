@@ -1,10 +1,3 @@
-"""Which columns of a delimited table hold coordinates, and in which CRS.
-
-Pure Python: the guess serves the preview and the attach button, the checks
-run in `prepare` so a points layer is never built from swapped or projected
-numbers labelled as degrees.
-"""
-
 import re
 from dataclasses import dataclass
 
@@ -14,8 +7,6 @@ WGS84 = "EPSG:4326"
 X_NAMES = frozenset({"lon", "lng", "long", "longitude", "x", "xcoord", "coordx", "pointx", "easting", "east"})
 Y_NAMES = frozenset({"lat", "latitude", "y", "ycoord", "coordy", "pointy", "northing", "north"})
 WKT_NAMES = frozenset({"wkt", "geom", "geometry", "thegeom", "shape", "wktgeom"})
-# The dimension tag may be glued on (POINTZ) or apart (POINT Z); either way
-# the geometry opens a bracket or is EMPTY.
 WKT_PREFIX = re.compile(
     r"\s*(SRID=\d+;\s*)?(MULTI)?(POINT|LINESTRING|POLYGON|CURVEPOLYGON|GEOMETRYCOLLECTION)\s*(ZM|Z|M)?\s*(?=\(|EMPTY)",
     re.IGNORECASE,
@@ -40,7 +31,6 @@ class Coordinates:
 
 
 def guess_coordinates(table: DelimitedTable) -> Coordinates:
-    """Coordinate columns recognised by name and confirmed by the values; CRS only when they fit degrees."""
     by_name = {_plain(column): column for column in table.header}
     x_field = next((by_name[name] for name in by_name if name in X_NAMES), "")
     y_field = next((by_name[name] for name in by_name if name in Y_NAMES), "")
@@ -57,10 +47,6 @@ def guess_coordinates(table: DelimitedTable) -> Coordinates:
 
 
 def checked_xy_crs(table: DelimitedTable, x_field: str, y_field: str, crs: str, geographic: bool = False) -> str:
-    """The CRS for an x/y points layer; raises when the numbers cannot be what is claimed.
-
-    `crs` is a normalised authority id or empty; `geographic` says whether it is in degrees.
-    """
     table.require_columns([x_field, y_field])
     xs = _require_numbers(table, x_field)
     ys = _require_numbers(table, y_field)
@@ -83,7 +69,6 @@ def fits_degrees(xs: list[float], ys: list[float]) -> bool:
 
 
 def wkt_pairs(values: list[str]) -> tuple[list[float], list[float]]:
-    """x and y of every vertex: the first two numbers of each coordinate tuple, whatever Z or M follows."""
     xs: list[float] = []
     ys: list[float] = []
     for value in values:

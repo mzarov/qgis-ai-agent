@@ -14,7 +14,6 @@ REGION_HINT = (
 
 
 def region(params: dict[str, Any]) -> tuple[float, float, float, float]:
-    """The search rectangle in degrees from bbox, the map view or a layer's extent."""
     raw = str(params.get("bbox") or "").strip()
     layer_name = str(params.get("layer_name") or "").strip()
     if raw and layer_name:

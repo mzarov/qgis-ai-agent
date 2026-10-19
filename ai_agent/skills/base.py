@@ -10,7 +10,6 @@ class Skill:
     body: str = ""
     tool_names: list[str] = field(default_factory=list)
     origin: str = "builtin"
-    # Where a local skill's SKILL.md lives, for the settings page's Edit; empty for built-in ones.
     path: str = ""
 
     def summary_line(self) -> str:

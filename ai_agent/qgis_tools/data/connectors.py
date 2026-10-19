@@ -1,13 +1,3 @@
-"""Connectors: the sources of the open-data catalogue, one JSON file each in sources/.
-
-A connector is one provider — NASA, IGN France — with the datasets it serves.
-Turning one off hides its datasets from the agent and refuses loading them.
-The files are data, not code, so a new source is a new file; they are checked
-strictly on load because a typo would otherwise surface only as a broken layer.
-The person-facing texts (summary, description, examples, titles) are extracted
-into the translation catalogue by tools/update_translations.py.
-"""
-
 import json
 import pathlib
 from dataclasses import dataclass, field, fields
@@ -48,7 +38,6 @@ CONNECTOR_REQUIRED = {
 }
 CONNECTOR_OPTIONAL = {"monogram"}
 DATASET_REQUIRED = {"id", "title", "kind", "summary", "coverage", "license", "keywords"}
-# A dataset's title names its layers in QGIS; a label, when a bare name says little, is what the settings page shows.
 DATASET_LABEL = "label"
 LAYER_REQUIRED = {"key", "title", "source"}
 
@@ -65,12 +54,10 @@ class Connector:
     hosts: tuple[str, ...]
     datasets: tuple[Dataset, ...]
     monogram: str = ""
-    # Dataset id to its settings-page label, for the datasets that carry one.
     labels: dict[str, str] = field(default_factory=dict)
 
 
 def load(folder: pathlib.Path = SOURCES) -> tuple[Connector, ...]:
-    """Every connector file, ordered by its `order`; ValueError naming the file on the first problem."""
     found = []
     for path in sorted(folder.glob("*.json")):
         try:

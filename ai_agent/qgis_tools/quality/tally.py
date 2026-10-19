@@ -1,11 +1,3 @@
-"""What a scan of a layer's features found, gathered one feature at a time.
-
-Pure Python: `scan.py` reads the QGIS objects and hands plain values over, so
-the counting and every cap are testable without QGIS. Samples stop growing at
-their caps while the counts keep going, so a layer of 50 000 broken polygons
-costs no more memory than one of ten.
-"""
-
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
@@ -18,7 +10,6 @@ BLANK = "blank"
 
 
 def missing_kind(value: object) -> str:
-    """NULL for a missing value, BLANK for text with nothing but spaces, "" for a real value."""
     if value is None:
         return NULL
     if isinstance(value, str):
@@ -58,8 +49,6 @@ class FieldGaps:
 
 @dataclass
 class Tally:
-    """Counts and capped samples of one layer's checked features."""
-
     field_names: list[str]
     checked: int = 0
     invalid: int = 0
@@ -79,7 +68,6 @@ class Tally:
             self.gaps = [FieldGaps() for _ in self.field_names]
 
     def wants_reason(self) -> bool:
-        """Whether the next invalid geometry still gets a sample, so its reason is worth computing."""
         return len(self.invalid_samples) < MAX_INVALID_SAMPLES
 
     def add_invalid(self, feature_id: int, reason: str) -> None:
@@ -93,7 +81,6 @@ class Tally:
             self.empty_ids.append(feature_id)
 
     def add_geometry(self, feature_id: int, key: bytes) -> None:
-        """Count a geometry by its normalized key; every repeat after the first is a duplicate."""
         first = self._first_with.get(key)
         if first is None:
             self._first_with[key] = feature_id
@@ -115,7 +102,6 @@ class Tally:
             self.bounds.include(box)
 
     def add_values(self, values: Sequence[object]) -> None:
-        """One feature's values, in the order of `field_names`."""
         for gaps, value in zip(self.gaps, values, strict=False):
             kind = missing_kind(value)
             if kind == NULL:
@@ -124,13 +110,11 @@ class Tally:
                 gaps.blank += 1
 
     def empty_fields(self) -> list[str]:
-        """Fields without a single value among the checked features; none when nothing was checked."""
         if not self.checked:
             return []
         return [name for name, gaps in zip(self.field_names, self.gaps, strict=True) if gaps.missing >= self.checked]
 
     def partly_missing(self) -> list[tuple[str, FieldGaps]]:
-        """Fields with some values missing but not all, the most gaps first."""
         found = [
             (name, gaps)
             for name, gaps in zip(self.field_names, self.gaps, strict=True)

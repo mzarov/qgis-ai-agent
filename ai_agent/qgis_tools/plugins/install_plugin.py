@@ -19,7 +19,7 @@ from ai_agent.qgis_tools.plugins.repository import (
 )
 
 LOG_TAG = "AI Agent"
-# Only the official repository's own downloads: a list entry pointing elsewhere is not followed.
+# Only the official repository's downloads: an entry pointing elsewhere is not followed.
 REPOSITORY_HOST = "plugins.qgis.org"
 FIND_FIRST = "Find the plugin with find_plugin first; install takes the plugin key it returns."
 INSTALLED_NOTE = (
@@ -36,7 +36,7 @@ class InstallPluginTool(BaseTool):
         "Take the plugin key from find_plugin. The user confirms every installation."
     )
     skill = "plugins"
-    # Someone else's code, run with the user's rights: nothing here can tell what it changes or sends.
+    # Someone else's code with the user's rights: nothing here can tell what it changes or sends.
     safety = SAFETY_DESTRUCTIVE
     egress = EGRESS_METADATA
     external_effect = True
@@ -102,7 +102,6 @@ class InstallPluginTool(BaseTool):
         return "\n".join(lines)
 
     def start(self, params: dict[str, Any]) -> Background | None:
-        """The download off the main thread; unpacking and starting the plugin happen on it afterwards."""
         if params.get("enable_only"):
             return None
         url = str(params.get("download_url") or "")

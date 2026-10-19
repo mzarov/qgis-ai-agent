@@ -5,14 +5,8 @@ from qgis.core import Qgis, QgsFeature, QgsMessageLog, QgsProject
 
 LOG_TAG = "AI Agent"
 MEMORY_PROVIDER = "memory"
-# Shared by all scratch layers of one snapshot: the copies stay in RAM for as
-# long as the snapshot is undoable.
 MAX_PRESERVED_FEATURES = 200_000
-# A memory provider numbers what it is given itself, from 1 and one up from the last. A refill hands every
-# id missing between the copied features to a stand-in, deleted at once, so each feature gets its own id
-# back: a virtual field on $id, and anything else bound to a feature id, reads the same after an undo.
-# Past this many missing ids in one layer the stand-ins would hold QGIS up: that layer is renumbered, and
-# the undo says so.
+# Deleted stand-ins fill id gaps so feature ids survive an undo; past the cap a layer is renumbered.
 FIRST_MEMORY_ID = 1
 MAX_STAND_INS = 200_000
 
@@ -28,12 +22,7 @@ class ScratchLayerCopy:
 
 @dataclass(frozen=True)
 class ScratchCopies:
-    """Features of memory layers kept beside a project snapshot.
-
-    A project file stores a memory layer's schema but not its features, so
-    reading the snapshot back would recreate every scratch layer empty.
-    """
-
+    # A project file keeps a memory layer's schema, not its features.
     layers: tuple[ScratchLayerCopy, ...] = ()
     not_copied: tuple[str, ...] = ()
 
@@ -46,7 +35,6 @@ def is_memory_layer(layer: Any) -> bool:
 
 
 def scratch_layers_over_budget(project: QgsProject) -> set[str]:
-    """Ids of the memory layers a snapshot taken now could not copy."""
     return {str(layer.id()) for layer, fits in _budgeted(project) if not fits}
 
 
@@ -74,14 +62,12 @@ def copy_scratch_layers(project: QgsProject) -> ScratchCopies:
 
 
 def restore_scratch_layers(project: QgsProject, copies: ScratchCopies) -> list[str]:
-    """Refill memory layers recreated empty by a snapshot read; return names not refilled."""
     failed: list[str] = []
     for copy in copies.layers:
         if not copy.features:
             continue
         layer = _map_layer(project, copy.layer_id)
-        # A layer that came back with features needs nothing; refilling it
-        # would duplicate them.
+        # Refilling a layer that came back with features would duplicate them.
         if layer is None or not is_memory_layer(layer) or _feature_count(layer):
             continue
         try:
@@ -149,7 +135,6 @@ def _refill(layer: Any, copy: ScratchLayerCopy) -> None:
 
 
 def _missing_ids(features: list[Any]) -> int:
-    """How many stand-ins a refill needs to give each of `features` its own id back."""
     if not features:
         return 0
     return max(feature.id() for feature in features) - FIRST_MEMORY_ID + 1 - len(features)

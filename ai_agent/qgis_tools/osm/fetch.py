@@ -18,8 +18,7 @@ TOO_BIG = (
     "Overpass returned {megabytes:.0f} MB, which is over the limit of {limit} MB. "
     "Narrow the territory down or make value more specific, otherwise QGIS will choke on it."
 )
-# Overpass keeps HTTP 200 when a query breaks off mid-run (a timeout, too little memory): what it found by
-# then comes back with a remark saying why, and the data is incomplete.
+# Overpass answers 200 even when a query breaks off: a remark marks the data incomplete.
 REMARK = re.compile(r"<remark>(.*?)</remark>", re.DOTALL)
 MAX_REMARK_CHARS = 300
 BROKEN_OFF = (
@@ -29,8 +28,7 @@ BROKEN_OFF = (
 
 
 def fetch(query: str, url: str = "", feedback: Any = None) -> str:
-    """Overpass's answer to `query`, checked. Safe off the main thread when `url` is given:
-    the endpoint comes from the settings, read on the main thread; `feedback` cancels the request."""
+    # Off the main thread only with `url` given: endpoint() reads the settings.
     request = QNetworkRequest(QUrl(url or endpoint()))
     request.setHeader(QNetworkRequest.KnownHeaders.ContentTypeHeader, CONTENT_TYPE)
     request.setRawHeader(b"User-Agent", USER_AGENT.encode("utf-8"))

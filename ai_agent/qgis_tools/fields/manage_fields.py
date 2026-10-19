@@ -107,7 +107,7 @@ class AddFieldTool(BaseTool):
 
     def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
         if str(params.get("expression") or "").strip():
-            return None  # A virtual field is judged by its values, which only the model can weigh.
+            return None
         return _has_field(params, params.get("name"))
 
 

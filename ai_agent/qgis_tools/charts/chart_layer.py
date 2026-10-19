@@ -139,9 +139,7 @@ def _setup(layer: QgsVectorLayer, params: dict[str, Any]) -> tuple[Any, Any, str
 
 
 def _rows(layer: QgsVectorLayer, params: dict[str, Any], value: Any, group: Any) -> tuple[list[tuple[Any, Any]], bool]:
-    """The (value, group) pairs of the matching features, and whether more matched than MAX_FEATURES."""
     request = build_request(str(params.get("filter") or ""), layer)
-    # One more than the cap: reading it says the chart is partial without counting the whole layer.
     request.setLimit(MAX_FEATURES + 1)
     needs_geometry = any(expression is not None and expression.needsGeometry() for expression in (value, group))
     if not needs_geometry:

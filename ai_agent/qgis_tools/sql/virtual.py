@@ -1,11 +1,4 @@
-"""A checked SELECT turned into a QGIS virtual layer over the project's layers, each bound by its id.
-
-The virtual provider can find tables by layer name itself, but with two layers
-of one name it silently takes either. Every name the SQL uses is resolved here
-instead and handed over as `layer_ref` (id and alias), so a duplicate name is
-refused with the ids to choose from, and a planned query keeps reading the same
-layers after a rename.
-"""
+# Tables are bound by id: the provider silently takes either of two same-named layers.
 
 import re
 from contextlib import suppress
@@ -17,11 +10,9 @@ from ai_agent.qgis_tools.common.layers import layer_identifier
 from ai_agent.qgis_tools.sql.statement import identifiers, statement_tokens
 
 PROVIDER = "virtual"
-# Private: queued calls keep the layers their SQL was resolved to, hidden from the model's view of the plan.
 SOURCES_KEY = "_sql_sources"
 ALIAS = "alias"
 LAYER_ID = "id"
-# The provider wraps the query in statements of its own and repeats the SQL in its error; the reason follows these.
 WRAPPER_MARKERS = ("_tview AS {sql}: ", "table_info(_tview): ")
 SQLITE_CODE = re.compile(r"^\d+ - ")
 MISSING_TABLE_SIGNS = ("not found", "no such table")
@@ -36,17 +27,10 @@ GONE_ERROR = "Layer '{0}', which the query reads, is no longer in the project. P
 
 
 def resolve_sources(sql: str) -> list[dict[str, str]]:
-    """Each project vector layer the SQL names, as {alias, id}: the alias is the name as the SQL writes it.
-
-    Names are matched as `find_layer_by_name` does: a layer id first, then the
-    exact name, then the name in any letter case. Names that are no layer are
-    columns, aliases or tables the provider will report as missing.
-    """
     layers = _vector_layers()
     sources: list[dict[str, str]] = []
     taken: set[str] = set()
     for name in identifiers(statement_tokens(sql)):
-        # SQLite table names ignore letter case: one table per spelling would collide.
         if name.casefold() in taken:
             continue
         layer = _named_layer(name, layers)
@@ -58,7 +42,6 @@ def resolve_sources(sql: str) -> list[dict[str, str]]:
 
 
 def planned_sources(params: dict[str, Any]) -> list[dict[str, str]]:
-    """The sources a queued call was resolved to, each still in the project; resolved afresh when absent."""
     planned = params.get(SOURCES_KEY)
     if not isinstance(planned, list):
         return resolve_sources(str(params.get("sql") or ""))
@@ -78,7 +61,6 @@ def planned_sources(params: dict[str, Any]) -> list[dict[str, str]]:
 
 
 def open_query(sql: str, sources: list[dict[str, str]], name: str) -> QgsVectorLayer:
-    """A valid virtual layer for the query, not added to the project. Raises ValueError with the provider's reason."""
     definition = QgsVirtualLayerDefinition()
     for source in sources:
         definition.addSource(source[ALIAS], source[LAYER_ID])
@@ -90,7 +72,6 @@ def open_query(sql: str, sources: list[dict[str, str]], name: str) -> QgsVectorL
 
 
 def query_error(layer: Any, sql: str) -> str:
-    """The provider's reason the query failed, without the wrapper statement it repeats, and how to go on."""
     reason = _provider_reason(layer, sql) or "QGIS gave no reason"
     lowered = reason.lower()
     if any(sign in lowered for sign in MISSING_TABLE_SIGNS):

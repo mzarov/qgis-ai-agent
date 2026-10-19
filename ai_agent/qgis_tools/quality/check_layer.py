@@ -24,7 +24,6 @@ NO_GEOMETRY = "none"
 CRS_UNKNOWN = "unknown"
 NO_FEATURES_NOTE = "The layer has no features."
 NO_GEOMETRY_NOTE = "The layer has no geometry: only its fields were checked."
-# What a person reads for each problem the check found; the model reads the payload's counts.
 PROBLEM_WORDS: dict[str, Callable[[int], str]] = {
     findings.PROBLEM_CRS: lambda count: tr("no valid CRS"),
     findings.PROBLEM_COORDINATES: lambda count: tr("coordinates do not fit the CRS"),
@@ -104,7 +103,6 @@ class CheckLayerTool(BaseTool):
     def _check_vector(
         layer: QgsVectorLayer, label: str, crs_valid: bool, geographic: bool
     ) -> tuple[dict[str, Any], str]:
-        """The vector part of the payload and the kind of coordinate problem, "" when there is none."""
         tally, partial, fields_left_out = scan_layer(layer)
         spatial = is_spatial(layer)
         block: dict[str, Any] = {
@@ -126,7 +124,6 @@ class CheckLayerTool(BaseTool):
 
 
 def crs_facts(layer: QgsMapLayer) -> tuple[str, bool, bool]:
-    """The layer CRS as a label (authid, else its name), whether it is valid, whether it is geographic."""
     try:
         crs = layer.crs()
         if not crs.isValid():
@@ -137,7 +134,6 @@ def crs_facts(layer: QgsMapLayer) -> tuple[str, bool, bool]:
 
 
 def project_crs_labels() -> list[str]:
-    """The CRS of every layer holding the user's own data; a web basemap is reprojected and says nothing."""
     labels: list[str] = []
     try:
         layers = list(QgsProject.instance().mapLayers().values())
@@ -162,7 +158,6 @@ def is_spatial(layer: QgsVectorLayer) -> bool:
 
 
 def partial_note(checked: int, total: int | None) -> str:
-    """What a scan stopped at the cap covered: the first `checked` features, of `total` when counting is cheap."""
     if total is not None and total > checked:
         return f"Checked the first {checked} features of {total}; the counts cover those only."
     return f"Checked the first {checked} features; the layer has more, the counts cover those only."

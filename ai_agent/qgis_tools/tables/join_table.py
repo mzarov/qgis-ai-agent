@@ -106,7 +106,6 @@ class JoinTableTool(BaseTool):
 
 
 def _table_layer(plan: JoinPlan) -> tuple[Any, bool]:
-    """The join layer, loading the file into the project when it is not there yet."""
     if plan.table_layer is not None:
         return plan.table_layer, False
     if plan.table_file is None:

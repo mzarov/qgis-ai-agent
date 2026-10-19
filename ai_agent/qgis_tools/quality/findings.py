@@ -1,9 +1,3 @@
-"""The check's report: counts first, capped samples after them, and the fix route for each problem found.
-
-Pure Python, like `tally.py`: the texts here are read by the model, so they
-are plain English and name the tools and algorithms that really exist.
-"""
-
 from collections.abc import Iterable, Mapping
 from typing import Any
 
@@ -16,7 +10,6 @@ PROBLEM_EMPTY_FIELDS = "empty_fields"
 PROBLEM_COORDINATES = "suspicious_coordinates"
 PROBLEM_CRS = "invalid_crs"
 PROBLEM_EXTENT = "empty_extent"
-# The order problems are listed in: the payload's counts, the suggestions, the user's line.
 PROBLEM_ORDER = (
     PROBLEM_CRS,
     PROBLEM_COORDINATES,
@@ -31,7 +24,6 @@ COORDINATES_DEGREES = "degrees"
 MAX_DEGREES_X = 180.0
 MAX_DEGREES_Y = 90.0
 MAX_LISTED_FIELDS = 20
-# Two CRSs are ordinary (data in degrees, a result in metres); from three on, overlays start to need care.
 MANY_CRS = 3
 MAX_LISTED_CRS = 6
 COORD_DIGITS = 6
@@ -95,7 +87,6 @@ COORDINATE_NOTES = {
 
 
 def coordinate_kind(geographic: bool, bounds: Bounds | None) -> str:
-    """How the numbers contradict the CRS: COORDINATES_PROJECTED, COORDINATES_DEGREES, or "" when they fit."""
     if bounds is None:
         return ""
     in_degrees = (
@@ -119,7 +110,6 @@ def bounds_dict(bounds: Bounds) -> dict[str, float]:
 
 
 def coordinate_block(geographic: bool, bounds: Bounds | None) -> dict[str, Any]:
-    """The note and the bounds behind it when the coordinates contradict the CRS, else nothing."""
     kind = coordinate_kind(geographic, bounds)
     if not kind or bounds is None:
         return {}
@@ -127,7 +117,6 @@ def coordinate_block(geographic: bool, bounds: Bounds | None) -> dict[str, Any]:
 
 
 def crs_spread(labels: Iterable[str]) -> str:
-    """One line when the project's data layers use MANY_CRS or more CRSs, else ""."""
     distinct = list(dict.fromkeys(label for label in labels if label))
     if len(distinct) < MANY_CRS:
         return ""
@@ -137,12 +126,10 @@ def crs_spread(labels: Iterable[str]) -> str:
 
 
 def ordered_problems(counts: Mapping[str, int]) -> dict[str, int]:
-    """The problems found, in PROBLEM_ORDER, zero counts left out: an empty dict means a clean layer."""
     return {name: int(counts[name]) for name in PROBLEM_ORDER if int(counts.get(name) or 0) > 0}
 
 
 def vector_findings(tally: Tally, geographic: bool, crs_valid: bool) -> dict[str, Any]:
-    """Counts first, then the capped samples, for one scanned vector layer."""
     empty_fields = tally.empty_fields()
     coordinates = coordinate_block(geographic, tally.bounds) if crs_valid else {}
     problems = ordered_problems(
@@ -182,7 +169,6 @@ def suggestions(
     crs_spread_found: bool = False,
     nodata_missing: bool = False,
 ) -> list[str]:
-    """The fix route for each problem found, in PROBLEM_ORDER; none for a clean layer."""
     found: list[str] = []
     for name in PROBLEM_ORDER:
         if not problems.get(name):

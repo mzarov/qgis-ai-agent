@@ -70,12 +70,10 @@ class SelectFeaturesTool(BaseTool):
         selected = _selected_count(layer)
         result: dict[str, Any] = {**layer_reference(layer), "selected": selected, "previous_selection_count": previous}
         if not selected:
-            # selectByExpression clears the selection when nothing matches;
-            # an empty answer must not cost the user what they had selected.
+            # selectByExpression clears the selection when nothing matches: give the user theirs back.
             if previous_ids:
                 layer.selectByIds(previous_ids)
             return {**result, "note": NOTHING_MATCHED}
-        # An explicit zoom wins; left out, the user's "move the map to what it changes" setting decides.
         zoom = params.get("zoom")
         if zoom is True or (zoom is None and follows_changes()):
             _zoom_to_selection(layer)

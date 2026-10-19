@@ -66,7 +66,6 @@ def execute_tool(tool_name: str, params: dict[str, Any]) -> dict[str, Any]:
 
 
 def start_tool(tool_name: str, params: dict[str, Any]) -> Any:
-    """The call's work started off the main thread, or None when the tool runs it in `execute`."""
     tool = _require_tool(tool_name)
     validate_parameters(params, tool.params_schema)
     return tool.start(params)
@@ -84,10 +83,6 @@ def validate_tool_arguments(tool_name: str, params: dict[str, Any]) -> None:
 
 
 def summarize_tool_call(tool_name: str, params: dict[str, Any]) -> CallSummary:
-    """The user-facing label of a call, with the spans that repeat its arguments marked.
-
-    Layer ids the call was pinned to read as the layers' current names.
-    """
     tool = get_tool_by_name(tool_name)
     if not tool:
         return CallSummary.marking(f"{tool_name}: {params}", {})
@@ -101,7 +96,6 @@ def summarize_tool_call(tool_name: str, params: dict[str, Any]) -> CallSummary:
 
 
 def summarize_tool_result(tool_name: str, params: dict[str, Any], payload: dict[str, Any]) -> str:
-    """The user-facing line under a finished call, or "" when the tool has nothing short to say."""
     tool = get_tool_by_name(tool_name)
     if not tool:
         return ""

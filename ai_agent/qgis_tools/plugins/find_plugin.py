@@ -17,12 +17,9 @@ from ai_agent.qgis_tools.plugins.repository import (
 MAX_RESULTS = 8
 DESCRIPTION_CHARS = 200
 MAX_TAGS = 8
-# Where a word is found says how much it counts: a name is the plugin, a tag a topic, the text a mention.
 NAME_WEIGHT, TAG_WEIGHT, TEXT_WEIGHT = 3, 2, 1
-# The whole phrase in a tag or the description outweighs its words scattered over unrelated names.
 PHRASE_WEIGHT = 5
 MIN_VARIANT = 3
-# A name with its QGIS version (QNEAT3 for QGIS 3, QNEAT on QGIS 4) and a plural still find the plugin.
 VERSION_TAIL = re.compile(r"(?<=[a-z])\d+$")
 NOT_FOUND_NOTE = (
     "Nothing matched '{query}' among the {listed} plugins listed for this QGIS version. That says nothing "
@@ -42,7 +39,6 @@ class FindPluginTool(BaseTool):
     safety = SAFETY_READ
     egress = EGRESS_METADATA
     external_effect = False
-    # The repository list comes from plugins.qgis.org: the user agrees to the request first.
     network_access = True
     constraints = ["Search with the task's words in English: isochrones, routing, segmentation, web map"]
     examples = ["Is there a plugin for isochrones?", "Find a plugin that exports a web map"]
@@ -105,7 +101,6 @@ def score(entry: dict[str, Any], words: list[str]) -> int:
 
 
 def variants(word: str) -> set[str]:
-    """The word, without a version number glued to its end, and without a plural ending."""
     found = {word, VERSION_TAIL.sub("", word)}
     for ending in ("es", "s"):
         if word.endswith(ending):

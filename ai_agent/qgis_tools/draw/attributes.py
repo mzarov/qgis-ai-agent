@@ -1,5 +1,3 @@
-"""Attribute values of drawn features: the schema of a new layer and checks against an existing one."""
-
 import datetime
 from contextlib import suppress
 from typing import Any
@@ -19,7 +17,7 @@ MAX_FIELD_NAME = 63
 MAX_FIELDS = 100
 TRUE_WORDS = frozenset({"true", "yes", "1"})
 FALSE_WORDS = frozenset({"false", "no", "0"})
-# The LongLong range, the integer field of a new layer: QGIS wraps a whole number past it without a word.
+# QGIS silently wraps a whole number past the LongLong range.
 LONG_LONG_MIN = -(2**63)
 LONG_LONG_MAX = 2**63 - 1
 
@@ -38,7 +36,6 @@ def checked_attributes(raw: Any, position: int) -> dict[str, Any]:
 
 
 def new_layer_schema(raw_fields: Any, rows: list[dict[str, Any]]) -> dict[str, str]:
-    """Field name → type for a new layer: the declared fields, then any other names the values use."""
     if raw_fields is not None and not isinstance(raw_fields, dict):
         raise ValueError(f'fields must be an object of name → type, e.g. {{"name": "{TEXT}", "height": "{DOUBLE}"}}.')
     schema: dict[str, str] = {}
@@ -54,7 +51,6 @@ def new_layer_schema(raw_fields: Any, rows: list[dict[str, Any]]) -> dict[str, s
 
 
 def coerced_rows(schema: dict[str, str], rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Values converted to the declared types, so a mismatch fails before Apply."""
     return [{name: _coerced(name, schema[name], value) for name, value in row.items()} for row in rows]
 
 
@@ -73,7 +69,6 @@ def qgs_fields(schema: dict[str, str]) -> QgsFields:
 
 
 def check_existing_fields(layer: QgsVectorLayer, rows: list[dict[str, Any]]) -> None:
-    """Refuse unknown field names and values the layer's fields cannot hold."""
     names = list(layer.fields().names())
     unknown = sorted({name for row in rows for name in row if name not in names})
     if unknown:
@@ -143,7 +138,7 @@ def _convert(kind: str, value: Any) -> Any:
 
 
 def _whole_number(value: Any) -> int:
-    """The exact integer: a float holds whole numbers only up to 2**53, so a 64-bit id never passes through one."""
+    # Never via float: it holds whole numbers only up to 2**53, so a 64-bit id would change.
     if isinstance(value, int):
         return value
     with suppress(ValueError):

@@ -15,7 +15,6 @@ def annotation_layer() -> Any:
 
 
 def list_items() -> list[dict[str, Any]]:
-    """Each item's id, kind, text and place in lon/lat: a model checking a note's position needs no Python."""
     layer = annotation_layer()
     to_wgs84 = _to_wgs84()
     described = []
@@ -50,7 +49,6 @@ def item_text(item: Any) -> str:
 
 
 def _to_wgs84() -> Any:
-    """Items sit in the project CRS; None when that is already lon/lat or unknown."""
     project = QgsProject.instance()
     crs = project.crs()
     if not crs.isValid() or crs.authid() == WGS84:

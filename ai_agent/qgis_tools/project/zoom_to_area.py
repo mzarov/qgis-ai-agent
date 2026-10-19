@@ -6,7 +6,6 @@ from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, BaseTool
 
 WGS84 = "EPSG:4326"
-# A point with no scale opens at a town's size: streets readable, the place in context.
 DEFAULT_SCALE = 50000
 MIN_SCALE = 100
 MAX_SCALE = 500_000_000
@@ -93,7 +92,6 @@ class ZoomToAreaTool(BaseTool):
 
 
 def parse_bbox(raw: Any) -> tuple[float, float, float, float]:
-    """West, south, east, north in degrees; ValueError with the expected form otherwise."""
     try:
         values = [float(part) for part in str(raw).replace(";", ",").split(",")]
     except ValueError:

@@ -1,12 +1,3 @@
-"""run_processing off the main thread, the way the Processing toolbox's "Run in background" does it.
-
-QgsProcessingAlgRunnerTask prepares the algorithm here, runs it in a worker
-thread with a context of its own and post-processes it back on the main thread.
-The results are then loaded exactly as processing.runAndLoadResults loads them,
-or taken out of the context as processing.run hands them back. An algorithm
-flagged NoThreading never gets here: it runs on the main thread.
-"""
-
 from collections.abc import Callable
 from typing import Any
 
@@ -45,7 +36,6 @@ LAYER_OUTPUTS = (
 
 
 def runs_in_background(algorithm: Any) -> bool:
-    """Whether QGIS lets this algorithm run in a worker thread."""
     try:
         return not bool(algorithm.flags() & Qgis.ProcessingAlgorithmFlag.NoThreading)
     except AttributeError:
@@ -53,8 +43,6 @@ def runs_in_background(algorithm: Any) -> bool:
 
 
 class ProcessingInBackground(Background):
-    """One algorithm in QGIS's task; `finish` turns its results into the step's payload on the main thread."""
-
     def __init__(
         self,
         algorithm_id: str,
@@ -86,11 +74,10 @@ class ProcessingInBackground(Background):
         ok, message = self._algorithm.checkParameterValues(self._parameters, self._context)
         if not ok:
             raise ValueError(f"Unable to execute algorithm: {message}")
-        # Hidden from QGIS's own task bar: the step's line in the chat shows how far it is.
         flags = QgsTask.Flag.CanCancel | QgsTask.Flag.Hidden
         task = QgsProcessingAlgRunnerTask(self._algorithm, self._parameters, self._context, self._feedback, flags)
         if task.isCanceled():
-            # prepare() refused the parameters; the feedback holds why.
+            # The task cancels itself when prepare() refuses the parameters; the feedback holds why.
             raise ValueError(FAILED.format(self._feedback.reason()))
         task.progressChanged.connect(self._report)
         task.executed.connect(self._executed)
@@ -105,7 +92,7 @@ class ProcessingInBackground(Background):
         # The task manager deletes the task after this signal.
         self._task = None
         if not ok or self._stopped_because is not None:
-            # A stop that came after the algorithm ended, while its results waited in the queue, loads nothing.
+            # A stop that came while the results waited in the queue loads nothing.
             self._end(RuntimeError(FAILED.format(self._feedback.reason())))
             return
         try:
@@ -122,8 +109,6 @@ class ProcessingInBackground(Background):
 
 
 class _ErrorsKept(QgsProcessingFeedback):
-    """Keeps the errors an algorithm reports, for the step's failure text."""
-
     def __init__(self) -> None:
         super().__init__()
         self.errors: list[str] = []
@@ -137,7 +122,6 @@ class _ErrorsKept(QgsProcessingFeedback):
 
 
 def _point_outputs_at_project(algorithm: Any, parameters: dict[str, Any]) -> None:
-    """Destinations load into the project, as processing.runAndLoadResults sets them."""
     for definition in algorithm.parameterDefinitions():
         name = definition.name()
         if name not in parameters or not isinstance(definition, PROJECT_DESTINATIONS):
@@ -150,7 +134,6 @@ def _point_outputs_at_project(algorithm: Any, parameters: dict[str, Any]) -> Non
 
 
 def _take_result_layers(algorithm: Any, context: Any, results: dict[str, Any]) -> dict[str, Any]:
-    """Layer outputs as layers taken out of the context, as processing.run returns them."""
     for output in algorithm.outputDefinitions():
         name = output.name()
         if name not in results:

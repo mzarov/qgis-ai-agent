@@ -1,21 +1,12 @@
-"""A Processing model as the agent describes it, checked before QGIS builds anything.
-
-Pure Python, so the reference rules are tested without QGIS: every step
-parameter is a static value, a model input or the output of an *earlier* step.
-Requiring earlier steps makes a cycle impossible to express. The QGIS side —
-algorithm ids, parameter names, the model itself — is `model_builder.py`.
-"""
-
 import re
 from dataclasses import dataclass
 from typing import Any
 
 INPUT_TYPES = ("vector", "raster", "number", "distance", "field", "string", "crs")
 NUMERIC_INPUT_TYPES = ("number", "distance")
-# The inputs a field input may list the fields of, and the ones a distance input may take its units from.
 PARENT_TYPES = {"field": ("vector",), "distance": ("vector", "raster", "crs")}
 INPUT_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
-# The model name is also its file name: these break a path on one of the three platforms.
+# The model name is its file name: these characters break a path on some platform.
 FORBIDDEN_NAME_CHARACTERS = '/\\:*?"<>|'
 MAX_NAME_CHARS = 80
 MAX_INPUTS = 20
@@ -82,7 +73,6 @@ class ModelSpec:
 
 
 def parse_model(params: dict[str, Any]) -> ModelSpec:
-    """The checked model, or ValueError naming the first problem and how to fix it."""
     name = model_name(params.get("name"))
     inputs = parse_inputs(params.get("inputs"))
     steps = parse_steps(params.get("steps"), inputs)
@@ -174,7 +164,6 @@ def parse_steps(raw: Any, inputs: list[ModelInput]) -> list[ModelStep]:
 def parse_source(
     value: Any, step_id: str, parameter: str, inputs: list[str], earlier: list[str], all_steps: list[str]
 ) -> Source:
-    """What one step parameter is fed with: a model input, an earlier step's output, or a value."""
     if not isinstance(value, dict) or not (value.keys() & {INPUT_KEY, STEP_KEY}):
         return StaticSource(value)
     where = f"Step '{step_id}' parameter {parameter}"
@@ -248,7 +237,6 @@ def _check_every_input_used(inputs: list[ModelInput], steps: list[ModelStep]) ->
 
 
 def _with_parent(model_input: ModelInput, inputs: list[ModelInput]) -> ModelInput:
-    """A field input lists the fields of a vector input; a distance input may take its units from one."""
     allowed = PARENT_TYPES.get(model_input.kind)
     if allowed is None:
         if model_input.parent:
@@ -267,8 +255,7 @@ def _with_parent(model_input: ModelInput, inputs: list[ModelInput]) -> ModelInpu
         if len(candidates) != 1:
             raise ValueError(f"Field input '{model_input.name}' needs parent: the vector input whose fields it lists.")
         return _replace_parent(model_input, candidates[0].name)
-    # A distance takes the units of a CRS input when there is exactly one. Never a layer by default: a model
-    # that reprojects first would label the distance in the input layer's degrees.
+    # Never a layer's units by default: a model that reprojects first would get degrees.
     crs_inputs = [other for other in candidates if other.kind == "crs"]
     return _replace_parent(model_input, crs_inputs[0].name) if len(crs_inputs) == 1 else model_input
 

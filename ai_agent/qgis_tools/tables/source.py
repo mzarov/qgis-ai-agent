@@ -1,9 +1,4 @@
-"""Delimited text layers and the join keys of project layers.
-
-The URI is assembled with `QUrlQuery`, as the QGIS Data Source Manager does:
-a hand-escaped `%3B` reaches the provider literally and splits every line on
-three characters instead of one semicolon.
-"""
+# Build the URI with QUrlQuery: a hand-escaped %3B reaches the provider literally.
 
 from contextlib import suppress
 from typing import Any
@@ -23,7 +18,6 @@ DUPLICATE_NAME = "{0} ({1})"
 def delimited_uri(
     table: DelimitedTable, x_field: str = "", y_field: str = "", wkt_field: str = "", crs: str = ""
 ) -> str:
-    """A delimitedtext URI; digit codes with leading zeros are pinned to text."""
     query = QUrlQuery()
     items = [
         ("type", "csv"),
@@ -48,7 +42,6 @@ def delimited_uri(
 
 
 def open_delimited(table: DelimitedTable, name: str, **geometry: str) -> QgsVectorLayer:
-    """A valid layer over the file, not yet added to the project."""
     layer = QgsVectorLayer(delimited_uri(table, **geometry), name, PROVIDER)
     if not layer.isValid():
         reason = ""
@@ -59,7 +52,6 @@ def open_delimited(table: DelimitedTable, name: str, **geometry: str) -> QgsVect
 
 
 def layer_for_file(path: str) -> QgsVectorLayer | None:
-    """A vector layer already in the project that reads exactly this file."""
     for layer in QgsProject.instance().mapLayers().values():
         if isinstance(layer, QgsVectorLayer) and same_path(source_file(layer), path):
             return layer
@@ -104,7 +96,6 @@ def require_field(layer: QgsVectorLayer, name: str, role: str) -> str:
 
 
 def layer_key_texts(layer: QgsVectorLayer, field: str) -> set[str] | None:
-    """Distinct key texts of a local layer; None when reading them could stall on a remote source."""
     provider = ""
     with suppress(Exception):
         provider = str(layer.providerType() or "").lower()

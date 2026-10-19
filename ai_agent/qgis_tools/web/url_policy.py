@@ -27,8 +27,7 @@ SECRET_QUERY_KEYS = {
 }
 SECRET_QUERY_SUFFIXES = ("_credential", "_password", "_secret", "_signature", "_token")
 MAX_URL_CHARS = 4096
-# RFC 6052 well-known NAT64 prefix: the last 32 bits are an IPv4 address the
-# translator will reach, so a private one there is a private destination.
+# NAT64 (RFC 6052): the last 32 bits are the IPv4 destination the translator reaches.
 NAT64_PREFIX = ipaddress.IPv6Network("64:ff9b::/96")
 
 
@@ -112,7 +111,6 @@ def is_public_address(address: ipaddress.IPv4Address | ipaddress.IPv6Address) ->
 
 
 def embedded_ipv4(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> list[ipaddress.IPv4Address]:
-    """IPv4 destinations tunnelled inside an IPv6 address (mapped, 6to4, Teredo, NAT64)."""
     if not isinstance(address, ipaddress.IPv6Address):
         return []
     embedded = [candidate for candidate in (address.ipv4_mapped, address.sixtofour) if candidate is not None]

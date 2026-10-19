@@ -17,10 +17,7 @@ MAX_SCAN = 50000
 DEFAULT_ROW_LIMIT = 20
 MAX_ROW_LIMIT = 200
 MAX_GROUPS = 50
-# Qgis.Aggregate member per aggregate the native calculator can answer without
-# a Python scan. Concatenation stays in Python for its item cap and
-# count_distinct because QGIS counts NULL as a distinct text value; "count" is
-# the number of matching features, which COUNT_EXPRESSION yields for each one.
+# Not native: concatenate (item cap) and count_distinct (QGIS counts NULL as a distinct value).
 NATIVE_AGGREGATES = {
     "sum": "Sum",
     "mean": "Mean",
@@ -38,7 +35,6 @@ SCAN_LIMIT_MESSAGE = (
 
 
 def run_aggregate(layer, request, context, params, aggregate: str, selected: list[int] | None = None) -> dict[str, Any]:
-    """Aggregate the features the request yields; `selected` is the selection the filter accepted, if any."""
     expression_text = (params.get("expression") or "").strip()
     group_text = (params.get("group_by") or "").strip()
     value_expression = prepared(expression_text, "expression", context, layer) if expression_text else None
@@ -80,10 +76,9 @@ def run_aggregate(layer, request, context, params, aggregate: str, selected: lis
 def _native_aggregate(
     layer, context, params, aggregate: str, expression_text: str, fids: list[int] | None
 ) -> dict[str, Any] | None:
-    """Answer an ungrouped aggregate through QgsVectorLayer.aggregate; None means scan instead."""
     if expression_text and aggregate != "count" and aggregate not in NATIVE_AGGREGATES:
         return None
-    # Selected ids have passed the filter already; beside a filter QgsVectorLayer.aggregate ignores ids.
+    # Beside a filter QgsVectorLayer.aggregate ignores ids; selected ids passed the filter already.
     filter_text = "" if fids is not None else (params.get("filter") or "").strip()
     matched = feature_count_if_cheap(layer) if not filter_text and fids is None else None
     if matched is None:

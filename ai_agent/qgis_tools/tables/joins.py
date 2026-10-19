@@ -1,5 +1,3 @@
-"""Reading the joins a layer already has: listing them and finding one to remove."""
-
 from typing import Any
 
 from ai_agent.qgis_tools.tables.keys import match_report
@@ -7,7 +5,6 @@ from ai_agent.qgis_tools.tables.source import layer_key_texts
 
 
 def describe_join(target: Any, join: Any) -> dict[str, Any]:
-    """One join as the model reads it, with the key match measured when that is cheap."""
     table = join.joinLayer()
     described: dict[str, Any] = {
         "table": table.name() if table is not None else join.joinLayerId(),
@@ -37,7 +34,6 @@ def joined_field_names(join: Any, table: Any) -> list[str]:
 
 
 def find_join(target: Any, reference: str, table_id: str = "") -> Any:
-    """The join of `target` with this table, by id first; a name shared by two joined tables is refused."""
     wanted = str(reference or "").strip()
     pinned = str(table_id or "").strip()
     joins = list(target.vectorJoins())

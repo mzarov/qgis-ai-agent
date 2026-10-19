@@ -96,7 +96,6 @@ def _checked_name(params: dict[str, Any], table: DelimitedTable) -> str:
 
 
 def _geometry(params: dict[str, Any], table: DelimitedTable) -> dict[str, str]:
-    """The geometry arguments to load with, checked against the file; empty for a plain table."""
     x_field = str(params.get("x_field") or "").strip()
     y_field = str(params.get("y_field") or "").strip()
     wkt_field = str(params.get("wkt_field") or "").strip()
@@ -128,7 +127,6 @@ def _geometry(params: dict[str, Any], table: DelimitedTable) -> dict[str, str]:
 
 
 def normalised_crs(raw: Any) -> tuple[str, bool]:
-    """The authority id of a CRS given as EPSG:4326, 4326, WGS84 or PROJ, and whether it is in degrees."""
     text = str(raw or "").strip()
     if not text:
         return "", False
