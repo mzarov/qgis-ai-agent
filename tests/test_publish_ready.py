@@ -147,11 +147,14 @@ class NetworkStackTest(unittest.TestCase):
         ]
         self.assertEqual(offenders, [])
 
-    def test_outgoing_calls_use_the_qgis_stack(self):
+    def test_blocking_requests_go_through_the_shared_exchange(self):
+        # Unless network.send settles it first, a QgsBlockingNetworkRequest off the main thread can deadlock QGIS.
         users = [
-            path for path in PACKAGE.rglob("*.py") if "QgsBlockingNetworkRequest" in path.read_text(encoding="utf-8")
+            path.relative_to(PACKAGE).as_posix()
+            for path in PACKAGE.rglob("*.py")
+            if "QgsBlockingNetworkRequest" in path.read_text(encoding="utf-8")
         ]
-        self.assertGreaterEqual(len(users), 2)
+        self.assertEqual(users, ["qgis_tools/common/network.py"])
 
 
 if __name__ == "__main__":

@@ -280,18 +280,8 @@ class StreamRunnerSourceTest(unittest.TestCase):
         self.assertNotIn("import requests", self.SOURCE)
         self.assertNotIn("urllib", self.SOURCE)
 
-    def test_an_instantly_finished_reply_does_not_enter_the_loop(self):
-        self.assertIn("if not reply.isFinished():", self.SOURCE)
-
-    def test_the_watchdog_restarts_on_every_incoming_chunk(self):
-        self.assertIn("reply.readyRead.connect(watchdog.start)", self.SOURCE)
-
-    def test_external_feedback_can_abort_the_reply(self):
-        self.assertIn(
-            "feedback.canceled.connect(cancellation.cancel, _queued_connection())",
-            self.SOURCE,
-        )
-        self.assertIn("reply.abort()", self.SOURCE)
+    def test_the_stream_runs_through_the_shared_exchange_with_an_idle_limit(self):
+        self.assertIn("send(request, payload, feedback, on_data=take, idle_timeout_s=timeout)", self.SOURCE)
 
     def test_stream_request_gets_the_configured_timeout(self):
         call = "build_network_request(endpoint, {**headers, **ACCEPT_HEADER}, verify_override, timeout)"

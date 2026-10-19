@@ -1,16 +1,11 @@
 import json
 from typing import Any
 
-from qgis.core import QgsNetworkAccessManager
-from qgis.PyQt.QtCore import QByteArray, QEventLoop, QObject, Qt, QTimer, pyqtSlot
-from qgis.PyQt.QtNetwork import QNetworkRequest
-
 from ai_agent.core.llm.client import ApiResponseError, ModelTimeout, build_network_request, retry_after_of
 from ai_agent.core.llm.dialects import safe_endpoint_label
 from ai_agent.core.llm.stream import SseAccumulator
+from ai_agent.qgis_tools.common.network import send
 
-STATUS_ATTRIBUTE = QNetworkRequest.Attribute.HttpStatusCodeAttribute
-MILLISECONDS = 1000
 STREAM_TIMED_OUT = "The streaming connection to {endpoint} went quiet and was closed."
 STREAM_CANCELLED = "The streaming connection to {endpoint} was cancelled."
 STREAM_FAILED = "Could not stream from {endpoint}: {reason}."
@@ -20,26 +15,6 @@ ERROR_STATUS = {"overloaded_error": 529, "rate_limit_error": 429, "api_error": 5
 DEFAULT_ERROR_STATUS = 502
 ERROR_BODY_LIMIT = 300
 ACCEPT_HEADER = {"Accept": "text/event-stream"}
-
-
-def _queued_connection() -> Any:
-    return Qt.ConnectionType.QueuedConnection
-
-
-class _StreamCancellation(QObject):
-    def __init__(self, reply: Any, loop: QEventLoop):
-        super().__init__()
-        self.reply = reply
-        self.loop = loop
-        self.cancelled = False
-
-    @pyqtSlot()
-    def cancel(self) -> None:
-        if self.cancelled:
-            return
-        self.cancelled = True
-        self.reply.abort()
-        self.loop.quit()
 
 
 def post_stream(
@@ -52,74 +27,29 @@ def post_stream(
     feedback: Any = None,
 ) -> dict[str, Any]:
     request = build_network_request(endpoint, {**headers, **ACCEPT_HEADER}, verify_override, timeout)
-    payload = QByteArray(json.dumps(body, ensure_ascii=False).encode("utf-8"))
-    reply = QgsNetworkAccessManager.instance().post(request, payload)
-
+    payload = json.dumps(body, ensure_ascii=False).encode("utf-8")
     accumulator = SseAccumulator()
     error_tail: list[bytes] = []
-    loop = QEventLoop()
-    watchdog = QTimer()
-    watchdog.setSingleShot(True)
-    watchdog.setInterval(timeout * MILLISECONDS)
-    watchdog.timeout.connect(loop.quit)
-    cancellation = _StreamCancellation(reply, loop)
 
-    closed = False
-
-    def drain() -> None:
-        # readyRead can arrive after deleteLater: reading a deleted reply raises in a slot and aborts QGIS.
-        if closed:
+    def take(chunk: bytes, status: int) -> None:
+        if status >= 400:
+            error_tail.append(chunk)
             return
-        try:
-            raw = bytes(reply.readAll())
-        except RuntimeError:
-            return
-        if not raw:
-            return
-        if _status_of(reply) >= 400:
-            error_tail.append(raw)
-            return
-        for event in accumulator.feed(raw):
+        for event in accumulator.feed(chunk):
             completion.take(event)
 
-    reply.readyRead.connect(watchdog.start)
-    reply.readyRead.connect(drain)
-    reply.finished.connect(loop.quit)
-    if feedback is not None:
-        feedback.canceled.connect(cancellation.cancel, _queued_connection())
-        if feedback.isCanceled():
-            cancellation.cancel()
-    watchdog.start()
-    if not reply.isFinished():
-        loop.exec()
-    watchdog.stop()
-    if feedback is not None:
-        try:
-            feedback.canceled.disconnect(cancellation.cancel)
-        except (RuntimeError, TypeError):
-            pass
-
-    timed_out = not cancellation.cancelled and not reply.isFinished()
-    if timed_out:
-        reply.abort()
-    drain()
-    status = _status_of(reply)
-    failure = _failure_of(reply)
-    retry_after = retry_after_of(reply)
-    closed = True
-    _disconnect(reply.readyRead)
-    _disconnect(reply.finished)
-    reply.deleteLater()
-
-    if cancellation.cancelled:
+    answer = send(request, payload, feedback, on_data=take, idle_timeout_s=timeout)
+    if answer.cancelled:
         raise ConnectionError(STREAM_CANCELLED.format(endpoint=safe_endpoint_label(endpoint)))
-    if timed_out:
+    if answer.timed_out:
         raise ModelTimeout(STREAM_TIMED_OUT.format(endpoint=safe_endpoint_label(endpoint)))
-    if status >= 400:
+    if answer.status >= 400:
         text = b"".join(error_tail).decode("utf-8", errors="replace")
-        raise ApiResponseError(status, text[:ERROR_BODY_LIMIT] or f"HTTP {status}", retry_after=retry_after)
-    if failure:
-        raise ConnectionError(STREAM_FAILED.format(endpoint=safe_endpoint_label(endpoint), reason=failure))
+        raise ApiResponseError(
+            answer.status, text[:ERROR_BODY_LIMIT] or f"HTTP {answer.status}", retry_after=retry_after_of(answer)
+        )
+    if answer.failed:
+        raise ConnectionError(STREAM_FAILED.format(endpoint=safe_endpoint_label(endpoint), reason=answer.error))
     for event in accumulator.flush():
         completion.take(event)
     return _finished_response(completion, accumulator, endpoint)
@@ -137,26 +67,3 @@ def _finished_response(completion: Any, accumulator: SseAccumulator, endpoint: s
     if not getattr(completion, "finished", True):
         raise ConnectionError(STREAM_INCOMPLETE.format(endpoint=safe_endpoint_label(endpoint)))
     return {**completion.response(), STREAM_EVENTS_KEY: accumulator.event_count}
-
-
-def _disconnect(signal: Any) -> None:
-    try:
-        signal.disconnect()
-    except (RuntimeError, TypeError):
-        pass
-
-
-def _status_of(reply: Any) -> int:
-    try:
-        return int(reply.attribute(STATUS_ATTRIBUTE))
-    except Exception:
-        return 0
-
-
-def _failure_of(reply: Any) -> str:
-    try:
-        if int(reply.error()) == 0:
-            return ""
-        return str(reply.errorString())
-    except Exception:
-        return ""

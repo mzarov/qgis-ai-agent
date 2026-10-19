@@ -2,11 +2,9 @@ import json
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
-from qgis.core import QgsBlockingNetworkRequest
-from qgis.PyQt.QtCore import QByteArray
-
 from ai_agent.core.llm.client import build_network_request, build_request
 from ai_agent.core.settings import get_context_window, get_detected_context_window
+from ai_agent.qgis_tools.common.network import send
 
 DEFAULT_WINDOW = 128_000
 AUTO_COMPACT_SHARE = 0.9
@@ -121,12 +119,8 @@ def _request(
     url: str, headers: dict[str, str], verify: Any, feedback: Any, body: dict[str, Any] | None = None
 ) -> dict[str, Any]:
     request = build_network_request(url, headers, verify, DETECT_TIMEOUT)
-    caller = QgsBlockingNetworkRequest()
-    if body is None:
-        error = caller.get(request, False, feedback)
-    else:
-        error = caller.post(request, QByteArray(json.dumps(body).encode("utf-8")), False, feedback)
-    if error != QgsBlockingNetworkRequest.ErrorCode.NoError:
+    answer = send(request, None if body is None else json.dumps(body).encode("utf-8"), feedback)
+    if answer.failed:
         return {}
-    parsed = json.loads(bytes(caller.reply().content()).decode("utf-8", errors="replace") or "{}")
+    parsed = json.loads(answer.body.decode("utf-8", errors="replace") or "{}")
     return parsed if isinstance(parsed, dict) else {}
