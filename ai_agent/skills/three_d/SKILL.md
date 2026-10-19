@@ -6,10 +6,10 @@ tools: [open_3d_view]
 
 # 3D views
 
-`open_3d_view` opens the window; everything inside it — terrain source,
-vertical exaggeration, camera position — is adjusted through `run_python`
-from the `python` skill, because the 3D API surface is wide and changes
-between QGIS releases.
+Open the view first with `open_3d_view`, and load `python` only afterwards.
+Everything inside it — terrain source, vertical exaggeration, camera
+position — is adjusted through `run_python` from the `python` skill, because
+the 3D API surface is wide and changes between QGIS releases.
 
 Do not write 3D configuration from memory. The reliable route for terrain
 from a DEM:

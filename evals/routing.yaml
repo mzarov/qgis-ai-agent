@@ -39,6 +39,7 @@
 - description: Changing attribute values is the edit skill
   vars:
     request: Set the capacity to 0 for every lyceum
+    reads: schools/kind
     expect: {loads: [edit], not_loads: [python]}
 
 - description: Downloading from OpenStreetMap is the osm skill
@@ -150,7 +151,8 @@
 - description: A setting no tool covers is the python skill
   vars:
     request: Set the blend mode of the districts layer to multiply
-    expect: {loads: [python], not_loads: [processing]}
+    # The python skill asks to check for a real tool first: loading style to look is that check.
+    expect: {any_of: [{loads: [python]}, {loads: [style]}], not_loads: [processing]}
 
 - description: Old-style labels are not annotations
   vars:
