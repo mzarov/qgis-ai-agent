@@ -34,8 +34,9 @@ LOG_TAG = "AI Agent"
 OS_FAMILIES = (("darwin", "macos"), ("win", "windows"), ("linux", "linux"))
 DIALECTS = ("openai", "anthropic")
 OK_STATUSES = (200, 204)
-MAX_DAY_AGE = 2
+MAX_DAY_AGE = 7
 REFUSED = 400
+ACTIVE = "active"
 
 
 def collector_url() -> str:
@@ -73,6 +74,9 @@ def enabled() -> bool:
 
 
 def add(counts: dict[str, Any], kind: str, name: str = "") -> dict[str, Any]:
+    if kind == ACTIVE:
+        counts[ACTIVE] = True
+        return counts
     if kind in ("runs", "applies"):
         counts[kind] = min(MAX_COUNT, int(counts.get(kind, 0)) + 1)
         return counts
@@ -110,7 +114,7 @@ def os_family(platform: str) -> str:
 
 
 def has_counts(counts: dict[str, Any]) -> bool:
-    return bool(counts.get("runs") or counts.get("applies") or counts.get("tools"))
+    return bool(counts.get(ACTIVE) or counts.get("runs") or counts.get("applies") or counts.get("tools"))
 
 
 def _version(text: str) -> str:

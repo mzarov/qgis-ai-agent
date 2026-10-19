@@ -2,8 +2,8 @@ export const PING_VERSION = 1;
 export const MAX_BODY_BYTES = 4096;
 export const MAX_COUNT = 100000;
 export const MAX_MAP_KEYS = 150;
-// A client's local day may sit a day off UTC, and it may resend yesterday's ping after a restart.
-export const MAX_DAY_SKEW = 2;
+// A client's local day may sit a day off UTC, and a day waits until QGIS next starts, up to a week.
+export const MAX_DAY_SKEW = 7;
 export const SERIES_DAYS = 90;
 export const RECENT_DAYS = 30;
 export const MAX_VALUES_PER_FACET = 100;

@@ -152,8 +152,8 @@ describe("usage worker", () => {
   });
 
   it("checks the day against the server date", async () => {
-    assert.equal((await send(ping(INSTALLS.a, "2026-10-10"))).status, 400);
-    assert.equal((await send(ping(INSTALLS.a, "2026-10-10"), new Date("2026-10-11T00:00:00Z"))).status, 204);
+    assert.equal((await send(ping(INSTALLS.a, "2026-10-09"))).status, 400);
+    assert.equal((await send(ping(INSTALLS.a, "2026-10-09"), new Date("2026-10-11T00:00:00Z"))).status, 204);
   });
 
   it("routes only the documented methods and paths", async () => {

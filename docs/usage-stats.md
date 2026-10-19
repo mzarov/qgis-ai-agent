@@ -13,7 +13,8 @@ At most one report per install per day:
 - the date, without a time;
 - the plugin and QGIS versions, the OS family and the interface language;
 - whether the model server is local or remote, and its API format;
-- the number of runs and applied batches;
+- the number of runs and applied batches (a day the plugin was loaded counts
+  even with none);
 - how often each tool was called, each skill loaded and each kind of failure
   happened.
 

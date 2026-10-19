@@ -35,6 +35,7 @@ class QgisAiAgentPlugin:
         self._project_sync_pending = False
         self._project_reset_pending = False
         self._usage_notice: UsageNotice | None = None
+        self._usage = usage_stats.UsageStats()
 
     def initGui(self) -> None:
         theme.set_override(personal.load().panel_theme)
@@ -45,6 +46,8 @@ class QgisAiAgentPlugin:
         self._connect_project_lifecycle()
         self._follow_active_layer(True)
         self._notify_usage_stats()
+        self._usage.note(usage_stats.ACTIVE)
+        self._usage.flush()
 
     def unload(self) -> None:
         self._disconnect_project_lifecycle()
