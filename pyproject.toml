@@ -43,6 +43,7 @@ python_version = "3.12"
 strict = true
 files = [
     "ai_agent/config",
+    "ai_agent/core/state",
     "ai_agent/skills",
     "ai_agent/qgis_tools/base.py",
     "ai_agent/qgis_tools/call_summary.py",

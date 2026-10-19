@@ -1,9 +1,9 @@
 import json
 import uuid
-from typing import Any
+from typing import Any, Final
 
 from ai_agent.core.settings import get_history_days
-from ai_agent.core.state.session import Session
+from ai_agent.core.state.session import Session, StoredMessage
 from ai_agent.core.state.store import SessionStore, current_project_key
 from ai_agent.core.state.trace import PENDING, PLAN_ROLE, TRACE_ROLE, TraceLog
 
@@ -15,7 +15,7 @@ VISUAL_ROLE = "visual"
 FAILURE_ROLE = "failure"
 MODEL_ROLES = frozenset({"user", "assistant"})
 DISPLAY_ROLES = frozenset({VISUAL_ROLE, TRACE_ROLE, PLAN_ROLE, FAILURE_ROLE})
-CHOSEN = "chosen"
+CHOSEN: Final = "chosen"
 PLACE = "place"
 
 
@@ -26,7 +26,7 @@ class ConversationState:
         self.trace = TraceLog()
 
     @property
-    def messages(self) -> list[dict[str, str]]:
+    def messages(self) -> list[StoredMessage]:
         return self._session.messages
 
     @property
@@ -51,7 +51,7 @@ class ConversationState:
 
     def window(self) -> list[dict[str, str]]:
         session = self._session
-        head = []
+        head: list[dict[str, str]] = []
         if session.summary:
             head = [
                 {"role": "user", "content": SUMMARY_INTRO + session.summary},
@@ -136,7 +136,7 @@ class ConversationState:
     def next_place(self) -> int:
         return self._session.end
 
-    def message_at(self, place: int) -> dict[str, str] | None:
+    def message_at(self, place: int) -> StoredMessage | None:
         return self._session.at(place)
 
     def last_place(self, role: str) -> int | None:
@@ -179,16 +179,17 @@ class ConversationState:
         return self._session.display_title() if self._session.messages else ""
 
     def rename(self, identifier: str, title: str) -> bool:
-        if identifier == self.session_identifier:
-            session = self._session
-        else:
-            session = self._store.load(identifier)
-            if session is None or session.project != self.project_key:
-                return False
-        if not session.rename(title):
+        session = self._own(identifier)
+        if session is None or not session.rename(title):
             return False
         self._store.save(session)
         return True
+
+    def _own(self, identifier: str) -> Session | None:
+        if identifier == self.session_identifier:
+            return self._session
+        session = self._store.load(identifier)
+        return session if session is not None and session.project == self.project_key else None
 
     def delete(self, identifier: str) -> bool:
         if identifier == self.session_identifier:
@@ -245,7 +246,7 @@ class ConversationState:
         self._session = session
 
 
-def _decoded(message: dict[str, Any]) -> dict[str, Any] | None:
+def _decoded(message: StoredMessage) -> dict[str, Any] | None:
     try:
         data = json.loads(message.get("content") or "")
     except ValueError:
