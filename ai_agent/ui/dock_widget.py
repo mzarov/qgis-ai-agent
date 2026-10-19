@@ -1,5 +1,3 @@
-"""The panel: its own title bar, the toolbar, the feed and the composer; the orchestrator's contract."""
-
 import time
 from collections.abc import Callable
 from typing import Any
@@ -44,7 +42,6 @@ class AgentDockWidget(QDockWidget):
         # Before any child is built: children read the panel's palette, which must already be the theme's.
         style.apply_palette(self)
         self.setWindowTitle(TITLE)
-        # What the current run is for; the status line and the run's trace are named by it.
         self._run_kind = ""
         palette = self.palette()
         self.title_bar = chrome.DockTitleBar(self, palette)
@@ -70,16 +67,11 @@ class AgentDockWidget(QDockWidget):
         column.addWidget(self._build_composer())
         self.setWidget(body)
         self.composer.set_popup_host(body)
-        # The welcome is up: there is nothing to start over from yet.
         self.toolbar.new_button.setEnabled(False)
-        # The feed's picture while a new conversation is being asked for; see `_start_new`.
         self._leaving: QPixmap | None = None
-        # The same while a conversation from the history replaces it; see `_choose_session`.
         self._switching: QPixmap | None = None
 
     def _choose_session(self, identifier: str) -> None:
-        """Open a conversation from the history: what the feed shows rises away once the orchestrator
-        has replayed the chosen one, which then rises in (`replay`)."""
         self._switching = self.conversation.snapshot(with_welcome=True)
         try:
             self.session_chosen.emit(identifier)
@@ -87,8 +79,6 @@ class AgentDockWidget(QDockWidget):
             self._switching = None
 
     def _start_new(self) -> None:
-        """Ask for a new conversation: the feed's picture waits for the
-        orchestrator to confirm the switch (`note_conversation_saved`) and is dropped if it does not."""
         self._leaving = self.conversation.snapshot()
         try:
             self.new_session_clicked.emit()
@@ -128,7 +118,6 @@ class AgentDockWidget(QDockWidget):
         self.conversation.rewind_requested.connect(self.rewind_requested.emit)
         self.conversation.plan_undo_requested.connect(self.plan_undo_requested.emit)
         self.conversation.plan_restore_requested.connect(self.plan_restore_requested.emit)
-        # A picked answer travels like a typed one: the orchestrator routes it to the waiting run.
         self.conversation.question_answered.connect(self.prompt_submitted.emit)
         self.conversation.cancel_requested.connect(self.cancel_plan_clicked.emit)
         self.conversation.suggestion_chosen.connect(self._on_suggestion)
@@ -159,7 +148,6 @@ class AgentDockWidget(QDockWidget):
         return holder
 
     def set_session_source(self, provider: Callable[[], list[tuple[Any, ...]]]) -> None:
-        """`provider` gives (identifier, title[, updated, current]) tuples, so no core type reaches the ui."""
         self._sessions_provider = provider
 
     def set_skill_source(self, provider: Callable[[], list[tuple[str, str, str]]]) -> None:
@@ -216,7 +204,6 @@ class AgentDockWidget(QDockWidget):
                     entry = self.conversation.add_chosen(text)
                 else:
                     entry = self.conversation.add_user_message(text, animate=False)
-                # Its place in the conversation: once the head is trimmed, no longer its index in this list.
                 if message.get("place") is not None:
                     self.conversation.mark_rewind_point(entry, message["place"])
             elif isinstance(message.get("visual"), dict):
@@ -260,7 +247,6 @@ class AgentDockWidget(QDockWidget):
         self.conversation.offer_retry()
 
     def set_run_kind(self, kind: str) -> None:
-        """What the next run is for — a check after an apply, a look into a failure — or "" for the user's."""
         self._run_kind = kind
         self.conversation.set_run_kind(kind)
 
@@ -334,7 +320,6 @@ class AgentDockWidget(QDockWidget):
         self.progress.show_outcome(kind, summary)
 
     def begin_work(self) -> None:
-        """The user set work going: the status line's time counts from now."""
         self.progress.begin()
 
     def show_retry(self, seconds: float, attempt: int, total: int, busy: bool) -> None:

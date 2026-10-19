@@ -31,7 +31,6 @@ ROW_MARGIN = 40
 
 
 def build_body(owner: Any, palette: Any) -> tuple[QHBoxLayout, QVBoxLayout]:
-    """The sidebar, full height, beside the content column; the caller adds its footer to that column."""
     body = QHBoxLayout()
     body.setContentsMargins(0, 0, 0, 0)
     body.setSpacing(0)
@@ -39,9 +38,6 @@ def build_body(owner: Any, palette: Any) -> tuple[QHBoxLayout, QVBoxLayout]:
     nav, nav_column = fields.sidebar()
     nav.setObjectName(NAV_NAME)
     style.fill(nav, style.sidebar(palette))
-    # None marks a page built on its first visit, by the owner's `build_page`: most openings never reach
-    # it, and building every page up front would double the time the window takes to appear. Privacy
-    # and Advanced edit the endpoint together with the Connection page, so they are built with it.
     pages = (
         (tr("Connection"), "connection", owner._build_connection(palette)),
         (tr("Privacy"), "privacy", settings_advanced.build_privacy(owner, palette)),
@@ -104,25 +100,21 @@ def show_page(owner: Any, index: int) -> None:
 
 
 def ensure_page(owner: Any, index: int) -> None:
-    """Build a deferred page if this is its first visit."""
     area = owner._unbuilt_pages.pop(index, None)
     if area is not None:
         _hold(area, owner.build_page(index))
 
 
 def build_all(owner: Any) -> None:
-    """Every page at once, for the search, which reads their rows."""
     for index in list(owner._unbuilt_pages):
         ensure_page(owner, index)
 
 
 def mark_page(owner: Any, index: int) -> None:
-    """Show the dot that says this page holds unsaved changes."""
     owner._nav_buttons[index].findChild(controls.PaintedDot, DOT_NAME).setVisible(True)
 
 
 def scrollable(page: QWidget | None) -> QScrollArea:
-    """A page's own scroll area; a deferred page arrives later, through `ensure_page`."""
     area = QScrollArea()
     area.setWidgetResizable(True)
     area.setFrameShape(QScrollArea.Shape.NoFrame)
@@ -140,19 +132,16 @@ def _hold(area: QScrollArea, page: QWidget) -> None:
 
 
 def _open_result(owner: Any, index: int, row: Any) -> None:
-    """A search result: its page, and the row brought into view."""
     show_page(owner, index)
     if row is None:
         return
     try:
         owner.pages.widget(index).ensureWidgetVisible(row, 0, ROW_MARGIN)
     except RuntimeError:
-        # The row was rebuilt since the search ran (the skills list refreshes): the page alone is shown.
         return
 
 
 def _caption(text: str, palette: Any) -> QLabel:
-    """A group title in the sidebar: 11/600, upper case, the tertiary ink."""
     label = QLabel(text)
     label.setContentsMargins(*CAPTION_MARGINS)
     style.scale_font(label, CAPTION_SCALE, bold=True)
@@ -165,7 +154,6 @@ def _caption(text: str, palette: Any) -> QLabel:
 
 
 def _version(palette: Any) -> QLabel:
-    """The plugin's version and the QGIS it runs in, at the foot of the sidebar."""
     parts = [part for part in (f"AI Agent {plugin_version()}".strip(), f"QGIS {qgis_version()}".strip()) if part]
     label = QLabel(" · ".join(parts))
     label.setContentsMargins(*VERSION_MARGINS)
@@ -175,7 +163,6 @@ def _version(palette: Any) -> QLabel:
 
 
 def _add_marks(button: QPushButton, palette: Any, count: int) -> None:
-    """The entry's right edge: a count where the page has one, and the unsaved-changes dot."""
     line = QHBoxLayout(button)
     line.setContentsMargins(0, 0, 10, 0)
     line.setSpacing(6)

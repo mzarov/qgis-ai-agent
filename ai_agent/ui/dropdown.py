@@ -1,12 +1,3 @@
-"""A drop-down that looks like the other settings fields and opens the panel's own menu.
-
-A QComboBox draws as a bare text box once its arrow is styled away, and on
-macOS its popup is the native one, deaf to the theme. This is a field with a
-chevron that opens `controls.menu`: the current choice carries a check, the
-others leave room for it. It keeps the slice of the QComboBox API the pages use.
-Opening turns the chevron up and fades the menu in; closing turns it back.
-"""
-
 from typing import Any
 
 from qgis.PyQt.QtCore import QEasingCurve, QPoint, QPointF, QSize, Qt, QVariantAnimation, pyqtSignal
@@ -88,12 +79,7 @@ class Dropdown(QPushButton):
         popup.exec(self._menu_position(popup.sizeHint().height()))
 
     def _menu_position(self, menu_height: int) -> QPoint:
-        """Under the field when the menu fits there, above it otherwise.
-
-        Left to itself, Qt slides a menu that runs off the screen back up over
-        the field, so near the bottom of the window it covered the field it
-        belongs to.
-        """
+        # Left to itself, Qt slides a menu running off the screen back up over the field.
         below = self.mapToGlobal(QPoint(0, self.height() + MENU_GAP))
         above = self.mapToGlobal(QPoint(0, -MENU_GAP - menu_height))
         screen = self.screen()
@@ -114,8 +100,6 @@ class Dropdown(QPushButton):
 
 
 class Chevron(QWidget):
-    """The field's arrow, painted at an angle so it can turn up and back smoothly."""
-
     def __init__(self, palette: Any):
         super().__init__()
         self.setFixedSize(CHEVRON, CHEVRON)
@@ -125,7 +109,6 @@ class Chevron(QWidget):
         self._turning: Any = None
 
     def turn(self, angle: float) -> None:
-        """Animate to `angle` degrees: 180 points up while the menu is open, 0 points down."""
         if self._turning is not None:
             self._turning.stop()
         self._turning = _animation(self, TURN_MS, self.angle, angle, self.set_angle)
@@ -147,7 +130,7 @@ class Chevron(QWidget):
 
 
 def _animation(owner: Any, duration: int, start: float, end: float, apply: Any) -> Any:
-    """An eased value animation owned by `owner`, so Qt deletes it with the widget."""
+    # Owned by `owner`, so Qt deletes it with the widget.
     animation = QVariantAnimation(owner)
     animation.setDuration(duration)
     animation.setStartValue(float(start))
@@ -158,7 +141,6 @@ def _animation(owner: Any, duration: int, start: float, end: float, apply: Any) 
 
 
 def _blank_icon() -> QIcon:
-    """An empty icon the size of the check: unchecked rows stay aligned with the checked one."""
     pixmap = QPixmap(CHECK, CHECK)
     pixmap.fill(Qt.GlobalColor.transparent)
     return QIcon(pixmap)

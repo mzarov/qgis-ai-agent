@@ -48,7 +48,6 @@ class ConversationView(QScrollArea):
     suggestion_chosen = pyqtSignal(str)
     settings_requested = pyqtSignal()
     history_requested = pyqtSignal()
-    # True while the feed shows only the welcome: nothing to start over from.
     emptied = pyqtSignal(bool)
 
     def __init__(self):
@@ -58,7 +57,6 @@ class ConversationView(QScrollArea):
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setStyleSheet(f"QScrollArea {{ background: {style.css_color(style.background(self.palette()))}; }}")
 
-        # The viewport and the holder would otherwise paint the QGIS window colour over the backdrop.
         holder = QWidget()
         holder.setObjectName(FEED_NAME)
         style.fill(holder, style.background(self.palette()))
@@ -66,7 +64,6 @@ class ConversationView(QScrollArea):
         self._column = QVBoxLayout(holder)
         self._column.setContentsMargins(*FEED_MARGINS)
         self._column.setSpacing(MESSAGE_SPACING)
-        # The working line is the feed's last row: every message goes in above it.
         self.progress = ProgressLine(self.palette())
         self._column.addWidget(self.progress)
         self._column.addStretch(1)
@@ -80,7 +77,6 @@ class ConversationView(QScrollArea):
         self._activity: ActivityGroup | None = None
         self._run_kind = ""
         self._failures: list[FailureCard] = []
-        # The answer just picked on a question card, until it comes back as the user's message.
         self._pending_choice: str | None = None
         self._plan_offers: list[PlanOffer] = []
         self._questions: list[QuestionCard] = []
@@ -103,23 +99,18 @@ class ConversationView(QScrollArea):
             self._show_welcome()
 
     def set_project_line(self, text: str) -> None:
-        """The open project for the welcome card: file, layer count, CRS."""
         if text == self._project_line:
             return
         self._project_line = text
-        # In place: rebuilding the card would replay the compass's arrival on every settings save.
         if self._empty is not None:
             self._empty.set_project(text)
 
     def snapshot(self, with_welcome: bool = False) -> QPixmap | None:
-        """The visible feed as a picture, for the leaving half of a transition; None when the panel is
-        not shown, or when only the welcome shows and `with_welcome` is not asked for."""
         if not self.isVisible() or (self._empty is not None and not with_welcome):
             return None
         return self.viewport().grab()
 
     def play_new_conversation(self, leaving: QPixmap) -> None:
-        """A new conversation: the previous feed's picture leaves, then the welcome arrives."""
         card = self._empty
         if card is None:
             return
@@ -127,12 +118,10 @@ class ConversationView(QScrollArea):
         transitions.leave(leaving, self.viewport(), card.arrive)
 
     def play_entrance(self, leaving: QPixmap) -> None:
-        """What the feed showed leaves upwards, then the feed as it is now rises in from below."""
         arrival = transitions.Arrival(self.widget())
         transitions.leave(leaving, self.viewport(), arrival.start)
 
     def show_saved_hint(self) -> None:
-        """On the welcome after "New conversation": the previous one is in the history."""
         self._saved_shown = True
         if self._empty is not None:
             self._empty.show_saved()
@@ -158,12 +147,7 @@ class ConversationView(QScrollArea):
         self.emptied.emit(False)
 
     def _discard(self, widget: QWidget) -> None:
-        """Take a widget out of the feed now; Qt deletes it later.
-
-        deleteLater alone leaves it laid out and painted until the event loop
-        gets round to it: on a busy main thread the welcome card stays drawn
-        over a running conversation.
-        """
+        # Removed and hidden now: deleteLater alone leaves it painted until the event loop gets to it.
         self._column.removeWidget(widget)
         widget.hide()
         widget.deleteLater()
@@ -172,8 +156,6 @@ class ConversationView(QScrollArea):
         self._column.setStretch(self._column.count() - 1, stretch)
 
     def add_user_message(self, text: str, animate: bool = True) -> int:
-        """The user's message; the first one on the welcome plays the entrance: the welcome rises away,
-        the chat rises in. A replay passes `animate=False` — opening a conversation has its own."""
         welcome = self.snapshot(with_welcome=True) if animate and self._empty is not None else None
         entry = self._add_user_message(text)
         if welcome is not None:
@@ -181,13 +163,11 @@ class ConversationView(QScrollArea):
         return entry
 
     def _add_user_message(self, text: str) -> int:
-        # Any new message makes an earlier plan offer, question card or failed request stale.
         self._retire_plan_offers()
         self._retire_questions()
         self.retire_failures()
         self._close_activity()
         if self._pending_choice is not None and text == self._pending_choice:
-            # Picked on a question card: the trace says "You chose …" instead of drawing a bubble.
             self._pending_choice = None
             activity = self._new_activity()
             activity.add_choice(text)
@@ -199,7 +179,6 @@ class ConversationView(QScrollArea):
         return self._append(bubble)
 
     def add_chosen(self, text: str) -> int:
-        """A reopened answer that was picked on a question card: "You chose …" again, not a bubble."""
         self._pending_choice = text
         return self.add_user_message(text, animate=False)
 
@@ -219,7 +198,6 @@ class ConversationView(QScrollArea):
     def add_run_failure(
         self, title: str, detail: str, message: str, kind: str, fixed_in_settings: bool, retryable: bool
     ) -> int:
-        """The run ended on a failure: a card with what happened, and Retry where sending again may help."""
         self._close_activity()
         card = FailureCard(title, detail, message, kind, fixed_in_settings, retryable)
         card.retry_requested.connect(self.retry_requested.emit)
@@ -228,7 +206,6 @@ class ConversationView(QScrollArea):
         return self._append(card)
 
     def add_recorded_failure(self, record: dict[str, Any]) -> int:
-        """A failure from a reopened conversation: what happened, no buttons — its moment has passed."""
         self._close_activity()
         card = FailureCard(
             str(record.get("title") or ""),
@@ -246,7 +223,6 @@ class ConversationView(QScrollArea):
         self._failures = []
 
     def drop_failures(self) -> None:
-        """The failed request goes again: its cards leave the feed, the new run takes their place."""
         dropped = {id(card) for card in self._failures}
         for card in self._failures:
             self._discard(card)
@@ -254,7 +230,6 @@ class ConversationView(QScrollArea):
         self._failures = []
 
     def offer_retry(self) -> None:
-        """The settings changed: the last failure may go through now, so its card offers Retry."""
         if self._failures:
             self._failures[-1].offer_retry()
 
@@ -263,7 +238,6 @@ class ConversationView(QScrollArea):
         return self._append(SystemMessage(text, error=True))
 
     def add_visual(self, spec: dict[str, Any]) -> int:
-        """A chart, a table or a legend a tool drew; it closes the activity group like any message."""
         self._close_activity()
         kind = spec.get("type")
         card = TableCard(spec) if kind == "table" else LegendCard(spec) if kind == "legend" else ChartCard(spec)
@@ -307,7 +281,6 @@ class ConversationView(QScrollArea):
         return True
 
     def keep_draft(self) -> str:
-        """Keep a half-streamed answer when the run stops or fails; return its text."""
         draft = self._draft
         if draft is None:
             return ""
@@ -346,7 +319,6 @@ class ConversationView(QScrollArea):
         return entry_id
 
     def add_trace(self, record: dict[str, Any]) -> None:
-        """A reopened turn's steps and reasoning, folded as the turn left them."""
         steps = [step for step in record.get("steps") or () if isinstance(step, dict)]
         if not steps:
             return
@@ -365,7 +337,6 @@ class ConversationView(QScrollArea):
         group.settle(record.get("seconds"))
 
     def add_recorded_plan(self, record: dict[str, Any]) -> None:
-        """A reopened plan card, settled as it ended; never undoable, the snapshots died with that session."""
         lines = [str(line) for line in record.get("lines") or ()]
         entry_id = self.add_plan_card(lines, layer=str(record.get("layer") or ""))
         card = self._entries.get(entry_id)
@@ -382,7 +353,6 @@ class ConversationView(QScrollArea):
         elif state == trace.UNDONE:
             card.mark_undone(at)
         else:
-            # Never applied before the conversation was closed: the batch is gone with that session.
             card.mark_cancelled()
 
     def add_plan_card(self, steps: list[str], applies_itself: bool = False, layer: str = "") -> int:
@@ -501,7 +471,6 @@ class ConversationView(QScrollArea):
     def _append(self, widget: QWidget) -> int:
         self._drop_draft()
         self._close_thinking()
-        # A retry's countdown lasts until the feed moves on: whatever arrives is the request coming back.
         self.progress.resume()
         self._drop_welcome()
         self._insert(widget)
@@ -518,7 +487,6 @@ class ConversationView(QScrollArea):
         return entry_id
 
     def set_run_kind(self, kind: str) -> None:
-        """What the next run is for; its activity group is named by it ("" is the user's own request)."""
         self._run_kind = kind
 
     def _new_activity(self) -> ActivityGroup:

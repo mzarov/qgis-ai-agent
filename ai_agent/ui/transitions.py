@@ -1,18 +1,3 @@
-"""The feed's transitions: what leaves rises, what comes rises in.
-
-Whatever the feed showed — a conversation, the welcome — leaves as a snapshot
-laid over the viewport, since the feed itself changes at once: it fades and
-rises 8 px in 200 ms (CSS ease-in). Then what replaced it arrives: it fades in
-and settles from 10 px below in 320 ms on cubic-bezier(.2,.7,.3,1). Three moments
-play it: a new conversation (the welcome arrives, the line about the saved
-conversation 120 ms behind), the first message on the welcome (the chat
-arrives), and a conversation opened from the history. What arrives moves inside
-a graphics effect, not through its layout, so nothing reflows while it plays.
-Every animation is owned by its widget and ticks a bound method, so a widget
-deleted mid-play takes its ticks with it. Menus and popups drop in: from 4 px
-above, fading in, over 140 ms (`DropIn`).
-"""
-
 from collections.abc import Callable
 from typing import Any
 
@@ -24,7 +9,6 @@ from ai_agent.ui.compass import cubic_bezier
 
 LEAVE_MS = 200
 LEAVE_RISE = 8
-# CSS ease-in, for what leaves.
 LEAVE_EASING = (0.42, 0.0, 1.0, 1.0)
 ARRIVE_MS = 320
 ARRIVE_DROP = 10
@@ -32,15 +16,13 @@ LAG_MS = 120
 ARRIVE_EASING = (0.2, 0.7, 0.3, 1.0)
 MENU_MS = 140
 MENU_DROP = 4
-# CSS ease.
 MENU_EASING = (0.25, 0.1, 0.25, 1.0)
 
 
 def animation(
     owner: QObject, ms: int, step: Callable[[Any], None], done: Callable[[], None] | None = None, end: float = 1.0
 ) -> QVariantAnimation:
-    """An animation from 0 to `end` over `ms`, owned by `owner`; `step` and `done` must be bound methods,
-    so Qt drops the connections with their widget where a lambda would outlive it."""
+    # `step` and `done` must be bound methods: Qt drops those with their widget, a lambda outlives it.
     motion = QVariantAnimation(owner)
     motion.setDuration(ms)
     motion.setStartValue(0.0)
@@ -52,9 +34,7 @@ def animation(
 
 
 def arrival(elapsed_ms: float, delay_ms: float = 0.0) -> float:
-    """How far an arriving part has come, 0…1 on the settle curve, for a part starting `delay_ms` late."""
     linear = (elapsed_ms - delay_ms) / ARRIVE_MS
-    # Exact at both ends: the curve is solved numerically and would leave a trace of opacity.
     if linear <= 0.0:
         return 0.0
     if linear >= 1.0:
@@ -63,8 +43,6 @@ def arrival(elapsed_ms: float, delay_ms: float = 0.0) -> float:
 
 
 class LeavingFeed(QWidget):
-    """A snapshot of what the feed showed, fading and rising over the viewport; gone once it is done."""
-
     finished = pyqtSignal()
 
     def __init__(self, snapshot: QPixmap, parent: QWidget):
@@ -81,7 +59,6 @@ class LeavingFeed(QWidget):
         self._animation.start()
 
     def finish(self) -> None:
-        """Be gone at once, as a screenshot wants it; what waits for the leaving starts now."""
         self._animation.stop()
         self._done()
 
@@ -102,9 +79,6 @@ class LeavingFeed(QWidget):
 
 
 class ArrivalEffect(QGraphicsEffect):
-    """Draws its widget fading in and settling from below; the `lagging` part, and all below it,
-    follows LAG_MS behind. The widget stays where its layout put it the whole time."""
-
     def __init__(self, lagging: Callable[[], QRect | None], parent: Any = None):
         super().__init__(parent)
         self._lagging = lagging
@@ -129,7 +103,6 @@ class ArrivalEffect(QGraphicsEffect):
         if lagging is None or lagging.isEmpty():
             _paint(painter, pixmap, offset, arrival(self.elapsed))
         else:
-            # Split at the top of the lagging line, the welcome's last row: all above it moves first.
             top, bottom = offset.y(), offset.y() + height + ARRIVE_DROP
             split = min(max(lagging.top(), top), bottom)
             above = QRegion(QRect(offset.x(), top, width, split - top))
@@ -142,11 +115,6 @@ class ArrivalEffect(QGraphicsEffect):
 
 
 class Arrival(QObject):
-    """Holds `target` unseen behind an ArrivalEffect until `start`, plays it, then takes the effect off.
-
-    Owned by the target, so it dies with it; it touches the effect only while the target still wears it.
-    """
-
     def __init__(self, target: QWidget, lagging: Callable[[], QRect | None] = lambda: None):
         super().__init__(target)
         self._target = target
@@ -159,7 +127,6 @@ class Arrival(QObject):
         self._animation.start()
 
     def finish(self) -> None:
-        """Arrive at once, as a screenshot wants it."""
         self._animation.stop()
         self._done()
 
@@ -178,14 +145,8 @@ class Arrival(QObject):
         self.deleteLater()
 
 
+# Moves the window: over a menu's style-drawn rows a graphics effect would show a snapshot.
 class DropIn(QObject):
-    """Plays a popup window's appearance every time it is shown: from MENU_DROP px above, fading in.
-
-    The window itself moves: a menu's rows are drawn by Qt's style, and a graphics effect over them
-    would show a snapshot instead. Qt sends Show before the window reaches the screen, so the first
-    frame is already the raised, transparent one.
-    """
-
     def __init__(self, window: QWidget):
         super().__init__(window)
         self._window = window
@@ -217,7 +178,7 @@ class DropIn(QObject):
 
 
 def leave(snapshot: QPixmap, viewport: QWidget, then: Callable[[], None]) -> None:
-    """Lay `snapshot` over `viewport`, let it leave, then call `then` (a bound method, so it dies with its owner)."""
+    # `then` must be a bound method, so it dies with its owner.
     overlay = LeavingFeed(snapshot, viewport)
     overlay.finished.connect(then)
     overlay.start()

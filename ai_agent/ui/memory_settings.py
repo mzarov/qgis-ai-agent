@@ -1,10 +1,3 @@
-"""The Memory section of Personalisation: short notes about the user the agent keeps across projects.
-
-The list is edited here and stored on Save, like every other setting; the
-agent adds notes itself through `remember` with about=user while the switch
-below allows it.
-"""
-
 from typing import Any
 
 from qgis.PyQt.QtCore import QObject, Qt, pyqtSignal
@@ -25,8 +18,6 @@ LIST_GAP = 8
 
 
 class MemoryNotes(QObject):
-    """The notes as rows with a remove button, and a field to add one."""
-
     changed = pyqtSignal()
 
     def __init__(self, palette: Any):

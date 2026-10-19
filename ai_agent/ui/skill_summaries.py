@@ -1,13 +1,5 @@
-"""What a person reads about each built-in skill, in their language.
-
-The model chooses skills by the English description in each SKILL.md; the
-settings page and the / list show these short translated lines instead. A
-skill of the user's own keeps its own description.
-"""
-
 from ai_agent.i18n import tr
 
-# What a person reads about each built-in skill; the model reads the English description in SKILL.md.
 SUMMARIES = {
     "annotations": tr("Notes and markers on top of the map at a point"),
     "charts": tr("Charts and tables right in the chat: histograms, bars, lines"),
@@ -32,5 +24,4 @@ SUMMARIES = {
 
 
 def summary(name: str, description: str) -> str:
-    """The person's line for a skill: the translated summary of a built-in one, the description of the user's."""
     return SUMMARIES.get(name, description)

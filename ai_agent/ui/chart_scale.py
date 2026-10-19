@@ -1,5 +1,3 @@
-"""Axis arithmetic for the feed's charts: round ticks, compact numbers, which bar layout fits."""
-
 import math
 
 TICK_STEPS = (1.0, 2.0, 2.5, 5.0, 10.0)
@@ -9,7 +7,6 @@ MAX_VERTICAL_BARS = 12
 
 
 def nice_ticks(low: float, high: float) -> list[float]:
-    """Round tick values covering [low, high], zero included when the data reaches it."""
     if low > high:
         low, high = high, low
     if low == high:
@@ -29,7 +26,6 @@ def nice_ticks(low: float, high: float) -> list[float]:
 
 
 def compact(value: float) -> str:
-    """1 234 567 → 1.2M; small and fractional values keep up to three significant digits."""
     magnitude = abs(value)
     for limit, suffix in ((1e12, "T"), (1e9, "B"), (1e6, "M"), (1e3, "k")):
         if magnitude >= limit:
@@ -40,7 +36,6 @@ def compact(value: float) -> str:
 
 
 def horizontal_bars(labels: list[str], series_count: int) -> bool:
-    """Long or many category names read better as rows than squeezed under columns."""
     if len(labels) * series_count > MAX_VERTICAL_BARS:
         return True
     return any(len(label) > SHORT_LABEL for label in labels)
@@ -57,7 +52,6 @@ def value_range(series: list[list[float | None]], stacked_from_zero: bool = True
 
 
 def thinned(count: int, room: float, width: float) -> int:
-    """Show every n-th axis label so labels of `width` pixels fit into `room`."""
     if count <= 0 or width <= 0:
         return 1
     fitting = max(1, int(room // width))

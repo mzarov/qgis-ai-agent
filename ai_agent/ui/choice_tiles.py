@@ -1,12 +1,3 @@
-"""Exclusive choices as tiles: providers on the Connection page, geocoders.
-
-A tile is a rounded box on the surface: an optional logo, a name and a quiet
-line under it, a radio at the right edge. The chosen one takes the accent edge
-and the accent wash. Painted, not styled, so a click restyles nothing in its
-own event. The grid gives each tile at least `min_width` and as many columns as
-fit.
-"""
-
 from typing import Any
 
 from qgis.PyQt.QtCore import QRectF, QSize, Qt, pyqtSignal
@@ -25,8 +16,6 @@ NOTE_SCALE = 12 / 13
 
 
 class Radio(QWidget):
-    """A 14 px radio: a ring, the accent ring and dot when chosen."""
-
     def __init__(self, palette: Any):
         super().__init__()
         self._palette = palette
@@ -55,8 +44,6 @@ class Radio(QWidget):
 
 
 class ChoiceTile(controls.RoundedFrame):
-    """One choice: logo, name, a quiet line, the radio; a click picks it."""
-
     clicked = pyqtSignal(str)
 
     def __init__(self, key: str, title: str, note: str, palette: Any, logo: QWidget | None = None):
@@ -77,7 +64,6 @@ class ChoiceTile(controls.RoundedFrame):
         style.ink(self.name, style.text(palette))
         text.addWidget(self.name)
         self.note = QLabel(note)
-        # Wrapping, never widening: a long note in Russian must not push the grid off the page.
         self.note.setWordWrap(True)
         style.scale_font(self.note, NOTE_SCALE)
         style.ink(self.note, style.faint(palette))
@@ -100,8 +86,6 @@ class ChoiceTile(controls.RoundedFrame):
 
 
 class TileGrid(QWidget):
-    """Tiles in as many columns as fit at `min_width` each; a narrow window gets fewer, wider tiles."""
-
     chosen = pyqtSignal(str)
 
     def __init__(self, tiles: list[ChoiceTile], min_width: int, max_columns: int):

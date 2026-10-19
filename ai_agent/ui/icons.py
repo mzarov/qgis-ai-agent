@@ -1,9 +1,3 @@
-"""The interface icons: Lucide outlines (ISC licence) in `ui/glyphs`, tinted to the caller's colour.
-
-One family, one stroke weight (1.75 on a 24 grid), recoloured per theme. A
-null QIcon means the artwork could not be drawn; callers then show a glyph.
-"""
-
 import os
 from typing import Any
 
@@ -13,7 +7,6 @@ from ai_agent.ui import svg_art
 
 FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "glyphs")
 NAMES = {
-    # The panel's chrome: the title bar, the toolbar and the composer.
     "float": "picture-in-picture-2",
     "close": "x",
     "new": "plus",
@@ -35,14 +28,11 @@ NAMES = {
     "connectors": "globe",
     "personalisation": "user",
     "rewind": "undo-2",
-    # A failed request's card: what kind of failure it was.
     "unplugged": "unplug",
     "key": "key-round",
     "busy": "hourglass",
     "late": "clock",
     "alert": "circle-alert",
-    # A tool call's row wears its skill's icon; "knowledge" is a skill being loaded. Reading wears the
-    # layers and Processing a square with a play mark.
     "inspect": "layers",
     "project": "layers",
     "style": "palette",
@@ -78,7 +68,6 @@ def glyph(role: str, colour: Any, size: int) -> QIcon:
 
 
 def drawn(role: str, colour: Any, size: int) -> QIcon | None:
-    """The glyph, or None when it cannot be drawn and the caller shows its text fallback."""
     try:
         icon = glyph(role, colour, size)
     except Exception:

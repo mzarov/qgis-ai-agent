@@ -1,5 +1,3 @@
-"""Pieces of the composer: the editor, /skill and @layer parsing, highlighting, the modes."""
-
 import re
 from typing import Any
 
@@ -14,15 +12,13 @@ from ai_agent.ui.attachments import local_files
 from ai_agent.ui.choice_popup import Choice
 
 SKILL_TOKEN = re.compile(r"^/\S+")
-# A place picked on the map, @point(lon, lat) or @area(…), is one token with its spaces; then @"a name", @name.
 LAYER_TOKEN = re.compile(r'(?:(?<=\s)|^)@(?:(?:point|area)\([^)\n]*\)?|"[^"]*"?|\S+)')
 SLASH = "/"
 MENTION = "@"
 QUOTE = '"'
-# Qt counts text positions in UTF-16 code units, Python in characters: 🌍 is two of the first, one of the second.
+# Qt counts text positions in UTF-16 code units, Python in characters: 🌍 is two vs one.
 UTF16 = "utf-16-le"
 UTF16_UNIT = 2
-# One word a mode, as Claude Code names them; the note says the rest, exact about deleting.
 MODES = (
     Choice(WORK_MODE_ASK, tr("Ask"), tr("Shows a plan and waits for Apply"), tr("Default")),
     Choice(WORK_MODE_AUTO, tr("Auto"), tr("Applies at once; deleting still asks")),
@@ -37,11 +33,6 @@ def slash_query(text: str) -> str | None:
 
 
 def mention_query(text: str, cursor: int) -> tuple[int, str] | None:
-    """Return where an unfinished @mention starts before the cursor, and its text.
-
-    A mention starts at an @ that opens the text or follows whitespace and runs
-    to the cursor without whitespace, so an e-mail address is never a mention.
-    """
     before = text[:cursor]
     start = before.rfind(MENTION)
     if start < 0 or (start > 0 and not before[start - 1].isspace()):
@@ -53,12 +44,10 @@ def mention_query(text: str, cursor: int) -> tuple[int, str] | None:
 
 
 def qt_length(text: str) -> int:
-    """How many positions `text` takes in a Qt document."""
     return len(text.encode(UTF16)) // UTF16_UNIT
 
 
 def text_before(text: str, position: int) -> str:
-    """The part of `text` in front of a Qt document position, as Python characters."""
     return text.encode(UTF16)[: position * UTF16_UNIT].decode(UTF16)
 
 
@@ -97,7 +86,6 @@ class PromptEdit(QPlainTextEdit):
         super().dragMoveEvent(event)
 
     def dropEvent(self, event: Any) -> None:
-        # Files are attached, not pasted as paths; any other drop is ordinary text.
         paths = local_files(event.mimeData())
         if not paths:
             super().dropEvent(event)
@@ -106,11 +94,10 @@ class PromptEdit(QPlainTextEdit):
         self.files_dropped.emit(paths)
 
     def pad_vertically(self, pixels: int) -> None:
-        """Split spare height evenly above and below the text, so one line sits centred."""
         self.setViewportMargins(0, pixels // 2, 0, pixels - pixels // 2)
 
     def event(self, event: Any) -> bool:
-        # The box claims Ctrl+N while it has the focus: a new conversation here, a new project elsewhere.
+        # Claims Ctrl+N while focused: elsewhere the same keys make a new QGIS project.
         if event.type() == QEvent.Type.ShortcutOverride and controls.is_new_shortcut(event):
             event.accept()
             return True
@@ -135,7 +122,6 @@ class PromptEdit(QPlainTextEdit):
             self.escaped.emit()
             return
         if key == Qt.Key.Key_Backtab:
-            # Shift+Tab switches the mode, as in Claude Code; focus stays in the box.
             self.mode_cycled.emit()
             return
         enter = key in (Qt.Key.Key_Return, Qt.Key.Key_Enter)
@@ -162,8 +148,6 @@ class PromptEdit(QPlainTextEdit):
 
 
 class PromptHighlighter(QSyntaxHighlighter):
-    """Paint the leading /skill and every @layer the way the popup shows them."""
-
     def __init__(self, document: Any, palette: Any):
         super().__init__(document)
         self._skill = _token_format(palette, style.accent(palette))
@@ -178,7 +162,7 @@ class PromptHighlighter(QSyntaxHighlighter):
             self._light(text, match, self._layer)
 
     def _light(self, text: str, match: Any, token: QTextCharFormat) -> None:
-        # A match counts characters and setFormat Qt positions: an emoji before a token would shift its colour.
+        # setFormat takes Qt positions, a match counts characters: an emoji would shift the colour.
         self.setFormat(qt_length(text[: match.start()]), qt_length(match.group()), token)
 
 
