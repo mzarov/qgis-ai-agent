@@ -16,6 +16,7 @@ from ai_agent.core.orchestrator.notices import (
     DATA_SHARING_DECLINED,
     INTERJECTED,
     MESSAGE_DURATION_SEC,
+    NOT_SAVED,
     RUN_STOPPED,
     SWITCH_WHILE_RUNNING,
     UNKNOWN_SKILL,
@@ -45,6 +46,8 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.iface = iface
         self.dock_widget = dock_widget
         self.conversation = ConversationState()
+        self.conversation.watch_saving(self._on_save_failed)
+        self._save_failure_shown = False
         self.agent = AgentLoop()
         self._active_tool_message_id: int | None = None
         self._plan_message_id: int | None = None
@@ -243,6 +246,11 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.dock_widget.set_session_source(self.conversation.recent)
         self.refresh_configured()
         self._replay()
+
+    def _on_save_failed(self, reason: str) -> None:
+        if not self._save_failure_shown:
+            self._save_failure_shown = True
+            self.dock_widget.add_system_message(NOT_SAVED.format(reason))
 
     def on_compact(self) -> None:
         if not self.is_idle:

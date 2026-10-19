@@ -1,5 +1,6 @@
 import json
 import uuid
+from collections.abc import Callable
 from typing import Any, Final
 
 from ai_agent.core.settings import get_history_days
@@ -23,6 +24,9 @@ class ConversationState:
         self._store = store or SessionStore()
         self._session = Session.create(current_project_key())
         self.trace = TraceLog()
+
+    def watch_saving(self, failed: Callable[[str], None]) -> None:
+        self._store.on_failure = failed
 
     @property
     def messages(self) -> list[StoredMessage]:

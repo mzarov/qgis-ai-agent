@@ -1405,3 +1405,15 @@ def summary_of(text):
     from ai_agent.qgis_tools.call_summary import CallSummary
 
     return CallSummary.marking(text, {})
+
+
+class ConversationNotSavedTest(unittest.TestCase):
+    def test_a_failed_save_is_said_once_a_session(self):
+        from ai_agent.core.orchestrator.notices import NOT_SAVED
+
+        dock = Dock()
+        orchestrator = CoreOrchestrator(Iface(), dock)
+        self.assertEqual(orchestrator.conversation._store.on_failure, orchestrator._on_save_failed)
+        orchestrator._on_save_failed("No space left on device")
+        orchestrator._on_save_failed("No space left on device")
+        self.assertEqual(dock.system.count(NOT_SAVED.format("No space left on device")), 1)

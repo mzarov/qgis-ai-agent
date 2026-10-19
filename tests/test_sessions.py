@@ -125,6 +125,14 @@ class SessionStoreTest(unittest.TestCase):
         self.store.save(session)
         return session
 
+    def test_a_save_the_disk_refuses_names_the_reason(self):
+        reasons = []
+        self.store.on_failure = reasons.append
+        with mock.patch.object(store_module, "atomic_write_json", side_effect=OSError(28, "No space left on device")):
+            self._saved()
+        self.assertEqual(reasons, ["No space left on device"])
+        self.assertEqual(self.store.recent("/p.qgz"), [])
+
     def test_save_and_load(self):
         session = self._saved()
         loaded = self.store.load(session.identifier)

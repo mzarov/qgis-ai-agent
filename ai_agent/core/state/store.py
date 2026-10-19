@@ -1,5 +1,6 @@
 import os
 import time
+from collections.abc import Callable
 
 from ai_agent.core.state.session import Session
 from ai_agent.qgis_tools.common.persistence import atomic_write_json, backup_path, read_json
@@ -14,15 +15,19 @@ DAY_SECONDS = 86400
 class SessionStore:
     def __init__(self, root: str | None = None):
         self._root = root or default_root()
+        self.on_failure: Callable[[str], None] | None = None
 
     def save(self, session: Session) -> None:
-        if session.is_empty or not self._ensure_root():
+        if session.is_empty:
             return
         path = self._path(session.identifier)
         is_new = not os.path.exists(path)
         try:
+            os.makedirs(self._root, exist_ok=True)
             atomic_write_json(path, session.to_dict())
-        except OSError:
+        except OSError as error:
+            if self.on_failure is not None:
+                self.on_failure(error.strerror or str(error))
             return
         if is_new:
             self._trim()
@@ -93,13 +98,6 @@ class SessionStore:
 
     def _path(self, identifier: str) -> str:
         return os.path.join(self._root, f"{identifier}{SUFFIX}")
-
-    def _ensure_root(self) -> bool:
-        try:
-            os.makedirs(self._root, exist_ok=True)
-        except OSError:
-            return False
-        return True
 
 
 def _newest_first(session: Session) -> tuple[float, float, str]:

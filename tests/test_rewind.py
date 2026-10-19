@@ -202,6 +202,16 @@ class RewindTest(unittest.TestCase):
         self.assertEqual(orchestrator.conversation.messages, [])
         self.assertEqual(dock.restored, "first")
         self.assertNotIn(rewind.REWOUND_PROJECT + " " + rewind.DATA_EDITS_NOTE, dock.system)
+        self.assertIn(rewind.SNAPSHOT_GONE, dock.system, "the user hears why the project stayed")
+
+    def test_a_snapshot_gone_while_the_choice_was_open_says_so_for_the_project(self):
+        orchestrator, dock = self.orchestrator(REWIND_PROJECT)
+        self._turn(orchestrator, "first", "s1")
+        dock.while_asked = lambda: self.live.discard("s1")
+        orchestrator.on_rewind(0)
+        self.assertEqual(self.restored, [])
+        self.assertEqual(len(orchestrator.conversation.messages), 2)
+        self.assertEqual(dock.system, [rewind.SNAPSHOT_GONE])
 
     def test_only_a_users_message_offers_a_rewind(self):
         orchestrator, dock = self.orchestrator(REWIND_BOTH)
