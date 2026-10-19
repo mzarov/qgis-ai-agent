@@ -7,8 +7,6 @@ REMOTE = "https://llm.api.cloud.yandex.net/v1"
 
 
 class ParseTest(unittest.TestCase):
-    """The user's own headers, one per line; keys never travel through config."""
-
     def test_names_and_values_are_read_one_per_line(self):
         text = "x-folder-id: b1g8f3k2\n\n# a note\nOpenAI-Project: maps "
         self.assertEqual(extra_headers.parse(text), {"x-folder-id": "b1g8f3k2", "OpenAI-Project": "maps"})

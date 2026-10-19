@@ -50,8 +50,6 @@ class FakePoint:
 
 
 class FakeTransform:
-    """Moves a point by +1000/+2000, enough to prove the transform ran."""
-
     def __init__(self, source, target, context=None):
         self.target = target
 
@@ -77,7 +75,6 @@ class FakeGeometry:
         return cls("polygon", rings[0])
 
     def isGeosValid(self):
-        # A "bow tie" — the second and fourth vertices swapped — crosses itself.
         return self.points != [(0.0, 0.0), (1.0, 1.0), (1.0, 0.0), (0.0, 1.0)]
 
 
@@ -426,7 +423,6 @@ class PrepareCoordinatesTest(DrawTestBase):
         self.assertEqual(prepared["crs"], "EPSG:3857")
 
     def test_two_crss_without_an_authority_id_are_still_transformed_between(self):
-        # Two PROJ-string CRSs both have an empty authid; only the CRS objects themselves tell them apart.
         west, east = Mock(), Mock()
         for crs in (west, east):
             crs.isValid.return_value = True
@@ -504,7 +500,6 @@ class PrepareTargetTest(DrawTestBase):
         self.refused(params, "height", "integer")
 
     def test_a_whole_number_past_64_bits_never_reaches_a_long_long_field(self):
-        # QGIS converts 2**63 for a LongLong field without complaint, and the layer stores -2**63.
         self.layer = ExistingLayer(fields=("osm_id",), types={"osm_id": "int8"})
         row = {"osm_id": 2**63}
         features = [{"coordinates": [MOSCOW], "attributes": row}]
@@ -622,7 +617,6 @@ class AttributeHelpersTest(unittest.TestCase):
                 attributes_module.coerced_rows({"n": "integer"}, [{"n": value}])
 
     def test_integers_stay_exact_past_the_precision_of_a_float(self):
-        # A float holds whole numbers exactly only up to 2**53: an OSM id one past it lost its last digit.
         values = [2**53 + 1, str(2**53 + 1), 2**63 - 1, -(2**63), 12.0, " -7 "]
         rows = attributes_module.coerced_rows({"n": "integer"}, [{"n": value} for value in values])
         self.assertEqual([row["n"] for row in rows], [2**53 + 1, 2**53 + 1, 2**63 - 1, -(2**63), 12, -7])

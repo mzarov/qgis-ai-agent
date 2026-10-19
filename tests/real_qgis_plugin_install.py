@@ -1,10 +1,3 @@
-"""Finding and installing another plugin, in live QGIS: the repository XML, the unpacking, the start.
-
-The network is not used: the repository list and the plugin's zip are handed in,
-and the plugin folder is a temporary one on the plugin path, so nothing reaches
-the real profile.
-"""
-
 import io
 import os
 import sys

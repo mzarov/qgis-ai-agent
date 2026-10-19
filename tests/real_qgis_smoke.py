@@ -17,7 +17,7 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 MINIMUM_QGIS_VERSION = 40000
 EXPECTED_TOOLS = 90
 EXPECTED_SKILLS = 19
-# A test profile has said no to usage statistics: no test run counts, so none can reach the public collector.
+# A test profile opts out of usage statistics, so no test run can reach the public collector.
 USAGE_OPT_OUT = ("ai_agent/usage/consent", "no")
 
 
@@ -31,7 +31,6 @@ def main() -> int:
 
 @contextmanager
 def qgis_application(root: pathlib.Path) -> Iterator[QgsApplication]:
-    """Keep settings, authentication and Processing state inside the test profile."""
     QSettings.setDefaultFormat(QSettings.Format.IniFormat)
     QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, os.fspath(root / "settings"))
     with patch.dict(os.environ, {"QGIS_CUSTOM_CONFIG_PATH": os.fspath(root / "config")}):

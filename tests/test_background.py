@@ -1,5 +1,3 @@
-"""A step working off the main thread: a Stop keeps nothing, even one that comes after the work itself ended."""
-
 import sys
 import types
 import unittest
@@ -11,13 +9,10 @@ from ai_agent.qgis_tools.processing.background_run import ProcessingInBackground
 
 
 class StopAfterTheWorkTest(unittest.TestCase):
-    """QGIS calls a task's `finished` on the main thread after its `run` returned: a Stop can fall in between."""
-
     def test_a_download_stopped_while_its_ending_waits_adds_nothing(self):
         made, ended = [], []
         work = InTask("download", lambda feedback: "answer", lambda value: made.append(value) or {"layers": []})
         work.finished.connect(ended.append)
-        # No task manager: the test plays its part, run() in the worker and then finished() on the main thread.
         with (
             mock.patch.object(background, "QgsApplication"),
             mock.patch.object(background.QgsTask, "cancel", create=True),

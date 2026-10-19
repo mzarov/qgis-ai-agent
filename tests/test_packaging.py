@@ -94,7 +94,6 @@ class BuildTest(unittest.TestCase):
             or name.endswith(".pyc")
             or "/tests/" in name
             or "/docs/" in name
-            # A skill's eval cases sit beside its SKILL.md but are for the bench, not for QGIS.
             or "/evals/" in name
         ]
         self.assertEqual(unwanted, [])

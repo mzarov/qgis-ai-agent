@@ -74,8 +74,6 @@ class _Project:
 
 
 class PinnedLayerNamesTest(unittest.TestCase):
-    """A queued call carries layer ids; every line a person reads names the layer instead."""
-
     STATION = "stations_98c97027_113b"
 
     def setUp(self):
@@ -134,7 +132,6 @@ class StepMarkupTest(unittest.TestCase):
         summary = CallSummary.marking("Using style.", {})
         summary.skill = "knowledge"
         row = StepRow(summary, self.palette)
-        # A chip of its own: rich text in a label draws no border round a span.
         self.assertEqual(row.tag.text(), activity.SKILL_TAG)
         self.assertIsNone(StepRow("Reading the project.", self.palette).tag)
 

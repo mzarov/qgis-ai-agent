@@ -55,7 +55,6 @@ class _Stub(metaclass=_Meta):
         return not self.__dict__.get("_stub_visible", True)
 
     def window(self):
-        # No window is ever on screen in these tests: what would animate there changes at once.
         return _OffScreen()
 
     def __int__(self):
@@ -143,7 +142,6 @@ WHITE = 255
 
 class _Colour:
     def __init__(self, red=0, green=0, blue=0, *rest):
-        # A name ("#1b9e77") reads as Qt reads it; anything else unreadable is an invalid colour.
         self._valid = True
         if isinstance(red, str):
             name = red.strip()
@@ -188,7 +186,6 @@ class _Palette:
 
 class _Label(_Stub):
     def __init__(self, text="", *a, **k):
-        # A parent passed first is not text: QPlainTextEdit(parent), QLineEdit(parent).
         self._text = text if isinstance(text, str) else ""
 
     def setText(self, text):
@@ -295,8 +292,6 @@ class _Project(_Stub):
 
 
 class _PlainText(_Label):
-    """A plain-text editor remembers its text like a label does."""
-
     def setPlainText(self, text):
         self._text = str(text)
 
@@ -305,8 +300,6 @@ class _PlainText(_Label):
 
 
 class _Button(_Stub):
-    """A button remembers its text, tooltip and enabled state."""
-
     def __init__(self, *a, **k):
         self._text = ""
         self._tip = ""

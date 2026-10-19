@@ -1,21 +1,3 @@
-"""End-to-end scenarios: the installed plugin, live QGIS, a scripted model.
-
-Each test drives the plugin the way a person does — a request in the chat,
-Apply, Stop, undo — while `e2e_model.ScriptedModel` plays the language model
-over real HTTP and streaming. Assertions are on what matters to the user: the
-project state, what reached the model, and what the chat shows. Screenshots of
-the panel land in `E2E_ARTIFACTS` (default `build/e2e`) for a look by eye.
-
-Every request any scenario sends is also measured: the system prompt and the
-tool schemas, in characters, are what each step of a run pays again. The
-largest of each, and the smallest request (no skill loaded yet — what every
-run pays at least), must stay under the `scripted` ceilings in `tests/data/token_ceilings.json`
-and land in `request_sizes.json` next to the screenshots — a free, every-push
-guard against the permanent prompt growing.
-
-Runs inside `real_qgis_workflows.py` against the extracted plugin ZIP.
-"""
-
 import json
 import math
 import threading
@@ -54,12 +36,10 @@ CAFES = (
     b'<node id="1" lat="55.75" lon="37.62"><tag k="amenity" v="cafe"/><tag k="name" v="One"/></node>'
     b"</osm>"
 )
-# The largest request part of each metric across all scenarios so far, and where it came from.
 PEAKS: dict[str, Any] = {"kind": token_ceilings.SCRIPTED_KIND, "where": {}}
 
 
 def request_sizes(body: dict[str, Any]) -> dict[str, int]:
-    """Characters of the parts every request repeats: the system prompt and the tool schemas."""
     system = [message.get("content") for message in body.get("messages", []) if message.get("role") == "system"]
     return {
         "system_chars": len(json.dumps(system, ensure_ascii=False)),
@@ -73,7 +53,6 @@ def _record_peaks(scenario: str, requests: list[dict[str, Any]], skill_free_star
         return {}
     measured = {metric: max(size[metric] for size in sizes) for metric in ("system_chars", "tools_chars")}
     if skill_free_start:
-        # The smallest request is the first one of a run that loaded no skill yet.
         measured["base_chars"] = min(size["system_chars"] + size["tools_chars"] for size in sizes)
     for metric, value in measured.items():
         if value > PEAKS.get(metric, 0):
@@ -86,10 +65,7 @@ def _record_peaks(scenario: str, requests: list[dict[str, Any]], skill_free_star
 
 class ScenarioCase(PluginCase):
     model_name = MODEL
-    # False for a scenario whose every request already carries a skill (a slash
-    # command, a preload): it has no skill-free request to measure `base_chars` on.
     skill_free_start = True
-    # Naming a conversation after its first answer is one more request; only the scenario about it scripts it.
     names_conversations = False
 
     def setUp(self) -> None:
@@ -152,15 +128,12 @@ class StyleScenario(ScenarioCase):
             self.dock.progress._step.text().endswith(" · Layer “districts” redrawn"),
             f"the status line does not say what the apply changed: {self.dock.progress._step.text()!r}",
         )
-        # The live-model token report reads these counters: the verification run's two requests.
         expected = {"prompt_tokens": 2 * USAGE["prompt_tokens"], "completion_tokens": 2 * USAGE["completion_tokens"]}
         self.assertEqual(self.agent.usage, {**expected, "requests": 2})
         self.shot("style_apply_verification")
 
 
 class ShortCheckScenario(ScenarioCase):
-    """A step that reads back as done is checked by the plugin; anything visual still goes to the model."""
-
     def system_lines(self) -> list[str]:
         return [message.plain_text() for message in self.dock.conversation.findChildren(SystemMessage)]
 
@@ -200,7 +173,6 @@ class ShortCheckScenario(ScenarioCase):
 class TextOnlyScenario(ScenarioCase):
     def test_a_model_known_to_reject_images_verifies_by_reading(self) -> None:
         set_supports_images(self.api_url, False, MODEL, "openai")
-        # Bold labels are a look, not a fact a read proves: the model checks them.
         self.model.script(
             call("load_skill", names=["style"]),
             call("set_labels", layer_name="districts", properties={"field": "name", "bold": True}),
@@ -264,7 +236,6 @@ class UndoScenario(ScenarioCase):
             say("The buffer is built."),
         )
         self.ask("Buffer Main rivers by 500 m")
-        # The queued step is pinned to the river's layer id; the card names the layer.
         step = self.dock.conversation.findChildren(PlanCard)[-1]._steps[0].label.text()
         self.assertIn("INPUT=Main rivers", step)
         self.assertNotIn(self.layer("Main rivers").id(), step)
@@ -357,7 +328,6 @@ class ReasoningScenario(ScenarioCase):
         self.assertTrue(blocks[0].isVisibleTo(self.dock.conversation), "a reasoning-only turn must stay in the feed")
         self.assertEqual(self.answers()[-1], "There are three layers.")
         self.shot("reasoning_folded")
-        # Reopened later, the conversation shows the reasoning again; the model never gets it.
         identifier = self.orchestrator.conversation.session_identifier
         self.orchestrator.on_new_session()
         self.orchestrator.on_session_chosen(identifier)
@@ -509,7 +479,6 @@ class FailureScenario(ScenarioCase):
         card = self.dock.conversation.findChildren(FailureCard)[-1]
         self.assertEqual(card.title.text(), RUN_FAILURES[failure_kinds.AUTH][0])
         self.assertFalse(card.settings.isHidden(), "a refused key is fixed in the Connection settings")
-        # An opacity reads back after Apply: no model check, so no turn for one.
         self.apply()
         self.assertAlmostEqual(self.layer("districts").opacity(), 0.5)
         self.shot("failure_keeps_plan")
@@ -628,10 +597,7 @@ class RewindScenario(ScenarioCase):
 
 
 class LongRewindScenario(ScenarioCase):
-    """Past the message cap the head of the conversation is dropped; a rewind must still find its message."""
-
     def rewind_from_bubble(self, text: str) -> None:
-        """Click the rewind button of the bubble saying `text`; the conversation must stop right before it."""
         bubbles = [item for item in self.dock.conversation.findChildren(UserMessage) if item.plain_text() == text]
         self.assertEqual(len(bubbles), 1, f"expected one bubble saying {text!r}")
         place = bubbles[0].message
@@ -664,12 +630,9 @@ class LongRewindScenario(ScenarioCase):
         self.assertEqual(len(conversation.messages), MAX_MESSAGES, "the scenario must run past the cap")
         self.dock.choose_rewind = lambda project_available: "both" if project_available else None
 
-        # The newest message's own bubble, drawn while the cap was dropping the head.
         self.rewind_from_bubble("Now rename it to Districts B")
         self.layer("Districts A")
 
-        # An earlier message's bubble, drawn again by the replay of the reopened conversation.
-        # The box is cleared first: a rewind puts its message back only into an empty one.
         self.dock.clear_prompt()
         identifier = conversation.session_identifier
         self.orchestrator.on_new_session()
@@ -703,7 +666,6 @@ class ChromeScenario(ScenarioCase):
         self.model.script(say("Three layers."))
         viewport = self.dock.conversation.viewport()
         holder = self.dock.conversation.widget()
-        # The first message: the welcome rises away, the chat rises in.
         self.orchestrator.on_prompt("Which layers are there?")
         self.assertEqual(len([item for item in viewport.findChildren(LeavingFeed) if item.isVisible()]), 1)
         self.assertIsNotNone(holder.graphicsEffect(), "the chat must wait behind its entrance")
@@ -717,7 +679,6 @@ class ChromeScenario(ScenarioCase):
         self.assertIsNotNone(welcome, "a new conversation opens on the welcome")
         self.assertFalse(welcome.saved.isHidden(), "the welcome must say where the old conversation went")
         self.assertNotEqual(self.dock.toolbar.title.label.text(), "Which layers are there?")
-        # The old feed leaves over the welcome, then the welcome arrives.
         leaving = [item for item in viewport.findChildren(LeavingFeed) if item.isVisible()]
         self.assertEqual(len(leaving), 1, "the old feed did not leave")
         self.assertIsNotNone(welcome.graphicsEffect(), "the welcome must wait behind its arrival")
@@ -734,7 +695,6 @@ class ChromeScenario(ScenarioCase):
             self.assertFalse(popup.rows[0].current)
         finally:
             popup.hide()
-        # Opening it from the history: the welcome rises away, the conversation rises in.
         popup.rows[0].chosen.emit(popup.rows[0].identifier)
         self.assertEqual(self.dock.toolbar.title.label.text(), "Which layers are there?")
         self.assertEqual(len([item for item in viewport.findChildren(LeavingFeed) if item.isVisible()]), 1)
@@ -795,8 +755,6 @@ class PlanRestoreScenario(ScenarioCase):
 
 
 class BackgroundStepScenario(ScenarioCase):
-    """A long Processing step runs off the main thread: the card shows how far it is, Stop stops it."""
-
     STATIONS = 20000
     BUFFER = {"algorithm_id": "native:buffer", "parameters": {"INPUT": "stations", "DISTANCE": 5, "SEGMENTS": 64}}
 
@@ -831,7 +789,6 @@ class BackgroundStepScenario(ScenarioCase):
                     ARTIFACTS.mkdir(parents=True, exist_ok=True)
                     self.dock.grab().save(str(ARTIFACTS / "background_step_progress.png"))
         self.assertTrue(shown, "the running step never showed its progress")
-        # The bar runs before the algorithm says how far it is; from then on, its percent.
         self.assertTrue(all(text.endswith("%") for text in shown if text != RUNNING_MARK), shown)
         self.assertTrue(any(text.endswith("%") for text in shown), shown)
         self.wait_idle()
@@ -859,8 +816,6 @@ class BackgroundStepScenario(ScenarioCase):
 
 
 class _Overpass(BaseHTTPRequestHandler):
-    """A local Overpass that answers at once."""
-
     def do_POST(self) -> None:
         self.rfile.read(int(self.headers.get("Content-Length", "0")))
         self.send_response(200)
@@ -874,9 +829,6 @@ class _Overpass(BaseHTTPRequestHandler):
 
 
 class DownloadStopScenario(ScenarioCase):
-    """Stop after a download's answer came in, while its layers still wait for the main thread."""
-
-    # Long enough for the answer to arrive and the download's work to end while the main thread does not look.
     WORK_ENDED_S = 1.0
 
     def setUp(self) -> None:
@@ -1072,7 +1024,6 @@ class ComposerScenario(ScenarioCase):
         self.shot("mention_popup")
         composer._popup._rows[0].mousePressEvent(None)
         self.assertEqual(composer._edit.toPlainText(), 'colour @"Main rivers" ')
-        # An emoji is two Qt text positions and one Python character: the mention and the caret stay in step.
         composer._edit.clear()
         composer._edit.insertPlainText("🌍 colour @ma")
         pump(0.1)

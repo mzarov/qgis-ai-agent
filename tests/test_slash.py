@@ -82,8 +82,6 @@ class SlashQueryTest(unittest.TestCase):
 
 
 class QtPositionTest(unittest.TestCase):
-    """Qt counts text positions in UTF-16 units: a character beyond the basic plane takes two, as in Qt."""
-
     def test_an_astral_character_takes_two_positions(self):
         self.assertEqual(qt_length("colour"), 6)
         self.assertEqual(qt_length("🌍🌍 @ro"), 8)

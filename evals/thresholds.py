@@ -1,11 +1,3 @@
-"""Pass-rate floors per suite: what CI holds a model to, so noise passes and a regression fails.
-
-A model's answers vary from run to run, so the bench cannot demand every case.
-Each suite gets a floor measured on one model: the pass rate of a baseline run
-(best with --repeat 3 --fresh) less MARGIN, rounded down to STEP. The floors
-apply only to the model they were measured on; another model just reports.
-"""
-
 import json
 import math
 from pathlib import Path
@@ -24,7 +16,6 @@ def load(path: Path = PATH) -> dict[str, Any]:
 
 
 def rate(row: dict[str, Any]) -> float | None:
-    """The share of graded cases that passed; None when no case reached the model."""
     graded = row["total"] - row["errors"]
     return row["passed"] / graded if graded > 0 else None
 
@@ -34,7 +25,6 @@ def floor_for(measured: float, margin: float = MARGIN) -> float:
 
 
 def save(rows: list[dict[str, Any]], model: str, path: Path = PATH) -> dict[str, Any]:
-    """Floors from this run's suites; suites it did not run keep theirs when the model is the same."""
     current = load(path)
     suites = dict(current.get("suites") or {}) if current.get("model") == model else {}
     for row in rows:
@@ -47,7 +37,6 @@ def save(rows: list[dict[str, Any]], model: str, path: Path = PATH) -> dict[str,
 
 
 def check(rows: list[dict[str, Any]], model: str, data: dict[str, Any], require: bool = False) -> list[str]:
-    """What falls short: a suite below its floor, or, with `require`, a suite or model without one."""
     if data.get("model") != model:
         return [f"no floors were measured on {model}; run with --save-thresholds first"] if require else []
     floors = data.get("suites") or {}

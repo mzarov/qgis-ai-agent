@@ -93,8 +93,6 @@ class StepRequestTest(unittest.TestCase):
 
 
 class LoopTest(unittest.TestCase):
-    """The loop judges image support by the overrides its run started with."""
-
     def _loop(self) -> AgentLoop:
         loop = AgentLoop()
         loop._overrides = dict(OVERRIDES)

@@ -18,8 +18,6 @@ class Clock:
 
 
 class TraceLogTest(unittest.TestCase):
-    """A turn's steps as they happened, handed over once and then forgotten."""
-
     def setUp(self):
         self.clock = Clock()
         self.log = TraceLog(self.clock)
@@ -62,8 +60,6 @@ class TraceLogTest(unittest.TestCase):
 
 
 class DisplayEntriesTest(unittest.TestCase):
-    """The trace and plan cards are saved for the chat and never reach the model."""
-
     def setUp(self):
         self.root = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, self.root, True)

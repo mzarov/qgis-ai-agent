@@ -1,17 +1,3 @@
-"""Public metrics of the plugin, collected once a day by .github/workflows/metrics.yml.
-
-No user data is involved: plugins.qgis.org publishes the download count of every
-version, and GitHub the traffic of the repository. Neither keeps a history —
-plugins.qgis.org shows running totals, GitHub forgets traffic after 14 days — so
-a daily snapshot is the only way to see a trend. The workflow keeps the
-snapshots on the `metrics` branch, with a README that sums them up and a chart.
-
-    python3 tools/collect_metrics.py --data <folder of the metrics branch> --repo owner/name
-
-Traffic needs a token that may read the repository's administration data (the
-METRICS_TOKEN secret); without it only downloads are collected.
-"""
-
 import argparse
 import csv
 import datetime
@@ -35,7 +21,6 @@ TRAFFIC_HEADER = ["day", "views", "unique_views", "clones", "unique_clones"]
 TIMEOUT_S = 30
 CHART_DAYS = 60
 TABLE_DAYS = 14
-# The chart: thin bars with a gap, quiet axis ink that reads on GitHub's light and dark pages.
 CHART_WIDTH, CHART_HEIGHT = 720, 240
 MARGIN_LEFT, MARGIN_RIGHT, MARGIN_TOP, MARGIN_BOTTOM = 44, 12, 28, 28
 BAR_COLOUR = "#4C78C8"
@@ -52,7 +37,6 @@ def fetch_json(url: str, token: str = "") -> Any:
 
 
 def plugin_rows(payload: dict[str, Any], day: str) -> list[dict[str, str]]:
-    """One row per published version: its running download total on `day`."""
     return [
         {
             "day": day,
@@ -65,7 +49,6 @@ def plugin_rows(payload: dict[str, Any], day: str) -> list[dict[str, str]]:
 
 
 def traffic_rows(views: dict[str, Any], clones: dict[str, Any]) -> list[dict[str, str]]:
-    """GitHub's per-day views and clones of the last 14 days, one row per day."""
     days: dict[str, dict[str, str]] = {}
     for kind, payload in (("views", views), ("clones", clones)):
         for entry in payload.get(kind) or []:
@@ -77,7 +60,6 @@ def traffic_rows(views: dict[str, Any], clones: dict[str, Any]) -> list[dict[str
 
 
 def merge_rows(path: Path, header: list[str], rows: list[dict[str, str]], key: tuple[str, ...]) -> list[dict[str, str]]:
-    """The file's rows with these merged in by `key`; a newer row for the same key replaces the older one."""
     merged: dict[tuple[str, ...], dict[str, str]] = {}
     if path.exists():
         with path.open(encoding="utf-8", newline="") as handle:
@@ -94,7 +76,6 @@ def merge_rows(path: Path, header: list[str], rows: list[dict[str, str]], key: t
 
 
 def daily_downloads(rows: list[dict[str, str]]) -> list[tuple[str, int, int | None]]:
-    """(day, total of all versions, new downloads since the snapshot before) — None for the first snapshot."""
     totals: dict[str, int] = {}
     for row in rows:
         totals[row["day"]] = totals.get(row["day"], 0) + int(row["downloads"])
@@ -107,7 +88,6 @@ def daily_downloads(rows: list[dict[str, str]]) -> list[tuple[str, int, int | No
 
 
 def render_chart(series: list[tuple[str, int, int | None]]) -> str:
-    """Daily new downloads as an SVG bar chart; the title names the series, so there is no legend."""
     points = [(day, new) for day, _, new in series if new is not None][-CHART_DAYS:]
     plot_w = CHART_WIDTH - MARGIN_LEFT - MARGIN_RIGHT
     plot_h = CHART_HEIGHT - MARGIN_TOP - MARGIN_BOTTOM

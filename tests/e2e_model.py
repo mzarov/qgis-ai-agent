@@ -1,15 +1,3 @@
-"""A scripted OpenAI-compatible model for end-to-end runs of the whole plugin.
-
-Each test queues the model turns it expects, in order. Every request to
-`/v1/chat/completions` takes the next turn and answers it the way a real
-provider does: a server-sent-event stream of content deltas, tool-call deltas,
-a finish reason, a usage chunk and `[DONE]`; or a plain JSON body when the
-plugin did not ask for a stream; or an HTTP error. Requests are kept, so a test
-can check what the plugin actually sent — tool schemas, tool results, prompts.
-
-Pure standard library: it runs inside the QGIS Python used by CI.
-"""
-
 import json
 import threading
 import time
@@ -37,7 +25,6 @@ def say(text: str, chunk_delay: float = 0.0) -> Turn:
 
 
 def think(reasoning: str, text: str) -> Turn:
-    """A turn that streams `reasoning_content` first, as DeepSeek and Kimi do."""
     return Turn(text=text, reasoning=reasoning)
 
 

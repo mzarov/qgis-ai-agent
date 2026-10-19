@@ -35,19 +35,16 @@ CEILINGS_FILE = pathlib.Path(__file__).resolve().parent / "data" / "token_ceilin
 LIVE_HEADROOM = 1.3
 SCRIPTED_HEADROOM = 1.1
 TOKEN_ROUNDING = 1000
-# A request or two more is a model choosing another route, not a regression.
 MIN_REQUEST_SLACK = 2
 CHAR_ROUNDING = 100
 LIVE_METRICS = ("prompt_tokens", "completion_tokens", "total_tokens", "requests")
 SCRIPTED_METRICS = ("system_chars", "tools_chars", "base_chars")
 LIVE_KIND = "live"
 SCRIPTED_KIND = "scripted"
-# Yandex AI Studio model URIs carry the cloud folder: gpt://<folder>/<model>.
 MODEL_URI_PREFIX = re.compile(r"^[a-z]+://[^/]+/")
 
 
 def model_name(model: str) -> str:
-    """The model id without a provider URI scheme and folder."""
     return MODEL_URI_PREFIX.sub("", model.strip())
 
 
@@ -56,7 +53,6 @@ def load(path: pathlib.Path = CEILINGS_FILE) -> dict[str, Any]:
 
 
 def exceeded(measured: dict[str, int], ceiling: dict[str, int]) -> list[str]:
-    """One line per metric over its ceiling; metrics without a ceiling are not checked."""
     return [
         f"{metric} {measured.get(metric, 0)} > ceiling {limit}"
         for metric, limit in ceiling.items()
@@ -65,7 +61,6 @@ def exceeded(measured: dict[str, int], ceiling: dict[str, int]) -> list[str]:
 
 
 def live_ceiling(ceilings: dict[str, Any], model: str, scenario: str) -> dict[str, int]:
-    """The ceiling for one live scenario, or {} when it is not enforced for this model."""
     live = ceilings.get(LIVE_KIND) or {}
     if model_name(model) != live.get("model"):
         return {}
@@ -77,7 +72,6 @@ def _round_up(value: float, step: int) -> int:
 
 
 def refreshed_live(current: dict[str, Any], reports: list[dict[str, Any]]) -> dict[str, Any]:
-    """The `live` section rebuilt from live_usage.json reports of one model."""
     models = {model_name(report.get("model", "")) for report in reports}
     if len(models) != 1:
         raise ValueError(f"reports come from different models: {sorted(models)}")
@@ -105,12 +99,10 @@ def _live_limit(metric: str, peak: int) -> int:
 
 
 def refreshed_scripted(report: dict[str, Any]) -> dict[str, int]:
-    """The `scripted` section rebuilt from a request_sizes.json report."""
     return {metric: _round_up(int(report[metric]) * SCRIPTED_HEADROOM, CHAR_ROUNDING) for metric in SCRIPTED_METRICS}
 
 
 def refresh(paths: list[pathlib.Path], target: pathlib.Path = CEILINGS_FILE) -> dict[str, Any]:
-    """Rewrite the ceilings file from report files; returns the new content."""
     ceilings = load(target) if target.exists() else {}
     reports = [json.loads(path.read_text(encoding="utf-8")) for path in paths]
     live = [report for report in reports if report.get("kind") == LIVE_KIND]

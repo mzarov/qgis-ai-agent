@@ -1,5 +1,3 @@
-"""The second identical failure in a run carries a note telling the model to change course."""
-
 import unittest
 
 from ai_agent.core.agent.repeats import NOTE_KEY, REPEATED_KEY, FailureMemory

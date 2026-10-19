@@ -1,21 +1,3 @@
-"""Screen checks for the plugin's widgets: structure, layout faults, pixels, gallery.
-
-Three layers, from robust to strict:
-
-- `structure()` lists every visible widget with its type, name, text and
-  state. Compared with a JSON golden; independent of fonts and platform, so it
-  runs everywhere and catches a missing, renamed, hidden or disabled control.
-  Text is written as the Linux CI shows it (`portable_text`).
-- `layout_faults()` finds text that does not fit its widget and content wider
-  than its scroll area. Computed, not compared, so it needs no golden.
-- `compare_pixels()` diffs a screenshot against a PNG golden. Fonts render
-  differently per platform, so it only runs where `UI_PIXEL_BASELINE=1` is set:
-  one CI job on a pinned QGIS image. A mismatch leaves the actual image and a
-  diff with the changed pixels in red next to the other artifacts.
-
-`write_gallery()` turns every PNG in the artifact folder into one HTML page.
-"""
-
 import html
 import json
 import os
@@ -48,36 +30,25 @@ TEXT_LIMIT = 120
 VOLATILE = [
     (re.compile(r"\b\d+(?:[.,]\d+)?\s?(?:ms|s)\b"), "<duration>"),
     (re.compile(r"\b\d+(?:[.,]\d+)?k? tokens\b"), "<tokens>"),
-    # The plan card's "Applied at 13:38".
     (re.compile(r"\b\d{1,2}:\d{2}\b"), "<time>"),
 ]
 
 
 def duration_patterns(formats: list[str]) -> list[tuple[re.Pattern[str], str]]:
-    """Patterns for durations as the UI writes them, built from its own (possibly translated) formats.
-
-    `formats` are format strings such as "{0} ms"; each placeholder becomes a number.
-    """
     patterns = []
     for text in formats:
         parts = [re.escape(part) for part in re.split(r"\{\d+\}", text)]
-        # Whole words only: "{0} s" must not eat the start of "0 seconds" or a translated "0 sets".
         body = r"\d+(?:[.,]\d+)?".join(parts)
         patterns.append((re.compile(rf"(?<!\w){body}(?!\w)"), "<duration>"))
     return patterns
 
 
 EXTRA_VOLATILE: list[tuple[re.Pattern[str], str]] = []
-# The shortcuts the plugin writes as the platform does: a Mac shows ⌘N where the goldens say Ctrl+N.
 SHOWN_SHORTCUTS = (QKeySequence.StandardKey.New,)
 PORTABLE_DECIMAL_POINT = "."
 
 
 def portable_text(text: str) -> str:
-    """Text as the Linux CI shows it: this platform's shortcuts and this locale's decimal point give way.
-
-    The CI writes both the portable way already, so there the structure check stays exact.
-    """
     for key in SHOWN_SHORTCUTS:
         native = QKeySequence(key).toString(QKeySequence.SequenceFormat.NativeText)
         if native:
@@ -89,7 +60,6 @@ def portable_text(text: str) -> str:
 
 
 def normalize_texts(root: QWidget, replacements: dict[str, str]) -> None:
-    """Replace run-specific text (durations, token counts, temporary paths) before any check."""
     for widget in [root, *root.findChildren(QWidget)]:
         if not isinstance(widget, QLabel | QAbstractButton | QLineEdit):
             continue
@@ -100,14 +70,12 @@ def normalize_texts(root: QWidget, replacements: dict[str, str]) -> None:
 
 
 def structure(root: QWidget) -> list[dict[str, object]]:
-    """Visible widgets in tree order, without geometry."""
     rows: list[dict[str, object]] = []
     _walk(root, 0, rows)
     return rows
 
 
 def layout_faults(root: QWidget) -> list[str]:
-    """Human-readable faults: clipped text and horizontal overflow."""
     faults: list[str] = []
     for widget in _visible(root):
         fault = _text_fault(widget) or _overflow_fault(widget)
@@ -133,19 +101,12 @@ def _text_fault(widget: QWidget) -> str:
     return ""
 
 
-# Ink this close to what lies under it cannot be read: max channel difference, out of 255.
 CONTRAST_FLOOR = 48
-# Every other pixel of a big label; every pixel of a small one, or a thin dash slips between samples.
 CONTRAST_STEP = 2
 SMALL_LABEL = 4000
 
 
 def unreadable_text(root: QWidget, image: QImage) -> list[str]:
-    """Labels whose text cannot be told from what is under it, measured on the grabbed screen.
-
-    White text on the light panel inside a dark QGIS passes every other check: the
-    label is there, the right size, with its words — only nobody can read them.
-    """
     faults = []
     ratio = image.devicePixelRatio() or 1.0
     for widget in _visible(root):
@@ -156,7 +117,6 @@ def unreadable_text(root: QWidget, image: QImage) -> list[str]:
             continue
         origin = QPoint(0, 0) if widget is root else widget.mapTo(root, QPoint(0, 0))
         box = shown.translated(origin)
-        # Under a popup laid over the feed, a label shows nothing of its own: nothing to judge.
         hit = root.childAt(box.center())
         if hit is not None and hit is not widget and not hit.isAncestorOf(widget):
             continue
@@ -190,7 +150,6 @@ def _overflow_fault(widget: QWidget) -> str:
 
 
 def compare_structure(name: str, rows: list[dict[str, object]]) -> str | None:
-    """None when the structure matches its golden; otherwise a short diff."""
     golden = GOLDENS / "structure" / f"{name}.json"
     text = json.dumps(rows, indent=1, ensure_ascii=False) + "\n"
     if UPDATE_GOLDENS or not golden.exists():
@@ -204,7 +163,6 @@ def compare_structure(name: str, rows: list[dict[str, object]]) -> str | None:
 
 
 def compare_pixels(name: str, image: QImage, artifacts: pathlib.Path) -> str | None:
-    """None when the image matches its golden within tolerance; otherwise why, with artifacts saved."""
     golden_path = GOLDENS / "pixels" / f"{name}.png"
     actual_dir = artifacts / "ui-actual"
     image = image.convertToFormat(QImage.Format.Format_ARGB32)
@@ -232,7 +190,6 @@ def compare_pixels(name: str, image: QImage, artifacts: pathlib.Path) -> str | N
 
 
 def write_gallery(artifacts: pathlib.Path) -> pathlib.Path:
-    """One HTML page showing every screenshot in the artifact folder."""
     shots = sorted(path for path in artifacts.rglob("*.png"))
     cards = "\n".join(
         f'<figure><img src="{html.escape(str(path.relative_to(artifacts)))}" loading="lazy">'
@@ -265,8 +222,7 @@ def _walk(widget: QWidget, depth: int, rows: list[dict[str, object]]) -> None:
         return
     name = widget.objectName()
     if name.startswith(SCROLL_HELPER):
-        # A scroll area's viewport holds the content; its scroll bar containers
-        # come and go with font metrics. Walk the content, not the helper.
+        # Scroll bar containers come and go with font metrics: walk the viewport's content, not the helper.
         if name == VIEWPORT:
             _walk_children(widget, depth, rows)
         return
@@ -306,7 +262,6 @@ def _visible(root: QWidget) -> list[QWidget]:
     return [widget for widget in [root, *root.findChildren(QWidget)] if widget.isVisible()]
 
 
-# Widgets that give up their width on purpose and paint an ellipsis; any other clipped text is a fault.
 ELIDING = ("ElidedLabel", "MenuButton")
 
 

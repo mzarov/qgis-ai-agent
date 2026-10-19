@@ -81,7 +81,6 @@ class NudgeTest(unittest.TestCase):
         self.assertEqual(self.finished, ["Done."])
 
     def test_a_first_reply_that_only_announces_a_step_gets_one_more_turn(self):
-        # Qwen ended an export with this sentence and no call: no file, a promise for the user.
         self.loop._on_turn(ModelTurn(text="This is an export, so I'll load the export tool.", finish_reason="stop"))
         self.assertEqual(self.finished, [])
         self.assertEqual(self.last_user_text(), notices.ANNOUNCED_STEP)

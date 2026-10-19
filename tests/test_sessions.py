@@ -154,7 +154,6 @@ class SessionStoreTest(unittest.TestCase):
         self.assertEqual(identifiers, [newer.identifier, older.identifier])
 
     def test_recent_breaks_equal_update_times_deterministically(self):
-        # Ties fall back to `created`, then to the identifier, never to directory order.
         created_later = self._saved_at(1000.0, created=20.0, identifier="aaaa")
         higher_identifier = self._saved_at(1000.0, created=10.0, identifier="zzzz")
         lower_identifier = self._saved_at(1000.0, created=10.0, identifier="bbbb")

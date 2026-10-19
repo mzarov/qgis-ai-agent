@@ -30,8 +30,6 @@ from ai_agent.skills.registry import SKILL_REGISTRY
 
 
 class MainThreadOnly:
-    """An executor fake whose calls all run on the main thread, through `run`."""
-
     @staticmethod
     def start(call, done):
         return None
@@ -551,13 +549,11 @@ APPLY_NOW = (APPLY_NOW_TOOL, {"reason": "see the basemaps"})
 
 
 def json_turn(*calls, text=""):
-    """A JSON-protocol answer as the parser reads it: the model gives its calls no ids."""
     content = json.dumps({"text": text, "tool_calls": [{"name": name, "arguments": args} for name, args in calls]})
     return parse_json_turn({"choices": [{"message": {"content": content}}]})
 
 
 def native_turn(*calls, text=""):
-    """A native answer from a provider that numbers its calls afresh in every answer."""
     raw = [
         {"id": f"call_{index}", "type": "function", "function": {"name": name, "arguments": json.dumps(args)}}
         for index, (name, args) in enumerate(calls)
@@ -566,15 +562,12 @@ def native_turn(*calls, text=""):
 
 
 class CallIdentityTest(unittest.TestCase):
-    """Apply puts each result back by its call's id, so one id must name one call in the whole run."""
-
     def setUp(self):
         snapshot = mock.patch.object(batch_apply_module, "take_snapshot", return_value="/tmp/snapshot.qgz")
         snapshot.start()
         self.addCleanup(snapshot.stop)
 
     def _run(self, make_turn, protocol, staged):
-        """write A, write B, read C in three turns, then Apply: at the end of the run or staged with C."""
         self.loop = AgentLoop()
         self.executor = FakeExecutor()
         self.loop._executor = self.executor

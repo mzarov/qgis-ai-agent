@@ -9,8 +9,6 @@ from ai_agent.ui.layer_chip import LayerChip
 
 
 class LayerChipTest(unittest.TestCase):
-    """The active layer rides into the next request until the user drops it or another layer takes over."""
-
     def setUp(self):
         self.chip = LayerChip(QWidget().palette())
 
@@ -69,7 +67,6 @@ class ComposerContextTest(unittest.TestCase):
         self.composer.set_model("moonshotai/kimi-k2.5")
         self.assertEqual(self.composer.toolbar.model.text(), "kimi-k2.5")
         self.assertEqual(self.composer.toolbar.model.toolTip(), "moonshotai/kimi-k2.5")
-        # A plain label, nothing to click: choosing a model belongs to the settings (the user's call).
         self.assertNotIsInstance(self.composer.toolbar.model, QAbstractButton)
         self.composer.set_model("")
         self.assertEqual(self.composer.toolbar.model.text(), composer_controls.NO_MODEL)
@@ -94,7 +91,6 @@ class ComposerContextTest(unittest.TestCase):
         self.assertEqual(asked, ["area"])
         self.assertEqual(self.composer.place_hint.text(), composer.PICK_AREA_HINT)
         self.assertFalse(self.composer._chips.isHidden(), "the hint is shown while the map is picked")
-        # The text itself lands at the cursor in live Qt (tests/real_qgis_controls.py).
         self.composer.insert_place("@area(37.60000, 55.74000, 37.65000, 55.77000)")
         self.assertTrue(self.composer._chips.isHidden(), "the hint goes once the place is in")
         self.composer.toolbar.place_requested.emit("point")
@@ -168,8 +164,6 @@ class SessionsPopupTest(unittest.TestCase):
 
 
 class NewConversationTransitionTest(unittest.TestCase):
-    """A new conversation: the old feed leaves, then the welcome arrives."""
-
     def test_the_arrival_runs_on_its_curve_with_the_saved_line_behind(self):
         from ai_agent.ui import transitions
 
@@ -177,7 +171,6 @@ class NewConversationTransitionTest(unittest.TestCase):
         self.assertAlmostEqual(transitions.arrival(transitions.ARRIVE_MS), 1.0, places=3)
         self.assertEqual(transitions.arrival(transitions.LAG_MS, transitions.LAG_MS), 0.0)
         middle = transitions.arrival(transitions.ARRIVE_MS / 2)
-        # cubic-bezier(.2,.7,.3,1) is quick at first: half the time is well past half the way.
         self.assertGreater(middle, 0.75)
         self.assertLess(transitions.arrival(200, transitions.LAG_MS), middle)
 
@@ -215,8 +208,6 @@ class NewConversationTransitionTest(unittest.TestCase):
 
 
 class EntranceTest(unittest.TestCase):
-    """The chat rises in the way a new conversation's welcome does: on the first message and on opening one."""
-
     def _view(self):
         view = ConversationView()
         played = []
@@ -260,8 +251,6 @@ class EntranceTest(unittest.TestCase):
 
 
 class ReopenedTurnTest(unittest.TestCase):
-    """A reopened conversation draws the saved steps, reasoning, choices and plan cards again."""
-
     def test_the_replay_rebuilds_the_trace_the_choice_and_the_plan(self):
         from ai_agent.ui.activity import ActivityGroup
         from ai_agent.ui.dock_widget import AgentDockWidget

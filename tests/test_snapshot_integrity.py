@@ -63,8 +63,6 @@ class RecordedFeature:
 
 
 class MemoryProvider:
-    """Numbers what it is given itself, as QGIS's memory provider does: from 1, one up from the last."""
-
     def __init__(self, field_names, features):
         self._fields = [NamedField(name) for name in field_names]
         self.features = list(features)

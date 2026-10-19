@@ -1,21 +1,5 @@
 name: live-model
 
-# Whole-plugin scenarios against a real model (tests/real_qgis_live.py).
-# Real tokens cost money, so this never runs on push or pull_request: start it
-# from the Actions tab, or tick live_model_check when running the release.
-# Pull requests from forks cannot reach it or its secret.
-#
-# Any OpenAI-compatible provider. Repository settings:
-#   variable LIVE_MODEL_URL  base URL, e.g. https://openrouter.ai/api/v1
-#   variable LIVE_MODEL      model id as the provider names it
-#   secret   LIVE_MODEL_KEY  API key; one that may only call models, where the provider offers it
-#
-# Spending caps: LIVE_RUN_TOKENS per agent run, LIVE_TOTAL_TOKENS per suite,
-# and the job timeout. A scenario fails when it spends more than its ceiling in
-# tests/data/token_ceilings.json. Usage per scenario (prompt and completion
-# tokens, model requests, verification included) is in the live-token-usage
-# artifact; tests/token_ceilings.py refreshes the ceilings from it.
-
 on:
   workflow_dispatch:
     inputs:
@@ -50,7 +34,6 @@ jobs:
       LIVE_TOTAL_TOKENS: "1500000"
       LIVE_RUN_TOKENS: "150000"
       LIVE_ONLY: ${{ inputs.only }}
-      # A scenario without a ceiling for LIVE_MODEL fails instead of only reporting.
       LIVE_REQUIRE_CEILINGS: "1"
     steps:
       - uses: actions/checkout@v4

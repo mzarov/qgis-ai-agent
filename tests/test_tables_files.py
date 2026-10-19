@@ -32,7 +32,7 @@ from ai_agent.qgis_tools.tables.keys import file_key_texts, key_text, match_repo
 from ai_agent.qgis_tools.tables.load_table import LoadTableTool
 from ai_agent.qgis_tools.tables.preview_table import PreviewTableTool
 
-# The quadratic version took 57 s on this file; a slow shared CI runner takes about 5 s for the linear one.
+# The quadratic version took 57 s on this file; the linear one about 5 s on a slow CI runner.
 LINEAR_CHECK_SECONDS = 20
 
 DISTRICT_STATS = "code;name;pop;share\n001;Alpha;1200;0,5\n002;Beta;3400;1,25\n010;Gamma;;2\n"
@@ -53,8 +53,6 @@ def project_patch(project):
 
 
 class Crs:
-    """EPSG:326xx is projected, anything else with an authority id is in degrees."""
-
     def __init__(self, text=""):
         self.text = text if ":" in text or text == "" else ("EPSG:4326" if text == "WGS84" else "")
 

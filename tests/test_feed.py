@@ -86,7 +86,6 @@ class WelcomeFeedTest(unittest.TestCase):
         welcome = self.view._empty
         self.view.add_user_message("hello")
         self.assertIsNone(self.view._empty)
-        # Hidden at once, not only scheduled for deletion: a busy main thread would paint it over the chat.
         self.assertTrue(welcome.isHidden())
 
     def test_a_streamed_answer_also_replaces_it(self):
@@ -385,7 +384,6 @@ class ActivityTitleTest(unittest.TestCase):
         view.append_thinking("hmm")
         view.add_activity_step("one")
         self.assertEqual(len(view._activity.items), 2)
-        # The group stops its hairline LINE_GAP short of each drawing, whatever the glyph's size.
         marks = [view._activity._header.chevron.mark, activity.ThinkingDots.mark, activity.PulseRing.mark]
         for top, bottom in [*marks, activity.ICON_MARK]:
             self.assertTrue(0 <= top < bottom <= activity.GLYPH_BOX)
@@ -579,8 +577,6 @@ class DurationTest(unittest.TestCase):
 
 
 class StatusLineTest(unittest.TestCase):
-    """The line under the feed says how the run stands once it stops working."""
-
     def setUp(self):
         from ai_agent.ui import compass, progress
 

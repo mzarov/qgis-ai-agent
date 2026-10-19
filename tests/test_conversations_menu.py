@@ -123,8 +123,6 @@ class RowTest(unittest.TestCase):
 
 
 class DayGroupsTest(unittest.TestCase):
-    """The history menu groups conversations by day, newest first, a time today and yesterday, a date before."""
-
     def test_today_yesterday_and_earlier(self):
         from datetime import datetime
 
