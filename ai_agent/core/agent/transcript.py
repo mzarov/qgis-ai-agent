@@ -27,7 +27,6 @@ class ToolResult:
     ok: bool = True
     image: str = ""
     egress: str = "metadata"
-    # A chart or table for the feed; never part of what the model reads.
     visual: dict[str, Any] | None = None
 
     @classmethod
@@ -55,12 +54,10 @@ class Transcript:
     entries: list[dict[str, Any]] = field(default_factory=list)
 
     def add_user(self, text: str, images: list[str] | None = None) -> None:
-        """The request; `images` are base64 PNGs the user attached to it."""
         self.entries.append({"kind": "user", "text": text, "images": list(images or [])})
 
     def add_turn(self, turn: ModelTurn) -> None:
-        # Apply puts results back by call id, so an id must be unique across the run, not just the turn:
-        # the JSON protocol numbers calls per answer, and some servers do the same with native ids.
+        # Ids must be unique across the run, not the turn: Apply puts results back by call id.
         turn.tool_calls = _unique_tool_calls(turn.tool_calls, self._call_ids())
         self.entries.append({"kind": "turn", "turn": turn})
 
@@ -117,13 +114,6 @@ class Transcript:
         return messages
 
     def _fresh_result_ids(self) -> set[int]:
-        """Keep at least the newest KEEP_FULL_RESULTS result entries in full.
-
-        The compaction boundary moves in steps of COMPACT_STEP entries rather
-        than one entry per turn: every move rewrites an old message, which ends
-        the prefix a caching provider can reuse. Stepping keeps that prefix
-        stable for several turns in a row.
-        """
         result_ids = [index for index, entry in enumerate(self.entries) if entry["kind"] == "results"]
         overflow = max(0, len(result_ids) - KEEP_FULL_RESULTS)
         compacted = overflow // COMPACT_STEP * COMPACT_STEP
@@ -218,7 +208,6 @@ class Transcript:
 
     @staticmethod
     def _render_user(text: str, images: list[str], images_allowed: bool) -> dict[str, Any]:
-        # The user's own pictures stay for the whole run: they are the request, not a tool's by-product.
         if not images:
             return {"role": "user", "content": text}
         if not images_allowed:
@@ -251,7 +240,6 @@ class Transcript:
 
 
 def _unique_tool_calls(calls: list[ToolCall], taken: set[str]) -> list[ToolCall]:
-    """Give each call an id no other call has: blank ones a fresh one, repeated ones a suffix."""
     used = set(taken)
     prepared: list[ToolCall] = []
     for index, call in enumerate(calls, start=1):

@@ -45,7 +45,7 @@ class BatchApplyMixin:
             return
         self.busy_changed.emit(True)
         try:
-            # A step working off the main thread returns here at once; the rest follows in _after_apply.
+            # A background step returns here at once: whatever follows the apply belongs in _after_apply.
             self._batch.apply(
                 lambda call: self._on_apply_start(call, generation),
                 lambda call, result: self._on_apply_finish(call, result, generation),
@@ -102,7 +102,6 @@ class BatchApplyMixin:
             return
         staged = self._staged
         had_pending = bool(self._batch) or staged
-        # Kept for the card's "Restore plan" until anything else happens.
         self._declined = self._batch.pending()
         self._declined_project = project_identity(QgsProject.instance())
         self._staged = False
@@ -116,7 +115,6 @@ class BatchApplyMixin:
             self._write_journal(notices.APPLY_DECLINED_MESSAGE)
 
     def restore_declined(self) -> bool:
-        """Queue the cancelled plan again; False when it is gone, work is in flight, or the project changed."""
         calls, self._declined = self._declined, []
         busy = self.is_running or self._batch.is_applying or bool(self._batch) or bool(self._question)
         if not calls or busy or self._declined_project != project_identity(QgsProject.instance()):

@@ -20,7 +20,6 @@ class Preset:
         return not self.url
 
 
-# The main providers only; any other OpenAI-compatible service is a custom address.
 PRESETS: list[Preset] = [
     Preset(CUSTOM, "", AUTO, tr("the model name at your provider")),
     Preset("OpenAI", "https://api.openai.com/v1", OPENAI, "gpt-4o-mini", "gpt-4o-mini"),

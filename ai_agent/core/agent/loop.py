@@ -29,28 +29,21 @@ PRELOADED_SKILLS = ("inspect",)
 
 
 class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
-    # A CallSummary travels as an object: a str signal would hand the slot a plain copy without its marks.
+    # object, not str: a str signal hands the slot a plain copy without the CallSummary's marks.
     tool_started = pyqtSignal(object)
-    # Tool name, success, and the user-facing line about what the call found (may be empty).
     tool_finished = pyqtSignal(str, bool, str)
-    # A step working off the main thread: a percent (-1 while the whole is unknown) and the bytes done.
     tool_progressed = pyqtSignal(float, int)
     tool_queued = pyqtSignal(str)
     tool_rejected = pyqtSignal(object)
     skill_loaded = pyqtSignal(str)
-    # A chart or table spec (plain JSON) a read tool drew for the person.
     visual_ready = pyqtSignal(object)
     plan_changed = pyqtSignal(object, int)
-    # The flag says the batch applies itself (auto mode, nothing destructive): no button to wait for.
     confirm_needed = pyqtSignal(object, str, bool)
     question_asked = pyqtSignal(str)
     preamble = pyqtSignal(str)
-    # Each answered request: prompt tokens (estimated when the server reports none), completion
-    # tokens, and whether it opened the run, so its prompt is the conversation's own size.
     turn_counted = pyqtSignal(int, int, bool)
     answer_chunk = pyqtSignal(str)
     thinking_chunk = pyqtSignal(str)
-    # A RetryNotice: the model request waits before trying again.
     retrying = pyqtSignal(object)
     applied = pyqtSignal(object)
     stage_applied = pyqtSignal(object)
@@ -87,14 +80,12 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._plan_done = 0
         self._staged = False
         self._pending_protocol = PROTOCOL_NATIVE
-        # The kind of the last failure (core/llm/failure_kinds), for the chat's wording.
         self.failure_kind = ""
         self._verification_round = 0
         self._streamed_thinking = False
         self._question = ""
         self._question_options: list[str] = []
         self._stage_call: ToolCall | None = None
-        # The plan the user cancelled last, for "Restore plan", and the project it was meant for.
         self._declined: list[ToolCall] = []
         self._declined_project = ""
         self._generation = 0
@@ -113,7 +104,6 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
 
     @property
     def overrides(self) -> dict:
-        """A copy of the endpoint settings this run was started with."""
         return dict(self._overrides)
 
     @property
@@ -122,7 +112,6 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
 
     @property
     def question_options(self) -> list[str]:
-        """The answers offered with the pending question, for the card's buttons."""
         return list(self._question_options) if self._question else []
 
     @property
@@ -135,12 +124,6 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
 
     @property
     def loaded_skills(self) -> list[str]:
-        """Skills of the last run; they stay readable after it ends.
-
-        The verification run starts with the same set: it re-reads what this
-        run changed without a load_skill turn, and an identical tool list and
-        system prompt let a caching provider reuse the prefix it just stored.
-        """
         return list(self._loaded_skills)
 
     @property
@@ -164,7 +147,6 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._transcript = Transcript()
         self._transcript.add_user(prompt, images)
         self._planning = planning
-        # Set when the turn or token limit, not the model, ended the run: its last words are no plan.
         self.ended_on_limit = False
         self._journal.begin(prompt)
         self._failures.reset()
@@ -172,7 +154,6 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._is_verification = verification
         self._verification_round = verification_round
         self._budget.reset(get_token_budget())
-        # The step limit from Settings, fixed for this run: a change mid-run waits for the next one.
         self._max_steps = limits.max_steps()
         self._plan_steps = []
         self._plan_done = 0
@@ -223,8 +204,8 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._turn.stop()
 
     def shutdown(self) -> None:
-        """The plugin unloads: stop, and let a step still working off the main thread report to nobody."""
         self.stop()
+        # A step still working off the main thread must report to nobody once the plugin unloads.
         self._batch.detach()
 
     def interject(self, text: str) -> bool:
@@ -249,7 +230,6 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
 
     @property
     def usage(self) -> dict[str, int]:
-        """Prompt tokens, completion tokens and answered requests of the current or last run."""
         return self._budget.snapshot()
 
     def _request_step(self) -> None:
@@ -327,7 +307,6 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         if turn.protocol == PROTOCOL_JSON and self._prompt_protocol == PROTOCOL_NATIVE and not self._protocol_retried:
             self._protocol_retried = True
             self._iteration -= 1
-            # The discarded turn was still answered, and billed.
             self._track_usage(turn)
             if self._is_current(generation):
                 self._request_step()
@@ -376,7 +355,6 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
             self._request_step()
 
     def _nudge_once(self, turn: ModelTurn, generation: int) -> bool:
-        """Give a cut-off, empty or merely announcing final reply one more turn instead of ending the run."""
         truncated = turn.finish_reason in notices.TRUNCATED_REASONS
         text = turn.text.strip()
         announced = not self._tools_called and announces_a_step(text)
@@ -457,7 +435,6 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
     def _fail(self, message: str, generation: int | None = None) -> None:
         if not self._is_current(generation):
             return
-        # How the chat words it; a failure raised here, not in the request, has no kind.
         self.failure_kind = str(getattr(message, "kind", "") or OTHER)
         self._turn.release()
         self._turn_callbacks = None
@@ -469,7 +446,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):
         self._write_journal(f"Run failed: {message}")
         self.failed.emit(message)
         if self._batch and self._is_current(generation):
-            # After a failure the user looks first, auto mode or not.
+            # Never auto-applied after a failure: the user looks first.
             self.confirm_needed.emit(self._batch.pending(), "", False)
 
     def _offer(self, text: str) -> None:

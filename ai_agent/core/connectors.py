@@ -1,5 +1,3 @@
-"""The connectors as the settings page lists them: plain rows, so ui/ never touches the tool catalogue."""
-
 from collections.abc import Iterable
 from typing import Any
 
@@ -8,7 +6,6 @@ from ai_agent.qgis_tools.data.connectors import CATEGORIES, CONNECTORS, Connecto
 
 
 def connector_rows() -> list[dict[str, Any]]:
-    """Every connector with its texts, what it offers item by item, its hosts and licences, and whether it is on."""
     off = disabled_connectors()
     rows = []
     for connector in CONNECTORS:
@@ -33,7 +30,6 @@ def connector_rows() -> list[dict[str, Any]]:
 
 
 def _items(connector: Connector) -> list[dict[str, Any]]:
-    """One entry per layer of a web service, one per dataset otherwise; `kind` is the protocol or the dataset kind."""
     items: list[dict[str, Any]] = []
     for dataset in connector.datasets:
         if not dataset.layers:
@@ -50,6 +46,5 @@ def categories() -> tuple[str, ...]:
 
 
 def save_enabled(enabled: Iterable[str]) -> None:
-    """Store the switches: every connector not in `enabled` is turned off."""
     on = set(enabled)
     set_disabled_connectors(connector.id for connector in CONNECTORS if connector.id not in on)

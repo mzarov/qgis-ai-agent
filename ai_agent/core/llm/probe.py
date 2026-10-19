@@ -11,7 +11,6 @@ REPLY_LIMIT = 160
 PROBE_SECONDS = 60
 EMPTY_REPLY = tr("Connected, but the model returned an empty answer.")
 IMAGE_PROMPT = "Name the two colours of this picture, left half first. Reply with the two colour names only."
-# Green and yellow, not red and blue: a model that never got the picture guesses the common pair.
 PROBE_COLOURS = (("green", (0, 160, 0)), ("yellow", (255, 255, 0)))
 PROBE_SIZE = (128, 64)
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
@@ -37,12 +36,6 @@ def probe(overrides: dict[str, Any]) -> tuple[bool, str]:
 
 
 def sees_images(overrides: dict[str, Any]) -> bool | None:
-    """Whether the model reads a picture, judged by its answer about one; None when the request failed.
-
-    An endpoint may take an image and drop it before the model, which then says it sees none or
-    guesses. Only naming both colours counts. An endpoint that refuses the image outright is retried
-    without it by the transport, so that answer names no colour either.
-    """
     from ai_agent.core.llm.transport import call_model
 
     picture = base64.b64encode(two_halves_png(PROBE_SIZE, *(rgb for _, rgb in PROBE_COLOURS))).decode("ascii")
@@ -62,8 +55,7 @@ def sees_images(overrides: dict[str, Any]) -> bool | None:
 
 
 def two_halves_png(size: tuple[int, int], left: tuple[int, int, int], right: tuple[int, int, int]) -> bytes:
-    """A PNG whose left half is one colour and right half another, built without Qt: the probe runs off the main
-    thread."""
+    # Built without Qt: the probe runs off the main thread.
     width, height = size
     row = b"\x00" + bytes(left) * (width // 2) + bytes(right) * (width - width // 2)
     header = struct.pack(">IIBBBBB", width, height, 8, PNG_RGB, 0, 0, 0)

@@ -50,7 +50,6 @@ def local_skills_dir() -> str:
 
 
 def register_local_skills(path: str | None = None) -> list[str]:
-    """Rescan the user's skills folder and apply the switches from Settings → Skills; returns the problems."""
     SKILL_REGISTRY.set_disabled(get_disabled_skills())
     root = path if path is not None else local_skills_dir()
     problems = SKILL_REGISTRY.set_local_root(root or None)
@@ -70,11 +69,6 @@ def register_local_skills(path: str | None = None) -> list[str]:
 
 
 def describe_local_skills() -> dict[str, Any]:
-    """Local skills for the settings page: active skills, drafts still holding the example text, problems.
-
-    A draft is not an error: it is the example waiting for its description, so it is listed apart
-    with the file to open instead of among the problems.
-    """
     problems = register_local_skills()
     root = SKILL_REGISTRY.local_root() or ""
     drafts = _drafts(root)
@@ -138,6 +132,5 @@ def skill_choices() -> list[tuple[str, str, str]]:
 
 
 def builtin_skills() -> list[tuple[str, str, bool]]:
-    """Every built-in skill with its description and whether it is switched on."""
     disabled = set(get_disabled_skills())
     return [(skill.name, skill.description, skill.name not in disabled) for skill in SKILL_REGISTRY.builtin_skills()]

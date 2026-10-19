@@ -70,13 +70,6 @@ def build_body(
 
 
 def thinking_config(model: str, budget: int) -> dict[str, Any]:
-    """The thinking parameter each model generation accepts.
-
-    Fable, Mythos and Opus 5.5 always think and reject both `disabled` and
-    `budget_tokens`; the 4.6+ generation takes only `adaptive`; older models
-    take a fixed `budget_tokens`. Models whose default display is "omitted"
-    get "summarized" so the reasoning panel is not empty.
-    """
     adaptive: dict[str, Any] = {"type": "adaptive"}
     if not _family(model, SUMMARY_DEFAULT_PREFIXES):
         adaptive["display"] = "summarized"
@@ -92,11 +85,6 @@ def thinking_config(model: str, budget: int) -> dict[str, Any]:
 
 
 def replays_thinking(model: str, thinking: dict[str, Any]) -> bool:
-    """Whether earlier thinking blocks go back to the model unchanged.
-
-    The 4.6+ generation may think without being asked and requires its blocks
-    back; older models only when thinking is enabled for this request.
-    """
     if thinking.get("type") == "disabled":
         return False
     if _family(model, ALWAYS_THINKING_PREFIXES + ADAPTIVE_PREFIXES):
@@ -113,10 +101,8 @@ def _family(model: str, prefixes: tuple[str, ...]) -> bool:
 
 
 def _max_tokens(requested: int | None, thinking: dict[str, Any]) -> int:
-    """The default limit widened for thinking; an explicit one, such as the fallback after a refusal, holds."""
     kind = thinking.get("type")
     if kind == "enabled":
-        # The API refuses a limit at or below budget_tokens, so a fixed budget raises even an explicit one.
         return max(requested or DEFAULT_MAX_TOKENS, int(thinking.get("budget_tokens") or 0) + ANSWER_HEADROOM)
     if requested is not None:
         return requested

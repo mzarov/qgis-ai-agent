@@ -1,13 +1,3 @@
-"""The cheap check after Apply: a batch whose every step confirms itself by one read skips the model.
-
-The full check is a model run of several requests, each carrying the whole
-prompt and tool schemas; for a rename or a new bookmark it cost more than the
-work itself. Each tool knows the one read that proves its own step
-(`BaseTool.confirm_applied`). A failed step, a tool that cannot judge its
-result, a step that does not read back, or a check that raises — any of them
-sends the batch to the model's check.
-"""
-
 from typing import Any
 
 from qgis.core import Qgis, QgsMessageLog
@@ -18,7 +8,6 @@ LOG_TAG = "AI Agent"
 
 
 def confirmed_by_reading(results: list[Any]) -> bool:
-    """True when every applied step read back as done, so the model's check can be skipped."""
     if not results:
         return False
     for result in results:

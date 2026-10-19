@@ -1,11 +1,3 @@
-"""How far a run may go: the steps one run may take, and how long one Processing algorithm may run.
-
-The loop reads the step limit when a run starts; the Processing tool reads the
-timeout for every algorithm. Both are set in Settings → Advanced and clamped to
-their range on read, so a hand-edited settings file can only fall back to the
-nearest allowed value.
-"""
-
 from qgis.core import QgsSettings
 
 PREFIX = "ai_agent"
@@ -20,7 +12,6 @@ TOOL_SECONDS_INCREMENT = 15
 
 
 def max_steps() -> int:
-    """Model turns one run may take before it stops and says so."""
     return _read("max_steps", DEFAULT_STEPS, MIN_STEPS, MAX_STEPS)
 
 
@@ -29,7 +20,6 @@ def set_max_steps(value: int) -> None:
 
 
 def tool_seconds() -> int:
-    """Seconds one Processing algorithm may run before it is cancelled."""
     return _read("tool_timeout", DEFAULT_TOOL_SECONDS, MIN_TOOL_SECONDS, MAX_TOOL_SECONDS)
 
 

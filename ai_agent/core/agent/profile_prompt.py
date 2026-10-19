@@ -1,10 +1,3 @@
-"""The Personalisation settings as the model reads them: who the user is and how they want the work done.
-
-Rendered into the static system prompt, after the language policy: it changes
-only when the user saves Settings, so the cached prefix holds from turn to turn.
-Defaults say nothing — a profile left as it is adds no tokens.
-"""
-
 from ai_agent.config.personal import LANGUAGES, Profile
 
 PROFILE_HEADER = "## The user and how they like to work (from their Settings)"
@@ -36,7 +29,6 @@ LANGUAGE_OVERRIDE = (
 
 
 def render_profile(profile: Profile) -> str:
-    """The profile block for the system prompt, or "" when nothing differs from the defaults."""
     lines = []
     if profile.name:
         lines.append(f"Address the user as {profile.name}.")
