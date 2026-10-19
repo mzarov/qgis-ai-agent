@@ -24,7 +24,7 @@ from ai_agent.ui.durations import format_seconds
 from ai_agent.ui.failure_card import FailureCard
 from ai_agent.ui.legend import LegendCard
 from ai_agent.ui.messages import SystemMessage, UserMessage
-from ai_agent.ui.plan import RUNNING_MARK, PlanCard
+from ai_agent.ui.plan import FAILED_MARK, RUNNING_MARK, PlanCard
 from ai_agent.ui.question import QuestionCard
 from ai_agent.ui.transitions import LeavingFeed
 
@@ -482,6 +482,33 @@ class FailureScenario(ScenarioCase):
         self.apply()
         self.assertAlmostEqual(self.layer("districts").opacity(), 0.5)
         self.shot("failure_keeps_plan")
+
+
+class StageRefusedScenario(ScenarioCase):
+    ANSWER = "Districts is being edited by hand: commit or roll back those edits, then ask me again."
+
+    def test_a_stage_the_snapshot_refuses_reaches_the_model_and_can_be_stopped(self) -> None:
+        self.model.script(
+            call("load_skill", names=["style"]),
+            call("set_opacity", layer_name="districts", opacity=0.5),
+            call("apply_now", reason="the transparency has to land before the labels"),
+            say(self.ANSWER, 0.05),
+        )
+        self.ask("Make districts half transparent, then label them")
+        districts = self.layer("districts")
+        self.assertTrue(districts.startEditing())
+        self.orchestrator.on_confirm_plan()
+        running, busy = self.agent.is_running, self.dock.composer._busy
+        self.wait_idle()
+        districts.rollBack()
+        self.assertTrue(running, "the run did not go on with the model")
+        self.assertTrue(busy, "the run went on with the model but offered no Stop")
+        self.assertAlmostEqual(districts.opacity(), 1.0)
+        self.assertIn("active edit buffer on: districts", self.model.sent_text(-1))
+        self.assertEqual(self.last(), self.ANSWER)
+        self.assertFalse(self.dock.composer._busy)
+        self.assertEqual(self.dock.conversation.findChildren(PlanCard)[-1]._mark.text(), FAILED_MARK)
+        self.shot("stage_refused_by_edit_buffer")
 
 
 class FailureCardScenario(ScenarioCase):

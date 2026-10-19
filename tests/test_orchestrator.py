@@ -2,12 +2,14 @@ import shutil
 import tempfile
 import unittest
 from types import SimpleNamespace
+from unittest import mock
 
 from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.core.llm.retry import RetryNotice
 from ai_agent.core.llm.turns import ToolCall
 from ai_agent.core.orchestrator import notices
 from ai_agent.core.orchestrator import orchestrator as orchestrator_module
+from ai_agent.core.orchestrator import rewind as rewind_module
 from ai_agent.core.orchestrator.orchestrator import CoreOrchestrator
 from ai_agent.core.state import conversation as conversation_module
 from ai_agent.core.state.conversation import ConversationState
@@ -1089,6 +1091,27 @@ class PlanUndoTest(unittest.TestCase):
         self.orchestrator._note_apply_start()
         self.orchestrator.on_applied([Result(ok=True)])
         self.assertFalse(self.dock.undoable)
+
+    def test_a_failed_undo_says_why_and_keeps_the_plan_undoable(self):
+        errors = []
+        self.dock.add_error_message = errors.append
+        self._apply()
+        refusal = ValueError("QGIS has an active edit buffer on: districts.")
+        with mock.patch.object(rewind_module, "restore_snapshot", side_effect=refusal):
+            self.orchestrator.on_undo_plan(7)
+        self.assertEqual(errors, ["Could not restore the project: QGIS has an active edit buffer on: districts."])
+        self.assertEqual(self.dock.undone_plans, [])
+        self.assertNotIn("undone", self.orchestrator.conversation.messages[-1]["content"])
+        self.orchestrator.on_undo_plan(7)
+        self.assertEqual(self.restored, ["/tmp/after-plan.qgz"], "the plan could not be undone once the edits ended")
+
+    def test_a_plan_applied_before_any_message_is_still_undone_from_its_card(self):
+        self.orchestrator.conversation.start_new()
+        self._apply()
+        self.assertEqual(self.orchestrator._checkpoints, [])
+        self.orchestrator.on_undo_plan(7)
+        self.assertEqual(self.restored, ["/tmp/after-plan.qgz"])
+        self.assertEqual(self.dock.undone_plans, [7])
 
 
 class OutcomeDock(PlanDock):

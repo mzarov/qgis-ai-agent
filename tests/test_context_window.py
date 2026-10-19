@@ -181,6 +181,57 @@ class CompactionLifecycleTest(SessionCompactionTest):
         self.assertEqual(self.conversation.window()[-1]["content"], "пришло во время сжатия")
         self.assertEqual(len(self.conversation.window()), 2 + 2 + 1)
 
+    def test_a_failure_for_a_conversation_the_user_left_is_not_shown(self):
+        ran: list[bool] = []
+        self.compaction.start(after=lambda: ran.append(True))
+        self.conversation.start_new()
+        self.compaction._on_failed("HTTP 500")
+        self.assertEqual((ran, self.dock.errors), ([], []))
+        self.assertFalse(self.compaction.is_running)
+
+    def test_a_second_start_and_a_refused_one_change_nothing(self):
+        self.assertTrue(self.compaction.start())
+        self.assertFalse(self.compaction.start())
+        self.compaction.cancel()
+        self.compaction.cancel()
+        self.assertEqual(self.dock.busy, [True, False])
+        self.compaction._compactor.start.return_value = False
+        self.assertFalse(self.compaction.start())
+        self.assertFalse(self.compaction.is_running)
+
+    def test_compacting_an_empty_conversation_by_hand_says_so(self):
+        self.conversation.start_new()
+        self.assertFalse(self.compaction.start())
+        self.assertEqual(self.dock.system, [compacting.NOTHING_TO_COMPACT])
+        self.assertFalse(self.compaction.start(after=lambda: None))
+        self.assertEqual(len(self.dock.system), 1, "a compaction before a request must stay silent")
+
+
+class CompactorLifecycleTest(unittest.TestCase):
+    def setUp(self):
+        self.compactor = Compactor()
+        self.turn = mock.MagicMock(is_running=False)
+        self.compactor._turn = self.turn
+
+    def test_nothing_is_asked_without_history_or_while_asking(self):
+        self.assertFalse(self.compactor.start([]))
+        self.turn.is_running = True
+        self.assertFalse(self.compactor.start([{"role": "user", "content": "hi"}]))
+        self.turn.start.assert_not_called()
+
+    def test_a_transport_error_is_the_failure_and_frees_the_turn(self):
+        failures: list[str] = []
+        self.compactor.failed.connect(failures.append)
+        self.compactor._on_error("HTTP 429")
+        self.assertEqual(failures, ["HTTP 429"])
+        self.turn.release.assert_called_once_with()
+
+    def test_abort_and_stop_detach_the_answer_first(self):
+        self.compactor.abort()
+        self.compactor.stop()
+        self.assertEqual(self.turn.detach.call_count, 2)
+        self.assertEqual([name for name, _args, _kwargs in self.turn.mock_calls][-2:], ["detach", "stop"])
+
 
 class LoopCountsTest(unittest.TestCase):
     def test_every_turn_is_counted_and_a_silent_server_gets_an_estimate(self):

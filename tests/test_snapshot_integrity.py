@@ -1,7 +1,9 @@
+import itertools
 import os
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from ai_agent.core.agent.loop import AgentLoop
@@ -11,6 +13,13 @@ from ai_agent.qgis_tools.project import restore as undo_module
 from ai_agent.qgis_tools.project import scratch_copies, snapshots
 from ai_agent.qgis_tools.project.remove_layer import RemoveLayerTool
 from ai_agent.qgis_tools.project.undo_last_apply import UndoLastApplyTool
+
+
+def raising(error):
+    def fail(*args):
+        raise error
+
+    return fail
 
 
 class Signal:
@@ -426,6 +435,137 @@ class SnapshotIntegrityTest(unittest.TestCase):
         copies = scratch_copies.copy_scratch_layers(self.project)
         self.assertEqual(scratch_copies.restore_scratch_layers(self.project, copies), [])
         self.assertEqual(len(scratch.provider.features), 1)
+
+    def test_a_write_that_raises_leaves_no_file_and_says_why(self):
+        original = (self.project.fileName(), self.project.homePath(), self.project.isDirty())
+
+        def broken_write(path):
+            Path(path).touch()
+            self.project.setFileName(path)
+            raise RuntimeError("disk full")
+
+        self.project.write = broken_write
+        self.assertEqual(snapshots.take_snapshot(), "")
+        self.assertEqual(snapshots.snapshot_error(), "disk full")
+        self.assertEqual(list(Path(self.folder.name).glob("before_apply_*.qgz")), [])
+        self.assertEqual((self.project.fileName(), self.project.homePath(), self.project.isDirty()), original)
+        self.assertEqual(snapshots.last_snapshot(), "")
+
+    def test_an_error_without_words_is_named_by_its_kind_and_forgotten_next_time(self):
+        self.project.write = raising(OSError())
+        self.assertEqual(snapshots.take_snapshot(), "")
+        self.assertEqual(snapshots.snapshot_error(), "OSError")
+        del self.project.write
+        self.assertTrue(snapshots.take_snapshot())
+        self.assertEqual(snapshots.snapshot_error(), "")
+
+    def test_only_the_latest_snapshots_are_kept(self):
+        with patch.object(snapshots, "time", SimpleNamespace(time_ns=itertools.count(1).__next__)):
+            paths = [snapshots.take_snapshot() for _ in range(snapshots.MAX_SNAPSHOTS + 1)]
+        oldest, kept = paths[0], paths[1:]
+        self.assertFalse(os.path.exists(oldest))
+        self.assertFalse(snapshots.snapshot_exists(oldest))
+        self.assertIsNone(snapshots.snapshot_state(oldest))
+        self.assertTrue(all(snapshots.snapshot_exists(path) for path in kept))
+        self.assertEqual(snapshots.last_snapshot(), kept[-1])
+
+    def test_a_snapshot_deleted_behind_the_plugins_back_is_skipped(self):
+        first = snapshots.take_snapshot()
+        second = snapshots.take_snapshot()
+        os.remove(second)
+        self.assertFalse(snapshots.snapshot_exists(second))
+        self.assertEqual(snapshots.last_snapshot(), first)
+        snapshots.drop_snapshot(second)
+        snapshots.drop_snapshot("/never/taken.qgz")
+        self.assertEqual(snapshots._LAST, [first])
+
+    def test_layers_that_cannot_answer_do_not_stop_the_edit_check(self):
+        class Broken:
+            def isEditable(self):
+                raise RuntimeError("deleted C++ object")
+
+        class EditingWithoutName:
+            def isEditable(self):
+                return True
+
+            def name(self):
+                raise RuntimeError("deleted C++ object")
+
+        self.project.layers = [Broken()]
+        snapshots.ensure_project_read_safe(self.project)
+        self.project.layers = [Broken(), EditingWithoutName()]
+        with self.assertRaisesRegex(ValueError, "active edit buffer on: Unnamed"):
+            snapshots.ensure_project_read_safe(self.project)
+        self.project.mapLayers = raising(RuntimeError("project closing"))
+        snapshots.ensure_project_read_safe(self.project)
+
+    def test_a_scratch_layer_that_cannot_be_read_comes_back_named_empty(self):
+        scratch = MemoryLayer("buffers", ["name"], [RecordedFeature(attributes=["a"])])
+        scratch.provider.getFeatures = raising(RuntimeError("provider gone"))
+        self.project.layers = [scratch]
+        path = snapshots.take_snapshot()
+        self.assertIn("buffers", UndoLastApplyTool().detail_call({"_snapshot_path": path}))
+        result = UndoLastApplyTool().execute({})
+        self.assertEqual(result["empty_scratch_layers"], ["buffers"])
+
+    def test_a_refill_the_provider_refuses_is_named(self):
+        scratch = MemoryLayer("buffers", ["name"], [RecordedFeature(attributes=["a"])])
+        self.project.layers = [scratch]
+        snapshots.take_snapshot()
+        scratch.provider.addFeatures = lambda features: (False, [])
+        with patch.object(scratch_copies, "QgsFeature", RecordedFeature):
+            result = UndoLastApplyTool().execute({})
+        self.assertEqual(result["empty_scratch_layers"], ["buffers"])
+        self.assertIn("could not be refilled", result["scratch_note"])
+        self.assertEqual(scratch.repaints, 0)
+
+    def test_stand_ins_the_provider_keeps_are_named(self):
+        sparse = [RecordedFeature(attributes=[name], fid=fid) for fid, name in ((1, "a"), (3, "c"))]
+        scratch = MemoryLayer("sparse", ["name"], sparse)
+        self.project.layers = [scratch]
+        snapshots.take_snapshot()
+        scratch.provider.deleteFeatures = lambda ids: False
+        with patch.object(scratch_copies, "QgsFeature", RecordedFeature):
+            result = UndoLastApplyTool().execute({})
+        self.assertEqual(result["empty_scratch_layers"], ["sparse"])
+        self.assertNotIn("renumbered_scratch_layers", result)
+
+    def test_a_project_that_cannot_list_its_layers_copies_nothing(self):
+        self.project.mapLayers = raising(RuntimeError("project closing"))
+        self.assertEqual(scratch_copies.copy_scratch_layers(self.project), scratch_copies.ScratchCopies())
+        self.project.mapLayer = raising(RuntimeError("project closing"))
+        copy = scratch_copies.ScratchLayerCopy("gone_id", "gone", ("name",), [RecordedFeature(attributes=["a"])])
+        copies = scratch_copies.ScratchCopies((copy,))
+        self.assertEqual(scratch_copies.restore_scratch_layers(self.project, copies), [])
+
+
+class ProcessFolderTest(unittest.TestCase):
+    def setUp(self):
+        self.saved = snapshots._PROCESS_FOLDER
+        self.addCleanup(setattr, snapshots, "_PROCESS_FOLDER", self.saved)
+
+    def test_the_snapshot_folder_is_private_and_made_once(self):
+        snapshots._PROCESS_FOLDER = ""
+        folder = snapshots.snapshot_folder()
+        self.addCleanup(os.rmdir, folder)
+        self.assertEqual(os.stat(folder).st_mode & 0o777, 0o700)
+        self.assertEqual(snapshots.snapshot_folder(), folder)
+
+    def test_quitting_removes_the_snapshots_and_only_them(self):
+        with tempfile.TemporaryDirectory() as root:
+            folder = os.path.join(root, "ai_agent_snapshots_x")
+            os.mkdir(folder)
+            snapshots._PROCESS_FOLDER = folder
+            for name in ("before_apply_1.qgz", "before_apply_2.qgz", "notes.txt"):
+                Path(folder, name).touch()
+            snapshots._cleanup_process_folder()
+            self.assertEqual(os.listdir(folder), ["notes.txt"])
+            os.remove(os.path.join(folder, "notes.txt"))
+            snapshots._cleanup_process_folder()
+            self.assertFalse(os.path.exists(folder))
+            snapshots._cleanup_process_folder()
+        snapshots._PROCESS_FOLDER = ""
+        snapshots._cleanup_process_folder()
 
 
 if __name__ == "__main__":
