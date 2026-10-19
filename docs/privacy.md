@@ -102,13 +102,14 @@ it off deletes the counts not yet sent.
 
 Once a day the plugin sends one small report to the project's collector on
 Cloudflare (`telemetry/worker`): the number of runs and applies, the names of
-the tools and skills used, the kinds of failures, the plugin and QGIS versions,
-the OS family, the interface language, and whether the model is local or
-remote and which API format it uses. A day QGIS loaded the plugin counts as active
-even with no run. A random install id tells installs apart;
-the collector stores only its hash. Your requests, answers, layer names,
-values, places, file paths, keys and model names are never sent. The totals
-are public on the [usage statistics](usage-stats.md) page.
+the tools and skills used and how many tool calls failed, the kinds of
+failures, the plugin and QGIS versions, the OS family, the interface language,
+whether a model is set up, and whether it is local or remote and which API
+format it uses. A day QGIS loaded the plugin counts as active even with no
+run. A random install id tells installs apart; the collector stores only its
+hash. Your requests, answers, layer names, values, places, file paths, keys,
+model addresses and model names are never sent. The totals are public on the
+[usage statistics](usage-stats.md) page.
 
 ## Sensitive projects
 
