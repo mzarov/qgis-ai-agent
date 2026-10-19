@@ -31,7 +31,7 @@ same install and day replaces the rows.
 A v1 ping, sent by plugin 0.4.0, has no `configured` or `tool_errors`; both
 versions are accepted.
 
-`src/payload.js` validates it strictly: no unknown fields, `day` within two
+`src/payload.js` validates it strictly: no unknown fields, `day` within seven
 days of the server's UTC date, counts from 0 to 100000, map keys matching
 `^[a-z][a-z0-9_]{0,48}$`, at most 150 per map. It answers `204`, or `400`,
 `413` or `415` for a bad body, size or content type.

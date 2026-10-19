@@ -1,4 +1,7 @@
+import atexit
+import shutil
 import sys
+import tempfile
 import types
 import zlib
 
@@ -325,6 +328,17 @@ class _Button(_Stub):
         return self._enabled
 
 
+class _Application(_Stub):
+    # A throwaway profile folder: code that writes beside the profile must never reach the user's home.
+    _profile = tempfile.mkdtemp(prefix="ai-agent-test-profile-")
+
+    @staticmethod
+    def qgisSettingsDirPath():
+        return _Application._profile
+
+
+atexit.register(shutil.rmtree, _Application._profile, True)
+
 _FAKES = {
     "QAbstractButton": _Button,
     "QColor": _Colour,
@@ -338,6 +352,7 @@ _FAKES = {
     "QgsFeedback": _Feedback,
     "QgsProcessingFeedback": _Feedback,
     "QgsProject": _Project,
+    "QgsApplication": _Application,
 }
 
 

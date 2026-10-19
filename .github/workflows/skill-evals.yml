@@ -44,7 +44,7 @@ jobs:
       SAVE_THRESHOLDS: ${{ inputs.save_thresholds }}
       AGENT: ${{ inputs.agent }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Check the configuration
         id: configured
         run: |
@@ -57,11 +57,11 @@ jobs:
             echo "::notice::No model is configured for this repository, or this pull request comes from a fork; the skill evals are skipped."
             echo "ready=false" >> "$GITHUB_OUTPUT"
           fi
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         if: steps.configured.outputs.ready == 'true'
         with:
           python-version: "3.12"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         if: steps.configured.outputs.ready == 'true'
         with:
           node-version: "22"
@@ -80,7 +80,7 @@ jobs:
           python3 evals/run.py "$@"
       - name: Upload the results
         if: always() && steps.configured.outputs.ready == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: skill-evals
           path: |

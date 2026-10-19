@@ -196,7 +196,7 @@ survive, the `.qm` ships and the `.ts` stays out.
 ### Tests
 
 Tests are stdlib `unittest`, with no dependencies. `tests/stub.py` fakes the `qgis`
-modules when QGIS is absent, so the suite runs on plain Python and in the QGIS Python.
+modules, so the fast suite runs on plain Python; real QGIS runs the `real_qgis_*` modules.
 Most names become an inert `_Stub`, but value types are real (`QColor`, `QLabel`,
 `QToolButton`, `QTimer` keep their state), so behaviour is checked by running widgets,
 not by grepping the source. Fake behaviour, never; fake a value, gladly. CI records
