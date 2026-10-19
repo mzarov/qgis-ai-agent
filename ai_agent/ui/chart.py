@@ -1,13 +1,3 @@
-"""A chart in the feed, painted with QPainter: bars, lines, a donut, a histogram or a scatter.
-
-The spec arrives as plain JSON from a read tool. Marks follow the data-viz
-rules: thin bars with rounded data ends and a surface gap between them, 2 px
-lines, 8 px markers ringed by the surface, recessive grid and axes, a legend
-only for two series or more, and one direct label — on the largest value;
-every other value is a hover away. Text always wears text colours, never the
-series colour. Right click copies the picture or the numbers.
-"""
-
 import csv
 import io
 import math
@@ -36,7 +26,6 @@ DONUT_HOLE = 0.58
 PIE_LEGEND_SHARE = 0.48
 PIE_LEGEND_WIDTH = 240
 MAX_BAR = 44
-# Room between a row label and its bar; elision gets half of it as slack for rounding.
 LABEL_ROOM = 14
 COPY_IMAGE = tr("Copy image")
 COPY_DATA = tr("Copy data as CSV")
@@ -82,8 +71,6 @@ class ChartCard(QWidget):
         font.setPointSizeF(max(1.0, font.pointSizeF() * controls.SMALL_SCALE))
         return font
 
-    # Painting
-
     def paintEvent(self, _event: Any) -> None:
         self._hits = []
         painter = QPainter(self)
@@ -125,7 +112,6 @@ class ChartCard(QWidget):
             x += LEGEND_SWATCH + 5 + metrics.horizontalAdvance(name) + 14
 
     def _value_axis(self, painter: QPainter, plot: QRectF, low: float, high: float, vertical: bool) -> Any:
-        """Gridlines and tick labels; returns the value → pixel mapping."""
         ticks = chart_scale.nice_ticks(low, high)
         low, high = ticks[0], ticks[-1]
         span = (high - low) or 1.0
@@ -317,10 +303,7 @@ class ChartCard(QWidget):
                 QPointF(right - metrics.horizontalAdvance(share), y + line / 2 + metrics.ascent() / 2 - 1), share
             )
 
-    # Marks
-
     def _bar(self, painter: QPainter, bar: QRectF, colour: QColor, positive: bool, vertical: bool) -> None:
-        """A bar with its data end rounded and its baseline end square."""
         radius = min(BAR_RADIUS, bar.width() / 2, bar.height() / 2)
         rounded = QPainterPath()
         rounded.addRoundedRect(bar, radius, radius)
@@ -374,8 +357,6 @@ class ChartCard(QWidget):
             circle.center().x() + radius * math.cos(middle), circle.center().y() - radius * math.sin(middle)
         )
         return QRectF(centre.x() - 14, centre.y() - 14, 28, 28)
-
-    # Interaction
 
     def mouseMoveEvent(self, event: Any) -> None:
         position = event.position() if hasattr(event, "position") else QPointF(event.pos())

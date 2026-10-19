@@ -1,5 +1,3 @@
-"""The Privacy and Advanced pages, and what their buttons do: erase the history, reset the preferences."""
-
 from typing import Any
 
 from qgis.PyQt.QtCore import Qt, QUrl
@@ -172,7 +170,6 @@ def build_privacy(owner: Any, palette: Any) -> QWidget:
         )
     )
     show_history_size(owner)
-    # Only once a collector exists: a switch that sends nowhere would promise what it cannot do.
     owner.usage_cb = fields.switch(palette)
     owner.usage_cb.setChecked(enabled())
     if collector_url():
@@ -267,7 +264,6 @@ def build_advanced(owner: Any, palette: Any) -> QWidget:
 
 
 def problem(owner: Any) -> str:
-    """Why these pages cannot be saved as they are, or "" when they can."""
     try:
         extra_headers.parse(owner.headers_edit.toPlainText())
     except ValueError as error:
@@ -276,7 +272,6 @@ def problem(owner: Any) -> str:
 
 
 def save(owner: Any) -> None:
-    """Store what these pages hold beyond the connection; `problem` has checked it first."""
     set_extra_headers(owner.headers_edit.toPlainText())
     set_history_days(int(owner.keep_choice.currentData() or 0))
     limits.set_max_steps(owner.steps_stepper.value())
@@ -297,7 +292,6 @@ def show_history_size(owner: Any) -> None:
 
 
 def erase_history(owner: Any) -> None:
-    """Ask, then delete every kept conversation and journal; the dialog's owner drops the open conversation."""
     if QMessageBox.question(owner, ERASE_LABEL, ERASE_QUESTION) != QMessageBox.StandardButton.Yes:
         return
     history.erase()
@@ -307,7 +301,6 @@ def erase_history(owner: Any) -> None:
 
 
 def reset_settings(owner: Any) -> None:
-    """Ask, then return the preferences to their defaults and close: reopened, the window shows them."""
     if QMessageBox.question(owner, RESET_LABEL, RESET_QUESTION) != QMessageBox.StandardButton.Yes:
         return
     reset_preferences()
@@ -315,8 +308,6 @@ def reset_settings(owner: Any) -> None:
 
 
 class PrivacyStatus(controls.RoundedFrame):
-    """Where the data goes, read from the address on the Connection page: this computer, or a provider."""
-
     def __init__(self, palette: Any):
         super().__init__(STATUS_RADIUS)
         self._palette = palette
@@ -363,7 +354,6 @@ def _folder(path: str, palette: Any) -> QWidget:
     shown = controls.ElidedLabel(path, mode=Qt.TextElideMode.ElideMiddle)
     shown.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
     shown.setToolTip(path)
-    # A path as wide as a field, its middle elided: an elided label asks for no width of its own.
     shown.setFixedWidth(FOLDER_WIDTH)
     style.ink(shown, style.muted(palette))
     line.addWidget(shown, 1)
@@ -375,7 +365,6 @@ def _folder(path: str, palette: Any) -> QWidget:
 
 
 def _budget_control(edit: QLineEdit, palette: Any) -> QWidget:
-    """Preset chips next to the field: one click for the usual values, typing for the rest."""
     holder = QWidget()
     line = QHBoxLayout(holder)
     line.setContentsMargins(0, 0, 0, 0)

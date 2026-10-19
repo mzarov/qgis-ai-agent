@@ -1,13 +1,3 @@
-"""A table in the feed: painted rows under a muted header, hairlines between them.
-
-Painted rather than a QTableWidget: a table that scrolls inside the scrolling
-feed fights the wheel, and a wide one would push the dock sideways. Columns
-share the width by their content, long cells elide and show in full on hover,
-and right click copies the rows as CSV. Columns that do not fit even at their
-narrowest slide under a bar of their own; only a sideways wheel moves them, so
-the upright one still scrolls the feed.
-"""
-
 import csv
 import io
 from typing import Any
@@ -38,7 +28,6 @@ class TableCard(QWidget):
         self.rows = [[str(cell) for cell in row] for row in spec.get("rows") or []]
         self.total = int(spec.get("total") or len(self.rows))
         self._cells: list[tuple[QRectF, str]] = []
-        # The rows move under it; the title and the footer stay where they are.
         self._bar = QScrollBar(Qt.Orientation.Horizontal, self)
         self._bar.valueChanged.connect(lambda _value: self.update())
         self.setMouseTracking(True)
@@ -72,7 +61,6 @@ class TableCard(QWidget):
         self._fit_bar()
 
     def _fit_bar(self) -> None:
-        """The bar shows only while the columns overflow the card, under the rows, and the card grows by it."""
         width = self.width()
         overflow = round(sum(self.column_widths(width)) - width)
         self._bar.setRange(0, max(0, overflow))
@@ -87,7 +75,6 @@ class TableCard(QWidget):
         return font
 
     def column_widths(self, width: float) -> list[float]:
-        """Each column gets room by its widest cell, shrunk evenly when the dock is narrower; never stretched."""
         metrics = QFontMetrics(self.font())
         wanted = []
         for index, column in enumerate(self.columns):
@@ -148,7 +135,6 @@ class TableCard(QWidget):
             x += width
 
     def _numeric(self, column: int) -> bool:
-        """A column whose every filled cell is a number: right-aligned, header included."""
         cells = [row[column] for row in self.rows if column < len(row) and row[column]]
         return bool(cells) and all(set(cell) <= NUMERIC_CHARS for cell in cells)
 
@@ -177,7 +163,6 @@ class TableCard(QWidget):
         if self._bar.maximum() > 0 and abs(delta.x()) > abs(delta.y()):
             QApplication.sendEvent(self._bar, event)
         else:
-            # Ignored, the wheel goes on to the feed: a table never holds the upright scroll.
             event.ignore()
 
     def contextMenuEvent(self, event: Any) -> None:

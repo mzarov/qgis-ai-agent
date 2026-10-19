@@ -1,12 +1,3 @@
-"""The active layer as a chip above the composer's text: the context the next request carries.
-
-The orchestrator tells the dock which layer QGIS has active and what it holds
-("Districts · 12 features"); the chip shows it with a × that drops it until the
-active layer changes. A new request then names the layer with an @mention the
-orchestrator appends, unless the request already names it — the model reads @name
-as the exact name of a layer.
-"""
-
 from typing import Any
 
 from qgis.PyQt.QtCore import pyqtSignal
@@ -36,7 +27,6 @@ class LayerChip(controls.RoundedFrame):
         row.setSpacing(5)
         row.addWidget(controls.glyph("layer", style.muted(palette), ICON))
         self.label = controls.ElidedLabel()
-        # As wide as its text while there is room; a long name elides instead of widening the box.
         self.label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         style.scale_font(self.label, TEXT_SCALE)
         style.ink(self.label, style.muted(palette))
@@ -48,12 +38,10 @@ class LayerChip(controls.RoundedFrame):
 
     @property
     def active_name(self) -> str:
-        """The layer the next request carries; empty when there is none or the user dropped it."""
         return self.name if self.name and self.name != self._dropped else ""
 
     def set_layer(self, name: str, detail: str = "") -> None:
         if name != self.name:
-            # Another layer: a drop was about the previous one.
             self._dropped = ""
         self.name = name
         text = f"{name}{SEPARATOR}{detail}" if name and detail else name

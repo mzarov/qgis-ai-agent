@@ -1,11 +1,3 @@
-"""The plugin's colours: the brand's two palettes, light and dark.
-
-Cartographic blue on cool neutrals. The QGIS palette still decides which set
-applies, by its lightness, so the plugin follows the light and the dark theme.
-This module is the only place in the plugin that spells a colour; everything
-else asks `style`.
-"""
-
 from dataclasses import dataclass
 
 from qgis.PyQt.QtGui import QColor, QPalette
@@ -81,14 +73,10 @@ DARK = Tokens(
 )
 
 
-# Categorical chart colours in their fixed order, never cycled: the validated reference palette
-# (adjacent CVD ΔE ≥ 8.4, normal-vision ΔE ≥ 19 in both modes); the dark column is stepped for
-# the dark surface. More categories fold into "Other" before they reach the feed.
 CHART_LIGHT = ("#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948")
 CHART_DARK = ("#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767")
 
-# The QGIS message bar's own Info colours (QgsMessageBarItem): the bar keeps its light blue in every
-# system theme, so a button placed on it takes these instead of the panel's tokens.
+# The QGIS message bar keeps its light blue in every theme: buttons on it take these inks.
 MESSAGE_BAR_INK = "#2554a1"
 MESSAGE_BAR_BORDER = "#b9cfe4"
 
@@ -96,8 +84,6 @@ MESSAGE_BAR_BORDER = "#b9cfe4"
 THEME_AUTO = "auto"
 THEME_LIGHT = "light"
 THEME_DARK = "dark"
-# The user's "panel theme" from Personalisation, set once at start and on Save: read on every
-# colour lookup, so it is kept here rather than asked from the settings each time.
 _override = [THEME_AUTO]
 
 
@@ -110,7 +96,6 @@ def override() -> str:
 
 
 def is_dark(palette: QPalette) -> bool:
-    """Dark when the user chose the dark panel, or follows QGIS and its palette is dark."""
     if _override[0] != THEME_AUTO:
         return _override[0] == THEME_DARK
     return palette.base().color().lightness() < DARK_LIGHTNESS
@@ -121,6 +106,5 @@ def tokens(palette: QPalette) -> Tokens:
 
 
 def colour(value: str) -> QColor:
-    """A hex token as a QColor, parsed by hand so the value type works in the test stubs too."""
     digits = value.lstrip("#")
     return QColor(int(digits[0:2], 16), int(digits[2:4], 16), int(digits[4:6], 16))

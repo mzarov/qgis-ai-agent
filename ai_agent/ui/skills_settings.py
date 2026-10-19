@@ -1,12 +1,3 @@
-"""The Skills page.
-
-Your skills first, in a card: the book, `/name`, what it does, Edit to open its
-SKILL.md; drafts still holding the example text carry a badge. The folder path
-sits under the card. The built-in skills follow in a second card, one line
-each with a switch — a skill switched off leaves the agent's prompt and cannot
-be loaded — searchable, the first few shown and the rest a click away.
-"""
-
 from typing import Any
 
 from qgis.PyQt.QtCore import QObject, Qt, QUrl, pyqtSignal
@@ -140,7 +131,6 @@ class SkillsSettings(QObject):
         return line
 
     def _card(self, rows: list[QWidget]) -> QWidget:
-        """Rows in one rounded box on the surface, a hairline between neighbours."""
         card = controls.RoundedFrame(CARD_RADIUS)
         card.set_look(style.surface(self._palette).name(), style.hairline(self._palette).name())
         column = QVBoxLayout(card)
@@ -195,7 +185,6 @@ class SkillsSettings(QObject):
         return button
 
     def _built_in_card(self, skills: list[tuple[str, str, bool]]) -> QWidget:
-        """One line per built-in skill; each carries its own top hairline, so a filtered list has no double lines."""
         card = controls.RoundedFrame(CARD_RADIUS)
         card.set_look(style.surface(self._palette).name(), style.hairline(self._palette).name())
         column = QVBoxLayout(card)
@@ -272,7 +261,6 @@ class SkillsSettings(QObject):
             _open(path)
 
     def _create(self) -> None:
-        # Open the new file straight away: the example only switches on once its description is written.
         path = write_example_skill()
         self.refresh()
         if path:
@@ -280,7 +268,6 @@ class SkillsSettings(QObject):
 
 
 def usable_count() -> int:
-    """Skills the agent can use: built-in ones switched on and the user's own; the sidebar shows it."""
     return sum(enabled for _name, _description, enabled in builtin_skills()) + len(describe_local_skills()["skills"])
 
 
@@ -290,7 +277,6 @@ def _open(path: str) -> None:
 
 
 def _link_style(palette: Any) -> str:
-    """A full-width line under the list, accent text: "Show 9 more"."""
     return (
         "QPushButton { background: transparent; border: none; padding: 8px;"
         f"color: {style.css_color(style.accent(palette))}; }}"

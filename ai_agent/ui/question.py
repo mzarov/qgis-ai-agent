@@ -1,16 +1,3 @@
-"""The agent's question as a card: up to three answers and a fourth row to type one's own.
-
-Top to bottom: "Needs clarification", the question, then option
-rows with a radio, the answer, a "recommended" tag on the first (the agent lists
-its pick first), a short why under it when the option carries one after " — ",
-and the key that picks it. A click, a number key or Enter in the fourth row
-sends the answer; the main composer still works too. Once answered the card
-folds to its question, so an old card never offers a stale choice. With
-"answer a question for me" set in Personalisation, a countdown takes the
-recommended answer unless the user starts typing their own. Rows paint their
-hover and selection; nothing restyles in an event.
-"""
-
 from typing import Any
 
 from qgis.PyQt.QtCore import QPointF, Qt, QTimer, pyqtSignal
@@ -32,7 +19,6 @@ TAG_RADIUS = 4
 SMALL = 0.92
 DETAIL = 12.5 / 13
 QUESTION_SCALE = 14 / 13
-# An option may explain itself after an em dash: "Natural breaks — for uneven data".
 WHY = " — "
 HEADING = tr("Needs clarification")
 RECOMMENDED = tr("recommended")
@@ -43,14 +29,11 @@ NUMBER_KEYS = {getattr(Qt.Key, f"Key_{digit}"): digit - 1 for digit in range(1, 
 
 
 def split_option(option: str) -> tuple[str, str]:
-    """The answer and its optional explanation; only the answer goes back to the agent."""
     answer, _, why = str(option).partition(WHY)
     return answer.strip(), why.strip()
 
 
 class Radio(QWidget):
-    """A painted radio: a ring, and a dot when chosen."""
-
     def __init__(self, palette: Any):
         super().__init__()
         self._palette = palette
@@ -99,7 +82,7 @@ class AnswerRow(controls.RoundedFrame):
         font.setWeight(QFont.Weight.Medium)
         title.setFont(font)
         style.ink(title, style.text(palette))
-        # The answer takes the width: beside a stretch a wrapping label shrinks to its hint and breaks early.
+        # Takes the width: beside a stretch a wrapping label shrinks to its hint and breaks early.
         head.addWidget(title, 1)
         if recommended:
             head.addWidget(_tag(RECOMMENDED, palette), 0, Qt.AlignmentFlag.AlignTop)
@@ -201,7 +184,6 @@ class QuestionCard(controls.RoundedFrame):
             self._timer.start()
 
     def stop_countdown(self) -> None:
-        """The user is answering: the agent's choice must not overrule them."""
         self._timer.stop()
         self.countdown.setVisible(False)
 
@@ -230,7 +212,6 @@ class QuestionCard(controls.RoundedFrame):
         self.answered.emit(reply)
 
     def retire(self) -> None:
-        """Fold to the question: the answer now sits in the trace or the chat."""
         self.stop_countdown()
         self._choices.setVisible(False)
 

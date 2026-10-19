@@ -1,5 +1,3 @@
-"""The Connection page's own widgets: provider tiles and the connection test's line."""
-
 from typing import Any
 
 from qgis.PyQt.QtCore import Qt
@@ -65,8 +63,6 @@ def _note(preset: Preset) -> str:
 
 
 class ProviderTiles(TileGrid):
-    """Every preset as a tile, local servers first and the custom address last; keyed by the preset's title."""
-
     def __init__(self, presets: list[Preset], palette: Any):
         ordered = [p for p in presets if not p.is_custom and not p.needs_key]
         ordered += [p for p in presets if not p.is_custom and p.needs_key]
@@ -76,8 +72,6 @@ class ProviderTiles(TileGrid):
 
 
 class StatusCard(QWidget):
-    """The connection test as one line under the fields: the button, then what it found."""
-
     def __init__(self, palette: Any, action: QWidget):
         super().__init__()
         self._palette = palette
@@ -102,12 +96,10 @@ class StatusCard(QWidget):
         self.show_state(STATE_IDLE, "", "")
 
     def show_state(self, state: str, title: str, detail: str) -> None:
-        """One line of status; the detail shows only when something went wrong."""
         self.state = state
         palette = self._palette
         colours = {STATE_OK: style.success(palette), STATE_BAD: style.danger(palette)}
         colour = colours.get(state, style.faint(palette))
-        # A check or a cross says it in so many words; the dot is for not tested and testing.
         self._light.set_colour(colour.name())
         self._light.setVisible(state == STATE_IDLE)
         self._mark.setText(OK_MARK if state == STATE_OK else BAD_MARK if state == STATE_BAD else "")

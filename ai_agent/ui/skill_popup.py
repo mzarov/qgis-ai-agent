@@ -37,8 +37,6 @@ def match_skills(query: str, items: list[tuple[str, str, str]]) -> list[tuple[st
 
 
 class SkillRow(controls.RoundedFrame):
-    """One match; the selection is painted, so hovering never restyles the list mid-event."""
-
     clicked = pyqtSignal(str)
     hovered = pyqtSignal(str)
 
@@ -57,9 +55,6 @@ class SkillRow(controls.RoundedFrame):
 
 
 class SkillPopup(controls.RoundedFrame):
-    """The list above the composer. Its box is painted: a style sheet on it would reset its rows' palette
-    to QGIS's, and in a dark QGIS the light panel's names would come out white on white."""
-
     chosen = pyqtSignal(str)
 
     def __init__(self, host: QWidget):
@@ -160,7 +155,6 @@ class SkillPopup(controls.RoundedFrame):
         return controls.icon_tile(role, self._palette, ICON_TILE, ICON_SIZE, ICON_RADIUS, self._prefix)
 
     def _footer(self) -> QWidget:
-        """The key hints under a hairline; the line is a filled strip, not a border in a style sheet."""
         footer = QWidget()
         footer.setObjectName(FOOTER_NAME)
         column = QVBoxLayout(footer)
@@ -199,6 +193,5 @@ class SkillPopup(controls.RoundedFrame):
 
     def _place_above(self, anchor: QWidget) -> None:
         origin = anchor.mapTo(self._host, QPoint(0, 0))
-        # The anchor's width, never the rows' wish: long descriptions elide instead of overflowing the dock.
         self.setFixedWidth(anchor.width())
         self.move(origin.x(), origin.y() - self.sizeHint().height() - GAP_ABOVE_ANCHOR)

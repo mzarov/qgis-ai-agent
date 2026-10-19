@@ -1,13 +1,3 @@
-"""The composer's bottom row: add context, the mode, the model, send.
-
-"+" opens the add-to-context menu: a layer (opens the @ list), a file or table,
-a picture, a skill (opens the / list). The mode button — shield, name, chevron —
-opens the mode menu above the whole box. On the right sit the model's name, the
-context ring and the round send button, a stop square while the agent works.
-The name is only said, in quiet monospace, never a button: choosing a model
-belongs to the settings. Everything else paints its own hover.
-"""
-
 from collections.abc import Callable
 from typing import Any
 
@@ -29,7 +19,7 @@ LEAD_GAP = 5
 CHEVRON = 12
 CHEVRON_GAP = 4
 MIN_TEXT = 24
-# Text advances are fractional: a box exactly as wide as the rounded advance would elide its own text.
+# Text advances are fractional: a box as wide as the rounded advance elides its own text.
 TEXT_SLACK = 2
 SEND_SIZE = 28
 SEND_ICON = 16
@@ -40,7 +30,6 @@ MODE_SCALE = 12.5 / 13
 MODEL_SCALE = 12 / 13
 MODEL_MAX_WIDTH = 160
 ROW_MARGINS = (6, 4, 6, 6)
-# The kinds of place the + menu asks the map for; the map picker the plugin wires in knows the same two.
 POINT = "point"
 AREA = "area"
 ADD_CONTEXT = tr("Add context")
@@ -61,8 +50,6 @@ SKILL_KEY = "/"
 
 
 class MenuButton(PaintedButton):
-    """A flat button that opens a menu: a leading glyph, its text elided, a chevron after it."""
-
     def __init__(self, palette: Any, lead: str):
         super().__init__(palette)
         self._lead = (icons.drawn(lead, style.muted(palette), LEAD), icons.drawn(lead, style.text(palette), LEAD))
@@ -109,8 +96,6 @@ class MenuButton(PaintedButton):
 
 
 class SendButton(PaintedButton):
-    """The round send button: accent with an arrow, dimmed with nothing to send; a stop square while busy."""
-
     def __init__(self, palette: Any):
         super().__init__(palette)
         self._arrow = icons.drawn("send", style.on_accent(palette), SEND_ICON)
@@ -155,8 +140,6 @@ class SendButton(PaintedButton):
 
 
 class ComposerControls(QWidget):
-    """The row at the bottom of the box: +, the mode, then the model, the context ring and send."""
-
     data_requested = pyqtSignal()
     picture_requested = pyqtSignal()
     layer_requested = pyqtSignal()
@@ -193,9 +176,7 @@ class ComposerControls(QWidget):
         self.set_model("")
 
     def _build_model(self, palette: Any) -> controls.ElidedLabel:
-        """The model's name: said, not offered — no hover, no chevron, nothing to click."""
         self.model = controls.ElidedLabel()
-        # As wide as the name while there is room, up to a cap; a long name elides instead of crowding the row.
         self.model.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         self.model.setMaximumWidth(MODEL_MAX_WIDTH)
         mono = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
@@ -224,7 +205,7 @@ class ComposerControls(QWidget):
         menu.addAction(_glyph("point", palette), POINT_ITEM).triggered.connect(lambda: self.place_requested.emit(POINT))
         menu.addAction(_glyph("area", palette), AREA_ITEM).triggered.connect(lambda: self.place_requested.emit(AREA))
         menu.addSeparator()
-        # After a tab, QMenu writes the text right-aligned in its shortcut column; no shortcut is bound.
+        # After a tab, QMenu right-aligns the text in its shortcut column; no shortcut is bound.
         skill = menu.addAction(_glyph("knowledge", palette), f"{SKILL_ITEM}\t{SKILL_KEY}")
         skill.triggered.connect(self.skill_requested.emit)
         return menu
@@ -232,12 +213,10 @@ class ComposerControls(QWidget):
     def _open_menu(self) -> None:
         count = self._count_layers()
         self._layer_action.setText(f"{LAYER_ITEM}\t{count}" if count else LAYER_ITEM)
-        # The composer sits at the bottom of the dock: the menu opens upwards, above the button.
         above = self.attach.mapToGlobal(QPoint(0, 0))
         self.menu.popup(QPoint(above.x(), above.y() - self.menu.sizeHint().height() - controls.MENU_GAP))
 
     def _open_modes(self) -> None:
-        # Above the box the row sits in, left edges aligned; as wide as its text, never wider than the box.
         self.modes.open_above(self.parentWidget() or self, self._mode)
 
 

@@ -48,8 +48,6 @@ MODE_LAYER = "layer"
 
 
 class Composer(QWidget):
-    """The input box: context chips, the text, and the row of controls inside."""
-
     submitted = pyqtSignal(str)
     stopped = pyqtSignal()
     files_attached = pyqtSignal(list)
@@ -99,7 +97,6 @@ class Composer(QWidget):
         self._paint()
 
     def _build_chips(self, palette: Any) -> QWidget:
-        """The context above the text: the active layer and the pictures waiting to go."""
         self._chips = QWidget()
         row = QHBoxLayout(self._chips)
         row.setContentsMargins(*CHIPS_MARGINS)
@@ -110,7 +107,6 @@ class Composer(QWidget):
         self.attachments = AttachmentChips(palette)
         self.attachments.changed.connect(self._sync_chips)
         row.addWidget(self.attachments, 0, Qt.AlignmentFlag.AlignVCenter)
-        # While a place is picked on the map: what to do there, and how to give up.
         self.place_hint = controls.small("", palette)
         style.ink(self.place_hint, style.muted(palette))
         self.place_hint.setVisible(False)
@@ -128,15 +124,13 @@ class Composer(QWidget):
         self._edit.setPlaceholderText(PLACEHOLDER)
         self._edit.setAccessibleName(tr("Request"))
         self._edit.setFrameShape(QFrame.Shape.NoFrame)
-        # The typed text's colour in the editor's own sheet: a QGIS UI theme's rule for editors outranks a palette.
+        # In the editor's own sheet: a QGIS UI theme's rule for editors outranks a palette.
         ink = style.css_color(style.text(self.palette()))
         self._edit.setStyleSheet(f"QPlainTextEdit {{ border: none; background: transparent; color: {ink}; }}")
-        # The style sheet froze the palette it was polished with — possibly QGIS's, not the panel
-        # theme's — so the text and the placeholder get their ink explicitly.
+        # The sheet froze the palette it was polished with, maybe QGIS's: the inks are set explicitly.
         style.field_inks(self._edit, self.palette())
         self._edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self._edit.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        # The few spare pixels that keep the scroll bar away go half above, half below the text.
         self._edit.pad_vertically(HEIGHT_SLACK)
         self._edit.document().documentLayout().documentSizeChanged.connect(self._grow)
         self._highlighter = PromptHighlighter(self._edit.document(), self.palette())
@@ -155,7 +149,6 @@ class Composer(QWidget):
         return self._edit
 
     def _paint(self) -> None:
-        """Frame, hint and button follow one state: offline, busy, typing or idle."""
         palette = self.palette()
         focused = self._focused and self._configured
         border = style.faint(palette) if focused else style.border_strong(palette)
@@ -170,7 +163,6 @@ class Composer(QWidget):
         self._paint_send(has_text)
 
     def _paint_send(self, has_text: bool) -> None:
-        """Dimmed with nothing to send, bright once there is; a stop square while the agent works."""
         self._send.setEnabled(self._busy or has_text)
         self._send.set_busy(self._busy)
 
@@ -192,12 +184,10 @@ class Composer(QWidget):
         self.place_requested.emit(kind)
 
     def end_place(self) -> None:
-        """The pick is over, done or given up: the hint goes."""
         self.place_hint.setVisible(False)
         self._sync_chips()
 
     def insert_place(self, text: str) -> None:
-        """Put a place picked on the map at the cursor, as words of the request."""
         before = self._before_cursor()
         lead = "" if not before or before[-1].isspace() else " "
         self._edit.textCursor().insertText(f"{lead}{text} ")
@@ -211,7 +201,6 @@ class Composer(QWidget):
 
     def set_skill_source(self, provider: Callable[[], list[tuple[str, str, str]]]) -> None:
         def described() -> list[tuple[str, str, str]]:
-            # The person's own-language line, not the English one the model chooses by.
             return [(name, summary(name, description), origin) for name, description, origin in provider()]
 
         self._skills = described
@@ -242,7 +231,7 @@ class Composer(QWidget):
         self._hide_popup()
 
     def _before_cursor(self) -> str:
-        """The request up to the cursor; the cursor counts Qt positions, so the text is never sliced by it."""
+        # The cursor counts Qt positions: the Python text is never sliced by it.
         return text_before(self._edit.toPlainText(), self._edit.textCursor().position())
 
     def _open_popup(self, mode: str, query: str, items: list[tuple[str, str, str]], prefix: str) -> None:
@@ -273,24 +262,19 @@ class Composer(QWidget):
             self._insert_skill(name)
 
     def _insert_skill(self, name: str) -> None:
-        """Put `/name ` first: a typed /query gives way, any other text stays after the skill."""
         rest = self._edit.toPlainText().strip()
         if rest.startswith(SLASH):
-            # Only the /query itself: the words after it are the request.
             rest = (rest.split(maxsplit=1) + [""])[1]
         self._edit.setPlainText(f"{SLASH}{name} {rest}".rstrip() + " ")
         self._edit.moveCursor(QTextCursor.MoveOperation.End)
         self._hide_popup()
 
     def _start_mention(self) -> None:
-        """Layer… in the + menu: an @ at the cursor opens the layer list as if typed."""
         before = self._before_cursor()
         self._edit.textCursor().insertText(MENTION if not before or before[-1].isspace() else f" {MENTION}")
         self._edit.setFocus()
 
     def _start_skill(self) -> None:
-        """Skill… in the + menu: an empty box gets the / that opens the list; text already typed stays,
-        and the list opens over it so the chosen skill goes first."""
         if not self._edit.toPlainText().strip():
             self._edit.setPlainText(SLASH)
             self._edit.moveCursor(QTextCursor.MoveOperation.End)
@@ -299,7 +283,6 @@ class Composer(QWidget):
         self._edit.setFocus()
 
     def _insert_layer(self, name: str) -> None:
-        """The typed mention, from its @ to the cursor, gives way to the chosen layer's; the rest stays."""
         cursor = self._edit.textCursor()
         end = cursor.position()
         cursor.setPosition(self._mention_start)
@@ -321,7 +304,6 @@ class Composer(QWidget):
         self._on_submit()
 
     def _grow(self, *_args: Any) -> None:
-        """Fit the editor to its wrapped lines, MIN_LINES at least and MAX_LINES at most."""
         try:
             wanted = max(1, int(round(float(self._edit.document().size().height()))))
             margin = 2 * float(self._edit.document().documentMargin()) + 2 * float(self._edit.frameWidth())
@@ -330,7 +312,6 @@ class Composer(QWidget):
             return
         lines = min(MAX_LINES, max(MIN_LINES, wanted))
         self._edit.setFixedHeight(int(lines * line + margin + HEIGHT_SLACK))
-        # A scroll bar only once the text outgrows the cap; below it the box simply grows.
         policy = Qt.ScrollBarPolicy.ScrollBarAsNeeded if wanted > MAX_LINES else Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         self._edit.setVerticalScrollBarPolicy(policy)
 
@@ -353,7 +334,6 @@ class Composer(QWidget):
         self._edit.setFocus()
 
     def put(self, text: str) -> None:
-        """Replace the draft with a request picked elsewhere, ready to edit or send."""
         self._edit.setPlainText(text)
         self._edit.moveCursor(QTextCursor.MoveOperation.End)
         self._edit.setFocus()
@@ -376,7 +356,6 @@ class Composer(QWidget):
         self.layer_chip.set_layer(name, detail)
 
     def context_mention(self) -> str:
-        """The @mention of the layer the chip carries into a new request; empty without one."""
         name = self.layer_chip.active_name
         return mention_text(name) if name else ""
 
@@ -385,7 +364,6 @@ class Composer(QWidget):
         return self.toolbar._mode
 
     def set_mode(self, mode: str) -> None:
-        """Show the stored mode without reporting it back as a change."""
         self.toolbar.set_mode(mode)
 
     def _on_mode(self, mode: str) -> None:
@@ -405,7 +383,6 @@ class Composer(QWidget):
         return self.attachments.take()
 
     def mention_layers(self, names: list[str]) -> None:
-        """Put @mentions of freshly added layers at the cursor, so the request names them."""
         before = self._before_cursor()
         lead = "" if not before or before[-1].isspace() else " "
         self._edit.textCursor().insertText(lead + " ".join(mention_text(name) for name in names) + " ")

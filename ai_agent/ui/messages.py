@@ -9,7 +9,6 @@ from ai_agent.ui import icons, style
 USER_MAX_WIDTH_RATIO = 0.86
 BUBBLE_PADDING = 8
 BUBBLE_SIDE_PADDING = 12
-# The bubble's corner nearest the composer is tighter: it points back at where the message came from.
 BUBBLE_TAIL_RADIUS = 3
 BROWSER_EXTRA_HEIGHT = 6
 WRAP_SLACK = 10
@@ -22,8 +21,6 @@ REWIND = tr("Rewind to before this message")
 
 
 class UserMessage(QWidget):
-    """The user's bubble; with a place in the conversation it offers a rewind button on hover."""
-
     rewind_requested = pyqtSignal(int)
 
     def __init__(self, text: str):
@@ -140,11 +137,6 @@ class AssistantMessage(QWidget):
 
 
 class SystemMessage(QWidget):
-    """The plugin's own note: smaller text in the reply's column, with no frame and no rule beside it.
-
-    An error wears the danger colour so it is not read past as a remark.
-    """
-
     def __init__(self, text: str, *, error: bool = False):
         super().__init__()
         palette = self.palette()
@@ -189,7 +181,6 @@ def _rewind_button(palette: Any) -> QToolButton:
     else:
         button.setIcon(icon)
         button.setIconSize(QSize(REWIND_ICON, REWIND_ICON))
-    # Hidden until hover, but its room is kept so the bubble does not jump sideways.
     policy = button.sizePolicy()
     policy.setRetainSizeWhenHidden(True)
     button.setSizePolicy(policy)

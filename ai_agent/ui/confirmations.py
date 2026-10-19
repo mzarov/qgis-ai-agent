@@ -1,5 +1,3 @@
-"""The modal questions the agent asks before it shares data or runs something it cannot undo."""
-
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QFontDatabase
 from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QLabel, QMessageBox, QPlainTextEdit, QVBoxLayout, QWidget
@@ -28,7 +26,6 @@ def confirm_destructive(parent: QWidget, lines: list[str], details: str = "") ->
 
 
 def choose_rewind(parent: QWidget, project_available: bool) -> str | None:
-    """What to rewind: both, the conversation only, the project only; None when cancelled."""
     box = QMessageBox(parent)
     box.setIcon(QMessageBox.Icon.Question)
     box.setWindowTitle(tr("Rewind to before this message?"))

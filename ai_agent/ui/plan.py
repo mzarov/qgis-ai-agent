@@ -29,7 +29,6 @@ STATUS_PADDING = (12, 8, 12, 8)
 NUMBER_WIDTH = 18
 MARK_SIZE = 12
 CANCELLED_OPACITY = 0.55
-# A plan line may end in what Undo cannot take back ("· writes outside the project…"); it becomes the sub-line.
 SUB_SEPARATOR = " · "
 PENDING_MARK = "◆"
 APPLIED_MARK = "✓"
@@ -50,7 +49,6 @@ APPLIED_AT = tr("Applied at {0}")
 UNDONE_AT = tr("Undone at {0}")
 NOTHING_CHANGED = tr("Nothing changed")
 UNDO = tr("Undo")
-# A number and a sign, the same in every language.
 PERCENT = "{0} %"
 RESTORE = tr("Restore plan")
 LAYER = tr("layer “{0}”")
@@ -59,7 +57,6 @@ FAILED_TITLE = tr("Applied with errors")
 CANCELLED_TITLE = tr("Plan cancelled")
 UNDONE_TITLE = tr("Undone")
 TIME_FORMAT = "HH:mm"
-# A plan step's mark while the plan applies, by the state the orchestrator reports.
 STEP_MARKS = {
     STEP_RUNNING: (RUNNING_MARK, style.muted),
     STEP_DONE: (APPLIED_MARK, style.success),
@@ -69,19 +66,11 @@ STEP_MARKS = {
 
 
 def split_line(line: str) -> tuple[str, str]:
-    """A plan line as its step and the kind of change it is, the sub-line under it."""
     step, separator, kind = str(line).rpartition(SUB_SEPARATOR)
     return (step, kind) if separator else (str(line), "")
 
 
 class PlanCard(controls.RoundedFrame):
-    """The plan: a header with its count, the numbered steps, then Apply and Cancel; after it, Undo.
-
-    The only card in the feed besides a question, because only they ask for an action.
-    While the plan applies each step marks its progress; afterwards the footer says when
-    it was applied and offers to undo it from the snapshot the apply took.
-    """
-
     confirmed = pyqtSignal()
     cancelled = pyqtSignal()
     undo_requested = pyqtSignal()
@@ -107,7 +96,6 @@ class PlanCard(controls.RoundedFrame):
         column.addWidget(self._status)
         self._status.setVisible(False)
         if applies_itself:
-            # Auto mode: nothing to press, the card only reports what is being applied.
             self._buttons.setVisible(False)
             self._footer_line.setVisible(False)
             self._heading.setText(tr_n("Applying by itself · %n change(s)", self._count))
@@ -128,7 +116,6 @@ class PlanCard(controls.RoundedFrame):
         style.ink(self._heading, style.text(palette))
         row.addWidget(self._heading, 0 if layer else 1)
         if layer:
-            # The layer the steps work on, on the right; it gives way first when the panel is narrow.
             self.layer = controls.ElidedLabel(LAYER.format(layer))
             self.layer.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             style.scale_font(self.layer, LAYER_SCALE)
@@ -199,9 +186,8 @@ class PlanCard(controls.RoundedFrame):
         return holder
 
     def mark_step(self, index: int, state: str, note: str = "") -> None:
-        """One step's progress while the plan applies: running, done, failed with the reason, or skipped."""
         if state == STEP_RUNNING and not self._buttons.isHidden():
-            # Applying has begun, and the window stays live while a step works: nothing left to press here.
+            # The window stays live while a step works: nothing is left to press here.
             self._buttons.setVisible(False)
             self._footer_line.setVisible(False)
             self._heading.setText(tr_n("Applying · %n change(s)", self._count))
@@ -213,7 +199,6 @@ class PlanCard(controls.RoundedFrame):
             self._steps[index].set_progress(percent, done)
 
     def mark_applied(self, undoable: bool = False, at: str = "") -> None:
-        """Applied; `at` is a saved card's time, a live one takes the clock's."""
         self._settle(APPLIED_MARK, tr_n("Applied · %n change(s)", self._count), style.success(self._palette))
         self._show_status(APPLIED_AT.format(at or _now()), undoable)
 
@@ -222,7 +207,6 @@ class PlanCard(controls.RoundedFrame):
         self._show_status(APPLIED_AT.format(at or _now()), undoable)
 
     def mark_cancelled(self, restorable: bool = False) -> None:
-        """Cancelled; `restorable` offers the plan back until the orchestrator says it is gone."""
         self._settle(CANCELLED_MARK, CANCELLED_TITLE, style.muted(self._palette))
         effect = QGraphicsOpacityEffect(self._list)
         effect.setOpacity(CANCELLED_OPACITY)
@@ -234,7 +218,6 @@ class PlanCard(controls.RoundedFrame):
         self._restore.setVisible(False)
 
     def restore(self) -> None:
-        """Back to the plan waiting for Apply, as it was before Cancel."""
         self._paint_mark(PENDING_MARK, style.accent(self._palette))
         self._heading.setText(tr_n("Plan · %n change(s)", self._count))
         self._list.setGraphicsEffect(None)
@@ -264,9 +247,6 @@ class PlanCard(controls.RoundedFrame):
 
 
 class PlanStep(QWidget):
-    """A numbered step and, under it, the kind of change; while applying a mark at the end and, if it
-    failed, the reason under it."""
-
     def __init__(self, index: int, step: str, palette: Any):
         super().__init__()
         self._palette = palette
@@ -282,8 +262,7 @@ class PlanStep(QWidget):
         self.label = QLabel(text)
         self.label.setTextFormat(Qt.TextFormat.PlainText)
         self.label.setWordWrap(True)
-        # Explicit ink: a style sheet freezes the palette it was polished with, and that can be the
-        # QGIS palette rather than the panel's when the panel theme differs from QGIS.
+        # Explicit ink: a style sheet freezes the palette it was polished with, maybe QGIS's.
         self.label.setStyleSheet(f"border: none; color: {style.css_color(style.text(palette))};")
         grid.addWidget(self.label, 0, 1)
         self.mark = QLabel()
@@ -300,15 +279,12 @@ class PlanStep(QWidget):
         self.reason.setStyleSheet(f"color: {style.css_color(style.danger(palette))}; border: none;")
         self.reason.setVisible(False)
         grid.addWidget(self.reason, 2, 1)
-        # A long step's progress, under its words: the bar and, in the mark's place, the percent.
         self.bar = controls.ThinBar(palette)
         grid.addWidget(self.bar, 3, 1, 1, 2)
         self.bar.setVisible(False)
         grid.setColumnStretch(1, 1)
 
     def set_progress(self, percent: float, done: int = 0) -> None:
-        """A step working in the background: its percent and bar, or, while the whole is unknown, a running
-        bar and the bytes so far."""
         self.bar.setVisible(True)
         if percent >= 0:
             self.bar.set_fraction(percent / 100)
@@ -330,8 +306,6 @@ class PlanStep(QWidget):
 
 
 class OfferRow(ChoiceRow):
-    """A choice under a plan: lit under the pointer, like a row of the mode menu."""
-
     def enterEvent(self, event: Any) -> None:
         self.set_highlighted(True)
         super().enterEvent(event)
@@ -342,12 +316,6 @@ class OfferRow(ChoiceRow):
 
 
 class PlanOffer(controls.RoundedFrame):
-    """Under an answer written in plan mode, as in Claude Code: run the plan by itself or with Apply.
-
-    A hairline card with two numbered choices; to change the plan the user just replies.
-    Rows wrap and shrink with the dock, so a narrow panel never scrolls sideways.
-    """
-
     run_requested = pyqtSignal(str)
 
     def __init__(self, palette):
@@ -367,7 +335,6 @@ class PlanOffer(controls.RoundedFrame):
             (Choice(WORK_MODE_AUTO, RUN_AUTO, RUN_AUTO_NOTE), Choice(WORK_MODE_ASK, RUN_ASKING, RUN_ASKING_NOTE)), 1
         ):
             row = OfferRow(choice, number, palette, wrap=True)
-            # No number keys in the feed, so no numbers: they would promise a shortcut that is not there.
             row.number.setVisible(False)
             row.clicked.connect(self._run)
             column.addWidget(row)

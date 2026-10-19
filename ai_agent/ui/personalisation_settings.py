@@ -1,10 +1,3 @@
-"""The Personalisation page: who the user is, standing instructions, how they work and want answers, memory.
-
-Everything here is stored on Save. The profile goes into the cached part of the
-system prompt (`core/agent/profile_prompt.py`), so it costs nothing per turn;
-the switches also steer the feed and the tools that move the map.
-"""
-
 from typing import Any
 
 from qgis.PyQt.QtCore import QObject, Qt, pyqtSignal
@@ -84,7 +77,6 @@ CHOICE_TITLES = {
     "when_needed": tr("When needed"),
     "often": tr("Often"),
 }
-# Languages under their names in the interface language, as system settings list them.
 LANGUAGE_TITLES = {
     "en": tr("English"),
     "ru": tr("Russian"),
@@ -204,7 +196,6 @@ class PersonalisationSettings(QObject):
         )
 
     def save(self) -> None:
-        """Store the page; ValueError when the notes could not be written, and then nothing was stored."""
         save_user_notes(self.memory.notes)
         personal.save(self.profile())
         set_custom_instructions(self.text())

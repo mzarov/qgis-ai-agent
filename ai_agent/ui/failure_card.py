@@ -1,12 +1,3 @@
-"""A failed run in the feed: what happened in a few words, one sentence on what to do, Retry and Connection.
-
-The model's request failing is not a remark in the margin but the end of the
-turn, so it is a card like the plan's: an icon on a soft danger tile naming the
-kind of failure (no connection, a refused key, a busy model…), the title, the
-sentence, the server's own words in one quiet monospace line, and the buttons.
-The first button shown is the outlined one; the second is a link.
-"""
-
 from typing import Any
 
 from qgis.PyQt.QtCore import Qt, pyqtSignal
@@ -26,7 +17,6 @@ BUTTON_HEIGHT = 26
 TECHNICAL_SCALE = 11 / 13
 RETRY = tr("Retry")
 CONNECTION_PAGE = tr("Connection")
-# The glyph by the kind of failure; any other kind wears the plain alert.
 GLYPHS = {
     CONNECTION: "unplugged",
     SETUP: "connection",
@@ -72,7 +62,6 @@ class FailureCard(controls.RoundedFrame):
         self.detail = controls.small(detail, palette)
         style.ink(self.detail, style.muted(palette))
         column.addWidget(self.detail)
-        # What the server itself said, for whoever asks for help with it; the whole of it on hover.
         self.technical = controls.ElidedLabel(" ".join(message.split()))
         self.technical.setToolTip(message)
         mono = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
@@ -105,17 +94,14 @@ class FailureCard(controls.RoundedFrame):
         return f"{self.title.text()} {self.detail.text()}"
 
     def offer_retry(self) -> None:
-        """The settings changed since: the same request may go through now."""
         self._show_retry(True)
 
     def retire(self) -> None:
-        """The request moved on — replaced by a new one: Retry would send something stale."""
         self._show_retry(False)
 
     def _show_retry(self, shown: bool) -> None:
         self.retry.setVisible(shown)
         self._actions.setVisible(shown or not self.settings.isHidden())
-        # The first action is the outlined button, a second one a link beside it.
         self.retry.setStyleSheet(_plain_button(self._palette))
         self.settings.setStyleSheet(_link_button(self._palette) if shown else _plain_button(self._palette))
 

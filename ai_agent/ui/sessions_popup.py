@@ -1,13 +1,3 @@
-"""The history menu under the conversation's title: a new conversation, then the past ones by day.
-
-"New conversation" with its shortcut comes first, then the project's
-conversations grouped Today, Yesterday and Earlier, newest first, each with its
-time or date on the right; the open one is lit. Hovering a row swaps the time
-for a pencil (rename in place: Enter keeps, Esc drops) and a bin (delete, after
-the dock confirms, because deleting is for good). Rows paint their hover, so
-nothing restyles while a mouse event runs.
-"""
-
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
@@ -45,8 +35,6 @@ EARLIER = tr("Earlier")
 
 @dataclass(frozen=True)
 class Entry:
-    """One conversation as the menu lists it; `updated` is a Unix time."""
-
     identifier: str
     title: str
     updated: float = 0.0
@@ -54,13 +42,11 @@ class Entry:
 
 
 def day_groups(entries: list[Entry], now: float) -> list[tuple[str, list[tuple[Entry, str]]]]:
-    """The entries by day, newest first, each with what its row shows on the right: a time or a date."""
     today = datetime.fromtimestamp(now).date()
     grouped: dict[str, list[tuple[Entry, str]]] = {}
     for entry in sorted(entries, key=lambda item: item.updated, reverse=True):
         moment = datetime.fromtimestamp(entry.updated)
         day = moment.date()
-        # A clock that ran ahead still counts as today.
         if day >= today:
             label, meta = TODAY, moment.strftime(TIME_FORMAT)
         elif day == today - timedelta(days=1):
@@ -72,7 +58,6 @@ def day_groups(entries: list[Entry], now: float) -> list[tuple[str, list[tuple[E
 
 
 def new_shortcut() -> str:
-    """The new-conversation shortcut as this platform writes it (⌘N on macOS)."""
     try:
         text = QKeySequence(QKeySequence.StandardKey.New).toString(QKeySequence.SequenceFormat.NativeText)
     except Exception:
@@ -124,7 +109,6 @@ class SessionRow(controls.RoundedFrame):
         self._paint(False)
 
     def _show_actions(self, shown: bool) -> None:
-        """The row under the pointer trades its time for the pencil and the bin."""
         self.rename_button.setVisible(shown and not self.editor.isVisible())
         self.delete_button.setVisible(shown)
         self.meta.setVisible(not shown)
@@ -179,8 +163,6 @@ class SessionRow(controls.RoundedFrame):
 
 
 class NewRow(controls.HoverFrame):
-    """The menu's first row: a plus, "New conversation", the shortcut."""
-
     def __init__(self, palette: Any):
         super().__init__(ROW_RADIUS, palette)
         self.setFixedHeight(ROW_HEIGHT)
@@ -198,8 +180,6 @@ class NewRow(controls.HoverFrame):
 
 
 class SessionsPopup(controls.RoundedFrame):
-    """The history under the toolbar's title; the dock confirms a deletion before it happens."""
-
     chosen = pyqtSignal(str)
     renamed = pyqtSignal(str, str)
     delete_requested = pyqtSignal(str, str)
@@ -222,14 +202,12 @@ class SessionsPopup(controls.RoundedFrame):
         self._area.setWidgetResizable(True)
         self._area.setFrameShape(QScrollArea.Shape.NoFrame)
         self._area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        # The list wears the popup's own surface: a default viewport is the window grey.
         style.fill(self._area.viewport(), style.surface(palette))
         column.addWidget(self._area)
         self.rows: list[SessionRow] = []
         self._current = ""
 
     def show_sessions(self, entries: list[Entry], anchor: QWidget, now: float) -> None:
-        """Fill the list and open it under `anchor`, left edges aligned."""
         holder = QWidget()
         style.fill(holder, style.surface(self._palette))
         rows = QVBoxLayout(holder)
@@ -270,7 +248,6 @@ class SessionsPopup(controls.RoundedFrame):
 
     def _choose(self, identifier: str) -> None:
         self.hide()
-        # The open conversation is already on screen: replaying it would only blink.
         if identifier != self._current:
             self.chosen.emit(identifier)
 
