@@ -3,9 +3,9 @@ from typing import Any
 
 from qgis.core import Qgis, QgsMessageLog
 
-from ai_agent.core.agent.transcript import ToolResult
+from ai_agent.core.agent.transcript import QUEUED_STATUS, ToolResult
 from ai_agent.core.llm.turns import ToolCall
-from ai_agent.qgis_tools.base import RESULT_IMAGE_KEY, RESULT_VISUAL_KEY
+from ai_agent.qgis_tools.base import RESULT_IMAGE_KEY, RESULT_VISUAL_KEY, BaseTool
 from ai_agent.qgis_tools.registry import execute_tool, get_tool_by_name, start_tool
 
 LOG_TAG = "AI Agent"
@@ -48,7 +48,7 @@ class ToolExecutor:
         work.start()
         return work
 
-    def _failed(self, call: ToolCall, tool: Any, err: BaseException) -> ToolResult:
+    def _failed(self, call: ToolCall, tool: BaseTool, err: BaseException) -> ToolResult:
         QgsMessageLog.logMessage(
             f"Tool {call.name} [{call.id}] failed ({type(err).__name__}).",
             LOG_TAG,
@@ -56,7 +56,7 @@ class ToolExecutor:
         )
         return ToolResult.failure(call, str(err), tool.egress)
 
-    def _finished(self, call: ToolCall, tool: Any, payload: Any) -> ToolResult:
+    def _finished(self, call: ToolCall, tool: BaseTool, payload: object) -> ToolResult:
         prepared = self._as_dict(payload)
         image = str(prepared.pop(RESULT_IMAGE_KEY, "") or "")
         visual = prepared.pop(RESULT_VISUAL_KEY, None)
@@ -75,11 +75,11 @@ class ToolExecutor:
         return ToolResult(
             call=call,
             ok=True,
-            payload={"status": "queued", "note": QUEUED_NOTE},
+            payload={"status": QUEUED_STATUS, "note": QUEUED_NOTE},
         )
 
     @staticmethod
-    def _as_dict(payload: Any) -> dict[str, Any]:
+    def _as_dict(payload: object) -> dict[str, Any]:
         return dict(payload) if isinstance(payload, dict) else {"result": payload}
 
 

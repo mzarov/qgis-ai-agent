@@ -1,9 +1,10 @@
 import time
-from typing import Any
+from collections.abc import Sequence
 
 from qgis.core import Qgis, QgsMessageLog
 
 from ai_agent.core.agent.journal import record_run
+from ai_agent.core.agent.transcript import TranscriptEntry
 from ai_agent.core.settings import get_write_run_journal
 
 LOG_TAG = "AI Agent"
@@ -36,7 +37,7 @@ class RunJournal:
         self.requests.append((max(0, prompt_tokens), max(0, completion_tokens), max(0.0, seconds)))
         self._asked = 0.0
 
-    def write(self, entries: list[dict[str, Any]], outcome: str) -> str:
+    def write(self, entries: Sequence[TranscriptEntry], outcome: str) -> str:
         if not self.applied or self.saved or not get_write_run_journal():
             return ""
         try:

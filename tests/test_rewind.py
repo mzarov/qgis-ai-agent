@@ -1,8 +1,12 @@
 import shutil
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest import mock
 
+from ai_agent.core.agent import loop as loop_module
+from ai_agent.core.agent.notices import APPLY_DECLINED_MESSAGE
+from ai_agent.core.llm.turns import ToolCall
 from ai_agent.core.orchestrator import rewind
 from ai_agent.core.orchestrator.notices import REWIND_BOTH, REWIND_CONVERSATION, REWIND_PROJECT
 from ai_agent.core.orchestrator.orchestrator import CoreOrchestrator
@@ -140,6 +144,26 @@ class RewindTest(unittest.TestCase):
         orchestrator.on_rewind(dock.marks[early])
         self.assertEqual((self.restored, dock.restored), ([f"s{late}", f"s{early}"], f"request {early}"))
         self.assertEqual(conversation.messages[-1]["content"], f"done: request {early - 1}")
+
+    def test_a_request_sent_over_a_staged_plan_rewinds_to_itself(self):
+        dock = RewindDock(REWIND_CONVERSATION)
+        orchestrator = CoreOrchestrator(Iface(), dock)
+        orchestrator.conversation = ConversationState(store=SessionStore(self.root))
+        orchestrator._confirm_first_send = lambda *endpoint: True
+        agent = orchestrator.agent
+        agent._turn.start = lambda *args: None
+        request = SimpleNamespace(messages=[], tool_schemas=[], overrides={}, protocol="native")
+        with mock.patch.object(loop_module, "build_step_request", return_value=request):
+            orchestrator.on_prompt("first")
+            agent._batch.restore([ToolCall(id="w", name="set_opacity", arguments={"opacity": 0.5})])
+            agent._staged = True
+            orchestrator.on_prompt("second")
+        conversation = orchestrator.conversation
+        self.assertEqual([m["role"] for m in conversation.messages], ["user", "assistant", "user"])
+        self.assertEqual(conversation.message_at(dock.marks[-1])["content"], "second")
+        orchestrator.on_rewind(dock.marks[-1])
+        self.assertEqual(dock.restored, "second")
+        self.assertEqual([m["content"] for m in conversation.messages][-1], APPLY_DECLINED_MESSAGE)
 
     def test_nothing_rewinds_while_a_run_is_going(self):
         orchestrator, dock = self.orchestrator(REWIND_BOTH)

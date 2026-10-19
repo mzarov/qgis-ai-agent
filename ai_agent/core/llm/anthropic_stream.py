@@ -133,9 +133,9 @@ class AnthropicExchange:
         timeout: int,
         url: str,
         overrides: dict[str, Any],
-        on_chunk: Any,
-        on_thinking: Any,
-    ):
+        on_chunk: Callable[[str], None] | None,
+        on_thinking: Callable[[str], None] | None,
+    ) -> None:
         self._endpoint = endpoint
         self._headers = headers
         self._timeout = timeout

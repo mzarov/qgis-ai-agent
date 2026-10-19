@@ -1,8 +1,10 @@
 import os
+from collections.abc import Sequence
 from typing import Any
 
 from qgis.core import QgsProject, QgsRasterLayer, QgsVectorLayer
 
+from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.core.llm.client import is_local
 from ai_agent.core.orchestrator.planning import LAYER_ARGUMENT
 from ai_agent.core.settings import get_api_key, get_api_url
@@ -19,7 +21,7 @@ def compact_number(value: int) -> str:
     return f"{value / 1000:.1f}k"
 
 
-def where_to_look(results: list) -> str:
+def where_to_look(results: Sequence[ToolResult]) -> str:
     names = [result.payload.get("result_layer_name") for result in results if result.payload.get("result_layer_name")]
     if names:
         return " " + tr("New layers: {0}.").format(", ".join(f"«{name}»" for name in names))
@@ -28,7 +30,7 @@ def where_to_look(results: list) -> str:
     return ""
 
 
-def applied_summary(results: list) -> str:
+def applied_summary(results: Sequence[ToolResult]) -> str:
     done = [result for result in results if result.ok]
     if not done:
         return ""
@@ -47,13 +49,13 @@ def applied_summary(results: list) -> str:
     return tr_n("%n change(s) applied", len(done))
 
 
-def _layer_of(result: Any) -> str:
+def _layer_of(result: ToolResult) -> str:
     arguments = with_layer_names(getattr(result.call, "arguments", None) or {})
     name = arguments.get(LAYER_ARGUMENT) if isinstance(arguments, dict) else None
     return name.strip() if isinstance(name, str) else ""
 
 
-def interrupted_outcome(results: list) -> str:
+def interrupted_outcome(results: Sequence[ToolResult]) -> str:
     successful = [result for result in results if result.ok]
     if not successful:
         return ""

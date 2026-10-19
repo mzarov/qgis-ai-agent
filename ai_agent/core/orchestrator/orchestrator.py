@@ -10,7 +10,7 @@ from ai_agent.core.llm.retry import RetryNotice
 from ai_agent.core.local_skills import register_local_skills
 from ai_agent.core.orchestrator import attaching
 from ai_agent.core.orchestrator.compacting import SessionCompaction
-from ai_agent.core.orchestrator.contracts import DockWidgetContract
+from ai_agent.core.orchestrator.contracts import DockWidgetContract, RetryArgs
 from ai_agent.core.orchestrator.naming import SessionNaming
 from ai_agent.core.orchestrator.notices import (
     DATA_SHARING_DECLINED,
@@ -55,7 +55,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self._plan_keys: dict[int, str] = {}
         self._plan_marks: list[list[str]] = []
         self._restorable_plan_id: int | None = None
-        self._retry_args: tuple[Any, ...] | None = None
+        self._retry_args: RetryArgs | None = None
         self._done_summary = ""
         self._snapshot_before_apply = ""
         self._invalidated_scope: tuple[str, str] | None = None
@@ -184,9 +184,11 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
     ) -> None:
         self.dock_widget.begin_work()
         self.usage.note("runs")
-        self._show_user_message(shown)
+        entry = self._show_user_bubble(shown)
         self._forget_restore()
         self._drop_pending_plan()
+        # Dropping a staged plan ends its run with an answer, saved before this request: the place follows it.
+        self.dock_widget.mark_rewind_point(entry, self.conversation.next_place)
         planning = get_planning()
 
         def begin() -> None:
@@ -288,10 +290,13 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.conversation.add("user", text)
 
     def _show_user_message(self, text: str) -> None:
+        entry = self._show_user_bubble(text)
+        self.dock_widget.mark_rewind_point(entry, self.conversation.next_place)
+
+    def _show_user_bubble(self, text: str) -> int:
         # The steps so far are written first: they come before the message, and so does its place.
         self.conversation.keep_trace()
-        entry = self.dock_widget.add_user_message(text)
-        self.dock_widget.mark_rewind_point(entry, self.conversation.next_place)
+        return self.dock_widget.add_user_message(text)
 
     def shutdown(self) -> None:
         self.conversation.save()
@@ -299,7 +304,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.compaction.stop()
         self.naming.stop()
 
-    def _push_message(self, text: str, level) -> None:
+    def _push_message(self, text: str, level: Any) -> None:
         self.iface.messageBar().pushMessage("AI Agent", text, level=level, duration=MESSAGE_DURATION_SEC)
 
 

@@ -90,6 +90,16 @@ class DisplayEntriesTest(unittest.TestCase):
         self.assertTrue(self.state.replayable()[-1]["chosen"])
         self.assertEqual(self.state.window()[-1], {"role": "user", "content": "pop2020"})
 
+    def test_a_picked_answer_is_still_picked_in_a_reopened_conversation(self):
+        self.state.add("user", "Which field?")
+        self.state.add("user", "pop2020", chosen=True)
+        reopened = ConversationState(store=SessionStore(self.root))
+        self.assertTrue(reopened.restore(self.state.session_identifier))
+        shown = reopened.replayable()
+        self.assertTrue(shown[-1].get("chosen"))
+        self.assertNotIn("chosen", shown[-2])
+        self.assertEqual(reopened.window()[-1], {"role": "user", "content": "pop2020"})
+
     def test_switching_conversations_keeps_the_trace_with_the_old_one_and_deleting_drops_it(self):
         self.state.add("user", "first")
         self.state.trace.done("Using inspect")

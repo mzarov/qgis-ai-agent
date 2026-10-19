@@ -52,14 +52,14 @@ class ChunkGuard:
         return counted
 
 
-def with_retries(
-    attempt: Callable[[], Any],
+def with_retries[T](
+    attempt: Callable[[], T],
     feedback: Any = None,
     delivered: Callable[[], int] = lambda: 0,
     sleep: Callable[[float], None] | None = None,
     clock: Callable[[], float] | None = None,
     on_retry: Callable[[RetryNotice], None] | None = None,
-) -> Any:
+) -> T:
     # Runs on the request's own thread: on_retry must only hand the notice on, e.g. emit a signal.
     pause = sleep or SLEEP
     now = clock or CLOCK

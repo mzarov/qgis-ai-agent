@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -5,6 +6,7 @@ from qgis.core import Qgis, QgsMessageLog
 
 from ai_agent.core.agent.prompts import build_verification_prompt
 from ai_agent.core.agent.request import detect_images_unsupported
+from ai_agent.core.agent.transcript import ToolResult
 
 LOG_TAG = "AI Agent"
 MAX_VERIFICATION_ROUNDS = 3
@@ -18,7 +20,7 @@ class VerificationStart:
 
 
 def plan_verification(
-    results: list[Any],
+    results: Sequence[ToolResult],
     current_round: int,
     request: str,
     loaded_skills: list[str],
@@ -30,8 +32,8 @@ def plan_verification(
             f"Stopping after {MAX_VERIFICATION_ROUNDS} verification rounds.", LOG_TAG, Qgis.MessageLevel.Warning
         )
         return None
-    outcomes = [
-        {"tool": result.call.name, "ok": result.ok, "error": str(result.payload.get("error", ""))} for result in results
+    outcomes: list[dict[str, Any]] = [
+        {"tool": result.call.name, "ok": result.ok, "error": result.error} for result in results
     ]
     prompt = build_verification_prompt(outcomes, request, images=not detect_images_unsupported(overrides))
     return VerificationStart(prompt, next_round, list(loaded_skills))

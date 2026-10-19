@@ -252,6 +252,17 @@ class ConversationStateTest(unittest.TestCase):
         self.assertEqual(len(self.state.messages), 10, "the chat keeps every message")
         self.assertEqual(self.state.context_tokens, 1200)
 
+    def test_compaction_keeps_the_last_exchange_past_the_turns_display_entries(self):
+        self.state.add("user", "first")
+        self.state.trace.done("Using inspect")
+        self.state.add("assistant", "one")
+        self.state.add("user", "second")
+        self.state.trace.done("Using style")
+        self.state.add_plan(["Styling 'rivers' blue"])
+        self.state.add("assistant", "two")
+        self.state.compact("summary")
+        self.assertEqual([item["content"] for item in self.state.window()[2:]], ["second", "two"])
+
     def test_compaction_survives_a_restore(self):
         for index in range(6):
             self.state.add("user" if index % 2 == 0 else "assistant", f"сообщение {index}")

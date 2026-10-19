@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any
 from qgis.core import Qgis, QgsMessageLog, QgsProject
 from qgis.PyQt.QtWidgets import QApplication
 
-from ai_agent.core.agent.transcript import ToolResult
+from ai_agent.core.agent.transcript import SKIPPED_STATUS, ToolResult
 from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.common.layers import follow_batch_renames, layer_names_by_id, layer_pin_error
 from ai_agent.qgis_tools.common.project_identity import project_identity
@@ -14,7 +14,6 @@ if TYPE_CHECKING:
     from ai_agent.core.agent.batch import WriteBatch
 
 LOG_TAG = "AI Agent"
-SKIPPED_STATUS = "skipped"
 PROJECT_CHANGED_ERROR = (
     "The QGIS project changed while this plan was being applied. This step and every later step were stopped."
 )

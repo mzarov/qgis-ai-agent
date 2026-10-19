@@ -26,14 +26,14 @@ def _queued_connection() -> Any:
     return Qt.ConnectionType.QueuedConnection
 
 
-class _StreamCancellation(QObject):
+class _StreamCancellation(QObject):  # type: ignore[misc]
     def __init__(self, reply: Any, loop: QEventLoop):
         super().__init__()
         self.reply = reply
         self.loop = loop
         self.cancelled = False
 
-    @pyqtSlot()
+    @pyqtSlot()  # type: ignore[untyped-decorator]
     def cancel(self) -> None:
         if self.cancelled:
             return

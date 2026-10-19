@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from qgis.core import Qgis, QgsMessageLog
 
+from ai_agent.core.orchestrator.contracts import OrchestratorHost
 from ai_agent.core.orchestrator.notices import (
     LOG_TAG,
     REWIND_BOTH,
@@ -30,7 +31,7 @@ class Checkpoint:
     message: int
 
 
-class RewindMixin:
+class RewindMixin(OrchestratorHost):
     def _note_apply_start(self) -> None:
         self._snapshot_before_apply = last_snapshot()
 
@@ -132,7 +133,8 @@ class RewindMixin:
         return " ".join(notes)
 
     def _rewind_conversation(self, message: int) -> None:
-        text = str((self.conversation.message_at(message) or {}).get("content") or "")
+        target = self.conversation.message_at(message)
+        text = str(target.get("content") or "") if target is not None else ""
         self._drop_pending_plan()
         self.conversation.truncate(message)
         self._replay()

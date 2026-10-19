@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Any
 
 from ai_agent.core.llm import anthropic
@@ -20,7 +21,7 @@ from ai_agent.core.llm.refusals import (
     thinking_unsupported,
     tools_unsupported,
 )
-from ai_agent.core.llm.retry import ChunkGuard, with_retries
+from ai_agent.core.llm.retry import ChunkGuard, RetryNotice, with_retries
 from ai_agent.core.llm.stream import StreamedCompletion
 from ai_agent.core.llm.stream_runner import STREAM_EVENTS_KEY, post_stream
 from ai_agent.core.llm.turns import (
@@ -52,9 +53,9 @@ def call_model(
     tool_schemas: list[dict[str, Any]],
     overrides: dict[str, Any] | None = None,
     timeout: int = 120,
-    on_chunk: Any = None,
-    on_thinking: Any = None,
-    on_retry: Any = None,
+    on_chunk: Callable[[str], None] | None = None,
+    on_thinking: Callable[[str], None] | None = None,
+    on_retry: Callable[[RetryNotice], None] | None = None,
 ) -> ModelTurn:
     overrides = dict(overrides or {})
     url = resolve_endpoint(overrides.get("url_override"))
@@ -90,8 +91,8 @@ def _dispatch(
     overrides: dict[str, Any],
     timeout: int,
     url: str,
-    on_chunk: Any = None,
-    on_thinking: Any = None,
+    on_chunk: Callable[[str], None] | None = None,
+    on_thinking: Callable[[str], None] | None = None,
 ) -> ModelTurn:
     cache_url, cache_model, cache_dialect = _capability_scope(url, overrides)
     if cache_dialect == ANTHROPIC:
@@ -113,8 +114,8 @@ def _call_openai(
     overrides: dict[str, Any],
     timeout: int,
     url: str,
-    on_chunk: Any,
-    on_thinking: Any,
+    on_chunk: Callable[[str], None] | None,
+    on_thinking: Callable[[str], None] | None,
     reasoning: bool,
 ) -> ModelTurn:
     cache_url, cache_model, cache_dialect = _capability_scope(url, overrides)
@@ -161,8 +162,8 @@ def _call_anthropic(
     overrides: dict[str, Any],
     timeout: int,
     url: str,
-    on_chunk: Any = None,
-    on_thinking: Any = None,
+    on_chunk: Callable[[str], None] | None = None,
+    on_thinking: Callable[[str], None] | None = None,
 ) -> ModelTurn:
     cache_url, cache_model, cache_dialect = _capability_scope(url, overrides)
     endpoint, headers, model = build_request(
@@ -230,8 +231,8 @@ def _try_streaming(
     overrides: dict[str, Any],
     timeout: int,
     url: str,
-    on_chunk: Any,
-    on_thinking: Any = None,
+    on_chunk: Callable[[str], None] | None,
+    on_thinking: Callable[[str], None] | None = None,
     reasoning: bool = False,
 ) -> ModelTurn | None:
     cache_url, cache_model, cache_dialect = _capability_scope(url, overrides)

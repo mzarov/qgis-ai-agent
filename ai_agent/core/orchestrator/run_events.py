@@ -1,6 +1,9 @@
+from typing import Any
+
 from qgis.core import Qgis, QgsMessageLog
 
 from ai_agent.core.agent.run_failure import explain_run_failure
+from ai_agent.core.orchestrator.contracts import OrchestratorHost
 from ai_agent.core.orchestrator.notices import (
     APPLY_STOPPED,
     AWAITING_ANSWER,
@@ -22,7 +25,7 @@ KNOWLEDGE = "knowledge"
 RUN_FAILED_LOG = "The model request failed: {0}"
 
 
-class RunEventsMixin:
+class RunEventsMixin(OrchestratorHost):
     def on_aborted(self) -> None:
         applying = bool(getattr(self.agent, "is_applying", False))
         if self._active_tool_message_id is not None and not applying:
@@ -41,7 +44,7 @@ class RunEventsMixin:
         self.dock_widget.show_outcome(STATUS_HIDDEN)
         self.dock_widget.add_system_message(APPLY_STOPPED if applying else RUN_STOPPED)
 
-    def on_visual_ready(self, spec: dict) -> None:
+    def on_visual_ready(self, spec: dict[str, Any]) -> None:
         self.dock_widget.add_visual(spec)
         self.conversation.add_visual(spec)
 
@@ -60,24 +63,27 @@ class RunEventsMixin:
         self.dock_widget.add_system_message(AWAITING_ANSWER)
 
     def on_tool_started(self, summary: str) -> None:
-        if self._applying_plan():
+        plan = self._applying_plan()
+        if plan is not None:
             self._plan_step += 1
-            self.dock_widget.mark_plan_step(self._plan_message_id, self._plan_step, STEP_RUNNING)
+            self.dock_widget.mark_plan_step(plan, self._plan_step, STEP_RUNNING)
             return
         self._active_tool_message_id = self.dock_widget.add_tool_message(summary)
         self.conversation.trace.call(summary)
 
     def on_tool_progressed(self, percent: float, done: int = 0) -> None:
-        if self._applying_plan() and self._plan_step >= 0:
-            self.dock_widget.mark_plan_progress(self._plan_message_id, self._plan_step, percent, done)
+        plan = self._applying_plan()
+        if plan is not None and self._plan_step >= 0:
+            self.dock_widget.mark_plan_progress(plan, self._plan_step, percent, done)
 
     def on_tool_finished(self, tool_name: str, ok: bool, note: str = "") -> None:
         self.usage.note("tools", tool_name)
         if not ok:
             self.usage.note("tool_errors", tool_name)
-        if self._applying_plan() and self._plan_step >= 0:
+        plan = self._applying_plan()
+        if plan is not None and self._plan_step >= 0:
             state = STEP_DONE if ok else STEP_FAILED
-            self.dock_widget.mark_plan_step(self._plan_message_id, self._plan_step, state, note)
+            self.dock_widget.mark_plan_step(plan, self._plan_step, state, note)
         elif self._active_tool_message_id is not None:
             self.dock_widget.mark_tool_done(self._active_tool_message_id, ok, note)
             self._active_tool_message_id = None
@@ -85,8 +91,8 @@ class RunEventsMixin:
         if not ok:
             QgsMessageLog.logMessage(f"Tool {tool_name} failed.", LOG_TAG, Qgis.MessageLevel.Warning)
 
-    def _applying_plan(self) -> bool:
-        return self._plan_message_id is not None and bool(getattr(self.agent, "is_applying", False))
+    def _applying_plan(self) -> int | None:
+        return self._plan_message_id if bool(getattr(self.agent, "is_applying", False)) else None
 
     def on_tool_queued(self, _summary: str) -> None:
         QgsMessageLog.logMessage("A validated step was added to the plan.", LOG_TAG, Qgis.MessageLevel.Info)
@@ -96,7 +102,7 @@ class RunEventsMixin:
         self.dock_widget.add_rejected_message(rejected)
         self.conversation.trace.rejected(rejected)
 
-    def on_plan_changed(self, steps: list, done: int) -> None:
+    def on_plan_changed(self, steps: list[str], done: int) -> None:
         shown = " · ".join(f"✓ {step}" if index < done else step for index, step in enumerate(steps))
         self._instant_step(tr("Plan {0}/{1}: {2}").format(done, len(steps), shown))
 
