@@ -462,7 +462,11 @@ class ProjectIdentityTest(unittest.TestCase):
             self.assertEqual(project_identity(project), os.path.realpath(os.path.join(root, "map.qgz")))
 
     def test_a_database_project_without_its_storage_is_still_hashed_without_credentials(self):
-        for name in ("postgresql://alice:pw@db.example/projects?project=city", "postgresql://[::1/projects"):
+        names = (
+            "postgresql://alice:pw@db.example/projects?project=city",  # pragma: allowlist secret
+            "postgresql://[::1/projects",
+        )
+        for name in names:
             identity = project_identity(Project(name))
             self.assertTrue(identity.startswith(STORAGE_PREFIX), identity)
             self.assertNotIn("alice", identity)

@@ -221,7 +221,7 @@ class DescribeSourceTest(unittest.TestCase):
     def test_a_broken_filtered_half_transparent_layer_says_all_of_it(self):
         layer = SourceLayer(
             provider="postgres",
-            source="dbname='gis' password='S3cr3t' table=roads",
+            source="dbname='gis' password='S3cr3t' table=roads",  # pragma: allowlist secret
             valid=False,
             subset='"kind" = 1',
             selected=3,
