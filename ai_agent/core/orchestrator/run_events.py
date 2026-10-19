@@ -73,6 +73,8 @@ class RunEventsMixin:
 
     def on_tool_finished(self, tool_name: str, ok: bool, note: str = "") -> None:
         self.usage.note("tools", tool_name)
+        if not ok:
+            self.usage.note("tool_errors", tool_name)
         if self._applying_plan() and self._plan_step >= 0:
             state = STEP_DONE if ok else STEP_FAILED
             self.dock_widget.mark_plan_step(self._plan_message_id, self._plan_step, state, note)

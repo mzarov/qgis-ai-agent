@@ -937,6 +937,15 @@ class PlanProgressTest(unittest.TestCase):
         self.orchestrator.on_tool_started("Reading layer roads")
         self.assertEqual(self.dock.tool_rows, ["Reading layer roads"])
 
+    def test_a_failed_call_is_counted_as_a_call_and_as_an_error(self):
+        noted = []
+        self.orchestrator.usage = SimpleNamespace(note=lambda kind, name="": noted.append((kind, name)))
+        self.orchestrator.on_tool_finished("describe_layer", True, "")
+        self.orchestrator.on_tool_finished("download_osm", False, "The service did not answer in time.")
+        self.assertEqual(
+            noted, [("tools", "describe_layer"), ("tools", "download_osm"), ("tool_errors", "download_osm")]
+        )
+
 
 class FailureWordsTest(unittest.TestCase):
     def test_network_failures_read_as_plain_sentences(self):

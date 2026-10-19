@@ -11,12 +11,12 @@ from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 
 from ai_agent.core.about import plugin_version
 from ai_agent.core.llm.client import is_local
-from ai_agent.core.settings import get_api_url, get_dialect
+from ai_agent.core.settings import get_api_url, get_dialect, has_saved_model
 from ai_agent.i18n import locale_code
 
 COLLECTOR_URL = "https://ai-agent-usage.mzarov.workers.dev"
 PING_PATH = "/v1/ping"
-PAYLOAD_VERSION = 1
+PAYLOAD_VERSION = 2
 PREFIX = "ai_agent/usage"
 CONSENT_KEY = f"{PREFIX}/consent"
 INSTALL_KEY = f"{PREFIX}/install"
@@ -101,10 +101,12 @@ def payload(install: str, day: str, counts: dict[str, Any]) -> dict[str, Any]:
         "locale": re.sub(r"[^A-Za-z_-]", "", locale_code())[:16] or "en",
         "provider": "local" if url and is_local(url) else "remote",
         "dialect": dialect if dialect in DIALECTS else "openai",
+        "configured": has_saved_model(),
         "runs": int(counts.get("runs", 0)),
         "applies": int(counts.get("applies", 0)),
         "failures": dict(counts.get("failures") or {}),
         "tools": dict(counts.get("tools") or {}),
+        "tool_errors": dict(counts.get("tool_errors") or {}),
         "skills": dict(counts.get("skills") or {}),
     }
 

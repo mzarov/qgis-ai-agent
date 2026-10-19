@@ -4,7 +4,7 @@ import pathlib
 import unittest
 from unittest import mock
 
-from ai_agent.core import usage_stats
+from ai_agent.core import settings, usage_stats
 
 
 class MemorySettings:
@@ -47,6 +47,7 @@ class UsageStatsTest(unittest.TestCase):
             ("COLLECTOR_URL", "https://stats.example/"),
             ("get_api_url", lambda: "http://localhost:11434/v1"),
             ("get_dialect", lambda: "openai"),
+            ("has_saved_model", lambda: True),
             ("plugin_version", lambda: "0.4.0"),
             ("locale_code", lambda: "ru"),
         ):
@@ -196,15 +197,45 @@ class UsageStatsTest(unittest.TestCase):
                 "locale",
                 "provider",
                 "dialect",
+                "configured",
                 "runs",
                 "applies",
                 "failures",
                 "tools",
+                "tool_errors",
                 "skills",
             },
         )
+        self.assertEqual(sent["v"], 2)
         self.assertEqual((sent["provider"], sent["locale"], sent["plugin"]), ("local", "ru", "0.4.0"))
         self.assertIn(sent["os"], ("macos", "windows", "linux", "other"))
+        self.assertIs(sent["configured"], True)
+        self.assertNotIn("localhost", json.dumps(sent), "the address itself never goes out")
+
+    def test_failed_tool_calls_are_counted_beside_the_calls(self):
+        usage_stats.set_consent(True)
+        for kind, name in (("tools", "run_python"), ("tools", "run_python"), ("tool_errors", "run_python")):
+            self.stats.note(kind, name)
+        sent = usage_stats.payload("1f0e…", "2026-10-17", self.counts())
+        self.assertEqual((sent["tools"], sent["tool_errors"]), ({"run_python": 2}, {"run_python": 1}))
+        self.assertEqual(usage_stats.payload("1f0e…", "2026-10-17", {"runs": 1})["tool_errors"], {})
+
+
+class SavedModelTest(unittest.TestCase):
+    def setUp(self):
+        MemorySettings.values = {}
+        patcher = mock.patch.object(settings, "QgsSettings", MemorySettings)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_the_defaults_alone_do_not_count_as_a_configured_model(self):
+        self.assertFalse(settings.has_saved_model())
+        MemorySettings.values["ai_agent/api_url"] = "http://localhost:11434/v1"
+        self.assertFalse(settings.has_saved_model(), "an address without a model")
+        MemorySettings.values["ai_agent/model"] = "  "
+        self.assertFalse(settings.has_saved_model(), "a blank model name")
+        MemorySettings.values["ai_agent/model"] = "qwen3"
+        self.assertTrue(settings.has_saved_model())
 
 
 if __name__ == "__main__":
