@@ -8,6 +8,7 @@ PRESENT = "*"
 TOLERANCE = 1e-6
 APPROXIMATE = re.compile(r"~\s*(-?\d+(?:\.\d+)?)\s*(?:±\s*(\d+(?:\.\d+)?)\s*%)?$")
 DEFAULT_PERCENT = 1.0
+CANVAS = "canvas"
 
 
 def expected(output: Any, context: dict[str, Any]) -> dict[str, Any]:
@@ -78,8 +79,17 @@ def tool_calls(output: Any) -> list[tuple[str, dict[str, Any]]]:
             except ValueError:
                 arguments = {}
         if function.get("name"):
-            calls.append((str(function["name"]), arguments if isinstance(arguments, dict) else {}))
+            name = str(function["name"])
+            calls.append((name, canonical(name, arguments if isinstance(arguments, dict) else {})))
     return calls
+
+
+def canonical(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+    # The tool reads these the same way, so a case need not list both spellings.
+    area = str(arguments.get("area") or "").strip().lower()
+    if name == "download_osm" and area == CANVAS and not arguments.get("bbox"):
+        return {**{key: value for key, value in arguments.items() if key != "area"}, "bbox": CANVAS}
+    return arguments
 
 
 def matches(expected_value: Any, actual: Any) -> bool:

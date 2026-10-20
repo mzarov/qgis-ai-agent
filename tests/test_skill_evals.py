@@ -182,6 +182,17 @@ class ChecksTest(unittest.TestCase):
             "called run_processing before describe_processing",
         )
 
+    def test_an_osm_area_named_canvas_counts_as_the_current_view(self):
+        output = [self.call("download_osm", key="building", area="Canvas")]
+        self.assertIsNone(
+            checks.mismatch(
+                {"call": "download_osm", "args": {"key": "building", "bbox": "canvas"}}, checks.tool_calls(output)
+            )
+        )
+        self.assertEqual(
+            checks.tool_calls([self.call("download_osm", area="Berlin")]), [("download_osm", {"area": "Berlin"})]
+        )
+
     def test_outputs_in_every_shape_promptfoo_gives(self):
         call = self.call("save_project")
         for output in ([call], {"content": "", "tool_calls": [call]}, json.dumps([call])):
