@@ -26,7 +26,7 @@ from qgis.PyQt.QtWidgets import QApplication, QLabel, QLineEdit, QScrollBar, QTe
 
 from ai_agent.config import personal
 from ai_agent.core.orchestrator.notices import STATUS_DONE, SWITCH_WHILE_RUNNING
-from ai_agent.ui import compass, controls, progress, settings_fields, style
+from ai_agent.ui import compass, controls, progress, settings_fields, skill_popup, style
 from ai_agent.ui.activity import ActivityGroup, PulseRing
 from ai_agent.ui.chart import ChartCard
 from ai_agent.ui.composer_parts import LAYER_TOKEN, SKILL_TOKEN
@@ -833,6 +833,16 @@ class ComposerBehaviourTest(PluginCase):
         self.assertEqual((edit.toPlainText(), sent), ("show me @ro", ["show me @ro"]))
         composer._insert_layer("roads")
         self.assertEqual(edit.toPlainText(), "show me @ro", "a choice away from the mention rewrote the text")
+
+    def test_the_layer_list_says_when_no_layer_matches(self) -> None:
+        composer = self.dock.composer
+        composer.set_layer_source(lambda: [("roads", "", "")])
+        composer._edit.insertPlainText("buffer @zz")
+        pump(0.05)
+        popup = composer._popup
+        shown_texts = [label.text() for label in popup.findChildren(QLabel) if label.isVisibleTo(popup)]
+        self.assertIn(skill_popup.NO_LAYER, shown_texts)
+        self.assertNotIn(skill_popup.EMPTY, shown_texts)
 
     def test_a_connector_example_keeps_the_draft_for_undo(self) -> None:
         edit = self.dock.composer._edit

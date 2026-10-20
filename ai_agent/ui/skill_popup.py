@@ -27,6 +27,7 @@ SKILL_PREFIX = "/"
 DESCRIPTION_SCALE = 0.86
 LOCAL_BADGE = tr("local")
 EMPTY = tr("No matching skill")
+NO_LAYER = tr("No matching layer")
 
 
 def match_skills(query: str, items: list[tuple[str, str, str]]) -> list[tuple[str, str, str]]:
@@ -111,7 +112,7 @@ class SkillPopup(controls.RoundedFrame):
             row.deleteLater()
         self._rows = []
         if not self._matches:
-            empty = QLabel(EMPTY)
+            empty = QLabel(NO_LAYER if self._prefix == LAYER_PREFIX else EMPTY)
             empty.setContentsMargins(10, 5, 10, 5)
             style.ink(empty, style.muted(self._palette))
             self._rows.append(self._wrap(empty))

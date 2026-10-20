@@ -85,7 +85,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/activity.py" line="369"/>
+        <location filename="ai_agent/ui/activity.py" line="372"/>
         <source>%n failed</source>
         <translation>
             <numerusform>%n ошибка</numerusform>
@@ -387,7 +387,7 @@
         <translation>Аккаунт или ключ</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/activity.py" line="385"/>
+        <location filename="ai_agent/ui/activity.py" line="388"/>
         <source>Activity · %n step(s)</source>
         <translation>
             <numerusform>Ход работы · %n шаг</numerusform>
@@ -516,7 +516,7 @@
         <translation>Добавляю виртуальное поле «{0}» в «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="262"/>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="265"/>
         <source>Adding {0} feature(s) to '{1}'.</source>
         <translation>Добавляю объекты ({0}) в «{1}».</translation>
     </message>
@@ -531,17 +531,17 @@
         <translation>Добавляю слой {0} «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="259"/>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="262"/>
         <source>Adding {0} line(s) to '{1}'.</source>
         <translation>Добавляю линии ({0}) в «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="257"/>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="260"/>
         <source>Adding {0} point(s) to '{1}'.</source>
         <translation>Добавляю точки ({0}) в «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="261"/>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="264"/>
         <source>Adding {0} polygon(s) to '{1}'.</source>
         <translation>Добавляю полигоны ({0}) в «{1}».</translation>
     </message>
@@ -888,7 +888,7 @@
         <translation>Изменения применяются — дождитесь окончания.</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/activity.py" line="382"/>
+        <location filename="ai_agent/ui/activity.py" line="385"/>
         <source>Changes checked · %n step(s)</source>
         <translation>
             <numerusform>Проверка изменений · %n шаг</numerusform>
@@ -1150,7 +1150,7 @@
         <translation>Копировать строки как CSV</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/conversation.py" line="467"/>
+        <location filename="ai_agent/ui/conversation.py" line="471"/>
         <source>Copy the whole conversation</source>
         <translation>Скопировать весь разговор</translation>
     </message>
@@ -1372,22 +1372,22 @@
         <translation>Рисую диаграмму: {0}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="252"/>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="255"/>
         <source>Drawing {0} feature(s) in new scratch layer '{1}'.</source>
         <translation>Рисую объекты ({0}) в новом временном слое «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="249"/>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="252"/>
         <source>Drawing {0} line(s) in new scratch layer '{1}'.</source>
         <translation>Рисую линии ({0}) в новом временном слое «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="247"/>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="250"/>
         <source>Drawing {0} point(s) in new scratch layer '{1}'.</source>
         <translation>Рисую точки ({0}) в новом временном слое «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="251"/>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="254"/>
         <source>Drawing {0} polygon(s) in new scratch layer '{1}'.</source>
         <translation>Рисую полигоны ({0}) в новом временном слое «{1}».</translation>
     </message>
@@ -1492,7 +1492,7 @@
         <translation>Сведения о проекте: слои, поля, значения, выделение</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/activity.py" line="384"/>
+        <location filename="ai_agent/ui/activity.py" line="387"/>
         <source>Failure looked into · %n step(s)</source>
         <translation>
             <numerusform>Разбор сбоя · %n шаг</numerusform>
@@ -1501,7 +1501,7 @@
         </translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="179"/>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="182"/>
         <source>Features to add: {0}</source>
         <translation>Будет добавлено объектов: {0}</translation>
     </message>
@@ -1833,7 +1833,7 @@
         <translation>Слой «{0}» перерисован</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="178"/>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="181"/>
         <location filename="ai_agent/qgis_tools/edit/delete_features.py" line="57"/>
         <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="76"/>
         <source>Layer: {0}</source>
@@ -2200,6 +2200,11 @@
         <location filename="ai_agent/ui/settings_advanced.py" line="127"/>
         <source>No limit</source>
         <translation>Без лимита</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/ui/skill_popup.py" line="30"/>
+        <source>No matching layer</source>
+        <translation>Подходящего слоя нет</translation>
     </message>
     <message>
         <location filename="ai_agent/ui/skill_popup.py" line="29"/>
@@ -2858,7 +2863,7 @@
         <translation>Заменить модель Processing «{0}» ({1}).</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer.py" line="125"/>
+        <location filename="ai_agent/ui/composer.py" line="126"/>
         <source>Request</source>
         <translation>Запрос</translation>
     </message>
@@ -2898,7 +2903,7 @@
         <translation>Вернуть пределы, режимы, коннекторы, навыки, геокодирование и выбор в персонализации к значениям по умолчанию? Подключение, ключи, ваши тексты и навыки сохранятся.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/messages.py" line="20"/>
+        <location filename="ai_agent/ui/messages.py" line="21"/>
         <source>Rewind to before this message</source>
         <translation>Вернуться к моменту до этого сообщения</translation>
     </message>
@@ -3658,7 +3663,7 @@
         <translation>Эти временные слои вернутся пустыми: {0}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="180"/>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="183"/>
         <source>They are committed to the layer's data source; Undo does not remove them.</source>
         <translation>Они записываются в источник данных слоя; отмена их не удалит.</translation>
     </message>
