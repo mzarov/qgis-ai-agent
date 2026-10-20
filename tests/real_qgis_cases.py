@@ -895,6 +895,13 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual([(group["group"], group["value"]) for group in grouped["groups"]], [("a", 2), ("b", 1)])
         self.assertEqual(query.execute({"layer_name": "counts", "aggregate": "count"})["value"], 5)
 
+    def test_a_filtered_table_counts_every_match_not_the_rows_shown(self):
+        self._counts()
+        arguments = {"layer_name": "counts", "filter": "kind = 'a'", "limit": 1}
+        result = ToolExecutor().run(ToolCall("table", "show_table", arguments))
+        self.assertTrue(result.ok, result.payload)
+        self.assertEqual((result.payload["rows_shown"], result.visual["total"]), (1, 3))
+
     def test_a_chart_past_the_feature_cap_says_it_is_partial(self):
         rows = [("POINT (0 0)", ["a"]), ("POINT (1 0)", ["a"]), ("POINT (2 0)", ["b"])]
         self._memory("Point?crs=EPSG:3857&field=kind:string", "kinds", rows)
