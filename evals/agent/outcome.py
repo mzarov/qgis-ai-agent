@@ -8,6 +8,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from checks import matches  # noqa: E402
 
 FIRST_LINES = 6
+# Failure kinds of ai_agent/core/llm/failure_kinds.py that say the provider could not be reached or
+# used; any other, such as a request the provider refused, is the plugin's and counts against it.
+UNREACHED_KINDS = frozenset({"connection", "timeout", "auth", "quota", "busy", "not_found", "setup"})
+
+
+def unreached(kinds: list[str]) -> bool:
+    return bool(kinds) and all(kind in UNREACHED_KINDS for kind in kinds)
 
 
 def outcome(output: Any, context: dict[str, Any]) -> dict[str, Any]:
@@ -38,6 +45,8 @@ def problems_in(result: dict[str, Any], expect: dict[str, Any]) -> list[str]:
     if not (result.get("usage") or {}).get("requests"):
         failures = "; ".join(result.get("failures") or []) or "no failure was reported"
         return [f"no model request succeeded ({_short(failures)}); check EVAL_API_URL, EVAL_MODEL and EVAL_API_KEY"]
+    if result.get("failures"):
+        problems.append("the run ended in a failure: " + _short("; ".join(result["failures"])))
     if result.get("timed_out"):
         problems.append("the run did not finish in time")
     if bool(result.get("asked")) != bool(expect.get("asked", False)):

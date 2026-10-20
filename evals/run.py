@@ -292,6 +292,16 @@ def run_agent(model: str, server: str, repeat: int, mode: str = "", only: str = 
             bench.stop_server(OUT)
 
 
+def floor_verdict(problems: list[str], rows: list[dict[str, Any]], model: str, floors: dict[str, Any]) -> str:
+    if problems:
+        return "\n".join(f"- {problem}" for problem in problems)
+    unchecked = thresholds.unchecked(rows, model, floors)
+    if len(unchecked) == len(rows):
+        return f"No floors for {model}, nothing checked."
+    verdict = "Every suite with a floor is at or above it."
+    return f"{verdict} No floor for: {', '.join(unchecked)}." if unchecked else verdict
+
+
 def finish(rows: list[dict[str, Any]], models: list[str], options: argparse.Namespace) -> int:
     if not rows:
         return 0
@@ -305,9 +315,9 @@ def finish(rows: list[dict[str, Any]], models: list[str], options: argparse.Name
             summary += f"\nFloors for {models[0]} saved to evals/thresholds.json: {saved['suites']}\n"
         else:
             require = os.environ.get("EVAL_REQUIRE_THRESHOLDS", "") == "1"
-            problems = thresholds.check(rows, models[0], thresholds.load(), require)
-            verdict = "\n".join(f"- {problem}" for problem in problems) or "Every suite is at or above its floor."
-            summary += f"\n### Floors\n\n{verdict}\n"
+            floors = thresholds.load()
+            problems = thresholds.check(rows, models[0], floors, require)
+            summary += f"\n### Floors\n\n{floor_verdict(problems, rows, models[0], floors)}\n"
     (OUT / "summary.md").write_text(summary, encoding="utf-8")
     print(summary)
     step_summary = os.environ.get("GITHUB_STEP_SUMMARY", "")

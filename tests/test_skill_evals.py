@@ -1,7 +1,12 @@
+import argparse
+import contextlib
+import io
 import json
 import math
+import os
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -522,6 +527,31 @@ class RunnerTest(unittest.TestCase):
         self.assertEqual(summary["errors"], 1, "a failed check was counted as unreached")
         self.assertIn("| project | 1/2 | 1 |", runner.report([summary]))
 
+    def finished(self, rows, model):
+        floors = {"model": "m1", "margin": 0.1, "suites": {"routing": 0.8}}
+        rows = [{**item, "tokens": 0, "latency": 0.0, "failures": [], "first_error": ""} for item in rows]
+        environment = {"GITHUB_STEP_SUMMARY": "", "EVAL_REQUIRE_THRESHOLDS": ""}
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            mock.patch.object(runner, "OUT", Path(folder)),
+            mock.patch.object(thresholds, "load", return_value=floors),
+            mock.patch.dict(os.environ, environment),
+            contextlib.redirect_stdout(io.StringIO()),
+        ):
+            code = runner.finish(rows, [model], argparse.Namespace(save_thresholds=False, check=True))
+            return code, (Path(folder) / "summary.md").read_text(encoding="utf-8")
+
+    def test_a_check_without_floors_for_the_model_says_nothing_was_checked(self):
+        code, summary = self.finished([row("routing", 0, 24)], "m2")
+        self.assertEqual(code, 0)
+        self.assertIn("No floors for m2, nothing checked.", summary)
+        self.assertNotIn("at or above", summary)
+
+    def test_a_check_names_the_suites_it_had_no_floor_for(self):
+        code, summary = self.finished([row("routing", 20, 24), row("charts", 0, 6)], "m1")
+        self.assertEqual(code, 0)
+        self.assertIn("Every suite with a floor is at or above it. No floor for: charts.", summary)
+
 
 def row(suite, passed, total, errors=0):
     return {"suite": suite, "passed": passed, "total": total, "errors": errors}
@@ -544,8 +574,23 @@ class ThresholdsTest(unittest.TestCase):
 
     def test_a_suite_below_its_floor_fails_and_unreached_cases_do_not_count(self):
         data = {"model": "m1", "suites": {"routing": 0.8, "style": 0.9}}
-        problems = thresholds.check([row("routing", 18, 24), row("style", 9, 12, errors=2)], "m1", data)
+        problems = thresholds.check([row("routing", 18, 24), row("style", 10, 12, errors=1)], "m1", data)
         self.assertEqual(problems, ["routing: 75% passed, below its floor of 80%"])
+
+    def test_a_suite_whose_cases_mostly_never_reached_the_model_fails_its_floor(self):
+        data = {"model": "m", "suites": {"style": 0.8, "agent": 0.7}}
+        problems = thresholds.check([row("style", 1, 12, errors=11), row("agent", 20, 24, errors=3)], "m", data)
+        self.assertEqual(
+            problems,
+            ["style: 11 of 12 cases never reached the model", "agent: 3 of 24 cases never reached the model"],
+        )
+        self.assertEqual(thresholds.check([row("agent", 20, 24, errors=2)], "m", data), [])
+
+    def test_floors_cover_only_the_suites_of_their_model(self):
+        data = {"model": "m1", "suites": {"routing": 0.8}}
+        rows = [row("routing", 20, 24), row("charts", 6, 6)]
+        self.assertEqual(thresholds.unchecked(rows, "m1", data), ["charts"])
+        self.assertEqual(thresholds.unchecked(rows, "m2", data), ["routing", "charts"])
 
     def test_floors_of_another_model_only_report_unless_required(self):
         data = {"model": "m1", "suites": {"routing": 0.8}}
@@ -634,6 +679,19 @@ class AgentOutcomeTest(unittest.TestCase):
         self.assertEqual(len(problems), 1)
         self.assertIn("The key was not accepted", problems[0])
 
+    def test_a_run_that_ended_in_a_failure_card_fails(self):
+        result = run_result(failures=["The request failed: 400 tool result without a call"])
+        self.assertEqual(
+            outcome.problems_in(result, {"answer": "re:five"}),
+            ["the run ended in a failure: The request failed: 400 tool result without a call"],
+        )
+
+    def test_only_a_provider_that_could_not_be_reached_or_used_leaves_a_run_unreached(self):
+        for kinds in (["connection"], ["timeout", "busy"], ["auth"], ["quota"], ["not_found"], ["setup"]):
+            self.assertTrue(outcome.unreached(kinds), kinds)
+        for kinds in ([], ["other"], ["busy", "other"], [""]):
+            self.assertFalse(outcome.unreached(kinds), kinds)
+
     def test_any_of_and_a_server_error(self):
         options = {"any_of": [{"project": {"crs": "EPSG:4326"}}, {"files": ["roads.gpkg"]}]}
         self.assertEqual(outcome.problems_in(run_result(), options), [])
@@ -683,6 +741,21 @@ class AgentBenchConfigTest(unittest.TestCase):
         self.assertEqual(provider["config"]["maxRetries"], 0, "a task costs a whole agent run; never retried")
         self.assertIn("tokenUsage", provider["config"]["transformResponse"])
         self.assertTrue(config["defaultTest"]["assert"][0]["value"].endswith("outcome.py:outcome"))
+
+    @unittest.skipUnless(shutil.which("node"), "the response transform is JavaScript")
+    def test_a_run_the_provider_refused_is_graded_and_an_unreachable_one_is_not(self):
+        def transformed(result):
+            script = f"const json = {json.dumps(result)};\nprocess.stdout.write(JSON.stringify({bench.TRANSFORM}));"
+            done = subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True)
+            return json.loads(done.stdout)
+
+        refused = transformed(run_result(failures=["Run failed: 400"], unreached=False))
+        self.assertNotIn("error", refused, "a request the provider refused left the pass rate")
+        self.assertEqual(json.loads(refused["output"])["failures"], ["Run failed: 400"])
+        offline = transformed(run_result(failures=["No connection: refused"], unreached=True))
+        self.assertEqual(offline["error"], "the model provider failed: No connection: refused")
+        crashed = transformed({"error": "Traceback\n  line\nValueError: broken"})
+        self.assertIn("ValueError: broken", crashed["error"])
 
     def test_an_installed_qgis_4_is_found_and_given_its_own_python(self):
         with tempfile.TemporaryDirectory() as folder:
