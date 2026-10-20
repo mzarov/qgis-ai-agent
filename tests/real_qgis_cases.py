@@ -46,6 +46,7 @@ from ai_agent.qgis_tools.common.layers import suggest_metric_crs
 from ai_agent.qgis_tools.draw.draw_features import DrawFeaturesTool
 from ai_agent.qgis_tools.processing import model_builder
 from ai_agent.qgis_tools.processing.run_processing import RunProcessingTool
+from ai_agent.qgis_tools.project import scratch_copies
 from ai_agent.qgis_tools.project.snapshots import take_snapshot
 from ai_agent.qgis_tools.quality import scan as quality_scan
 from ai_agent.qgis_tools.registry import get_tool_by_name
@@ -625,6 +626,22 @@ class GisWorkflowsTest(unittest.TestCase):
                 "Point (100 0)",
             ],
         )
+
+    def test_undo_keeps_the_features_a_scratch_layers_filter_hides(self):
+        self.assertTrue(self.layer.setSubsetString("count = 1"))
+        identifier = self.layer.id()
+        with patch.object(scratch_copies, "MAX_PRESERVED_FEATURES", 1):
+            self.assertIn(identifier, scratch_copies.scratch_layers_over_budget(self.project), "counted filtered")
+        self.assertTrue(take_snapshot())
+        self.assertEqual((self.layer.subsetString(), self.layer.featureCount()), ("count = 1", 1))
+        self._run("set_opacity", layer_name=self.layer.name(), opacity=0.5)
+        _, result = self._run("undo_last_apply")
+        restored = self.project.mapLayer(identifier)
+        self.assertNotIn("empty_scratch_layers", result)
+        self.assertEqual(restored.subsetString(), "count = 1")
+        self.assertEqual([feature["name"] for feature in restored.getFeatures()], ["point-1"])
+        self.assertTrue(restored.setSubsetString(""))
+        self.assertEqual(sorted(feature["name"] for feature in restored.getFeatures()), ["point-0", "point-1"])
 
     def test_undoing_a_style_change_keeps_a_scratch_layers_feature_ids(self):
         third = QgsFeature(self.layer.fields())

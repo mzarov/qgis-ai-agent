@@ -84,6 +84,12 @@ class MemoryProvider:
     def getFeatures(self):
         return iter(list(self.features))
 
+    def subsetString(self):
+        return ""
+
+    def featureCount(self):
+        return len(self.features)
+
     def addFeatures(self, features):
         for feature in features:
             feature.setId(self.next_id)
