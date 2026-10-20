@@ -105,6 +105,13 @@ class FoldingTest(unittest.TestCase):
         self.assertEqual(calls[0]["name"], "list_layers")
         self.assertEqual(calls[0]["input"], {"only_visible": True})
 
+    def test_a_whole_input_sent_with_the_block_start_is_kept(self):
+        block = {"type": "tool_use", "id": "t", "name": "list_layers", "input": {"only_visible": True}}
+        for chunks in ([block_start(0, block), block_stop(0)], [block_start(0, block)]):
+            with self.subTest(closed=len(chunks) == 2):
+                _, calls, _ = anthropic.parse_response(consume_anthropic(chunks))
+                self.assertEqual(calls[0]["input"], {"only_visible": True})
+
     def test_broken_tool_arguments_do_not_crash_the_fold(self):
         chunks = [
             block_start(0, {"type": "tool_use", "id": "t", "name": "x"}),
