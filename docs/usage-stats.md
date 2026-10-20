@@ -16,8 +16,11 @@ At most one report per install per day:
 - whether a model is set up in Settings, as yes or no;
 - the number of runs and applied batches (a day the plugin was loaded counts
   even with none);
-- how often each tool was called and failed, each skill loaded and each kind
-  of failure happened.
+- how often each of the plugin's tools was called and failed, each built-in
+  skill loaded and each kind of failure happened. A name the model made up and
+  the names of skills you wrote yourself are not sent.
+
+A day without a connection is sent later; the last three such days wait.
 
 Nothing from your project is sent: no layers, fields, values, coordinates or
 file paths. Your requests, the model's answers, keys, addresses and model

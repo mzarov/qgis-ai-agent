@@ -35,7 +35,9 @@ OS_FAMILIES = (("darwin", "macos"), ("win", "windows"), ("linux", "linux"))
 DIALECTS = ("openai", "anthropic")
 OK_STATUSES = (200, 204)
 MAX_DAY_AGE = 7
-REFUSED = 400
+MAX_PENDING_DAYS = 3
+CLIENT_ERRORS = range(400, 500)
+RATE_LIMITED = 429
 ACTIVE = "active"
 
 
@@ -127,6 +129,7 @@ class UsageStats:
     def __init__(self, today: Any = None) -> None:
         self._today = today or (lambda: datetime.date.today().isoformat())
         self._reply: Any = None
+        self._sending = ""
 
     def note(self, kind: str, name: str = "") -> None:
         if not enabled():
@@ -141,12 +144,13 @@ class UsageStats:
         if not enabled() or self._reply is not None:
             return
         self._roll_over()
-        pending = _loaded(QgsSettings().value(PENDING_KEY, "", type=str))
-        day, counts = str(pending.get("day") or ""), pending.get("counts") or {}
-        if not day or not has_counts(counts) or _too_old(day, self._today()):
-            QgsSettings().remove(PENDING_KEY)
+        today = self._today()
+        days = [entry for entry in _pending_days() if has_counts(entry["counts"]) and not _too_old(entry["day"], today)]
+        _keep_pending(days)
+        if not days:
             return
-        body = json.dumps(payload(self._install(), day, counts)).encode("utf-8")
+        self._sending = days[0]["day"]
+        body = json.dumps(payload(self._install(), days[0]["day"], days[0]["counts"])).encode("utf-8")
         request = QNetworkRequest(QUrl(collector_url() + PING_PATH))
         request.setHeader(QNetworkRequest.KnownHeaders.ContentTypeHeader, "application/json")
         self._reply = QgsNetworkAccessManager.instance().post(request, QByteArray(body))
@@ -159,7 +163,8 @@ class UsageStats:
             return
         counts = _loaded(settings.value(COUNTS_KEY, "", type=str))
         if has_counts(counts):
-            settings.setValue(PENDING_KEY, json.dumps({"day": day, "counts": counts}))
+            days = [entry for entry in _pending_days() if entry["day"] != day]
+            _keep_pending([*days, {"day": day, "counts": counts}][-MAX_PENDING_DAYS:])
         settings.remove(COUNTS_KEY)
         settings.remove(DAY_KEY)
 
@@ -168,18 +173,19 @@ class UsageStats:
         if reply is None:
             return
         status = reply.attribute(QNetworkRequest.Attribute.HttpStatusCodeAttribute)
-        if reply.error() == QNetworkReply.NetworkError.NoError and status in OK_STATUSES:
-            QgsSettings().remove(PENDING_KEY)
-        elif status == REFUSED:
-            # Refused as malformed: sending the same counts again would be refused again.
-            QgsSettings().remove(PENDING_KEY)
-        else:
+        delivered = reply.error() == QNetworkReply.NetworkError.NoError and status in OK_STATUSES
+        # Turned away (malformed, too large): the same counts would be turned away again.
+        refused = status in CLIENT_ERRORS and status != RATE_LIMITED
+        reply.deleteLater()
+        if not (delivered or refused):
             QgsMessageLog.logMessage(
                 f"Usage counts were not sent ({reply.errorString()}); they wait for the next try.",
                 LOG_TAG,
                 Qgis.MessageLevel.Info,
             )
-        reply.deleteLater()
+            return
+        _keep_pending([entry for entry in _pending_days() if entry["day"] != self._sending])
+        self.flush()
 
     @staticmethod
     def _install() -> str:
@@ -199,9 +205,31 @@ def _too_old(day: str, today: str) -> bool:
     return age.days > MAX_DAY_AGE
 
 
+def _pending_days() -> list[dict[str, Any]]:
+    value = _decoded(QgsSettings().value(PENDING_KEY, "", type=str))
+    # The previous version kept a single day as one object.
+    entries = value if isinstance(value, list) else [value]
+    return [
+        {"day": entry["day"], "counts": entry["counts"]}
+        for entry in entries
+        if isinstance(entry, dict) and isinstance(entry.get("day"), str) and isinstance(entry.get("counts"), dict)
+    ]
+
+
+def _keep_pending(days: list[dict[str, Any]]) -> None:
+    if days:
+        QgsSettings().setValue(PENDING_KEY, json.dumps(days))
+    else:
+        QgsSettings().remove(PENDING_KEY)
+
+
 def _loaded(text: Any) -> dict[str, Any]:
+    value = _decoded(text)
+    return value if isinstance(value, dict) else {}
+
+
+def _decoded(text: Any) -> Any:
     try:
-        value = json.loads(str(text or "") or "{}")
+        return json.loads(str(text or "") or "{}")
     except ValueError:
         return {}
-    return value if isinstance(value, dict) else {}
