@@ -99,6 +99,16 @@ class RequestGuardsTest(OrchestratorCase):
         self.assertIn(notices.SWITCH_WHILE_RUNNING, self.dock.system)
         self.assertEqual(self.messages, [])
 
+    def test_a_skill_command_keeps_its_request_beside_the_layer_chip(self):
+        self.dock.context_mention = lambda: "@districts"
+        for typed, sent in (
+            ("/style", "Apply the 'style' skill to the current project. @districts"),
+            ("/osm cafes around", "cafes around @districts"),
+        ):
+            self.orchestrator.on_prompt(typed)
+            self.assertEqual(self.agent.started[0], sent)
+            self.assertEqual(self.contents("user")[-1], f"{typed} @districts")
+
     def test_an_answer_to_a_remote_model_waits_for_consent(self):
         self.agent.is_awaiting_answer = True
         self.agent.endpoint = "https://provider.example/v1"

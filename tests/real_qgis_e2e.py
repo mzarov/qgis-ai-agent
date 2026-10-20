@@ -746,6 +746,18 @@ class LayerChipScenario(ScenarioCase):
         self.assertNotIn("@districts", self.orchestrator.conversation.messages[-2]["content"])
 
 
+class SlashBesideChipScenario(ScenarioCase):
+    skill_free_start = False
+
+    def test_a_bare_skill_command_keeps_its_request_beside_the_chip(self) -> None:
+        self.model.script(say("districts has one symbol."))
+        self.iface.setActiveLayer(self.layer("districts"))
+        self.ask("/style")
+        sent = self.model.sent_text(0)
+        self.assertIn("Apply the 'style' skill to the current project. @districts", sent)
+        self.assertEqual(self.orchestrator.conversation.messages[0]["content"], "/style @districts")
+
+
 class ChromeScenario(ScenarioCase):
     def test_a_new_conversation_keeps_the_old_one_in_the_history(self) -> None:
         self.assertFalse(self.dock.toolbar.new_button.isEnabled(), "nothing to start over from yet")

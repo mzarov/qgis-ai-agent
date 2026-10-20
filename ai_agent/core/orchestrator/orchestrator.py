@@ -162,20 +162,22 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         if self.agent.is_awaiting_answer:
             self._answer(text)
             return
-        mention = self.dock_widget.context_mention()
-        if isinstance(mention, str) and mention and mention not in text:
-            text = f"{text} {mention}"
         skill, rest = parse_slash(text)
         if skill and not is_known_skill(skill):
             self.dock_widget.add_system_message(UNKNOWN_SKILL.format(skill, available_names()))
             return
         if not self._confirm_first_send():
             return
+        # The command is read before the chip's mention joins: a bare /skill keeps its own request.
+        prompt = prompt_for(skill, rest) if skill else text
+        mention = self.dock_widget.context_mention()
+        if isinstance(mention, str) and mention and mention not in text:
+            text, prompt = f"{text} {mention}", f"{prompt} {mention}"
         pictures = attaching.take_pictures(self.dock_widget)
         self.dock_widget.clear_prompt()
         self._start_run(
             attaching.with_names(text, pictures),
-            prompt_for(skill, rest) if skill else text,
+            prompt,
             text,
             skills=[skill] if skill else None,
             images=pictures.encoded,
