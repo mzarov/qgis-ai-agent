@@ -361,31 +361,35 @@ class ConversationStateTest(unittest.TestCase):
         self.state.start_new()
         self.assertEqual(self.state.recent(), [])
 
-    def test_sync_project_adopts_a_fresh_session_only_when_the_project_changes(self):
+    def test_a_project_saved_under_a_new_name_keeps_its_conversation(self):
+        self.state.add("user", "first question")
+        identifier, old_key = self.state.session_identifier, self.state.project_key
         saved_key = conversation_module.current_project_key
-        keys = iter((self.state.project_key, "/different/project.qgz"))
+        keys = iter((old_key, "/saved/as/copy.qgz"))
         conversation_module.current_project_key = lambda: next(keys)
         try:
-            identifier = self.state.session_identifier
-            self.assertFalse(self.state.sync_project())
-            self.assertTrue(self.state.sync_project())
-            self.assertNotEqual(self.state.session_identifier, identifier)
-            self.assertEqual(self.state.project_key, "/different/project.qgz")
-            self.assertEqual(self.state.messages, [])
+            self.assertEqual(self.state.follow_project(), "")
+            self.assertEqual(self.state.follow_project(), old_key)
         finally:
             conversation_module.current_project_key = saved_key
+        self.assertEqual(self.state.session_identifier, identifier)
+        self.assertEqual(self.state.project_key, "/saved/as/copy.qgz")
+        self.assertEqual(self.store.load(identifier).project, "/saved/as/copy.qgz")
+        self.assertEqual([session.identifier for session in self.store.recent("/saved/as/copy.qgz")], [identifier])
+        self.assertEqual(self.store.recent(old_key), [])
 
-    def test_forced_project_sync_starts_fresh_even_when_the_key_is_unchanged(self):
+    def test_another_project_starts_fresh_even_when_the_key_is_unchanged(self):
         self.state.add("user", "stale plan context")
         identifier = self.state.session_identifier
         saved_key = conversation_module.current_project_key
         conversation_module.current_project_key = lambda: self.state.project_key
         try:
-            self.assertTrue(self.state.sync_project(force_new=True))
+            self.state.start_for_project()
         finally:
             conversation_module.current_project_key = saved_key
         self.assertNotEqual(self.state.session_identifier, identifier)
         self.assertEqual(self.state.messages, [])
+        self.assertIsNotNone(self.store.load(identifier))
 
 
 class ProjectIdentityTest(unittest.TestCase):

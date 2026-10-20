@@ -1,5 +1,6 @@
 import json
 import math
+import os
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -12,7 +13,13 @@ from qgis.core import QgsFeature, QgsGeometry, QgsProject, QgsSettings, QgsVecto
 
 from ai_agent.core.agent.run_failure import RUN_FAILURES
 from ai_agent.core.llm import failure_kinds, retry
-from ai_agent.core.orchestrator.notices import CHECKED_BY_READING, RUN_CHECK, STATUS_DONE, STATUS_WAITING
+from ai_agent.core.orchestrator.notices import (
+    CHECKED_BY_READING,
+    PROJECT_CHANGED,
+    RUN_CHECK,
+    STATUS_DONE,
+    STATUS_WAITING,
+)
 from ai_agent.core.settings import get_auto_apply, set_reasoning_enabled, set_supports_images, set_work_mode
 from ai_agent.core.state.session import MAX_MESSAGES
 from ai_agent.qgis_tools.osm import overpass
@@ -783,6 +790,69 @@ class PlanUndoScenario(ScenarioCase):
         self.assertTrue(any("plan is undone" in note for note in notes), notes)
         self.assertIn("The plan is undone", self.orchestrator.conversation.messages[-1]["content"])
         self.shot("plan_undone")
+
+
+class SaveAsScenario(ScenarioCase):
+    def sessions(self) -> list[str]:
+        return [identifier for identifier, *_rest in self.orchestrator.conversation.recent()]
+
+    def project_changes(self) -> int:
+        notes = [message.plain_text() for message in self.dock.conversation.findChildren(SystemMessage)]
+        return notes.count(PROJECT_CHANGED)
+
+    def assert_kept(self, identifier: str, project_changes: int = 0) -> None:
+        self.assertEqual(self.orchestrator.conversation.session_identifier, identifier, "the save opened a new chat")
+        self.assertIn(identifier, self.sessions(), "the conversation is not in the saved project's history")
+        self.assertEqual(self.project_changes(), project_changes, "a save was told as another project")
+
+    def test_the_agents_save_as_keeps_the_conversation_the_steps_after_it_and_undo(self) -> None:
+        target = os.path.join(self.folder, "copy.qgz")
+        self.model.script(
+            call("load_skill", names=["project"]),
+            calls(
+                ("save_project", {"path": target}),
+                ("configure_layer", {"layer_name": "districts", "properties": {"name": "Districts saved"}}),
+            ),
+            say("I will save the project as a copy and rename districts."),
+        )
+        self.ask("Save the project as copy.qgz, then rename districts")
+        identifier = self.orchestrator.conversation.session_identifier
+        self.apply()
+        self.layer("Districts saved")
+        self.assertEqual(QgsProject.instance().fileName(), target)
+        self.assert_kept(identifier)
+        card = self.dock.conversation.findChildren(PlanCard)[-1]
+        self.assertFalse(card._undo.isHidden(), "the plan saved under a new name offers no Undo")
+        card._undo.click()
+        pump(0.3)
+        self.layer("districts")
+        self.assertEqual(QgsProject.instance().fileName(), target, "Undo took the project back to its old file")
+        self.assert_kept(identifier)
+
+    def test_the_first_save_of_a_new_project_keeps_its_conversation(self) -> None:
+        QgsProject.instance().clear()
+        pump(0.3)
+        self.model.script(say("The project is empty."))
+        self.ask("What is in the project?")
+        identifier = self.orchestrator.conversation.session_identifier
+        cleared = self.project_changes()
+        QgsProject.instance().write(os.path.join(self.folder, "first.qgz"))
+        pump(0.3)
+        self.assert_kept(identifier, cleared)
+        self.assertEqual(len(self.orchestrator.conversation.messages), 2)
+
+    def test_save_as_while_the_answer_streams_keeps_it_in_the_same_conversation(self) -> None:
+        self.model.script(say("A map projection flattens the surface of the Earth onto a plane. " * 30, 0.05))
+        self.orchestrator.on_prompt("Tell me about projections")
+        pump(1.5)
+        self.assertTrue(self.agent.is_running)
+        identifier = self.orchestrator.conversation.session_identifier
+        QgsProject.instance().write(os.path.join(self.folder, "saved_as.qgz"))
+        self.wait_idle()
+        self.assert_kept(identifier)
+        roles = [message["role"] for message in self.orchestrator.conversation.messages]
+        self.assertEqual(roles, ["user", "assistant"])
+        self.assertTrue(self.last().endswith("onto a plane."), "the answer was cut off by the save")
 
 
 class PlanRestoreScenario(ScenarioCase):

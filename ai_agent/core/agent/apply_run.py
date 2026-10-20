@@ -19,6 +19,7 @@ PROJECT_CHANGED_ERROR = (
 )
 CANCELLED_ERROR = "The run was stopped. This pending step and every later step were cancelled."
 UNKNOWN = -1.0
+SAVE_TOOL = "save_project"
 
 
 class ApplyRun:
@@ -123,6 +124,9 @@ class ApplyRun:
         return _failure(call, target_error) if target_error else None
 
     def _record(self, call: ToolCall, result: ToolResult) -> None:
+        if result.ok and call.name == SAVE_TOOL:
+            # Saved under a new name, the project is the same one: the steps after it still apply to it.
+            self._expected = project_identity(QgsProject.instance())
         self._on_finish(call, result)
         self._results.append(result)
         if not result.ok and self._failed is None:

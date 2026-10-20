@@ -1,19 +1,34 @@
 from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.core.orchestrator.contracts import OrchestratorHost
 from ai_agent.core.orchestrator.notices import PREVIOUS_APPLY_INTERRUPTED, PROJECT_CHANGED
-from ai_agent.core.orchestrator.presentation import interrupted_outcome
+from ai_agent.core.orchestrator.presentation import interrupted_outcome, project_line
 from ai_agent.core.orchestrator.scope import conversation_scope
+from ai_agent.qgis_tools.project.snapshots import follow_project_move
 
 UNDO_TOOL = "undo_last_apply"
 
 
 class ProjectLifecycleMixin(OrchestratorHost):
     def on_project_changed(self, force_new: bool = False) -> None:
-        if not force_new and getattr(self.agent, "active_apply_tool", "") == UNDO_TOOL:
+        if force_new:
+            self._start_for_new_project()
+        elif getattr(self.agent, "active_apply_tool", "") != UNDO_TOOL:
+            self._follow_saved_project()
+
+    def _follow_saved_project(self) -> None:
+        # A new name without a clear is Save As: the same project, so its conversation, snapshots and apply follow.
+        previous = self.conversation.follow_project()
+        if not previous:
             return
-        if not self.conversation.sync_project(force_new):
-            return
+        follow_project_move(previous)
+        if self._apply_scope == (previous, self.conversation.session_identifier):
+            self._apply_scope = conversation_scope(self.conversation)
+        self.dock_widget.set_project_line(project_line())
+
+    def _start_for_new_project(self) -> None:
+        # Stopped first: a stopped run keeps its partial answer, and that belongs to the old conversation.
         self._abort_project_work()
+        self.conversation.start_for_project()
         self._replay()
         self.dock_widget.add_system_message(PROJECT_CHANGED)
         if self._deferred_interrupted_outcome:
