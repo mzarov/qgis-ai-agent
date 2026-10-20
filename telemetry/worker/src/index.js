@@ -19,6 +19,8 @@ const JSON_TYPE = "application/json";
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "x-content-type-options": "nosniff" };
 // Snapshot in D1: the Cache API is a no-op on workers.dev, and rescans would eat the free read quota.
 const STATS_TTL_SECONDS = 3600;
+// While one request rebuilds, the rest serve the old snapshot; a failed rebuild is tried again after this.
+const REBUILD_LEASE_SECONDS = 60;
 const PREFLIGHT_MAX_AGE_SECONDS = 86400;
 const UNKNOWN_ADDRESS = "unknown";
 
@@ -33,6 +35,7 @@ const DELETE_EXTRAS = "DELETE FROM ping_extras WHERE install_hash = ?1 AND day =
 
 const READ_SNAPSHOT = "SELECT generated, body FROM stats_snapshot WHERE id = 1";
 const WRITE_SNAPSHOT = "INSERT OR REPLACE INTO stats_snapshot (id, generated, body) VALUES (1, ?1, ?2)";
+const CLAIM_SNAPSHOT = "UPDATE stats_snapshot SET generated = ?1 WHERE id = 1 AND generated = ?2";
 
 const TOTALS = `SELECT
   (SELECT COUNT(DISTINCT install_hash) FROM pings) AS installs_total,
@@ -193,21 +196,7 @@ async function computeStats(db, now) {
   });
 }
 
-async function handleStats(request, env, now) {
-  const snapshot = await env.DB.prepare(READ_SNAPSHOT).first();
-  const age = snapshot ? (now.getTime() - Date.parse(snapshot.generated)) / 1000 : Number.NaN;
-  let body = snapshot?.body;
-  let maxAge = Math.floor(STATS_TTL_SECONDS - age);
-  if (!(age >= 0 && age < STATS_TTL_SECONDS)) {
-    const stats = await computeStats(env.DB, now);
-    body = JSON.stringify(stats);
-    maxAge = STATS_TTL_SECONDS;
-    try {
-      await env.DB.prepare(WRITE_SNAPSHOT).bind(stats.generated, body).run();
-    } catch (error) {
-      console.error("usage stats snapshot was not saved:", error?.message);
-    }
-  }
+function statsResponse(body, maxAge) {
   return new Response(body, {
     headers: {
       ...JSON_HEADERS,
@@ -215,6 +204,37 @@ async function handleStats(request, env, now) {
       "cache-control": `public, max-age=${maxAge}`,
     },
   });
+}
+
+// Moving the stale snapshot's time to a lease's end claims the rebuild: only one UPDATE matches the old time.
+async function claimRebuild(db, snapshot, now) {
+  const leaseEnd = new Date(now.getTime() - (STATS_TTL_SECONDS - REBUILD_LEASE_SECONDS) * 1000).toISOString();
+  const claimed = await db.prepare(CLAIM_SNAPSHOT).bind(leaseEnd, snapshot.generated).run();
+  return claimed.meta?.changes === 1;
+}
+
+async function handleStats(request, env, now) {
+  const snapshot = await env.DB.prepare(READ_SNAPSHOT).first();
+  const age = snapshot ? (now.getTime() - Date.parse(snapshot.generated)) / 1000 : Number.NaN;
+  if (age >= 0 && age < STATS_TTL_SECONDS) return statsResponse(snapshot.body, Math.floor(STATS_TTL_SECONDS - age));
+  let stats;
+  try {
+    if (snapshot && !(await claimRebuild(env.DB, snapshot, now))) {
+      return statsResponse(snapshot.body, REBUILD_LEASE_SECONDS);
+    }
+    stats = await computeStats(env.DB, now);
+  } catch (error) {
+    if (!snapshot) throw error;
+    console.error("usage stats were not rebuilt; the last snapshot is served:", error?.message);
+    return statsResponse(snapshot.body, REBUILD_LEASE_SECONDS);
+  }
+  const body = JSON.stringify(stats);
+  try {
+    await env.DB.prepare(WRITE_SNAPSHOT).bind(stats.generated, body).run();
+  } catch (error) {
+    console.error("usage stats snapshot was not saved:", error?.message);
+  }
+  return statsResponse(body, STATS_TTL_SECONDS);
 }
 
 function handleStatsPreflight() {

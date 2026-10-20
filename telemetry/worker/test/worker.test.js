@@ -29,7 +29,7 @@ const FIRST_SCHEMA = `CREATE TABLE pings (
   PRIMARY KEY (install_hash, day)
 )`;
 
-function d1(database) {
+function d1(database, { failing = false } = {}) {
   class Statement {
     constructor(sql, params = []) {
       this.sql = sql;
@@ -39,8 +39,8 @@ function d1(database) {
       return new Statement(this.sql, params);
     }
     async run() {
-      database.prepare(this.sql).run(...this.params);
-      return { success: true };
+      const { changes } = database.prepare(this.sql).run(...this.params);
+      return { success: true, meta: { changes: Number(changes) } };
     }
     async all() {
       return { success: true, results: database.prepare(this.sql).all(...this.params) };
@@ -49,10 +49,18 @@ function d1(database) {
       return database.prepare(this.sql).get(...this.params) ?? null;
     }
   }
-  return {
+  const db = {
+    batches: 0,
     prepare: (sql) => new Statement(sql),
-    batch: (statements) => Promise.all(statements.map((statement) => statement.all())),
+    async batch(statements) {
+      db.batches += 1;
+      // A real batch is a round trip, so concurrent requests interleave here.
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      if (failing) throw new Error("D1_ERROR: daily read limit exceeded");
+      return Promise.all(statements.map((statement) => statement.all()));
+    },
   };
+  return db;
 }
 
 // The Workers rate limiting binding's contract: limit({ key }) resolves to { success }.
@@ -423,5 +431,42 @@ describe("usage worker", () => {
     const fresh = await stats(new Date(NOW.getTime() + 61 * MINUTE));
     assert.equal(JSON.parse(fresh.text).installs_30d, 2);
     assert.equal(fresh.response.headers.get("cache-control"), "public, max-age=3600");
+  });
+
+  it("lets one of many requests after expiry rebuild while the rest get the old snapshot", async () => {
+    await send(ping(INSTALLS.a, "2026-10-17"));
+    const first = await stats();
+    await send(ping(INSTALLS.b, "2026-10-17"));
+    const before = env.DB.batches;
+    const later = new Date(NOW.getTime() + 61 * MINUTE);
+    const responses = await Promise.all(
+      Array.from({ length: 25 }, () => handle(new Request(`${BASE}/v1/stats`), env, later)),
+    );
+    assert.equal(env.DB.batches - before, 1);
+    const bodies = await Promise.all(responses.map((response) => response.text()));
+    assert.equal(bodies.filter((body) => body === first.text).length, 24);
+    assert.equal(JSON.parse(bodies.find((body) => body !== first.text)).installs_30d, 2);
+    const again = await stats(new Date(later.getTime() + MINUTE));
+    assert.equal(JSON.parse(again.text).installs_30d, 2);
+  });
+
+  it("serves the old snapshot when the rebuild fails and tries again a minute later", async () => {
+    await send(ping(INSTALLS.a, "2026-10-17"));
+    const first = await stats();
+    env = { DB: d1(sqlite, { failing: true }) };
+    const later = new Date(NOW.getTime() + 61 * MINUTE);
+    const stale = await stats(later);
+    assert.equal(stale.text, first.text);
+    assert.equal(stale.response.headers.get("cache-control"), "public, max-age=60");
+    assert.equal(env.DB.batches, 1);
+    await stats(new Date(later.getTime() + 30_000));
+    assert.equal(env.DB.batches, 1, "a second rebuild started within the minute");
+    await stats(new Date(later.getTime() + 2 * MINUTE));
+    assert.equal(env.DB.batches, 2);
+  });
+
+  it("fails without a snapshot to fall back on", async () => {
+    env = { DB: d1(sqlite, { failing: true }) };
+    await assert.rejects(handle(new Request(`${BASE}/v1/stats`), env, NOW), /read limit/);
   });
 });
