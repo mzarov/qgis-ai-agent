@@ -85,8 +85,13 @@ describe("validatePing", () => {
     for (const dialect of ["openai", "anthropic"]) validatePing(ping({ dialect }), NOW);
   });
 
-  it("accepts days up to a week either side of the server date", () => {
-    for (const day of ["2026-10-10", "2026-10-24"]) validatePing(ping({ day }), NOW);
+  it("accepts a day up to eight days back and one ahead of the server date", () => {
+    for (const day of ["2026-10-09", "2026-10-18"]) validatePing(ping({ day }), NOW);
+  });
+
+  it("accepts the week-old day of a client west of UTC", () => {
+    // 20:00 on 2026-10-16 at UTC-10: the pending 2026-10-09 is seven days old there.
+    validatePing(ping({ day: "2026-10-09" }), new Date("2026-10-17T06:00:00Z"));
   });
 
   it("accepts the limits themselves", () => {
@@ -154,7 +159,7 @@ describe("validatePing", () => {
   it("rejects days that are malformed, unreal or too far away", () => {
     for (const day of ["2026-10-7", "17.10.2026", 20261017]) rejects(ping({ day }), "YYYY-MM-DD");
     for (const day of ["2026-02-30", "2026-13-01", "2026-10-00"]) rejects(ping({ day }), "real date");
-    for (const day of ["2026-10-09", "2026-10-25", "2025-10-17"]) rejects(ping({ day }), "too far");
+    for (const day of ["2026-10-08", "2026-10-19", "2026-10-24", "2025-10-17"]) rejects(ping({ day }), "too far");
   });
 
   it("rejects malformed version strings and locales", () => {

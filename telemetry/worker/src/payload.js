@@ -2,8 +2,10 @@ export const PING_VERSIONS = [1, 2];
 export const MAX_BODY_BYTES = 4096;
 export const MAX_COUNT = 100000;
 export const MAX_MAP_KEYS = 150;
-// A client's local day may sit a day off UTC, and a day waits until QGIS next starts, up to a week.
-export const MAX_DAY_SKEW = 7;
+// A finished day waits until QGIS next starts, up to a week of the client's local days,
+// and a local date runs at most a day either side of the UTC one.
+export const MAX_DAYS_BACK = 8;
+export const MAX_DAYS_AHEAD = 1;
 export const SERIES_DAYS = 90;
 export const RECENT_DAYS = 30;
 export const SERIES_WEEKS = 13;
@@ -98,7 +100,9 @@ function reportedDay(value, now) {
   const time = dayStart(Number(match[1]), Number(match[2]), Number(match[3]));
   if (time === null) fail("day is not a real date");
   const today = dayStart(now.getUTCFullYear(), now.getUTCMonth() + 1, now.getUTCDate());
-  if (Math.abs(time - today) > MAX_DAY_SKEW * MS_PER_DAY) fail("day is too far from the current date");
+  if (time < today - MAX_DAYS_BACK * MS_PER_DAY || time > today + MAX_DAYS_AHEAD * MS_PER_DAY) {
+    fail("day is too far from the current date");
+  }
   return value;
 }
 
