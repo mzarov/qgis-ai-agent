@@ -1,3 +1,4 @@
+import math
 import warnings
 from typing import Any
 
@@ -31,6 +32,9 @@ MAX_CLASSES = 30
 DEFAULT_RAMPS = ("Viridis", "Spectral", "Blues")
 DEFAULT_AZIMUTH = 315.0
 DEFAULT_ALTITUDE = 45.0
+METRES_PER_DEGREE = 111_320.0
+# Towards the poles a degree of longitude shrinks to nothing; past this the scale stops growing.
+MAX_SCALED_LATITUDE = 80.0
 # Sampled: a large raster is not read whole on the main thread. An empty extent means all of it.
 STATISTICS_SAMPLE_CELLS = 250_000
 # Statistics on a web raster would download tiles on the main thread.
@@ -127,7 +131,24 @@ def build_hillshade(layer: Any, band: int, azimuth: Any, altitude: Any) -> Any:
     angle = _angle(azimuth, DEFAULT_AZIMUTH, "azimuth", 0.0, 360.0)
     height = _angle(altitude, DEFAULT_ALTITUDE, "altitude", 0.0, 90.0)
     renderer = QgsHillshadeRenderer(layer.dataProvider(), band, angle, height)
-    return renderer, {"azimuth": angle, "altitude": height}
+    details: dict[str, Any] = {"azimuth": angle, "altitude": height}
+    z_factor = _degree_z_factor(layer)
+    if z_factor is not None:
+        renderer.setZFactor(z_factor)
+        details["z_factor"] = z_factor
+    return renderer, details
+
+
+def _degree_z_factor(layer: Any) -> float | None:
+    # Cells in degrees under heights in metres make every slope near vertical: the relief renders near black.
+    try:
+        if not layer.crs().isGeographic():
+            return None
+        latitude = float(layer.extent().center().y())
+    except Exception:
+        return None
+    latitude = max(-MAX_SCALED_LATITUDE, min(MAX_SCALED_LATITUDE, latitude))
+    return 1.0 / (METRES_PER_DEGREE * math.cos(math.radians(latitude)))
 
 
 def checked_no_data(values: Any) -> list[float]:

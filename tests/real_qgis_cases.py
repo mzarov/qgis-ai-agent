@@ -1,4 +1,5 @@
 import json
+import math
 import pathlib
 import struct
 import tempfile
@@ -1256,6 +1257,27 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertLessEqual(image.pixelColor(1, 0).red(), 2)
         self.assertGreaterEqual(image.pixelColor(19, 19).red(), 253)
         self.assertAlmostEqual(image.pixelColor(0, 10).red(), 127, delta=2)
+
+    def test_a_hillshade_over_degrees_scales_the_heights_to_metres(self):
+        path = self.root / "dem4326.tif"
+        size = 200
+        dataset = gdal.GetDriverByName("GTiff").Create(str(path), size, size, 1, gdal.GDT_Float32)
+        dataset.SetGeoTransform((10.0, 0.001, 0, 60.2, 0, -0.001))
+        reference = osr.SpatialReference()
+        reference.ImportFromEPSG(4326)
+        dataset.SetProjection(reference.ExportToWkt())
+        distances = [math.hypot(row - 100, column - 100) for row in range(size) for column in range(size)]
+        hill = [300.0 * math.exp(-((distance / 40.0) ** 2)) for distance in distances]
+        dataset.GetRasterBand(1).WriteRaster(0, 0, size, size, struct.pack(f"{size * size}f", *hill))
+        dataset = None
+        dem = QgsRasterLayer(str(path), "dem")
+        self.assertTrue(dem.isValid())
+        self.project.addMapLayer(dem)
+        self._run("set_raster_style", layer_name="dem", mode="hillshade")
+        self.assertAlmostEqual(dem.renderer().zFactor(), 1 / (111320 * math.cos(math.radians(60.1))), delta=1e-7)
+        image = self._rendered(dem, size)
+        brightness = sorted(image.pixelColor(x, y).value() for x in range(0, size, 5) for y in range(0, size, 5))
+        self.assertGreater(brightness[len(brightness) // 10], 100, "the relief renders near black")
 
     def _rendered(self, layer, size):
         settings = QgsMapSettings()
