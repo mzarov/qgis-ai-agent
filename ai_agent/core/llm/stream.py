@@ -83,6 +83,13 @@ def _complete(pending: list[str]) -> bool:
     return True
 
 
+def _given_index(raw: dict[str, Any]) -> int | None:
+    try:
+        return int(raw["index"]) if raw.get("index") is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
 class StreamedCompletion:
     def __init__(
         self,
@@ -95,6 +102,7 @@ class StreamedCompletion:
         self._thinking_parts: list[str] = []
         self._splitter = ThinkSplitter()
         self._calls: dict[int, dict[str, Any]] = {}
+        self._moved: dict[int, int] = {}
         self._finish_reason = ""
         self._usage: dict[str, Any] = {}
         self._last_index = 0
@@ -159,20 +167,23 @@ class StreamedCompletion:
         name = str(function.get("name") or "")
         if name and slot["name"] != name:
             slot["name"] += name
-        if function.get("arguments"):
-            slot["arguments"] += str(function["arguments"])
+        arguments = function.get("arguments")
+        if isinstance(arguments, dict):
+            slot["arguments"] += json.dumps(arguments, ensure_ascii=False)
+        elif arguments:
+            slot["arguments"] += str(arguments)
 
     def _call_index(self, raw: dict[str, Any]) -> int:
-        if raw.get("index") is not None:
-            try:
-                return int(raw["index"])
-            except (TypeError, ValueError):
-                pass
-        current = self._calls.get(self._last_index)
+        given = _given_index(raw)
+        index = self._last_index if given is None else self._moved.get(given, given)
+        current = self._calls.get(index)
         new_id = str(raw.get("id") or "")
+        # Ollama numbers every parallel call 0: a new id in an occupied slot is a new call.
         if current is not None and new_id and current["id"] and current["id"] != new_id:
-            return max(self._calls) + 1
-        return self._last_index
+            index = max(self._calls) + 1
+            if given is not None:
+                self._moved[given] = index
+        return index
 
     def response(self) -> dict[str, Any]:
         visible, thought = self._splitter.flush()

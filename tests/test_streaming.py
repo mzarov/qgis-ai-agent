@@ -122,6 +122,38 @@ class StreamedCompletionTest(unittest.TestCase):
         calls = consume(chunks)["choices"][0]["message"]["tool_calls"]
         self.assertEqual([call["function"]["name"] for call in calls], ["first", "second"])
 
+    def test_whole_calls_that_share_index_zero_stay_apart(self):
+        def whole(call_id, arguments):
+            call = {"index": 0, "id": call_id, "type": "function", "function": {"name": "describe_layer"}}
+            call["function"]["arguments"] = arguments
+            return event({"choices": [{"delta": {"tool_calls": [call]}}]})
+
+        chunks = [whole("call_a", '{"layer_name": "roads"}'), whole("call_b", '{"layer_name": "rivers"}')]
+        calls = consume(chunks)["choices"][0]["message"]["tool_calls"]
+        self.assertEqual(
+            [(call["id"], call["function"]["arguments"]) for call in calls],
+            [("call_a", '{"layer_name": "roads"}'), ("call_b", '{"layer_name": "rivers"}')],
+        )
+
+    def test_a_later_delta_without_an_id_follows_its_call_to_the_new_slot(self):
+        def piece(arguments, call_id=None, name=None):
+            call = {"index": 0, "function": {"arguments": arguments}}
+            if call_id:
+                call["id"], call["function"]["name"] = call_id, name
+            return event({"choices": [{"delta": {"tool_calls": [call]}}]})
+
+        chunks = [piece('{"a": 1}', "first", "one"), piece('{"b": ', "second", "two"), piece("2}")]
+        calls = consume(chunks)["choices"][0]["message"]["tool_calls"]
+        self.assertEqual(
+            [(call["function"]["name"], call["function"]["arguments"]) for call in calls],
+            [("one", '{"a": 1}'), ("two", '{"b": 2}')],
+        )
+
+    def test_arguments_streamed_as_an_object_stay_json(self):
+        call = {"index": 0, "id": "c1", "function": {"name": "list_layers", "arguments": {"limit": 5}}}
+        turn = turns.parse_native_turn(consume([event({"choices": [{"delta": {"tool_calls": [call]}}]})]))
+        self.assertEqual(turn.tool_calls[0].arguments, {"limit": 5})
+
     def test_usage_is_carried_out_of_the_stream(self):
         data = consume(
             [text_delta("hi"), event({"choices": [], "usage": {"prompt_tokens": 7, "completion_tokens": 3}})]
