@@ -1059,6 +1059,23 @@ class GisWorkflowsTest(unittest.TestCase):
         path.write_bytes(b"")
         self.assertFalse(tool.confirm_applied(arguments, payload), "an empty file is no export")
 
+    def test_an_export_onto_a_delimited_text_source_is_refused(self):
+        folder = self.root / "my data"
+        folder.mkdir()
+        path = folder / "stations.csv"
+        path.write_text("id,name,lon,lat\n1,a,10,60\n2,b,11,61\n", encoding="utf-8")
+        query = "?delimiter=,&xField=lon&yField=lat&crs=EPSG:4326"
+        for uri in (path.as_uri() + query, f"file://{path}{query}"):
+            with self.subTest(uri=uri):
+                stations = QgsVectorLayer(uri, "stations", "delimitedtext")
+                self.assertTrue(stations.isValid())
+                self.project.addMapLayer(stations)
+                arguments = {"layer_id": stations.id(), "path": str(path), "overwrite": True}
+                with self.assertRaisesRegex(ValueError, "holds the data of layer 'stations'"):
+                    WriteBatch(ToolExecutor()).add(ToolCall("export", "export_layer", arguments))
+                self.project.removeMapLayer(stations.id())
+        self.assertIn("2,b,11,61", path.read_text(encoding="utf-8"))
+
     def test_bookmarks_are_saved_into_the_project(self):
         before = len(self.project.bookmarkManager().bookmarks())
         self._run("save_bookmark", name="centre")

@@ -7,6 +7,7 @@ from qgis.core import (
     QgsCoordinateTransform,
     QgsCoordinateTransformContext,
     QgsProject,
+    QgsProviderRegistry,
     QgsVectorFileWriter,
     QgsVectorLayer,
 )
@@ -218,6 +219,11 @@ def _refuse_a_layer_source(path: str) -> None:
 
 
 def _file_of(layer: Any) -> str:
+    # A delimited-text source is a file:// URI with a query, not a path.
+    with suppress(Exception):
+        path = QgsProviderRegistry.instance().decodeUri(layer.providerType(), layer.source()).get("path")
+        if path:
+            return str(path)
     with suppress(Exception):
         return str(layer.source() or "").split("|")[0]
     return ""
