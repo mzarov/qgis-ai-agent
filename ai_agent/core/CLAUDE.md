@@ -198,7 +198,8 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     status ≥ 500 (529 is Anthropic's overload), never on a 429 for an exhausted
     quota, and on connection failures that came back **fast**
     (under `FAST_FAILURE_SECONDS`) — a fast failure is a reset or a refusal, a
-    slow one is a timeout that would only time out again. Never after a stream
+    slow one is a timeout that would only time out again; a `ModelTimeout` is
+    never retried. Never after a stream
     has delivered chunks (the draft would be duplicated), never after the user
     cancelled (the pause polls the feedback every quarter second); streamed
     reasoning counts as delivered too. Each pause is logged to the QGIS message
@@ -206,7 +207,13 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     → `AgentLoop.retrying`) to the status line, which counts down until the feed
     moves on; it never becomes a feed message. Blocking calls wait `blocking_timeout` — five
     times the stream idle limit — because a non-streamed answer arrives only
-    when the model is done. A failure that survives the retries leaves the
+    when the model is done. QGIS aborts any reply quiet for its global network
+    timeout (60 s by default), whatever the request asked, and reports success
+    with no status: a stream raises that reply's QGIS timer past its own idle
+    limit (`network.py`), a blocking call cannot, so every model call with
+    `on_chunk` streams, tool-less and JSON-protocol ones too, and a blocking
+    answer without a status is a transport failure — a `ModelTimeout` naming the
+    QGIS setting when it came at that limit. A failure that survives the retries leaves the
     worker as a `TurnFailure` (`llm/failure_kinds.py`): the message plus its
     kind — connection, timeout, key, quota, busy, not found, setup. The loop
     keeps the kind (`failure_kind`), `explain_run_failure`

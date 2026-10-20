@@ -28,7 +28,7 @@ from ai_agent.core.settings import (
     get_verify_ssl,
 )
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.common.network import Answer, send
+from ai_agent.qgis_tools.common.network import Answer, network_timeout_s, send
 
 DEFAULT_TIMEOUT = 120
 TIMEOUT_TOLERANCE = 0.95
@@ -37,6 +37,10 @@ RETRY_AFTER_HEADER = "retry-after"
 MODEL_TIMED_OUT = tr(
     "{endpoint} did not answer within {seconds} s. The model may still be working on it; "
     "try again, or use a faster model."
+)
+QGIS_TIMED_OUT = tr(
+    "{endpoint} did not answer within {seconds} s, the QGIS network timeout. "
+    "Raise it in Settings → Options → Network → Timeout, or use a faster model."
 )
 MISSING_KEY_MSG = tr(
     "No API key. Set one in Settings — or connect to a local model: an address on localhost needs no key."
@@ -213,13 +217,22 @@ def post_json(
     text = answer.body.decode("utf-8", errors="replace")
     if answer.status >= 400:
         raise ApiResponseError(answer.status, text, retry_after=retry_after_of(answer))
-    if answer.failed:
+    # QGIS aborts a request at its own network timeout and still reports success, with no HTTP status.
+    if answer.failed or not answer.status:
         cancelled = answer.cancelled or (feedback is not None and bool(feedback.isCanceled()))
-        if not cancelled and time.monotonic() - started >= timeout * TIMEOUT_TOLERANCE:
-            raise ModelTimeout(MODEL_TIMED_OUT.format(endpoint=safe_endpoint_label(endpoint), seconds=int(timeout)))
-        reason = answer.error or tr("service unavailable")
-        raise ConnectionError(TRANSPORT_FAILED.format(endpoint=safe_endpoint_label(endpoint), reason=reason))
+        raise _transport_failure(answer, endpoint, time.monotonic() - started, timeout, cancelled)
     return _decoded(text, answer.status)
+
+
+def _transport_failure(answer: Answer, endpoint: str, elapsed: float, timeout: int, cancelled: bool) -> ConnectionError:
+    label = safe_endpoint_label(endpoint)
+    qgis_limit = network_timeout_s()
+    if not cancelled and 0 < qgis_limit < timeout and elapsed >= qgis_limit * TIMEOUT_TOLERANCE:
+        return ModelTimeout(QGIS_TIMED_OUT.format(endpoint=label, seconds=int(qgis_limit)))
+    if not cancelled and elapsed >= timeout * TIMEOUT_TOLERANCE:
+        return ModelTimeout(MODEL_TIMED_OUT.format(endpoint=label, seconds=int(timeout)))
+    reason = answer.error or tr("service unavailable")
+    return ConnectionError(TRANSPORT_FAILED.format(endpoint=label, reason=reason))
 
 
 def build_network_request(

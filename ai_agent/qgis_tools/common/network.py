@@ -8,6 +8,8 @@ from qgis.PyQt.QtNetwork import QNetworkRequest
 
 STATUS_ATTRIBUTE = QNetworkRequest.Attribute.HttpStatusCodeAttribute
 MILLISECONDS = 1000
+QGIS_TIMEOUT_TIMER = "timeoutTimer"
+QGIS_TIMER_MARGIN_MS = 1000
 
 DataHandler = Callable[[bytes, int], None]
 ProgressHandler = Callable[[int, int], None]
@@ -35,6 +37,13 @@ def send(
     if on_data is None:
         return _blocking(request, payload, feedback, on_progress)
     return _streamed(request, payload, feedback, on_data, idle_timeout_s)
+
+
+def network_timeout_s() -> float:
+    try:
+        return max(0, int(QgsNetworkAccessManager.timeout())) / MILLISECONDS
+    except (TypeError, ValueError, RuntimeError):
+        return 0.0
 
 
 def _blocking(
@@ -79,6 +88,8 @@ def _streamed(
 ) -> Answer:
     manager = _untracked(QgsNetworkAccessManager.instance())
     reply = manager.get(request) if payload is None else manager.post(request, QByteArray(payload))
+    if idle_timeout_s > 0:
+        _outlast_qgis_timeout(reply, idle_timeout_s)
     exchange = _Exchange(_untracked(reply), on_data, idle_timeout_s)
     if feedback is not None:
         feedback.canceled.connect(exchange.cancel, Qt.ConnectionType.QueuedConnection)
@@ -90,6 +101,17 @@ def _streamed(
         if feedback is not None:
             _disconnect(feedback.canceled, exchange.cancel)
     return exchange.finish()
+
+
+def _outlast_qgis_timeout(reply: Any, idle_timeout_s: float) -> None:
+    # QGIS aborts a reply quiet for its global network timeout, whatever the request asked: the idle limit governs.
+    timer = reply.findChild(QTimer, QGIS_TIMEOUT_TIMER)
+    if timer is None:
+        return
+    _untracked(timer)
+    wanted = int(idle_timeout_s * MILLISECONDS) + QGIS_TIMER_MARGIN_MS
+    if timer.interval() < wanted:
+        timer.setInterval(wanted)
 
 
 def _untracked(item: Any) -> Any:

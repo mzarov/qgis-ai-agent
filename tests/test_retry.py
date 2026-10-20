@@ -1,7 +1,7 @@
 import unittest
 
 from ai_agent.core.llm import retry, transport
-from ai_agent.core.llm.client import ApiResponseError
+from ai_agent.core.llm.client import ApiResponseError, ModelTimeout
 from ai_agent.core.llm.turns import ModelTurn
 
 
@@ -105,6 +105,12 @@ class WithRetriesTest(unittest.TestCase):
         attempt, seen = scripted(ConnectionError("timed out"), "never")
         with self.assertRaises(ConnectionError):
             retry.with_retries(attempt, sleep=self.sleep, clock=lambda: next(ticks))
+        self.assertEqual(len(seen), 1)
+
+    def test_a_timeout_is_never_retried_however_fast_it_came(self):
+        attempt, seen = scripted(ModelTimeout("did not answer within 2 s"), "never")
+        with self.assertRaises(ModelTimeout):
+            self.run_retries(attempt)
         self.assertEqual(len(seen), 1)
 
     def test_nothing_is_retried_once_chunks_reached_the_user(self):

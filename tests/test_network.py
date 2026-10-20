@@ -37,8 +37,21 @@ class _Signal:
             slot(*args)
 
 
+class _QgisTimer:
+    def __init__(self, interval):
+        self._interval = interval
+        self.destroyed = _Signal()
+        self.destroyed.connect("PyQt's deletion monitor")
+
+    def interval(self):
+        return self._interval
+
+    def setInterval(self, interval):
+        self._interval = interval
+
+
 class _Reply:
-    def __init__(self, chunks=(), status=200, error=0, headers=None, finished=False):
+    def __init__(self, chunks=(), status=200, error=0, headers=None, finished=False, qgis_timer=None):
         self.readyRead = _Signal()
         self.finished = _Signal()
         self.destroyed = _Signal()
@@ -50,6 +63,10 @@ class _Reply:
         self._finished = finished
         self.aborted = 0
         self.deleted = False
+        self.qgis_timer = qgis_timer
+
+    def findChild(self, kind, name):
+        return self.qgis_timer if name == "timeoutTimer" else None
 
     def readAll(self):
         if self.deleted:
@@ -226,6 +243,19 @@ class StreamedExchangeTest(unittest.TestCase):
     def test_a_transport_failure_is_reported_with_its_reason(self):
         answer, _, _ = self.exchange(_Reply(status=None, error=1, finished=True))
         self.assertEqual((answer.status, answer.failed, answer.error), (0, True, "Connection refused"))
+
+    def test_the_qgis_network_timeout_never_cuts_a_stream_before_its_own_idle_limit(self):
+        timer = _QgisTimer(60_000)
+        self.exchange(_Reply(finished=True, qgis_timer=timer), idle_timeout_s=120)
+        self.assertGreater(timer.interval(), 120_000)
+        self.assertEqual(timer.destroyed.slots, [], "the timer's deletion report reaches the main thread")
+
+    def test_a_longer_qgis_timeout_or_no_own_limit_leaves_the_qgis_timer_alone(self):
+        for interval, idle in ((600_000, 120), (60_000, 0)):
+            with self.subTest(interval=interval, idle=idle):
+                timer = _QgisTimer(interval)
+                self.exchange(_Reply(finished=True, qgis_timer=timer), idle_timeout_s=idle)
+                self.assertEqual(timer.interval(), interval)
 
     def test_a_get_has_no_payload(self):
         _, manager, _ = self.exchange(_Reply(finished=True), payload=None)
