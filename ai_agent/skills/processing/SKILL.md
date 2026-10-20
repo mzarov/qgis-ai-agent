@@ -1,6 +1,6 @@
 ---
 name: processing
-description: Geoprocessing and analysis — buffer, clip, intersect, dissolve, join, reproject, field calculator, heatmap, clustering, points in polygons, slope, hillshade, contours, interpolation, raster calculator; saving steps as a reusable Processing model. Load this to compute new data from existing layers.
+description: Geoprocessing and analysis — buffer, clip, intersect, dissolve, join, reproject, field calculator, heatmap, clustering, points in polygons, slope, hillshade, contours, interpolation, raster calculator; saving steps as a reusable Processing model, read from the Processing history. Load this to compute new data from existing layers.
 tools: [search_processing, describe_processing, run_processing, list_processing_history, create_processing_model]
 ---
 

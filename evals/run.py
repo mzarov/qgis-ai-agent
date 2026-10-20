@@ -25,6 +25,8 @@ KEY_VARIABLE = "EVAL_API_KEY"
 BEARER = "Bearer"
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
 MAX_CONCURRENCY = 2
+# A slow gateway answers in minutes, and a case may ask it up to four times.
+PROVIDER_TIMEOUT_MS = 30 * 60 * 1000
 MAX_TOKENS = 4096
 FAILURE_ERROR = 2
 
@@ -50,6 +52,8 @@ def write_config(suite: str, cases: Path, models: list[str], url: str, locale: s
         "max_tokens": MAX_TOKENS,
         "key_variable": "" if keyless else KEY_VARIABLE,
         "auth": auth.strip() or BEARER,
+        "timeout": PROVIDER_TIMEOUT_MS,
+        "workers": MAX_CONCURRENCY,
     }
     config = {
         "description": f"AI Agent skill evals: {suite}",
@@ -105,6 +109,7 @@ def run_suite(
         "PROMPTFOO_DISABLE_TELEMETRY": "1",
         "PROMPTFOO_DISABLE_UPDATE": "1",
         "PROMPTFOO_DISABLE_SHARING": "1",
+        "PROMPTFOO_SCHEDULER_QUEUE_TIMEOUT_MS": str(PROVIDER_TIMEOUT_MS),
         **(extra_env or {}),
     }
     subprocess.run(command, cwd=REPO, env=environment, check=False)

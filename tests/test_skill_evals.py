@@ -255,6 +255,45 @@ class ProviderTest(unittest.TestCase):
             result = provider.call_api("[]", self.options, {})
         self.assertIn("refused", result["error"])
 
+    def test_a_busy_gateway_is_retried_and_a_refusal_is_not(self):
+        attempts = []
+
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return json.dumps(model_answer()).encode()
+
+        def busy_then_fine(request, timeout):
+            attempts.append(request)
+            if len(attempts) == 1:
+                raise provider.urllib.error.HTTPError(request.full_url, 429, "Too Many Requests", {}, None)
+            if len(attempts) == 2:
+                raise ConnectionResetError(54, "Connection reset by peer")
+            return Response()
+
+        with (
+            mock.patch.object(provider.urllib.request, "urlopen", busy_then_fine),
+            mock.patch.object(provider.time, "sleep") as slept,
+        ):
+            self.assertIn("choices", provider.chat(self.options["config"], [], []))
+        self.assertEqual(len(attempts), 3)
+        self.assertEqual([call.args[0] for call in slept.call_args_list], list(provider.RETRY_DELAYS_S[:2]))
+
+        def refused(request, timeout):
+            raise provider.urllib.error.HTTPError(request.full_url, 401, "Unauthorized", {}, None)
+
+        with (
+            mock.patch.object(provider.urllib.request, "urlopen", refused),
+            mock.patch.object(provider.time, "sleep"),
+            self.assertRaises(provider.urllib.error.HTTPError),
+        ):
+            provider.chat(self.options["config"], [], [])
+
     def test_the_key_comes_from_the_environment_with_the_auth_scheme(self):
         sent = []
 

@@ -1,6 +1,8 @@
 import json
 import os
 import sys
+import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -11,6 +13,8 @@ import fixture_reads  # noqa: E402
 
 MAX_READ_ROUNDS = 3
 TIMEOUT_S = 300
+RETRY_DELAYS_S = (5, 20, 60)
+RETRIED_STATUSES = (429, 500, 502, 503, 504)
 
 
 def call_api(prompt: str, options: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
@@ -55,8 +59,18 @@ def chat(config: dict[str, Any], messages: list[dict[str, Any]], tools: list[dic
         headers["Authorization"] = f"{config.get('auth') or 'Bearer'} {key}"
     url = str(config["url"]).rstrip("/") + "/chat/completions"
     request = urllib.request.Request(url, json.dumps(body).encode("utf-8"), headers, method="POST")
-    with urllib.request.urlopen(request, timeout=TIMEOUT_S) as response:  # nosec B310
-        return json.loads(response.read().decode("utf-8"))
+    for delay in (*RETRY_DELAYS_S, None):
+        try:
+            with urllib.request.urlopen(request, timeout=TIMEOUT_S) as response:  # nosec B310
+                return json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as error:
+            if delay is None or error.code not in RETRIED_STATUSES:
+                raise
+        except OSError:
+            if delay is None:
+                raise
+        time.sleep(delay)
+    raise OSError("no answer")
 
 
 def answered(call: dict[str, Any], data: dict[str, Any]) -> Any:
