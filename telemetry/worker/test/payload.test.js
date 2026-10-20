@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 import {
   MAX_MAP_KEYS,
   MAX_VALUES_PER_FACET,
+  MIN_INSTALLS,
   PING_COLUMNS,
   PingError,
   SERIES_DAYS,
@@ -264,10 +265,10 @@ describe("shapeRetention", () => {
 describe("rankToolErrors", () => {
   it("orders tools by errors, keeps their calls and drops the ones without errors", () => {
     const ranked = rankToolErrors([
-      { tool: "inspect_project", calls: 50, errors: 0 },
-      { tool: "run_python", calls: 10, errors: 2 },
-      { tool: "download_osm", calls: 4, errors: 3 },
-      { tool: "add_layer", calls: 9, errors: 2 },
+      { tool: "inspect_project", calls: 50, errors: 0, installs: 0 },
+      { tool: "run_python", calls: 10, errors: 2, installs: MIN_INSTALLS },
+      { tool: "download_osm", calls: 4, errors: 3, installs: MIN_INSTALLS },
+      { tool: "add_layer", calls: 9, errors: 2, installs: MIN_INSTALLS },
     ]);
     assert.deepEqual(Object.entries(ranked), [
       ["download_osm", { errors: 3, calls: 4 }],
@@ -277,8 +278,21 @@ describe("rankToolErrors", () => {
   });
 
   it("caps the number of tools", () => {
-    const rows = Array.from({ length: MAX_VALUES_PER_FACET + 5 }, (_, i) => ({ tool: `t${i}`, calls: 99, errors: i + 1 }));
+    const rows = Array.from({ length: MAX_VALUES_PER_FACET + 5 }, (_, i) => ({
+      tool: `t${i}`,
+      calls: 99,
+      errors: i + 1,
+      installs: MIN_INSTALLS,
+    }));
     assert.equal(Object.keys(rankToolErrors(rows)).length, MAX_VALUES_PER_FACET);
+  });
+
+  it("drops a tool whose errors fewer than five installs reported", () => {
+    const rows = [
+      { tool: "run_python", calls: 10, errors: 2, installs: MIN_INSTALLS - 1 },
+      { tool: "add_layer", calls: 9, errors: 2 },
+    ];
+    assert.deepEqual(rankToolErrors(rows), {});
   });
 });
 
@@ -295,10 +309,10 @@ describe("fillDays", () => {
 describe("rankFacet", () => {
   it("orders values by count, then by name, within one facet", () => {
     const rows = [
-      { facet: "os", value: "linux", n: 2 },
-      { facet: "os", value: "macos", n: 5 },
-      { facet: "os", value: "windows", n: 2 },
-      { facet: "qgis", value: "4.2.1", n: 9 },
+      { facet: "os", value: "linux", n: 2, installs: MIN_INSTALLS },
+      { facet: "os", value: "macos", n: 5, installs: MIN_INSTALLS },
+      { facet: "os", value: "windows", n: 2, installs: MIN_INSTALLS },
+      { facet: "qgis", value: "4.2.1", n: 9, installs: MIN_INSTALLS },
     ];
     assert.deepEqual(Object.entries(rankFacet(rows, "os")), [
       ["macos", 5],
@@ -308,16 +322,31 @@ describe("rankFacet", () => {
   });
 
   it("caps the number of values", () => {
-    const rows = Array.from({ length: MAX_VALUES_PER_FACET + 20 }, (_, i) => ({ facet: "tools", value: `t${i}`, n: i }));
+    const rows = Array.from({ length: MAX_VALUES_PER_FACET + 20 }, (_, i) => ({
+      facet: "tools",
+      value: `t${i}`,
+      n: i,
+      installs: MIN_INSTALLS,
+    }));
     const ranked = rankFacet(rows, "tools");
     assert.equal(Object.keys(ranked).length, MAX_VALUES_PER_FACET);
     assert.equal(Object.values(ranked)[0], MAX_VALUES_PER_FACET + 19);
   });
 
   it("keeps a value named like a prototype key as data", () => {
-    const ranked = rankFacet([{ facet: "locale", value: "__proto__", n: 1 }], "locale");
+    const ranked = rankFacet([{ facet: "locale", value: "__proto__", n: 1, installs: MIN_INSTALLS }], "locale");
     assert.equal(Object.hasOwn(ranked, "__proto__"), true);
     assert.equal(JSON.stringify(ranked), '{"__proto__":1}');
+  });
+
+  it("drops a value fewer than five installs reported, however large its count", () => {
+    const rows = [
+      { facet: "skills", value: "style", n: 6, installs: MIN_INSTALLS },
+      { facet: "skills", value: "acme_parcels", n: 100000, installs: MIN_INSTALLS - 1 },
+      { facet: "skills", value: "unknown_installs", n: 7 },
+    ];
+    assert.equal(MIN_INSTALLS, 5);
+    assert.deepEqual(rankFacet(rows, "skills"), { style: 6 });
   });
 });
 
@@ -328,7 +357,7 @@ describe("shapeStats", () => {
       window: statsWindow(NOW),
       totals: { installs_total: 4, installs_30d: 2 },
       days: [],
-      facets: [{ facet: "tools", value: "inspect_project", n: 7 }],
+      facets: [{ facet: "tools", value: "inspect_project", n: 7, installs: MIN_INSTALLS }],
     });
     assert.deepEqual(Object.keys(stats), [
       "generated",

@@ -9,6 +9,8 @@ export const RECENT_DAYS = 30;
 export const SERIES_WEEKS = 13;
 export const RETENTION_DAYS = [7, 30];
 export const MAX_VALUES_PER_FACET = 100;
+// A value fewer installs reported could single one out, so it stays unpublished.
+export const MIN_INSTALLS = 5;
 
 export const OS_VALUES = ["macos", "windows", "linux", "other"];
 export const PROVIDER_VALUES = ["local", "remote"];
@@ -192,9 +194,13 @@ export function fillDays(rows, window) {
   return days;
 }
 
+function widelyReported(row) {
+  return number(row.installs) >= MIN_INSTALLS;
+}
+
 export function rankFacet(rows, facet) {
   const entries = rows
-    .filter((row) => row.facet === facet && row.value !== null && row.value !== undefined)
+    .filter((row) => row.facet === facet && row.value !== null && row.value !== undefined && widelyReported(row))
     .map((row) => [String(row.value), number(row.n)])
     .sort(([a, x], [b, y]) => y - x || (a < b ? -1 : 1))
     .slice(0, MAX_VALUES_PER_FACET);
@@ -231,6 +237,7 @@ export function shapeRetention(row) {
 
 export function rankToolErrors(rows) {
   const entries = rows
+    .filter(widelyReported)
     .map((row) => [String(row.tool), { errors: number(row.errors), calls: number(row.calls) }])
     .filter(([, counts]) => counts.errors > 0)
     .sort(([a, x], [b, y]) => y.errors - x.errors || (a < b ? -1 : 1))

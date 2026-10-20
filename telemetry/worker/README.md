@@ -41,7 +41,8 @@ days of the server's UTC date, counts from 0 to 100000, map keys matching
 last 90 days, one entry per ISO week (new and returning installs) for the last
 13, the 30-day funnel (active, set up, ran, applied), the share of installs
 still active 7 and 30 days after their first day, failed calls per tool, and
-per-value counts for the last 30 days (at most 100 values each). The document
+per-value counts for the last 30 days (at most 100 values each, and only
+values at least 5 installs reported). The document
 is rebuilt at most once an hour and kept in the `stats_snapshot` table.
 `GET /` points to the dashboard.
 

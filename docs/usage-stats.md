@@ -27,7 +27,8 @@ names are not sent either.
 
 The collector keeps a SHA-256 hash of the install id, one row per install per
 day. It stores no IP addresses and keeps no request logs. Only totals are
-published. The code is in
+published, and a value such as a version, a language or a tool name is shown
+once at least 5 installs reported it. The code is in
 [`telemetry/worker`](https://github.com/mzarov/qgis-ai-agent/tree/main/telemetry/worker).
 
 ## The numbers

@@ -43,11 +43,13 @@ const DAYS = `SELECT day, COUNT(*) AS installs, SUM(runs) AS runs, SUM(applies) 
 // One SELECT per facet (D1 refuses a long compound one); columns come from fixed lists, never a request.
 const FACETS = [
   ...DIMENSIONS.map(
-    (column) => `SELECT '${column}' AS facet, ${column} AS value, COUNT(DISTINCT install_hash) AS n
+    (column) => `SELECT '${column}' AS facet, ${column} AS value,
+        COUNT(DISTINCT install_hash) AS n, COUNT(DISTINCT install_hash) AS installs
       FROM pings WHERE day BETWEEN ?1 AND ?2 GROUP BY ${column}`,
   ),
   ...COUNTERS.map(
-    (column) => `SELECT '${column}' AS facet, entry.key AS value, SUM(entry.value) AS n
+    (column) => `SELECT '${column}' AS facet, entry.key AS value, SUM(entry.value) AS n,
+        COUNT(DISTINCT CASE WHEN entry.value > 0 THEN pings.install_hash END) AS installs
       FROM pings, json_each(pings.${column}) AS entry WHERE pings.day BETWEEN ?1 AND ?2 GROUP BY entry.key`,
   ),
 ];
@@ -80,13 +82,17 @@ const RETENTION = `SELECT ${RETENTION_DAYS.map(
   FROM (SELECT MIN(day) AS first_day, MAX(day) AS last_day FROM pings GROUP BY install_hash)`;
 
 // Only v2 rows report errors, so only their calls count towards the rate.
-const TOOL_ERRORS = `SELECT entry.key AS tool, SUM(entry.value) AS calls,
-    SUM(COALESCE(json_extract(extra.tool_errors, '$.' || entry.key), 0)) AS errors
-  FROM pings AS ping
-    JOIN ping_extras AS extra USING (install_hash, day)
-    JOIN json_each(ping.tools) AS entry
-  WHERE ping.day BETWEEN ?1 AND ?2
-  GROUP BY entry.key`;
+const TOOL_ERRORS = `WITH calls AS (
+    SELECT ping.install_hash, entry.key AS tool, entry.value AS calls,
+      COALESCE(json_extract(extra.tool_errors, '$.' || entry.key), 0) AS errors
+    FROM pings AS ping
+      JOIN ping_extras AS extra USING (install_hash, day)
+      JOIN json_each(ping.tools) AS entry
+    WHERE ping.day BETWEEN ?1 AND ?2
+  )
+  SELECT tool, SUM(calls) AS calls, SUM(errors) AS errors,
+    COUNT(DISTINCT CASE WHEN errors > 0 THEN install_hash END) AS installs
+  FROM calls GROUP BY tool`;
 
 function json(status, body, headers = {}) {
   return new Response(JSON.stringify(body), { status, headers: { ...JSON_HEADERS, ...headers } });
