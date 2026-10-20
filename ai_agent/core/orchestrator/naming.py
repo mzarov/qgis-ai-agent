@@ -5,9 +5,15 @@ from ai_agent.core.state.conversation import ConversationState
 
 
 class SessionNaming:
-    def __init__(self, conversation: Callable[[], ConversationState], renamed: Callable[[], None] = lambda: None):
+    def __init__(
+        self,
+        conversation: Callable[[], ConversationState],
+        renamed: Callable[[], None] = lambda: None,
+        consented: Callable[[], bool] = lambda: True,
+    ):
         self._conversation = conversation
         self._renamed = renamed
+        self._consented = consented
         self._titler = Titler()
         self._titler.finished.connect(self._on_named)
         self._asked: set[str] = set()
@@ -16,7 +22,7 @@ class SessionNaming:
     def after_answer(self) -> None:
         conversation = self._conversation()
         identifier = conversation.session_identifier
-        if conversation.named or identifier in self._asked or self._titler.is_running:
+        if conversation.named or identifier in self._asked or self._titler.is_running or not self._consented():
             return
         request = next((m["content"] for m in conversation.messages if m["role"] == "user"), "")
         answer = next((m["content"] for m in conversation.messages if m["role"] == "assistant"), "")

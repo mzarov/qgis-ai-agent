@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from ai_agent.core.orchestrator import notices
+from ai_agent.core.orchestrator import notices, plans
 from ai_agent.core.orchestrator import orchestrator as orchestrator_module
 from ai_agent.core.orchestrator.orchestrator import CoreOrchestrator
 from ai_agent.core.state.conversation import ConversationState
@@ -109,6 +109,79 @@ class RequestGuardsTest(OrchestratorCase):
         self.assertIsNone(self.agent.answered)
         self.assertEqual(self.messages, [])
         self.assertIn(notices.DATA_SHARING_DECLINED, self.dock.system)
+
+
+class ConsentOnEverySendTest(OrchestratorCase):
+    REMOTE = "https://new-provider.example/v1"
+
+    def setUp(self):
+        super().setUp()
+        self.asked = []
+        self.dock.confirm_data_sharing = lambda endpoint: self.asked.append(endpoint) or False
+        self.url = "http://localhost:11434/v1"
+        for patch in (
+            mock.patch.object(orchestrator_module, "_is_configured", return_value=True),
+            mock.patch.object(orchestrator_module, "get_data_sharing_consent", return_value=False),
+            mock.patch.object(orchestrator_module, "set_data_sharing_consent"),
+            mock.patch.object(orchestrator_module, "get_api_url", side_effect=lambda: self.url),
+        ):
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def refused(self):
+        self.assertEqual(self.asked, ["https://new-provider.example"])
+        self.assertIn(notices.DATA_SHARING_DECLINED, self.dock.system)
+
+    def test_retry_after_switching_to_a_remote_provider_asks_first(self):
+        self.orchestrator.on_prompt("Colour the rivers")
+        self.orchestrator.on_failed("HTTP 401")
+        self.agent.started = None
+        self.url = self.REMOTE
+        self.orchestrator.on_retry()
+        self.refused()
+        self.assertIsNone(self.agent.started)
+
+    def test_compacting_by_hand_for_a_remote_provider_asks_first(self):
+        self.orchestrator.on_prompt("Colour the rivers")
+        self.orchestrator.on_finished("Done.")
+        self.url = self.REMOTE
+        self.orchestrator.on_compact()
+        self.refused()
+        self.compaction.start.assert_not_called()
+
+    def test_running_the_plan_for_a_remote_provider_asks_first(self):
+        self.orchestrator.on_prompt("Plan the buffers")
+        self.orchestrator.on_finished("1. Buffer 2. Style")
+        self.agent.started = None
+        self.url = self.REMOTE
+        self.orchestrator.on_run_plan("ask")
+        self.refused()
+        self.assertIsNone(self.agent.started)
+
+    def test_the_check_after_apply_for_a_remote_provider_asks_first(self):
+        self.orchestrator.on_prompt("Colour the rivers")
+        self.orchestrator.on_finished("Queued.")
+        self.url = self.REMOTE
+        start = mock.Mock(prompt="check", round=1, preload=[])
+        with (
+            mock.patch.object(plans, "get_verify_after_apply", return_value=True),
+            mock.patch.object(plans, "confirmed_by_reading", return_value=False),
+            mock.patch.object(plans, "plan_verification", return_value=start),
+        ):
+            self.orchestrator.on_applied([Result()])
+        self.refused()
+        self.assertIsNone(self.agent.verification_started)
+
+    def test_a_conversation_is_named_only_by_a_provider_it_may_reach(self):
+        titler = self.orchestrator.naming._titler = mock.MagicMock(is_running=False)
+        self.orchestrator.on_prompt("Colour the rivers")
+        self.url = self.REMOTE
+        self.orchestrator.on_finished("Done.")
+        titler.start.assert_not_called()
+        self.assertEqual(self.asked, [])
+        self.url = "http://localhost:11434/v1"
+        self.orchestrator.naming.after_answer()
+        titler.start.assert_called_once_with("Colour the rivers", "Done.")
 
 
 class RetryAndCompactTest(OrchestratorCase):

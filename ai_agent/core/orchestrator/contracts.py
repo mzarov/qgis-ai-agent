@@ -154,6 +154,8 @@ class OrchestratorHost:
 
         def _push_message(self, text: str, level: Any) -> None: ...
 
+        def _confirm_first_send(self, endpoint: str | None = None) -> bool: ...
+
         def _start_run(
             self,
             shown: str,

@@ -65,7 +65,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self._deferred_interrupted_outcome = ""
         self._last_request = ""
         self.compaction = SessionCompaction(self.dock_widget, lambda: self.conversation)
-        self.naming = SessionNaming(lambda: self.conversation, self._show_title)
+        self.naming = SessionNaming(lambda: self.conversation, self._show_title, lambda: _consented(get_api_url()))
         self.usage = UsageStats()
         self._connect_agent()
         self.usage.flush()
@@ -213,7 +213,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         if not self.is_idle:
             self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
             return
-        if self._retry_args is None:
+        if self._retry_args is None or not self._confirm_first_send():
             return
         shown, prompt, request, skills, images, planning = self._retry_args
         self.dock_widget.clear_prompt()
@@ -256,6 +256,8 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         if not self.is_idle:
             self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
             return
+        if not self._confirm_first_send():
+            return
         self.dock_widget.begin_work()
         self.compaction.start()
 
@@ -270,7 +272,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         if not _is_configured():
             return True
         url = (endpoint if endpoint is not None else get_api_url() or "").strip()
-        if not url or is_local(url) or get_data_sharing_consent(url):
+        if _consented(url):
             return True
         if not self.dock_widget.confirm_data_sharing(safe_endpoint_label(url)):
             self.dock_widget.add_system_message(DATA_SHARING_DECLINED)
@@ -318,3 +320,8 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
 
 def _is_configured() -> bool:
     return is_configured()
+
+
+def _consented(url: str | None) -> bool:
+    clean = (url or "").strip()
+    return not clean or is_local(clean) or get_data_sharing_consent(clean)
