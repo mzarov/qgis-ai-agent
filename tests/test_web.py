@@ -8,6 +8,7 @@ from unittest import mock
 from ai_agent.core.agent.transcript import ToolResult, Transcript
 from ai_agent.core.llm.turns import ToolCall
 from ai_agent.core.settings import GEOCODER_NOMINATIM, GEOCODER_PHOTON
+from ai_agent.qgis_tools.osm.extent import parse_bbox
 from ai_agent.qgis_tools.web import geocode as geocode_module
 from ai_agent.qgis_tools.web import http as http_module
 from ai_agent.qgis_tools.web import request as request_module
@@ -41,7 +42,7 @@ PHOTON = """{"features": [{
   "geometry": {"coordinates": [38.1305, 44.5052]},
   "properties": {
     "name": "Дивноморское", "state": "Краснодарский край", "country": "Россия",
-    "osm_key": "place", "osm_value": "village", "extent": [38.11, 44.49, 38.15, 44.52]
+    "osm_key": "place", "osm_value": "village", "extent": [38.11, 44.52, 38.15, 44.49]
   }
 }]}"""
 
@@ -840,6 +841,19 @@ class GeocodeParseTest(unittest.TestCase):
         self.assertEqual(match["lat"], 44.5052)
         self.assertEqual(match["bbox"], "38.11,44.49,38.15,44.52")
         self.assertEqual(match["type"], "place/village")
+
+    def test_photon_extent_runs_west_north_east_south_and_feeds_a_bbox(self):
+        berlin = {
+            "features": [
+                {
+                    "geometry": {"coordinates": [13.3951309, 52.5173885]},
+                    "properties": {"name": "Berlin", "extent": [13.088345, 52.6755087, 13.7611609, 52.3382448]},
+                }
+            ]
+        }
+        match = parse_matches(json.dumps(berlin), GEOCODER_PHOTON)[0]
+        self.assertEqual(match["bbox"], "13.088345,52.338245,13.761161,52.675509")
+        self.assertEqual(parse_bbox(match["bbox"]), (13.088345, 52.338245, 13.761161, 52.675509))
 
     def test_schema_exposes_only_the_place_to_the_model(self):
         parameters = GeocodeTool().get_openai_schema()["function"]["parameters"]
