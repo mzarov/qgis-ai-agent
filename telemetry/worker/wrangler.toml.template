@@ -3,7 +3,10 @@
 name = "ai-agent-usage"
 main = "src/index.js"
 compatibility_date = "2026-09-01"
+# The dashboard reads the workers.dev address; no per-version preview address
+# may keep an older Worker reachable.
 workers_dev = true
+preview_urls = false
 
 [[d1_databases]]
 binding = "DB"

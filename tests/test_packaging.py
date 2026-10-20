@@ -26,6 +26,7 @@ REQUIRED_METADATA_KEYS = (
     "author",
     "email",
     "repository",
+    "tracker",
 )
 
 

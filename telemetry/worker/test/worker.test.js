@@ -129,9 +129,12 @@ describe("usage worker", () => {
     sqlite.exec(SCHEMA);
   });
 
-  it("binds the ping limiter the code reads", () => {
+  it("binds the ping limiter the code reads and serves only the current version", () => {
     const template = readFileSync(new URL("../wrangler.toml.template", import.meta.url), "utf8");
     assert.match(template, /\[\[ratelimits\]\]\nname = "PING_LIMITER"\n/);
+    // The dashboard reads the workers.dev address; per-version preview addresses would keep old code reachable.
+    assert.match(template, /^workers_dev = true$/m);
+    assert.match(template, /^preview_urls = false$/m);
   });
 
   it("adds the v2 table to the first database without touching its rows", async () => {
