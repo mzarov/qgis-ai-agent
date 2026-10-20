@@ -11,7 +11,7 @@ from typing import Any
 from unittest import mock
 
 from e2e_harness import PluginCase, pump
-from qgis.PyQt.QtCore import QEvent, QObject, QPoint, QPointF, Qt, QUrl, pyqtSlot
+from qgis.PyQt.QtCore import QEvent, QObject, QPoint, QPointF, Qt, QUrl, QVariantAnimation, pyqtSlot
 from qgis.PyQt.QtGui import (
     QColor,
     QDesktopServices,
@@ -27,7 +27,7 @@ from qgis.PyQt.QtWidgets import QApplication, QLabel, QLineEdit, QScrollBar, QTe
 from ai_agent.config import personal
 from ai_agent.core.orchestrator.notices import STATUS_DONE
 from ai_agent.ui import compass, controls, progress, settings_fields, style
-from ai_agent.ui.activity import ActivityGroup
+from ai_agent.ui.activity import ActivityGroup, PulseRing
 from ai_agent.ui.chart import ChartCard
 from ai_agent.ui.composer_parts import LAYER_TOKEN, SKILL_TOKEN
 from ai_agent.ui.connection_widgets import STATE_BAD, StatusCard
@@ -975,3 +975,49 @@ class PlainTextTest(PluginCase):
             tip = tip_at(card, box.center())
             QToolTip.hideText()
             self.assertIn(PAYLOAD, shown(tip), f"{type(card).__name__} tip {tip!r}")
+
+
+class CompactionStepTest(PluginCase):
+    api_url = "http://localhost:11434/v1"
+    model_name = "qwen3"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.compaction = self.orchestrator.compaction
+        self.compaction._compactor = mock.MagicMock()
+        self.orchestrator.conversation.add("user", "Colour districts by pop2020")
+        self.orchestrator.conversation.add("assistant", "Districts are coloured.")
+        self.assertTrue(self.compaction.start())
+        self.assertEqual(len(self._breathing()), 1)
+
+    def _breathing(self) -> list[PulseRing]:
+        rings = self.dock.conversation.widget().findChildren(PulseRing)
+        return [ring for ring in rings if ring._breath.state() == QVariantAnimation.State.Running]
+
+    def test_a_finished_compaction_settles_its_step(self) -> None:
+        self.compaction._on_finished("The user coloured districts.", 10, 10)
+        self.assertEqual(self._breathing(), [])
+
+    def test_a_failed_compaction_settles_its_step(self) -> None:
+        self.compaction._on_failed("HTTP 500")
+        self.assertEqual(self._breathing(), [])
+
+    def test_a_stopped_compaction_settles_its_step(self) -> None:
+        self.orchestrator.on_stop()
+        self.assertEqual(self._breathing(), [])
+
+    def test_a_compaction_for_a_conversation_left_settles_its_step(self) -> None:
+        self.orchestrator.conversation.start_new()
+        self.compaction._on_finished("The user coloured districts.", 10, 10)
+        self.assertEqual(self._breathing(), [])
+
+
+class RestingTraceTest(unittest.TestCase):
+    def test_a_trace_put_to_rest_stops_its_rings(self) -> None:
+        view = ConversationView()
+        view.add_activity_step("Reading layer 'districts'")
+        view.add_system_message("Run stopped.")
+        rings = view.widget().findChildren(PulseRing)
+        self.assertEqual(len(rings), 1)
+        self.assertNotEqual(rings[0]._breath.state(), QVariantAnimation.State.Running)
+        view.deleteLater()
