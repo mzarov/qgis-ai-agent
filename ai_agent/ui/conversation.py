@@ -384,6 +384,10 @@ class ConversationView(QScrollArea):
         self._pending_choice = text
         self.question_answered.emit(text)
 
+    def hold_questions(self) -> None:
+        for card in self._questions:
+            card.stop_countdown()
+
     def _retire_questions(self) -> None:
         for card in self._questions:
             card.retire()

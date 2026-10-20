@@ -56,6 +56,7 @@ class Composer(QWidget):
     new_requested = pyqtSignal()
     place_requested = pyqtSignal(str)
     place_cancelled = pyqtSignal()
+    drafting = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -215,6 +216,8 @@ class Composer(QWidget):
 
     def _on_text_changed(self) -> None:
         self._grow()
+        if self._edit.toPlainText().strip():
+            self.drafting.emit()
         self._sync_popup()
 
     def _on_cursor_moved(self) -> None:

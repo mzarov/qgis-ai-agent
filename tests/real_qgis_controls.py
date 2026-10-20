@@ -34,6 +34,7 @@ from ai_agent.ui.connection_widgets import STATE_BAD, StatusCard
 from ai_agent.ui.conversation import ConversationView
 from ai_agent.ui.dropdown import Dropdown
 from ai_agent.ui.messages import AssistantMessage, SystemMessage
+from ai_agent.ui.question import QuestionCard
 from ai_agent.ui.settings_dialog import SettingsDialog
 from ai_agent.ui.table_card import TableCard
 from ai_agent.ui.thinking import ThinkingBlock
@@ -831,6 +832,19 @@ class ComposerBehaviourTest(PluginCase):
         self.assertEqual((edit.toPlainText(), sent), ("show me @ro", ["show me @ro"]))
         composer._insert_layer("roads")
         self.assertEqual(edit.toPlainText(), "show me @ro", "a choice away from the mention rewrote the text")
+
+    def test_typing_a_reply_holds_the_auto_answer(self) -> None:
+        load = personal.load
+        with mock.patch.object(personal, "load", lambda: dataclasses.replace(load(), auto_answer=1)):
+            self.dock.add_question("Which layer should I buffer?", ["roads — the main network", "rivers"])
+        card = self.dock.conversation.widget().findChildren(QuestionCard)[-1]
+        answers: list[str] = []
+        card.answered.connect(answers.append)
+        self.dock.prompt_submitted.disconnect()
+        self.dock.composer._edit.insertPlainText("neither, use the rail")
+        pump(1.5)
+        self.assertEqual(answers, [], "the card answered while the user typed a reply")
+        self.assertTrue(card.countdown.isHidden())
 
 
 class AnswerSafetyTest(unittest.TestCase):
