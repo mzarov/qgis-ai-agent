@@ -880,6 +880,21 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual([(group["group"], group["count"]) for group in grouped], [(2, 1)])
         self.assertEqual(query(aggregate="count", filter="n = 3")["value"], 0)
 
+    def _counts(self):
+        pairs = ((1, "a"), (None, "a"), (3, "a"), (None, "b"), (5, "b"))
+        rows = [("POINT (0 0)", [value, kind]) for value, kind in pairs]
+        return self._memory("Point?crs=EPSG:3857&field=n:integer&field=kind:string", "counts", rows)
+
+    def test_a_count_of_an_expression_skips_its_nulls(self):
+        self._counts()
+        query = get_tool_by_name("query_layer")
+        self.assertEqual(query.execute({"layer_name": "counts", "aggregate": "count", "expression": "n"})["value"], 3)
+        filtered = {"layer_name": "counts", "aggregate": "count", "expression": "n", "filter": "kind = 'a'"}
+        self.assertEqual(query.execute(filtered)["value"], 2)
+        grouped = query.execute({"layer_name": "counts", "aggregate": "count", "expression": "n", "group_by": "kind"})
+        self.assertEqual([(group["group"], group["value"]) for group in grouped["groups"]], [("a", 2), ("b", 1)])
+        self.assertEqual(query.execute({"layer_name": "counts", "aggregate": "count"})["value"], 5)
+
     def test_a_chart_past_the_feature_cap_says_it_is_partial(self):
         rows = [("POINT (0 0)", ["a"]), ("POINT (1 0)", ["a"]), ("POINT (2 0)", ["b"])]
         self._memory("Point?crs=EPSG:3857&field=kind:string", "kinds", rows)
