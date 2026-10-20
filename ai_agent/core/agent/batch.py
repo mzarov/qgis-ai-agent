@@ -113,6 +113,7 @@ class WriteBatch:
             self._run.detach()
         self._calls = []
         self._stop_applying()
+        self._cancel_requested = True
 
     def _stop_applying(self) -> None:
         self._executing_call = None
