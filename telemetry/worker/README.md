@@ -15,6 +15,10 @@ a row to `ping_extras`: whether a model is set up and the failed calls per
 tool. It stores no IP addresses and keeps no request logs. A resend for the
 same install and day replaces the rows.
 
+The `PING_LIMITER` rate limiting binding (`wrangler.toml.template`) allows 5
+pings a minute per `CF-Connecting-IP`; the address keys the limiter's counter
+and nothing else. Without the binding, as in the tests, pings are not limited.
+
 ## API
 
 `POST /v1/ping` takes one JSON body of at most 4096 bytes:
@@ -33,8 +37,9 @@ versions are accepted.
 
 `src/payload.js` validates it strictly: no unknown fields, `day` within seven
 days of the server's UTC date, counts from 0 to 100000, map keys matching
-`^[a-z][a-z0-9_]{0,48}$`, at most 150 per map. It answers `204`, or `400`,
-`413` or `415` for a bad body, size or content type.
+`^[a-z][a-z0-9_]{0,48}$`, at most 150 per map, no more errors for a tool than
+calls of it. It answers `204`, or `400`, `413` or `415` for a bad body, size or
+content type, and `429` to an address over its limit.
 
 `GET /v1/stats` returns the public aggregates with
 `Access-Control-Allow-Origin: *`: install totals, one entry per day for the

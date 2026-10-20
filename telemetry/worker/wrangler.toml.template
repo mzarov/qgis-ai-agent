@@ -10,6 +10,13 @@ binding = "DB"
 database_name = "ai-agent-usage"
 database_id = "__DATABASE_ID__"
 
+# Pings per client address and minute. The limiter keeps short-lived counters
+# only; the address is never stored. namespace_id must be unique in the account.
+[[ratelimits]]
+name = "PING_LIMITER"
+namespace_id = "7401"
+simple = { limit = 5, period = 60 }
+
 # No request logs are kept: the pings are the only record.
 [observability]
 enabled = false

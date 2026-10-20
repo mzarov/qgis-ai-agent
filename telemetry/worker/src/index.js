@@ -20,6 +20,7 @@ const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "x-con
 // Snapshot in D1: the Cache API is a no-op on workers.dev, and rescans would eat the free read quota.
 const STATS_TTL_SECONDS = 3600;
 const PREFLIGHT_MAX_AGE_SECONDS = 86400;
+const UNKNOWN_ADDRESS = "unknown";
 
 const INSERT_PING = `INSERT OR REPLACE INTO pings (${PING_COLUMNS.join(", ")})
   VALUES (${PING_COLUMNS.map(() => "?").join(", ")})`;
@@ -131,7 +132,16 @@ async function readBody(request, limit) {
   return bytes;
 }
 
+// The address only picks the limiter's counter: it is never stored or logged. Local runs have no limiter.
+async function overLimit(request, env) {
+  if (!env.PING_LIMITER) return false;
+  const key = request.headers.get("cf-connecting-ip") || UNKNOWN_ADDRESS;
+  const { success } = await env.PING_LIMITER.limit({ key });
+  return !success;
+}
+
 async function handlePing(request, env, now) {
+  if (await overLimit(request, env)) return jsonError(429, "too many pings from this address; try later");
   if (!isJsonType(request.headers.get("content-type"))) {
     return jsonError(415, "content type must be application/json");
   }

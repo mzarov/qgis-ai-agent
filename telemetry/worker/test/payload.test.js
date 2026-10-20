@@ -137,6 +137,14 @@ describe("validatePing", () => {
     rejects(ping({ v: 2, configured: true, url: "http://localhost" }), "unknown field");
   });
 
+  it("rejects more errors for a tool than calls of it", () => {
+    const v2 = { v: 2, configured: true, tools: { run_python: 2 } };
+    validatePing(ping({ ...v2, tool_errors: { run_python: 2 } }), NOW);
+    rejects(ping({ ...v2, tool_errors: { run_python: 3 } }), "tool_errors.run_python is more than its calls");
+    rejects(ping({ ...v2, tool_errors: { inspect_project: 1 } }), "tool_errors.inspect_project is more than its calls");
+    validatePing(ping({ ...v2, tool_errors: { inspect_project: 0 } }), NOW);
+  });
+
   it("rejects an install that is not a UUID", () => {
     for (const install of ["install-1", INSTALL.replaceAll("-", ""), `${INSTALL}0`, 42]) {
       rejects(ping({ install }), "install");
@@ -208,7 +216,7 @@ describe("pingRow", () => {
 describe("extrasRow", () => {
   it("stores the v2 flag as a number and the errors as JSON", async () => {
     const hash = await hashInstall(INSTALL);
-    const body = ping({ v: 2, configured: true, tool_errors: { b_tool: 1, a_tool: 2 } });
+    const body = ping({ v: 2, configured: true, tools: { a_tool: 2, b_tool: 1 }, tool_errors: { b_tool: 1, a_tool: 2 } });
     assert.deepEqual(extrasRow(validatePing(body, NOW), hash), [hash, "2026-10-17", 1, '{"a_tool":2,"b_tool":1}']);
   });
 });

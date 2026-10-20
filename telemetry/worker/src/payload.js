@@ -118,7 +118,7 @@ export function validatePing(body, now = new Date()) {
   for (const key of fields.required) {
     if (!Object.hasOwn(body, key)) fail(`missing field ${key}`);
   }
-  return {
+  const ping = {
     version: body.v,
     install: matching("install", body.install, UUID).toLowerCase(),
     day: reportedDay(body.day, now),
@@ -136,6 +136,10 @@ export function validatePing(body, now = new Date()) {
     configured: body.v >= 2 ? flag("configured", body.configured) : null,
     tool_errors: counts("tool_errors", body.tool_errors),
   };
+  for (const [tool, errors] of Object.entries(ping.tool_errors)) {
+    if (errors > (ping.tools[tool] ?? 0)) fail(`tool_errors.${tool} is more than its calls`);
+  }
+  return ping;
 }
 
 // SHA-256 hex of the install id: the only form of it that is ever stored.

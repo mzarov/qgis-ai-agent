@@ -55,6 +55,18 @@ function d1(database) {
   };
 }
 
+// The Workers rate limiting binding's contract: limit({ key }) resolves to { success }.
+function rateLimiter(allowed) {
+  const keys = [];
+  return {
+    keys,
+    async limit({ key }) {
+      keys.push(key);
+      return { success: keys.filter((seen) => seen === key).length <= allowed };
+    },
+  };
+}
+
 function ping(install, day, overrides = {}) {
   return {
     v: 1,
@@ -109,6 +121,11 @@ describe("usage worker", () => {
     sqlite.exec(SCHEMA);
   });
 
+  it("binds the ping limiter the code reads", () => {
+    const template = readFileSync(new URL("../wrangler.toml.template", import.meta.url), "utf8");
+    assert.match(template, /\[\[ratelimits\]\]\nname = "PING_LIMITER"\n/);
+  });
+
   it("adds the v2 table to the first database without touching its rows", async () => {
     sqlite = new DatabaseSync(":memory:");
     sqlite.exec(FIRST_SCHEMA);
@@ -127,7 +144,9 @@ describe("usage worker", () => {
   });
 
   it("stores the v2 fields beside the ping and none for a v1 ping", async () => {
-    await send(ping2(INSTALLS.a, "2026-10-17", { configured: false, tool_errors: { run_python: 2 } }));
+    await send(
+      ping2(INSTALLS.a, "2026-10-17", { configured: false, tools: { run_python: 2 }, tool_errors: { run_python: 2 } }),
+    );
     await send(ping(INSTALLS.b, "2026-10-17"));
     const extras = sqlite.prepare("SELECT * FROM ping_extras").all();
     assert.deepEqual(
@@ -138,9 +157,30 @@ describe("usage worker", () => {
   });
 
   it("drops the v2 fields when a v1 ping replaces the day", async () => {
-    await send(ping2(INSTALLS.a, "2026-10-17", { tool_errors: { run_python: 1 } }));
+    await send(ping2(INSTALLS.a, "2026-10-17", { tools: { run_python: 1 }, tool_errors: { run_python: 1 } }));
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM ping_extras").get().n, 1);
     await send(ping(INSTALLS.a, "2026-10-17"));
     assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM ping_extras").get().n, 0);
+  });
+
+  it("answers 429 to an address over its ping limit and stores the address nowhere", async () => {
+    const limiter = rateLimiter(2);
+    env = { ...env, PING_LIMITER: limiter };
+    const from = (address, install) =>
+      handle(post(ping(install, "2026-10-17"), { "content-type": "application/json", "cf-connecting-ip": address }), env, NOW);
+    assert.equal((await from("203.0.113.7", INSTALLS.a)).status, 204);
+    assert.equal((await from("203.0.113.7", INSTALLS.b)).status, 204);
+    const limited = await from("203.0.113.7", INSTALLS.c);
+    assert.equal(limited.status, 429);
+    assert.match((await limited.json()).error, /too many/);
+    assert.equal((await from("198.51.100.2", INSTALLS.d)).status, 204);
+    assert.deepEqual(limiter.keys, ["203.0.113.7", "203.0.113.7", "203.0.113.7", "198.51.100.2"]);
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM pings").get().n, 3);
+    const stored = JSON.stringify([
+      sqlite.prepare("SELECT * FROM pings").all(),
+      sqlite.prepare("SELECT * FROM ping_extras").all(),
+    ]);
+    assert.doesNotMatch(stored, /203\.0\.113|198\.51\.100/);
   });
 
   it("counts the funnel, the weeks, retention and tool errors from the stored days", async () => {

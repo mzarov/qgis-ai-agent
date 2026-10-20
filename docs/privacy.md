@@ -107,9 +107,10 @@ failures, the plugin and QGIS versions, the OS family, the interface language,
 whether a model is set up, and whether it is local or remote and which API
 format it uses. A day QGIS loaded the plugin counts as active even with no
 run. A random install id tells installs apart; the collector stores only its
-hash. Your requests, answers, layer names, values, places, file paths, keys,
-model addresses and model names are never sent. The totals are public on the
-[usage statistics](usage-stats.md) page.
+hash. Your IP address is used only to limit how many reports one address can
+send a minute and is never stored. Your requests, answers, layer names,
+values, places, file paths, keys, model addresses and model names are never
+sent. The totals are public on the [usage statistics](usage-stats.md) page.
 
 ## Sensitive projects
 
