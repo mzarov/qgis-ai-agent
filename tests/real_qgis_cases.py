@@ -19,9 +19,11 @@ from qgis.core import (
     QgsCoordinateTransformContext,
     QgsFeature,
     QgsGeometry,
+    QgsLayoutSize,
     QgsMapRendererSequentialJob,
     QgsMapSettings,
     QgsPointXY,
+    QgsPrintLayout,
     QgsProcessingContext,
     QgsProject,
     QgsRasterLayer,
@@ -1513,6 +1515,25 @@ class GisWorkflowsTest(unittest.TestCase):
         self._run("export_layout", layout_name="Sheet", path=str(path))
         self.assertTrue(path.read_bytes().startswith(b"%PDF-"))
         self.assertGreater(path.stat().st_size, 1000)
+
+    def test_a_layout_in_inches_and_a_moved_item_read_in_millimetres(self):
+        layout = QgsPrintLayout(self.project)
+        layout.initializeDefaults()
+        layout.setName("inch sheet")
+        layout.pageCollection().page(0).setPageSize(QgsLayoutSize(11, 17, Qgis.LayoutUnit.Inches))
+        self.project.layoutManager().addLayout(layout)
+        listed = get_tool_by_name("list_layouts").execute({})["layouts"]
+        self.assertEqual(listed[0]["page_mm"], [279.4, 431.8])
+        label = {"item_type": "label", "x": 20, "y": 20, "properties": {"text": "Title"}}
+        self._run("add_layout_item", layout_name="inch sheet", **label)
+        self._run("create_layout", name="sheet", page="a4")
+        frame = {"x": 20, "y": 20, "width": 180, "height": 120}
+        self._run("add_layout_item", layout_name="sheet", item_type="map", id="main", **frame)
+        for x in (20, 25, 20):
+            self._run("configure_layout_item", layout_name="sheet", item_id="main", x=x)
+        items = get_tool_by_name("describe_layout").execute({"layout_name": "sheet"})["items"]
+        main = next(item for item in items if item["id"] == "main")
+        self.assertEqual((main["x"], main["y"], main["width"], main["height"]), (20.0, 20.0, 180.0, 120.0))
 
     def test_two_unnamed_labels_in_one_batch_both_land_on_the_layout(self):
         self._run("create_layout", name="Sheet", page="a4", orientation="landscape")

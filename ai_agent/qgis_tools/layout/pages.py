@@ -1,6 +1,6 @@
 from typing import Any
 
-from qgis.core import QgsProject
+from qgis.core import Qgis, QgsProject
 
 PAGE_SIZES_MM = {
     "a5": (148.0, 210.0),
@@ -14,6 +14,8 @@ LANDSCAPE = "landscape"
 ORIENTATIONS = (PORTRAIT, LANDSCAPE)
 DEFAULT_PAGE = "a4"
 DEFAULT_ORIENTATION = LANDSCAPE
+MM = Qgis.LayoutUnit.Millimeters
+MM_DECIMALS = 1
 
 
 def layout_manager() -> Any:
@@ -52,7 +54,14 @@ def page_size_mm(page: str, orientation: str) -> tuple[float, float]:
 
 def current_page_mm(layout: Any) -> tuple[float, float]:
     try:
-        size = layout.pageCollection().page(0).pageSize()
-        return float(size.width()), float(size.height())
+        size = in_mm(layout, layout.pageCollection().page(0).pageSize())
+        return round(float(size.width()), MM_DECIMALS), round(float(size.height()), MM_DECIMALS)
     except Exception:
         return PAGE_SIZES_MM[DEFAULT_PAGE]
+
+
+def in_mm(layout: Any, measured: Any) -> Any:
+    # A size or a position keeps the unit it was made in: a Letter page from the QGIS UI is in inches.
+    if measured.units() == MM:
+        return measured
+    return layout.renderContext().measurementConverter().convert(measured, MM)
