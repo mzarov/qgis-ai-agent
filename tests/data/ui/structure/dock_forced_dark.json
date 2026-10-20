@@ -100,7 +100,7 @@
  },
  {
   "depth": 5,
-  "type": "QTextBrowser",
+  "type": "AnswerBrowser",
   "text": "districts has a numeric pop2020 field from 20 000 to 95 000. I prepared a graduated renderer with 5 classes, equal inter"
  },
  {

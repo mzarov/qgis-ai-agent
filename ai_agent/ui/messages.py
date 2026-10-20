@@ -1,6 +1,7 @@
 from typing import Any
 
-from qgis.PyQt.QtCore import QSize, Qt, QTimer, pyqtSignal
+from qgis.PyQt.QtCore import QSize, Qt, QTimer, QUrl, pyqtSignal
+from qgis.PyQt.QtGui import QDesktopServices, QImage, QTextDocument
 from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QTextBrowser, QToolButton, QVBoxLayout, QWidget
 
 from ai_agent.i18n import tr
@@ -18,6 +19,8 @@ REPAINT_INTERVAL_MS = 80
 REWIND_ICON = 14
 REWIND_BUTTON = 24
 REWIND = tr("Rewind to before this message")
+IMAGE_RESOURCE = QTextDocument.ResourceType.ImageResource.value
+WEB_SCHEMES = ("http", "https")
 
 
 class UserMessage(QWidget):
@@ -77,6 +80,19 @@ class UserMessage(QWidget):
         self._label.setFixedWidth(min(natural + BUBBLE_SIDE_PADDING * 2 + WRAP_SLACK, limit))
 
 
+class AnswerBrowser(QTextBrowser):
+    def __init__(self) -> None:
+        super().__init__()
+        self._blank = QImage(1, 1, QImage.Format.Format_ARGB32)
+        self._blank.fill(Qt.GlobalColor.transparent)
+        self.setOpenLinks(False)
+        self.anchorClicked.connect(_open_on_the_web)
+
+    # A null answer makes Qt read the file itself: /dev/zero grows without end, a pipe blocks forever.
+    def loadResource(self, kind: int, _name: QUrl) -> Any:
+        return self._blank if kind == IMAGE_RESOURCE else ""
+
+
 class AssistantMessage(QWidget):
     def __init__(self, markdown: str):
         super().__init__()
@@ -84,8 +100,7 @@ class AssistantMessage(QWidget):
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 0, 0, 0)
 
-        browser = QTextBrowser()
-        browser.setOpenExternalLinks(True)
+        browser = AnswerBrowser()
         browser.setFrameShape(QFrame.Shape.NoFrame)
         browser.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         browser.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -153,6 +168,11 @@ class SystemMessage(QWidget):
 
     def plain_text(self) -> str:
         return self._label.text()
+
+
+def _open_on_the_web(url: QUrl) -> None:
+    if url.scheme().lower() in WEB_SCHEMES:
+        QDesktopServices.openUrl(url)
 
 
 def _line_width(metrics: Any, line: str) -> int:

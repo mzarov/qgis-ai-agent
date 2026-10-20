@@ -1,14 +1,17 @@
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import unittest
+from typing import Any
 
 from e2e_harness import PluginCase, pump
-from qgis.PyQt.QtCore import QEvent, QPoint, QPointF, Qt
-from qgis.PyQt.QtGui import QColor, QKeyEvent, QTextCursor, QWheelEvent
-from qgis.PyQt.QtWidgets import QApplication, QLabel, QLineEdit, QScrollBar, QWidget
+from qgis.PyQt.QtCore import QEvent, QObject, QPoint, QPointF, Qt, QUrl, pyqtSlot
+from qgis.PyQt.QtGui import QColor, QDesktopServices, QImage, QKeyEvent, QMouseEvent, QTextCursor, QWheelEvent
+from qgis.PyQt.QtWidgets import QApplication, QLabel, QLineEdit, QScrollBar, QTextBrowser, QWidget
 
 from ai_agent.ui import compass, controls, progress, settings_fields, style
 from ai_agent.ui.activity import ActivityGroup
@@ -41,6 +44,42 @@ WIDE_TABLE = {
     "rows": [[f"value {index}" for index in range(9)] + [LAST_CELL]] * 3,
     "total": 3,
 }
+RED = QColor(255, 0, 0)
+
+
+def red_pixels(widget: QWidget) -> int:
+    image = widget.grab().toImage()
+    return sum(
+        1
+        for y in range(0, image.height(), 2)
+        for x in range(0, image.width(), 2)
+        if image.pixelColor(x, y).red() > 200 and image.pixelColor(x, y).green() < 60
+    )
+
+
+def mouse(widget: QWidget, kind: Any, point: QPointF, button: Any, buttons: Any) -> None:
+    at = QPointF(widget.mapToGlobal(point.toPoint()))
+    QApplication.sendEvent(widget, QMouseEvent(kind, point, at, button, buttons, Qt.KeyboardModifier.NoModifier))
+
+
+def click_text(browser: QTextBrowser, text: str) -> None:
+    found = browser.document().find(text)
+    cursor = QTextCursor(found)
+    cursor.setPosition(found.selectionStart() + 1)
+    point = QPointF(browser.cursorRect(cursor).center())
+    left = Qt.MouseButton.LeftButton
+    mouse(browser.viewport(), QEvent.Type.MouseButtonPress, point, left, left)
+    mouse(browser.viewport(), QEvent.Type.MouseButtonRelease, point, left, Qt.MouseButton.NoButton)
+
+
+class UrlCatcher(QObject):
+    def __init__(self) -> None:
+        super().__init__()
+        self.urls: list[str] = []
+
+    @pyqtSlot(QUrl)
+    def handle(self, url: QUrl) -> None:
+        self.urls.append(url.toString())
 
 
 class SegmentedTest(unittest.TestCase):
@@ -745,3 +784,53 @@ class ComposerBehaviourTest(PluginCase):
         composer._edit.setPlainText("/s")
         pump(0.1)
         self.assertEqual(composer._popup.width(), composer._frame.width())
+
+
+class AnswerSafetyTest(unittest.TestCase):
+    def setUp(self) -> None:
+        folder = tempfile.mkdtemp(prefix="ai-agent-answer-")
+        self.addCleanup(shutil.rmtree, folder, True)
+        self.picture = os.path.join(folder, "red.png")
+        image = QImage(40, 40, QImage.Format.Format_RGB32)
+        image.fill(RED)
+        image.save(self.picture)
+        self.secret = os.path.join(folder, "secret.txt")
+        pathlib.Path(self.secret).write_text("TOP-SECRET", encoding="utf-8")
+        self.view = ConversationView()
+        self.view.resize(560, 600)
+        self.view.show()
+
+    def tearDown(self) -> None:
+        self.view.hide()
+        self.view.deleteLater()
+
+    def _answer(self, markdown: str) -> AssistantMessage:
+        self.view.add_assistant_message(markdown)
+        pump(0.1)
+        return self.view.widget().findChildren(AssistantMessage)[-1]
+
+    def test_an_answer_reads_no_file_it_names(self) -> None:
+        for markdown in (f"![map]({self.picture})", f"![map](file://{self.picture})"):
+            answer = self._answer(f"The map: {markdown}")
+            self.assertEqual(red_pixels(answer), 0, f"{markdown} was read from disk")
+
+    def test_a_link_opens_only_on_the_web(self) -> None:
+        catcher = UrlCatcher()
+        for scheme in ("https", "x-launch"):
+            QDesktopServices.setUrlHandler(scheme, catcher, "handle")
+            self.addCleanup(QDesktopServices.unsetUrlHandler, scheme)
+        links = {
+            "relative": "buffers.gpkg",
+            "local": f"file://{self.secret}",
+            "launcher": "x-launch://run?arg=1",
+            "website": "https://example.org/a",
+        }
+        browser = self._answer(" ".join(f"[{name}]({target})" for name, target in links.items())).findChild(
+            QTextBrowser
+        )
+        before = browser.toPlainText()
+        for name in links:
+            click_text(browser, name)
+            pump(0.05)
+            self.assertEqual(browser.toPlainText(), before, f"the {name} link replaced the answer")
+        self.assertEqual(catcher.urls, [links["website"]])
