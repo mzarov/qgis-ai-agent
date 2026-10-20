@@ -1,4 +1,5 @@
 import json
+import math
 import pathlib
 import sqlite3
 import struct
@@ -20,19 +21,25 @@ from qgis.core import (
     QgsExpression,
     QgsFeature,
     QgsGeometry,
+    QgsLayoutSize,
     QgsMapRendererSequentialJob,
     QgsMapSettings,
     QgsPointXY,
+    QgsPrintLayout,
     QgsProcessingContext,
     QgsProject,
     QgsRasterLayer,
+    QgsRasterRange,
+    QgsRectangle,
+    QgsRenderContext,
     QgsVectorFileWriter,
     QgsVectorLayer,
     QgsVectorLayerSimpleLabeling,
     qgsfunction,
 )
 from qgis.gui import QgsGui
-from qgis.PyQt.QtCore import QCoreApplication, QEvent, QEventLoop, QSize, QTimer
+from qgis.PyQt.QtCore import QCoreApplication, QDate, QDateTime, QEvent, QEventLoop, QSize, QTime, QTimer
+from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import QMainWindow
 
 from ai_agent.core.agent.auto_apply import applies_itself
@@ -45,11 +52,13 @@ from ai_agent.plugin import QgisAiAgentPlugin
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
 from ai_agent.qgis_tools.charts import chart_layer
 from ai_agent.qgis_tools.common.background import STOPPED, InTask
+from ai_agent.qgis_tools.common.colors import parse_color
 from ai_agent.qgis_tools.common.editing import edit_session
 from ai_agent.qgis_tools.common.layers import suggest_metric_crs
 from ai_agent.qgis_tools.draw.draw_features import DrawFeaturesTool
 from ai_agent.qgis_tools.processing import model_builder
 from ai_agent.qgis_tools.processing.run_processing import RunProcessingTool
+from ai_agent.qgis_tools.project import scratch_copies
 from ai_agent.qgis_tools.project.snapshots import take_snapshot
 from ai_agent.qgis_tools.quality import scan as quality_scan
 from ai_agent.qgis_tools.registry import get_tool_by_name
@@ -140,7 +149,21 @@ class GisWorkflowsTest(unittest.TestCase):
         self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:32637"))
         self.assertEqual(suggest_metric_crs(schools), "EPSG:32637", "a local projected project CRS is kept")
         self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:2154"))
-        self.assertEqual(suggest_metric_crs(schools), "EPSG:2154")
+        self.assertEqual(suggest_metric_crs(schools), "EPSG:32637", "Lambert-93 is for France, not Moscow")
+
+    def test_a_project_crs_is_offered_for_metres_only_inside_its_area_of_use(self):
+        self.project.removeAllMapLayers()
+        ward = "POLYGON ((139.6 35.6, 139.8 35.6, 139.8 35.8, 139.6 35.8, 139.6 35.6))"
+        tokyo = self._memory("Polygon?crs=EPSG:4326", "tokyo wards", [(ward, [])])
+        projected = self._memory("Point?crs=EPSG:3857", "tokyo station", [("POINT (15551270 4259000)", [])])
+        self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:32633"))
+        self.project.setEllipsoid("NONE")
+        self.assertEqual(suggest_metric_crs(tokyo), "EPSG:32654")
+        self.assertEqual(suggest_metric_crs(projected), "EPSG:32654")
+        self.assertIn("EPSG:32654", measurement_line(self.project))
+        self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:32654"))
+        self.assertEqual(suggest_metric_crs(tokyo), "EPSG:32654")
+        self.assertIn("EPSG:32654", measurement_line(self.project))
 
     def test_a_text_note_and_a_marker_land_on_the_map(self):
         self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:3857"))
@@ -164,6 +187,24 @@ class GisWorkflowsTest(unittest.TestCase):
         place = next((item["lon"], item["lat"]) for item in listed if item["id"] == note["id"])
         self.assertAlmostEqual(place[0], 37.6175, places=5)
         self.assertAlmostEqual(place[1], 55.752, places=5)
+
+    def test_a_note_lands_in_the_annotation_layers_crs_after_a_project_crs_change(self):
+        self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:3857"))
+        self._run("add_annotation", kind="text", x=30.3, y=59.9, text="first")
+        # A layer holding items keeps its CRS when the project's changes.
+        self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:4326"))
+        layer = self.project.mainAnnotationLayer()
+        self.assertEqual(layer.crs().authid(), "EPSG:3857")
+        queued, marker = self._run("add_annotation", kind="marker", x=37.62, y=55.75)
+        centre = layer.items()[marker["id"]].boundingBox().center()
+        self.assertAlmostEqual(centre.x(), 4_187_839, delta=10)
+        self.assertAlmostEqual(centre.y(), 7_508_808, delta=10)
+        tool = get_tool_by_name("add_annotation")
+        self.assertTrue(tool.confirm_applied(queued.arguments, marker))
+        self.assertFalse(tool.confirm_applied({**queued.arguments, "x": 30.3}, marker))
+        listed = get_tool_by_name("list_annotations").execute({})["annotations"]
+        place = next((item["lon"], item["lat"]) for item in listed if item["id"] == marker["id"])
+        self.assertEqual(place, (37.62, 55.75))
 
     def test_a_marker_and_a_note_come_in_the_asked_colour(self):
         tool = get_tool_by_name("add_annotation")
@@ -278,6 +319,48 @@ class GisWorkflowsTest(unittest.TestCase):
         expression = "aggregate('schools', 'count', $id, intersects($geometry, geometry(@parent)))"
         self._run("add_field", layer_name="districts", name="schools_n", expression=expression)
         self.assertEqual(next(district.getFeatures())["schools_n"], 2)
+
+    def test_moving_a_layer_moves_it_in_a_custom_drawing_order_too(self):
+        square = "POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0))"
+        first = self._memory("Polygon?crs=EPSG:3857", "A", [(square, [])])
+        second = self._memory("Polygon?crs=EPSG:3857", "B", [(square, [])])
+        root = self.project.layerTreeRoot()
+        root.setHasCustomLayerOrder(True)
+        root.setCustomLayerOrder([second, self.layer, first])
+
+        def drawn():
+            return [layer.name() for layer in root.layerOrder()]
+
+        queued, payload = self._run("reorder_layers", layer_names=["A", "B"])
+        self.assertEqual(drawn(), ["A", "B", "points"])
+        self.assertTrue(get_tool_by_name("reorder_layers").confirm_applied(queued.arguments, payload))
+        root.setCustomLayerOrder([second, self.layer, first])
+        self.assertFalse(get_tool_by_name("reorder_layers").confirm_applied(queued.arguments, payload))
+        configure = get_tool_by_name("configure_layer")
+        for position, expected in ((0, ["points", "B", "A"]), (9, ["B", "A", "points"])):
+            with self.subTest(position=position):
+                queued, payload = self._run("configure_layer", layer_name="points", properties={"position": position})
+                self.assertEqual(drawn(), expected)
+                self.assertTrue(configure.confirm_applied(queued.arguments, payload))
+        get_tool_by_name("add_basemap").execute({"preset": "osm"})
+        self.assertEqual(len(drawn()), 4)
+        self.assertNotIn(drawn()[-1], ("A", "B", "points"), "the basemap is not drawn at the bottom")
+
+    def test_showing_a_layer_in_a_hidden_group_shows_the_group_too(self):
+        root = self.project.layerTreeRoot()
+        group = root.addGroup("Transport")
+        node = root.findLayer(self.layer.id())
+        group.insertChildNode(0, node.clone())
+        root.removeChildNode(node)
+        group.setItemVisibilityChecked(False)
+        root.findLayer(self.layer.id()).setItemVisibilityChecked(False)
+        queued, payload = self._run("configure_layer", layer_name="points", properties={"visible": True})
+        self.assertTrue(root.findLayer(self.layer.id()).isVisible())
+        self.assertTrue(payload["visible"])
+        tool = get_tool_by_name("configure_layer")
+        self.assertTrue(tool.confirm_applied(queued.arguments, payload))
+        group.setItemVisibilityChecked(False)
+        self.assertFalse(tool.confirm_applied(queued.arguments, payload), "a layer in a hidden group is not drawn")
 
     def test_symbol_changes_are_visible_in_the_actual_renderer(self):
         self._run("set_symbol", layer_name=self.layer.name(), properties={"color": "#123456", "size": 4})
@@ -665,6 +748,20 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertAlmostEqual(restored.opacity(), 1.0)
         self.assertEqual(restored.featureCount(), 2)
 
+    def test_a_save_as_neither_stops_the_batch_nor_blocks_its_undo(self):
+        self.assertTrue(take_snapshot())
+        target = self.root / "city.qgz"
+        batch = WriteBatch(ToolExecutor())
+        batch.add(ToolCall("save", "save_project", {"path": str(target)}))
+        batch.add(ToolCall("fade", "set_opacity", {"layer_name": self.layer.name(), "opacity": 0.3}))
+        results = self._applied(batch)
+        self.assertTrue(all(result.ok for result in results), [result.payload for result in results])
+        self.assertEqual(self.project.fileName(), str(target))
+        _, result = self._run("undo_last_apply")
+        self.assertAlmostEqual(self.project.mapLayersByName("points")[0].opacity(), 1.0)
+        self.assertEqual(self.project.fileName(), "")
+        self.assertIn("city.qgz", result["saved_as_note"])
+
     def test_undo_brings_scratch_layers_back_with_their_features(self):
         identifier = self.layer.id()
         self.assertTrue(take_snapshot())
@@ -682,6 +779,22 @@ class GisWorkflowsTest(unittest.TestCase):
                 "Point (100 0)",
             ],
         )
+
+    def test_undo_keeps_the_features_a_scratch_layers_filter_hides(self):
+        self.assertTrue(self.layer.setSubsetString("count = 1"))
+        identifier = self.layer.id()
+        with patch.object(scratch_copies, "MAX_PRESERVED_FEATURES", 1):
+            self.assertIn(identifier, scratch_copies.scratch_layers_over_budget(self.project), "counted filtered")
+        self.assertTrue(take_snapshot())
+        self.assertEqual((self.layer.subsetString(), self.layer.featureCount()), ("count = 1", 1))
+        self._run("set_opacity", layer_name=self.layer.name(), opacity=0.5)
+        _, result = self._run("undo_last_apply")
+        restored = self.project.mapLayer(identifier)
+        self.assertNotIn("empty_scratch_layers", result)
+        self.assertEqual(restored.subsetString(), "count = 1")
+        self.assertEqual([feature["name"] for feature in restored.getFeatures()], ["point-1"])
+        self.assertTrue(restored.setSubsetString(""))
+        self.assertEqual(sorted(feature["name"] for feature in restored.getFeatures()), ["point-0", "point-1"])
 
     def test_undoing_a_style_change_keeps_a_scratch_layers_feature_ids(self):
         third = QgsFeature(self.layer.fields())
@@ -824,6 +937,39 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual([(group["group"], group["count"]) for group in grouped], [(2, 1)])
         self.assertEqual(query(aggregate="count", filter="n = 3")["value"], 0)
 
+    def _counts(self):
+        pairs = ((1, "a"), (None, "a"), (3, "a"), (None, "b"), (5, "b"))
+        rows = [("POINT (0 0)", [value, kind]) for value, kind in pairs]
+        return self._memory("Point?crs=EPSG:3857&field=n:integer&field=kind:string", "counts", rows)
+
+    def test_a_count_of_an_expression_skips_its_nulls(self):
+        self._counts()
+        query = get_tool_by_name("query_layer")
+        self.assertEqual(query.execute({"layer_name": "counts", "aggregate": "count", "expression": "n"})["value"], 3)
+        filtered = {"layer_name": "counts", "aggregate": "count", "expression": "n", "filter": "kind = 'a'"}
+        self.assertEqual(query.execute(filtered)["value"], 2)
+        grouped = query.execute({"layer_name": "counts", "aggregate": "count", "expression": "n", "group_by": "kind"})
+        self.assertEqual([(group["group"], group["value"]) for group in grouped["groups"]], [("a", 2), ("b", 1)])
+        self.assertEqual(query.execute({"layer_name": "counts", "aggregate": "count"})["value"], 5)
+
+    def test_a_filtered_table_counts_every_match_not_the_rows_shown(self):
+        self._counts()
+        arguments = {"layer_name": "counts", "filter": "kind = 'a'", "limit": 1}
+        result = ToolExecutor().run(ToolCall("table", "show_table", arguments))
+        self.assertTrue(result.ok, result.payload)
+        self.assertEqual((result.payload["rows_shown"], result.visual["total"]), (1, 3))
+
+    def test_a_pie_of_means_folds_the_rest_into_their_mean(self):
+        rows = [(f"POINT ({index} 0)", [index * 10 + offset, f"g{index}"]) for index in range(10) for offset in (0, 2)]
+        self._memory("Point?crs=EPSG:3857&field=n:integer&field=kind:string", "groups", rows)
+        arguments = {"layer_name": "groups", "kind": "pie", "aggregate": "mean", "value": "n", "group_by": "kind"}
+        result = ToolExecutor().run(ToolCall("pie", "chart_layer", arguments))
+        self.assertTrue(result.ok, result.payload)
+        pie = dict(zip(result.visual["labels"], result.visual["series"][0]["values"], strict=True))
+        self.assertEqual(len(pie), 8)
+        self.assertEqual(pie["g9"], 91.0)
+        self.assertEqual(pie["Other"], 11.0, "a sum of means is no mean")
+
     def test_a_chart_past_the_feature_cap_says_it_is_partial(self):
         rows = [("POINT (0 0)", ["a"]), ("POINT (1 0)", ["a"]), ("POINT (2 0)", ["b"])]
         self._memory("Point?crs=EPSG:3857&field=kind:string", "kinds", rows)
@@ -837,6 +983,145 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertTrue(capped.ok, capped.payload)
         self.assertEqual((capped.payload["features"], capped.payload.get("partial")), (2, True))
         self.assertIn("first 2", capped.payload["note"])
+
+    def _lakes(self):
+        self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:3857"))
+        self.project.setEllipsoid("EPSG:7030")
+        memory = QgsVectorLayer("Polygon?crs=EPSG:4326&field=name:string", "lakes", "memory")
+        # Square degrees mislead: the arctic lake covers twice the equator's, yet is the smaller one.
+        rows = [
+            ("POLYGON((10 0, 10.01 0, 10.01 0.01, 10 0.01, 10 0))", ["equator lake"]),
+            ("POLYGON((10 70, 10.02 70, 10.02 70.01, 10 70.01, 10 70))", ["arctic lake"]),
+            ("POLYGON((11 60, 11.0002 60, 11.0002 60.00009, 11 60.00009, 11 60))", ["pond"]),
+        ]
+        features = []
+        for wkt, attributes in rows:
+            feature = QgsFeature(memory.fields())
+            feature.setGeometry(QgsGeometry.fromWkt(wkt))
+            feature.setAttributes(attributes)
+            features.append(feature)
+        memory.dataProvider().addFeatures(features)
+        return self._saved(memory, "lakes.gpkg", "GPKG")
+
+    def _saved(self, memory, file_name, driver):
+        path = self.root / file_name
+        options = QgsVectorFileWriter.SaveVectorOptions()
+        options.driverName = driver
+        written = QgsVectorFileWriter.writeAsVectorFormatV3(memory, str(path), QgsCoordinateTransformContext(), options)
+        self.assertEqual(written[0], QgsVectorFileWriter.WriterError.NoError, written)
+        layer = QgsVectorLayer(str(path), memory.name(), "ogr")
+        self.assertTrue(layer.isValid())
+        self.project.addMapLayer(layer)
+        return layer
+
+    def test_a_filter_and_an_order_measure_on_the_ellipsoid_like_the_aggregates(self):
+        lakes = self._lakes()
+        query = get_tool_by_name("query_layer")
+        small = {"layer_name": "lakes", "filter": "$area < 10000"}
+        self.assertEqual([row["name"] for row in query.execute(small)["features"]], ["pond"])
+        self.assertEqual(query.execute({**small, "aggregate": "count"})["value"], 1)
+        grouped = query.execute({**small, "aggregate": "count", "group_by": "name"})["groups"]
+        self.assertEqual([group["group"] for group in grouped], ["pond"])
+        largest = query.execute({"layer_name": "lakes", "order_by": "$area DESC", "limit": 1})["features"]
+        self.assertEqual([row["name"] for row in largest], ["equator lake"])
+        chart = get_tool_by_name("chart_layer").execute({**small, "group_by": "name"})
+        self.assertEqual(chart["features"], 1)
+        table = get_tool_by_name("show_table").execute({**small, "fields": ["name"]})
+        self.assertEqual(table["first_rows"], [["pond"]])
+        queued, deleted = self._run("delete_features", **small)
+        self.assertEqual((queued.arguments["matched_estimate"], deleted["deleted"]), (1, 1))
+        self.assertEqual(sorted(feature["name"] for feature in lakes.getFeatures()), ["arctic lake", "equator lake"])
+
+    def _kinds(self, name):
+        rows = [(f"POINT ({index} 0)", [f"p{index}", kind]) for index, kind in enumerate("abbcc")]
+        return self._memory("Point?crs=EPSG:4326&field=name:string&field=kind:string", name, rows)
+
+    def test_a_step_refuses_feature_ids_an_earlier_deletion_renumbered(self):
+        memory = self._kinds("memory points")
+        later = (
+            ("delete_features", {"filter": "kind = 'b'"}),
+            ("update_attributes", {"filter": "kind = 'b'", "values": {"name": "x"}}),
+        )
+        for tool_name, arguments in later:
+            with self.subTest(tool_name):
+                path = self.root / f"{tool_name}.shp"
+                target = {"layer_id": self._saved(memory, path.name, "ESRI Shapefile").id()}
+                batch = WriteBatch(ToolExecutor())
+                batch.add(ToolCall("first", "delete_features", {**target, "filter": "kind = 'a'"}))
+                batch.add(ToolCall("second", tool_name, {**target, **arguments}))
+                first, second = self._applied(batch)
+                self.assertTrue(first.ok, first.payload)
+                self.assertFalse(second.ok, second.payload)
+                self.assertIn("no longer match the filter", second.payload["error"])
+                written = QgsVectorLayer(str(path), "check", "ogr")
+                rows = sorted((feature["name"], feature["kind"]) for feature in written.getFeatures())
+                self.assertEqual(rows[-4:], [("p1", "b"), ("p2", "b"), ("p3", "c"), ("p4", "c")])
+
+    def test_a_step_keeps_to_its_planned_features_when_more_match_later(self):
+        points = self._kinds("kinds")
+        batch = WriteBatch(ToolExecutor())
+        changed = {"layer_name": "kinds", "filter": "name = 'p0'", "values": {"kind": "b"}}
+        batch.add(ToolCall("first", "update_attributes", changed))
+        batch.add(ToolCall("second", "delete_features", {"layer_name": "kinds", "filter": "kind = 'b'"}))
+        first, second = self._applied(batch)
+        self.assertTrue(first.ok and second.ok, second.payload)
+        self.assertEqual(second.payload["deleted"], 2)
+        self.assertEqual(sorted(feature["name"] for feature in points.getFeatures()), ["p0", "p3", "p4"])
+
+    def _survey(self):
+        uri = "Point?crs=EPSG:4326&field=name:string&field=d:date&field=dt:datetime&field=note:string"
+        rows = [("POINT (10 60)", ["a", QDate(2024, 1, 1), None, None]), ("POINT (11 60)", ["b", None, None, None])]
+        memory = self._memory(uri, "survey memory", rows)
+        survey = self._saved(memory, "survey.gpkg", "GPKG")
+        survey.setName("survey")
+        return memory, survey
+
+    def test_date_fields_take_real_dates_from_expressions_and_text(self):
+        memory, survey = self._survey()
+        day = "to_date('2024-05-17')"
+        expressions = {"d": day, "dt": "make_datetime(2024,5,17,10,30,0)", "note": day}
+        for layer in (survey, memory):
+            with self.subTest(provider=layer.providerType()):
+                self._run("update_attributes", layer_id=layer.id(), filter="name = 'a'", expressions=expressions)
+                self._run("update_attributes", layer_id=layer.id(), filter="name = 'b'", values={"d": "2024-06-01"})
+                stored = {feature["name"]: feature for feature in layer.getFeatures()}
+                self.assertEqual(stored["a"]["d"], QDate(2024, 5, 17))
+                self.assertEqual(stored["a"]["dt"], QDateTime(QDate(2024, 5, 17), QTime(10, 30)))
+                self.assertEqual(stored["a"]["note"], "2024-05-17")
+                self.assertEqual(stored["b"]["d"], QDate(2024, 6, 1))
+
+    def test_dates_read_as_iso_text_and_colour_by_category(self):
+        memory, _ = self._survey()
+        memory.dataProvider().changeAttributeValues({1: {2: QDateTime(QDate(2024, 5, 17), QTime(10, 30))}})
+        values = get_tool_by_name("get_field_values").execute({"layer_name": "survey memory", "field_name": "d"})
+        self.assertEqual(values["unique_values"], ["2024-01-01"])
+        row = get_tool_by_name("query_layer").execute({"layer_name": "survey memory", "filter": "name = 'a'"})
+        self.assertEqual((row["features"][0]["d"], row["features"][0]["dt"]), ("2024-01-01", "2024-05-17T10:30:00.000"))
+        for field in ("d", "dt"):
+            with self.subTest(field=field):
+                memory.dataProvider().changeAttributeValues({2: {1: QDate(2024, 2, 1)}})
+                self._run("set_categories", layer_name="survey memory", field=field)
+                renderer = memory.renderer()
+                context = QgsRenderContext()
+                renderer.startRender(context, memory.fields())
+                drawn = [renderer.symbolForFeature(feature, context) is not None for feature in memory.getFeatures()]
+                renderer.stopRender(context)
+                self.assertEqual(drawn[0], True, "a dated feature gets no symbol")
+
+    def test_a_filter_on_the_selection_finds_the_selected_features(self):
+        lakes = self._lakes()
+        lakes.selectByExpression("name = 'pond'")
+        selected = {"layer_name": "lakes", "filter": "is_selected()"}
+        query = get_tool_by_name("query_layer")
+        self.assertEqual([row["name"] for row in query.execute(selected)["features"]], ["pond"])
+        self.assertEqual(query.execute({**selected, "aggregate": "count"})["value"], 1)
+        both = {**selected, "selected_only": True, "filter": "is_selected() and $area < 10000"}
+        self.assertEqual(query.execute(both)["matched"], 1)
+        update = get_tool_by_name("update_attributes").prepare({**selected, "values": {"name": "tarn"}})
+        self.assertEqual(update["matched_estimate"], 1)
+        self.assertEqual(get_tool_by_name("delete_features").prepare(selected)["matched_estimate"], 1)
+        table = get_tool_by_name("show_table").execute({**selected, "fields": ["name"]})
+        self.assertEqual(table["first_rows"], [["pond"]])
 
     def _memory(self, uri, name, rows):
         layer = QgsVectorLayer(uri, name, "memory")
@@ -1105,6 +1390,69 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual((changed.size(), changed.sizeUnit()), (10.0, Qgis.RenderUnit.Points))
         self.assertEqual((changed.buffer().size(), changed.buffer().sizeUnit()), (1.5, Qgis.RenderUnit.Millimeters))
 
+    def _drawn(self, layer, half_width):
+        settings = QgsMapSettings()
+        settings.setLayers([layer])
+        settings.setDestinationCrs(layer.crs())
+        settings.setExtent(QgsRectangle(-half_width, -half_width, half_width, half_width))
+        settings.setOutputSize(QSize(200, 200))
+        settings.setBackgroundColor(QColor(255, 255, 255))
+        job = QgsMapRendererSequentialJob(settings)
+        job.start()
+        job.waitForFinished()
+        return job.renderedImage()
+
+    def test_a_see_through_fill_comes_from_a_colour_with_alpha_in_css_order(self):
+        square = "POLYGON ((-500 -500, 500 -500, 500 500, -500 500, -500 -500))"
+        zones, _ = self._shapes("zones", "Polygon?crs=EPSG:3857", [square])
+        self.assertEqual(parse_color("#ff000080").getRgb(), (255, 0, 0, 128))
+        outline = {"stroke_color": "black", "stroke_width": 3}
+        self._run("set_symbol", layer_name="zones", properties={"color": "#ff000080", **outline})
+        image = self._drawn(zones, 1000)
+        fill, edge = image.pixelColor(100, 100), image.pixelColor(150, 100)
+        self.assertEqual((fill.red(), fill.blue()), (255, 127), "the fill is not half see-through red")
+        self.assertEqual(edge.name(), "#000000", "the outline lost its colour")
+        self._run("set_symbol", layer_name="zones", properties={"color": "red", "opacity": 0.3, **outline})
+        self.assertGreater(self._drawn(zones, 1000).pixelColor(150, 100).red(), 100, "opacity fades the outline too")
+
+    def test_a_stroke_colour_on_a_line_is_reported_not_claimed(self):
+        roads, _ = self._shapes("roads", "LineString?crs=EPSG:3857", ["LINESTRING (0 0, 10 10)"])
+        _, result = self._run("set_symbol", layer_name="roads", properties={"color": "orange", "stroke_color": "black"})
+        self.assertEqual((result["applied"], result["skipped"]), (["color"], ["stroke_color"]))
+        self.assertEqual(roads.renderer().symbol().color().name(), "#ffa500")
+
+    def test_category_colours_follow_numbers_in_numeric_order(self):
+        rows = [(f"POINT ({number} 0)", [number]) for number in (10, 1, 2)]
+        classes = self._memory("Point?crs=EPSG:3857&field=cls:integer", "classes", rows)
+        queued, _ = self._run("set_categories", layer_name="classes", field="cls", colors=["green", "yellow", "red"])
+        self.assertEqual(queued.arguments["values"], [1, 2, 10])
+        colours = {category.value(): category.symbol().color().name() for category in classes.renderer().categories()}
+        self.assertEqual(colours, {1: "#008000", 2: "#ffff00", 10: "#ff0000"})
+
+    def test_a_label_offset_moves_the_label_and_keeps_the_other_offsets_unit(self):
+        name = self.layer.name()
+        self._run("set_labels", layer_name=name, properties={"field": "name", "offset_x": 2})
+        settings = self.layer.labeling().settings()
+        self.assertEqual(settings.placement, Qgis.LabelPlacement.OverPoint, "around the point ignores offsets")
+        self.assertEqual((settings.xOffset, settings.offsetUnits), (2.0, Qgis.RenderUnit.Millimeters))
+        self._run("set_labels", layer_name=name, properties={"placement": "around", "offset_y": 1})
+        self.assertEqual(self.layer.labeling().settings().placement, Qgis.LabelPlacement.AroundPoint)
+        settings = self.layer.labeling().settings()
+        settings.offsetUnits, settings.xOffset, settings.yOffset = Qgis.RenderUnit.Points, 0.0, 3.0
+        self.layer.setLabeling(QgsVectorLayerSimpleLabeling(settings))
+        self._run("set_labels", layer_name=name, properties={"offset_x": 2})
+        kept = self.layer.labeling().settings()
+        self.assertEqual((kept.offsetUnits, kept.yOffset), (Qgis.RenderUnit.Points, 3.0))
+        self.assertAlmostEqual(kept.xOffset, 2 * 72 / 25.4)
+        kept.offsetUnits = Qgis.RenderUnit.MapUnits
+        self.layer.setLabeling(QgsVectorLayerSimpleLabeling(kept))
+        lone = {"layer_name": name, "properties": {"offset_x": 1}}
+        with self.assertRaisesRegex(ValueError, "offset_x and offset_y together"):
+            WriteBatch(ToolExecutor()).add(ToolCall("lone", "set_labels", lone))
+        self._run("set_labels", layer_name=name, properties={"offset_x": 1, "offset_y": -1})
+        both = self.layer.labeling().settings()
+        self.assertEqual((both.xOffset, both.yOffset, both.offsetUnits), (1.0, -1.0, Qgis.RenderUnit.Millimeters))
+
     def test_a_csv_export_keeps_the_geometry(self):
         path = self.root / "points.csv"
         self._run("export_layer", layer_name=self.layer.name(), path=str(path))
@@ -1122,6 +1470,61 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertFalse(tool.confirm_applied(arguments, selected_only), "one selected, two in the file")
         path.write_bytes(b"")
         self.assertFalse(tool.confirm_applied(arguments, payload), "an empty file is no export")
+
+    def test_an_export_onto_a_delimited_text_source_is_refused(self):
+        folder = self.root / "my data"
+        folder.mkdir()
+        path = folder / "stations.csv"
+        path.write_text("id,name,lon,lat\n1,a,10,60\n2,b,11,61\n", encoding="utf-8")
+        query = "?delimiter=,&xField=lon&yField=lat&crs=EPSG:4326"
+        for uri in (path.as_uri() + query, f"file://{path}{query}"):
+            with self.subTest(uri=uri):
+                stations = QgsVectorLayer(uri, "stations", "delimitedtext")
+                self.assertTrue(stations.isValid())
+                self.project.addMapLayer(stations)
+                arguments = {"layer_id": stations.id(), "path": str(path), "overwrite": True}
+                with self.assertRaisesRegex(ValueError, "holds the data of layer 'stations'"):
+                    WriteBatch(ToolExecutor()).add(ToolCall("export", "export_layer", arguments))
+                self.project.removeMapLayer(stations.id())
+        self.assertIn("2,b,11,61", path.read_text(encoding="utf-8"))
+
+    def test_an_export_into_a_geopackage_replaces_only_its_own_table(self):
+        path = self.root / "data.gpkg"
+        roads = QgsVectorLayer("LineString?crs=EPSG:4326&field=name:string", "roads", "memory")
+        line = QgsFeature(roads.fields())
+        line.setGeometry(QgsGeometry.fromWkt("LINESTRING (0 0, 1 1)"))
+        roads.dataProvider().addFeatures([line])
+        options = QgsVectorFileWriter.SaveVectorOptions()
+        options.driverName = "GPKG"
+        options.layerName = "roads"
+        QgsVectorFileWriter.writeAsVectorFormatV3(roads, str(path), QgsCoordinateTransformContext(), options)
+        square = "POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0))"
+        self._memory("Polygon?crs=EPSG:4326&field=name:string", "parks", [(square, ["central"])])
+        tool = get_tool_by_name("export_layer")
+        for _ in range(2):
+            queued, payload = self._run("export_layer", layer_name="parks", path=str(path), overwrite=True)
+            self.assertTrue(tool.confirm_applied(queued.arguments, payload))
+        for table in ("roads", "parks"):
+            written = QgsVectorLayer(f"{path}|layername={table}", table, "ogr")
+            self.assertTrue(written.isValid(), f"table {table} is gone")
+            self.assertEqual(written.featureCount(), 1)
+
+    def test_a_shapefile_export_names_the_fields_it_cut_and_retyped(self):
+        uri = "Point?crs=EPSG:4326&field=population_2020:integer&field=population_2021:integer"
+        stats = self._memory(
+            uri + "&field=observed_at:datetime&field=big:int8",
+            "stats",
+            [("POINT (1 1)", [100, 200, QDateTime(QDate(2024, 5, 17), QTime(14, 30)), 2**40 + 1])],
+        )
+        queued, payload = self._run("export_layer", layer_id=stats.id(), path=str(self.root / "stats.shp"))
+        self.assertEqual(
+            payload["renamed_fields"],
+            {"population_2020": "population", "population_2021": "populati_1", "observed_at": "observed_a"},
+        )
+        self.assertEqual(payload["retyped_fields"], {"observed_at": "datetime → text", "big": "integer → real"})
+        self.assertIsNone(get_tool_by_name("export_layer").confirm_applied(queued.arguments, payload))
+        _, plain = self._run("export_layer", layer_name=self.layer.name(), path=str(self.root / "points.shp"))
+        self.assertNotIn("renamed_fields", plain)
 
     def test_bookmarks_are_saved_into_the_project(self):
         before = len(self.project.bookmarkManager().bookmarks())
@@ -1150,6 +1553,42 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertLessEqual(image.pixelColor(1, 0).red(), 2)
         self.assertGreaterEqual(image.pixelColor(19, 19).red(), 253)
         self.assertAlmostEqual(image.pixelColor(0, 10).red(), 127, delta=2)
+
+    def test_a_hillshade_over_degrees_scales_the_heights_to_metres(self):
+        path = self.root / "dem4326.tif"
+        size = 200
+        dataset = gdal.GetDriverByName("GTiff").Create(str(path), size, size, 1, gdal.GDT_Float32)
+        dataset.SetGeoTransform((10.0, 0.001, 0, 60.2, 0, -0.001))
+        reference = osr.SpatialReference()
+        reference.ImportFromEPSG(4326)
+        dataset.SetProjection(reference.ExportToWkt())
+        distances = [math.hypot(row - 100, column - 100) for row in range(size) for column in range(size)]
+        hill = [300.0 * math.exp(-((distance / 40.0) ** 2)) for distance in distances]
+        dataset.GetRasterBand(1).WriteRaster(0, 0, size, size, struct.pack(f"{size * size}f", *hill))
+        dataset = None
+        dem = QgsRasterLayer(str(path), "dem")
+        self.assertTrue(dem.isValid())
+        self.project.addMapLayer(dem)
+        self._run("set_raster_style", layer_name="dem", mode="hillshade")
+        self.assertAlmostEqual(dem.renderer().zFactor(), 1 / (111320 * math.cos(math.radians(60.1))), delta=1e-7)
+        image = self._rendered(dem, size)
+        brightness = sorted(image.pixelColor(x, y).value() for x in range(0, size, 5) for y in range(0, size, 5))
+        self.assertGreater(brightness[len(brightness) // 10], 100, "the relief renders near black")
+
+    def test_hidden_values_add_to_a_rasters_no_data(self):
+        path = self.root / "counts.tif"
+        dataset = gdal.GetDriverByName("GTiff").Create(str(path), 20, 20, 1, gdal.GDT_Float32)
+        dataset.SetGeoTransform((0, 1, 0, 20, 0, -1))
+        dataset.GetRasterBand(1).WriteRaster(0, 0, 20, 20, struct.pack("400f", *[float(v) for v in range(400)]))
+        dataset = None
+        raster = QgsRasterLayer(str(path), "counts")
+        self.assertTrue(raster.isValid())
+        self.project.addMapLayer(raster)
+        raster.dataProvider().setUserNoDataValue(1, [QgsRasterRange(399, 399)])
+        for _ in range(2):
+            self._run("set_raster_style", layer_name="counts", mode="gray", no_data_values=[0])
+        ranges = sorted((item.min(), item.max()) for item in raster.dataProvider().userNoDataValues(1))
+        self.assertEqual(ranges, [(0.0, 0.0), (399.0, 399.0)])
 
     def _rendered(self, layer, size):
         settings = QgsMapSettings()
@@ -1289,6 +1728,25 @@ class GisWorkflowsTest(unittest.TestCase):
         self._run("export_layout", layout_name="Sheet", path=str(path))
         self.assertTrue(path.read_bytes().startswith(b"%PDF-"))
         self.assertGreater(path.stat().st_size, 1000)
+
+    def test_a_layout_in_inches_and_a_moved_item_read_in_millimetres(self):
+        layout = QgsPrintLayout(self.project)
+        layout.initializeDefaults()
+        layout.setName("inch sheet")
+        layout.pageCollection().page(0).setPageSize(QgsLayoutSize(11, 17, Qgis.LayoutUnit.Inches))
+        self.project.layoutManager().addLayout(layout)
+        listed = get_tool_by_name("list_layouts").execute({})["layouts"]
+        self.assertEqual(listed[0]["page_mm"], [279.4, 431.8])
+        label = {"item_type": "label", "x": 20, "y": 20, "properties": {"text": "Title"}}
+        self._run("add_layout_item", layout_name="inch sheet", **label)
+        self._run("create_layout", name="sheet", page="a4")
+        frame = {"x": 20, "y": 20, "width": 180, "height": 120}
+        self._run("add_layout_item", layout_name="sheet", item_type="map", id="main", **frame)
+        for x in (20, 25, 20):
+            self._run("configure_layout_item", layout_name="sheet", item_id="main", x=x)
+        items = get_tool_by_name("describe_layout").execute({"layout_name": "sheet"})["items"]
+        main = next(item for item in items if item["id"] == "main")
+        self.assertEqual((main["x"], main["y"], main["width"], main["height"]), (20.0, 20.0, 180.0, 120.0))
 
     def test_two_unnamed_labels_in_one_batch_both_land_on_the_layout(self):
         self._run("create_layout", name="Sheet", page="a4", orientation="landscape")

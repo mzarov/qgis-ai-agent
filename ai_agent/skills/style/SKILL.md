@@ -167,7 +167,7 @@ QGIS has three, and they are not interchangeable:
 | What the user means | Where it lives |
 |---|---|
 | the whole layer see-through, rasters included | `set_opacity` |
-| a see-through fill but a solid outline | `opacity` in `set_symbol` |
+| a see-through fill but a solid outline | a `color` with alpha in `set_symbol`, `#rrggbbaa`; its `opacity` fades the outline too |
 | see-through label text | `opacity` in `set_labels` |
 
 "Make the layer see-through" is `set_opacity`. Reach for the other two only when

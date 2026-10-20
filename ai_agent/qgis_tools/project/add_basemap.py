@@ -5,7 +5,7 @@ from qgis.core import QgsRasterLayer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
-from ai_agent.qgis_tools.project.tree import layer_names, layer_tree, project
+from ai_agent.qgis_tools.project.tree import follow_in_drawing_order, layer_names, layer_tree, project
 
 WMS_PROVIDER = "wms"
 REQUIRED_PLACEHOLDERS = ("{z}", "{x}", "{y}")
@@ -96,7 +96,7 @@ class AddBasemapTool(BaseTool):
         if not layer.isValid():
             raise ValueError(f"QGIS could not open the tile service at {url}.")
         project().addMapLayer(layer, False)
-        layer_tree().addLayer(layer)
+        follow_in_drawing_order(layer_tree().addLayer(layer))
         return {"name": layer.name(), "url": url, "attribution": attribution, "placed": "bottom"}
 
 

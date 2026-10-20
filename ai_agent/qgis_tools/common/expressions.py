@@ -86,17 +86,24 @@ def prepared(text: str, label: str, context: QgsExpressionContext, layer=None) -
 
 
 def evaluate(expression: QgsExpression, context: QgsExpressionContext, feature) -> Any:
+    return plain_value(evaluate_raw(expression, context, feature))
+
+
+def evaluate_raw(expression: QgsExpression, context: QgsExpressionContext, feature) -> Any:
     context.setFeature(feature)
     value = expression.evaluate(context)
     if expression.hasEvalError():
         raise ValueError(
             f"Could not evaluate the expression '{expression.expression()}': {expression.evalErrorString().strip()}"
         )
-    return plain_value(value)
+    return value
 
 
 def build_request(filter_text: str, layer=None) -> QgsFeatureRequest:
     request = QgsFeatureRequest()
+    # Without the layer's scopes $area is flat in layer units and is_selected() matches nothing.
+    if layer is not None:
+        request.setExpressionContext(build_context(layer))
     text = (filter_text or "").strip()
     if not text:
         return request

@@ -13,7 +13,12 @@ from ai_agent.core.state.conversation import ConversationState
 from ai_agent.core.state.session import MAX_MESSAGES, Session, shorten
 from ai_agent.core.state.store import MAX_SESSIONS, SessionStore, current_project_key
 from ai_agent.qgis_tools.common import persistence
-from ai_agent.qgis_tools.common.project_identity import STORAGE_PREFIX, project_identity, restore_project_identity
+from ai_agent.qgis_tools.common.project_identity import (
+    STORAGE_PREFIX,
+    project_identity,
+    remember_save_as,
+    restore_project_identity,
+)
 
 
 class Signal:
@@ -398,6 +403,22 @@ class ConversationStateTest(unittest.TestCase):
         self.assertEqual(self.store.load(identifier).project, "/saved/as/copy.qgz")
         self.assertEqual([session.identifier for session in self.store.recent("/saved/as/copy.qgz")], [identifier])
         self.assertEqual(self.store.recent(old_key), [])
+
+    def test_a_save_as_and_its_undo_keep_the_conversation(self):
+        self.state.add("user", "save it as city")
+        identifier, before = self.state.session_identifier, self.state.project_key
+        remember_save_as(before, "/maps/saved-as-city.qgz")
+        saved_key = conversation_module.current_project_key
+        keys = iter(("/maps/saved-as-city.qgz", before))
+        conversation_module.current_project_key = lambda: next(keys)
+        try:
+            self.assertEqual(self.state.follow_project(), before)
+            self.assertEqual(self.state.project_key, "/maps/saved-as-city.qgz")
+            self.assertEqual(self.state.follow_project(), "/maps/saved-as-city.qgz", "the undo of the Save As")
+        finally:
+            conversation_module.current_project_key = saved_key
+        self.assertEqual((self.state.session_identifier, self.state.project_key), (identifier, before))
+        self.assertEqual([message["content"] for message in self.state.messages], ["save it as city"])
 
     def test_another_project_starts_fresh_even_when_the_key_is_unchanged(self):
         self.state.add("user", "stale plan context")

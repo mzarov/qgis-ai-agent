@@ -3,7 +3,14 @@ from typing import Any
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.layers import pinned_ids
-from ai_agent.qgis_tools.project.tree import find_layer, layer_tree, parent_of, tree_node
+from ai_agent.qgis_tools.project.tree import (
+    drawn_like_panel,
+    find_layer,
+    follow_in_drawing_order,
+    layer_tree,
+    parent_of,
+    tree_node,
+)
 
 SHOWN_NAMES = 4
 
@@ -66,14 +73,17 @@ class ReorderLayersTool(BaseTool):
             clone = node.clone()
             root.insertChildNode(min(index, len(root.children())), clone)
             parent_of(node).removeChildNode(node)
+            follow_in_drawing_order(clone)
         return {"order": names, "note": "Listed layers now hold the top of the panel in this order."}
 
     def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
         identifiers = pinned_ids(params)
         if not identifiers:
             return None
-        top = [getattr(node, "layerId", lambda: "")() for node in layer_tree().children()[: len(identifiers)]]
-        return top == identifiers
+        top = layer_tree().children()[: len(identifiers)]
+        if [getattr(node, "layerId", lambda: "")() for node in top] != identifiers:
+            return False
+        return all(drawn_like_panel(node) for node in top)
 
 
 def _checked_names(raw: Any) -> list[str]:

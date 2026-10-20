@@ -20,6 +20,8 @@ ENUM_SOURCES = {
     "stroke_style": (PEN_STYLES, lambda name: getattr(Qt.PenStyle, name)),
     "fill_style": (BRUSH_STYLES, lambda name: getattr(Qt.BrushStyle, name)),
 }
+# A simple line keeps a stroke colour it never draws: on lines it is reported, not claimed.
+NOT_ON_LINES = frozenset({"stroke_color"})
 NOT_APPLICABLE = (
     "does not apply to the '{geometry}' geometry of the layer: {listed}. "
     "This is not an error — the rest was applied; there is no need to repeat the call."
@@ -30,8 +32,11 @@ def build_symbol(layer: Any, properties: dict[str, Any]) -> tuple[QgsSymbol, dic
     symbol = base_symbol(layer)
     landed: set[str] = set()
     _run(symbol, SYMBOLS.targeted(properties, TARGET_SYMBOL), landed)
+    layered = SYMBOLS.targeted(properties, TARGET_LAYER)
+    if _is_line(symbol):
+        layered = [(prop, value) for prop, value in layered if prop.name not in NOT_ON_LINES]
     for index in range(_layer_count(symbol)):
-        _run(symbol.symbolLayer(index), SYMBOLS.targeted(properties, TARGET_LAYER), landed)
+        _run(symbol.symbolLayer(index), layered, landed)
     asked = [key for key in properties if key in SYMBOLS.by_name]
     return symbol, {
         "applied": sorted(key for key in asked if key in landed),
@@ -61,6 +66,13 @@ def note_for(skipped: list[str], geometry: str) -> str:
     if not skipped:
         return ""
     return NOT_APPLICABLE.format(geometry=geometry, listed=", ".join(skipped))
+
+
+def _is_line(symbol: QgsSymbol) -> bool:
+    try:
+        return bool(symbol.type() == Qgis.SymbolType.Line)
+    except Exception:
+        return False
 
 
 def _layer_count(symbol: QgsSymbol) -> int:

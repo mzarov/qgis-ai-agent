@@ -25,8 +25,18 @@ from ai_agent.qgis_tools.style.label_catalogue import (
 
 MILLIMETRES = Qgis.RenderUnit.Millimeters
 POINTS = Qgis.RenderUnit.Points
+INCHES = Qgis.RenderUnit.Inches
 SIMPLE_LABELING = "simple"
 OFFSET_KEYS = frozenset({"offset_x", "offset_y"})
+OTHER_OFFSET = {"offset_x": ("yOffset", "offset_y"), "offset_y": ("xOffset", "offset_x")}
+# A lone offset keeps a paper unit by conversion; one unit holds both offsets, so it cannot follow map units.
+MM_TO_PAPER = {POINTS: 72.0 / 25.4, INCHES: 1.0 / 25.4}
+# Around a point QGIS ignores offsets: they move a label placed over it.
+OFFSET_GEOMETRIES = frozenset({"point", "polygon"})
+OFFSET_UNITS_CONFLICT = (
+    "The labels of this layer keep their offsets in {unit} and {other} is {value}: one unit holds both, so "
+    "give offset_x and offset_y together, in millimetres, or the other offset is read in the wrong unit."
+)
 DISTANCE_KEYS = frozenset({"distance"})
 SUB_SETTINGS = (
     (TARGET_BUFFER, "buffer", "setBuffer"),
@@ -35,7 +45,7 @@ SUB_SETTINGS = (
 )
 
 
-def build_settings(properties: dict[str, Any], base: Any = None) -> QgsPalLayerSettings:
+def build_settings(properties: dict[str, Any], base: Any = None, geometry: str = "") -> QgsPalLayerSettings:
     if base is None:
         settings = QgsPalLayerSettings()
         settings.isExpression = False
@@ -46,13 +56,46 @@ def build_settings(properties: dict[str, Any], base: Any = None) -> QgsPalLayerS
         if "field" in properties:
             settings.isExpression = False
         # Catalogue offsets and distances are millimetres; untouched ones keep the user's unit.
-        if OFFSET_KEYS & properties.keys():
-            settings.offsetUnits = MILLIMETRES
+        properties = _offsets_in_base_unit(settings, properties)
         if DISTANCE_KEYS & properties.keys():
             settings.distUnits = MILLIMETRES
     _apply_group(settings, properties, TARGET_SETTINGS)
+    if _offsets_ignored(settings, properties, geometry):
+        settings.placement = Qgis.LabelPlacement.OverPoint
     settings.setFormat(build_format(properties, settings.format() if base is not None else None))
     return settings
+
+
+def _offsets_ignored(settings: Any, properties: dict[str, Any], geometry: str) -> bool:
+    if not OFFSET_KEYS & properties.keys() or "placement" in properties or geometry not in OFFSET_GEOMETRIES:
+        return False
+    return bool(settings.placement == Qgis.LabelPlacement.AroundPoint)
+
+
+def offset_conflict(base: Any, properties: dict[str, Any]) -> str:
+    given = OFFSET_KEYS & properties.keys()
+    if base is None or len(given) != 1 or base.offsetUnits == MILLIMETRES or base.offsetUnits in MM_TO_PAPER:
+        return ""
+    attribute, other = OTHER_OFFSET[next(iter(given))]
+    value = getattr(base, attribute, 0.0)
+    if not value:
+        return ""
+    unit = getattr(base.offsetUnits, "name", str(base.offsetUnits))
+    return OFFSET_UNITS_CONFLICT.format(unit=unit, other=other, value=value)
+
+
+def _offsets_in_base_unit(settings: Any, properties: dict[str, Any]) -> dict[str, Any]:
+    given = OFFSET_KEYS & properties.keys()
+    if not given:
+        return properties
+    factor = MM_TO_PAPER.get(settings.offsetUnits) if len(given) == 1 else None
+    if factor is not None:
+        return {**properties, **{key: float(properties[key]) * factor for key in given}}
+    conflict = offset_conflict(settings, properties)
+    if conflict:
+        raise ValueError(conflict)
+    settings.offsetUnits = MILLIMETRES
+    return properties
 
 
 def build_format(properties: dict[str, Any], base: Any = None) -> QgsTextFormat:

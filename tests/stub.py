@@ -382,6 +382,7 @@ core = _mod(
         "QgsProcessingFeedback",
         "QgsFeedback",
         "QgsAuthMethodConfig",
+        "QgsLayerTree",
         "QgsLayerTreeGroup",
         "QgsLayerTreeLayer",
         "QgsUnitTypes",
@@ -503,6 +504,7 @@ _qtcore = _mod(
         "QVariant",
         "QMetaType",
         "QCoreApplication",
+        "QDate",
         "QDateTime",
     ],
 )

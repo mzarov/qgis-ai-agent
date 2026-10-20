@@ -7,6 +7,7 @@ from qgis.core import (
     QgsCoordinateTransform,
     QgsCoordinateTransformContext,
     QgsProject,
+    QgsProviderRegistry,
     QgsVectorFileWriter,
     QgsVectorLayer,
 )
@@ -23,6 +24,7 @@ from ai_agent.qgis_tools.common.layers import (
     pinned_layer,
 )
 from ai_agent.qgis_tools.common.paths import check_overwrites, outputs_safety, related_output_paths, same_path
+from ai_agent.qgis_tools.project.export_fields import field_changes
 
 FORMATS = {
     ".gpkg": "GPKG",
@@ -31,6 +33,8 @@ FORMATS = {
     ".csv": "CSV",
 }
 CSV_SUFFIX = ".csv"
+GPKG = "GPKG"
+SHAPEFILE = "ESRI Shapefile"
 # Without it the CSV driver silently drops the geometry.
 CSV_GEOMETRY_OPTIONS = ["GEOMETRY=AS_WKT"]
 CSV_NOTE = "The geometry is stored as WKT text in a column named WKT."
@@ -132,6 +136,11 @@ class ExportLayerTool(BaseTool):
         crs = _checked_crs(params.get("crs"))
         if crs is not None:
             options.ct = _transform(layer, crs)
+        if options.driverName == GPKG:
+            # Without a layer name the table is named after the file, and overwriting drops every other table.
+            options.layerName = layer.name()
+            if os.path.isfile(path):
+                options.actionOnExistingFile = QgsVectorFileWriter.ActionOnExistingFile.CreateOrOverwriteLayer
         error = QgsVectorFileWriter.writeAsVectorFormatV3(layer, path, QgsCoordinateTransformContext(), options)
         code = error[0] if isinstance(error, tuple) else error
         if code != QgsVectorFileWriter.WriterError.NoError:
@@ -143,8 +152,12 @@ class ExportLayerTool(BaseTool):
             "format": options.driverName,
             "selected_only": options.onlySelectedFeatures,
         }
+        if options.driverName == GPKG:
+            result["table"] = str(error[3]) if isinstance(error, tuple) and len(error) > 3 else layer.name()
         if spatial_csv:
             result["note"] = CSV_NOTE
+        if options.driverName == SHAPEFILE:
+            result.update(field_changes(layer, path))
         return result
 
     def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
@@ -153,9 +166,10 @@ class ExportLayerTool(BaseTool):
             return False
         source = pinned_layer(params)
         expected = _written_count(source, bool(payload.get("selected_only"))) if source is not None else None
-        if expected is None:
+        if expected is None or payload.get("renamed_fields") or payload.get("retyped_fields"):
             return None
-        written = QgsVectorLayer(path, "export check", "ogr")
+        table = str(payload.get("table") or "")
+        written = QgsVectorLayer(f"{path}|layername={table}" if table else path, "export check", "ogr")
         return bool(written.isValid()) and written.featureCount() == expected
 
 
@@ -218,6 +232,11 @@ def _refuse_a_layer_source(path: str) -> None:
 
 
 def _file_of(layer: Any) -> str:
+    # A delimited-text source is a file:// URI with a query, not a path.
+    with suppress(Exception):
+        path = QgsProviderRegistry.instance().decodeUri(layer.providerType(), layer.source()).get("path")
+        if path:
+            return str(path)
     with suppress(Exception):
         return str(layer.source() or "").split("|")[0]
     return ""

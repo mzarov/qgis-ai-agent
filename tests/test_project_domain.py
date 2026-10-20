@@ -28,7 +28,13 @@ class Node:
     def setItemVisibilityChecked(self, value):
         self.visible = value
 
+    def setItemVisibilityCheckedParentRecursive(self, value):
+        self.visible = value
+
     def itemVisibilityChecked(self):
+        return self.visible
+
+    def isVisible(self):
         return self.visible
 
     def clone(self):

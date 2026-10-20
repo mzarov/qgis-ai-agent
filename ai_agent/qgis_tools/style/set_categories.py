@@ -6,6 +6,7 @@ from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.colors import parse_color
+from ai_agent.qgis_tools.common.expressions import sort_key
 from ai_agent.qgis_tools.common.layers import layer_reference
 from ai_agent.qgis_tools.common.values import plain_value
 from ai_agent.qgis_tools.style.apply import (
@@ -132,10 +133,7 @@ def _wanted_values(layer: Any, field: str, requested: Any) -> list[Any]:
     index = layer.fields().indexFromName(field)
     if index < 0:
         return []
-    return sorted(
-        (plain_value(value) for value in layer.uniqueValues(index)),
-        key=lambda item: (item is None, str(item)),
-    )
+    return sorted((plain_value(value) for value in layer.uniqueValues(index)), key=sort_key)
 
 
 def _colours_for(values: list[Any], colors: Any, ramp_name: Any) -> list[Any]:
