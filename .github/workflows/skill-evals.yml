@@ -23,7 +23,8 @@ on:
     types: [labeled]
 
 concurrency:
-  group: skill-evals-${{ github.ref }}
+  # Per label: adding any other label to the pull request must not cancel a running bench.
+  group: skill-evals-${{ github.ref }}-${{ github.event.label.name || 'dispatch' }}
   cancel-in-progress: true
 
 permissions:

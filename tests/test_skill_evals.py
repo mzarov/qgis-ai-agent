@@ -614,6 +614,11 @@ class WorkflowTest(unittest.TestCase):
         self.assertIn("secrets.LIVE_MODEL_KEY", text)
         self.assertNotRegex(text, r"(?m)^  push:", "the bench spends tokens; it must not run on every push")
 
+    def test_another_label_does_not_cancel_a_running_bench(self):
+        text = (EVALS.parent / ".github" / "workflows" / "skill-evals.yml").read_text(encoding="utf-8")
+        group = re.search(r"(?m)^  group: (.+)$", text).group(1)
+        self.assertIn("${{ github.event.label.name || 'dispatch' }}", group)
+
 
 COUNTED = 're:": 24(\\.0)?[,}]'
 COLOURED = "re:graduated|categorized"
