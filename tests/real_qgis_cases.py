@@ -1142,6 +1142,12 @@ class GisWorkflowsTest(unittest.TestCase):
         self._run("set_symbol", layer_name="zones", properties={"color": "red", "opacity": 0.3, **outline})
         self.assertGreater(self._drawn(zones, 1000).pixelColor(150, 100).red(), 100, "opacity fades the outline too")
 
+    def test_a_stroke_colour_on_a_line_is_reported_not_claimed(self):
+        roads, _ = self._shapes("roads", "LineString?crs=EPSG:3857", ["LINESTRING (0 0, 10 10)"])
+        _, result = self._run("set_symbol", layer_name="roads", properties={"color": "orange", "stroke_color": "black"})
+        self.assertEqual((result["applied"], result["skipped"]), (["color"], ["stroke_color"]))
+        self.assertEqual(roads.renderer().symbol().color().name(), "#ffa500")
+
     def test_a_csv_export_keeps_the_geometry(self):
         path = self.root / "points.csv"
         self._run("export_layer", layer_name=self.layer.name(), path=str(path))
