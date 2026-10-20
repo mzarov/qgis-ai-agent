@@ -19,7 +19,7 @@ from ai_agent.core.llm import (
     probe as settings_probe,
 )
 from ai_agent.core.llm.dialects import ANTHROPIC, OPENAI, resolve
-from ai_agent.ui import settings_advanced
+from ai_agent.ui import controls, settings_advanced
 from ai_agent.ui.settings_dialog import SettingsDialog
 from tests.test_credentials import MemorySettings
 
@@ -159,8 +159,7 @@ class SidebarSettingsTest(unittest.TestCase):
         self.assertEqual(privacy.count("fields.switch_row("), privacy.count("fields.switch(palette)"))
 
     def test_long_explanations_wrap_instead_of_crossing_the_screen(self):
-        body = SOURCE.split("def rich_tooltip(")[1].split("\ndef ")[0]
-        self.assertIn("<qt>", body)
+        self.assertTrue(controls.plain_tip("x").startswith("<qt>"))
 
     def test_the_probe_button_lives_on_the_connection_page(self):
         connection = DIALOG_SOURCE.split("def _build_connection(")[1].split("\n    def ")[0]
@@ -224,7 +223,7 @@ class SidebarSettingsTest(unittest.TestCase):
         self.assertIn("controls.small(", SOURCE.split("def hint(")[1])
         self.assertIn("label.setWordWrap(True)", CONTROLS_SOURCE.split("def small(")[1].split("\ndef ")[0])
         grammar = SOURCE.split("def _row(")[1].split("\ndef ")[0]
-        self.assertIn("caption.setToolTip(rich_tooltip(tooltip))", grammar)
+        self.assertIn("caption.setToolTip(controls.plain_tip(tooltip))", grammar)
 
     def test_pages_are_sections_of_flat_rows_like_claude_code(self):
         for source in (DIALOG_SOURCE, ADVANCED_SOURCE, GEOCODER_SOURCE):

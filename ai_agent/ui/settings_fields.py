@@ -328,7 +328,7 @@ def _row(title: str, widget: QWidget, note: str, palette: Any, tooltip: str) -> 
     line.addWidget(caption, 1)
     line.addWidget(widget, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
     if tooltip:
-        caption.setToolTip(rich_tooltip(tooltip))
+        caption.setToolTip(controls.plain_tip(tooltip))
     return holder
 
 
@@ -350,10 +350,6 @@ def separator(palette: Any) -> QFrame:
     line.setFixedHeight(style.HAIRLINE)
     line.setStyleSheet(f"QFrame#{SEPARATOR_NAME} {{ background: {style.css_color(style.hairline(palette))}; }}")
     return line
-
-
-def rich_tooltip(note: str) -> str:
-    return f"<qt>{note}</qt>"
 
 
 def status(palette: Any) -> QLabel:

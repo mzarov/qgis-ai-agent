@@ -91,7 +91,7 @@
  },
  {
   "depth": 5,
-  "type": "QTextBrowser",
+  "type": "AnswerBrowser",
   "text": "Done: 1 step applied."
  },
  {

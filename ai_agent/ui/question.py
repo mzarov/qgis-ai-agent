@@ -77,6 +77,7 @@ class AnswerRow(controls.RoundedFrame):
         head = QHBoxLayout()
         head.setSpacing(6)
         title = QLabel(self.text)
+        title.setTextFormat(Qt.TextFormat.PlainText)
         title.setWordWrap(True)
         font = title.font()
         font.setWeight(QFont.Weight.Medium)
@@ -89,6 +90,7 @@ class AnswerRow(controls.RoundedFrame):
         text.addLayout(head)
         if why:
             detail = QLabel(why)
+            detail.setTextFormat(Qt.TextFormat.PlainText)
             detail.setWordWrap(True)
             style.scale_font(detail, DETAIL)
             style.ink(detail, style.muted(palette))
@@ -138,6 +140,7 @@ class QuestionCard(controls.RoundedFrame):
         style.ink(heading, style.faint(palette))
         column.addWidget(heading)
         self.question = QLabel(question)
+        self.question.setTextFormat(Qt.TextFormat.PlainText)
         self.question.setWordWrap(True)
         self.question.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         style.scale_font(self.question, QUESTION_SCALE, bold=True)

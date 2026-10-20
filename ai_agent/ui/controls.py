@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from html import escape
 from typing import Any
 
 from qgis.PyQt.QtCore import QEasingCurve, QRectF, QSize, Qt, QVariantAnimation, pyqtSignal
@@ -44,6 +45,8 @@ SWEEP_MS = 1200
 SWEEP_SHARE = 0.3
 REST_PHASE = 0.5
 SWATCH_RADIUS = 2
+NEWLINE = "\n"
+LINE_BREAK = "<br>"
 
 
 class Segmented(QFrame):
@@ -119,15 +122,15 @@ class Segmented(QFrame):
         start = self._pill or (QRectF(previous.geometry()) if previous is not None else None)
         target = self._group.button(index)
         if start is not None and target is not None and index != self._last:
-            if self._slide is not None:
-                self._slide.stop()
-            self._slide = QVariantAnimation(self)
-            self._slide.setDuration(SLIDE_MS)
+            if self._slide is None:
+                self._slide = QVariantAnimation(self)
+                self._slide.setDuration(SLIDE_MS)
+                self._slide.setEasingCurve(QEasingCurve.Type.OutCubic)
+                self._slide.valueChanged.connect(self._move_pill)
+                self._slide.finished.connect(self._slide_done)
+            self._slide.stop()
             self._slide.setStartValue(start)
             self._slide.setEndValue(QRectF(target.geometry()))
-            self._slide.setEasingCurve(QEasingCurve.Type.OutCubic)
-            self._slide.valueChanged.connect(self._move_pill)
-            self._slide.finished.connect(self._slide_done)
             self._slide.start()
         self._chosen(index)
 
@@ -487,6 +490,7 @@ def is_new_shortcut(event: Any) -> bool:
 
 def small(text: str, palette: Any, scale: float = SMALL_SCALE) -> QLabel:
     label = QLabel(text)
+    label.setTextFormat(Qt.TextFormat.PlainText)
     label.setWordWrap(True)
     style.scale_font(label, scale)
     style.ink(label, style.muted(palette))
@@ -535,13 +539,23 @@ class KeyCap(QLabel):
         painter.end()
 
 
+def plain_tip(text: str) -> str:
+    # Rich, so a long tip wraps; escaped, so a tag in it is shown, never followed.
+    return f"<qt>{escape(text, quote=False).replace(NEWLINE, LINE_BREAK)}</qt>" if text else ""
+
+
 class ElidedLabel(QLabel):
     def __init__(self, text: str = "", mode: Any = Qt.TextElideMode.ElideRight):
-        super().__init__(text)
+        super().__init__()
+        self.setTextFormat(Qt.TextFormat.PlainText)
+        self.setText(text)
         self._mode = mode
         self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self.setMinimumWidth(1)
         self.setToolTip(text)
+
+    def setToolTip(self, text: str) -> None:
+        super().setToolTip(plain_tip(text))
 
     def paintEvent(self, _event: Any) -> None:
         painter = QPainter(self)

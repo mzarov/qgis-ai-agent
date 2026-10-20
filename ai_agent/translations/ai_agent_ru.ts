@@ -85,7 +85,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/activity.py" line="369"/>
+        <location filename="ai_agent/ui/activity.py" line="372"/>
         <source>%n failed</source>
         <translation>
             <numerusform>%n ошибка</numerusform>
@@ -387,7 +387,7 @@
         <translation>Аккаунт или ключ</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/activity.py" line="385"/>
+        <location filename="ai_agent/ui/activity.py" line="388"/>
         <source>Activity · %n step(s)</source>
         <translation>
             <numerusform>Ход работы · %n шаг</numerusform>
@@ -893,7 +893,7 @@
         <translation>Изменения применяются — дождитесь окончания.</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/activity.py" line="382"/>
+        <location filename="ai_agent/ui/activity.py" line="385"/>
         <source>Changes checked · %n step(s)</source>
         <translation>
             <numerusform>Проверка изменений · %n шаг</numerusform>
@@ -1155,7 +1155,7 @@
         <translation>Копировать строки как CSV</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/conversation.py" line="467"/>
+        <location filename="ai_agent/ui/conversation.py" line="471"/>
         <source>Copy the whole conversation</source>
         <translation>Скопировать весь разговор</translation>
     </message>
@@ -1497,7 +1497,7 @@
         <translation>Сведения о проекте: слои, поля, значения, выделение</translation>
     </message>
     <message numerus="yes">
-        <location filename="ai_agent/ui/activity.py" line="384"/>
+        <location filename="ai_agent/ui/activity.py" line="387"/>
         <source>Failure looked into · %n step(s)</source>
         <translation>
             <numerusform>Разбор сбоя · %n шаг</numerusform>
@@ -2207,6 +2207,11 @@
         <translation>Без лимита</translation>
     </message>
     <message>
+        <location filename="ai_agent/ui/skill_popup.py" line="30"/>
+        <source>No matching layer</source>
+        <translation>Подходящего слоя нет</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/skill_popup.py" line="29"/>
         <source>No matching skill</source>
         <translation>Подходящего навыка нет</translation>
@@ -2863,7 +2868,7 @@
         <translation>Заменить модель Processing «{0}» ({1}).</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/composer.py" line="125"/>
+        <location filename="ai_agent/ui/composer.py" line="126"/>
         <source>Request</source>
         <translation>Запрос</translation>
     </message>
@@ -2903,7 +2908,7 @@
         <translation>Вернуть пределы, режимы, коннекторы, навыки, геокодирование и выбор в персонализации к значениям по умолчанию? Подключение, ключи, ваши тексты и навыки сохранятся.</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/messages.py" line="20"/>
+        <location filename="ai_agent/ui/messages.py" line="21"/>
         <source>Rewind to before this message</source>
         <translation>Вернуться к моменту до этого сообщения</translation>
     </message>

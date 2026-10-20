@@ -542,6 +542,7 @@ _mod(
         "QRegion",
         "QDesktopServices",
         "QTextCursor",
+        "QTextDocument",
         "QSyntaxHighlighter",
         "QTextCharFormat",
     ],

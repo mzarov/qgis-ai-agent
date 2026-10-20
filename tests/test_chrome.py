@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 from qgis.PyQt.QtWidgets import QWidget
 
+from ai_agent.ui import controls
 from ai_agent.ui.composer import Composer
 from ai_agent.ui.conversation import ConversationView
 from ai_agent.ui.layer_chip import LayerChip
@@ -66,7 +67,7 @@ class ComposerContextTest(unittest.TestCase):
 
         self.composer.set_model("moonshotai/kimi-k2.5")
         self.assertEqual(self.composer.toolbar.model.text(), "kimi-k2.5")
-        self.assertEqual(self.composer.toolbar.model.toolTip(), "moonshotai/kimi-k2.5")
+        self.assertEqual(self.composer.toolbar.model.toolTip(), controls.plain_tip("moonshotai/kimi-k2.5"))
         self.assertNotIsInstance(self.composer.toolbar.model, QAbstractButton)
         self.composer.set_model("")
         self.assertEqual(self.composer.toolbar.model.text(), composer_controls.NO_MODEL)

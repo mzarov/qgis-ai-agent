@@ -147,6 +147,7 @@ class AgentDockWidget(QDockWidget):
         self.composer.new_requested.connect(self._start_new)
         self.composer.place_requested.connect(self.place_requested.emit)
         self.composer.place_cancelled.connect(self.place_cancelled.emit)
+        self.composer.drafting.connect(self.conversation.hold_questions)
         layout.addWidget(self.composer)
         return holder
 

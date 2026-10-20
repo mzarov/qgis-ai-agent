@@ -384,6 +384,10 @@ class ConversationView(QScrollArea):
         self._pending_choice = text
         self.question_answered.emit(text)
 
+    def hold_questions(self) -> None:
+        for card in self._questions:
+            card.stop_countdown()
+
     def _retire_questions(self) -> None:
         for card in self._questions:
             card.retire()
@@ -465,7 +469,9 @@ class ConversationView(QScrollArea):
     def contextMenuEvent(self, event: Any) -> None:
         menu = controls.menu(self, self.palette())
         copy_action = menu.addAction(tr("Copy the whole conversation"))
-        if menu.exec(event.globalPos()) == copy_action:
+        chosen = menu.exec(event.globalPos())
+        menu.deleteLater()
+        if chosen == copy_action:
             self.copy_all()
 
     def _append(self, widget: QWidget) -> int:

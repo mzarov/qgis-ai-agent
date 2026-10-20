@@ -146,6 +146,12 @@ model writes bold, lists and code — all of it must display, not show as
 asterisks. The height follows the content, because there is a single scroll —
 the feed's.
 
+Its `AnswerBrowser` reads nothing an answer names (an image path may be
+/dev/zero or a pipe) and opens only http(s) links, in the system browser.
+Every other label showing model, data or user text is `PlainText`, and such a
+tooltip goes through `controls.plain_tip`: Qt's AutoText would follow
+`<img src=…>` to the file.
+
 While an answer streams, `append` does **not** render. Re-parsing the whole
 document per token is quadratic work on the main thread, and the tokens arrive
 faster than an eye can read them. Deltas accumulate and a single-shot timer
@@ -280,7 +286,8 @@ The send button is a painted circle at the end of the box's bottom row
 (`SendButton`): accent with an arrow, pale while there is nothing to send; while
 the agent works it becomes “stop” — a quiet circle with a square, its tooltip
 too. There is deliberately no separate button — it would be visible always and
-inactive most of the time. Enter is ignored while a run is active; Esc stops it
+inactive most of the time. Enter while a run is active sends the text as an
+interjection, a correction the agent reads on its next step; Esc stops the run
 (with the popup open, Esc only closes the popup). Offline it hides, since the
 welcome card already offers Open settings.
 
