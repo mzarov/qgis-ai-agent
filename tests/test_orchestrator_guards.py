@@ -109,6 +109,24 @@ class RequestGuardsTest(OrchestratorCase):
             self.assertEqual(self.agent.started[0], sent)
             self.assertEqual(self.contents("user")[-1], f"{typed} @districts")
 
+    def test_a_check_that_failed_before_any_step_does_not_name_the_next_request(self):
+        self.orchestrator.on_prompt("Colour the rivers")
+        self.orchestrator.on_finished("Queued.")
+        start = mock.Mock(prompt="check", round=1, preload=[])
+        with (
+            mock.patch.object(plans, "get_verify_after_apply", return_value=True),
+            mock.patch.object(plans, "confirmed_by_reading", return_value=False),
+            mock.patch.object(plans, "plan_verification", return_value=start),
+        ):
+            self.orchestrator.on_applied([Result()])
+        self.orchestrator.on_failed("HTTP 500")
+        self.orchestrator.on_prompt("Now count the rivers")
+        self.orchestrator.on_tool_started("Counting rivers")
+        self.orchestrator.on_tool_finished("query_layer", True)
+        self.orchestrator.on_finished("12 rivers.")
+        traces = [json.loads(message["content"]) for message in self.messages if message["role"] == TRACE_ROLE]
+        self.assertNotIn("kind", traces[-1], "an ordinary request is replayed as a check")
+
     def test_an_answer_to_a_remote_model_waits_for_consent(self):
         self.agent.is_awaiting_answer = True
         self.agent.endpoint = "https://provider.example/v1"

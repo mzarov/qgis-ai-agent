@@ -176,6 +176,25 @@ class ShortCheckScenario(ScenarioCase):
         self.assertNotIn(CHECKED_BY_READING, self.system_lines())
         self.assertEqual(self.last(), "Checked: both fields are on districts.")
 
+    def test_a_check_that_failed_does_not_name_the_next_request(self) -> None:
+        self.model.script(
+            call("load_skill", names=["style"]),
+            call("set_graduated", layer_name="districts", field="pop2020", classes=5),
+            say("I suggest colouring districts by pop2020 in 5 classes."),
+            fail(400, '{"error": "the upstream gave up"}'),
+            call("list_layers"),
+            say("Two layers."),
+        )
+        self.ask("Colour districts by pop2020 in 5 classes")
+        self.apply()
+        self.ask("How many layers are there?")
+        identifier = self.orchestrator.conversation.session_identifier
+        self.orchestrator.on_new_session()
+        self.orchestrator.on_session_chosen(identifier)
+        pump(0.1)
+        groups = self.dock.conversation.findChildren(ActivityGroup)
+        self.assertNotEqual(groups[-1].kind, RUN_CHECK, "a reopened request is drawn as the failed check")
+
 
 class TextOnlyScenario(ScenarioCase):
     def test_a_model_known_to_reject_images_verifies_by_reading(self) -> None:

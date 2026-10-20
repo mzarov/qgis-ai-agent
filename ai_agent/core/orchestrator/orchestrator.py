@@ -194,6 +194,8 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.dock_widget.begin_work()
         self.usage.note("runs")
         entry = self._show_user_bubble(shown)
+        # A check that failed before its first step left its kind on an empty trace.
+        self.conversation.trace.kind = ""
         self._forget_restore()
         self._drop_pending_plan()
         # Dropping a staged plan ends its run with an answer, saved before this request: the place follows it.
