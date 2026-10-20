@@ -163,5 +163,57 @@ def _not_found(name):
     raise ValueError(f"Layer not found: '{name}'.")
 
 
+class _Searchable:
+    def __init__(self, identifier, name):
+        self._identifier, self._name, self.deleted = identifier, name, False
+
+    def _alive(self):
+        if self.deleted:
+            raise RuntimeError("wrapped C/C++ object of type QgsProcessingModelAlgorithm has been deleted")
+
+    def id(self):
+        self._alive()
+        return self._identifier
+
+    def displayName(self):
+        self._alive()
+        return self._name
+
+    def tags(self):
+        self._alive()
+        return []
+
+    def group(self):
+        self._alive()
+        return "Models"
+
+    def shortDescription(self):
+        self._alive()
+        return ""
+
+
+class _Registry:
+    def __init__(self, algorithms):
+        self.current = list(algorithms)
+
+    def algorithms(self):
+        return list(self.current)
+
+
+class SearchIndexTest(unittest.TestCase):
+    def test_a_refreshed_provider_never_leaves_deleted_algorithms_in_the_results(self):
+        from ai_agent.qgis_tools.processing.search_processing import SearchProcessingTool
+
+        first = _Searchable("model:audit", "Audit buffer")
+        registry = _Registry([first])
+        with mock.patch.object(utils, "get_registry", return_value=registry):
+            found = SearchProcessingTool().execute({"query": "audit buffer"})
+            self.assertEqual([item["id"] for item in found["algorithms"]], ["model:audit"])
+            first.deleted = True
+            registry.current = [_Searchable("model:audit", "Audit buffer v2")]
+            found = SearchProcessingTool().execute({"query": "audit buffer"})
+        self.assertEqual([item["name"] for item in found["algorithms"]], ["Audit buffer v2"])
+
+
 if __name__ == "__main__":
     unittest.main()

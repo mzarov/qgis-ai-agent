@@ -547,6 +547,24 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual(model_builder.models_folder(), str(folder))
         return folder
 
+    def test_search_finds_a_model_again_after_its_provider_refreshes(self):
+        self._models_folder()
+        self._run(
+            "create_processing_model",
+            name="auditbufferzz",
+            inputs=[{"name": "layer", "type": "vector"}],
+            steps=[{"id": "b", "algorithm_id": "native:buffer", "parameters": {"INPUT": {"input": "layer"}}}],
+            outputs=[{"name": "Buffered", "step": "b"}],
+        )
+        search = get_tool_by_name("search_processing")
+        self.assertEqual(search.execute({"query": "auditbufferzz"})["algorithms"][0]["id"], "model:auditbufferzz")
+        registry = QgsApplication.processingRegistry()
+        count = len(registry.algorithms())
+        registry.providerById(model_builder.MODEL_PROVIDER_ID).refreshAlgorithms()
+        self.assertEqual(len(registry.algorithms()), count)
+        found = search.execute({"query": "auditbufferzz"})["algorithms"]
+        self.assertEqual([item["id"] for item in found], ["model:auditbufferzz"])
+
     def test_two_steps_become_a_model_that_runs_on_other_data(self):
         folder = self._models_folder()
         arguments = {

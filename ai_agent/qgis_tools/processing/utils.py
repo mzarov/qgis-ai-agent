@@ -48,16 +48,9 @@ def get_registry() -> Any:
     return registry
 
 
-_SEARCH_INDEX: list[tuple[Any, dict[str, str]]] = []
-_INDEXED_COUNT = [-1]
-
-
 def build_search_index() -> list[tuple[Any, dict[str, str]]]:
-    algorithms = get_registry().algorithms()
-    if _INDEXED_COUNT[0] != len(algorithms):
-        _SEARCH_INDEX[:] = [(algorithm, _haystack(algorithm)) for algorithm in algorithms]
-        _INDEXED_COUNT[0] = len(algorithms)
-    return _SEARCH_INDEX
+    # Built per search (a few ms): a refreshed provider deletes the algorithm objects a cache would keep.
+    return [(algorithm, _haystack(algorithm)) for algorithm in get_registry().algorithms()]
 
 
 def _haystack(algorithm) -> dict[str, str]:
