@@ -813,6 +813,25 @@ class ComposerBehaviourTest(PluginCase):
         pump(0.1)
         self.assertEqual(composer._popup.width(), composer._frame.width())
 
+    def test_a_caret_leaving_the_mention_closes_the_layer_list(self) -> None:
+        composer = self.dock.composer
+        composer.set_layer_source(lambda: [("roads", "", ""), ("rivers", "", "")])
+        sent: list[str] = []
+        composer.submitted.disconnect()
+        composer.submitted.connect(sent.append)
+        edit = composer._edit
+        edit.setFocus()
+        edit.insertPlainText("show me @ro")
+        pump(0.05)
+        self.assertTrue(edit.popup_open)
+        edit.moveCursor(QTextCursor.MoveOperation.Start)
+        self.assertFalse(edit.popup_open, "the list stayed open with the caret away from the mention")
+        self.assertTrue(composer._popup.isHidden())
+        edit.keyPressEvent(QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Return, Qt.KeyboardModifier.NoModifier))
+        self.assertEqual((edit.toPlainText(), sent), ("show me @ro", ["show me @ro"]))
+        composer._insert_layer("roads")
+        self.assertEqual(edit.toPlainText(), "show me @ro", "a choice away from the mention rewrote the text")
+
 
 class AnswerSafetyTest(unittest.TestCase):
     def setUp(self) -> None:

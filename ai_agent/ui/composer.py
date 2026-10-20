@@ -66,7 +66,7 @@ class Composer(QWidget):
         self._layers: Callable[[], list[tuple[str, str, str]]] = list
         self._popup: SkillPopup | None = None
         self._mode = MODE_SKILL
-        self._mention_start = 0
+        self._shown_mention: tuple[int, str] | None = None
         palette = self.palette()
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 0, 0, 0)
@@ -145,6 +145,7 @@ class Composer(QWidget):
         self._edit.new_requested.connect(self.new_requested.emit)
         self._edit.focus_changed.connect(self._on_focus)
         self._edit.textChanged.connect(self._on_text_changed)
+        self._edit.cursorPositionChanged.connect(self._on_cursor_moved)
         self._grow()
         return self._edit
 
@@ -214,21 +215,32 @@ class Composer(QWidget):
 
     def _on_text_changed(self) -> None:
         self._grow()
+        self._sync_popup()
+
+    def _on_cursor_moved(self) -> None:
+        # Typing reaches the list through textChanged; a caret moved off the mention must close it.
+        if self._edit.popup_open and self._mode == MODE_LAYER and self._mention() != self._shown_mention:
+            self._sync_popup()
+
+    def _sync_popup(self) -> None:
         if self._popup is None:
             self._paint()
             return
-        text = self._edit.toPlainText()
-        query = slash_query(text)
+        query = slash_query(self._edit.toPlainText())
         if query is not None:
             self._open_popup(MODE_SKILL, query, self._skills(), SLASH)
             return
-        before = self._before_cursor()
-        mention = mention_query(before, len(before))
+        mention = self._mention()
         if mention is not None:
-            self._mention_start = qt_length(before[: mention[0]])
+            self._shown_mention = mention
             self._open_popup(MODE_LAYER, mention[1], self._layers(), MENTION)
             return
         self._hide_popup()
+
+    def _mention(self) -> tuple[int, str] | None:
+        before = self._before_cursor()
+        found = mention_query(before, len(before))
+        return None if found is None else (qt_length(before[: found[0]]), found[1])
 
     def _before_cursor(self) -> str:
         # The cursor counts Qt positions: the Python text is never sliced by it.
@@ -283,9 +295,13 @@ class Composer(QWidget):
         self._edit.setFocus()
 
     def _insert_layer(self, name: str) -> None:
+        mention = self._mention()
+        if mention is None:
+            self._hide_popup()
+            return
         cursor = self._edit.textCursor()
         end = cursor.position()
-        cursor.setPosition(self._mention_start)
+        cursor.setPosition(mention[0])
         cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
         cursor.insertText(mention_text(name) + " ")
         self._edit.setTextCursor(cursor)
