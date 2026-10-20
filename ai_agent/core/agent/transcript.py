@@ -204,7 +204,8 @@ class Transcript:
             }
             return {"role": "assistant", "content": json.dumps(payload, ensure_ascii=False)}
 
-        message: dict[str, Any] = {"role": "assistant", "content": turn.text or None}
+        # Null text is valid only beside tool calls: Mistral refuses an assistant message with neither.
+        message: dict[str, Any] = {"role": "assistant", "content": turn.text or (None if turn.tool_calls else "")}
         if turn.tool_calls:
             message["tool_calls"] = [cls._render_call(call) for call in turn.tool_calls]
         if turn.thinking_blocks:
