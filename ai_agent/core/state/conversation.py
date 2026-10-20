@@ -7,6 +7,7 @@ from ai_agent.core.settings import get_history_days
 from ai_agent.core.state.session import MODEL_ROLES, Session, StoredMessage
 from ai_agent.core.state.store import SessionStore, current_project_key
 from ai_agent.core.state.trace import PENDING, PLAN_ROLE, TRACE_ROLE, TraceLog
+from ai_agent.qgis_tools.common.project_identity import same_project
 
 SUMMARY_INTRO = "Summary of our conversation so far, written when it was compacted to save space:\n"
 # Chat templates reject two user turns in a row: the summary gets an assistant reply.
@@ -230,6 +231,11 @@ class ConversationState:
     def sync_project(self, force_new: bool = False) -> bool:
         key = current_project_key()
         if not force_new and key == self.project_key:
+            return False
+        if not force_new and (same_project(key, self.project_key) or same_project(self.project_key, key)):
+            # A Save As, or the undo of one, takes the conversation along with the project.
+            self._session.project = key
+            self.save()
             return False
         self.keep_trace()
         self.save()

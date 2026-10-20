@@ -1,5 +1,6 @@
 import json
 import math
+import os
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -779,6 +780,30 @@ class PlanRestoreScenario(ScenarioCase):
         self.assertAlmostEqual(self.layer("districts").opacity(), 0.5)
         self.assertEqual(card._mark.text(), plan_module.APPLIED_MARK)
         self.shot("plan_restored_and_applied")
+
+
+class SaveAsUndoScenario(ScenarioCase):
+    def test_a_plan_that_saves_as_applies_whole_and_its_card_undoes_it(self) -> None:
+        target = os.path.join(self.folder, "city.qgz")
+        renamed = {"layer_name": "districts", "properties": {"name": "Districts A"}}
+        self.model.script(
+            call("load_skill", names=["project"]),
+            calls(("save_project", {"path": target}), ("configure_layer", renamed)),
+            say("Saved as city.qgz and renamed districts."),
+        )
+        self.ask("Save the project as city.qgz and rename districts to Districts A")
+        conversation = self.orchestrator.conversation.session_identifier
+        self.apply()
+        self.layer("Districts A")
+        self.assertEqual(QgsProject.instance().fileName(), target)
+        self.assertEqual(self.orchestrator.conversation.session_identifier, conversation, "a Save As left the chat")
+        card = self.dock.conversation.findChildren(PlanCard)[-1]
+        card._undo.click()
+        pump(0.1)
+        self.layer("districts")
+        notes = [message.plain_text() for message in self.dock.conversation.findChildren(SystemMessage)]
+        self.assertTrue(any("plan is undone" in note for note in notes), notes)
+        self.assertEqual(self.orchestrator.conversation.session_identifier, conversation, "the undo left the chat")
 
 
 class BackgroundStepScenario(ScenarioCase):
