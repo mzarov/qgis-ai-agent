@@ -133,6 +133,27 @@ class SessionStoreTest(unittest.TestCase):
         self.assertEqual(reasons, ["No space left on device"])
         self.assertEqual(self.store.recent("/p.qgz"), [])
 
+    def test_a_save_that_cannot_serialise_is_reported_not_raised(self):
+        reasons = []
+        self.store.on_failure = reasons.append
+        for error in (ValueError("Circular reference detected"), TypeError("Object of type set is not JSON")):
+            with mock.patch.object(store_module, "atomic_write_json", side_effect=error):
+                self._saved()
+        self.assertEqual(reasons, ["Circular reference detected", "Object of type set is not JSON"])
+
+    def test_text_with_a_broken_surrogate_is_saved_and_later_messages_too(self):
+        reasons = []
+        self.store.on_failure = reasons.append
+        state = ConversationState(store=self.store)
+        state.add("user", "hi")
+        state.add("assistant", "smile \ud83d")
+        state.add("assistant", "a pair split across chunks \ud83d\ude00")
+        state.add("user", "next question")
+        stored = self.store.load(state.session_identifier)
+        contents = [message["content"] for message in stored.messages]
+        self.assertEqual(contents, ["hi", "smile \ud83d", "a pair split across chunks 😀", "next question"])
+        self.assertEqual(reasons, [])
+
     def test_save_and_load(self):
         session = self._saved()
         loaded = self.store.load(session.identifier)
@@ -361,31 +382,35 @@ class ConversationStateTest(unittest.TestCase):
         self.state.start_new()
         self.assertEqual(self.state.recent(), [])
 
-    def test_sync_project_adopts_a_fresh_session_only_when_the_project_changes(self):
+    def test_a_project_saved_under_a_new_name_keeps_its_conversation(self):
+        self.state.add("user", "first question")
+        identifier, old_key = self.state.session_identifier, self.state.project_key
         saved_key = conversation_module.current_project_key
-        keys = iter((self.state.project_key, "/different/project.qgz"))
+        keys = iter((old_key, "/saved/as/copy.qgz"))
         conversation_module.current_project_key = lambda: next(keys)
         try:
-            identifier = self.state.session_identifier
-            self.assertFalse(self.state.sync_project())
-            self.assertTrue(self.state.sync_project())
-            self.assertNotEqual(self.state.session_identifier, identifier)
-            self.assertEqual(self.state.project_key, "/different/project.qgz")
-            self.assertEqual(self.state.messages, [])
+            self.assertEqual(self.state.follow_project(), "")
+            self.assertEqual(self.state.follow_project(), old_key)
         finally:
             conversation_module.current_project_key = saved_key
+        self.assertEqual(self.state.session_identifier, identifier)
+        self.assertEqual(self.state.project_key, "/saved/as/copy.qgz")
+        self.assertEqual(self.store.load(identifier).project, "/saved/as/copy.qgz")
+        self.assertEqual([session.identifier for session in self.store.recent("/saved/as/copy.qgz")], [identifier])
+        self.assertEqual(self.store.recent(old_key), [])
 
-    def test_forced_project_sync_starts_fresh_even_when_the_key_is_unchanged(self):
+    def test_another_project_starts_fresh_even_when_the_key_is_unchanged(self):
         self.state.add("user", "stale plan context")
         identifier = self.state.session_identifier
         saved_key = conversation_module.current_project_key
         conversation_module.current_project_key = lambda: self.state.project_key
         try:
-            self.assertTrue(self.state.sync_project(force_new=True))
+            self.state.start_for_project()
         finally:
             conversation_module.current_project_key = saved_key
         self.assertNotEqual(self.state.session_identifier, identifier)
         self.assertEqual(self.state.messages, [])
+        self.assertIsNotNone(self.store.load(identifier))
 
 
 class ProjectIdentityTest(unittest.TestCase):

@@ -11,6 +11,7 @@ RUN_STOPPED = tr("Run stopped. Pending work was cancelled.")
 APPLY_STOPPED = tr("Run stopped during apply. Pending steps were cancelled; any completed changes remain.")
 SWITCH_WHILE_RUNNING = tr("Wait for the current task to finish.")
 SWITCH_WHILE_APPLYING = tr("Changes are being applied — wait for that to finish.")
+STEPS_WAITING = tr("Apply or cancel the prepared steps first.")
 RUN_CHECK = "check"
 RUN_LOOK_INTO = "look_into"
 STEP_RUNNING = "running"

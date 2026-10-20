@@ -16,10 +16,13 @@ from ai_agent.core.orchestrator.notices import (
     STEP_FAILED,
     STEP_RUNNING,
 )
+from ai_agent.core.orchestrator.presentation import failure_text
 from ai_agent.core.state.trace import CANCELLED as PLAN_CANCELLED
 from ai_agent.core.state.trace import FAILED as PLAN_FAILED
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.call_summary import CallSummary
+from ai_agent.qgis_tools.registry import get_tool_by_name
+from ai_agent.skills.registry import LOCAL, SKILL_REGISTRY
 
 KNOWLEDGE = "knowledge"
 RUN_FAILED_LOG = "The model request failed: {0}"
@@ -77,9 +80,11 @@ class RunEventsMixin(OrchestratorHost):
             self.dock_widget.mark_plan_progress(plan, self._plan_step, percent, done)
 
     def on_tool_finished(self, tool_name: str, ok: bool, note: str = "") -> None:
-        self.usage.note("tools", tool_name)
-        if not ok:
-            self.usage.note("tool_errors", tool_name)
+        # Only the plugin's own names leave: a model invents tool names, and a user names local skills.
+        if get_tool_by_name(tool_name) is not None:
+            self.usage.note("tools", tool_name)
+            if not ok:
+                self.usage.note("tool_errors", tool_name)
         plan = self._applying_plan()
         if plan is not None and self._plan_step >= 0:
             state = STEP_DONE if ok else STEP_FAILED
@@ -107,7 +112,9 @@ class RunEventsMixin(OrchestratorHost):
         self._instant_step(tr("Plan {0}/{1}: {2}").format(done, len(steps), shown))
 
     def on_skill_loaded(self, name: str) -> None:
-        self.usage.note("skills", name)
+        skill = SKILL_REGISTRY.get(name)
+        if skill is not None and skill.origin != LOCAL:
+            self.usage.note("skills", name)
         summary = CallSummary.of(tr("Using {0}"), name)
         summary.skill = KNOWLEDGE
         self._instant_step(summary)
@@ -137,6 +144,7 @@ class RunEventsMixin(OrchestratorHost):
         self.conversation.add("assistant", message)
 
     def on_failed(self, message: str) -> None:
+        message = failure_text(message)
         self._active_tool_message_id = None
         self.conversation.keep_trace()
         self._plan_message_id = None
@@ -150,13 +158,16 @@ class RunEventsMixin(OrchestratorHost):
         )
         self.usage.note("failures", failure.kind)
         retryable = self._retry_args is not None and not getattr(self.agent, "is_verification", False)
+        retryable = retryable and failure.retry_helps
+        # Retry would start over without the steps the run prepared: it waits until they are cancelled.
+        self._retry_after_plan = retryable and self.agent.has_pending_writes
         self.dock_widget.add_run_failure(
             failure.title,
             failure.detail,
             str(message),
             failure.kind,
             failure.fixed_in_settings,
-            retryable and failure.retry_helps,
+            retryable and not self._retry_after_plan,
         )
         self.conversation.add_failure(
             {"title": failure.title, "detail": failure.detail, "message": str(message), "kind": failure.kind}

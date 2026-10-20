@@ -3,7 +3,7 @@ import os
 import tempfile
 import time
 import zipfile
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from qgis.core import Qgis, QgsMessageLog, QgsProject
 
@@ -145,6 +145,18 @@ def drop_snapshot(path: str) -> None:
 
 def snapshot_state(path: str) -> ProjectState | None:
     return _STATES.get(path)
+
+
+def follow_project_move(identity: str) -> None:
+    current = capture_project_state(QgsProject.instance())
+    for path, state in list(_STATES.items()):
+        if state.identity == identity:
+            _STATES[path] = replace(
+                state,
+                file_name=current.file_name,
+                preset_home_path=current.preset_home_path,
+                identity=current.identity,
+            )
 
 
 def snapshot_scratch(path: str) -> ScratchCopies:

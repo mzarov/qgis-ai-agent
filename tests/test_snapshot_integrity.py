@@ -365,6 +365,22 @@ class SnapshotIntegrityTest(unittest.TestCase):
         self.assertIn("another project", str(caught.exception))
         self.assertEqual(self.project.read_calls, [])
 
+    def test_a_snapshot_follows_its_project_saved_under_a_new_name(self):
+        for first_name in (self.project.fileName(), ""):
+            with self.subTest(first_name=first_name):
+                self.project.setFileName(first_name)
+                before = project_identity(self.project)
+                path = snapshots.take_snapshot()
+                copy = os.path.join(self.folder.name, "copy.qgz")
+                self.project.setFileName(copy)
+                snapshots.follow_project_move(before)
+
+                result = UndoLastApplyTool().execute({})
+
+                self.assertEqual(result["restored_from"], path)
+                self.assertEqual(self.project.fileName(), copy, "Undo must not take the project back to its old file")
+                self.assertTrue(self.project.isDirty())
+
     def test_undo_refills_memory_layers_the_project_file_cannot_hold(self):
         scratch = MemoryLayer(
             "buffers",

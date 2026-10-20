@@ -112,6 +112,7 @@ class ScopedCredentialTest(unittest.TestCase):
         credentials.QgsAuthMethodConfig = FakeConfig
         credentials.QgsApplication = FakeApplication
         credentials._error = ""
+        credentials.ask_again()
         self.manager = FakeAuthManager()
         FakeApplication.manager = self.manager
         settings.set_api_url(REMOTE)
@@ -122,6 +123,7 @@ class ScopedCredentialTest(unittest.TestCase):
         credentials.QgsApplication = self.saved_application
         credentials.QgsAuthMethodConfig = self.saved_config
         credentials._error = ""
+        credentials.ask_again()
         FakeApplication.manager = None
 
     def test_different_endpoints_keep_different_keys(self):
@@ -197,6 +199,24 @@ class ScopedCredentialTest(unittest.TestCase):
         self.manager.unlocked = False
         self.assertEqual(settings.get_api_key(REMOTE, "openai"), "")
         self.assertIn("master password", settings.get_credential_store_error())
+
+    def test_a_refused_master_password_is_asked_again_only_when_the_user_acts(self):
+        settings.set_api_key("secret", REMOTE, "openai")
+        self.manager.unlocked = False
+        asked = []
+        self.manager.setMasterPassword = lambda _verify=True: asked.append("asked") and False
+        for _ in range(3):
+            self.assertEqual(settings.get_api_key(REMOTE, "openai"), "")
+        self.assertEqual(len(asked), 1, "every read after a Cancel opened the master password dialog again")
+        self.assertIn("master password", settings.get_credential_store_error())
+        with self.assertRaises(RuntimeError):
+            settings.set_api_key("new-secret", REMOTE, "openai")
+        self.assertEqual(len(asked), 2, "saving a key is the user's own act and asks again")
+        credentials.ask_again()
+        settings.get_api_key(REMOTE, "openai")
+        self.assertEqual(len(asked), 3)
+        self.manager.unlocked = True
+        self.assertEqual(settings.get_api_key(REMOTE, "openai"), "secret")
 
     def test_a_disabled_database_is_reported_not_swallowed(self):
         self.manager.disabled = True

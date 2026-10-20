@@ -187,7 +187,8 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     no dependency for it, behaves the same on all three platforms, and the
     master password is a dialog the user already knows. Only the identifier of
     the stored entry goes into `QgsSettings`; the secret never does. A refused
-    master password reads as an empty key with a stated reason, never as a crash.
+    master password reads as an empty key with a stated reason, never as a crash,
+    and reads do not ask again until the user opens Settings or saves a key.
 16. **Slash commands preload skills; the loop stays skill-agnostic.**
     `orchestrator/slash.py` parses `/name rest`: an unknown name is refused with
     the list before anything is sent; a known one becomes
@@ -227,10 +228,11 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     keeps the kind (`failure_kind`), `explain_run_failure`
     (`agent/run_failure.py`) turns it into a title, one sentence and whether
     sending again can help, for the feed's failure card. Retry
-    (`CoreOrchestrator.on_retry`) sends the failed request again over the same
-    history without adding the user message a second time; a wrong path or a
-    refused key is offered Retry only after the settings are saved
-    (`on_settings_saved`).
+    (`CoreOrchestrator.on_retry`) sends the failed request again over the
+    history before it, without adding the user message a second time; a wrong
+    path or a refused key is offered Retry only after the settings are saved
+    (`on_settings_saved`). Beside steps the failed run prepared, Retry waits:
+    it would start over without them, so it comes back once they are cancelled.
 18. **The prefix never moves; the state rides at the end.** Everything that
     changes during a run — notes, plan, queued steps, project context — is one
     state message appended after the transcript (`llm/live.py`), never part of
@@ -318,7 +320,7 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `llm/providers.py`       | provider presets for the settings dialog            |
 | `llm/context_window.py`  | the model's window: setting, detected, guessed; the 90 % mark |
 | `credentials.py`         | API keys in the QGIS authentication database        |
-| `usage_stats.py`         | daily usage counts, on by default after a one-time notice; a no stops them, one ping per finished day |
+| `usage_stats.py`         | daily usage counts, on by default after a one-time notice; a no stops them, one ping per finished day, the last few missed days sent oldest first |
 | `local_skills.py`        | the profile's skills folder: rescan, validation, example |
 | `attachments.py`         | attached files: data added as layers at once (the user's own act, not a queued write), pictures encoded for the request |
 | `orchestrator/compacting.py` | the context meter and compaction before a request or by hand |

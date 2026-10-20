@@ -26,11 +26,18 @@ class SessionStore:
             os.makedirs(self._root, exist_ok=True)
             atomic_write_json(path, session.to_dict())
         except OSError as error:
-            if self.on_failure is not None:
-                self.on_failure(error.strerror or str(error))
+            self._failed(error.strerror or str(error))
+            return
+        except (ValueError, TypeError) as error:
+            # Raised out of a Qt slot, it would break this save and every later one.
+            self._failed(str(error))
             return
         if is_new:
             self._trim()
+
+    def _failed(self, reason: str) -> None:
+        if self.on_failure is not None:
+            self.on_failure(reason)
 
     def load(self, identifier: str) -> Session | None:
         loaded = read_json(self._path(identifier))

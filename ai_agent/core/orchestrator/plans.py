@@ -63,6 +63,8 @@ class PlanMixin(OrchestratorHost):
         if busy:
             self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
             return
+        if not self._confirm_first_send():
+            return
         set_work_mode(mode)
         self.dock_widget.set_work_mode(mode)
         request = self._last_request
@@ -104,6 +106,9 @@ class PlanMixin(OrchestratorHost):
             self._plan_settled(CANCELLED)
             self._restorable_plan_id = self._plan_message_id
         self._plan_message_id = None
+        if self._retry_after_plan and self.is_idle:
+            self._retry_after_plan = False
+            self.dock_widget.offer_retry()
 
     def on_restore_plan(self, message_id: int) -> None:
         restorable = message_id == self._restorable_plan_id and self.is_idle
@@ -185,7 +190,7 @@ class PlanMixin(OrchestratorHost):
         loaded = list(getattr(self.agent, "loaded_skills", None) or [])
         overrides = getattr(self.agent, "overrides", None)
         start = plan_verification(results, self.agent.verification_round, self._last_request, loaded, overrides)
-        if start is None:
+        if start is None or not self._confirm_first_send():
             return
         failed = any(not result.ok for result in results)
         kind = RUN_LOOK_INTO if failed else RUN_CHECK

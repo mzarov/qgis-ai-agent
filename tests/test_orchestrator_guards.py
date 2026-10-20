@@ -4,12 +4,16 @@ import tempfile
 import unittest
 from unittest import mock
 
-from ai_agent.core.orchestrator import notices
+from ai_agent.core.orchestrator import notices, plans
 from ai_agent.core.orchestrator import orchestrator as orchestrator_module
+from ai_agent.core.orchestrator import run_events as run_events_module
+from ai_agent.core.orchestrator.compacting import NOT_COMPACTED, SessionCompaction
 from ai_agent.core.orchestrator.orchestrator import CoreOrchestrator
 from ai_agent.core.state.conversation import ConversationState
 from ai_agent.core.state.store import SessionStore
 from ai_agent.core.state.trace import TRACE_ROLE
+from ai_agent.skills.base import Skill
+from ai_agent.skills.registry import LOCAL, SKILL_REGISTRY
 from tests.test_orchestrator import Agent, Call, Iface, Result, StepDock
 
 NOTHING_TO_APPLY = "There are no changes to apply."
@@ -97,6 +101,39 @@ class RequestGuardsTest(OrchestratorCase):
         self.assertIn(notices.SWITCH_WHILE_RUNNING, self.dock.system)
         self.assertEqual(self.messages, [])
 
+    def test_one_panel_refresh_reads_the_key_once(self):
+        with mock.patch.object(orchestrator_module, "is_configured", return_value=True) as configured:
+            self.orchestrator.refresh_configured()
+        self.assertEqual(configured.call_count, 1, "each read of a locked key opens the master password dialog")
+
+    def test_a_skill_command_keeps_its_request_beside_the_layer_chip(self):
+        self.dock.context_mention = lambda: "@districts"
+        for typed, sent in (
+            ("/style", "Apply the 'style' skill to the current project. @districts"),
+            ("/osm cafes around", "cafes around @districts"),
+        ):
+            self.orchestrator.on_prompt(typed)
+            self.assertEqual(self.agent.started[0], sent)
+            self.assertEqual(self.contents("user")[-1], f"{typed} @districts")
+
+    def test_a_check_that_failed_before_any_step_does_not_name_the_next_request(self):
+        self.orchestrator.on_prompt("Colour the rivers")
+        self.orchestrator.on_finished("Queued.")
+        start = mock.Mock(prompt="check", round=1, preload=[])
+        with (
+            mock.patch.object(plans, "get_verify_after_apply", return_value=True),
+            mock.patch.object(plans, "confirmed_by_reading", return_value=False),
+            mock.patch.object(plans, "plan_verification", return_value=start),
+        ):
+            self.orchestrator.on_applied([Result()])
+        self.orchestrator.on_failed("HTTP 500")
+        self.orchestrator.on_prompt("Now count the rivers")
+        self.orchestrator.on_tool_started("Counting rivers")
+        self.orchestrator.on_tool_finished("query_layer", True)
+        self.orchestrator.on_finished("12 rivers.")
+        traces = [json.loads(message["content"]) for message in self.messages if message["role"] == TRACE_ROLE]
+        self.assertNotIn("kind", traces[-1], "an ordinary request is replayed as a check")
+
     def test_an_answer_to_a_remote_model_waits_for_consent(self):
         self.agent.is_awaiting_answer = True
         self.agent.endpoint = "https://provider.example/v1"
@@ -111,6 +148,79 @@ class RequestGuardsTest(OrchestratorCase):
         self.assertIn(notices.DATA_SHARING_DECLINED, self.dock.system)
 
 
+class ConsentOnEverySendTest(OrchestratorCase):
+    REMOTE = "https://new-provider.example/v1"
+
+    def setUp(self):
+        super().setUp()
+        self.asked = []
+        self.dock.confirm_data_sharing = lambda endpoint: self.asked.append(endpoint) or False
+        self.url = "http://localhost:11434/v1"
+        for patch in (
+            mock.patch.object(orchestrator_module, "_is_configured", return_value=True),
+            mock.patch.object(orchestrator_module, "get_data_sharing_consent", return_value=False),
+            mock.patch.object(orchestrator_module, "set_data_sharing_consent"),
+            mock.patch.object(orchestrator_module, "get_api_url", side_effect=lambda: self.url),
+        ):
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def refused(self):
+        self.assertEqual(self.asked, ["https://new-provider.example"])
+        self.assertIn(notices.DATA_SHARING_DECLINED, self.dock.system)
+
+    def test_retry_after_switching_to_a_remote_provider_asks_first(self):
+        self.orchestrator.on_prompt("Colour the rivers")
+        self.orchestrator.on_failed("HTTP 401")
+        self.agent.started = None
+        self.url = self.REMOTE
+        self.orchestrator.on_retry()
+        self.refused()
+        self.assertIsNone(self.agent.started)
+
+    def test_compacting_by_hand_for_a_remote_provider_asks_first(self):
+        self.orchestrator.on_prompt("Colour the rivers")
+        self.orchestrator.on_finished("Done.")
+        self.url = self.REMOTE
+        self.orchestrator.on_compact()
+        self.refused()
+        self.compaction.start.assert_not_called()
+
+    def test_running_the_plan_for_a_remote_provider_asks_first(self):
+        self.orchestrator.on_prompt("Plan the buffers")
+        self.orchestrator.on_finished("1. Buffer 2. Style")
+        self.agent.started = None
+        self.url = self.REMOTE
+        self.orchestrator.on_run_plan("ask")
+        self.refused()
+        self.assertIsNone(self.agent.started)
+
+    def test_the_check_after_apply_for_a_remote_provider_asks_first(self):
+        self.orchestrator.on_prompt("Colour the rivers")
+        self.orchestrator.on_finished("Queued.")
+        self.url = self.REMOTE
+        start = mock.Mock(prompt="check", round=1, preload=[])
+        with (
+            mock.patch.object(plans, "get_verify_after_apply", return_value=True),
+            mock.patch.object(plans, "confirmed_by_reading", return_value=False),
+            mock.patch.object(plans, "plan_verification", return_value=start),
+        ):
+            self.orchestrator.on_applied([Result()])
+        self.refused()
+        self.assertIsNone(self.agent.verification_started)
+
+    def test_a_conversation_is_named_only_by_a_provider_it_may_reach(self):
+        titler = self.orchestrator.naming._titler = mock.MagicMock(is_running=False)
+        self.orchestrator.on_prompt("Colour the rivers")
+        self.url = self.REMOTE
+        self.orchestrator.on_finished("Done.")
+        titler.start.assert_not_called()
+        self.assertEqual(self.asked, [])
+        self.url = "http://localhost:11434/v1"
+        self.orchestrator.naming.after_answer()
+        titler.start.assert_called_once_with("Colour the rivers", "Done.")
+
+
 class RetryAndCompactTest(OrchestratorCase):
     def test_retry_while_busy_waits_and_retry_with_nothing_failed_does_nothing(self):
         self.orchestrator.on_retry()
@@ -123,6 +233,45 @@ class RetryAndCompactTest(OrchestratorCase):
         self.orchestrator.on_retry()
         self.assertIsNone(self.agent.started)
         self.assertIn(notices.SWITCH_WHILE_RUNNING, self.dock.system)
+
+    def fail_beside_prepared_steps(self):
+        offered = []
+        self.dock.add_run_failure = lambda *args: offered.append(args[-1]) or 1
+        self.orchestrator.on_prompt("Colour the rivers")
+        self.agent.has_pending_writes = True
+        self.orchestrator.on_failed("HTTP 500")
+        self.agent.started = None
+        return offered
+
+    def test_retry_waits_for_the_prepared_steps_and_comes_back_once_they_are_cancelled(self):
+        self.assertEqual(self.fail_beside_prepared_steps(), [False], "Retry would throw the prepared steps away")
+        self.orchestrator.on_retry()
+        self.assertIsNone(self.agent.started)
+        self.assertEqual(self.dock.system[-1:], [notices.STEPS_WAITING])
+        self.orchestrator.on_cancel_plan()
+        self.assertEqual(self.dock.retry_offers, 1)
+        self.orchestrator.on_retry()
+        self.assertEqual(self.agent.started, ("Colour the rivers", []))
+
+    def test_prepared_steps_applied_after_a_failure_do_not_bring_retry_back(self):
+        self.fail_beside_prepared_steps()
+        self.orchestrator.on_confirm_plan()
+        self.orchestrator.on_busy(True)
+        self.orchestrator.on_busy(False)
+        self.orchestrator.on_cancel_plan()
+        self.assertEqual(self.dock.retry_offers, 0)
+
+    def test_retry_after_a_preamble_sends_the_request_once(self):
+        self.orchestrator.on_prompt("Earlier question")
+        self.orchestrator.on_finished("Earlier answer")
+        self.orchestrator.on_prompt("Colour the rivers")
+        self.orchestrator.on_preamble("I'll load the style rules first.")
+        self.orchestrator.on_failed("HTTP 500")
+        self.agent.started = None
+        self.orchestrator.on_retry()
+        prompt, history = self.agent.started
+        self.assertEqual(prompt, "Colour the rivers")
+        self.assertEqual([message["content"] for message in history], ["Earlier question", "Earlier answer"])
 
     def test_saved_settings_offer_retry_only_when_idle(self):
         self.orchestrator.on_prompt("Colour the rivers")
@@ -149,6 +298,48 @@ class RetryAndCompactTest(OrchestratorCase):
         session = self.orchestrator.conversation._session
         self.assertEqual((session.context_tokens, session.spent_tokens, session.requests), (1200, 2800, 2))
         self.assertEqual(self.compaction.refresh.call_count, 2)
+
+
+class UsageNamesTest(OrchestratorCase):
+    def test_only_the_plugins_own_tools_and_skills_are_counted(self):
+        usage = self.orchestrator.usage = mock.Mock()
+        local = Skill(name="acme_cadastre_rules", description="The user's own rules.", origin=LOCAL)
+        with mock.patch.dict(SKILL_REGISTRY._local, {local.name: local}):
+            self.orchestrator.on_tool_finished("count_parcels_of_ivanov_estate", False)
+            self.orchestrator.on_skill_loaded("acme_cadastre_rules")
+            self.orchestrator.on_tool_finished("query_layer", False)
+            self.orchestrator.on_skill_loaded("style")
+        counted = [call.args for call in usage.note.call_args_list]
+        self.assertEqual(counted, [("tools", "query_layer"), ("tool_errors", "query_layer"), ("skills", "style")])
+
+
+class FailureTextTest(OrchestratorCase):
+    def test_an_address_in_a_failure_loses_its_login_and_query(self):
+        shown = []
+        self.dock.add_run_failure = lambda *args: shown.append(args) or 1
+        self.orchestrator.on_prompt("Colour the rivers")
+        failure = (
+            "Error transferring https://me:hunter2@api.example.com:8443"  # pragma: allowlist secret
+            "/v1/chat/completions?key=abc123&x=1#top - server replied: Bad Gateway"
+        )
+        with mock.patch.object(run_events_module.QgsMessageLog, "logMessage") as logged:
+            self.orchestrator.on_failed(failure)
+        record = json.loads(self.contents("failure")[0])
+        bare = "Error transferring https://api.example.com:8443/v1/chat/completions - server replied: Bad Gateway"
+        for text in (shown[0][1], shown[0][2], record["detail"], record["message"], logged.call_args.args[0]):
+            self.assertNotIn("hunter2", text)
+            self.assertNotIn("abc123", text)
+        self.assertEqual((shown[0][2], record["message"]), (bare, bare))
+
+    def test_a_failed_compaction_names_the_address_without_its_secrets(self):
+        errors = []
+        self.dock.add_error_message = errors.append
+        compaction = SessionCompaction(self.dock, lambda: self.orchestrator.conversation)
+        compaction._scope = self.orchestrator.conversation.session_identifier
+        compaction._on_failed("Error transferring http://localhost:1234/v1/chat/completions?token=abc123 - refused")
+        self.assertEqual(
+            errors, [NOT_COMPACTED.format("Error transferring http://localhost:1234/v1/chat/completions - refused")]
+        )
 
 
 class FeedEventsTest(OrchestratorCase):

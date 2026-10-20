@@ -1,11 +1,13 @@
 import os
+import re
 from collections.abc import Sequence
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 from qgis.core import QgsProject, QgsRasterLayer, QgsVectorLayer
 
 from ai_agent.core.agent.transcript import ToolResult
-from ai_agent.core.llm.client import is_local
+from ai_agent.core.llm.client import is_local, scrub_secrets
 from ai_agent.core.orchestrator.planning import LAYER_ARGUMENT
 from ai_agent.core.settings import get_api_key, get_api_url
 from ai_agent.i18n import tr, tr_n
@@ -13,6 +15,20 @@ from ai_agent.qgis_tools.common.layers import feature_count_if_cheap, with_layer
 from ai_agent.qgis_tools.registry import get_tool_by_name
 
 STYLE_SKILL = "style"
+URL = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*://[^\s'\"<>()]+")
+
+
+def failure_text(text: str) -> str:
+    # Qt's network errors quote the whole address: its login and query may hold a key.
+    return URL.sub(_bare_address, scrub_secrets(str(text)))
+
+
+def _bare_address(match: re.Match[str]) -> str:
+    try:
+        parts = urlsplit(match.group(0))
+    except ValueError:
+        return ""
+    return urlunsplit((parts.scheme, parts.netloc.rpartition("@")[2], parts.path, "", ""))
 
 
 def compact_number(value: int) -> str:

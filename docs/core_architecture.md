@@ -248,7 +248,10 @@ checks, so a complaint about `reasoning_effort` never turns streaming off.
 `ConversationState` wraps one `Session`: the full transcript plus the summary
 left by the last compaction. The model's window is the summary and every
 message after it. The conversation is saved after every message as JSON in
-`ai_agent_sessions/` in the QGIS profile, bound to the open project. The chat
+`ai_agent_sessions/` in the QGIS profile, bound to the open project. Saving
+the project under a new name keeps the conversation, its run and its
+snapshots: QGIS renames the project without clearing it, so it is the same
+project. Opening another one starts a new conversation. The chat
 also saves what it showed of each turn (steps, reasoning, plan cards); none of
 that reaches the model. Switching conversations is refused while a run or an
 unapplied batch is active.
