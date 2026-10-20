@@ -22,5 +22,6 @@ show how many installs are in use.
 ## Settings
 
 Downloads need nothing. Traffic needs a fine-grained token for this repository
-with **Administration: read**, saved as the `METRICS_TOKEN` secret. Without it
-the run collects downloads only.
+with **Administration: read**, saved as the `METRICS_TOKEN` secret. Without it,
+or when GitHub does not answer, the run collects downloads only. When
+plugins.qgis.org returns no list of versions, the run fails and saves nothing.

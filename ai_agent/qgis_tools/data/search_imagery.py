@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Any
 
 from ai_agent.i18n import tr, tr_n
@@ -106,18 +107,20 @@ def _max_cloud(raw: Any) -> float:
 def _dates(params: dict[str, Any]) -> str:
     start = _day(params.get("date_from"), "date_from")
     end = _day(params.get("date_to"), "date_to")
-    if not start and not end:
+    if start is None and end is None:
         return ""
-    if start and end and start > end:
+    if start is not None and end is not None and start > end:
         raise ValueError(f"date_from {start} is after date_to {end}.")
-    return f"{start + 'T00:00:00Z' if start else '..'}/{end + 'T23:59:59Z' if end else '..'}"
+    first = f"{start.isoformat()}T00:00:00Z" if start is not None else ".."
+    last = f"{end.isoformat()}T23:59:59Z" if end is not None else ".."
+    return f"{first}/{last}"
 
 
-def _day(raw: Any, label: str) -> str:
+def _day(raw: Any, label: str) -> date | None:
     text = str(raw or "").strip()
     if not text:
-        return ""
-    parts = text.split("-")
-    if len(parts) != 3 or not all(part.isdigit() for part in parts) or len(parts[0]) != 4:
-        raise ValueError(f"{label} '{text}' is not a date like 2026-06-30.")
-    return text
+        return None
+    try:
+        return date.fromisoformat(text)
+    except ValueError:
+        raise ValueError(f"{label} '{text}' is not a date like 2026-06-30.") from None

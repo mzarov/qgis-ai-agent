@@ -1,21 +1,42 @@
+import dataclasses
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import unittest
+from typing import Any
+from unittest import mock
 
 from e2e_harness import PluginCase, pump
-from qgis.PyQt.QtCore import QEvent, QPoint, QPointF, Qt
-from qgis.PyQt.QtGui import QColor, QKeyEvent, QTextCursor, QWheelEvent
-from qgis.PyQt.QtWidgets import QApplication, QLabel, QLineEdit, QScrollBar, QWidget
+from qgis.PyQt.QtCore import QEvent, QObject, QPoint, QPointF, Qt, QTimer, QUrl, QVariantAnimation, pyqtSlot
+from qgis.PyQt.QtGui import (
+    QColor,
+    QContextMenuEvent,
+    QDesktopServices,
+    QImage,
+    QKeyEvent,
+    QMouseEvent,
+    QTextCursor,
+    QTextDocument,
+    QWheelEvent,
+)
+from qgis.PyQt.QtWidgets import QApplication, QLabel, QLineEdit, QMenu, QScrollBar, QTextBrowser, QToolTip, QWidget
 
-from ai_agent.ui import compass, controls, progress, settings_fields, style
-from ai_agent.ui.activity import ActivityGroup
+from ai_agent.config import personal
+from ai_agent.core.orchestrator.notices import STATUS_DONE, SWITCH_WHILE_RUNNING
+from ai_agent.ui import compass, controls, progress, settings_fields, skill_popup, style, transitions
+from ai_agent.ui.activity import ActivityGroup, PulseRing
+from ai_agent.ui.chart import ChartCard
 from ai_agent.ui.composer_parts import LAYER_TOKEN, SKILL_TOKEN
+from ai_agent.ui.connection_widgets import STATE_BAD, StatusCard
 from ai_agent.ui.conversation import ConversationView
 from ai_agent.ui.dropdown import Dropdown
 from ai_agent.ui.messages import AssistantMessage, SystemMessage
+from ai_agent.ui.plan import RUN_PLAN_QUESTION, PlanOffer
+from ai_agent.ui.question import QuestionCard
 from ai_agent.ui.settings_dialog import SettingsDialog
 from ai_agent.ui.table_card import TableCard
 from ai_agent.ui.thinking import ThinkingBlock
@@ -41,6 +62,82 @@ WIDE_TABLE = {
     "rows": [[f"value {index}" for index in range(9)] + [LAST_CELL]] * 3,
     "total": 3,
 }
+PAYLOAD = "<b>bold</b>"
+RED = QColor(255, 0, 0)
+LONG_FEED = 120
+LAYOUT_WAIT_S = 10
+DISTRICT_LIST = "A district list:\n\n" + "\n".join(f"- item {index}" for index in range(8))
+BAR_CHART = {
+    "type": "chart",
+    "kind": "bar",
+    "title": "t",
+    "labels": ["a", "b"],
+    "series": [{"name": "s", "values": [1, 2]}],
+}
+
+
+def shown(text: str, text_format: Any = Qt.TextFormat.AutoText) -> str:
+    # What Qt draws: AutoText, as a tooltip, turns rich at a tag on the first line.
+    plain = text_format == Qt.TextFormat.PlainText
+    if plain or (text_format == Qt.TextFormat.AutoText and "<" not in text.split("\n", 1)[0]):
+        return text
+    document = QTextDocument()
+    document.setHtml(text)
+    return document.toPlainText()
+
+
+def red_pixels(widget: QWidget) -> int:
+    image = widget.grab().toImage()
+    return sum(
+        1
+        for y in range(0, image.height(), 2)
+        for x in range(0, image.width(), 2)
+        if image.pixelColor(x, y).red() > 200 and image.pixelColor(x, y).green() < 60
+    )
+
+
+def mouse(widget: QWidget, kind: Any, point: QPointF, button: Any, buttons: Any) -> None:
+    at = QPointF(widget.mapToGlobal(point.toPoint()))
+    QApplication.sendEvent(widget, QMouseEvent(kind, point, at, button, buttons, Qt.KeyboardModifier.NoModifier))
+
+
+def click_text(browser: QTextBrowser, text: str) -> None:
+    found = browser.document().find(text)
+    cursor = QTextCursor(found)
+    cursor.setPosition(found.selectionStart() + 1)
+    point = QPointF(browser.cursorRect(cursor).center())
+    left = Qt.MouseButton.LeftButton
+    mouse(browser.viewport(), QEvent.Type.MouseButtonPress, point, left, left)
+    mouse(browser.viewport(), QEvent.Type.MouseButtonRelease, point, left, Qt.MouseButton.NoButton)
+
+
+def tip_at(widget: QWidget, point: QPointF) -> str:
+    none = Qt.MouseButton.NoButton
+    mouse(widget, QEvent.Type.MouseMove, point, none, none)
+    return QToolTip.text()
+
+
+def close_menus() -> None:
+    for widget in QApplication.topLevelWidgets():
+        if isinstance(widget, QMenu) and widget.isVisible():
+            widget.close()
+
+
+def right_click(widget: QWidget) -> None:
+    QTimer.singleShot(50, close_menus)
+    centre = widget.rect().center()
+    widget.contextMenuEvent(QContextMenuEvent(QContextMenuEvent.Reason.Mouse, centre, widget.mapToGlobal(centre)))
+    pump(0.05)
+
+
+class UrlCatcher(QObject):
+    def __init__(self) -> None:
+        super().__init__()
+        self.urls: list[str] = []
+
+    @pyqtSlot(QUrl)
+    def handle(self, url: QUrl) -> None:
+        self.urls.append(url.toString())
 
 
 class SegmentedTest(unittest.TestCase):
@@ -76,6 +173,13 @@ class SegmentedTest(unittest.TestCase):
         self.assertIsNone(self.segmented._pill)
         self.segmented.hide()
 
+    def test_clicks_reuse_one_slide(self) -> None:
+        self.segmented.show()
+        for index in (1, 2, 0, 2, 1, 0):
+            self.segmented._group.button(index).click()
+        self.assertLessEqual(len(self.segmented.findChildren(QVariantAnimation)), 1)
+        self.segmented.hide()
+
 
 class CompassMotionTest(unittest.TestCase):
     def test_search_swings_and_done_settles_north(self) -> None:
@@ -89,6 +193,14 @@ class CompassMotionTest(unittest.TestCase):
         mark.set_state(compass.DONE)
         pump(compass.MOTIONS[compass.DONE].milliseconds / 1000 + 0.3)
         self.assertAlmostEqual(mark.angle, 0.0, places=1)
+        mark.deleteLater()
+
+    def test_runs_reuse_one_motion(self) -> None:
+        mark = compass.Compass(18, QWidget().palette())
+        for state in (compass.SEARCH, compass.DONE, compass.SEARCH, compass.ERROR, compass.ASK) * 4:
+            mark.set_state(state)
+        mark.stop()
+        self.assertLessEqual(len(mark.findChildren(QVariantAnimation)), 1)
         mark.deleteLater()
 
 
@@ -294,6 +406,21 @@ class DropdownPlacementTest(unittest.TestCase):
             box.hide()
             box.deleteLater()
 
+    def test_opening_leaves_no_menu_or_motion_behind(self) -> None:
+        box = Dropdown(QWidget().palette())
+        box.addItem("One", 1)
+        box.addItem("Two", 2)
+        box.resize(300, 34)
+        box.show()
+        for _ in range(3):
+            QTimer.singleShot(50, close_menus)
+            box._open()
+            pump(0.05)
+        self.assertEqual(box.findChildren(QMenu), [])
+        self.assertLessEqual(len(box.findChildren(QVariantAnimation)), 1)
+        box.hide()
+        box.deleteLater()
+
 
 class ChipsTest(unittest.TestCase):
     def test_a_chip_writes_its_value_and_typing_lights_the_match(self) -> None:
@@ -325,8 +452,6 @@ class UsageNoticeTest(PluginCase):
     model_name = "qwen3"
 
     def test_the_first_load_shows_the_notice_once_and_turn_off_says_no(self) -> None:
-        from unittest import mock
-
         from qgis.core import QgsSettings
         from qgis.gui import QgsMessageBar
 
@@ -512,8 +637,6 @@ class SettingsBehaviourTest(PluginCase):
 
 
 def close_during_a_slow_test(close: str) -> int:
-    from unittest import mock
-
     from qgis.PyQt.QtWidgets import QMainWindow, QMessageBox
 
     from ai_agent.core.llm import probe_worker
@@ -576,8 +699,6 @@ class ComposerBehaviourTest(PluginCase):
     model_name = "qwen3"
 
     def test_a_menu_drops_in_and_settles_where_it_opened(self) -> None:
-        from ai_agent.ui import transitions
-
         toolbar = self.dock.composer.toolbar
         toolbar.mode.click()
         popup = toolbar.modes
@@ -745,3 +866,299 @@ class ComposerBehaviourTest(PluginCase):
         composer._edit.setPlainText("/s")
         pump(0.1)
         self.assertEqual(composer._popup.width(), composer._frame.width())
+
+    def test_a_caret_leaving_the_mention_closes_the_layer_list(self) -> None:
+        composer = self.dock.composer
+        composer.set_layer_source(lambda: [("roads", "", ""), ("rivers", "", "")])
+        sent: list[str] = []
+        composer.submitted.disconnect()
+        composer.submitted.connect(sent.append)
+        edit = composer._edit
+        edit.setFocus()
+        edit.insertPlainText("show me @ro")
+        pump(0.05)
+        self.assertTrue(edit.popup_open)
+        edit.moveCursor(QTextCursor.MoveOperation.Start)
+        self.assertFalse(edit.popup_open, "the list stayed open with the caret away from the mention")
+        self.assertTrue(composer._popup.isHidden())
+        edit.keyPressEvent(QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Return, Qt.KeyboardModifier.NoModifier))
+        self.assertEqual((edit.toPlainText(), sent), ("show me @ro", ["show me @ro"]))
+        composer._insert_layer("roads")
+        self.assertEqual(edit.toPlainText(), "show me @ro", "a choice away from the mention rewrote the text")
+
+    def test_the_layer_list_says_when_no_layer_matches(self) -> None:
+        composer = self.dock.composer
+        composer.set_layer_source(lambda: [("roads", "", "")])
+        composer._edit.insertPlainText("buffer @zz")
+        pump(0.05)
+        popup = composer._popup
+        shown_texts = [label.text() for label in popup.findChildren(QLabel) if label.isVisibleTo(popup)]
+        self.assertIn(skill_popup.NO_LAYER, shown_texts)
+        self.assertNotIn(skill_popup.EMPTY, shown_texts)
+
+    def test_a_connector_example_keeps_the_draft_for_undo(self) -> None:
+        edit = self.dock.composer._edit
+        edit.insertPlainText("my long draft")
+        self.dock.put_prompt("Show the population of Paris")
+        self.assertEqual(edit.toPlainText(), "Show the population of Paris")
+        edit.undo()
+        self.assertEqual(edit.toPlainText(), "my long draft")
+
+    def test_typing_a_reply_holds_the_auto_answer(self) -> None:
+        load = personal.load
+        with mock.patch.object(personal, "load", lambda: dataclasses.replace(load(), auto_answer=1)):
+            self.dock.add_question("Which layer should I buffer?", ["roads — the main network", "rivers"])
+        card = self.dock.conversation.widget().findChildren(QuestionCard)[-1]
+        answers: list[str] = []
+        card.answered.connect(answers.append)
+        self.dock.prompt_submitted.disconnect()
+        self.dock.composer._edit.insertPlainText("neither, use the rail")
+        pump(1.5)
+        self.assertEqual(answers, [], "the card answered while the user typed a reply")
+        self.assertTrue(card.countdown.isHidden())
+
+
+class AnswerSafetyTest(unittest.TestCase):
+    def setUp(self) -> None:
+        folder = tempfile.mkdtemp(prefix="ai-agent-answer-")
+        self.addCleanup(shutil.rmtree, folder, True)
+        self.picture = os.path.join(folder, "red.png")
+        image = QImage(40, 40, QImage.Format.Format_RGB32)
+        image.fill(RED)
+        image.save(self.picture)
+        self.secret = os.path.join(folder, "secret.txt")
+        pathlib.Path(self.secret).write_text("TOP-SECRET", encoding="utf-8")
+        self.view = ConversationView()
+        self.view.resize(560, 600)
+        self.view.show()
+
+    def tearDown(self) -> None:
+        self.view.hide()
+        self.view.deleteLater()
+
+    def _answer(self, markdown: str) -> AssistantMessage:
+        self.view.add_assistant_message(markdown)
+        pump(0.1)
+        return self.view.widget().findChildren(AssistantMessage)[-1]
+
+    def test_an_answer_reads_no_file_it_names(self) -> None:
+        for markdown in (f"![map]({self.picture})", f"![map](file://{self.picture})"):
+            answer = self._answer(f"The map: {markdown}")
+            self.assertEqual(red_pixels(answer), 0, f"{markdown} was read from disk")
+
+    def test_a_link_opens_only_on_the_web(self) -> None:
+        catcher = UrlCatcher()
+        for scheme in ("https", "x-launch"):
+            QDesktopServices.setUrlHandler(scheme, catcher, "handle")
+            self.addCleanup(QDesktopServices.unsetUrlHandler, scheme)
+        links = {
+            "relative": "buffers.gpkg",
+            "local": f"file://{self.secret}",
+            "launcher": "x-launch://run?arg=1",
+            "website": "https://example.org/a",
+        }
+        browser = self._answer(" ".join(f"[{name}]({target})" for name, target in links.items())).findChild(
+            QTextBrowser
+        )
+        before = browser.toPlainText()
+        for name in links:
+            click_text(browser, name)
+            pump(0.05)
+            self.assertEqual(browser.toPlainText(), before, f"the {name} link replaced the answer")
+        self.assertEqual(catcher.urls, [links["website"]])
+
+
+class PlainTextTest(PluginCase):
+    api_url = "http://localhost:11434/v1"
+    model_name = "qwen3"
+
+    def _assert_literal(self, root: QWidget) -> None:
+        for widget in [root, *root.findChildren(QWidget)]:
+            if isinstance(widget, QLabel) and "bold" in widget.text():
+                drawn = shown(widget.text(), widget.textFormat())
+                self.assertIn(PAYLOAD, drawn, f"{type(widget.parent()).__name__} draws {drawn!r}")
+            if "bold" in widget.toolTip():
+                self.assertIn(PAYLOAD, shown(widget.toolTip()), f"{type(widget).__name__} tip {widget.toolTip()!r}")
+
+    def test_text_from_the_model_data_and_user_shows_as_written(self) -> None:
+        dock = self.dock
+        dock.set_project_line(PAYLOAD)
+        self._assert_literal(dock)
+        dock.set_conversation_title(PAYLOAD)
+        dock.set_active_layer(PAYLOAD, PAYLOAD)
+        dock.add_user_message(PAYLOAD)
+        dock.add_tool_message(PAYLOAD)
+        dock.add_system_message(PAYLOAD)
+        dock.add_error_message(PAYLOAD)
+        dock.add_plan_message([f"{PAYLOAD} · {PAYLOAD}"], layer=PAYLOAD)
+        dock.add_visual({"type": "legend", "title": PAYLOAD, "items": [{"label": PAYLOAD, "color": "#ff0000"}]})
+        dock.add_run_failure(PAYLOAD, PAYLOAD, f"{PAYLOAD}\n{PAYLOAD}", "connection", True, True)
+        load = personal.load
+        with mock.patch.object(personal, "load", lambda: dataclasses.replace(load(), auto_answer=30)):
+            dock.add_question(PAYLOAD, [f"{PAYLOAD} — {PAYLOAD}", "second"])
+        dock.set_busy(True)
+        dock.show_outcome(STATUS_DONE, PAYLOAD)
+        dock.composer.set_layer_source(lambda: [(PAYLOAD, PAYLOAD, "")])
+        dock.composer._edit.insertPlainText("@")
+        pump(0.1)
+        self._assert_literal(dock)
+        dock.set_session_source(lambda: [("one", PAYLOAD, time.time(), True)])
+        dock._show_sessions()
+        self._assert_literal(dock._sessions_popup)
+        dock._sessions_popup.hide()
+        status = StatusCard(dock.palette(), QWidget())
+        status.show_state(STATE_BAD, PAYLOAD, PAYLOAD)
+        self._assert_literal(status)
+        status.deleteLater()
+
+    def test_local_skills_show_as_written(self) -> None:
+        from ai_agent.ui import skills_settings
+
+        described = {
+            "path": "",
+            "skills": [{"name": PAYLOAD, "description": PAYLOAD, "tools": [PAYLOAD], "path": ""}],
+            "drafts": [{"name": PAYLOAD, "path": ""}],
+            "problems": [PAYLOAD],
+        }
+        with mock.patch.object(skills_settings, "describe_local_skills", return_value=described):
+            page = skills_settings.SkillsSettings(self.dock.palette())
+        self._assert_literal(page.widget)
+        page.widget.deleteLater()
+
+    def test_table_and_chart_tips_show_as_written(self) -> None:
+        long_cell = f"{PAYLOAD} {'x' * 300}"
+        self.dock.add_visual({"type": "table", "title": "t", "columns": ["name"], "rows": [[long_cell]], "total": 1})
+        self.dock.add_visual(
+            {
+                "type": "chart",
+                "kind": "bar",
+                "title": "t",
+                "labels": [PAYLOAD],
+                "series": [{"name": "s", "values": [3]}],
+            }
+        )
+        pump(0.3)
+        feed = self.dock.conversation.widget()
+        for card, hits in ((feed.findChildren(TableCard)[0], "_cells"), (feed.findChildren(ChartCard)[0], "_hits")):
+            card.grab()
+            box, text = getattr(card, hits)[0]
+            self.assertIn(PAYLOAD, text)
+            tip = tip_at(card, box.center())
+            QToolTip.hideText()
+            self.assertIn(PAYLOAD, shown(tip), f"{type(card).__name__} tip {tip!r}")
+
+
+class CompactionStepTest(PluginCase):
+    api_url = "http://localhost:11434/v1"
+    model_name = "qwen3"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.compaction = self.orchestrator.compaction
+        self.compaction._compactor = mock.MagicMock()
+        self.orchestrator.conversation.add("user", "Colour districts by pop2020")
+        self.orchestrator.conversation.add("assistant", "Districts are coloured.")
+        self.assertTrue(self.compaction.start())
+        self.assertEqual(len(self._breathing()), 1)
+
+    def _breathing(self) -> list[PulseRing]:
+        rings = self.dock.conversation.widget().findChildren(PulseRing)
+        return [ring for ring in rings if ring._breath.state() == QVariantAnimation.State.Running]
+
+    def test_a_finished_compaction_settles_its_step(self) -> None:
+        self.compaction._on_finished("The user coloured districts.", 10, 10)
+        self.assertEqual(self._breathing(), [])
+
+    def test_a_failed_compaction_settles_its_step(self) -> None:
+        self.compaction._on_failed("HTTP 500")
+        self.assertEqual(self._breathing(), [])
+
+    def test_a_stopped_compaction_settles_its_step(self) -> None:
+        self.orchestrator.on_stop()
+        self.assertEqual(self._breathing(), [])
+
+    def test_a_compaction_for_a_conversation_left_settles_its_step(self) -> None:
+        self.orchestrator.conversation.start_new()
+        self.compaction._on_finished("The user coloured districts.", 10, 10)
+        self.assertEqual(self._breathing(), [])
+
+
+class RestingTraceTest(unittest.TestCase):
+    def test_a_trace_put_to_rest_stops_its_rings(self) -> None:
+        view = ConversationView()
+        view.add_activity_step("Reading layer 'districts'")
+        view.add_system_message("Run stopped.")
+        rings = view.widget().findChildren(PulseRing)
+        self.assertEqual(len(rings), 1)
+        self.assertNotEqual(rings[0]._breath.state(), QVariantAnimation.State.Running)
+        view.deleteLater()
+
+
+class PlanOfferTest(PluginCase):
+    api_url = "http://localhost:11434/v1"
+    model_name = "qwen3"
+
+    def test_a_refused_run_leaves_the_offer_open(self) -> None:
+        self.dock.add_user_message("plan a buffer of the roads")
+        self.dock.add_result_message("1. Buffer roads by 50 m")
+        self.dock.offer_plan()
+        offer = self.dock.conversation.widget().findChildren(PlanOffer)[-1]
+        self.orchestrator.compaction._running = True
+        offer._rows[0].clicked.emit(offer._rows[0].key)
+        self.orchestrator.compaction._running = False
+        lines = [message.plain_text() for message in self.dock.conversation.widget().findChildren(SystemMessage)]
+        self.assertIn(SWITCH_WHILE_RUNNING, lines)
+        self.assertEqual(offer._question.text(), RUN_PLAN_QUESTION)
+        self.assertFalse(any(row.isHidden() for row in offer._rows), "a refused offer can no longer be taken")
+
+
+class PaintCounter(QObject):
+    def __init__(self, watched: QWidget) -> None:
+        super().__init__()
+        self.paints = 0
+        watched.installEventFilter(self)
+
+    def eventFilter(self, _watched: QObject, event: QEvent) -> bool:
+        if event.type() == QEvent.Type.Paint:
+            self.paints += 1
+        return False
+
+
+class LongFeedArrivalTest(unittest.TestCase):
+    def test_opening_a_long_conversation_paints_only_what_shows(self) -> None:
+        view = ConversationView()
+        view.resize(PANEL_WIDTH, 600)
+        view.show()
+        for index in range(LONG_FEED):
+            view.add_user_message(f"question {index}", animate=False)
+            view.add_assistant_message(DISTRICT_LIST)
+        # A slow CI machine lays the answers out over several event rounds.
+        deadline = time.monotonic() + LAYOUT_WAIT_S
+        while view.widget().height() <= 5 * view.height() and time.monotonic() < deadline:
+            pump(0.1)
+        self.assertGreater(view.widget().height(), 5 * view.height())
+        answers = view.widget().findChildren(AssistantMessage)
+        far, near = PaintCounter(answers[0]._browser.viewport()), PaintCounter(answers[-1]._browser.viewport())
+        view.play_entrance(view.viewport().grab())
+        pump(transitions.LEAVE_MS / 1000 + (transitions.ARRIVE_MS + transitions.LAG_MS) / 1000 + 0.3)
+        self.assertGreater(near.paints, 0, "the arrival drew nothing")
+        self.assertEqual(far.paints, 0, "every frame rendered the whole feed, the first answer far above too")
+        view.hide()
+        view.deleteLater()
+
+
+class MenusTest(unittest.TestCase):
+    def test_a_closed_menu_is_gone(self) -> None:
+        view = ConversationView()
+        view.resize(560, 600)
+        view.show()
+        view.add_visual(BAR_CHART)
+        view.add_visual(WIDE_TABLE)
+        pump(0.1)
+        feed = view.widget()
+        for widget in (view, feed.findChildren(ChartCard)[0], feed.findChildren(TableCard)[0]):
+            for _ in range(3):
+                right_click(widget)
+        self.assertEqual(view.findChildren(QMenu), [])
+        view.hide()
+        view.deleteLater()

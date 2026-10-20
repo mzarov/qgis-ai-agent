@@ -227,14 +227,18 @@ class ConversationState:
         self.save()
         self._adopt(Session.create(self.project_key))
 
-    def sync_project(self, force_new: bool = False) -> bool:
-        key = current_project_key()
-        if not force_new and key == self.project_key:
-            return False
+    def follow_project(self) -> str:
+        key, previous = current_project_key(), self.project_key
+        if key == previous:
+            return ""
+        self._session.project = key
+        self.save()
+        return previous
+
+    def start_for_project(self) -> None:
         self.keep_trace()
         self.save()
-        self._adopt(Session.create(key))
-        return True
+        self._adopt(Session.create(current_project_key()))
 
     def restore(self, identifier: str) -> bool:
         session = self._store.load(identifier)

@@ -19,7 +19,10 @@ const JSON_TYPE = "application/json";
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "x-content-type-options": "nosniff" };
 // Snapshot in D1: the Cache API is a no-op on workers.dev, and rescans would eat the free read quota.
 const STATS_TTL_SECONDS = 3600;
+// While one request rebuilds, the rest serve the old snapshot; a failed rebuild is tried again after this.
+const REBUILD_LEASE_SECONDS = 60;
 const PREFLIGHT_MAX_AGE_SECONDS = 86400;
+const UNKNOWN_ADDRESS = "unknown";
 
 const INSERT_PING = `INSERT OR REPLACE INTO pings (${PING_COLUMNS.join(", ")})
   VALUES (${PING_COLUMNS.map(() => "?").join(", ")})`;
@@ -32,6 +35,7 @@ const DELETE_EXTRAS = "DELETE FROM ping_extras WHERE install_hash = ?1 AND day =
 
 const READ_SNAPSHOT = "SELECT generated, body FROM stats_snapshot WHERE id = 1";
 const WRITE_SNAPSHOT = "INSERT OR REPLACE INTO stats_snapshot (id, generated, body) VALUES (1, ?1, ?2)";
+const CLAIM_SNAPSHOT = "UPDATE stats_snapshot SET generated = ?1 WHERE id = 1 AND generated = ?2";
 
 const TOTALS = `SELECT
   (SELECT COUNT(DISTINCT install_hash) FROM pings) AS installs_total,
@@ -43,11 +47,13 @@ const DAYS = `SELECT day, COUNT(*) AS installs, SUM(runs) AS runs, SUM(applies) 
 // One SELECT per facet (D1 refuses a long compound one); columns come from fixed lists, never a request.
 const FACETS = [
   ...DIMENSIONS.map(
-    (column) => `SELECT '${column}' AS facet, ${column} AS value, COUNT(DISTINCT install_hash) AS n
+    (column) => `SELECT '${column}' AS facet, ${column} AS value,
+        COUNT(DISTINCT install_hash) AS n, COUNT(DISTINCT install_hash) AS installs
       FROM pings WHERE day BETWEEN ?1 AND ?2 GROUP BY ${column}`,
   ),
   ...COUNTERS.map(
-    (column) => `SELECT '${column}' AS facet, entry.key AS value, SUM(entry.value) AS n
+    (column) => `SELECT '${column}' AS facet, entry.key AS value, SUM(entry.value) AS n,
+        COUNT(DISTINCT CASE WHEN entry.value > 0 THEN pings.install_hash END) AS installs
       FROM pings, json_each(pings.${column}) AS entry WHERE pings.day BETWEEN ?1 AND ?2 GROUP BY entry.key`,
   ),
 ];
@@ -79,14 +85,18 @@ const RETENTION = `SELECT ${RETENTION_DAYS.map(
 ).join(",\n    ")}
   FROM (SELECT MIN(day) AS first_day, MAX(day) AS last_day FROM pings GROUP BY install_hash)`;
 
-// Only v2 rows report errors, so only their calls count towards the rate.
-const TOOL_ERRORS = `SELECT entry.key AS tool, SUM(entry.value) AS calls,
-    SUM(COALESCE(json_extract(extra.tool_errors, '$.' || entry.key), 0)) AS errors
-  FROM pings AS ping
-    JOIN ping_extras AS extra USING (install_hash, day)
-    JOIN json_each(ping.tools) AS entry
-  WHERE ping.day BETWEEN ?1 AND ?2
-  GROUP BY entry.key`;
+// Only v2 rows report errors, so only their calls count; older rows may hold more errors than calls.
+const TOOL_ERRORS = `WITH calls AS (
+    SELECT ping.install_hash, entry.key AS tool, entry.value AS calls,
+      MIN(COALESCE(json_extract(extra.tool_errors, '$.' || entry.key), 0), entry.value) AS errors
+    FROM pings AS ping
+      JOIN ping_extras AS extra USING (install_hash, day)
+      JOIN json_each(ping.tools) AS entry
+    WHERE ping.day BETWEEN ?1 AND ?2
+  )
+  SELECT tool, SUM(calls) AS calls, SUM(errors) AS errors,
+    COUNT(DISTINCT CASE WHEN errors > 0 THEN install_hash END) AS installs
+  FROM calls GROUP BY tool`;
 
 function json(status, body, headers = {}) {
   return new Response(JSON.stringify(body), { status, headers: { ...JSON_HEADERS, ...headers } });
@@ -125,7 +135,16 @@ async function readBody(request, limit) {
   return bytes;
 }
 
+// The address only picks the limiter's counter: it is never stored or logged. Local runs have no limiter.
+async function overLimit(request, env) {
+  if (!env.PING_LIMITER) return false;
+  const key = request.headers.get("cf-connecting-ip") || UNKNOWN_ADDRESS;
+  const { success } = await env.PING_LIMITER.limit({ key });
+  return !success;
+}
+
 async function handlePing(request, env, now) {
+  if (await overLimit(request, env)) return jsonError(429, "too many pings from this address; try later");
   if (!isJsonType(request.headers.get("content-type"))) {
     return jsonError(415, "content type must be application/json");
   }
@@ -177,21 +196,7 @@ async function computeStats(db, now) {
   });
 }
 
-async function handleStats(request, env, now) {
-  const snapshot = await env.DB.prepare(READ_SNAPSHOT).first();
-  const age = snapshot ? (now.getTime() - Date.parse(snapshot.generated)) / 1000 : Number.NaN;
-  let body = snapshot?.body;
-  let maxAge = Math.floor(STATS_TTL_SECONDS - age);
-  if (!(age >= 0 && age < STATS_TTL_SECONDS)) {
-    const stats = await computeStats(env.DB, now);
-    body = JSON.stringify(stats);
-    maxAge = STATS_TTL_SECONDS;
-    try {
-      await env.DB.prepare(WRITE_SNAPSHOT).bind(stats.generated, body).run();
-    } catch (error) {
-      console.error("usage stats snapshot was not saved:", error?.message);
-    }
-  }
+function statsResponse(body, maxAge) {
   return new Response(body, {
     headers: {
       ...JSON_HEADERS,
@@ -199,6 +204,37 @@ async function handleStats(request, env, now) {
       "cache-control": `public, max-age=${maxAge}`,
     },
   });
+}
+
+// Moving the stale snapshot's time to a lease's end claims the rebuild: only one UPDATE matches the old time.
+async function claimRebuild(db, snapshot, now) {
+  const leaseEnd = new Date(now.getTime() - (STATS_TTL_SECONDS - REBUILD_LEASE_SECONDS) * 1000).toISOString();
+  const claimed = await db.prepare(CLAIM_SNAPSHOT).bind(leaseEnd, snapshot.generated).run();
+  return claimed.meta?.changes === 1;
+}
+
+async function handleStats(request, env, now) {
+  const snapshot = await env.DB.prepare(READ_SNAPSHOT).first();
+  const age = snapshot ? (now.getTime() - Date.parse(snapshot.generated)) / 1000 : Number.NaN;
+  if (age >= 0 && age < STATS_TTL_SECONDS) return statsResponse(snapshot.body, Math.floor(STATS_TTL_SECONDS - age));
+  let stats;
+  try {
+    if (snapshot && !(await claimRebuild(env.DB, snapshot, now))) {
+      return statsResponse(snapshot.body, REBUILD_LEASE_SECONDS);
+    }
+    stats = await computeStats(env.DB, now);
+  } catch (error) {
+    if (!snapshot) throw error;
+    console.error("usage stats were not rebuilt; the last snapshot is served:", error?.message);
+    return statsResponse(snapshot.body, REBUILD_LEASE_SECONDS);
+  }
+  const body = JSON.stringify(stats);
+  try {
+    await env.DB.prepare(WRITE_SNAPSHOT).bind(stats.generated, body).run();
+  } catch (error) {
+    console.error("usage stats snapshot was not saved:", error?.message);
+  }
+  return statsResponse(body, STATS_TTL_SECONDS);
 }
 
 function handleStatsPreflight() {

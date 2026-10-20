@@ -5,7 +5,7 @@ from qgis.core import QgsVectorLayerSimpleLabeling
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common import params
-from ai_agent.qgis_tools.common.layers import layer_reference, pinned_layer
+from ai_agent.qgis_tools.common.layers import geometry_type_name, layer_reference, pinned_layer
 from ai_agent.qgis_tools.common.properties import as_bool, properties_of, shown
 from ai_agent.qgis_tools.common.values import suggest_fields
 from ai_agent.qgis_tools.style.apply import (
@@ -14,7 +14,13 @@ from ai_agent.qgis_tools.style.apply import (
     require_field,
     require_vector_layer,
 )
-from ai_agent.qgis_tools.style.label_build import addresses, build_settings, current_simple_settings, wants
+from ai_agent.qgis_tools.style.label_build import (
+    addresses,
+    build_settings,
+    current_simple_settings,
+    offset_conflict,
+    wants,
+)
 from ai_agent.qgis_tools.style.label_catalogue import LABELS, TARGET_BUFFER
 
 FIELD_NEEDED = "The labels are off, so switching them on needs the field property. {hint}"
@@ -69,10 +75,14 @@ class SetLabelsTool(BaseTool):
         if not _is_enabled(properties):
             return prepared
         field = str(properties.get("field") or "").strip()
+        base = current_simple_settings(layer)
         if field:
             properties["field"] = require_field(layer, field)
-        elif current_simple_settings(layer) is None:
+        elif base is None:
             raise ValueError(FIELD_NEEDED.format(hint=suggest_fields([], field_names(layer))))
+        conflict = offset_conflict(base, properties)
+        if conflict:
+            raise ValueError(conflict)
         return prepared
 
     def summarize_call(self, params: dict[str, Any]) -> str:
@@ -96,7 +106,7 @@ class SetLabelsTool(BaseTool):
         base = current_simple_settings(layer)
         if base is None and not str(properties.get("field") or "").strip():
             raise ValueError(FIELD_NEEDED.format(hint=suggest_fields([], field_names(layer))))
-        settings = build_settings(properties, base)
+        settings = build_settings(properties, base, geometry_type_name(layer))
         layer.setLabeling(QgsVectorLayerSimpleLabeling(settings))
         layer.setLabelsEnabled(True)
         refresh(layer)

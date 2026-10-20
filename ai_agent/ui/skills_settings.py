@@ -142,7 +142,7 @@ class SkillsSettings(QObject):
     def _own_row(self, entry: dict[str, Any]) -> QWidget:
         row = self._skill_row(entry["name"], entry["description"])
         if entry["tools"]:
-            row.setToolTip(fields.rich_tooltip(TOOLS_LINE.format(", ".join(entry["tools"]))))
+            row.setToolTip(controls.plain_tip(TOOLS_LINE.format(", ".join(entry["tools"]))))
         row.trailing.addWidget(self._edit_button(entry.get("path", "")), 0, Qt.AlignmentFlag.AlignVCenter)
         return row
 
@@ -162,6 +162,7 @@ class SkillsSettings(QObject):
         head = QHBoxLayout()
         head.setSpacing(8)
         title = QLabel(SLASH + name)
+        title.setTextFormat(Qt.TextFormat.PlainText)
         title.setFont(self._mono)
         style.ink(title, style.text(self._palette))
         head.addWidget(title)
@@ -193,6 +194,7 @@ class SkillsSettings(QObject):
         for name, description, enabled in skills:
             row, line = self._lined_row()
             title = QLabel(SLASH + name)
+            title.setTextFormat(Qt.TextFormat.PlainText)
             title.setFont(self._mono)
             title.setFixedWidth(NAME_WIDTH)
             style.ink(title, style.text(self._palette))

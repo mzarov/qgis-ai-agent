@@ -65,6 +65,11 @@ class CompactorTest(unittest.TestCase):
     def test_estimates_count_characters_by_four(self):
         self.assertEqual(estimated_tokens([{"content": "x" * 400}, {"content": "y" * 40}]), 110)
 
+    def test_a_picture_counts_as_a_flat_amount_not_as_its_base64(self):
+        picture = {"type": "image_url", "image_url": {"url": "data:image/png;base64," + "A" * 700_000}}
+        message = {"role": "user", "content": [{"type": "text", "text": "x" * 400}, picture]}
+        self.assertEqual(estimated_tokens([message]), 100 + compaction.IMAGE_TOKENS)
+
 
 class Dock:
     def __init__(self):
@@ -72,6 +77,7 @@ class Dock:
         self.errors: list[str] = []
         self.context: tuple[int, int, int] | None = None
         self.busy: list[bool] = []
+        self.steps: list[tuple[int, bool]] = []
 
     def add_system_message(self, text):
         self.system.append(text)
@@ -81,6 +87,9 @@ class Dock:
 
     def add_tool_message(self, _text):
         return 0
+
+    def mark_tool_done(self, message_id, ok=True, note=""):
+        self.steps.append((message_id, ok))
 
     def set_busy(self, busy):
         self.busy.append(busy)
@@ -128,6 +137,7 @@ class SessionCompactionTest(unittest.TestCase):
         self.assertTrue(any(compacting.COMPACTED.split("{0}")[0] in text for text in self.dock.system))
         self.assertEqual(self.dock.busy, [True, False])
         self.assertEqual(self.dock.context[1], 10_000)
+        self.assertEqual(self.dock.steps, [(0, True)], "the step settles instead of pulsing on")
 
     def test_a_failed_compaction_still_lets_the_request_go(self):
         ran: list[bool] = []
@@ -135,6 +145,7 @@ class SessionCompactionTest(unittest.TestCase):
         self.compaction._on_failed("boom")
         self.assertEqual(ran, [True])
         self.assertIn("boom", self.dock.errors[-1])
+        self.assertEqual(self.dock.steps, [(0, False)])
 
 
 class MeterTest(unittest.TestCase):
@@ -173,6 +184,7 @@ class CompactionLifecycleTest(SessionCompactionTest):
         self.assertEqual(ran, ["cancelled"])
         self.compaction._compactor.abort.assert_called_once()
         self.assertEqual(self.dock.busy, [True, False])
+        self.assertEqual(self.dock.steps, [(0, False)])
 
     def test_messages_added_while_summarising_stay_in_the_window(self):
         self.compaction.start()

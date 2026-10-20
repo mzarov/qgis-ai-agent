@@ -54,6 +54,25 @@ class WorkflowTest(unittest.TestCase):
         self.assertIn("!failure() && !cancelled()", self.text)
         self.assertIn("tests/real_qgis_workflows.py", self.text)
 
+    def job(self, name, following):
+        return self.text[self.text.index(f"\n  {name}:\n") : self.text.index(f"\n  {following}:\n")]
+
+    def test_only_the_release_job_can_write_and_the_qgis_container_keeps_no_token(self):
+        top = self.text[: self.text.index("\njobs:")]
+        self.assertIn("\npermissions:\n  contents: read\n", top)
+        real_qgis = self.job("real-qgis", "live-model")
+        self.assertNotIn("contents: write", real_qgis)
+        self.assertIn("persist-credentials: false", real_qgis)
+        release = self.text[self.text.index("\n  release:\n") :]
+        self.assertIn("    permissions:\n      contents: write\n", release)
+
+    def test_the_release_gate_covers_the_minimum_qgis_and_the_type_check(self):
+        real_qgis = self.job("real-qgis", "live-model")
+        self.assertIn('qgis_image: ["4.0-trixie", "stable-trixie"]', real_qgis)
+        self.assertIn("image: qgis/qgis:${{ matrix.qgis_image }}", real_qgis)
+        self.assertIn("poetry run mypy", self.text)
+        self.assertLess(self.text.index("poetry run mypy"), self.text.index("plugins.qgis.org/plugins/api/"))
+
     def test_the_live_model_check_spends_tokens_only_when_ticked(self):
         choice = self.text[self.text.index("live_model_check:") : self.text.index("\nconcurrency:")]
         self.assertIn("default: false", choice)

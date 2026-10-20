@@ -138,7 +138,12 @@ class RewindMixin(OrchestratorHost):
     def _rewind_conversation(self, message: int) -> None:
         target = self.conversation.message_at(message)
         text = str(target.get("content") or "") if target is not None else ""
+        if self.agent.is_awaiting_answer:
+            self.agent.abort()
         self._drop_pending_plan()
+        session = self.conversation.session_identifier
+        # A message sent again takes the same place: a checkpoint left here would restore the project too far back.
+        self._checkpoints = [item for item in self._checkpoints if item.session != session or item.message < message]
         self.conversation.truncate(message)
         self._replay()
         self.dock_widget.restore_prompt(text)

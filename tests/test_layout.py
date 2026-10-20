@@ -49,6 +49,9 @@ class Rect:
     def height(self):
         return self._values[3]
 
+    def units(self):
+        return pages.MM
+
 
 class ItemMixin:
     def __init__(self, item_id, rect=(0, 0, 10, 10)):
@@ -63,8 +66,14 @@ class ItemMixin:
     def setId(self, item_id):
         self._id = item_id
 
-    def sceneBoundingRect(self):
+    def positionWithUnits(self):
         return self._rect
+
+    def sizeWithUnits(self):
+        return Rect(0, 0, self._rect.width(), self._rect.height())
+
+    def layout(self):
+        return None
 
     def text(self):
         return self._text
@@ -110,6 +119,9 @@ class FakeLayout:
             def height(self):
                 return page[1]
 
+            def units(self):
+                return pages.MM
+
         class Page:
             def pageSize(self):
                 return Size()
@@ -134,6 +146,11 @@ def _label_item(item_id="title"):
 
 
 class ItemsTest(unittest.TestCase):
+    def test_an_item_and_a_page_read_their_frame_in_millimetres(self):
+        described = items.describe_item(_label_item())
+        self.assertEqual([described[key] for key in ("x", "y", "width", "height")], [10, 8, 100, 12])
+        self.assertEqual(pages.current_page_mm(FakeLayout(page=(215.94, 279.41))), (215.9, 279.4))
+
     def test_auto_id_counts_past_taken_names(self):
         layout = FakeLayout([_map_item("map-1")])
         self.assertEqual(items.unique_item_id(layout, "map", ""), "map-2")

@@ -7,7 +7,7 @@ from qgis.PyQt.QtWidgets import QApplication
 from ai_agent.core.agent.transcript import SKIPPED_STATUS, ToolResult
 from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.common.layers import follow_batch_renames, layer_names_by_id, layer_pin_error
-from ai_agent.qgis_tools.common.project_identity import project_identity
+from ai_agent.qgis_tools.common.project_identity import project_identity, same_project
 from ai_agent.qgis_tools.registry import get_tool_by_name
 
 if TYPE_CHECKING:
@@ -19,6 +19,7 @@ PROJECT_CHANGED_ERROR = (
 )
 CANCELLED_ERROR = "The run was stopped. This pending step and every later step were cancelled."
 UNKNOWN = -1.0
+SAVE_TOOL = "save_project"
 
 
 class ApplyRun:
@@ -54,6 +55,8 @@ class ApplyRun:
                 call = self._calls.pop(0)
                 self._on_start(call)
                 QApplication.processEvents()
+                if self._detached:
+                    break
                 result = self._blocked(call)
                 if result is None:
                     self._batch._executing_call = call
@@ -117,12 +120,15 @@ class ApplyRun:
             return _skipped_result(call, self._failed.call)
         if self._batch._cancel_requested:
             return _failure(call, CANCELLED_ERROR)
-        if project_identity(QgsProject.instance()) != self._expected:
+        if not same_project(project_identity(QgsProject.instance()), self._expected):
             return _failure(call, PROJECT_CHANGED_ERROR)
         target_error = layer_pin_error(_follow(call, self._names_at_start))
         return _failure(call, target_error) if target_error else None
 
     def _record(self, call: ToolCall, result: ToolResult) -> None:
+        if result.ok and call.name == SAVE_TOOL:
+            # Saved under a new name, the project is the same one: the steps after it still apply to it.
+            self._expected = project_identity(QgsProject.instance())
         self._on_finish(call, result)
         self._results.append(result)
         if not result.ok and self._failed is None:

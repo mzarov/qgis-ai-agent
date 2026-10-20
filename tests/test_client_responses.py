@@ -1,8 +1,10 @@
 import unittest
+from types import SimpleNamespace
 from unittest import mock
 
 from ai_agent.core.llm import client
-from ai_agent.core.llm.client import ApiResponseError
+from ai_agent.core.llm.client import ApiResponseError, ModelTimeout
+from ai_agent.core.llm.failure_kinds import TIMEOUT, turn_failure
 from ai_agent.qgis_tools.common.network import Answer
 
 
@@ -41,6 +43,37 @@ class BlockingResponseTest(unittest.TestCase):
                 self.answer = Answer(status=status, failed=True, error="connection interrupted")
                 with self.assertRaisesRegex(ConnectionError, "connection interrupted"):
                     self.post()
+
+    def test_no_http_answer_at_all_is_a_transport_failure_not_a_bad_body(self):
+        self.answer = Answer(status=0, body=b"")
+        with self.assertRaises(ConnectionError) as caught:
+            self.post()
+        self.assertNotIn("non-JSON", str(caught.exception))
+
+    def test_an_answer_cut_off_at_the_qgis_network_timeout_names_that_setting(self):
+        self.answer = Answer(status=0, body=b"")
+        clock = SimpleNamespace(monotonic=mock.Mock(side_effect=[0.0, 60.0]))
+        with (
+            mock.patch.object(client, "time", clock),
+            mock.patch.object(client, "network_timeout_s", return_value=60.0),
+            self.assertRaises(ModelTimeout) as caught,
+        ):
+            self.post()
+        self.assertIn("Network", str(caught.exception))
+        self.assertIn("60 s", str(caught.exception))
+        self.assertEqual(turn_failure(caught.exception).kind, TIMEOUT)
+
+    def test_the_own_timeout_is_named_when_it_is_the_shorter_one(self):
+        self.answer = Answer(status=0, body=b"", failed=True, error="Operation canceled")
+        clock = SimpleNamespace(monotonic=mock.Mock(side_effect=[0.0, 120.0]))
+        with (
+            mock.patch.object(client, "time", clock),
+            mock.patch.object(client, "network_timeout_s", return_value=600.0),
+            self.assertRaises(ModelTimeout) as caught,
+        ):
+            self.post()
+        self.assertNotIn("Network", str(caught.exception))
+        self.assertIn("120 s", str(caught.exception))
 
     def test_successful_json_is_returned(self):
         self.answer = Answer(status=200, body=b'{"answer":"ok"}')

@@ -34,6 +34,9 @@ LAYER_PARAMETER_TYPES = {
     "vector",
 }
 TEMPORARY_OUTPUT = "TEMPORARY_OUTPUT"
+EXPRESSION_TYPE = "expression"
+# A fields mapping and an aggregates list carry one expression per item, under these keys.
+ITEM_EXPRESSION_KEYS = {"fields_mapping": "expression", "aggregates": "input"}
 PRIMARY_OUTPUT_KEY = "OUTPUT"
 EMPTY_OUTPUT_WARNING = (
     "The output layer '{name}' has no features. The step ran, but check the input filter, "
@@ -48,16 +51,9 @@ def get_registry() -> Any:
     return registry
 
 
-_SEARCH_INDEX: list[tuple[Any, dict[str, str]]] = []
-_INDEXED_COUNT = [-1]
-
-
 def build_search_index() -> list[tuple[Any, dict[str, str]]]:
-    algorithms = get_registry().algorithms()
-    if _INDEXED_COUNT[0] != len(algorithms):
-        _SEARCH_INDEX[:] = [(algorithm, _haystack(algorithm)) for algorithm in algorithms]
-        _INDEXED_COUNT[0] = len(algorithms)
-    return _SEARCH_INDEX
+    # Built per search (a few ms): a refreshed provider deletes the algorithm objects a cache would keep.
+    return [(algorithm, _haystack(algorithm)) for algorithm in get_registry().algorithms()]
 
 
 def _haystack(algorithm) -> dict[str, str]:
@@ -146,6 +142,22 @@ def coerce_parameters(algorithm, arguments: dict[str, Any]) -> dict[str, Any]:
         elif param_type in DESTINATION_TYPES and name not in result and not is_optional(parameter):
             result[name] = TEMPORARY_OUTPUT
     return result
+
+
+def expression_texts(algorithm: Any, arguments: dict[str, Any]) -> list[tuple[str, str]]:
+    found: list[tuple[str, str]] = []
+    for parameter in algorithm.parameterDefinitions():
+        name = parameter.name()
+        kind = str(parameter.type()).lower()
+        value = arguments.get(name)
+        if kind == EXPRESSION_TYPE and isinstance(value, str):
+            found.append((name, value))
+        elif kind in ITEM_EXPRESSION_KEYS and isinstance(value, list):
+            key = ITEM_EXPRESSION_KEYS[kind]
+            found.extend(
+                (name, item[key]) for item in value if isinstance(item, dict) and isinstance(item.get(key), str)
+            )
+    return found
 
 
 def destination_parameter_names(algorithm: Any) -> list[str]:

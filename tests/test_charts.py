@@ -1,4 +1,6 @@
 import json
+import math
+import signal
 import tempfile
 import unittest
 from unittest import mock
@@ -11,6 +13,22 @@ from ai_agent.qgis_tools.base import RESULT_VISUAL_KEY
 from ai_agent.qgis_tools.charts import chart_layer, spec
 from ai_agent.qgis_tools.charts.show_chart import ShowChartTool
 from ai_agent.ui import chart_scale
+
+TICKS_DEADLINE_S = 2
+
+
+def ticks_in_time(low: float, high: float) -> list[float]:
+    # A tick loop that never ends would hang the suite and eat memory: the alarm makes it a failure.
+    def expire(*_args: object) -> None:
+        raise TimeoutError(f"nice_ticks({low}, {high}) did not finish")
+
+    previous = signal.signal(signal.SIGALRM, expire)
+    signal.alarm(TICKS_DEADLINE_S)
+    try:
+        return chart_scale.nice_ticks(low, high)
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, previous)
 
 
 class SpecTest(unittest.TestCase):
@@ -84,6 +102,13 @@ class ScaleTest(unittest.TestCase):
         self.assertGreaterEqual(ticks[-1], 7)
         flat = chart_scale.nice_ticks(5, 5)
         self.assertTrue(flat[0] <= 5 < flat[-1])
+
+    def test_any_finite_range_gets_a_few_finite_ticks(self):
+        for low, high in ((-1.7e308, 1.7e308), (1e16, 1e16 + 2), (0.0, 5e-324)):
+            ticks = ticks_in_time(low, high)
+            self.assertTrue(2 <= len(ticks) <= chart_scale.MAX_TICKS + 1, (low, high, len(ticks)))
+            self.assertTrue(all(math.isfinite(tick) for tick in ticks), (low, high))
+            self.assertLessEqual(ticks[0], low)
 
     def test_numbers_and_layouts(self):
         self.assertEqual(chart_scale.compact(1_234_567), "1.23M")

@@ -37,6 +37,9 @@ def fetch_json(url: str, token: str = "") -> Any:
 
 
 def plugin_rows(payload: dict[str, Any], day: str) -> list[dict[str, str]]:
+    versions = payload.get("versions") if isinstance(payload, dict) else None
+    if not isinstance(versions, list) or not versions:
+        raise ValueError(f"{PLUGIN_URL.format(slug=PLUGIN_SLUG)} lists no versions; has the page changed?")
     return [
         {
             "day": day,
@@ -44,7 +47,7 @@ def plugin_rows(payload: dict[str, Any], day: str) -> list[dict[str, str]]:
             "downloads": str(int(version.get("downloads") or 0)),
             "uploaded": str(version.get("upload_datetime") or "")[:10],
         }
-        for version in payload.get("versions") or []
+        for version in versions
     ]
 
 
@@ -168,6 +171,9 @@ def collect(data: Path, repo: str, token: str, today: str) -> None:
             traffic = merge_rows(data / TRAFFIC_FILE, TRAFFIC_HEADER, traffic_rows(views, clones), ("day",))
         except urllib.error.HTTPError as error:
             print(f"Traffic skipped: GitHub answered {error.code}; the token needs Administration: read.")
+        except (OSError, ValueError) as error:
+            # URLError and read timeouts are OSErrors: the day's downloads are still worth keeping.
+            print(f"Traffic skipped: {error}.")
     else:
         print("Traffic skipped: no METRICS_TOKEN.")
     series = daily_downloads(versions)
@@ -182,7 +188,11 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--repo", default="mzarov/qgis-ai-agent", help="owner/name for GitHub traffic")
     arguments = parser.parse_args(argv)
     today = datetime.datetime.now(datetime.UTC).date().isoformat()
-    collect(arguments.data, arguments.repo, os.environ.get("TRAFFIC_TOKEN", "").strip(), today)
+    try:
+        collect(arguments.data, arguments.repo, os.environ.get("TRAFFIC_TOKEN", "").strip(), today)
+    except ValueError as error:
+        print(f"::error::Downloads not collected: {error}", file=sys.stderr)
+        return 1
     return 0
 
 

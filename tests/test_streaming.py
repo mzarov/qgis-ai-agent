@@ -1,6 +1,7 @@
 import json
 import pathlib
 import unittest
+from unittest import mock
 
 from ai_agent.core.llm import transport, turns, worker
 from ai_agent.core.llm.client import ApiResponseError
@@ -120,6 +121,38 @@ class StreamedCompletionTest(unittest.TestCase):
         ]
         calls = consume(chunks)["choices"][0]["message"]["tool_calls"]
         self.assertEqual([call["function"]["name"] for call in calls], ["first", "second"])
+
+    def test_whole_calls_that_share_index_zero_stay_apart(self):
+        def whole(call_id, arguments):
+            call = {"index": 0, "id": call_id, "type": "function", "function": {"name": "describe_layer"}}
+            call["function"]["arguments"] = arguments
+            return event({"choices": [{"delta": {"tool_calls": [call]}}]})
+
+        chunks = [whole("call_a", '{"layer_name": "roads"}'), whole("call_b", '{"layer_name": "rivers"}')]
+        calls = consume(chunks)["choices"][0]["message"]["tool_calls"]
+        self.assertEqual(
+            [(call["id"], call["function"]["arguments"]) for call in calls],
+            [("call_a", '{"layer_name": "roads"}'), ("call_b", '{"layer_name": "rivers"}')],
+        )
+
+    def test_a_later_delta_without_an_id_follows_its_call_to_the_new_slot(self):
+        def piece(arguments, call_id=None, name=None):
+            call = {"index": 0, "function": {"arguments": arguments}}
+            if call_id:
+                call["id"], call["function"]["name"] = call_id, name
+            return event({"choices": [{"delta": {"tool_calls": [call]}}]})
+
+        chunks = [piece('{"a": 1}', "first", "one"), piece('{"b": ', "second", "two"), piece("2}")]
+        calls = consume(chunks)["choices"][0]["message"]["tool_calls"]
+        self.assertEqual(
+            [(call["function"]["name"], call["function"]["arguments"]) for call in calls],
+            [("one", '{"a": 1}'), ("two", '{"b": 2}')],
+        )
+
+    def test_arguments_streamed_as_an_object_stay_json(self):
+        call = {"index": 0, "id": "c1", "function": {"name": "list_layers", "arguments": {"limit": 5}}}
+        turn = turns.parse_native_turn(consume([event({"choices": [{"delta": {"tool_calls": [call]}}]})]))
+        self.assertEqual(turn.tool_calls[0].arguments, {"limit": 5})
 
     def test_usage_is_carried_out_of_the_stream(self):
         data = consume(
@@ -268,6 +301,125 @@ class StreamingDispatchTest(unittest.TestCase):
             URL,
         )
         self.assertEqual(seen, [(URL, "model-b", "openai")])
+
+
+OLLAMA_TOOLS_REFUSAL = (
+    '{"error":{"message":"registry.ollama.ai/library/gemma2:2b does not support tools",'
+    '"type":"api_error","param":null,"code":null}}'
+)
+
+
+class ToolLessStreamingTest(unittest.TestCase):
+    def setUp(self):
+        self.streaming_flags, self.tools_flags, self.bodies, self.blocking = [], [], [], []
+        self.supports_tools = None
+        self.reply = '{"text": "answered without tools"}'
+        for name, value in (
+            ("post_stream", self.stream),
+            ("post_chat_completion", self.post),
+            ("build_request", lambda *args: ("http://localhost:11434/v1/chat/completions", {}, "gemma2:2b")),
+            ("get_supports_streaming", lambda *args: None),
+            ("set_supports_streaming", lambda url, value, *args: self.streaming_flags.append(value)),
+            ("get_supports_tools", lambda *args: self.supports_tools),
+            ("set_supports_tools", lambda url, value, *args: self.tools_flags.append(value)),
+            ("get_reasoning_enabled", lambda: False),
+        ):
+            patch = mock.patch.object(transport, name, value)
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def stream(self, endpoint, headers, body, completion, timeout, verify=None, **options):
+        self.bodies.append(body)
+        if body.get("tools"):
+            raise ApiResponseError(400, OLLAMA_TOOLS_REFUSAL)
+        return streaming(text_delta(self.reply))(endpoint, headers, body, completion, timeout, verify)
+
+    def post(self, messages, extra_body=None, **options):
+        self.blocking.append(extra_body or {})
+        if (extra_body or {}).get("tools"):
+            raise ApiResponseError(400, OLLAMA_TOOLS_REFUSAL)
+        return {"choices": [{"message": {"content": self.reply}, "finish_reason": "stop"}]}
+
+    def dispatch(self, schemas=SCHEMAS, on_chunk=None):
+        return transport._dispatch(
+            [{"role": "user", "content": "hi"}], schemas, {}, 10, "http://localhost:11434/v1", on_chunk
+        )
+
+    def test_a_model_without_tools_falls_back_to_the_json_protocol_on_a_streaming_endpoint(self):
+        turn = self.dispatch(on_chunk=lambda text: None)
+        self.assertEqual((turn.text, turn.protocol), ("answered without tools", turns.PROTOCOL_JSON))
+        self.assertEqual(self.tools_flags, [False])
+        self.assertNotIn(False, self.streaming_flags, "a refusal of tools says nothing about streaming")
+        self.assertEqual([bool(body.get("tools")) for body in self.bodies], [True, False])
+        self.assertEqual(self.blocking, [])
+
+    def test_a_json_protocol_reply_streams_without_showing_its_json(self):
+        self.supports_tools = False
+        self.reply = '{"text": "Listing.", "tool_calls": [{"name": "list_layers", "arguments": {}}]}'
+        shown = []
+        turn = self.dispatch(on_chunk=shown.append)
+        self.assertEqual([call.name for call in turn.tool_calls], ["list_layers"])
+        self.assertEqual(shown, [])
+        self.assertEqual(self.blocking, [])
+        self.assertEqual(self.tools_flags, [])
+
+    def test_a_tool_less_request_streams_and_never_claims_tool_support(self):
+        self.reply = "A summary."
+        shown = []
+        turn = self.dispatch([], shown.append)
+        self.assertEqual((turn.text, "".join(shown)), ("A summary.", "A summary."))
+        self.assertEqual(self.tools_flags, [])
+        self.assertEqual(self.streaming_flags, [True])
+
+    def test_a_tool_less_reply_quoting_json_is_kept_whole(self):
+        self.reply = (
+            "The user styles the roads layer.\n"
+            'The label settings they asked for:\n```json\n{"text": "NAME", "size": 10}\n```\n'
+            "- next: export the map to PDF"
+        )
+        for on_chunk in (None, lambda text: None):
+            with self.subTest(streamed=on_chunk is not None):
+                turn = self.dispatch([], on_chunk)
+                self.assertEqual((turn.text, turn.protocol), (self.reply, turns.PROTOCOL_NATIVE))
+
+
+class ReasoningOpenedInPromptTest(unittest.TestCase):
+    REPLY = (text_delta("Thinking it over."), text_delta("</think>"), text_delta("Two layers."))
+
+    def setUp(self):
+        for name, value in (
+            ("post_stream", streaming(*self.REPLY)),
+            ("build_request", lambda *args: ("http://localhost:11434/v1/chat/completions", {}, "r1")),
+            ("get_supports_streaming", lambda *args: True),
+            ("get_supports_tools", lambda *args: True),
+            ("get_reasoning_enabled", lambda: False),
+            ("_OPENED_IN_PROMPT", set()),
+        ):
+            patch = mock.patch.object(transport, name, value)
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def shown(self, model):
+        shown = []
+        overrides = {"model_override": model, "dialect_override": "openai"}
+        turn = transport._dispatch([], SCHEMAS, overrides, 10, "http://localhost:11434/v1", shown.append)
+        self.assertEqual(turn.text, "Two layers.")
+        return "".join(shown)
+
+    def test_once_a_model_closed_unopened_reasoning_its_next_drafts_hold_until_the_close(self):
+        self.shown("r1")
+        self.assertEqual(self.shown("r1"), "Two layers.")
+
+    def test_a_reply_without_the_close_tag_gives_the_live_draft_back(self):
+        self.shown("r1")
+        transport.post_stream = streaming(text_delta("Two "), text_delta("layers."))
+        self.shown("r1")
+        self.assertEqual(transport._OPENED_IN_PROMPT, set())
+
+    def test_another_model_keeps_its_live_draft(self):
+        self.shown("r1")
+        transport.post_stream = streaming(text_delta("Two "), text_delta("layers."))
+        self.assertEqual(self.shown("other"), "Two layers.")
 
 
 class StreamRunnerSourceTest(unittest.TestCase):

@@ -2,6 +2,7 @@ import math
 
 TICK_STEPS = (1.0, 2.0, 2.5, 5.0, 10.0)
 TARGET_TICKS = 4
+MAX_TICKS = 12
 SHORT_LABEL = 6
 MAX_VERTICAL_BARS = 12
 
@@ -12,14 +13,18 @@ def nice_ticks(low: float, high: float) -> list[float]:
     if low == high:
         high = low + (abs(low) or 1.0)
     raw = (high - low) / TARGET_TICKS
+    if not math.isfinite(raw) or raw <= 0:
+        return [low, high]
     magnitude = 10 ** math.floor(math.log10(raw))
     step = next(step * magnitude for step in TICK_STEPS if step * magnitude >= raw)
     start = math.floor(low / step) * step
     ticks = []
-    value = start
-    while value <= high + step * 1e-9:
+    # Counted, not stepped until past the top: near 1e16 adding a step may not move the value at all.
+    for index in range(MAX_TICKS):
+        value = start + index * step
+        if value > high + step * 1e-9:
+            break
         ticks.append(round(value, 12))
-        value += step
     if ticks[-1] < high:
         ticks.append(round(ticks[-1] + step, 12))
     return ticks

@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 import {
   MAX_MAP_KEYS,
   MAX_VALUES_PER_FACET,
+  MIN_INSTALLS,
   PING_COLUMNS,
   PingError,
   SERIES_DAYS,
@@ -84,8 +85,13 @@ describe("validatePing", () => {
     for (const dialect of ["openai", "anthropic"]) validatePing(ping({ dialect }), NOW);
   });
 
-  it("accepts days up to a week either side of the server date", () => {
-    for (const day of ["2026-10-10", "2026-10-24"]) validatePing(ping({ day }), NOW);
+  it("accepts a day up to eight days back and one ahead of the server date", () => {
+    for (const day of ["2026-10-09", "2026-10-18"]) validatePing(ping({ day }), NOW);
+  });
+
+  it("accepts the week-old day of a client west of UTC", () => {
+    // 20:00 on 2026-10-16 at UTC-10: the pending 2026-10-09 is seven days old there.
+    validatePing(ping({ day: "2026-10-09" }), new Date("2026-10-17T06:00:00Z"));
   });
 
   it("accepts the limits themselves", () => {
@@ -136,6 +142,14 @@ describe("validatePing", () => {
     rejects(ping({ v: 2, configured: true, url: "http://localhost" }), "unknown field");
   });
 
+  it("rejects more errors for a tool than calls of it", () => {
+    const v2 = { v: 2, configured: true, tools: { run_python: 2 } };
+    validatePing(ping({ ...v2, tool_errors: { run_python: 2 } }), NOW);
+    rejects(ping({ ...v2, tool_errors: { run_python: 3 } }), "tool_errors.run_python is more than its calls");
+    rejects(ping({ ...v2, tool_errors: { inspect_project: 1 } }), "tool_errors.inspect_project is more than its calls");
+    validatePing(ping({ ...v2, tool_errors: { inspect_project: 0 } }), NOW);
+  });
+
   it("rejects an install that is not a UUID", () => {
     for (const install of ["install-1", INSTALL.replaceAll("-", ""), `${INSTALL}0`, 42]) {
       rejects(ping({ install }), "install");
@@ -145,7 +159,7 @@ describe("validatePing", () => {
   it("rejects days that are malformed, unreal or too far away", () => {
     for (const day of ["2026-10-7", "17.10.2026", 20261017]) rejects(ping({ day }), "YYYY-MM-DD");
     for (const day of ["2026-02-30", "2026-13-01", "2026-10-00"]) rejects(ping({ day }), "real date");
-    for (const day of ["2026-10-09", "2026-10-25", "2025-10-17"]) rejects(ping({ day }), "too far");
+    for (const day of ["2026-10-08", "2026-10-19", "2026-10-24", "2025-10-17"]) rejects(ping({ day }), "too far");
   });
 
   it("rejects malformed version strings and locales", () => {
@@ -207,7 +221,7 @@ describe("pingRow", () => {
 describe("extrasRow", () => {
   it("stores the v2 flag as a number and the errors as JSON", async () => {
     const hash = await hashInstall(INSTALL);
-    const body = ping({ v: 2, configured: true, tool_errors: { b_tool: 1, a_tool: 2 } });
+    const body = ping({ v: 2, configured: true, tools: { a_tool: 2, b_tool: 1 }, tool_errors: { b_tool: 1, a_tool: 2 } });
     assert.deepEqual(extrasRow(validatePing(body, NOW), hash), [hash, "2026-10-17", 1, '{"a_tool":2,"b_tool":1}']);
   });
 });
@@ -264,10 +278,10 @@ describe("shapeRetention", () => {
 describe("rankToolErrors", () => {
   it("orders tools by errors, keeps their calls and drops the ones without errors", () => {
     const ranked = rankToolErrors([
-      { tool: "inspect_project", calls: 50, errors: 0 },
-      { tool: "run_python", calls: 10, errors: 2 },
-      { tool: "download_osm", calls: 4, errors: 3 },
-      { tool: "add_layer", calls: 9, errors: 2 },
+      { tool: "inspect_project", calls: 50, errors: 0, installs: 0 },
+      { tool: "run_python", calls: 10, errors: 2, installs: MIN_INSTALLS },
+      { tool: "download_osm", calls: 4, errors: 3, installs: MIN_INSTALLS },
+      { tool: "add_layer", calls: 9, errors: 2, installs: MIN_INSTALLS },
     ]);
     assert.deepEqual(Object.entries(ranked), [
       ["download_osm", { errors: 3, calls: 4 }],
@@ -277,8 +291,21 @@ describe("rankToolErrors", () => {
   });
 
   it("caps the number of tools", () => {
-    const rows = Array.from({ length: MAX_VALUES_PER_FACET + 5 }, (_, i) => ({ tool: `t${i}`, calls: 99, errors: i + 1 }));
+    const rows = Array.from({ length: MAX_VALUES_PER_FACET + 5 }, (_, i) => ({
+      tool: `t${i}`,
+      calls: 99,
+      errors: i + 1,
+      installs: MIN_INSTALLS,
+    }));
     assert.equal(Object.keys(rankToolErrors(rows)).length, MAX_VALUES_PER_FACET);
+  });
+
+  it("drops a tool whose errors fewer than five installs reported", () => {
+    const rows = [
+      { tool: "run_python", calls: 10, errors: 2, installs: MIN_INSTALLS - 1 },
+      { tool: "add_layer", calls: 9, errors: 2 },
+    ];
+    assert.deepEqual(rankToolErrors(rows), {});
   });
 });
 
@@ -295,10 +322,10 @@ describe("fillDays", () => {
 describe("rankFacet", () => {
   it("orders values by count, then by name, within one facet", () => {
     const rows = [
-      { facet: "os", value: "linux", n: 2 },
-      { facet: "os", value: "macos", n: 5 },
-      { facet: "os", value: "windows", n: 2 },
-      { facet: "qgis", value: "4.2.1", n: 9 },
+      { facet: "os", value: "linux", n: 2, installs: MIN_INSTALLS },
+      { facet: "os", value: "macos", n: 5, installs: MIN_INSTALLS },
+      { facet: "os", value: "windows", n: 2, installs: MIN_INSTALLS },
+      { facet: "qgis", value: "4.2.1", n: 9, installs: MIN_INSTALLS },
     ];
     assert.deepEqual(Object.entries(rankFacet(rows, "os")), [
       ["macos", 5],
@@ -308,16 +335,31 @@ describe("rankFacet", () => {
   });
 
   it("caps the number of values", () => {
-    const rows = Array.from({ length: MAX_VALUES_PER_FACET + 20 }, (_, i) => ({ facet: "tools", value: `t${i}`, n: i }));
+    const rows = Array.from({ length: MAX_VALUES_PER_FACET + 20 }, (_, i) => ({
+      facet: "tools",
+      value: `t${i}`,
+      n: i,
+      installs: MIN_INSTALLS,
+    }));
     const ranked = rankFacet(rows, "tools");
     assert.equal(Object.keys(ranked).length, MAX_VALUES_PER_FACET);
     assert.equal(Object.values(ranked)[0], MAX_VALUES_PER_FACET + 19);
   });
 
   it("keeps a value named like a prototype key as data", () => {
-    const ranked = rankFacet([{ facet: "locale", value: "__proto__", n: 1 }], "locale");
+    const ranked = rankFacet([{ facet: "locale", value: "__proto__", n: 1, installs: MIN_INSTALLS }], "locale");
     assert.equal(Object.hasOwn(ranked, "__proto__"), true);
     assert.equal(JSON.stringify(ranked), '{"__proto__":1}');
+  });
+
+  it("drops a value fewer than five installs reported, however large its count", () => {
+    const rows = [
+      { facet: "skills", value: "style", n: 6, installs: MIN_INSTALLS },
+      { facet: "skills", value: "acme_parcels", n: 100000, installs: MIN_INSTALLS - 1 },
+      { facet: "skills", value: "unknown_installs", n: 7 },
+    ];
+    assert.equal(MIN_INSTALLS, 5);
+    assert.deepEqual(rankFacet(rows, "skills"), { style: 6 });
   });
 });
 
@@ -328,7 +370,7 @@ describe("shapeStats", () => {
       window: statsWindow(NOW),
       totals: { installs_total: 4, installs_30d: 2 },
       days: [],
-      facets: [{ facet: "tools", value: "inspect_project", n: 7 }],
+      facets: [{ facet: "tools", value: "inspect_project", n: 7, installs: MIN_INSTALLS }],
     });
     assert.deepEqual(Object.keys(stats), [
       "generated",

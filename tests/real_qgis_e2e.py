@@ -1,5 +1,6 @@
 import json
 import math
+import os
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -12,7 +13,13 @@ from qgis.core import QgsFeature, QgsGeometry, QgsProject, QgsSettings, QgsVecto
 
 from ai_agent.core.agent.run_failure import RUN_FAILURES
 from ai_agent.core.llm import failure_kinds, retry
-from ai_agent.core.orchestrator.notices import CHECKED_BY_READING, RUN_CHECK, STATUS_DONE, STATUS_WAITING
+from ai_agent.core.orchestrator.notices import (
+    CHECKED_BY_READING,
+    PROJECT_CHANGED,
+    RUN_CHECK,
+    STATUS_DONE,
+    STATUS_WAITING,
+)
 from ai_agent.core.settings import get_auto_apply, set_reasoning_enabled, set_supports_images, set_work_mode
 from ai_agent.core.state.session import MAX_MESSAGES
 from ai_agent.qgis_tools.osm import overpass
@@ -24,7 +31,7 @@ from ai_agent.ui.durations import format_seconds
 from ai_agent.ui.failure_card import FailureCard
 from ai_agent.ui.legend import LegendCard
 from ai_agent.ui.messages import SystemMessage, UserMessage
-from ai_agent.ui.plan import FAILED_MARK, RUNNING_MARK, PlanCard
+from ai_agent.ui.plan import FAILED_MARK, PLAN_STARTED_AUTO, RUNNING_MARK, PlanCard
 from ai_agent.ui.question import QuestionCard
 from ai_agent.ui.transitions import LeavingFeed
 
@@ -168,6 +175,25 @@ class ShortCheckScenario(ScenarioCase):
         self.assertIn("people_k", self.layer("districts").fields().names())
         self.assertNotIn(CHECKED_BY_READING, self.system_lines())
         self.assertEqual(self.last(), "Checked: both fields are on districts.")
+
+    def test_a_check_that_failed_does_not_name_the_next_request(self) -> None:
+        self.model.script(
+            call("load_skill", names=["style"]),
+            call("set_graduated", layer_name="districts", field="pop2020", classes=5),
+            say("I suggest colouring districts by pop2020 in 5 classes."),
+            fail(400, '{"error": "the upstream gave up"}'),
+            call("list_layers"),
+            say("Two layers."),
+        )
+        self.ask("Colour districts by pop2020 in 5 classes")
+        self.apply()
+        self.ask("How many layers are there?")
+        identifier = self.orchestrator.conversation.session_identifier
+        self.orchestrator.on_new_session()
+        self.orchestrator.on_session_chosen(identifier)
+        pump(0.1)
+        groups = self.dock.conversation.findChildren(ActivityGroup)
+        self.assertNotEqual(groups[-1].kind, RUN_CHECK, "a reopened request is drawn as the failed check")
 
 
 class TextOnlyScenario(ScenarioCase):
@@ -483,6 +509,27 @@ class FailureScenario(ScenarioCase):
         self.assertAlmostEqual(self.layer("districts").opacity(), 0.5)
         self.shot("failure_keeps_plan")
 
+    def test_retry_waits_for_the_prepared_steps_and_comes_back_once_they_are_cancelled(self) -> None:
+        self.model.script(
+            call("load_skill", names=["style"]),
+            call("set_opacity", layer_name="districts", opacity=0.5),
+            fail(400, '{"error": "the upstream gave up"}'),
+        )
+        self.ask("Make districts half transparent")
+        self.assertTrue(self.agent.has_pending_writes)
+        failure = self.dock.conversation.findChildren(FailureCard)[-1]
+        self.assertTrue(failure.retry.isHidden(), "Retry would start over without the prepared steps")
+        self.dock.conversation.findChildren(PlanCard)[-1].cancelled.emit()
+        pump(0.05)
+        self.assertFalse(failure.retry.isHidden(), "Retry did not come back once the steps were cancelled")
+        self.model.script(say("Districts can be made half transparent with set_opacity."))
+        failure.retry.click()
+        self.wait_idle()
+        self.assertEqual(self.last(), "Districts can be made half transparent with set_opacity.")
+        users = [message for message in self.orchestrator.conversation.messages if message["role"] == "user"]
+        self.assertEqual(len(users), 1, "the retried request was written twice")
+        self.assertEqual(self.model.sent_text(-1).count("Make districts half transparent"), 1)
+
 
 class StageRefusedScenario(ScenarioCase):
     ANSWER = "Districts is being edited by hand: commit or roll back those edits, then ask me again."
@@ -622,6 +669,37 @@ class RewindScenario(ScenarioCase):
         self.assertTrue(any("project is back" in note for note in notes), notes)
         self.shot("rewound")
 
+    def place_of(self, text: str) -> int:
+        messages = self.orchestrator.conversation.messages
+        return next(index for index, message in enumerate(messages) if message["content"] == text)
+
+    def test_a_message_sent_again_after_a_conversation_rewind_rewinds_to_the_project_before_it(self) -> None:
+        self.model.script(
+            call("load_skill", names=["project"]),
+            call("configure_layer", layer_name="districts", properties={"name": "Districts A"}),
+            say("Renamed to Districts A."),
+            call("configure_layer", layer_name="Districts A", properties={"name": "Districts B"}),
+            say("Renamed to Districts B."),
+            call("configure_layer", layer_name="Districts B", properties={"name": "Districts C"}),
+            say("Renamed to Districts C."),
+        )
+        self.ask("Rename districts to Districts A")
+        self.apply()
+        self.ask("Now rename it to Districts B")
+        self.apply()
+        second = self.place_of("Now rename it to Districts B")
+        self.dock.choose_rewind = lambda project_available: "conversation"
+        self.orchestrator.on_rewind(second)
+        pump(0.1)
+        self.layer("Districts B")
+        self.ask("Rename it to Districts C")
+        self.apply()
+        self.assertEqual(self.place_of("Rename it to Districts C"), second, "the new message must take the same place")
+        self.dock.choose_rewind = lambda project_available: "both" if project_available else None
+        self.orchestrator.on_rewind(second)
+        pump(0.1)
+        self.layer("Districts B")
+
 
 class LongRewindScenario(ScenarioCase):
     def rewind_from_bubble(self, text: str) -> None:
@@ -685,6 +763,18 @@ class LayerChipScenario(ScenarioCase):
         chip.drop()
         self.ask("How many layers are there?")
         self.assertNotIn("@districts", self.orchestrator.conversation.messages[-2]["content"])
+
+
+class SlashBesideChipScenario(ScenarioCase):
+    skill_free_start = False
+
+    def test_a_bare_skill_command_keeps_its_request_beside_the_chip(self) -> None:
+        self.model.script(say("districts has one symbol."))
+        self.iface.setActiveLayer(self.layer("districts"))
+        self.ask("/style")
+        sent = self.model.sent_text(0)
+        self.assertIn("Apply the 'style' skill to the current project. @districts", sent)
+        self.assertEqual(self.orchestrator.conversation.messages[0]["content"], "/style @districts")
 
 
 class ChromeScenario(ScenarioCase):
@@ -754,6 +844,69 @@ class PlanUndoScenario(ScenarioCase):
         self.shot("plan_undone")
 
 
+class SaveAsScenario(ScenarioCase):
+    def sessions(self) -> list[str]:
+        return [identifier for identifier, *_rest in self.orchestrator.conversation.recent()]
+
+    def project_changes(self) -> int:
+        notes = [message.plain_text() for message in self.dock.conversation.findChildren(SystemMessage)]
+        return notes.count(PROJECT_CHANGED)
+
+    def assert_kept(self, identifier: str, project_changes: int = 0) -> None:
+        self.assertEqual(self.orchestrator.conversation.session_identifier, identifier, "the save opened a new chat")
+        self.assertIn(identifier, self.sessions(), "the conversation is not in the saved project's history")
+        self.assertEqual(self.project_changes(), project_changes, "a save was told as another project")
+
+    def test_the_agents_save_as_keeps_the_conversation_the_steps_after_it_and_undo(self) -> None:
+        target = os.path.join(self.folder, "copy.qgz")
+        self.model.script(
+            call("load_skill", names=["project"]),
+            calls(
+                ("save_project", {"path": target}),
+                ("configure_layer", {"layer_name": "districts", "properties": {"name": "Districts saved"}}),
+            ),
+            say("I will save the project as a copy and rename districts."),
+        )
+        self.ask("Save the project as copy.qgz, then rename districts")
+        identifier = self.orchestrator.conversation.session_identifier
+        self.apply()
+        self.layer("Districts saved")
+        self.assertEqual(QgsProject.instance().fileName(), target)
+        self.assert_kept(identifier)
+        card = self.dock.conversation.findChildren(PlanCard)[-1]
+        self.assertFalse(card._undo.isHidden(), "the plan saved under a new name offers no Undo")
+        card._undo.click()
+        pump(0.3)
+        self.layer("districts")
+        self.assertEqual(QgsProject.instance().fileName(), target, "Undo took the project back to its old file")
+        self.assert_kept(identifier)
+
+    def test_the_first_save_of_a_new_project_keeps_its_conversation(self) -> None:
+        QgsProject.instance().clear()
+        pump(0.3)
+        self.model.script(say("The project is empty."))
+        self.ask("What is in the project?")
+        identifier = self.orchestrator.conversation.session_identifier
+        cleared = self.project_changes()
+        QgsProject.instance().write(os.path.join(self.folder, "first.qgz"))
+        pump(0.3)
+        self.assert_kept(identifier, cleared)
+        self.assertEqual(len(self.orchestrator.conversation.messages), 2)
+
+    def test_save_as_while_the_answer_streams_keeps_it_in_the_same_conversation(self) -> None:
+        self.model.script(say("A map projection flattens the surface of the Earth onto a plane. " * 30, 0.05))
+        self.orchestrator.on_prompt("Tell me about projections")
+        pump(1.5)
+        self.assertTrue(self.agent.is_running)
+        identifier = self.orchestrator.conversation.session_identifier
+        QgsProject.instance().write(os.path.join(self.folder, "saved_as.qgz"))
+        self.wait_idle()
+        self.assert_kept(identifier)
+        roles = [message["role"] for message in self.orchestrator.conversation.messages]
+        self.assertEqual(roles, ["user", "assistant"])
+        self.assertTrue(self.last().endswith("onto a plane."), "the answer was cut off by the save")
+
+
 class PlanRestoreScenario(ScenarioCase):
     def test_a_cancelled_plan_comes_back_and_applies(self) -> None:
         from ai_agent.ui import plan as plan_module
@@ -779,6 +932,30 @@ class PlanRestoreScenario(ScenarioCase):
         self.assertAlmostEqual(self.layer("districts").opacity(), 0.5)
         self.assertEqual(card._mark.text(), plan_module.APPLIED_MARK)
         self.shot("plan_restored_and_applied")
+
+
+class SaveAsUndoScenario(ScenarioCase):
+    def test_a_plan_that_saves_as_applies_whole_and_its_card_undoes_it(self) -> None:
+        target = os.path.join(self.folder, "city.qgz")
+        renamed = {"layer_name": "districts", "properties": {"name": "Districts A"}}
+        self.model.script(
+            call("load_skill", names=["project"]),
+            calls(("save_project", {"path": target}), ("configure_layer", renamed)),
+            say("Saved as city.qgz and renamed districts."),
+        )
+        self.ask("Save the project as city.qgz and rename districts to Districts A")
+        conversation = self.orchestrator.conversation.session_identifier
+        self.apply()
+        self.layer("Districts A")
+        self.assertEqual(QgsProject.instance().fileName(), target)
+        self.assertEqual(self.orchestrator.conversation.session_identifier, conversation, "a Save As left the chat")
+        card = self.dock.conversation.findChildren(PlanCard)[-1]
+        card._undo.click()
+        pump(0.1)
+        self.layer("districts")
+        notes = [message.plain_text() for message in self.dock.conversation.findChildren(SystemMessage)]
+        self.assertTrue(any("plan is undone" in note for note in notes), notes)
+        self.assertEqual(self.orchestrator.conversation.session_identifier, conversation, "the undo left the chat")
 
 
 class BackgroundStepScenario(ScenarioCase):
@@ -905,6 +1082,42 @@ class QuestionScenario(ScenarioCase):
         self.assertIn("pop2020", self.model.sent_text(-1))
         self.assertEqual(self.last(), "I will colour by pop2020.")
 
+    def test_rewinding_past_the_question_ends_it(self) -> None:
+        self.model.script(
+            call("ask_user", question="Buffer by which distance?", options=["100 m", "500 m"]),
+            say("Main rivers is one line."),
+        )
+        self.ask("Buffer the roads")
+        self.assertTrue(self.agent.is_awaiting_answer)
+        self.dock.choose_rewind = lambda project_available: "conversation"
+        self.orchestrator.on_rewind(0)
+        pump(0.1)
+        self.assertFalse(self.agent.is_awaiting_answer, "the question outlived the conversation it was asked in")
+        self.dock.clear_prompt()
+        self.ask("Describe the rivers layer")
+        sent = self.model.sent_text(-1)
+        self.assertNotIn("Buffer the roads", sent, "the request rewound away still reached the model")
+        self.assertEqual(self.last(), "Main rivers is one line.")
+
+
+class InterjectionScenario(ScenarioCase):
+    def test_a_correction_sent_during_the_final_answer_gets_one_more_step(self) -> None:
+        self.model.script(
+            say("Done: the roads would be red, as you asked. " * 10, 0.05),
+            say("Done: the roads are blue."),
+        )
+        self.orchestrator.on_prompt("Colour the roads red")
+        pump(0.3)
+        self.assertTrue(self.agent.is_running, "the answer ended before the correction could be sent")
+        self.orchestrator.on_prompt("Blue, not red")
+        self.wait_idle()
+        self.assertEqual(len(self.model.requests), 2, "the correction never reached the model")
+        sent = self.model.requests[-1]["messages"]
+        self.assertEqual([message["role"] for message in sent], ["system", "user", "assistant", "user"])
+        self.assertIn("Blue, not red", sent[-1]["content"])
+        self.assertTrue(self.answers()[0].startswith("Done: the roads would be red"))
+        self.assertEqual(self.last(), "Done: the roads are blue.")
+
 
 class AutoModeScenario(ScenarioCase):
     def tearDown(self) -> None:
@@ -1002,6 +1215,8 @@ class PlanModeScenario(ScenarioCase):
             say("Checked: 5 classes on pop2020."),
         )
         offers[0]._rows[0].clicked.emit(offers[0]._rows[0].key)
+        self.assertEqual(offers[0]._question.text(), PLAN_STARTED_AUTO, "a started run says so on its offer")
+        self.assertTrue(all(row.isHidden() for row in offers[0]._rows))
         self.wait_idle()
         self.assertEqual(self.layer("districts").renderer().type(), "graduatedSymbol")
         self.assertEqual(self.dock.composer.mode, "auto")

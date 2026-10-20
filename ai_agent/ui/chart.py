@@ -363,7 +363,9 @@ class ChartCard(QWidget):
         tip = next((text for box, text in self._hits if box.contains(position)), "")
         if tip:
             QToolTip.showText(
-                event.globalPosition().toPoint() if hasattr(event, "globalPosition") else event.globalPos(), tip, self
+                event.globalPosition().toPoint() if hasattr(event, "globalPosition") else event.globalPos(),
+                controls.plain_tip(tip),
+                self,
             )
         else:
             QToolTip.hideText()
@@ -373,6 +375,7 @@ class ChartCard(QWidget):
         popup.addAction(COPY_IMAGE, lambda: QGuiApplication.clipboard().setPixmap(self.grab()))
         popup.addAction(COPY_DATA, lambda: QGuiApplication.clipboard().setText(self.csv()))
         popup.exec(event.globalPos())
+        popup.deleteLater()
 
     def csv(self) -> str:
         buffer = io.StringIO()

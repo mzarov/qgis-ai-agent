@@ -5,6 +5,7 @@ from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.transcript import Transcript
 from ai_agent.core.llm import anthropic, turns
 from ai_agent.core.llm.reasoning import wire_messages
+from ai_agent.core.llm.stream import StreamedCompletion
 from ai_agent.core.llm.thinking import ThinkSplitter, split_thinking
 from ai_agent.core.llm.turns import PROTOCOL_JSON, ModelTurn
 from tests.test_streaming import consume
@@ -64,6 +65,52 @@ class SplitterTest(unittest.TestCase):
         self.assertEqual(splitter.flush(), ("<thi", ""))
 
 
+class HeldReasoningTest(unittest.TestCase):
+    PIECES = ("The user wants 2+2, ", "so I add them.", "</think>", "The answer is 4.")
+
+    def test_a_held_splitter_shows_nothing_until_the_reasoning_closes(self):
+        splitter = ThinkSplitter(held=True)
+        self.assertEqual(splitter.feed("The user wants 2+2, "), ("", ""))
+        self.assertEqual(splitter.feed("so I add them.</thi"), ("", ""))
+        self.assertEqual(splitter.feed("nk>The answer"), ("The answer", "The user wants 2+2, so I add them."))
+        self.assertEqual(splitter.feed(" is 4."), (" is 4.", ""))
+        self.assertTrue(splitter.closed_without_opening)
+
+    def test_a_held_answer_without_any_tag_comes_out_whole_on_flush(self):
+        splitter = ThinkSplitter(held=True)
+        self.assertEqual(splitter.feed("Just an answer."), ("", ""))
+        self.assertEqual(splitter.flush(), ("Just an answer.", ""))
+        self.assertFalse(splitter.closed_without_opening)
+
+    def test_an_opening_tag_ends_the_hold(self):
+        splitter = ThinkSplitter(held=True)
+        self.assertEqual(splitter.feed("<think>musing</think>said"), ("said", "musing"))
+        self.assertFalse(splitter.closed_without_opening)
+
+    def stream(self, held):
+        shown, thought = [], []
+        completion = StreamedCompletion(shown.append, thought.append, held=held)
+        for piece in self.PIECES:
+            completion.take(json.dumps({"choices": [{"delta": {"content": piece}}]}))
+        completion.take(json.dumps({"choices": [{"delta": {}, "finish_reason": "stop"}]}))
+        return completion, "".join(shown), "".join(thought), turns.parse_native_turn(completion.response())
+
+    def test_a_held_stream_keeps_the_reasoning_out_of_the_live_draft(self):
+        completion, shown, thought, turn = self.stream(held=True)
+        self.assertEqual((shown, thought), ("The answer is 4.", "The user wants 2+2, so I add them."))
+        self.assertEqual((turn.text, turn.thinking), ("The answer is 4.", "The user wants 2+2, so I add them."))
+        self.assertTrue(completion.closed_without_opening)
+
+    def test_an_unheld_stream_still_tells_that_the_reasoning_was_opened_in_the_prompt(self):
+        completion, _, _, turn = self.stream(held=False)
+        self.assertEqual(turn.text, "The answer is 4.")
+        self.assertTrue(completion.closed_without_opening)
+        plain = StreamedCompletion()
+        plain.take(json.dumps({"choices": [{"delta": {"content": "<think>a</think>b"}, "finish_reason": "stop"}]}))
+        plain.response()
+        self.assertFalse(plain.closed_without_opening)
+
+
 class StreamedThinkingTest(unittest.TestCase):
     def test_a_separate_reasoning_field_is_routed_apart(self):
         seen_text, seen_thought = [], []
@@ -108,6 +155,31 @@ class StreamedThinkingTest(unittest.TestCase):
         data = consume([delta(content="<think>never closed")])
         self.assertEqual(data["choices"][0]["message"]["content"], "")
         self.assertEqual(data["choices"][0]["message"]["reasoning_content"], "never closed")
+
+
+class ListContentTest(unittest.TestCase):
+    MISTRAL_PARTS = [
+        {"type": "thinking", "thinking": [{"type": "text", "text": "hmm"}]},
+        {"type": "text", "text": "The answer is 4."},
+    ]
+
+    def test_a_list_shaped_message_is_read_as_text_and_thinking(self):
+        message = {"choices": [{"message": {"content": self.MISTRAL_PARTS}, "finish_reason": "stop"}]}
+        for parse in (turns.parse_native_turn, turns.parse_json_turn):
+            with self.subTest(parse=parse.__name__):
+                turn = parse(message)
+                self.assertEqual((turn.text, turn.thinking), ("The answer is 4.", "hmm"))
+
+    def test_list_shaped_deltas_are_streamed_as_text_and_thinking(self):
+        seen_text, seen_thought = [], []
+        data = consume(
+            [delta(content=self.MISTRAL_PARTS[:1]), delta(content=[{"type": "text", "text": "The answer"}])],
+            seen_text.append,
+            seen_thought.append,
+        )
+        self.assertEqual((seen_text, seen_thought), (["The answer"], ["hmm"]))
+        turn = turns.parse_native_turn(data)
+        self.assertEqual((turn.text, turn.thinking), ("The answer", "hmm"))
 
 
 class NativeTurnThinkingTest(unittest.TestCase):

@@ -203,6 +203,14 @@ class BatchTest(unittest.TestCase):
             self.assertFalse(self.loop.restore_declined())
         self.assertFalse(self.loop.has_pending_writes)
 
+    def test_a_cancelled_plan_follows_its_project_saved_under_a_new_name(self):
+        self.loop._batch._calls = [call("run_processing")]
+        with mock.patch.object(batch_apply_module, "project_identity", return_value="/maps/city.qgz"):
+            self.loop.cancel_pending()
+        self.loop.project_moved("/maps/city.qgz", "/maps/copy.qgz")
+        with mock.patch.object(batch_apply_module, "project_identity", return_value="/maps/copy.qgz"):
+            self.assertTrue(self.loop.restore_declined())
+
     def test_confirm_on_empty_queue_does_nothing(self):
         self.loop.confirm_pending()
         self.assertEqual(self.executor.ran, [])

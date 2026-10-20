@@ -77,6 +77,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):  # type: ignore[misc]
         self._is_verification = False
         self._budget = TokenBudget()
         self._request_estimate = 0
+        self._interjected = 0
         self._planning = False
         self.ended_on_limit = False
         self._plan_steps: list[str] = []
@@ -149,6 +150,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):  # type: ignore[misc]
         self._generation += 1
         self._transcript = Transcript()
         self._transcript.add_user(prompt, images)
+        self._interjected = 0
         self._planning = planning
         self.ended_on_limit = False
         self._journal.begin(prompt)
@@ -216,6 +218,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):  # type: ignore[misc]
         if not message or not self.is_running:
             return False
         self._transcript.add_user(notices.INTERJECTION_HEADER + message)
+        self._interjected += 1
         QgsMessageLog.logMessage("The user interjected mid-run.", LOG_TAG, Qgis.MessageLevel.Info)
         return True
 
@@ -266,6 +269,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):  # type: ignore[misc]
         self._prompt_protocol = request.protocol
         self._pending_protocol = request.protocol
         self._request_estimate = estimated_tokens(request.messages)
+        self._interjected = 0
         callbacks = (
             lambda turn, current=generation: self._on_turn(turn, current),
             lambda message, current=generation: self._fail(message, current),
@@ -321,14 +325,19 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):  # type: ignore[misc]
         self._track_usage(turn)
         if not self._is_current(generation):
             return
-        self._transcript.add_turn(turn)
+        # A correction sent while this turn was on its way comes after the turn and its results.
+        place = len(self._transcript.entries) - self._interjected
+        self._transcript.add_turn(turn, place)
         if turn.tool_calls:
             self._tools_called = True
+        elif self._interjected:
+            self._continue_for_interjection(turn, generation)
+            return
         elif self._nudge_once(turn, generation):
             return
         if turn.tool_calls and turn.finish_reason in notices.TRUNCATED_REASONS:
             self._transcript.add_results(
-                [ToolResult.failure(call, notices.CALLS_CUT_OFF) for call in turn.tool_calls], turn.protocol
+                [ToolResult.failure(call, notices.CALLS_CUT_OFF) for call in turn.tool_calls], turn.protocol, place + 1
             )
             self._request_step()
             return
@@ -347,7 +356,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):  # type: ignore[misc]
             results.append(self._failures.note(self._dispatch(call)))
             if not self._is_current(generation):
                 return
-        self._transcript.add_results(results, turn.protocol)
+        self._transcript.add_results(results, turn.protocol, place + 1)
         if self._question:
             self._pause_for_question(generation)
             return
@@ -357,6 +366,13 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):  # type: ignore[misc]
         if self._is_current(generation):
             self._request_step()
 
+    def _continue_for_interjection(self, turn: ModelTurn, generation: int) -> None:
+        if turn.text.strip():
+            self.preamble.emit(turn.text)
+            if not self._is_current(generation):
+                return
+        self._request_step()
+
     def _nudge_once(self, turn: ModelTurn, generation: int) -> bool:
         truncated = turn.finish_reason in notices.TRUNCATED_REASONS
         text = turn.text.strip()
@@ -364,11 +380,15 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):  # type: ignore[misc]
         if self._nudged or not (truncated or not text or announced):
             return False
         self._nudged = True
-        if text:
+        # A JSON-protocol reply is one object: its cut-off text is no answer, and a continued tail would not parse.
+        resend = truncated and turn.protocol == PROTOCOL_JSON
+        if text and not resend:
             self.preamble.emit(turn.text)
             if not self._is_current(generation):
                 return True
-        if truncated:
+        if resend:
+            note = notices.CALLS_CUT_OFF
+        elif truncated:
             note = notices.CONTINUE_TRUNCATED
         else:
             note = notices.ANNOUNCED_STEP if text else notices.EMPTY_REPLY

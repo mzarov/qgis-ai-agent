@@ -265,7 +265,11 @@
 
   function toolErrors(figure, stats) {
     const tools = Object.entries(stats.tool_errors || {})
-      .map(([tool, counts]) => [tool, Number(counts?.errors) || 0, Number(counts?.calls) || 0])
+      .map(([tool, counts]) => {
+        const calls = Number(counts?.calls) || 0;
+        // A tool cannot fail more often than it ran: an older document may say otherwise.
+        return [tool, Math.min(Number(counts?.errors) || 0, calls), calls];
+      })
       .filter(([, errors]) => errors > 0)
       .sort(([a, x], [b, y]) => y - x || a.localeCompare(b))
       .slice(0, TOP_BARS);

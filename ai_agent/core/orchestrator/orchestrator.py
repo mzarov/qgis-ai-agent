@@ -18,6 +18,7 @@ from ai_agent.core.orchestrator.notices import (
     MESSAGE_DURATION_SEC,
     NOT_SAVED,
     RUN_STOPPED,
+    STEPS_WAITING,
     SWITCH_WHILE_RUNNING,
     UNKNOWN_SKILL,
 )
@@ -59,13 +60,14 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self._plan_marks: list[list[str]] = []
         self._restorable_plan_id: int | None = None
         self._retry_args: RetryArgs | None = None
+        self._retry_after_plan = False
         self._done_summary = ""
         self._snapshot_before_apply = ""
         self._invalidated_scope: tuple[str, str] | None = None
         self._deferred_interrupted_outcome = ""
         self._last_request = ""
         self.compaction = SessionCompaction(self.dock_widget, lambda: self.conversation)
-        self.naming = SessionNaming(lambda: self.conversation, self._show_title)
+        self.naming = SessionNaming(lambda: self.conversation, self._show_title, lambda: _consented(get_api_url()))
         self.usage = UsageStats()
         self._connect_agent()
         self.usage.flush()
@@ -76,8 +78,9 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         register_local_skills()
         self.conversation.prune_history()
         self.dock_widget.set_project_line(project_line())
-        self.dock_widget.set_configured(_is_configured())
-        self.dock_widget.set_model(get_model() if _is_configured() else "")
+        configured = _is_configured()
+        self.dock_widget.set_configured(configured)
+        self.dock_widget.set_model(get_model() if configured else "")
         self.dock_widget.set_work_mode(get_work_mode())
         self.dock_widget.set_skill_source(choices)
         self.dock_widget.set_layer_source(layer_choices)
@@ -112,7 +115,9 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
 
     def on_busy(self, busy: bool) -> None:
         self.dock_widget.set_busy(busy)
-        if not busy:
+        if busy:
+            self._retry_after_plan = False
+        else:
             self.usage.flush()
             self.dock_widget.set_run_kind("")
             self.on_active_layer_changed()
@@ -158,20 +163,22 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         if self.agent.is_awaiting_answer:
             self._answer(text)
             return
-        mention = self.dock_widget.context_mention()
-        if isinstance(mention, str) and mention and mention not in text:
-            text = f"{text} {mention}"
         skill, rest = parse_slash(text)
         if skill and not is_known_skill(skill):
             self.dock_widget.add_system_message(UNKNOWN_SKILL.format(skill, available_names()))
             return
         if not self._confirm_first_send():
             return
+        # The command is read before the chip's mention joins: a bare /skill keeps its own request.
+        prompt = prompt_for(skill, rest) if skill else text
+        mention = self.dock_widget.context_mention()
+        if isinstance(mention, str) and mention and mention not in text:
+            text, prompt = f"{text} {mention}", f"{prompt} {mention}"
         pictures = attaching.take_pictures(self.dock_widget)
         self.dock_widget.clear_prompt()
         self._start_run(
             attaching.with_names(text, pictures),
-            prompt_for(skill, rest) if skill else text,
+            prompt,
             text,
             skills=[skill] if skill else None,
             images=pictures.encoded,
@@ -188,6 +195,8 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.dock_widget.begin_work()
         self.usage.note("runs")
         entry = self._show_user_bubble(shown)
+        # A check that failed before its first step left its kind on an empty trace.
+        self.conversation.trace.kind = ""
         self._forget_restore()
         self._drop_pending_plan()
         # Dropping a staged plan ends its run with an answer, saved before this request: the place follows it.
@@ -210,16 +219,18 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
             begin()
 
     def on_retry(self) -> None:
+        working = self.agent.is_running or bool(getattr(self.agent, "is_applying", False))
+        if self.agent.has_pending_writes and not working:
+            self.dock_widget.add_system_message(STEPS_WAITING)
+            return
         if not self.is_idle:
             self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
             return
-        if self._retry_args is None:
+        if self._retry_args is None or not self._confirm_first_send():
             return
         shown, prompt, request, skills, images, planning = self._retry_args
         self.dock_widget.clear_prompt()
-        history = self.conversation.window()
-        if history and history[-1].get("role") == "user" and history[-1].get("content") == shown:
-            history = history[:-1]
+        history = _before_request(self.conversation.window(), shown)
         self._last_request = request
         self.dock_widget.drop_failures()
         self.conversation.drop_failures()
@@ -256,6 +267,8 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         if not self.is_idle:
             self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
             return
+        if not self._confirm_first_send():
+            return
         self.dock_widget.begin_work()
         self.compaction.start()
 
@@ -270,7 +283,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         if not _is_configured():
             return True
         url = (endpoint if endpoint is not None else get_api_url() or "").strip()
-        if not url or is_local(url) or get_data_sharing_consent(url):
+        if _consented(url):
             return True
         if not self.dock_widget.confirm_data_sharing(safe_endpoint_label(url)):
             self.dock_widget.add_system_message(DATA_SHARING_DECLINED)
@@ -318,3 +331,16 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
 
 def _is_configured() -> bool:
     return is_configured()
+
+
+def _before_request(history: list[dict[str, str]], shown: str) -> list[dict[str, str]]:
+    # The failed run may have saved a preamble, a partial answer or an interjection after its request.
+    for index in range(len(history) - 1, -1, -1):
+        if history[index].get("role") == "user" and history[index].get("content") == shown:
+            return history[:index]
+    return history
+
+
+def _consented(url: str | None) -> bool:
+    clean = (url or "").strip()
+    return not clean or is_local(clean) or get_data_sharing_consent(clean)

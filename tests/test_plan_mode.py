@@ -135,16 +135,21 @@ class PlanOfferWidgetTest(unittest.TestCase):
         view.add_user_message("поменяй план")
         self.assertTrue(all(button.isHidden() for button in first._rows))
 
-    def test_a_choice_reports_its_mode_and_the_buttons_go(self):
+    def test_a_choice_reports_its_mode_and_the_buttons_go_with_the_run(self):
         from qgis.PyQt.QtWidgets import QWidget
 
-        from ai_agent.ui.plan import PlanOffer
+        from ai_agent.ui.plan import PLAN_STARTED_ASKING, RUN_PLAN_QUESTION, PlanOffer
 
         offer = PlanOffer(QWidget().palette())
         chosen: list[str] = []
         offer.run_requested.connect(chosen.append)
         offer._run("ask")
         self.assertEqual(chosen, ["ask"])
+        self.assertEqual(offer._question.text(), RUN_PLAN_QUESTION, "no run started: the offer stays")
+        self.assertFalse(any(button.isHidden() for button in offer._rows))
+        offer.run_requested.connect(lambda _mode: offer.retire())
+        offer._run("ask")
+        self.assertEqual(offer._question.text(), PLAN_STARTED_ASKING)
         self.assertTrue(all(button.isHidden() for button in offer._rows))
 
 

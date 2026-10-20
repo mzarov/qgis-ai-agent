@@ -28,6 +28,17 @@ class NativeRenderingTest(unittest.TestCase):
         self.assertEqual(message["tool_calls"][0]["function"]["name"], "list_layers")
         self.assertEqual(json.loads(message["tool_calls"][0]["function"]["arguments"]), {"a": 1})
 
+    def test_an_empty_reply_is_replayed_with_empty_text_not_null(self):
+        transcript = Transcript()
+        transcript.add_user("How many layers?")
+        transcript.add_turn(ModelTurn(text="", finish_reason="stop"))
+        self.assertEqual(transcript.build_messages("S")[2], {"role": "assistant", "content": ""})
+
+    def test_a_turn_of_calls_alone_keeps_null_text(self):
+        transcript = Transcript()
+        transcript.add_turn(self.turn)
+        self.assertIsNone(transcript.build_messages("S")[1]["content"])
+
     def test_result_carries_call_id(self):
         transcript = Transcript()
         transcript.add_results([ToolResult(call=call(), payload={})], "native")

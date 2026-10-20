@@ -9,6 +9,7 @@ from ai_agent.core.llm.retry import RetryNotice
 from ai_agent.core.llm.turns import ToolCall
 from ai_agent.core.orchestrator import notices
 from ai_agent.core.orchestrator import orchestrator as orchestrator_module
+from ai_agent.core.orchestrator import project_lifecycle as lifecycle_module
 from ai_agent.core.orchestrator import rewind as rewind_module
 from ai_agent.core.orchestrator.orchestrator import CoreOrchestrator
 from ai_agent.core.state import conversation as conversation_module
@@ -55,6 +56,7 @@ class Iface:
 
 class Agent:
     def __init__(self):
+        self.moved = []
         self.is_running = False
         self.has_pending_writes = False
         self.is_awaiting_answer = False
@@ -67,6 +69,9 @@ class Agent:
         self.stops = 0
         self.is_applying = False
         self.active_apply_tool = ""
+
+    def project_moved(self, previous, current):
+        self.moved.append((previous, current))
 
     def start(
         self,
@@ -277,17 +282,48 @@ class OrchestratorSessionTest(unittest.TestCase):
 
     def test_project_change_aborts_old_run_and_starts_project_scoped_session(self):
         self._ask("про старый проект")
+        old_identifier = self.orchestrator.conversation.session_identifier
         self.orchestrator.agent.is_awaiting_answer = True
+        session_at_abort = []
+        self.orchestrator.agent.abort = lambda: session_at_abort.append(
+            self.orchestrator.conversation.session_identifier
+        )
         saved = conversation_module.current_project_key
         conversation_module.current_project_key = lambda: "/new/project.qgz"
         try:
-            self.orchestrator.on_project_changed()
+            self.orchestrator.on_project_changed(force_new=True)
         finally:
             conversation_module.current_project_key = saved
-        self.assertEqual(self.orchestrator.agent.aborts, 1)
+        self.assertEqual(session_at_abort, [old_identifier], "the old run must stop before the new chat opens")
         self.assertEqual(self.orchestrator.conversation.project_key, "/new/project.qgz")
         self.assertEqual(self.dock.replayed, [])
         self.assertIn(notices.PROJECT_CHANGED, self.dock.system)
+
+    def test_a_project_saved_under_a_new_name_keeps_the_conversation_and_its_run(self):
+        self._ask("first question")
+        identifier = self.orchestrator.conversation.session_identifier
+        old_key = self.orchestrator.conversation.project_key
+        self.orchestrator.agent.is_running = True
+        self.orchestrator._apply_scope = (old_key, identifier)
+        saved = conversation_module.current_project_key
+        conversation_module.current_project_key = lambda: "/saved/as/copy.qgz"
+        try:
+            with (
+                mock.patch.object(lifecycle_module, "follow_project_move") as moved,
+                mock.patch.object(lifecycle_module, "NoteStore") as notes,
+            ):
+                self.orchestrator.on_project_changed()
+        finally:
+            conversation_module.current_project_key = saved
+        moved.assert_called_once_with(old_key)
+        self.assertEqual(self.orchestrator.agent.moved, [(old_key, "/saved/as/copy.qgz")], "a cancelled plan follows")
+        notes.return_value.carry.assert_called_once_with(old_key, "/saved/as/copy.qgz")
+        self.assertEqual(self.orchestrator.agent.aborts, 0)
+        self.assertEqual(self.orchestrator.conversation.session_identifier, identifier)
+        self.assertEqual(self.orchestrator._apply_scope, ("/saved/as/copy.qgz", identifier))
+        self.assertIsNone(self.dock.replayed)
+        self.assertNotIn(notices.PROJECT_CHANGED, self.dock.system)
+        self.assertEqual([entry[0] for entry in self.orchestrator.conversation.recent()], [identifier])
 
     def test_interrupted_apply_from_old_project_never_pollutes_the_new_session(self):
         self._ask("work in the old project")
@@ -300,7 +336,7 @@ class OrchestratorSessionTest(unittest.TestCase):
         saved = conversation_module.current_project_key
         conversation_module.current_project_key = lambda: "/new/project.qgz"
         try:
-            self.orchestrator.on_project_changed()
+            self.orchestrator.on_project_changed(force_new=True)
         finally:
             conversation_module.current_project_key = saved
 

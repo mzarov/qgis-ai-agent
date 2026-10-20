@@ -15,6 +15,10 @@ a row to `ping_extras`: whether a model is set up and the failed calls per
 tool. It stores no IP addresses and keeps no request logs. A resend for the
 same install and day replaces the rows.
 
+The `PING_LIMITER` rate limiting binding (`wrangler.toml.template`) allows 5
+pings a minute per `CF-Connecting-IP`; the address keys the limiter's counter
+and nothing else. Without the binding, as in the tests, pings are not limited.
+
 ## API
 
 `POST /v1/ping` takes one JSON body of at most 4096 bytes:
@@ -31,18 +35,23 @@ same install and day replaces the rows.
 A v1 ping, sent by plugin 0.4.0, has no `configured` or `tool_errors`; both
 versions are accepted.
 
-`src/payload.js` validates it strictly: no unknown fields, `day` within seven
-days of the server's UTC date, counts from 0 to 100000, map keys matching
-`^[a-z][a-z0-9_]{0,48}$`, at most 150 per map. It answers `204`, or `400`,
-`413` or `415` for a bad body, size or content type.
+`src/payload.js` validates it strictly: no unknown fields, `day` at most eight
+days before and one day after the server's UTC date, counts from 0 to 100000,
+map keys matching
+`^[a-z][a-z0-9_]{0,48}$`, at most 150 per map, no more errors for a tool than
+calls of it. It answers `204`, or `400`, `413` or `415` for a bad body, size or
+content type, and `429` to an address over its limit.
 
 `GET /v1/stats` returns the public aggregates with
 `Access-Control-Allow-Origin: *`: install totals, one entry per day for the
 last 90 days, one entry per ISO week (new and returning installs) for the last
 13, the 30-day funnel (active, set up, ran, applied), the share of installs
 still active 7 and 30 days after their first day, failed calls per tool, and
-per-value counts for the last 30 days (at most 100 values each). The document
-is rebuilt at most once an hour and kept in the `stats_snapshot` table.
+per-value counts for the last 30 days (at most 100 values each, and only
+values at least 5 installs reported). The document
+is rebuilt at most once an hour and kept in the `stats_snapshot` table. One
+request claims the rebuild while the others get the previous document, which
+is also served when a rebuild fails.
 `GET /` points to the dashboard.
 
 ## Tests
@@ -52,7 +61,8 @@ node --test 'telemetry/worker/test/*.test.js'
 ```
 
 The tests run `schema.sql` and every query on real SQLite through
-`node:sqlite` (Node 22.13 or later).
+`node:sqlite` (Node 22.13 or later). `test/dashboard.test.js` draws
+`docs/assets/usage-stats.js` into a minimal DOM.
 
 ## Deploy
 

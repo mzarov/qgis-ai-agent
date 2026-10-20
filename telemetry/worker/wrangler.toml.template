@@ -3,12 +3,20 @@
 name = "ai-agent-usage"
 main = "src/index.js"
 compatibility_date = "2026-09-01"
+# The dashboard reads workers.dev; preview URLs would keep older versions reachable.
 workers_dev = true
+preview_urls = false
 
 [[d1_databases]]
 binding = "DB"
 database_name = "ai-agent-usage"
 database_id = "__DATABASE_ID__"
+
+# Pings per address and minute; the address is never stored. namespace_id is unique per account.
+[[ratelimits]]
+name = "PING_LIMITER"
+namespace_id = "7401"
+simple = { limit = 5, period = 60 }
 
 # No request logs are kept: the pings are the only record.
 [observability]

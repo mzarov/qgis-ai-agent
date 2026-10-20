@@ -17,7 +17,8 @@ def read_json(path: str) -> Any:
 
 
 def atomic_write_json(path: str, payload: Any) -> None:
-    encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    # A lone surrogate (half an emoji cut by a stream) becomes its JSON escape: valid UTF-8 that reads back as written.
+    encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8", "backslashreplace")
     current = _valid_bytes(path)
     if current is not None:
         _atomic_write(backup_path(path), current)

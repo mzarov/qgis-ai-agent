@@ -41,7 +41,7 @@ def mismatch(expect: dict[str, Any], calls: list[tuple[str, dict[str, Any]]]) ->
         wanted_first = _as_list(earlier)
         if later in names and not any(name in wanted_first for name in names[: names.index(later)]):
             return f"called {later} before {' or '.join(wanted_first)}"
-    loaded = [str(skill) for name, args in calls if name == LOAD_SKILL for skill in _as_list(args.get("names"))]
+    loaded = [str(skill) for name, args in calls if name == LOAD_SKILL for skill in _requested_skills(args)]
     wanted = [skill for skill in _as_list(expect.get("loads")) if skill not in loaded]
     if wanted:
         return f"did not load {', '.join(wanted)}"
@@ -131,6 +131,12 @@ def _number(value: Any) -> float | None:
 
 def _text(value: Any) -> str:
     return value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
+
+
+def _requested_skills(arguments: dict[str, Any]) -> list[Any]:
+    # As ai_agent/core/agent/skills.py::requested_skills reads them: names first, else name.
+    names = arguments.get("names")
+    return _as_list(arguments.get("name") if names is None else names)
 
 
 def _as_list(value: Any) -> list[Any]:

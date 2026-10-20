@@ -21,6 +21,7 @@ REMOVE_REFUSED = tr("QGIS refused to remove the key.")
 STORE_UNAVAILABLE = tr("The QGIS authentication database is unavailable: {reason}. API keys cannot be loaded or saved.")
 
 _error = ""
+_refused = False
 
 
 def read(scope: str) -> str:
@@ -30,7 +31,7 @@ def read(scope: str) -> str:
         _error = ""
         return ""
     try:
-        manager = _unlocked_manager()
+        manager = _unlocked_manager(ask=not _refused)
         ok, config = manager.loadAuthenticationConfig(config_id, QgsAuthMethodConfig(), True)
     except RuntimeError as error:
         _error = str(error)
@@ -86,6 +87,11 @@ def last_error() -> str:
     return _error
 
 
+def ask_again() -> None:
+    global _refused
+    _refused = False
+
+
 def failure_message() -> str:
     return STORE_UNAVAILABLE.format(reason=_error or tr("unknown error"))
 
@@ -103,14 +109,18 @@ def _config_for(manager: Any, scope: str, secret: str) -> QgsAuthMethodConfig:
     return config
 
 
-def _unlocked_manager() -> Any:
+def _unlocked_manager(ask: bool = True) -> Any:
+    global _refused
     manager = QgsApplication.authManager()
     if manager is None:
         raise RuntimeError(NO_MANAGER)
     if manager.isDisabled():
         raise RuntimeError(DISABLED)
-    if not manager.masterPasswordIsSet() and not manager.setMasterPassword(True):
+    # A Cancel is remembered: reads do not reopen the dialog, only the user's own act does.
+    if not manager.masterPasswordIsSet() and (not ask or not manager.setMasterPassword(True)):
+        _refused = True
         raise RuntimeError(LOCKED)
+    _refused = False
     return manager
 
 

@@ -1,7 +1,8 @@
 from html.parser import HTMLParser
 
 BLOCK_TAGS = {"article", "br", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li", "p", "section", "table", "tr"}
-DROP_TAGS = {"head", "noscript", "script", "style", "svg"}
+# Not "head": HTML5 lets a page omit </head>, and nothing else in it is text.
+DROP_TAGS = {"noscript", "script", "style", "svg", "template", "title"}
 
 
 class TextParser(HTMLParser):

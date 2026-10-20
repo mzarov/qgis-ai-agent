@@ -15,6 +15,14 @@ ASCENDING_MARKERS = ("asc", "ascending")
 SPECIAL_COLUMNS = {"*", "$geometry", "$id", "$area", "$length", "$perimeter", "$x", "$y"}
 # An @parent aggregate references ALL_ATTRIBUTES; refusing it breaks valid expressions.
 ALL_ATTRIBUTES = "#!allattributes!#"
+# Model-written expressions run unconfirmed in reads and Auto mode: these write files, read secrets or run text.
+UNSAFE_FUNCTIONS = frozenset(
+    {"decode_uri", "env", "eval", "eval_template", "layer_property", "load_layer", "sqlite_fetch_and_increment"}
+)
+UNSAFE_ERROR = (
+    "The function {name}() is not allowed in '{label}': it can write outside the project, read the environment "
+    "or a layer's credentials, or run text as an expression. Use the layer's fields and other QGIS functions."
+)
 QUOTED_EXPRESSION_HINT = (
     "A name in double quotes is a field; an expression goes without quotes — inside aggregate, for one: "
     "aggregate('schools', 'count', $id, intersects($geometry, geometry(@parent)))."
@@ -35,9 +43,17 @@ def compile_expression(text: str, label: str, layer=None) -> QgsExpression:
             f"Could not parse the expression in '{label}': {expression.parserErrorString().strip()}. "
             f"The expression was: {text}"
         )
+    refuse_unsafe_functions(expression, label)
     if layer is not None:
         check_columns(expression, layer, label, text)
     return expression
+
+
+def refuse_unsafe_functions(expression: QgsExpression | str, label: str) -> None:
+    parsed = QgsExpression(expression) if isinstance(expression, str) else expression
+    for name in parsed.referencedFunctions():
+        if str(name).lower() in UNSAFE_FUNCTIONS:
+            raise ValueError(UNSAFE_ERROR.format(name=name, label=label))
 
 
 def check_columns(expression: QgsExpression, layer, label: str, text: str) -> None:
@@ -70,17 +86,24 @@ def prepared(text: str, label: str, context: QgsExpressionContext, layer=None) -
 
 
 def evaluate(expression: QgsExpression, context: QgsExpressionContext, feature) -> Any:
+    return plain_value(evaluate_raw(expression, context, feature))
+
+
+def evaluate_raw(expression: QgsExpression, context: QgsExpressionContext, feature) -> Any:
     context.setFeature(feature)
     value = expression.evaluate(context)
     if expression.hasEvalError():
         raise ValueError(
             f"Could not evaluate the expression '{expression.expression()}': {expression.evalErrorString().strip()}"
         )
-    return plain_value(value)
+    return value
 
 
 def build_request(filter_text: str, layer=None) -> QgsFeatureRequest:
     request = QgsFeatureRequest()
+    # Without the layer's scopes $area is flat in layer units and is_selected() matches nothing.
+    if layer is not None:
+        request.setExpressionContext(build_context(layer))
     text = (filter_text or "").strip()
     if not text:
         return request

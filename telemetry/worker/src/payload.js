@@ -2,13 +2,16 @@ export const PING_VERSIONS = [1, 2];
 export const MAX_BODY_BYTES = 4096;
 export const MAX_COUNT = 100000;
 export const MAX_MAP_KEYS = 150;
-// A client's local day may sit a day off UTC, and a day waits until QGIS next starts, up to a week.
-export const MAX_DAY_SKEW = 7;
+// A day waits up to a week of local days for QGIS to start, and a local date is at most a day off UTC.
+export const MAX_DAYS_BACK = 8;
+export const MAX_DAYS_AHEAD = 1;
 export const SERIES_DAYS = 90;
 export const RECENT_DAYS = 30;
 export const SERIES_WEEKS = 13;
 export const RETENTION_DAYS = [7, 30];
 export const MAX_VALUES_PER_FACET = 100;
+// A value fewer installs reported could single one out, so it stays unpublished.
+export const MIN_INSTALLS = 5;
 
 export const OS_VALUES = ["macos", "windows", "linux", "other"];
 export const PROVIDER_VALUES = ["local", "remote"];
@@ -96,7 +99,9 @@ function reportedDay(value, now) {
   const time = dayStart(Number(match[1]), Number(match[2]), Number(match[3]));
   if (time === null) fail("day is not a real date");
   const today = dayStart(now.getUTCFullYear(), now.getUTCMonth() + 1, now.getUTCDate());
-  if (Math.abs(time - today) > MAX_DAY_SKEW * MS_PER_DAY) fail("day is too far from the current date");
+  if (time < today - MAX_DAYS_BACK * MS_PER_DAY || time > today + MAX_DAYS_AHEAD * MS_PER_DAY) {
+    fail("day is too far from the current date");
+  }
   return value;
 }
 
@@ -116,7 +121,7 @@ export function validatePing(body, now = new Date()) {
   for (const key of fields.required) {
     if (!Object.hasOwn(body, key)) fail(`missing field ${key}`);
   }
-  return {
+  const ping = {
     version: body.v,
     install: matching("install", body.install, UUID).toLowerCase(),
     day: reportedDay(body.day, now),
@@ -134,6 +139,10 @@ export function validatePing(body, now = new Date()) {
     configured: body.v >= 2 ? flag("configured", body.configured) : null,
     tool_errors: counts("tool_errors", body.tool_errors),
   };
+  for (const [tool, errors] of Object.entries(ping.tool_errors)) {
+    if (errors > (ping.tools[tool] ?? 0)) fail(`tool_errors.${tool} is more than its calls`);
+  }
+  return ping;
 }
 
 // SHA-256 hex of the install id: the only form of it that is ever stored.
@@ -192,9 +201,13 @@ export function fillDays(rows, window) {
   return days;
 }
 
+function widelyReported(row) {
+  return number(row.installs) >= MIN_INSTALLS;
+}
+
 export function rankFacet(rows, facet) {
   const entries = rows
-    .filter((row) => row.facet === facet && row.value !== null && row.value !== undefined)
+    .filter((row) => row.facet === facet && row.value !== null && row.value !== undefined && widelyReported(row))
     .map((row) => [String(row.value), number(row.n)])
     .sort(([a, x], [b, y]) => y - x || (a < b ? -1 : 1))
     .slice(0, MAX_VALUES_PER_FACET);
@@ -231,6 +244,7 @@ export function shapeRetention(row) {
 
 export function rankToolErrors(rows) {
   const entries = rows
+    .filter(widelyReported)
     .map((row) => [String(row.tool), { errors: number(row.errors), calls: number(row.calls) }])
     .filter(([, counts]) => counts.errors > 0)
     .sort(([a, x], [b, y]) => y.errors - x.errors || (a < b ? -1 : 1))

@@ -2,6 +2,7 @@ import difflib
 from typing import Any
 
 from qgis.core import QgsMapLayer
+from qgis.PyQt.QtCore import QDate, QDateTime, Qt, QTime
 
 MAX_LISTED_FIELDS = 25
 CLOSE_MATCH_CUTOFF = 0.6
@@ -15,6 +16,11 @@ def plain_value(value: Any) -> Any:
             return None
     except AttributeError:
         pass
+    # The text QGIS itself gives these, so a category or a comparison built on it matches the field.
+    if isinstance(value, QDate):
+        return value.toString(Qt.DateFormat.ISODate)
+    if isinstance(value, (QDateTime, QTime)):
+        return value.toString(Qt.DateFormat.ISODateWithMs)
     return str(value)
 
 

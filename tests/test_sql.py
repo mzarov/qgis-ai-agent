@@ -9,6 +9,7 @@ from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.base import SAFETY_READ
 from ai_agent.qgis_tools.registry import get_tool_by_name, summarize_tool_call, summarize_tool_result
 from ai_agent.qgis_tools.sql import create_sql_layer as create_module
+from ai_agent.qgis_tools.sql import functions as functions_module
 from ai_agent.qgis_tools.sql import virtual as virtual_module
 from ai_agent.qgis_tools.sql.query_sql import MAX_ROWS, MAX_TEXT_CHARS, cell
 from ai_agent.qgis_tools.sql.statement import SUMMARY_CHARS, checked_sql, identifiers, short_sql, tokenize
@@ -17,7 +18,44 @@ from ai_agent.qgis_tools.sql.virtual import SOURCES_KEY, query_error
 JOIN = 'SELECT d.name, count(s.geometry) AS n FROM "districts" d JOIN "schools" s ON s.code = d.code GROUP BY d.name'
 
 
+class Function:
+    def __init__(self, name, *aliases):
+        self._name, self._aliases = name, list(aliases)
+
+    def name(self):
+        return self._name
+
+    def aliases(self):
+        return list(self._aliases)
+
+
+# Names as QGIS registers them, and one a plugin adds from Python.
+EXPRESSION_FUNCTIONS = [
+    Function("sqlite_fetch_and_increment"),
+    Function("env"),
+    Function("load_layer"),
+    Function("layer_property"),
+    Function("abs"),
+    Function("round"),
+    Function("left"),
+    Function("to_string", "tostring"),
+    Function("area"),
+    Function("count"),
+    Function("plugin_hook"),
+]
+
+
+def register_expression_functions(test):
+    registry = type("Expressions", (), {"Functions": staticmethod(lambda: list(EXPRESSION_FUNCTIONS))})
+    patcher = mock.patch.object(functions_module, "QgsExpression", registry)
+    patcher.start()
+    test.addCleanup(patcher.stop)
+
+
 class StatementTest(unittest.TestCase):
+    def setUp(self):
+        register_expression_functions(self)
+
     def test_a_select_and_a_with_select_pass_without_a_trailing_semicolon_or_comment(self):
         self.assertEqual(checked_sql("  SELECT 1;  "), "SELECT 1")
         self.assertEqual(checked_sql('SELECT name FROM "districts" -- the names'), 'SELECT name FROM "districts"')
@@ -78,6 +116,20 @@ class StatementTest(unittest.TestCase):
             with self.subTest(sql=sql), self.assertRaisesRegex(ValueError, r"is not allowed here"):
                 checked_sql(sql)
         checked_sql('SELECT ST_Area(ST_Transform(geometry, 32637)), ST_Buffer(geometry, 1) FROM "districts"')
+
+    def test_only_qgis_functions_reviewed_as_pure_may_run(self):
+        for sql in (
+            "SELECT sqlite_fetch_and_increment('/tmp/x.gpkg', 't', 'id', 'name', 'a', map()) AS v",
+            "SELECT env('HOME')",
+            'SELECT "ENV" /* spaced */ (\'HOME\') FROM "districts"',
+            "SELECT load_layer('/tmp/x.shp', 'ogr')",
+            "SELECT layer_property('districts', 'source')",
+            'SELECT name FROM "districts" WHERE plugin_hook(name)',
+        ):
+            with self.subTest(sql=sql), self.assertRaisesRegex(ValueError, r"\(\) is not allowed here"):
+                checked_sql(sql)
+        sql = 'SELECT round(abs(-1.5)), _left(name, 2), tostring(1), area(geometry), count(*) FROM "districts"'
+        self.assertEqual(checked_sql(sql), sql)
 
     def test_identifiers_skip_functions_and_qualified_columns(self):
         names = identifiers(tokenize(JOIN))
@@ -262,6 +314,7 @@ class SqlCase(unittest.TestCase):
         Vector.built = []
         self.query = get_tool_by_name("query_sql")
         self.create = get_tool_by_name("create_sql_layer")
+        register_expression_functions(self)
 
 
 class SourcesTest(SqlCase):
@@ -341,6 +394,14 @@ class QuerySqlTest(SqlCase):
         with self.assertRaisesRegex(ValueError, "Only a read-only SELECT"):
             self.query.execute({"sql": 'DELETE FROM "districts"'})
         self.assertEqual(Vector.built[1:], [], "a refused statement never reaches the provider")
+
+    def test_a_qgis_function_with_side_effects_never_reaches_the_provider(self):
+        sql = "SELECT sqlite_fetch_and_increment('/tmp/x.sqlite', 'counters', 'id', 'name', 'a', map()) AS v"
+        with self.assertRaisesRegex(ValueError, r"sqlite_fetch_and_increment\(\) is not allowed here"):
+            self.query.execute({"sql": sql})
+        with self.assertRaisesRegex(ValueError, r"env\(\) is not allowed here"):
+            self.create.prepare({"sql": "SELECT env('HOME') AS home", "name": "home"})
+        self.assertEqual(Vector.built, [])
 
 
 class CreateSqlLayerTest(SqlCase):

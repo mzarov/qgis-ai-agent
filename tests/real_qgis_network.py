@@ -8,16 +8,17 @@ from socketserver import TCPServer
 from unittest import mock
 from urllib.parse import parse_qs
 
-from qgis.core import QgsApplication, QgsFeedback, QgsProject
+from qgis.core import QgsApplication, QgsFeedback, QgsNetworkAccessManager, QgsProject
 from qgis.PyQt.QtCore import QCoreApplication, QEventLoop, QObject, QThread, QTimer, pyqtSlot
 from qgis.PyQt.QtWidgets import QLabel, QWidget
 
 from ai_agent.core.agent.batch import WriteBatch
 from ai_agent.core.agent.executor import ToolExecutor
 from ai_agent.core.agent.turn_thread import TurnThreadOwner
-from ai_agent.core.llm.client import ApiResponseError, post_json
+from ai_agent.core.llm.client import ApiResponseError, ModelTimeout, post_json
 from ai_agent.core.llm.stream import StreamedCompletion
 from ai_agent.core.llm.stream_runner import post_stream
+from ai_agent.core.llm.transport import call_model
 from ai_agent.core.llm.turns import ToolCall
 from ai_agent.core.llm.worker import ModelTurnThread
 
@@ -31,6 +32,8 @@ LABELS = 20
 NAP_S = 0.0005
 STREAM_WORKERS = 6
 JSON_HEADERS = {"Content-Type": "application/json"}
+QGIS_TIMEOUT_MS = 1000
+QUIET_S = 2.5
 
 
 def _event(delta, finish_reason=None):
@@ -51,6 +54,8 @@ class _Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(content)
             return
+        if self.path.startswith("/quiet/"):
+            time.sleep(QUIET_S)
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Connection", "close")
@@ -266,6 +271,36 @@ class RealNetworkTest(unittest.TestCase):
         self.assertEqual(observer.errors, [])
         self.assertFalse(self.server.release.is_set())
         owner.stop()
+
+
+class QgisNetworkTimeoutTest(unittest.TestCase):
+    def setUp(self):
+        self.server = _Server()
+        self.addCleanup(self.server.close)
+        self.addCleanup(QgsNetworkAccessManager.setTimeout, QgsNetworkAccessManager.timeout())
+        QgsNetworkAccessManager.setTimeout(QGIS_TIMEOUT_MS)
+
+    def test_a_stream_quiet_past_the_qgis_timeout_still_gets_its_answer(self):
+        data = post_stream(self.server.url("/quiet/v1"), JSON_HEADERS, {"stream": True}, StreamedCompletion(), 10)
+        self.assertEqual(data["choices"][0]["message"]["content"], "hello world")
+
+    def test_a_tool_less_request_streams_past_the_qgis_timeout(self):
+        overrides = {
+            "url_override": self.server.url("/quiet"),
+            "model_override": "integration-fixture",
+            "key_override": "",
+            "dialect_override": "openai",
+        }
+        turn = call_model(MESSAGES, [], overrides=overrides, timeout=10, on_chunk=lambda text: None)
+        self.assertEqual(turn.text, "hello world")
+        self.assertIs(self.server.requests[-1][1]["stream"], True)
+
+    def test_a_blocking_call_cut_by_the_qgis_timeout_names_that_setting(self):
+        started = time.monotonic()
+        with self.assertRaises(ModelTimeout) as caught:
+            post_json(self.server.url("/quiet/v1"), JSON_HEADERS, {}, timeout=30)
+        self.assertLess(time.monotonic() - started, QUIET_S)
+        self.assertIn("Network", str(caught.exception))
 
 
 class _Requester(QThread):

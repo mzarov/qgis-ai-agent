@@ -17,6 +17,12 @@ class ProcessingEffectsTest(unittest.TestCase):
             "native:zonalstatistics",
             "native:repairshapefile",
             "native:definecurrentprojection",
+            "native:setlayermetadata",
+            "native:copylayermetadata",
+            "native:openurl",
+            "native:uploadgpsdata",
+            "native:atlaslayouttoimage",
+            "native:atlaslayouttomultiplepdf",
             "native:postgisexecuteandloadsql",
             "native:spatialiteexecutesqlregistered",
             "native:importintospatialiteregistered",
@@ -46,6 +52,19 @@ class ProcessingEffectsTest(unittest.TestCase):
                 self.assertEqual(RunProcessingTool().safety_for(params), SAFETY_WRITE)
                 self.assertFalse(RunProcessingTool().has_external_effect(params))
 
+    def test_a_new_folder_is_outside_the_project_but_replaces_nothing(self):
+        params = {"algorithm_id": "native:createdirectory", "parameters": {"PATH": "/tmp/new"}}
+        self.assertEqual(RunProcessingTool().safety_for(params), SAFETY_WRITE)
+        self.assertTrue(RunProcessingTool().has_external_effect(params))
+        self.assertIn(EFFECT_EXTERNAL, plan_line(ToolCall("dir", "run_processing", params)))
+
+    def test_sql_that_reaches_every_function_needs_its_own_confirmation(self):
+        for identifier in ("qgis:executesql", "gdal:executesql"):
+            with self.subTest(identifier=identifier):
+                params = {"algorithm_id": identifier, "parameters": {"OUTPUT": "TEMPORARY_OUTPUT"}}
+                self.assertEqual(RunProcessingTool().safety_for(params), SAFETY_DESTRUCTIVE)
+                self.assertFalse(RunProcessingTool().has_network_access(params))
+
     def test_unclassified_providers_are_not_assumed_reversible(self):
         for identifier in ("script:buffer", "model:buffer", "custom:buffer", "grass:v.out.postgis"):
             self.assertTrue(writes_external_data(identifier), identifier)
@@ -73,15 +92,22 @@ class ProcessingEffectsTest(unittest.TestCase):
 
 class ProcessingNetworkTest(unittest.TestCase):
     def test_network_algorithms_announce_the_external_service(self):
-        for identifier in ("native:batchnominatimgeocoder", "native:downloadvectortiles"):
+        for identifier in ("native:batchnominatimgeocoder", "native:downloadvectortiles", "native:fileuploader"):
             with self.subTest(identifier=identifier):
                 call = ToolCall("net", "run_processing", {"algorithm_id": identifier, "parameters": {}})
                 self.assertTrue(RunProcessingTool().has_network_access(call.arguments))
-                self.assertEqual(RunProcessingTool().safety_for(call.arguments), SAFETY_WRITE)
                 self.assertIn(EFFECT_NETWORK, plan_line(call))
+        downloads = {"algorithm_id": "native:downloadvectortiles", "parameters": {}}
+        self.assertEqual(RunProcessingTool().safety_for(downloads), SAFETY_WRITE)
 
     def test_algorithms_that_can_send_data_need_their_own_confirmation(self):
-        for identifier in ("native:filedownloader", "native:httprequest", "NATIVE:FileDownloader"):
+        for identifier in (
+            "native:filedownloader",
+            "native:httprequest",
+            "NATIVE:FileDownloader",
+            "native:fileuploader",
+            "native:batchnominatimgeocoder",
+        ):
             with self.subTest(identifier=identifier):
                 params = {"algorithm_id": identifier, "parameters": {"URL": "https://example.com", "METHOD": 1}}
                 self.assertTrue(RunProcessingTool().has_network_access(params))

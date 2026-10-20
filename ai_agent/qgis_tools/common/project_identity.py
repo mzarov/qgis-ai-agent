@@ -26,6 +26,8 @@ SENSITIVE_URI_KEYS = {
 }
 _UNSAVED_BY_OBJECT: dict[int, str] = {}
 _CONNECTED_OBJECTS: set[int] = set()
+# A Save As gives the open project a new identity; it stays the same project for its batch and its undo.
+_SAVED_AS: dict[str, str] = {}
 
 
 def project_identity(project: Any) -> str:
@@ -40,6 +42,21 @@ def project_identity(project: Any) -> str:
             return _storage_identity(name)
         return canonical_path(name)
     return UNSAVED_PREFIX + _unsaved_identity(project)
+
+
+def remember_save_as(before: str, after: str) -> None:
+    if before and after and before != after:
+        _SAVED_AS[after] = before
+
+
+def same_project(current: str, expected: str) -> bool:
+    seen: set[str] = set()
+    while current and current not in seen:
+        if current == expected:
+            return True
+        seen.add(current)
+        current = _SAVED_AS.get(current, "")
+    return False
 
 
 def canonical_path(path: str) -> str:

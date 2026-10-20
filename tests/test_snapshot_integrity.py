@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.llm.turns import ToolCall
-from ai_agent.qgis_tools.common.project_identity import project_identity
+from ai_agent.qgis_tools.common.project_identity import project_identity, remember_save_as, same_project
 from ai_agent.qgis_tools.project import restore as undo_module
 from ai_agent.qgis_tools.project import scratch_copies, snapshots
 from ai_agent.qgis_tools.project.remove_layer import RemoveLayerTool
@@ -83,6 +83,12 @@ class MemoryProvider:
 
     def getFeatures(self):
         return iter(list(self.features))
+
+    def subsetString(self):
+        return ""
+
+    def featureCount(self):
+        return len(self.features)
 
     def addFeatures(self, features):
         for feature in features:
@@ -365,6 +371,22 @@ class SnapshotIntegrityTest(unittest.TestCase):
         self.assertIn("another project", str(caught.exception))
         self.assertEqual(self.project.read_calls, [])
 
+    def test_a_snapshot_follows_its_project_saved_under_a_new_name(self):
+        for first_name in (self.project.fileName(), ""):
+            with self.subTest(first_name=first_name):
+                self.project.setFileName(first_name)
+                before = project_identity(self.project)
+                path = snapshots.take_snapshot()
+                copy = os.path.join(self.folder.name, "copy.qgz")
+                self.project.setFileName(copy)
+                snapshots.follow_project_move(before)
+
+                result = UndoLastApplyTool().execute({})
+
+                self.assertEqual(result["restored_from"], path)
+                self.assertEqual(self.project.fileName(), copy, "Undo must not take the project back to its old file")
+                self.assertTrue(self.project.isDirty())
+
     def test_undo_refills_memory_layers_the_project_file_cannot_hold(self):
         scratch = MemoryLayer(
             "buffers",
@@ -589,6 +611,16 @@ class ProcessFolderTest(unittest.TestCase):
             snapshots._cleanup_process_folder()
         snapshots._PROCESS_FOLDER = ""
         snapshots._cleanup_process_folder()
+
+
+class SaveAsIdentityTest(unittest.TestCase):
+    def test_a_save_as_keeps_the_project_and_another_project_stays_another(self):
+        remember_save_as("unsaved:save-as-test", "/maps/city.qgz")
+        remember_save_as("/maps/city.qgz", "/maps/city-final.qgz")
+        self.assertTrue(same_project("/maps/city-final.qgz", "unsaved:save-as-test"))
+        self.assertTrue(same_project("/maps/city.qgz", "/maps/city.qgz"))
+        self.assertFalse(same_project("/maps/other.qgz", "unsaved:save-as-test"))
+        self.assertFalse(same_project("unsaved:save-as-test", "/maps/city.qgz"), "a Save As is not undone backwards")
 
 
 if __name__ == "__main__":

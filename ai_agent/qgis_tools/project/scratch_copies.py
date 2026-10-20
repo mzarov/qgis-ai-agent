@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+from contextlib import contextmanager, suppress
 from dataclasses import dataclass
 from typing import Any
 
@@ -18,6 +20,8 @@ class ScratchLayerCopy:
     field_names: tuple[str, ...]
     features: list[Any]
     keeps_ids: bool = True
+    # The project file does not keep a memory layer's filter, and its copy holds the hidden features too.
+    subset: str = ""
 
 
 @dataclass(frozen=True)
@@ -49,7 +53,8 @@ def copy_scratch_layers(project: QgsProject) -> ScratchCopies:
         try:
             provider = layer.dataProvider()
             field_names = tuple(str(item.name()) for item in provider.fields())
-            features = list(provider.getFeatures())
+            with _unfiltered(layer) as subset:
+                features = list(provider.getFeatures())
         except Exception as failure:
             QgsMessageLog.logMessage(
                 f"Could not copy scratch layer '{name}': {failure}", LOG_TAG, Qgis.MessageLevel.Warning
@@ -57,7 +62,7 @@ def copy_scratch_layers(project: QgsProject) -> ScratchCopies:
             not_copied.append(name)
             continue
         keeps_ids = _missing_ids(features) <= MAX_STAND_INS
-        copies.append(ScratchLayerCopy(str(layer.id()), name, field_names, features, keeps_ids))
+        copies.append(ScratchLayerCopy(str(layer.id()), name, field_names, features, keeps_ids, subset))
     return ScratchCopies(tuple(copies), tuple(not_copied))
 
 
@@ -68,7 +73,7 @@ def restore_scratch_layers(project: QgsProject, copies: ScratchCopies) -> list[s
             continue
         layer = _map_layer(project, copy.layer_id)
         # Refilling a layer that came back with features would duplicate them.
-        if layer is None or not is_memory_layer(layer) or _feature_count(layer):
+        if layer is None or not is_memory_layer(layer) or _unfiltered_count(layer):
             continue
         try:
             _refill(layer, copy)
@@ -91,7 +96,7 @@ def _budgeted(project: QgsProject) -> list[tuple[Any, bool]]:
     for layer in _project_layers(project):
         if not is_memory_layer(layer):
             continue
-        count = _feature_count(layer)
+        count = _unfiltered_count(layer)
         fits = count <= budget
         if fits:
             budget -= count
@@ -99,7 +104,35 @@ def _budgeted(project: QgsProject) -> list[tuple[Any, bool]]:
     return planned
 
 
+@contextmanager
+def _unfiltered(layer: Any) -> Iterator[str]:
+    provider = layer.dataProvider()
+    subset = str(provider.subsetString() or "")
+    if subset:
+        provider.setSubsetString("", False)
+    try:
+        yield subset
+    finally:
+        if subset:
+            provider.setSubsetString(subset, False)
+
+
+def _unfiltered_count(layer: Any) -> int:
+    with suppress(Exception), _unfiltered(layer):
+        return max(0, int(layer.dataProvider().featureCount()))
+    return _feature_count(layer)
+
+
 def _refill(layer: Any, copy: ScratchLayerCopy) -> None:
+    with _unfiltered(layer):
+        _add_copied(layer, copy)
+    if copy.subset and not layer.setSubsetString(copy.subset):
+        raise ValueError(f"the layer refused its filter {copy.subset}")
+    layer.updateExtents()
+    layer.triggerRepaint()
+
+
+def _add_copied(layer: Any, copy: ScratchLayerCopy) -> None:
     provider = layer.dataProvider()
     target_fields = provider.fields()
     positions = [
@@ -130,8 +163,6 @@ def _refill(layer: Any, copy: ScratchLayerCopy) -> None:
         raise ValueError("the memory provider refused the features")
     if stand_ins and not provider.deleteFeatures(stand_ins):
         raise ValueError("the memory provider kept the stand-ins for the missing ids")
-    layer.updateExtents()
-    layer.triggerRepaint()
 
 
 def _missing_ids(features: list[Any]) -> int:

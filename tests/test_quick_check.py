@@ -82,6 +82,9 @@ class Node:
     def itemVisibilityChecked(self):
         return self.visible
 
+    def isVisible(self):
+        return self.visible
+
     def layerId(self):
         return self.layer_id
 

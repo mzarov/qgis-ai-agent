@@ -69,11 +69,18 @@ class ShowTableTool(BaseTool):
         limit = clamp_limit(params.get("limit"), DEFAULT_ROWS, MAX_TABLE_ROWS)
         request.setLimit(limit)
         rows = [[plain_value(feature[name]) for name in columns] for feature in layer.getFeatures(request)]
-        total = layer.featureCount() if not str(params.get("filter") or "").strip() else len(rows)
+        condition = str(params.get("filter") or "").strip()
+        total = _matches(layer, condition) if condition else layer.featureCount()
         title = str(params.get("title") or "").strip() or layer.name()
         spec = table(title, columns, rows, total)
         result = {"shown": "table", "columns": columns, "rows_shown": len(rows), "first_rows": rows[:PREVIEW_ROWS]}
         return attach(result, spec)
+
+
+def _matches(layer: QgsVectorLayer, condition: str) -> int:
+    request = build_request(condition, layer)
+    request.setFlags(QgsFeatureRequest.Flag.NoGeometry)
+    return sum(1 for _ in layer.getFeatures(request))
 
 
 def _layer(params: dict[str, Any]) -> QgsVectorLayer:

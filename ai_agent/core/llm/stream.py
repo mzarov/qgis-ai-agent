@@ -2,12 +2,14 @@ import json
 from collections.abc import Callable
 from typing import Any
 
-from ai_agent.core.llm.thinking import ThinkSplitter
+from ai_agent.core.llm.thinking import ThinkSplitter, leading_close
 
 DATA_PREFIX = "data:"
 DONE_MARKER = "[DONE]"
 SSE_FIELD_PREFIXES = ("event:", "id:", "retry:", ":")
 REASONING_KEYS = ("reasoning_content", "reasoning")
+THINKING_PART_TYPES = ("thinking", "reasoning")
+TEXT_PART_TYPE = "text"
 
 
 def first_reasoning(payload: dict[str, Any]) -> str:
@@ -15,6 +17,31 @@ def first_reasoning(payload: dict[str, Any]) -> str:
         value = payload.get(key)
         if isinstance(value, str) and value:
             return value
+    return ""
+
+
+def split_content(content: Any) -> tuple[str, str]:
+    if isinstance(content, str):
+        return content, ""
+    if not isinstance(content, list):
+        return "", ""
+    text: list[str] = []
+    thinking: list[str] = []
+    for part in content:
+        if isinstance(part, str):
+            text.append(part)
+        elif isinstance(part, dict) and part.get("type") in THINKING_PART_TYPES:
+            thinking.append(_part_text(part.get(part["type"]) or part.get(TEXT_PART_TYPE)))
+        elif isinstance(part, dict) and part.get("type", TEXT_PART_TYPE) == TEXT_PART_TYPE:
+            text.append(_part_text(part.get(TEXT_PART_TYPE)))
+    return "".join(text), "".join(thinking)
+
+
+def _part_text(value: Any) -> str:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        return "".join(_part_text(item.get(TEXT_PART_TYPE) if isinstance(item, dict) else item) for item in value)
     return ""
 
 
@@ -83,18 +110,27 @@ def _complete(pending: list[str]) -> bool:
     return True
 
 
+def _given_index(raw: dict[str, Any]) -> int | None:
+    try:
+        return int(raw["index"]) if raw.get("index") is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
 class StreamedCompletion:
     def __init__(
         self,
         on_text: Callable[[str], None] | None = None,
         on_thinking: Callable[[str], None] | None = None,
+        held: bool = False,
     ):
         self._on_text = on_text
         self._on_thinking = on_thinking
         self._text_parts: list[str] = []
         self._thinking_parts: list[str] = []
-        self._splitter = ThinkSplitter()
+        self._splitter = ThinkSplitter(held)
         self._calls: dict[int, dict[str, Any]] = {}
+        self._moved: dict[int, int] = {}
         self._finish_reason = ""
         self._usage: dict[str, Any] = {}
         self._last_index = 0
@@ -104,6 +140,10 @@ class StreamedCompletion:
     @property
     def finished(self) -> bool:
         return self.done or bool(self._finish_reason)
+
+    @property
+    def closed_without_opening(self) -> bool:
+        return self._splitter.closed_without_opening or bool(leading_close("".join(self._text_parts))[1])
 
     def take(self, event: str) -> None:
         if event == DONE_MARKER:
@@ -134,8 +174,10 @@ class StreamedCompletion:
         reasoning = first_reasoning(delta)
         if reasoning:
             self._take_thinking(reasoning)
-        text = delta.get("content")
-        if isinstance(text, str) and text:
+        text, listed_thought = split_content(delta.get("content"))
+        if listed_thought:
+            self._take_thinking(listed_thought)
+        if text:
             visible, thought = self._splitter.feed(text)
             if thought:
                 self._take_thinking(thought)
@@ -159,20 +201,23 @@ class StreamedCompletion:
         name = str(function.get("name") or "")
         if name and slot["name"] != name:
             slot["name"] += name
-        if function.get("arguments"):
-            slot["arguments"] += str(function["arguments"])
+        arguments = function.get("arguments")
+        if isinstance(arguments, dict):
+            slot["arguments"] += json.dumps(arguments, ensure_ascii=False)
+        elif arguments:
+            slot["arguments"] += str(arguments)
 
     def _call_index(self, raw: dict[str, Any]) -> int:
-        if raw.get("index") is not None:
-            try:
-                return int(raw["index"])
-            except (TypeError, ValueError):
-                pass
-        current = self._calls.get(self._last_index)
+        given = _given_index(raw)
+        index = self._last_index if given is None else self._moved.get(given, given)
+        current = self._calls.get(index)
         new_id = str(raw.get("id") or "")
+        # Ollama numbers every parallel call 0: a new id in an occupied slot is a new call.
         if current is not None and new_id and current["id"] and current["id"] != new_id:
-            return max(self._calls) + 1
-        return self._last_index
+            index = max(self._calls) + 1
+            if given is not None:
+                self._moved[given] = index
+        return index
 
     def response(self) -> dict[str, Any]:
         visible, thought = self._splitter.flush()

@@ -21,10 +21,11 @@ APPLICATIONS = Path("/Applications")
 NATIVE = "native"
 DOCKER = "docker"
 LOG_NAME = "agent-server.log"
+# Only an unreachable or unusable provider is an error, which leaves the pass rate; a refused request is graded.
 TRANSFORM = (
     "({output: JSON.stringify(json),"
     " error: json.error ? String(json.error).trim().split('\\n').slice(-3).join(' | ')"
-    " : ((json.failures || []).length ? 'the model provider failed: ' + json.failures.join('; ') : undefined),"
+    " : (json.unreached ? 'the model provider failed: ' + (json.failures || []).join('; ') : undefined),"
     " tokenUsage: {prompt: (json.usage || {}).prompt_tokens || 0,"
     " completion: (json.usage || {}).completion_tokens || 0,"
     " total: ((json.usage || {}).prompt_tokens || 0) + ((json.usage || {}).completion_tokens || 0)}})"

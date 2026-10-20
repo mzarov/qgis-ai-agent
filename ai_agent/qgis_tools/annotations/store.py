@@ -14,6 +14,15 @@ def annotation_layer() -> Any:
     return layer
 
 
+def annotation_crs() -> Any:
+    # A layer holding items keeps its CRS when the project's changes: its coordinates are in its own.
+    with suppress(Exception):
+        crs = annotation_layer().crs()
+        if crs.isValid():
+            return crs
+    return QgsProject.instance().crs()
+
+
 def list_items() -> list[dict[str, Any]]:
     layer = annotation_layer()
     to_wgs84 = _to_wgs84()
@@ -49,8 +58,7 @@ def item_text(item: Any) -> str:
 
 
 def _to_wgs84() -> Any:
-    project = QgsProject.instance()
-    crs = project.crs()
+    crs = annotation_crs()
     if not crs.isValid() or crs.authid() == WGS84:
         return None
-    return QgsCoordinateTransform(crs, QgsCoordinateReferenceSystem(WGS84), project)
+    return QgsCoordinateTransform(crs, QgsCoordinateReferenceSystem(WGS84), QgsProject.instance())

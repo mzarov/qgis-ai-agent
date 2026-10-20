@@ -94,6 +94,23 @@ class ApplyRunTest(unittest.TestCase):
         self.assertEqual([result.ok for result in self.finished[0]], [True, True, True])
         self.assertFalse(self.batch.is_applying)
 
+    def apply_moving_the_project(self, mover, *names):
+        identity = ["project"]
+        self.batch._calls = calls(*names)
+        run = self.executor.run
+        self.executor.run = lambda call: (call.name == mover and identity.__setitem__(0, "copy.qgz")) or run(call)
+        with mock.patch.object(apply_run_module, "project_identity", side_effect=lambda project: identity[0]):
+            return self.apply()
+
+    def test_the_steps_after_a_save_as_apply_to_the_saved_project(self):
+        results = self.apply_moving_the_project("save_project", "save_project", "set_symbol")
+        self.assertEqual([result.ok for result in results], [True, True])
+
+    def test_a_project_another_step_moved_still_stops_the_steps_after_it(self):
+        results = self.apply_moving_the_project("set_opacity", "set_opacity", "set_symbol")
+        self.assertEqual([result.ok for result in results], [True, False])
+        self.assertEqual(results[1].error, apply_run_module.PROJECT_CHANGED_ERROR)
+
     def test_a_batch_without_background_steps_ends_before_apply_returns(self):
         self.batch._calls = calls("set_opacity", "set_symbol")
         results = self.apply()
@@ -223,6 +240,25 @@ class LoopApplyFailureTest(unittest.TestCase):
         self.executor.finish(ok=False)
         self.assertEqual((self.applied, self.interrupted), ([], []))
         self.assertEqual(self.executor.ran, ["run_processing"])
+
+    def test_unloading_while_apply_pumps_events_runs_no_further_step(self):
+        class Pump:
+            @staticmethod
+            def processEvents():
+                self.loop.shutdown()
+
+        self.loop._batch._calls = calls("set_opacity", "set_symbol")
+        with mock.patch.object(apply_run_module, "QApplication", Pump):
+            self.loop.confirm_pending()
+        self.assertEqual(self.executor.ran, [])
+        self.assertEqual((self.applied, self.interrupted), ([], []))
+        self.assertFalse(self.loop.is_applying)
+
+    def test_a_detached_batch_stays_cancelled(self):
+        self.loop._batch._calls = calls("run_processing", "set_symbol")
+        self.loop.confirm_pending()
+        self.loop.shutdown()
+        self.assertTrue(self.loop._batch._cancel_requested)
 
     def test_cancel_during_a_long_step_stops_it_and_reports_the_partial_apply(self):
         progress = []

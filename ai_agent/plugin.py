@@ -9,7 +9,7 @@ from qgis.PyQt.QtWidgets import QAction, QDialog
 
 from ai_agent import i18n
 from ai_agent.config import personal
-from ai_agent.core import usage_stats
+from ai_agent.core import credentials, usage_stats
 from ai_agent.core.orchestrator.map_pick import MapPicker
 from ai_agent.core.orchestrator.orchestrator import CoreOrchestrator
 from ai_agent.i18n import tr
@@ -142,6 +142,8 @@ class QgisAiAgentPlugin:
         return QIcon(icon_path) if os.path.isfile(icon_path) else QIcon()
 
     def _on_open_settings(self) -> None:
+        # Opening Settings is the user's own act: a master password refused earlier may be asked for again.
+        credentials.ask_again()
         # Parent is the main window: a reload or theme rebuild deletes the panel while the dialog runs.
         dialog = SettingsDialog(self.iface.mainWindow())
         accepted = dialog.exec() == QDialog.DialogCode.Accepted

@@ -144,6 +144,7 @@ class OrchestratorHost:
         _snapshot_before_apply: str
         _restoring_snapshot: bool
         _retry_args: RetryArgs | None
+        _retry_after_plan: bool
         _done_summary: str
         _last_request: str
 
@@ -153,6 +154,8 @@ class OrchestratorHost:
         def _show_title(self) -> None: ...
 
         def _push_message(self, text: str, level: Any) -> None: ...
+
+        def _confirm_first_send(self, endpoint: str | None = None) -> bool: ...
 
         def _start_run(
             self,

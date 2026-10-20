@@ -3,7 +3,7 @@ from collections.abc import Callable
 from ai_agent.core.agent.compaction import Compactor, estimated_tokens
 from ai_agent.core.llm.context_window import auto_compact_at, window_for
 from ai_agent.core.orchestrator.contracts import DockWidgetContract
-from ai_agent.core.orchestrator.presentation import compact_number
+from ai_agent.core.orchestrator.presentation import compact_number, failure_text
 from ai_agent.core.settings import get_api_url, get_dialect, get_model
 from ai_agent.core.state.conversation import ConversationState
 from ai_agent.i18n import tr
@@ -27,6 +27,7 @@ class SessionCompaction:
         self._upto = 0
         self._before = (0, 0)
         self._running = False
+        self._step: int | None = None
 
     @property
     def is_running(self) -> bool:
@@ -67,7 +68,7 @@ class SessionCompaction:
         self._before = (conversation.context_tokens, estimated_tokens(history))
         self._after, self._cancelled = after, cancelled
         self._dock.set_busy(True)
-        self._dock.add_tool_message(COMPACTING)
+        self._step = self._dock.add_tool_message(COMPACTING)
         return True
 
     def cancel(self) -> None:
@@ -75,6 +76,7 @@ class SessionCompaction:
             return
         self._compactor.abort()
         cancelled = self._cancelled
+        self._settle(False)
         self._reset()
         self._dock.set_busy(False)
         if cancelled is not None:
@@ -95,6 +97,7 @@ class SessionCompaction:
         saved = max(0, history_before - estimated_tokens(conversation.window()))
         conversation.set_context(used_before - saved)
         conversation.count_turn(0, read + written)
+        self._settle(True)
         self._dock.add_system_message(COMPACTED.format(compact_number(saved)))
         self._finish()
 
@@ -102,7 +105,8 @@ class SessionCompaction:
         if self._conversation().session_identifier != self._scope:
             self._abandon()
             return
-        self._dock.add_error_message(NOT_COMPACTED.format(message))
+        self._settle(False)
+        self._dock.add_error_message(NOT_COMPACTED.format(failure_text(message)))
         self._finish()
 
     def _finish(self) -> None:
@@ -114,8 +118,14 @@ class SessionCompaction:
             after()
 
     def _abandon(self) -> None:
+        self._settle(False)
         self._reset()
         self._dock.set_busy(False)
+
+    def _settle(self, ok: bool) -> None:
+        if self._step is not None:
+            self._dock.mark_tool_done(self._step, ok)
+        self._step = None
 
     def _reset(self) -> None:
         self._running = False

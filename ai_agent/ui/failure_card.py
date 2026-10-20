@@ -55,6 +55,7 @@ class FailureCard(controls.RoundedFrame):
         # In the card before anything joins it: a widget shown while still an orphan opens as a window.
         line.addLayout(column, 1)
         self.title = QLabel(title)
+        self.title.setTextFormat(Qt.TextFormat.PlainText)
         self.title.setWordWrap(True)
         style.scale_font(self.title, 1.0, bold=True)
         style.ink(self.title, style.text(palette))

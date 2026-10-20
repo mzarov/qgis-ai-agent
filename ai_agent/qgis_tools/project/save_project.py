@@ -4,6 +4,7 @@ from typing import Any
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_DESTRUCTIVE, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.paths import check_overwrite, output_safety
+from ai_agent.qgis_tools.common.project_identity import project_identity, remember_save_as
 from ai_agent.qgis_tools.project.tree import project
 
 QGZ = ".qgz"
@@ -76,8 +77,10 @@ class SaveProjectTool(BaseTool):
         if not target:
             raise ValueError("Could not work out where to save the project.")
         check_overwrite(target, bool(params.get("overwrite")), [_current_path()])
+        before = project_identity(project())
         if not project().write(target):
             raise ValueError(f"QGIS could not write the project to '{target}'.")
+        remember_save_as(before, project_identity(project()))
         return {"saved": target}
 
     def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:

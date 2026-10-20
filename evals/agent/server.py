@@ -20,6 +20,7 @@ sys.path[:0] = [str(HERE), str(REPO / "tests")]
 
 import qgis  # noqa: E402
 import qgis.utils  # noqa: E402
+from outcome import unreached  # noqa: E402
 from qgis.core import QgsApplication, QgsMessageLog, QgsProject  # noqa: E402
 from qgis.gui import QgsLayerTreeMapCanvasBridge, QgsMapCanvas  # noqa: E402
 from real_qgis_smoke import _build_and_extract, qgis_application  # noqa: E402
@@ -266,9 +267,10 @@ class Runner:
         _add(usage, dict(agent.usage))
         messages = orchestrator.conversation.messages
         answers = [str(m["content"]) for m in messages if m.get("role") == "assistant"]
-        failures = [_failure(m.get("content")) for m in messages if m.get("role") == FAILURE_ROLE]
+        records = [_record(m.get("content")) for m in messages if m.get("role") == FAILURE_ROLE]
         return {
-            "failures": failures,
+            "failures": [_failure(record) for record in records],
+            "unreached": unreached([str(record.get("kind") or "") for record in records]),
             "log": self.log[-LOG_LINES:],
             "answer": answers[-1] if answers else "",
             "asked": bool(agent.is_awaiting_answer),
@@ -345,11 +347,15 @@ def _record_plugin_log(lines: list[str]) -> None:
     QgsMessageLog.logMessage = staticmethod(recording)
 
 
-def _failure(content: Any) -> str:
+def _record(content: Any) -> dict[str, Any]:
     try:
         record = json.loads(content)
     except (TypeError, ValueError):
-        return str(content)
+        record = None
+    return record if isinstance(record, dict) else {"message": str(content)}
+
+
+def _failure(record: dict[str, Any]) -> str:
     return f"{record.get('title', '')}: {record.get('message', '')}".strip(": ")
 
 

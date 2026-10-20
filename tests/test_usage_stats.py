@@ -183,6 +183,57 @@ class UsageStatsTest(unittest.TestCase):
         self.stats._sent()
         self.assertNotIn(usage_stats.PENDING_KEY, MemorySettings.values, "a refused day came back")
 
+    def send_all(self, replies):
+        days = []
+
+        def post(request, body):
+            days.append(json.loads(bytes(body))["day"])
+            return replies.pop(0)
+
+        manager = mock.Mock(post=post)
+        with (
+            mock.patch.object(usage_stats.QgsNetworkAccessManager, "instance", return_value=manager),
+            mock.patch.object(usage_stats, "QByteArray", side_effect=lambda raw: raw),
+        ):
+            self.stats.flush()
+            while self.stats._reply is not None:
+                self.stats._sent()
+        return days
+
+    def test_days_missed_offline_go_out_oldest_first(self):
+        usage_stats.set_consent(True)
+        for day in ("2026-10-17", "2026-10-18", "2026-10-19"):
+            self.today = day
+            self.stats.note("runs")
+        self.today = "2026-10-20"
+        self.assertEqual(self.send_all([Reply(), Reply(), Reply()]), ["2026-10-17", "2026-10-18", "2026-10-19"])
+        self.assertNotIn(usage_stats.PENDING_KEY, MemorySettings.values)
+
+    def test_only_the_latest_missed_days_wait(self):
+        usage_stats.set_consent(True)
+        for number in range(10, 18):
+            self.today = f"2026-10-{number}"
+            self.stats.note("runs")
+        self.today = "2026-10-18"
+        sent = self.send_all([Reply() for _ in range(usage_stats.MAX_PENDING_DAYS)])
+        self.assertEqual(sent, [f"2026-10-{number}" for number in range(18 - usage_stats.MAX_PENDING_DAYS, 18)])
+
+    def test_a_day_saved_by_the_previous_version_still_goes_out(self):
+        usage_stats.set_consent(True)
+        MemorySettings.values[usage_stats.PENDING_KEY] = json.dumps({"day": "2026-10-16", "counts": {"runs": 2}})
+        self.assertEqual(self.send_all([Reply()]), ["2026-10-16"])
+
+    def test_a_body_the_collector_turns_away_is_dropped_and_a_busy_one_waits(self):
+        usage_stats.set_consent(True)
+        for day in ("2026-10-17", "2026-10-18"):
+            self.today = day
+            self.stats.note("runs")
+        self.today = "2026-10-19"
+        sent = self.send_all([Reply(status=413, error=299), Reply(status=429, error=299)])
+        self.assertEqual(sent, ["2026-10-17", "2026-10-18"])
+        waiting = json.loads(MemorySettings.values[usage_stats.PENDING_KEY])
+        self.assertEqual([entry["day"] for entry in waiting], ["2026-10-18"])
+
     def test_the_ping_carries_counts_and_versions_only(self):
         sent = usage_stats.payload("1f0e…", "2026-10-17", {"runs": 3, "applies": 1, "tools": {"query_layer": 2}})
         self.assertEqual(

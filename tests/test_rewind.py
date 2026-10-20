@@ -231,6 +231,31 @@ class RewindTest(unittest.TestCase):
         self.assertIn(rewind.DATA_EDITS_NOTE, note)
         self.assertIn("buffer, zones", note)
 
+    def test_a_message_sent_again_after_a_conversation_rewind_rewinds_to_the_project_before_it(self):
+        orchestrator, dock = self.orchestrator(REWIND_CONVERSATION)
+        self._turn(orchestrator, "first", "s1")
+        self._turn(orchestrator, "second", "s2")
+        orchestrator.on_rewind(2)
+        self.assertEqual((self.restored, self.live), ([], {"s1", "s2"}))
+        # The project keeps what "second" applied, so the new message's apply snapshots it with those changes.
+        self._turn(orchestrator, "second, reworded", "s3")
+        dock.choice = REWIND_BOTH
+        orchestrator.on_rewind(2)
+        self.assertEqual(self.restored, ["s3"])
+
+    def test_rewinding_past_a_pending_question_ends_it(self):
+        orchestrator, dock = self.orchestrator(REWIND_CONVERSATION)
+        orchestrator.on_prompt("Buffer the roads")
+        orchestrator.on_question_asked("Which distance?")
+        orchestrator.agent.is_awaiting_answer = True
+        orchestrator.on_rewind(0)
+        self.assertEqual(orchestrator.agent.aborts, 1)
+        self.assertEqual((orchestrator.conversation.messages, dock.restored), ([], "Buffer the roads"))
+        orchestrator.agent.started = None
+        orchestrator.on_prompt("Buffer the rivers by 100 m")
+        self.assertIsNone(orchestrator.agent.answered, "the new request answered the question rewound away")
+        self.assertEqual(orchestrator.agent.started, ("Buffer the rivers by 100 m", []))
+
     def test_an_apply_before_any_message_leaves_no_rewind_point(self):
         orchestrator, _dock = self.orchestrator(REWIND_BOTH)
         orchestrator._note_apply_start()

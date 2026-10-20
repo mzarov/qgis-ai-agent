@@ -79,8 +79,9 @@ class LeavingFeed(QWidget):
 
 
 class ArrivalEffect(QGraphicsEffect):
-    def __init__(self, lagging: Callable[[], QRect | None], parent: Any = None):
-        super().__init__(parent)
+    def __init__(self, target: QWidget, lagging: Callable[[], QRect | None]):
+        super().__init__(target)
+        self._target = target
         self._lagging = lagging
         self.elapsed = 0.0
 
@@ -93,11 +94,16 @@ class ArrivalEffect(QGraphicsEffect):
         return rect.adjusted(0, 0, 0, ARRIVE_DROP)
 
     def draw(self, painter: QPainter) -> None:
-        pixmap, offset = self.sourcePixmap(Qt.CoordinateSystem.LogicalCoordinates)
-        if pixmap.isNull():
+        # What shows, and the strip the drop uncovers: sourcePixmap renders a long feed whole on every frame.
+        shown = self._target.visibleRegion().boundingRect().adjusted(0, -ARRIVE_DROP, 0, 0) & self._target.rect()
+        if shown.isEmpty():
             return
-        ratio = pixmap.devicePixelRatio() or 1.0
-        width, height = round(pixmap.width() / ratio), round(pixmap.height() / ratio)
+        ratio = painter.device().devicePixelRatio() or 1.0
+        pixmap = QPixmap(shown.size() * ratio)
+        pixmap.setDevicePixelRatio(ratio)
+        pixmap.fill(Qt.GlobalColor.transparent)
+        self._target.render(pixmap, QPoint(), QRegion(shown), QWidget.RenderFlag.DrawChildren)
+        offset, width, height = shown.topLeft(), shown.width(), shown.height()
         lagging = self._lagging()
         painter.save()
         if lagging is None or lagging.isEmpty():
@@ -118,7 +124,7 @@ class Arrival(QObject):
     def __init__(self, target: QWidget, lagging: Callable[[], QRect | None] = lambda: None):
         super().__init__(target)
         self._target = target
-        self._effect = ArrivalEffect(lagging, target)
+        self._effect = ArrivalEffect(target, lagging)
         target.setGraphicsEffect(self._effect)
         total = ARRIVE_MS + LAG_MS
         self._animation = animation(self, total, self._tick, self._done, end=float(total))

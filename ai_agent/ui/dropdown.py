@@ -77,6 +77,7 @@ class Dropdown(QPushButton):
         popup.aboutToHide.connect(lambda: self.chevron.turn(0.0))
         self.chevron.turn(UP)
         popup.exec(self._menu_position(popup.sizeHint().height()))
+        popup.deleteLater()
 
     def _menu_position(self, menu_height: int) -> QPoint:
         # Left to itself, Qt slides a menu running off the screen back up over the field.
@@ -106,12 +107,12 @@ class Chevron(QWidget):
         glyph = icons.drawn("expanded", style.muted(palette), CHEVRON)
         self._pixmap = glyph.pixmap(CHEVRON, CHEVRON) if glyph is not None else None
         self.angle = 0.0
-        self._turning: Any = None
+        self._turning = _animation(self, TURN_MS, 0.0, 0.0, self.set_angle)
 
     def turn(self, angle: float) -> None:
-        if self._turning is not None:
-            self._turning.stop()
-        self._turning = _animation(self, TURN_MS, self.angle, angle, self.set_angle)
+        self._turning.stop()
+        self._turning.setStartValue(self.angle)
+        self._turning.setEndValue(float(angle))
         self._turning.start()
 
     def set_angle(self, angle: Any) -> None:

@@ -115,11 +115,18 @@ settings: `LIVE_MODEL_URL`, `LIVE_MODEL`, the `LIVE_MODEL_KEY` secret and
 `LIVE_MODEL_AUTH`. Pull requests from forks get no secrets and are skipped.
 
 Each suite has a floor in `evals/thresholds.json`: a baseline pass rate less
-ten points, rounded down to five. A run fails only below a floor. Floors belong
-to the model they were measured on. To set them, run the workflow with
+ten points, rounded down to five. A run fails below a floor, or when more than
+a tenth of a suite's cases never reached the model, since those leave the pass
+rate. Floors belong to the model they were measured on; without floors for the
+model the summary says nothing was checked. To set them, run the workflow with
 `repeat` 3 and `save_thresholds`, or locally
 `python3 evals/run.py --repeat 3 --fresh --save-thresholds`, and commit the
 file. `EVAL_REQUIRE_THRESHOLDS=1` fails a suite without a floor.
+
+In the agent bench a task counts as unreached only when the provider could not
+be reached or used: no connection, a timeout, a refused key, an exhausted
+quota, a busy or missing model. A request the provider refused, or any other
+failure card, fails the task.
 
 ## When to run it
 

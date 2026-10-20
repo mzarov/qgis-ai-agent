@@ -81,7 +81,8 @@ class StreamedMessage:
         index = int(parsed.get("index") or 0)
         block = dict(parsed.get("content_block") or {})
         if block.get("type") == TOOL_USE:
-            block["input"] = {}
+            if not isinstance(block.get("input"), dict):
+                block["input"] = {}
             self._json[index] = []
         self._blocks[index] = block
 
@@ -115,7 +116,10 @@ class StreamedMessage:
         block = self._blocks.get(index)
         if block is None or block.get("type") != TOOL_USE:
             return
-        block["input"] = _as_object("".join(self._json.get(index) or []))
+        # Some providers send the whole input with the block's start and no deltas after it.
+        streamed = "".join(self._json.get(index) or [])
+        if streamed.strip():
+            block["input"] = _as_object(streamed)
 
     def response(self) -> dict[str, Any]:
         return {

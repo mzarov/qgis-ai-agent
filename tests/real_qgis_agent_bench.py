@@ -10,7 +10,7 @@ sys.path.insert(0, str(AGENT_BENCH))
 import fixture  # noqa: E402
 import server  # noqa: E402
 import state  # noqa: E402
-from e2e_model import ScriptedModel, call, calls, say  # noqa: E402
+from e2e_model import ScriptedModel, call, calls, fail, say  # noqa: E402
 from outcome import problems_in  # noqa: E402
 from qgis.core import QgsFeature, QgsGeometry, QgsProject, QgsVectorLayer  # noqa: E402
 
@@ -42,6 +42,15 @@ class AgentBenchServerTest(unittest.TestCase):
         self.assertEqual(result["state"]["new_layers"], [])
         self.assertEqual(layers["districts"]["symbol_opacity"], 1.0)
         self.assertEqual(problems_in(result, {"answer": "re:\\bfive\\b"}), [])
+
+    def test_a_refused_request_fails_the_task_and_a_refused_key_leaves_it_unreached(self) -> None:
+        self.model.script(fail(400, "messages[2].content must be a string"))
+        refused = self.runner.run({"request": "How many schools are there?"})
+        self.assertTrue(refused["failures"], refused["log"])
+        self.assertFalse(refused["unreached"], "a request the provider refused left the pass rate")
+        self.model.script(fail(401, "invalid api key"))
+        locked = self.runner.run({"request": "How many schools are there?"})
+        self.assertTrue(locked["unreached"], locked["failures"])
 
     def test_an_unanswered_picture_check_is_asked_once_more(self) -> None:
         answers = iter([None, False])

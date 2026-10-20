@@ -147,34 +147,28 @@ class Compass(QWidget):
         self._halo = halo
         self.state = REST
         self.angle = RESTING[REST]
-        self._motion: Any = None
+        self._motion = QVariantAnimation(self)
+        self._motion.setStartValue(0.0)
+        self._motion.setEndValue(1.0)
+        # A bound method, not a lambda: Qt drops the connection when the widget dies.
+        self._motion.valueChanged.connect(self._on_progress)
         self.setFixedSize(QSize(size, size))
         self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
     def set_state(self, state: str) -> None:
-        if self._motion is not None:
-            self._motion.stop()
-            self._motion = None
+        self._motion.stop()
         self.state = state
         motion = MOTIONS.get(state)
         if motion is None:
             self._turn(RESTING.get(state, RESTING[REST]))
             return
-        animation = QVariantAnimation(self)
-        animation.setDuration(motion.milliseconds)
-        animation.setStartValue(0.0)
-        animation.setEndValue(1.0)
-        animation.setLoopCount(-1 if motion.loops else 1)
-        # A bound method, not a lambda: Qt drops the connection when the widget dies.
-        animation.valueChanged.connect(self._on_progress)
-        self._motion = animation
+        self._motion.setDuration(motion.milliseconds)
+        self._motion.setLoopCount(-1 if motion.loops else 1)
         self._turn(angle_at(state, 0.0))
-        animation.start()
+        self._motion.start()
 
     def stop(self) -> None:
-        if self._motion is not None:
-            self._motion.stop()
-            self._motion = None
+        self._motion.stop()
         motion = MOTIONS.get(self.state)
         self._turn(RESTING[REST] if motion is not None and motion.loops else end_angle(self.state))
 

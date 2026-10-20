@@ -3,7 +3,6 @@ from contextlib import suppress
 from typing import Any
 
 from qgis.core import (
-    Qgis,
     QgsApplication,
     QgsLayoutItemLabel,
     QgsLayoutItemLegend,
@@ -15,7 +14,7 @@ from qgis.core import (
     QgsTextFormat,
 )
 
-from ai_agent.qgis_tools.layout.pages import current_page_mm
+from ai_agent.qgis_tools.layout.pages import MM, MM_DECIMALS, current_page_mm, in_mm
 
 ITEM_MAP = "map"
 ITEM_LEGEND = "legend"
@@ -52,7 +51,6 @@ DEFAULT_SIZES_MM = {
     ITEM_NORTH_ARROW: (18.0, 18.0),
     ITEM_PICTURE: (40.0, 40.0),
 }
-MM = Qgis.LayoutUnit.Millimeters
 
 
 def item_kind(item: Any) -> str:
@@ -125,14 +123,16 @@ def place(item: Any, x: float, y: float, width: float, height: float) -> None:
 
 def describe_item(item: Any) -> dict[str, Any]:
     described: dict[str, Any] = {"id": str(item.id() or ""), "type": item_kind(item)}
+    # The frame as placed, not the scene bounds: those grow by the frame's stroke on every read.
     with suppress(Exception):
-        rect = item.sceneBoundingRect()
+        position = in_mm(item.layout(), item.positionWithUnits())
+        size = in_mm(item.layout(), item.sizeWithUnits())
         described.update(
             {
-                "x": round(float(rect.x()), 1),
-                "y": round(float(rect.y()), 1),
-                "width": round(float(rect.width()), 1),
-                "height": round(float(rect.height()), 1),
+                "x": round(float(position.x()), MM_DECIMALS),
+                "y": round(float(position.y()), MM_DECIMALS),
+                "width": round(float(size.width()), MM_DECIMALS),
+                "height": round(float(size.height()), MM_DECIMALS),
             }
         )
     if item_kind(item) == ITEM_LABEL:

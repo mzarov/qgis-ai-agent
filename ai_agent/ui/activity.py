@@ -212,7 +212,6 @@ class StepRow(TraceRow):
             self._label.setWordWrap(True)
             column.addWidget(self._label)
         self.note = controls.small("", palette)
-        self.note.setTextFormat(Qt.TextFormat.PlainText)
         style.ink(self.note, style.faint(palette))
         self.note.setVisible(False)
         column.addWidget(self.note)
@@ -312,6 +311,10 @@ class ActivityGroup(QFrame):
 
     def rest(self) -> None:
         self._closed = True
+        # A step nobody marked would otherwise breathe on, folded out of sight, for good.
+        for row in self.items:
+            if isinstance(row.glyph, PulseRing):
+                row.glyph.stop()
         self.fold()
         self._refresh()
 

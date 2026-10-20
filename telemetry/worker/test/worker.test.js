@@ -4,7 +4,7 @@ import { DatabaseSync } from "node:sqlite";
 import { beforeEach, describe, it } from "node:test";
 
 import { handle } from "../src/index.js";
-import { hashInstall } from "../src/payload.js";
+import { MIN_INSTALLS, hashInstall } from "../src/payload.js";
 
 const SCHEMA = readFileSync(new URL("../schema.sql", import.meta.url), "utf8");
 const BASE = "https://ai-agent-usage.example.workers.dev";
@@ -17,6 +17,9 @@ const INSTALLS = {
   d: "c4d5e6f7-0819-4a2b-bc3d-4e5f60718293",
   e: "5e6f7081-92a3-4b4c-8d5e-6f708192a3b4",
 };
+function crowd(count, from = 0) {
+  return Array.from({ length: count }, (_, i) => `00000000-0000-4000-8000-${String(from + i).padStart(12, "0")}`);
+}
 // The pings table as the first deploy created it, before ping_extras existed.
 const FIRST_SCHEMA = `CREATE TABLE pings (
   install_hash TEXT NOT NULL, day TEXT NOT NULL, plugin TEXT NOT NULL, qgis TEXT NOT NULL,
@@ -26,7 +29,7 @@ const FIRST_SCHEMA = `CREATE TABLE pings (
   PRIMARY KEY (install_hash, day)
 )`;
 
-function d1(database) {
+function d1(database, { failing = false } = {}) {
   class Statement {
     constructor(sql, params = []) {
       this.sql = sql;
@@ -36,8 +39,8 @@ function d1(database) {
       return new Statement(this.sql, params);
     }
     async run() {
-      database.prepare(this.sql).run(...this.params);
-      return { success: true };
+      const { changes } = database.prepare(this.sql).run(...this.params);
+      return { success: true, meta: { changes: Number(changes) } };
     }
     async all() {
       return { success: true, results: database.prepare(this.sql).all(...this.params) };
@@ -46,9 +49,29 @@ function d1(database) {
       return database.prepare(this.sql).get(...this.params) ?? null;
     }
   }
-  return {
+  const db = {
+    batches: 0,
     prepare: (sql) => new Statement(sql),
-    batch: (statements) => Promise.all(statements.map((statement) => statement.all())),
+    async batch(statements) {
+      db.batches += 1;
+      // A real batch is a round trip, so concurrent requests interleave here.
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      if (failing) throw new Error("D1_ERROR: daily read limit exceeded");
+      return Promise.all(statements.map((statement) => statement.all()));
+    },
+  };
+  return db;
+}
+
+// The Workers rate limiting binding's contract: limit({ key }) resolves to { success }.
+function rateLimiter(allowed) {
+  const keys = [];
+  return {
+    keys,
+    async limit({ key }) {
+      keys.push(key);
+      return { success: keys.filter((seen) => seen === key).length <= allowed };
+    },
   };
 }
 
@@ -106,6 +129,14 @@ describe("usage worker", () => {
     sqlite.exec(SCHEMA);
   });
 
+  it("binds the ping limiter the code reads and serves only the current version", () => {
+    const template = readFileSync(new URL("../wrangler.toml.template", import.meta.url), "utf8");
+    assert.match(template, /\[\[ratelimits\]\]\nname = "PING_LIMITER"\n/);
+    // The dashboard reads the workers.dev address; per-version preview addresses would keep old code reachable.
+    assert.match(template, /^workers_dev = true$/m);
+    assert.match(template, /^preview_urls = false$/m);
+  });
+
   it("adds the v2 table to the first database without touching its rows", async () => {
     sqlite = new DatabaseSync(":memory:");
     sqlite.exec(FIRST_SCHEMA);
@@ -120,11 +151,13 @@ describe("usage worker", () => {
     assert.equal((await send(ping2(INSTALLS.b, "2026-10-17"))).status, 204);
     const body = JSON.parse((await stats()).text);
     assert.deepEqual(body.funnel, { active: 2, configured: 2, ran: 2, applied: 1 });
-    assert.deepEqual(body.tools, { run_python: 3 });
+    assert.equal(body.installs_total, 2);
   });
 
   it("stores the v2 fields beside the ping and none for a v1 ping", async () => {
-    await send(ping2(INSTALLS.a, "2026-10-17", { configured: false, tool_errors: { run_python: 2 } }));
+    await send(
+      ping2(INSTALLS.a, "2026-10-17", { configured: false, tools: { run_python: 2 }, tool_errors: { run_python: 2 } }),
+    );
     await send(ping(INSTALLS.b, "2026-10-17"));
     const extras = sqlite.prepare("SELECT * FROM ping_extras").all();
     assert.deepEqual(
@@ -135,9 +168,30 @@ describe("usage worker", () => {
   });
 
   it("drops the v2 fields when a v1 ping replaces the day", async () => {
-    await send(ping2(INSTALLS.a, "2026-10-17", { tool_errors: { run_python: 1 } }));
+    await send(ping2(INSTALLS.a, "2026-10-17", { tools: { run_python: 1 }, tool_errors: { run_python: 1 } }));
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM ping_extras").get().n, 1);
     await send(ping(INSTALLS.a, "2026-10-17"));
     assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM ping_extras").get().n, 0);
+  });
+
+  it("answers 429 to an address over its ping limit and stores the address nowhere", async () => {
+    const limiter = rateLimiter(2);
+    env = { ...env, PING_LIMITER: limiter };
+    const from = (address, install) =>
+      handle(post(ping(install, "2026-10-17"), { "content-type": "application/json", "cf-connecting-ip": address }), env, NOW);
+    assert.equal((await from("203.0.113.7", INSTALLS.a)).status, 204);
+    assert.equal((await from("203.0.113.7", INSTALLS.b)).status, 204);
+    const limited = await from("203.0.113.7", INSTALLS.c);
+    assert.equal(limited.status, 429);
+    assert.match((await limited.json()).error, /too many/);
+    assert.equal((await from("198.51.100.2", INSTALLS.d)).status, 204);
+    assert.deepEqual(limiter.keys, ["203.0.113.7", "203.0.113.7", "203.0.113.7", "198.51.100.2"]);
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM pings").get().n, 3);
+    const stored = JSON.stringify([
+      sqlite.prepare("SELECT * FROM pings").all(),
+      sqlite.prepare("SELECT * FROM ping_extras").all(),
+    ]);
+    assert.doesNotMatch(stored, /203\.0\.113|198\.51\.100/);
   });
 
   it("counts the funnel, the weeks, retention and tool errors from the stored days", async () => {
@@ -174,8 +228,27 @@ describe("usage worker", () => {
       { days: 7, installs: 3, kept: 1 },
       { days: 30, installs: 2, kept: 1 },
     ]);
-    assert.deepEqual(body.tool_errors, { run_python: { errors: 1, calls: 4 } });
-    assert.deepEqual(body.tools, { run_python: 14, inspect_project: 2 });
+    assert.deepEqual(body.tool_errors, {});
+    assert.deepEqual(body.tools, {});
+  });
+
+  it("counts tool errors against the calls of v2 pings", async () => {
+    for (const install of crowd(MIN_INSTALLS)) {
+      await send(ping2(install, "2026-10-16", { tools: { run_python: 4, inspect_project: 2 }, tool_errors: { run_python: 1 } }));
+    }
+    await send(ping(INSTALLS.d, "2026-10-16", { tools: { run_python: 10 } }));
+    const body = JSON.parse((await stats()).text);
+    assert.deepEqual(body.tool_errors, { run_python: { errors: 5, calls: 20 } });
+    assert.deepEqual(body.tools, { run_python: 30, inspect_project: 10 });
+  });
+
+  it("caps a tool's errors at its calls, also in rows stored before the check", async () => {
+    for (const install of crowd(MIN_INSTALLS)) {
+      await send(ping2(install, "2026-10-17", { tools: { run_python: 2 }, tool_errors: { run_python: 1 } }));
+    }
+    sqlite.prepare("UPDATE ping_extras SET tool_errors = ?").run('{"run_python":100000}');
+    const body = JSON.parse((await stats()).text);
+    assert.deepEqual(body.tool_errors, { run_python: { errors: 10, calls: 10 } });
   });
 
   it("stores a ping under the hash of the install id", async () => {
@@ -241,8 +314,10 @@ describe("usage worker", () => {
   });
 
   it("checks the day against the server date", async () => {
-    assert.equal((await send(ping(INSTALLS.a, "2026-10-09"))).status, 400);
-    assert.equal((await send(ping(INSTALLS.a, "2026-10-09"), new Date("2026-10-11T00:00:00Z"))).status, 204);
+    assert.equal((await send(ping(INSTALLS.a, "2026-10-08"))).status, 400);
+    assert.equal((await send(ping(INSTALLS.a, "2026-10-19"))).status, 400);
+    assert.equal((await send(ping(INSTALLS.a, "2026-10-09"))).status, 204);
+    assert.equal((await send(ping(INSTALLS.a, "2026-10-08"), new Date("2026-10-11T00:00:00Z"))).status, 204);
   });
 
   it("routes only the documented methods and paths", async () => {
@@ -271,26 +346,29 @@ describe("usage worker", () => {
   });
 
   it("publishes aggregates and nothing per install", async () => {
+    const many = crowd(MIN_INSTALLS);
     await send(ping(INSTALLS.d, "2026-01-10"), new Date("2026-01-10T12:00:00Z"));
     await send(ping(INSTALLS.c, "2026-08-01"), new Date("2026-08-01T12:00:00Z"));
-    await send(
-      ping(INSTALLS.a, "2026-10-16", {
-        plugin: "0.3.0",
-        runs: 4,
-        applies: 1,
-        tools: { inspect_project: 2, run_python: 1 },
-        skills: { style: 1 },
-      }),
-    );
-    await send(
-      ping(INSTALLS.a, "2026-10-17", {
-        runs: 3,
-        applies: 2,
-        tools: { inspect_project: 5 },
-        skills: { style: 2 },
-        failures: { timeout: 1 },
-      }),
-    );
+    for (const install of many) {
+      await send(
+        ping(install, "2026-10-16", {
+          plugin: "0.3.0",
+          runs: 4,
+          applies: 1,
+          tools: { inspect_project: 2, run_python: 1 },
+          skills: { style: 1 },
+        }),
+      );
+      await send(
+        ping(install, "2026-10-17", {
+          runs: 3,
+          applies: 2,
+          tools: { inspect_project: 5 },
+          skills: { style: 2 },
+          failures: { timeout: 1 },
+        }),
+      );
+    }
     await send(
       ping(INSTALLS.b, "2026-10-16", {
         qgis: "4.0.0",
@@ -307,30 +385,52 @@ describe("usage worker", () => {
     assert.equal(response.headers.get("cache-control"), "public, max-age=3600");
     const body = JSON.parse(text);
     assert.equal(body.generated, NOW.toISOString());
-    assert.equal(body.installs_total, 4);
-    assert.equal(body.installs_30d, 2);
+    assert.equal(body.installs_total, 8);
+    assert.equal(body.installs_30d, 6);
     assert.equal(body.days.length, 90);
-    assert.deepEqual(body.days.at(-1), { day: "2026-10-17", installs: 1, runs: 3, applies: 2 });
-    assert.deepEqual(body.days.at(-2), { day: "2026-10-16", installs: 2, runs: 5, applies: 1 });
+    assert.deepEqual(body.days.at(-1), { day: "2026-10-17", installs: 5, runs: 15, applies: 10 });
+    assert.deepEqual(body.days.at(-2), { day: "2026-10-16", installs: 6, runs: 21, applies: 5 });
     assert.deepEqual(
       body.days.find((day) => day.day === "2026-08-01"),
       { day: "2026-08-01", installs: 1, runs: 1, applies: 0 },
     );
-    assert.deepEqual(body.plugin, { "0.4.0": 2, "0.3.0": 1 });
-    assert.deepEqual(body.qgis, { "4.0.0": 1, "4.2.1": 1 });
-    assert.deepEqual(body.os, { macos: 1, windows: 1 });
-    assert.deepEqual(body.locale, { en: 1, ru: 1 });
-    assert.deepEqual(body.provider, { local: 1, remote: 1 });
-    assert.deepEqual(body.dialect, { anthropic: 1, openai: 1 });
-    assert.deepEqual(body.tools, { inspect_project: 8, run_python: 1 });
-    assert.deepEqual(body.skills, { style: 3 });
-    assert.deepEqual(body.failures, { timeout: 1 });
+    assert.deepEqual(body.plugin, { "0.4.0": 6, "0.3.0": 5 });
+    assert.deepEqual(body.qgis, { "4.2.1": 5 });
+    assert.deepEqual(body.os, { macos: 5 });
+    assert.deepEqual(body.locale, { en: 5 });
+    assert.deepEqual(body.provider, { remote: 5 });
+    assert.deepEqual(body.dialect, { openai: 5 });
+    assert.deepEqual(body.tools, { inspect_project: 36, run_python: 5 });
+    assert.deepEqual(body.skills, { style: 15 });
+    assert.deepEqual(body.failures, { timeout: 5 });
 
-    for (const install of Object.values(INSTALLS)) {
+    for (const install of [...Object.values(INSTALLS), ...many]) {
       assert.equal(text.includes(install), false);
       assert.equal(text.includes(await hashInstall(install)), false);
     }
     assert.doesNotMatch(text, /[0-9a-f]{32}/);
+  });
+
+  it("publishes a value only once five installs reported it", async () => {
+    const rare = {
+      qgis: "4.1.0",
+      locale: "eu",
+      skills: { acme_parcels: 1 },
+      tools: { acme_tool: 3, run_python: 2 },
+      tool_errors: { run_python: 1 },
+    };
+    for (const install of crowd(MIN_INSTALLS - 1)) await send(ping2(install, "2026-10-17", rare));
+    await send(ping2(INSTALLS.a, "2026-10-17", { tools: { acme_tool: 0 }, skills: { acme_parcels: 0 } }));
+    let body = JSON.parse((await stats()).text);
+    for (const facet of ["qgis", "locale", "skills", "tools", "tool_errors"]) assert.deepEqual(body[facet], {}, facet);
+
+    await send(ping2(INSTALLS.b, "2026-10-17", rare));
+    body = JSON.parse((await stats(new Date(NOW.getTime() + 61 * MINUTE))).text);
+    assert.equal(body.qgis["4.1.0"], 5);
+    assert.equal(body.locale.eu, 5);
+    assert.equal(body.skills.acme_parcels, 5);
+    assert.equal(body.tools.acme_tool, 15);
+    assert.deepEqual(body.tool_errors, { run_python: { errors: 5, calls: 10 } });
   });
 
   it("serves the hourly snapshot until it expires", async () => {
@@ -345,5 +445,42 @@ describe("usage worker", () => {
     const fresh = await stats(new Date(NOW.getTime() + 61 * MINUTE));
     assert.equal(JSON.parse(fresh.text).installs_30d, 2);
     assert.equal(fresh.response.headers.get("cache-control"), "public, max-age=3600");
+  });
+
+  it("lets one of many requests after expiry rebuild while the rest get the old snapshot", async () => {
+    await send(ping(INSTALLS.a, "2026-10-17"));
+    const first = await stats();
+    await send(ping(INSTALLS.b, "2026-10-17"));
+    const before = env.DB.batches;
+    const later = new Date(NOW.getTime() + 61 * MINUTE);
+    const responses = await Promise.all(
+      Array.from({ length: 25 }, () => handle(new Request(`${BASE}/v1/stats`), env, later)),
+    );
+    assert.equal(env.DB.batches - before, 1);
+    const bodies = await Promise.all(responses.map((response) => response.text()));
+    assert.equal(bodies.filter((body) => body === first.text).length, 24);
+    assert.equal(JSON.parse(bodies.find((body) => body !== first.text)).installs_30d, 2);
+    const again = await stats(new Date(later.getTime() + MINUTE));
+    assert.equal(JSON.parse(again.text).installs_30d, 2);
+  });
+
+  it("serves the old snapshot when the rebuild fails and tries again a minute later", async () => {
+    await send(ping(INSTALLS.a, "2026-10-17"));
+    const first = await stats();
+    env = { DB: d1(sqlite, { failing: true }) };
+    const later = new Date(NOW.getTime() + 61 * MINUTE);
+    const stale = await stats(later);
+    assert.equal(stale.text, first.text);
+    assert.equal(stale.response.headers.get("cache-control"), "public, max-age=60");
+    assert.equal(env.DB.batches, 1);
+    await stats(new Date(later.getTime() + 30_000));
+    assert.equal(env.DB.batches, 1, "a second rebuild started within the minute");
+    await stats(new Date(later.getTime() + 2 * MINUTE));
+    assert.equal(env.DB.batches, 2);
+  });
+
+  it("fails without a snapshot to fall back on", async () => {
+    env = { DB: d1(sqlite, { failing: true }) };
+    await assert.rejects(handle(new Request(`${BASE}/v1/stats`), env, NOW), /read limit/);
   });
 });

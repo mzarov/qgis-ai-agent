@@ -64,10 +64,10 @@ def run_aggregate(layer, request, context, params, aggregate: str, selected: lis
     if expression_text:
         info["expression"] = expression_text
     if group_expression is None:
-        info["value"] = compute(aggregate, values, matched)
+        info["value"] = compute(aggregate, values, _counted(values, matched, value_expression is not None))
         return info
     info["group_by"] = group_text
-    info["groups"] = _build_groups(aggregate, groups)
+    info["groups"] = _build_groups(aggregate, groups, value_expression is not None)
     if len(groups) > MAX_GROUPS:
         info["groups_note"] = f"showing the first {MAX_GROUPS} groups out of {len(groups)}"
     return info
@@ -87,6 +87,8 @@ def _native_aggregate(
             return None
         matched = int(counted)
     info: dict[str, Any] = {"aggregate": aggregate, "matched": matched}
+    if aggregate == "count" and expression_text and matched:
+        return _native_count(layer, context, info, expression_text, filter_text, fids)
     if not expression_text or aggregate == "count" or not matched:
         if expression_text:
             info["expression"] = expression_text
@@ -98,6 +100,23 @@ def _native_aggregate(
     info["expression"] = expression_text
     info["value"] = _rounded(plain_value(value))
     return info
+
+
+def _native_count(layer, context, info, expression_text: str, filter_text: str, fids) -> dict[str, Any] | None:
+    # A count of an expression counts its values, not the features: NULL is no value.
+    if fids is not None:
+        return None
+    not_null = f"({expression_text}) IS NOT NULL"
+    counted = _native_value(
+        layer, context, "Count", COUNT_EXPRESSION, f"({filter_text}) AND {not_null}" if filter_text else not_null, None
+    )
+    if not isinstance(counted, (int, float)):
+        return None
+    return {**info, "expression": expression_text, "value": int(counted)}
+
+
+def _counted(values: list[Any], matched: int, of_values: bool) -> int:
+    return sum(value is not None for value in values) if of_values else matched
 
 
 def _native_value(layer, context, member: str, expression_text: str, filter_text: str, fids) -> Any:
@@ -181,12 +200,13 @@ def _bound_request(request, order_text: str, ascending: bool, limit: int, slots,
     return provider_ordered
 
 
-def _build_groups(aggregate: str, groups: dict[Any, list[Any]]) -> list[dict[str, Any]]:
+def _build_groups(aggregate: str, groups: dict[Any, list[Any]], of_values: bool) -> list[dict[str, Any]]:
     ordered = sorted(groups.items(), key=lambda item: sort_key(item[0]))
-    return [
-        {"group": group, "count": len(items), "value": compute(aggregate, items, len(items))}
-        for group, items in ordered[:MAX_GROUPS]
-    ]
+    built = []
+    for group, items in ordered[:MAX_GROUPS]:
+        value = compute(aggregate, items, _counted(items, len(items), of_values))
+        built.append({"group": group, "count": len(items), "value": value})
+    return built
 
 
 def _field_slots(layer, wanted: list[str] | None) -> list[tuple[str, int]]:

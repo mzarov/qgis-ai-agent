@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 from qgis.core import Qgis, QgsMessageLog, QgsProcessingUtils, QgsProject
@@ -6,7 +7,7 @@ from qgis.PyQt.QtCore import QDateTime, Qt
 
 from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, BaseTool
-from ai_agent.qgis_tools.common.layer_meta import sanitize_source
+from ai_agent.qgis_tools.common.layer_meta import MASKED_VALUE, is_secret_name, sanitize_source
 from ai_agent.qgis_tools.common.values import clamp_limit
 
 LOG_TAG = "AI Agent"
@@ -17,6 +18,9 @@ HISTORY_DAYS = 30
 MAX_PARAMETERS = 25
 MAX_VALUE_CHARS = 160
 MAX_LIST_ITEMS = 10
+MAX_DEPTH = 2
+ELIDED = "…"
+JSON_OPENERS = ("{", "[")
 MODEL_RESULT_KEYS = frozenset({"CHILD_INPUTS", "CHILD_RESULTS"})
 SCOPE_NOTE = (
     "Runs started from Processing dialogs, oldest first. The agent's own run_processing calls are not "
@@ -76,7 +80,7 @@ def history_entry(details: dict[str, Any], when: str, layers: dict[str, str]) ->
         parameters = parameters["inputs"]
     if isinstance(parameters, dict):
         kept = list(parameters.items())[:MAX_PARAMETERS]
-        shaped["parameters"] = {str(key): shorten(value) for key, value in kept}
+        shaped["parameters"] = {str(key): _masked(key, value, 0) for key, value in kept}
         named = _named_layers(dict(kept), layers)
         if named:
             shaped["project_layers"] = named
@@ -86,7 +90,7 @@ def history_entry(details: dict[str, Any], when: str, layers: dict[str, str]) ->
     shaped["finished"] = isinstance(results, dict)
     if isinstance(results, dict):
         kept_results = {str(key): value for key, value in results.items() if key not in MODEL_RESULT_KEYS}
-        shaped["results"] = {key: shorten(value) for key, value in kept_results.items()}
+        shaped["results"] = {key: _masked(key, value, 0) for key, value in kept_results.items()}
         named = _named_layers(kept_results, layers)
         if named:
             shaped["result_layers"] = named
@@ -97,15 +101,38 @@ def shorten(value: Any, depth: int = 0) -> Any:
     if value is None or isinstance(value, (bool, int, float)):
         return value
     if isinstance(value, str):
+        structure = _json_structure(value)
+        if structure is not None:
+            return _clipped(json.dumps(shorten(structure, depth + 1), ensure_ascii=False))
         # A layer parameter is recorded as its whole source, keys and passwords included.
-        value = sanitize_source(value)
-        return value if len(value) <= MAX_VALUE_CHARS else value[: MAX_VALUE_CHARS - 1] + "…"
-    if isinstance(value, (list, tuple)) and depth < 2:
+        return _clipped(sanitize_source(value))
+    if isinstance(value, (list, tuple, dict)) and depth >= MAX_DEPTH:
+        return ELIDED
+    if isinstance(value, (list, tuple)):
         items = [shorten(item, depth + 1) for item in value[:MAX_LIST_ITEMS]]
-        return items + ["…"] if len(value) > MAX_LIST_ITEMS else items
-    if isinstance(value, dict) and depth < 2:
-        return {str(key): shorten(item, depth + 1) for key, item in list(value.items())[:MAX_LIST_ITEMS]}
+        return items + [ELIDED] if len(value) > MAX_LIST_ITEMS else items
+    if isinstance(value, dict):
+        return {str(key): _masked(key, item, depth + 1) for key, item in list(value.items())[:MAX_LIST_ITEMS]}
     return shorten(str(value), depth)
+
+
+def _masked(key: Any, value: Any, depth: int) -> Any:
+    return MASKED_VALUE if is_secret_name(str(key)) else shorten(value, depth)
+
+
+def _json_structure(text: str) -> Any:
+    stripped = text.strip()
+    if not stripped.startswith(JSON_OPENERS):
+        return None
+    try:
+        parsed = json.loads(stripped)
+    except (ValueError, RecursionError):
+        return None
+    return parsed if isinstance(parsed, (dict, list)) else None
+
+
+def _clipped(text: str) -> str:
+    return text if len(text) <= MAX_VALUE_CHARS else text[: MAX_VALUE_CHARS - 1] + ELIDED
 
 
 def project_layer_names() -> dict[str, str]:

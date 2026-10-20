@@ -16,8 +16,11 @@ At most one report per install per day:
 - whether a model is set up in Settings, as yes or no;
 - the number of runs and applied batches (a day the plugin was loaded counts
   even with none);
-- how often each tool was called and failed, each skill loaded and each kind
-  of failure happened.
+- how often each of the plugin's tools was called and failed, each built-in
+  skill loaded and each kind of failure happened. A name the model made up and
+  the names of skills you wrote yourself are not sent.
+
+A day without a connection is sent later; the last three such days wait.
 
 Nothing from your project is sent: no layers, fields, values, coordinates or
 file paths. Your requests, the model's answers, keys, addresses and model
@@ -26,8 +29,10 @@ names are not sent either.
 ## How it is stored
 
 The collector keeps a SHA-256 hash of the install id, one row per install per
-day. It stores no IP addresses and keeps no request logs. Only totals are
-published. The code is in
+day. It stores no IP addresses and keeps no request logs; the address a report
+comes from is used only to limit how many reports it can send a minute. Only
+totals are published, and a value such as a version, a language or a tool
+name is shown once at least 5 installs reported it. The code is in
 [`telemetry/worker`](https://github.com/mzarov/qgis-ai-agent/tree/main/telemetry/worker).
 
 ## The numbers
