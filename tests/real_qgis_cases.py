@@ -331,6 +331,41 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual(self.layer.featureCount(), 2)
         self.assertEqual(next(self.layer.getFeatures()).geometry().asWkt(), "Point (0 0)")
 
+    def test_an_ogr_destination_never_replaces_an_existing_table_unasked(self):
+        package = self.root / "precious.gpkg"
+        options = QgsVectorFileWriter.SaveVectorOptions()
+        options.driverName = "GPKG"
+        options.layerName = "roads"
+        QgsVectorFileWriter.writeAsVectorFormatV3(self.layer, str(package), QgsCoordinateTransformContext(), options)
+        batch = WriteBatch(ToolExecutor())
+
+        def buffer_into(output, overwrite=False):
+            parameters = {"INPUT": self.layer.id(), "DISTANCE": 5, "OUTPUT": output}
+            arguments = {"algorithm_id": "native:buffer", "parameters": parameters, "load_output": False}
+            return batch.add(ToolCall("ogr", "run_processing", {**arguments, "overwrite_outputs": overwrite}))
+
+        for output in (
+            f"ogr:dbname='{package}' table=\"roads\" (geom)",
+            f"ogr:dbname='{package}' table=\"ROADS\" (geom)",
+            f"ogr://dbname='{package}' table=roads",
+            f"ogr:{package}",
+        ):
+            with self.subTest(output=output), self.assertRaisesRegex(ValueError, "already exists"):
+                buffer_into(output)
+        replacing = buffer_into(f"ogr:dbname='{package}' table=\"roads\" (geom)", overwrite=True)
+        self.assertEqual(RunProcessingTool().safety_for(replacing.arguments), SAFETY_DESTRUCTIVE)
+        database = buffer_into('postgres:dbname=\'gis\' table="public"."roads" (geom)')
+        self.assertEqual(RunProcessingTool().safety_for(database.arguments), SAFETY_DESTRUCTIVE)
+        batch.clear()
+        added = buffer_into(f"ogr:dbname='{package}' table=\"zones\" (geom)")
+        self.assertEqual(RunProcessingTool().safety_for(added.arguments), "write")
+        results = self._applied(batch)
+        self.assertTrue(results[0].ok, results[0].payload)
+        roads = QgsVectorLayer(f"{package}|layername=roads", "roads", "ogr")
+        zones = QgsVectorLayer(f"{package}|layername=zones", "zones", "ogr")
+        self.assertEqual(sorted(feature["name"] for feature in roads.getFeatures()), ["point-0", "point-1"])
+        self.assertEqual(zones.featureCount(), 2)
+
     def test_a_file_output_takes_the_name_a_later_step_refers_to(self):
         centres = {"INPUT": self.layer.id(), "OUTPUT": str(self.root / "centres.gpkg")}
         zones = {"INPUT": "centres", "DISTANCE": 10, "OUTPUT": str(self.root / "zones.shp")}

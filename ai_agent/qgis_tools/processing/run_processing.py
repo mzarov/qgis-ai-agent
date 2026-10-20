@@ -6,9 +6,9 @@ from ai_agent.config import limits
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_DESTRUCTIVE, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.background import Background
-from ai_agent.qgis_tools.common.paths import check_overwrite
 from ai_agent.qgis_tools.processing.background_run import ProcessingInBackground, runs_in_background
 from ai_agent.qgis_tools.processing.deadline import DeadlineFeedback
+from ai_agent.qgis_tools.processing.destinations import check_destinations, database_destinations, destination_values
 from ai_agent.qgis_tools.processing.effects import (
     contacts_network,
     creates_folders,
@@ -90,7 +90,7 @@ class RunProcessingTool(BaseTool):
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
         algorithm, prepared = self._prepare(params)
         destination_names = destination_parameter_names(algorithm)
-        _check_destinations(prepared, bool(params.get("overwrite_outputs")), destination_names)
+        check_destinations(prepared, bool(params.get("overwrite_outputs")), destination_names)
         return {
             **params,
             "algorithm_id": algorithm.id(),
@@ -104,6 +104,9 @@ class RunProcessingTool(BaseTool):
             return SAFETY_DESTRUCTIVE
         if bool(params.get("overwrite_outputs")):
             return SAFETY_DESTRUCTIVE
+        arguments = params.get("parameters")
+        if isinstance(arguments, dict) and database_destinations(arguments, params.get("_destination_names")):
+            return SAFETY_DESTRUCTIVE
         return SAFETY_WRITE
 
     def has_network_access(self, params: dict[str, Any]) -> bool:
@@ -114,7 +117,7 @@ class RunProcessingTool(BaseTool):
         return (
             _known_external_algorithm(params)
             or creates_folders(str(params.get("algorithm_id") or ""))
-            or (isinstance(arguments, dict) and bool(_destination_values(arguments, params.get("_destination_names"))))
+            or (isinstance(arguments, dict) and bool(destination_values(arguments, params.get("_destination_names"))))
         )
 
     def summarize_call(self, params: dict[str, Any]) -> str:
@@ -170,7 +173,7 @@ class RunProcessingTool(BaseTool):
     def _ready(self, params: dict[str, Any]) -> tuple[Any, dict[str, Any], bool]:
         algorithm, prepared = self._prepare(params)
         destination_names = destination_parameter_names(algorithm)
-        _check_destinations(prepared, bool(params.get("overwrite_outputs")), destination_names)
+        check_destinations(prepared, bool(params.get("overwrite_outputs")), destination_names)
         return algorithm, prepared, self._resolve_load_output(params)
 
     @staticmethod
@@ -217,39 +220,6 @@ def _payload(
     if warnings:
         payload["warnings"] = warnings
     return payload
-
-
-def _check_destinations(
-    parameters: dict[str, Any], overwrite: bool, destination_names: list[str] | None = None
-) -> None:
-    for path in _destination_paths(parameters, destination_names):
-        check_overwrite(path, overwrite)
-
-
-def _destination_values(parameters: dict[str, Any], destination_names: list[str] | None = None) -> list[str]:
-    selected = {str(name) for name in destination_names or []}
-    values = []
-    for name, value in parameters.items():
-        key = str(name)
-        upper = key.upper()
-        if key not in selected and "OUTPUT" not in upper and "DESTINATION" not in upper:
-            continue
-        if not isinstance(value, str):
-            continue
-        destination = value.strip()
-        if not destination or destination.upper() == "TEMPORARY_OUTPUT" or destination.startswith("memory:"):
-            continue
-        values.append(destination)
-    return values
-
-
-def _destination_paths(parameters: dict[str, Any], destination_names: list[str] | None = None) -> list[str]:
-    paths = []
-    for path in _destination_values(parameters, destination_names):
-        if path.lower().startswith(("postgres:", "ogr:", "spatialite:", "oracle:", "mssql:")):
-            continue
-        paths.append(path)
-    return paths
 
 
 def _known_external_algorithm(params: dict[str, Any]) -> bool:
