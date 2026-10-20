@@ -25,7 +25,7 @@ from qgis.PyQt.QtGui import (
 from qgis.PyQt.QtWidgets import QApplication, QLabel, QLineEdit, QScrollBar, QTextBrowser, QToolTip, QWidget
 
 from ai_agent.config import personal
-from ai_agent.core.orchestrator.notices import STATUS_DONE
+from ai_agent.core.orchestrator.notices import STATUS_DONE, SWITCH_WHILE_RUNNING
 from ai_agent.ui import compass, controls, progress, settings_fields, style
 from ai_agent.ui.activity import ActivityGroup, PulseRing
 from ai_agent.ui.chart import ChartCard
@@ -34,6 +34,7 @@ from ai_agent.ui.connection_widgets import STATE_BAD, StatusCard
 from ai_agent.ui.conversation import ConversationView
 from ai_agent.ui.dropdown import Dropdown
 from ai_agent.ui.messages import AssistantMessage, SystemMessage
+from ai_agent.ui.plan import RUN_PLAN_QUESTION, PlanOffer
 from ai_agent.ui.question import QuestionCard
 from ai_agent.ui.settings_dialog import SettingsDialog
 from ai_agent.ui.table_card import TableCard
@@ -1021,3 +1022,21 @@ class RestingTraceTest(unittest.TestCase):
         self.assertEqual(len(rings), 1)
         self.assertNotEqual(rings[0]._breath.state(), QVariantAnimation.State.Running)
         view.deleteLater()
+
+
+class PlanOfferTest(PluginCase):
+    api_url = "http://localhost:11434/v1"
+    model_name = "qwen3"
+
+    def test_a_refused_run_leaves_the_offer_open(self) -> None:
+        self.dock.add_user_message("plan a buffer of the roads")
+        self.dock.add_result_message("1. Buffer roads by 50 m")
+        self.dock.offer_plan()
+        offer = self.dock.conversation.widget().findChildren(PlanOffer)[-1]
+        self.orchestrator.compaction._running = True
+        offer._rows[0].clicked.emit(offer._rows[0].key)
+        self.orchestrator.compaction._running = False
+        lines = [message.plain_text() for message in self.dock.conversation.widget().findChildren(SystemMessage)]
+        self.assertIn(SWITCH_WHILE_RUNNING, lines)
+        self.assertEqual(offer._question.text(), RUN_PLAN_QUESTION)
+        self.assertFalse(any(row.isHidden() for row in offer._rows), "a refused offer can no longer be taken")

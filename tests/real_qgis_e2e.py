@@ -24,7 +24,7 @@ from ai_agent.ui.durations import format_seconds
 from ai_agent.ui.failure_card import FailureCard
 from ai_agent.ui.legend import LegendCard
 from ai_agent.ui.messages import SystemMessage, UserMessage
-from ai_agent.ui.plan import FAILED_MARK, RUNNING_MARK, PlanCard
+from ai_agent.ui.plan import FAILED_MARK, PLAN_STARTED_AUTO, RUNNING_MARK, PlanCard
 from ai_agent.ui.question import QuestionCard
 from ai_agent.ui.transitions import LeavingFeed
 
@@ -1002,6 +1002,8 @@ class PlanModeScenario(ScenarioCase):
             say("Checked: 5 classes on pop2020."),
         )
         offers[0]._rows[0].clicked.emit(offers[0]._rows[0].key)
+        self.assertEqual(offers[0]._question.text(), PLAN_STARTED_AUTO, "a started run says so on its offer")
+        self.assertTrue(all(row.isHidden() for row in offers[0]._rows))
         self.wait_idle()
         self.assertEqual(self.layer("districts").renderer().type(), "graduatedSymbol")
         self.assertEqual(self.dock.composer.mode, "auto")

@@ -318,6 +318,7 @@ class PlanOffer(controls.RoundedFrame):
 
     def __init__(self, palette):
         super().__init__(style.CARD_RADIUS)
+        self._starting = ""
         self.set_look(None, style.hairline(palette).name())
         column = QVBoxLayout(self)
         column.setContentsMargins(6, 10, 6, 8)
@@ -342,11 +343,16 @@ class PlanOffer(controls.RoundedFrame):
         column.addWidget(self._hint)
 
     def _run(self, mode: str) -> None:
-        self.retire()
-        self._question.setText(PLAN_STARTED_AUTO if mode == WORK_MODE_AUTO else PLAN_STARTED_ASKING)
-        self.run_requested.emit(mode)
+        # The run starts inside the emit and retires this offer; a refused one leaves it to be taken.
+        self._starting = mode
+        try:
+            self.run_requested.emit(mode)
+        finally:
+            self._starting = ""
 
     def retire(self) -> None:
+        if self._starting:
+            self._question.setText(PLAN_STARTED_AUTO if self._starting == WORK_MODE_AUTO else PLAN_STARTED_ASKING)
         for row in self._rows:
             row.setVisible(False)
         self._hint.setVisible(False)
