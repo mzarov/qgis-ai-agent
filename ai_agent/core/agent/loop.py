@@ -364,11 +364,15 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):  # type: ignore[misc]
         if self._nudged or not (truncated or not text or announced):
             return False
         self._nudged = True
-        if text:
+        # A JSON-protocol reply is one object: its cut-off text is no answer, and a continued tail would not parse.
+        resend = truncated and turn.protocol == PROTOCOL_JSON
+        if text and not resend:
             self.preamble.emit(turn.text)
             if not self._is_current(generation):
                 return True
-        if truncated:
+        if resend:
+            note = notices.CALLS_CUT_OFF
+        elif truncated:
             note = notices.CONTINUE_TRUNCATED
         else:
             note = notices.ANNOUNCED_STEP if text else notices.EMPTY_REPLY

@@ -117,6 +117,8 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    A final reply cut off by the output limit, or an empty one, gets exactly one
    more turn with a plugin note (`notices.CONTINUE_TRUNCATED` / `EMPTY_REPLY`);
    the cut-off text is kept as a preamble first so the chat does not lose it.
+   A cut JSON-protocol reply is raw JSON and a continued tail would not parse:
+   it is not kept, and the note is `CALLS_CUT_OFF`, to send it again.
    The queued steps the model sees are `WriteBatch.pending_lines()` — tool name
    and public arguments, never the translated UI summaries — and an identical
    second call is answered `duplicate: true` instead of a silent success.
