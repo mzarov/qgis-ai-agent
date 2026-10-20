@@ -11,9 +11,10 @@ from typing import Any
 from unittest import mock
 
 from e2e_harness import PluginCase, pump
-from qgis.PyQt.QtCore import QEvent, QObject, QPoint, QPointF, Qt, QUrl, QVariantAnimation, pyqtSlot
+from qgis.PyQt.QtCore import QEvent, QObject, QPoint, QPointF, Qt, QTimer, QUrl, QVariantAnimation, pyqtSlot
 from qgis.PyQt.QtGui import (
     QColor,
+    QContextMenuEvent,
     QDesktopServices,
     QImage,
     QKeyEvent,
@@ -22,7 +23,7 @@ from qgis.PyQt.QtGui import (
     QTextDocument,
     QWheelEvent,
 )
-from qgis.PyQt.QtWidgets import QApplication, QLabel, QLineEdit, QScrollBar, QTextBrowser, QToolTip, QWidget
+from qgis.PyQt.QtWidgets import QApplication, QLabel, QLineEdit, QMenu, QScrollBar, QTextBrowser, QToolTip, QWidget
 
 from ai_agent.config import personal
 from ai_agent.core.orchestrator.notices import STATUS_DONE, SWITCH_WHILE_RUNNING
@@ -65,6 +66,13 @@ PAYLOAD = "<b>bold</b>"
 RED = QColor(255, 0, 0)
 LONG_FEED = 120
 DISTRICT_LIST = "A district list:\n\n" + "\n".join(f"- item {index}" for index in range(8))
+BAR_CHART = {
+    "type": "chart",
+    "kind": "bar",
+    "title": "t",
+    "labels": ["a", "b"],
+    "series": [{"name": "s", "values": [1, 2]}],
+}
 
 
 def shown(text: str, text_format: Any = Qt.TextFormat.AutoText) -> str:
@@ -106,6 +114,19 @@ def tip_at(widget: QWidget, point: QPointF) -> str:
     none = Qt.MouseButton.NoButton
     mouse(widget, QEvent.Type.MouseMove, point, none, none)
     return QToolTip.text()
+
+
+def close_menus() -> None:
+    for widget in QApplication.topLevelWidgets():
+        if isinstance(widget, QMenu) and widget.isVisible():
+            widget.close()
+
+
+def right_click(widget: QWidget) -> None:
+    QTimer.singleShot(50, close_menus)
+    centre = widget.rect().center()
+    widget.contextMenuEvent(QContextMenuEvent(QContextMenuEvent.Reason.Mouse, centre, widget.mapToGlobal(centre)))
+    pump(0.05)
 
 
 class UrlCatcher(QObject):
@@ -151,6 +172,13 @@ class SegmentedTest(unittest.TestCase):
         self.assertIsNone(self.segmented._pill)
         self.segmented.hide()
 
+    def test_clicks_reuse_one_slide(self) -> None:
+        self.segmented.show()
+        for index in (1, 2, 0, 2, 1, 0):
+            self.segmented._group.button(index).click()
+        self.assertLessEqual(len(self.segmented.findChildren(QVariantAnimation)), 1)
+        self.segmented.hide()
+
 
 class CompassMotionTest(unittest.TestCase):
     def test_search_swings_and_done_settles_north(self) -> None:
@@ -164,6 +192,14 @@ class CompassMotionTest(unittest.TestCase):
         mark.set_state(compass.DONE)
         pump(compass.MOTIONS[compass.DONE].milliseconds / 1000 + 0.3)
         self.assertAlmostEqual(mark.angle, 0.0, places=1)
+        mark.deleteLater()
+
+    def test_runs_reuse_one_motion(self) -> None:
+        mark = compass.Compass(18, QWidget().palette())
+        for state in (compass.SEARCH, compass.DONE, compass.SEARCH, compass.ERROR, compass.ASK) * 4:
+            mark.set_state(state)
+        mark.stop()
+        self.assertLessEqual(len(mark.findChildren(QVariantAnimation)), 1)
         mark.deleteLater()
 
 
@@ -368,6 +404,21 @@ class DropdownPlacementTest(unittest.TestCase):
         finally:
             box.hide()
             box.deleteLater()
+
+    def test_opening_leaves_no_menu_or_motion_behind(self) -> None:
+        box = Dropdown(QWidget().palette())
+        box.addItem("One", 1)
+        box.addItem("Two", 2)
+        box.resize(300, 34)
+        box.show()
+        for _ in range(3):
+            QTimer.singleShot(50, close_menus)
+            box._open()
+            pump(0.05)
+        self.assertEqual(box.findChildren(QMenu), [])
+        self.assertLessEqual(len(box.findChildren(QVariantAnimation)), 1)
+        box.hide()
+        box.deleteLater()
 
 
 class ChipsTest(unittest.TestCase):
@@ -1088,5 +1139,22 @@ class LongFeedArrivalTest(unittest.TestCase):
         pump(transitions.LEAVE_MS / 1000 + (transitions.ARRIVE_MS + transitions.LAG_MS) / 1000 + 0.3)
         self.assertGreater(near.paints, 0, "the arrival drew nothing")
         self.assertEqual(far.paints, 0, "every frame rendered the whole feed, the first answer far above too")
+        view.hide()
+        view.deleteLater()
+
+
+class MenusTest(unittest.TestCase):
+    def test_a_closed_menu_is_gone(self) -> None:
+        view = ConversationView()
+        view.resize(560, 600)
+        view.show()
+        view.add_visual(BAR_CHART)
+        view.add_visual(WIDE_TABLE)
+        pump(0.1)
+        feed = view.widget()
+        for widget in (view, feed.findChildren(ChartCard)[0], feed.findChildren(TableCard)[0]):
+            for _ in range(3):
+                right_click(widget)
+        self.assertEqual(view.findChildren(QMenu), [])
         view.hide()
         view.deleteLater()

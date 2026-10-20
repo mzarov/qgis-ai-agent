@@ -122,15 +122,15 @@ class Segmented(QFrame):
         start = self._pill or (QRectF(previous.geometry()) if previous is not None else None)
         target = self._group.button(index)
         if start is not None and target is not None and index != self._last:
-            if self._slide is not None:
-                self._slide.stop()
-            self._slide = QVariantAnimation(self)
-            self._slide.setDuration(SLIDE_MS)
+            if self._slide is None:
+                self._slide = QVariantAnimation(self)
+                self._slide.setDuration(SLIDE_MS)
+                self._slide.setEasingCurve(QEasingCurve.Type.OutCubic)
+                self._slide.valueChanged.connect(self._move_pill)
+                self._slide.finished.connect(self._slide_done)
+            self._slide.stop()
             self._slide.setStartValue(start)
             self._slide.setEndValue(QRectF(target.geometry()))
-            self._slide.setEasingCurve(QEasingCurve.Type.OutCubic)
-            self._slide.valueChanged.connect(self._move_pill)
-            self._slide.finished.connect(self._slide_done)
             self._slide.start()
         self._chosen(index)
 

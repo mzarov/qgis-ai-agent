@@ -375,6 +375,7 @@ class ChartCard(QWidget):
         popup.addAction(COPY_IMAGE, lambda: QGuiApplication.clipboard().setPixmap(self.grab()))
         popup.addAction(COPY_DATA, lambda: QGuiApplication.clipboard().setText(self.csv()))
         popup.exec(event.globalPos())
+        popup.deleteLater()
 
     def csv(self) -> str:
         buffer = io.StringIO()
