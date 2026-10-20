@@ -110,6 +110,31 @@ class StreamedThinkingTest(unittest.TestCase):
         self.assertEqual(data["choices"][0]["message"]["reasoning_content"], "never closed")
 
 
+class ListContentTest(unittest.TestCase):
+    MISTRAL_PARTS = [
+        {"type": "thinking", "thinking": [{"type": "text", "text": "hmm"}]},
+        {"type": "text", "text": "The answer is 4."},
+    ]
+
+    def test_a_list_shaped_message_is_read_as_text_and_thinking(self):
+        message = {"choices": [{"message": {"content": self.MISTRAL_PARTS}, "finish_reason": "stop"}]}
+        for parse in (turns.parse_native_turn, turns.parse_json_turn):
+            with self.subTest(parse=parse.__name__):
+                turn = parse(message)
+                self.assertEqual((turn.text, turn.thinking), ("The answer is 4.", "hmm"))
+
+    def test_list_shaped_deltas_are_streamed_as_text_and_thinking(self):
+        seen_text, seen_thought = [], []
+        data = consume(
+            [delta(content=self.MISTRAL_PARTS[:1]), delta(content=[{"type": "text", "text": "The answer"}])],
+            seen_text.append,
+            seen_thought.append,
+        )
+        self.assertEqual((seen_text, seen_thought), (["The answer"], ["hmm"]))
+        turn = turns.parse_native_turn(data)
+        self.assertEqual((turn.text, turn.thinking), ("The answer", "hmm"))
+
+
 class NativeTurnThinkingTest(unittest.TestCase):
     def test_both_spellings_at_once_are_not_joined_twice(self):
         turn = turns.parse_native_turn(

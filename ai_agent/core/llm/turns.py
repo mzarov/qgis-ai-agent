@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from ai_agent.core.llm.parser import parse_model_json, parse_tool_arguments
-from ai_agent.core.llm.stream import first_reasoning
+from ai_agent.core.llm.stream import first_reasoning, split_content
 from ai_agent.core.llm.thinking import split_thinking
 
 PROTOCOL_NATIVE = "native"
@@ -60,7 +60,7 @@ def parse_native_turn(data: dict[str, Any]) -> ModelTurn:
     choice = _first_choice(data)
     message = choice.get("message") or {}
     incoming, outgoing = parse_usage(data)
-    visible, inline_thinking = split_thinking(message.get("content") or "")
+    visible, inline_thinking = _split_message(message)
     return ModelTurn(
         input_tokens=incoming,
         output_tokens=outgoing,
@@ -74,6 +74,12 @@ def parse_native_turn(data: dict[str, Any]) -> ModelTurn:
         finish_reason=(choice.get("finish_reason") or "").strip(),
         protocol=PROTOCOL_NATIVE,
     )
+
+
+def _split_message(message: dict[str, Any]) -> tuple[str, str]:
+    text, listed_thinking = split_content(message.get("content"))
+    visible, inline_thinking = split_thinking(text)
+    return visible, listed_thinking + inline_thinking
 
 
 def _joined_thinking(message: dict[str, Any], inline: str) -> str:
@@ -96,7 +102,7 @@ def _native_call(index: int, raw: dict[str, Any]) -> ToolCall | None:
 def parse_json_turn(data: dict[str, Any]) -> ModelTurn:
     incoming, outgoing = parse_usage(data)
     message = _first_choice(data).get("message") or {}
-    visible, inline_thinking = split_thinking(message.get("content") or "")
+    visible, inline_thinking = _split_message(message)
     content = visible.strip()
     thinking = _joined_thinking(message, inline_thinking)
     if not content:

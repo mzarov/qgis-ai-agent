@@ -8,6 +8,8 @@ DATA_PREFIX = "data:"
 DONE_MARKER = "[DONE]"
 SSE_FIELD_PREFIXES = ("event:", "id:", "retry:", ":")
 REASONING_KEYS = ("reasoning_content", "reasoning")
+THINKING_PART_TYPES = ("thinking", "reasoning")
+TEXT_PART_TYPE = "text"
 
 
 def first_reasoning(payload: dict[str, Any]) -> str:
@@ -15,6 +17,31 @@ def first_reasoning(payload: dict[str, Any]) -> str:
         value = payload.get(key)
         if isinstance(value, str) and value:
             return value
+    return ""
+
+
+def split_content(content: Any) -> tuple[str, str]:
+    if isinstance(content, str):
+        return content, ""
+    if not isinstance(content, list):
+        return "", ""
+    text: list[str] = []
+    thinking: list[str] = []
+    for part in content:
+        if isinstance(part, str):
+            text.append(part)
+        elif isinstance(part, dict) and part.get("type") in THINKING_PART_TYPES:
+            thinking.append(_part_text(part.get(part["type"]) or part.get(TEXT_PART_TYPE)))
+        elif isinstance(part, dict) and part.get("type", TEXT_PART_TYPE) == TEXT_PART_TYPE:
+            text.append(_part_text(part.get(TEXT_PART_TYPE)))
+    return "".join(text), "".join(thinking)
+
+
+def _part_text(value: Any) -> str:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        return "".join(_part_text(item.get(TEXT_PART_TYPE) if isinstance(item, dict) else item) for item in value)
     return ""
 
 
@@ -142,8 +169,10 @@ class StreamedCompletion:
         reasoning = first_reasoning(delta)
         if reasoning:
             self._take_thinking(reasoning)
-        text = delta.get("content")
-        if isinstance(text, str) and text:
+        text, listed_thought = split_content(delta.get("content"))
+        if listed_thought:
+            self._take_thinking(listed_thought)
+        if text:
             visible, thought = self._splitter.feed(text)
             if thought:
                 self._take_thinking(thought)
