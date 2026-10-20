@@ -131,6 +131,17 @@ class SearchImageryTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Unknown dataset"):
             tool.prepare({"collection": "geoboundaries", "bbox": "1,1,2,2"})
 
+    def test_only_real_calendar_days_in_full_form_reach_the_catalogue(self):
+        tool = search_imagery.SearchImageryTool()
+        for day in ("2026-6-1", "2026-02-30", "2026-13-01", "26-06-01"):
+            with self.subTest(day=day), self.assertRaisesRegex(ValueError, "not a date"):
+                tool.prepare({"collection": "sentinel-2-l2a", "bbox": "1,1,2,2", "date_from": day})
+        with mock.patch.object(stac, "post_json", return_value={"features": []}) as sent:
+            tool.execute(
+                {"collection": "sentinel-2-l2a", "bbox": "1,1,2,2", "date_from": "2026-06-01", "date_to": "2026-06-30"}
+            )
+        self.assertEqual(sent.call_args.args[1]["datetime"], "2026-06-01T00:00:00Z/2026-06-30T23:59:59Z")
+
 
 class CoverageTest(unittest.TestCase):
     def test_the_share_of_the_area_inside_a_footprint(self):
