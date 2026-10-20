@@ -314,6 +314,32 @@ class GisWorkflowsTest(unittest.TestCase):
         self._run("add_field", layer_name="districts", name="schools_n", expression=expression)
         self.assertEqual(next(district.getFeatures())["schools_n"], 2)
 
+    def test_moving_a_layer_moves_it_in_a_custom_drawing_order_too(self):
+        square = "POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0))"
+        first = self._memory("Polygon?crs=EPSG:3857", "A", [(square, [])])
+        second = self._memory("Polygon?crs=EPSG:3857", "B", [(square, [])])
+        root = self.project.layerTreeRoot()
+        root.setHasCustomLayerOrder(True)
+        root.setCustomLayerOrder([second, self.layer, first])
+
+        def drawn():
+            return [layer.name() for layer in root.layerOrder()]
+
+        queued, payload = self._run("reorder_layers", layer_names=["A", "B"])
+        self.assertEqual(drawn(), ["A", "B", "points"])
+        self.assertTrue(get_tool_by_name("reorder_layers").confirm_applied(queued.arguments, payload))
+        root.setCustomLayerOrder([second, self.layer, first])
+        self.assertFalse(get_tool_by_name("reorder_layers").confirm_applied(queued.arguments, payload))
+        configure = get_tool_by_name("configure_layer")
+        for position, expected in ((0, ["points", "B", "A"]), (9, ["B", "A", "points"])):
+            with self.subTest(position=position):
+                queued, payload = self._run("configure_layer", layer_name="points", properties={"position": position})
+                self.assertEqual(drawn(), expected)
+                self.assertTrue(configure.confirm_applied(queued.arguments, payload))
+        get_tool_by_name("add_basemap").execute({"preset": "osm"})
+        self.assertEqual(len(drawn()), 4)
+        self.assertNotIn(drawn()[-1], ("A", "B", "points"), "the basemap is not drawn at the bottom")
+
     def test_symbol_changes_are_visible_in_the_actual_renderer(self):
         self._run("set_symbol", layer_name=self.layer.name(), properties={"color": "#123456", "size": 4})
         symbol = self.layer.renderer().symbol()

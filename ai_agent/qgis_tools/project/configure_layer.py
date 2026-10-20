@@ -8,8 +8,10 @@ from ai_agent.qgis_tools.common.properties import properties_of, shown
 from ai_agent.qgis_tools.project.catalogues import LAYER_PROPERTIES
 from ai_agent.qgis_tools.project.tree import (
     ROOT_GROUP,
+    drawn_like_panel,
     ensure_group,
     find_layer,
+    follow_in_drawing_order,
     group_title,
     layer_names,
     parent_of,
@@ -80,6 +82,7 @@ class ConfigureLayerTool(BaseTool):
             layer.setName(properties["name"])
         if "group" in properties or "position" in properties:
             node = _move(node, properties)
+            follow_in_drawing_order(node)
         return {
             "layer": layer.name(),
             "visible": _visible(node),
@@ -102,7 +105,9 @@ class ConfigureLayerTool(BaseTool):
             return False
         if "group" in properties and group_title(node) != (str(properties["group"]).strip() or ROOT_GROUP):
             return False
-        return "position" not in properties or _at_position(node, properties["position"])
+        if "position" in properties and not _at_position(node, properties["position"]):
+            return False
+        return drawn_like_panel(node) if "group" in properties or "position" in properties else True
 
 
 def _move(node: Any, properties: dict[str, Any]) -> Any:
