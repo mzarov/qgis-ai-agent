@@ -90,7 +90,9 @@ def crs_units(layer: QgsMapLayer) -> str:
 
 def suggest_metric_crs(layer: QgsMapLayer) -> str:
     authid = local_project_crs(QgsProject.instance())
-    return authid or utm_authid(layer)
+    if authid and _within_area_of_use(layer, authid):
+        return authid
+    return utm_authid(layer)
 
 
 def local_project_crs(project: Any) -> str:
@@ -103,29 +105,55 @@ def local_project_crs(project: Any) -> str:
 
 def project_metric_crs(project: Any) -> str:
     authid = local_project_crs(project)
-    if authid:
-        return authid
     try:
         layers = list(project.mapLayers().values())
     except Exception:
-        return ""
+        return authid
     local = [layer for layer in layers if isinstance(layer, QgsVectorLayer)]
     local += [layer for layer in layers if isinstance(layer, QgsRasterLayer) and layer.providerType() == "gdal"]
-    for layer in local:
+    # Null, not empty: one point's extent is empty and still says where the layer is.
+    placed = [layer for layer in local if _has_extent(layer)]
+    if authid and all(_within_area_of_use(layer, authid, project) for layer in placed):
+        return authid
+    for layer in placed:
         with suppress(Exception):
-            extent = layer.extent()
-            # Null, not empty: one point's extent is empty and still says where the layer is.
-            if extent.isNull():
-                continue
-            transform = QgsCoordinateTransform(layer.crs(), QgsCoordinateReferenceSystem(WGS84), project)
-            centre = transform.transform(extent.center())
+            centre = wgs84_extent(layer, project).center()
             return utm_at(float(centre.x()), float(centre.y()))
-    return ""
+    return authid
+
+
+def wgs84_extent(layer: QgsMapLayer, project: Any = None) -> Any:
+    extent = layer.extent()
+    with suppress(Exception):
+        crs = layer.crs()
+        if crs.isValid() and crs.authid() != WGS84:
+            context = project if project is not None else QgsProject.instance()
+            transform = QgsCoordinateTransform(crs, QgsCoordinateReferenceSystem(WGS84), context)
+            return transform.transformBoundingBox(extent)
+    return extent
+
+
+def _has_extent(layer: QgsMapLayer) -> bool:
+    try:
+        return not layer.extent().isNull()
+    except Exception:
+        return False
+
+
+def _within_area_of_use(layer: QgsMapLayer, authid: str, project: Any = None) -> bool:
+    # A national grid or a UTM zone distorts far outside its area: Tokyo measured in zone 33N nearly doubles.
+    try:
+        bounds = QgsCoordinateReferenceSystem(authid).bounds()
+        if bounds.isNull() or bounds.isEmpty() or not _has_extent(layer):
+            return True
+        return bool(bounds.contains(wgs84_extent(layer, project)))
+    except Exception:
+        return True
 
 
 def utm_authid(layer: QgsMapLayer) -> str:
     try:
-        extent = layer.extent()
+        extent = wgs84_extent(layer)
         longitude = (float(extent.xMinimum()) + float(extent.xMaximum())) / 2.0
         latitude = (float(extent.yMinimum()) + float(extent.yMaximum())) / 2.0
     except Exception:

@@ -138,7 +138,21 @@ class GisWorkflowsTest(unittest.TestCase):
         self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:32637"))
         self.assertEqual(suggest_metric_crs(schools), "EPSG:32637", "a local projected project CRS is kept")
         self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:2154"))
-        self.assertEqual(suggest_metric_crs(schools), "EPSG:2154")
+        self.assertEqual(suggest_metric_crs(schools), "EPSG:32637", "Lambert-93 is for France, not Moscow")
+
+    def test_a_project_crs_is_offered_for_metres_only_inside_its_area_of_use(self):
+        self.project.removeAllMapLayers()
+        ward = "POLYGON ((139.6 35.6, 139.8 35.6, 139.8 35.8, 139.6 35.8, 139.6 35.6))"
+        tokyo = self._memory("Polygon?crs=EPSG:4326", "tokyo wards", [(ward, [])])
+        projected = self._memory("Point?crs=EPSG:3857", "tokyo station", [("POINT (15551270 4259000)", [])])
+        self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:32633"))
+        self.project.setEllipsoid("NONE")
+        self.assertEqual(suggest_metric_crs(tokyo), "EPSG:32654")
+        self.assertEqual(suggest_metric_crs(projected), "EPSG:32654")
+        self.assertIn("EPSG:32654", measurement_line(self.project))
+        self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:32654"))
+        self.assertEqual(suggest_metric_crs(tokyo), "EPSG:32654")
+        self.assertIn("EPSG:32654", measurement_line(self.project))
 
     def test_a_text_note_and_a_marker_land_on_the_map(self):
         self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:3857"))
