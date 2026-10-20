@@ -16,6 +16,7 @@ from ai_agent.core.orchestrator.notices import (
     STEP_FAILED,
     STEP_RUNNING,
 )
+from ai_agent.core.orchestrator.presentation import failure_text
 from ai_agent.core.state.trace import CANCELLED as PLAN_CANCELLED
 from ai_agent.core.state.trace import FAILED as PLAN_FAILED
 from ai_agent.i18n import tr
@@ -143,6 +144,7 @@ class RunEventsMixin(OrchestratorHost):
         self.conversation.add("assistant", message)
 
     def on_failed(self, message: str) -> None:
+        message = failure_text(message)
         self._active_tool_message_id = None
         self.conversation.keep_trace()
         self._plan_message_id = None

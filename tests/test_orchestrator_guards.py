@@ -6,6 +6,8 @@ from unittest import mock
 
 from ai_agent.core.orchestrator import notices, plans
 from ai_agent.core.orchestrator import orchestrator as orchestrator_module
+from ai_agent.core.orchestrator import run_events as run_events_module
+from ai_agent.core.orchestrator.compacting import NOT_COMPACTED, SessionCompaction
 from ai_agent.core.orchestrator.orchestrator import CoreOrchestrator
 from ai_agent.core.state.conversation import ConversationState
 from ai_agent.core.state.store import SessionStore
@@ -309,6 +311,35 @@ class UsageNamesTest(OrchestratorCase):
             self.orchestrator.on_skill_loaded("style")
         counted = [call.args for call in usage.note.call_args_list]
         self.assertEqual(counted, [("tools", "query_layer"), ("tool_errors", "query_layer"), ("skills", "style")])
+
+
+class FailureTextTest(OrchestratorCase):
+    def test_an_address_in_a_failure_loses_its_login_and_query(self):
+        shown = []
+        self.dock.add_run_failure = lambda *args: shown.append(args) or 1
+        self.orchestrator.on_prompt("Colour the rivers")
+        failure = (
+            "Error transferring https://me:hunter2@api.example.com:8443"  # pragma: allowlist secret
+            "/v1/chat/completions?key=abc123&x=1#top - server replied: Bad Gateway"
+        )
+        with mock.patch.object(run_events_module.QgsMessageLog, "logMessage") as logged:
+            self.orchestrator.on_failed(failure)
+        record = json.loads(self.contents("failure")[0])
+        bare = "Error transferring https://api.example.com:8443/v1/chat/completions - server replied: Bad Gateway"
+        for text in (shown[0][1], shown[0][2], record["detail"], record["message"], logged.call_args.args[0]):
+            self.assertNotIn("hunter2", text)
+            self.assertNotIn("abc123", text)
+        self.assertEqual((shown[0][2], record["message"]), (bare, bare))
+
+    def test_a_failed_compaction_names_the_address_without_its_secrets(self):
+        errors = []
+        self.dock.add_error_message = errors.append
+        compaction = SessionCompaction(self.dock, lambda: self.orchestrator.conversation)
+        compaction._scope = self.orchestrator.conversation.session_identifier
+        compaction._on_failed("Error transferring http://localhost:1234/v1/chat/completions?token=abc123 - refused")
+        self.assertEqual(
+            errors, [NOT_COMPACTED.format("Error transferring http://localhost:1234/v1/chat/completions - refused")]
+        )
 
 
 class FeedEventsTest(OrchestratorCase):

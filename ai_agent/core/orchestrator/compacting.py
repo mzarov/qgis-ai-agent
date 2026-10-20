@@ -3,7 +3,7 @@ from collections.abc import Callable
 from ai_agent.core.agent.compaction import Compactor, estimated_tokens
 from ai_agent.core.llm.context_window import auto_compact_at, window_for
 from ai_agent.core.orchestrator.contracts import DockWidgetContract
-from ai_agent.core.orchestrator.presentation import compact_number
+from ai_agent.core.orchestrator.presentation import compact_number, failure_text
 from ai_agent.core.settings import get_api_url, get_dialect, get_model
 from ai_agent.core.state.conversation import ConversationState
 from ai_agent.i18n import tr
@@ -102,7 +102,7 @@ class SessionCompaction:
         if self._conversation().session_identifier != self._scope:
             self._abandon()
             return
-        self._dock.add_error_message(NOT_COMPACTED.format(message))
+        self._dock.add_error_message(NOT_COMPACTED.format(failure_text(message)))
         self._finish()
 
     def _finish(self) -> None:
