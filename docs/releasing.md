@@ -21,13 +21,15 @@ tags the commit and publishes a GitHub release with the ZIP attached.
 2. Merge to `main`.
 3. Run **Actions → release → Run workflow** on `main`.
 
-Before building, the run installs the ZIP in a QGIS container and runs the
-real-QGIS workflows and end-to-end scenarios (see the
-[smoke checklist](smoke_checklist.md)). Tick **live_model_check** to also run
-the live-model scenarios; that spends the provider's tokens.
+Before building, the run installs the ZIP in QGIS 4.0 (`qgisMinimumVersion`)
+and current stable QGIS containers and runs the real-QGIS workflows and
+end-to-end scenarios (see the [smoke checklist](smoke_checklist.md)). Tick
+**live_model_check** to also run the live-model scenarios; that spends the
+provider's tokens.
 
-The run stops before publishing if a test fails, the version's tag already
-exists or the changelog has no entry for it. If plugins.qgis.org rejects the
+The run stops before publishing if a test, ruff or mypy fails, the version's
+tag already exists or the changelog has no entry for it. Only the final job,
+which tags the release, can write to the repository. If plugins.qgis.org rejects the
 upload, nothing is tagged. `python3 tools/release_notes.py` prints the release
 notes.
 

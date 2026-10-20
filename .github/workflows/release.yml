@@ -17,20 +17,27 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   real-qgis:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     if: github.ref == 'refs/heads/main'
+    strategy:
+      fail-fast: false
+      matrix:
+        qgis_image: ["4.0-trixie", "stable-trixie"]
     container:
-      image: qgis/qgis:stable-trixie
+      image: qgis/qgis:${{ matrix.qgis_image }}
     env:
       QT_QPA_PLATFORM: offscreen
       E2E_ARTIFACTS: build/e2e
     steps:
       - uses: actions/checkout@v5
+        with:
+          # The image is third-party: leave no token in the checkout for it to read.
+          persist-credentials: false
       - name: Installed-package smoke test
         run: python3 tests/real_qgis_smoke.py
       - name: Real QGIS workflows and end-to-end scenarios
@@ -39,7 +46,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: e2e-screens-release
+          name: e2e-screens-release-${{ matrix.qgis_image }}
           path: build/e2e
           if-no-files-found: ignore
 
@@ -53,6 +60,8 @@ jobs:
     needs: [real-qgis, live-model]
     runs-on: ubuntu-latest
     if: ${{ !failure() && !cancelled() && github.ref == 'refs/heads/main' }}
+    permissions:
+      contents: write
     env:
       PLUGIN: ai_agent
     steps:
@@ -69,11 +78,14 @@ jobs:
           python3 -m pip install --quiet poetry==2.1.3
           poetry install --no-interaction
 
-      - name: Tests and lint must pass before anything is published
+      - name: Tests must pass before anything is published
+        run: poetry run python -m unittest discover -s tests -t .
+
+      - name: Lint, formatting and types must pass too
         run: |
-          poetry run python -m unittest discover -s tests -t .
           poetry run ruff check .
           poetry run ruff format --check .
+          poetry run mypy
 
       - name: Version and release notes
         id: meta
