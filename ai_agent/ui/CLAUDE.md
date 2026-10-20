@@ -286,7 +286,8 @@ The send button is a painted circle at the end of the box's bottom row
 (`SendButton`): accent with an arrow, pale while there is nothing to send; while
 the agent works it becomes “stop” — a quiet circle with a square, its tooltip
 too. There is deliberately no separate button — it would be visible always and
-inactive most of the time. Enter is ignored while a run is active; Esc stops it
+inactive most of the time. Enter while a run is active sends the text as an
+interjection, a correction the agent reads on its next step; Esc stops the run
 (with the popup open, Esc only closes the popup). Offline it hides, since the
 welcome card already offers Open settings.
 
