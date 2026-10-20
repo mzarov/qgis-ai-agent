@@ -39,6 +39,20 @@ class CheckedCodeTest(unittest.TestCase):
     def test_valid_code_passes_through(self):
         self.assertEqual(_checked_code(" print(1) "), "print(1)")
 
+    def test_characters_that_reorder_or_hide_code_are_refused(self):
+        for code in (
+            'access = "user\u202e \u2066# admin\u2069 \u2066"\nprint(access)',
+            "print('a')\u2067",
+            "x = 'zero\u200bwidth'",
+            "\ufeffprint(1)",
+            "s = 'one\u2028two'",
+            "s = 'bell\x07'",
+        ):
+            with self.subTest(code=repr(code)), self.assertRaisesRegex(ValueError, r"U\+[0-9A-F]{4}"):
+                _checked_code(code)
+        code = "# Привет, мир\nfor index in range(2):\n\tprint('tab\\u202e escape stays text')\r\n"
+        self.assertEqual(_checked_code(code), code.strip())
+
 
 class CheckedIntentTest(unittest.TestCase):
     def test_rich_text_markers_remain_literal_plain_text(self):
@@ -139,6 +153,7 @@ class ToolTest(unittest.TestCase):
 
     def test_summary_falls_back_to_the_code_when_intent_is_missing(self):
         self.assertIn("print", self.tool.summarize_call({"code": "print(1)"}))
+        self.assertNotIn("\u202e", self.tool.summarize_call({"code": "print('\u202e1')"}))
 
     def test_execute_returns_the_intent_with_the_output(self):
         result = self.tool.execute({"code": "print('ok')", "intent": "smoke"})

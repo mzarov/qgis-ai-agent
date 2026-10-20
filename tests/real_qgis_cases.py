@@ -1,5 +1,6 @@
 import json
 import pathlib
+import sqlite3
 import struct
 import tempfile
 import threading
@@ -16,6 +17,7 @@ from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsCoordinateTransformContext,
+    QgsExpression,
     QgsFeature,
     QgsGeometry,
     QgsMapRendererSequentialJob,
@@ -27,11 +29,13 @@ from qgis.core import (
     QgsVectorFileWriter,
     QgsVectorLayer,
     QgsVectorLayerSimpleLabeling,
+    qgsfunction,
 )
 from qgis.gui import QgsGui
 from qgis.PyQt.QtCore import QCoreApplication, QEvent, QEventLoop, QSize, QTimer
 from qgis.PyQt.QtWidgets import QMainWindow
 
+from ai_agent.core.agent.auto_apply import applies_itself
 from ai_agent.core.agent.batch import WriteBatch
 from ai_agent.core.agent.executor import ToolExecutor
 from ai_agent.core.context.project import measurement_line
@@ -327,6 +331,41 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual(self.layer.featureCount(), 2)
         self.assertEqual(next(self.layer.getFeatures()).geometry().asWkt(), "Point (0 0)")
 
+    def test_an_ogr_destination_never_replaces_an_existing_table_unasked(self):
+        package = self.root / "precious.gpkg"
+        options = QgsVectorFileWriter.SaveVectorOptions()
+        options.driverName = "GPKG"
+        options.layerName = "roads"
+        QgsVectorFileWriter.writeAsVectorFormatV3(self.layer, str(package), QgsCoordinateTransformContext(), options)
+        batch = WriteBatch(ToolExecutor())
+
+        def buffer_into(output, overwrite=False):
+            parameters = {"INPUT": self.layer.id(), "DISTANCE": 5, "OUTPUT": output}
+            arguments = {"algorithm_id": "native:buffer", "parameters": parameters, "load_output": False}
+            return batch.add(ToolCall("ogr", "run_processing", {**arguments, "overwrite_outputs": overwrite}))
+
+        for output in (
+            f"ogr:dbname='{package}' table=\"roads\" (geom)",
+            f"ogr:dbname='{package}' table=\"ROADS\" (geom)",
+            f"ogr://dbname='{package}' table=roads",
+            f"ogr:{package}",
+        ):
+            with self.subTest(output=output), self.assertRaisesRegex(ValueError, "already exists"):
+                buffer_into(output)
+        replacing = buffer_into(f"ogr:dbname='{package}' table=\"roads\" (geom)", overwrite=True)
+        self.assertEqual(RunProcessingTool().safety_for(replacing.arguments), SAFETY_DESTRUCTIVE)
+        database = buffer_into('postgres:dbname=\'gis\' table="public"."roads" (geom)')
+        self.assertEqual(RunProcessingTool().safety_for(database.arguments), SAFETY_DESTRUCTIVE)
+        batch.clear()
+        added = buffer_into(f"ogr:dbname='{package}' table=\"zones\" (geom)")
+        self.assertEqual(RunProcessingTool().safety_for(added.arguments), "write")
+        results = self._applied(batch)
+        self.assertTrue(results[0].ok, results[0].payload)
+        roads = QgsVectorLayer(f"{package}|layername=roads", "roads", "ogr")
+        zones = QgsVectorLayer(f"{package}|layername=zones", "zones", "ogr")
+        self.assertEqual(sorted(feature["name"] for feature in roads.getFeatures()), ["point-0", "point-1"])
+        self.assertEqual(zones.featureCount(), 2)
+
     def test_a_file_output_takes_the_name_a_later_step_refers_to(self):
         centres = {"INPUT": self.layer.id(), "OUTPUT": str(self.root / "centres.gpkg")}
         zones = {"INPUT": "centres", "DISTANCE": 10, "OUTPUT": str(self.root / "zones.shp")}
@@ -507,6 +546,24 @@ class GisWorkflowsTest(unittest.TestCase):
         self.addCleanup(restore)
         self.assertEqual(model_builder.models_folder(), str(folder))
         return folder
+
+    def test_search_finds_a_model_again_after_its_provider_refreshes(self):
+        self._models_folder()
+        self._run(
+            "create_processing_model",
+            name="auditbufferzz",
+            inputs=[{"name": "layer", "type": "vector"}],
+            steps=[{"id": "b", "algorithm_id": "native:buffer", "parameters": {"INPUT": {"input": "layer"}}}],
+            outputs=[{"name": "Buffered", "step": "b"}],
+        )
+        search = get_tool_by_name("search_processing")
+        self.assertEqual(search.execute({"query": "auditbufferzz"})["algorithms"][0]["id"], "model:auditbufferzz")
+        registry = QgsApplication.processingRegistry()
+        count = len(registry.algorithms())
+        registry.providerById(model_builder.MODEL_PROVIDER_ID).refreshAlgorithms()
+        self.assertEqual(len(registry.algorithms()), count)
+        found = search.execute({"query": "auditbufferzz"})["algorithms"]
+        self.assertEqual([item["id"] for item in found], ["model:auditbufferzz"])
 
     def test_two_steps_become_a_model_that_runs_on_other_data(self):
         folder = self._models_folder()
@@ -898,6 +955,129 @@ class GisWorkflowsTest(unittest.TestCase):
                 ToolCall("bad", "create_sql_layer", {"sql": 'SELECT nme FROM "districts"', "name": "never"})
             )
         self.assertEqual(self.project.mapLayersByName("never"), [])
+
+    def _counters(self):
+        path = self.root / "counters.sqlite"
+        connection = sqlite3.connect(path)
+        with connection:
+            connection.execute("CREATE TABLE counters (id INTEGER, name TEXT)")
+            connection.execute("INSERT INTO counters VALUES (5, 'a')")
+        connection.close()
+        return path
+
+    def _counter_rows(self, path):
+        connection = sqlite3.connect(path)
+        try:
+            return connection.execute("SELECT id, name FROM counters ORDER BY id").fetchall()
+        finally:
+            connection.close()
+
+    def test_sql_refuses_qgis_functions_that_reach_outside_the_query(self):
+        self._districts_and_schools()
+        counters = self._counters()
+        touched = []
+
+        @qgsfunction(group="Custom", referenced_columns=[])
+        def ai_agent_probe(value, feature, parent):
+            touched.append(value)
+            return value
+
+        # QGIS keeps only a pointer: the Python function must outlive its registration.
+        self.probe = ai_agent_probe
+        self.addCleanup(QgsExpression.unregisterFunction, "ai_agent_probe")
+        for sql in (
+            f"SELECT sqlite_fetch_and_increment('{counters}', 'counters', 'id', 'name', 'zz', map('name', 'zz')) AS v",
+            "SELECT env('HOME') AS home",
+            f"SELECT load_layer('{counters}', 'ogr') AS layer",
+            "SELECT layer_property('districts', 'source') AS source",
+            'SELECT ai_agent_probe(name) FROM "districts"',
+        ):
+            with self.subTest(sql=sql):
+                refused = self._query(sql)
+                self.assertFalse(refused.ok, refused.payload)
+                self.assertIn("is not allowed here", refused.payload["error"])
+        with self.assertRaisesRegex(ValueError, "is not allowed here"):
+            WriteBatch(ToolExecutor()).add(
+                ToolCall("live", "create_sql_layer", {"sql": "SELECT env('HOME') AS home", "name": "home"})
+            )
+        self.assertEqual(self._counter_rows(counters), [(5, "a")])
+        self.assertEqual(touched, [])
+        pure = self._query('SELECT _left(name, 2) AS short, to_string(code) AS code FROM "districts" ORDER BY name')
+        self.assertTrue(pure.ok, pure.payload)
+        self.assertEqual(pure.payload["rows"], [["Ea", "3"], ["No", "1"], ["So", "2"]])
+
+    def test_expressions_never_write_files_or_read_the_environment(self):
+        counters = self._counters()
+        executor = ToolExecutor()
+        write = f"sqlite_fetch_and_increment('{counters}', 'counters', 'id', 'name', 'zz', map('name', 'zz')) > 0"
+        for name, arguments in (
+            ("query_layer", {"layer_name": "points", "aggregate": "max", "expression": "env('HOME')"}),
+            ("query_layer", {"layer_name": "points", "filter": "eval('1 = 1')"}),
+            ("select_features", {"layer_name": "points", "filter": write}),
+        ):
+            with self.subTest(name=name, arguments=arguments):
+                refused = executor.run(ToolCall("expression", name, arguments))
+                self.assertFalse(refused.ok, refused.payload)
+                self.assertIn("is not allowed in", refused.payload["error"])
+        with self.assertRaisesRegex(ValueError, "is not allowed in"):
+            WriteBatch(executor).add(
+                ToolCall("edit", "update_attributes", {"layer_name": "points", "expressions": {"name": "env('HOME')"}})
+            )
+        self.assertEqual(self._counter_rows(counters), [(5, "a")])
+        counted = executor.run(
+            ToolCall("expression", "query_layer", {"layer_name": "points", "filter": "upper(name) = 'POINT-1'"})
+        )
+        self.assertEqual(counted.payload["matched"], 1)
+
+    def test_processing_expressions_never_write_files_or_read_the_environment(self):
+        counters = self._counters()
+        write = f"sqlite_fetch_and_increment('{counters}', 'counters', 'id', 'name', 'zz', map('name', 'zz'))"
+        batch = WriteBatch(ToolExecutor())
+        for algorithm_id, parameters in (
+            ("native:fieldcalculator", {"FIELD_NAME": "home", "FIELD_TYPE": 2, "FORMULA": "env('HOME')"}),
+            ("native:extractbyexpression", {"EXPRESSION": f"{write} > 0"}),
+            ("native:refactorfields", {"FIELDS_MAPPING": [{"name": "n", "type": 2, "expression": "eval('1')"}]}),
+            ("native:aggregate", {"GROUP_BY": "NULL", "AGGREGATES": [{"aggregate": "max", "input": "env('HOME')"}]}),
+        ):
+            with self.subTest(algorithm_id=algorithm_id), self.assertRaisesRegex(ValueError, "is not allowed in"):
+                batch.add(
+                    ToolCall(
+                        "expression",
+                        "run_processing",
+                        {"algorithm_id": algorithm_id, "parameters": {"INPUT": "points", **parameters}},
+                    )
+                )
+        self.assertEqual(self._counter_rows(counters), [(5, "a")])
+        self._run(
+            "run_processing",
+            algorithm_id="native:fieldcalculator",
+            parameters={"INPUT": "points", "FIELD_NAME": "loud", "FIELD_TYPE": 2, "FORMULA": "upper(name)"},
+            output_name="loud points",
+        )
+        loud = self.project.mapLayersByName("loud points")[0]
+        self.assertEqual(sorted(feature["loud"] for feature in loud.getFeatures()), ["POINT-0", "POINT-1"])
+
+    def test_processing_sql_with_qgis_functions_waits_for_its_own_confirmation(self):
+        self._districts_and_schools()
+        counters = self._counters()
+        sql = (
+            f"SELECT sqlite_fetch_and_increment('{counters}', 'counters', 'id', 'name', 'zz', map('name', 'zz')) "
+            "AS v, * FROM input1"
+        )
+        call = ToolCall(
+            "sql",
+            "run_processing",
+            {
+                "algorithm_id": "qgis:executesql",
+                "parameters": {"INPUT_DATASOURCES": ["districts"], "INPUT_QUERY": sql, "OUTPUT": "TEMPORARY_OUTPUT"},
+                "load_output": False,
+            },
+        )
+        queued = WriteBatch(ToolExecutor()).add(call)
+        self.assertEqual(RunProcessingTool().safety_for(queued.arguments), SAFETY_DESTRUCTIVE)
+        with patch("ai_agent.core.agent.auto_apply.get_auto_apply", return_value=True):
+            self.assertFalse(applies_itself([queued]))
+        self.assertEqual(self._counter_rows(counters), [(5, "a")])
 
     def test_changing_live_labels_keeps_the_field_and_the_rest(self):
         self._run("set_labels", layer_name=self.layer.name(), properties={"field": "name", "size": 14})

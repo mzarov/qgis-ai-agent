@@ -8,6 +8,9 @@ from ai_agent.qgis_tools.python.sandbox import MAX_LINES, run_snippet
 MAX_CODE_CHARS = 6000
 MAX_INTENT_CHARS = 240
 SUMMARY_CHARS = 90
+# The user approves the code as shown: these categories reorder, hide or break the lines they read.
+HIDDEN_CATEGORIES = frozenset({"Cc", "Cf", "Cs", "Zl", "Zp"})
+LAYOUT_CONTROLS = frozenset("\t\n\r")
 
 
 class RunPythonTool(BaseTool):
@@ -69,7 +72,7 @@ class RunPythonTool(BaseTool):
     def summarize_call(self, params: dict[str, Any]) -> str:
         intent = _safe_intent_summary(params.get("intent"))
         if not intent:
-            intent = str(params.get("code") or "").strip().replace("\n", " ")[:SUMMARY_CHARS]
+            intent = _safe_intent_summary(params.get("code"))[:SUMMARY_CHARS]
         return tr("Running Python: {0}").format(intent)
 
     def detail_call(self, params: dict[str, Any]) -> str:
@@ -112,8 +115,18 @@ def _checked_code(raw: Any) -> str:
             f"The snippet is {len(code)} characters, over the limit of {MAX_CODE_CHARS}. "
             "Split it into steps the user can actually read."
         )
+    hidden = next((char for char in code if _is_hidden(char)), None)
+    if hidden is not None:
+        raise ValueError(
+            f"The snippet holds the invisible character U+{ord(hidden):04X}, so the code the user confirms "
+            "could read differently from the code that runs. Write it as an escape inside a string, e.g. '\\u202e'."
+        )
     try:
         compile(code, "<agent snippet>", "exec")
     except SyntaxError as broken:
         raise ValueError(f"The snippet does not parse: {broken.msg} (line {broken.lineno}).") from None
     return code
+
+
+def _is_hidden(char: str) -> bool:
+    return unicodedata.category(char) in HIDDEN_CATEGORIES and char not in LAYOUT_CONTROLS

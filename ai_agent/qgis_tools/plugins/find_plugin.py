@@ -91,7 +91,7 @@ def score(entry: dict[str, Any], words: list[str]) -> int:
     points = 0
     for word in words:
         points += max(
-            NAME_WEIGHT * (variant in name) + TAG_WEIGHT * (variant in tags) + TEXT_WEIGHT * (variant in text)
+            NAME_WEIGHT * _has(variant, name) + TAG_WEIGHT * _has(variant, tags) + TEXT_WEIGHT * _has(variant, text)
             for variant in variants(word)
         )
     phrase = " ".join(words)
@@ -105,7 +105,13 @@ def variants(word: str) -> set[str]:
     for ending in ("es", "s"):
         if word.endswith(ending):
             found.add(word[: -len(ending)])
-    return {variant for variant in found if len(variant) >= MIN_VARIANT}
+    return {variant for variant in found if len(variant) >= MIN_VARIANT} or {word}
+
+
+def _has(variant: str, text: str) -> bool:
+    if len(variant) >= MIN_VARIANT:
+        return variant in text
+    return re.search(rf"(?<!\w){re.escape(variant)}(?!\w)", text) is not None
 
 
 def _shown(entry: dict[str, Any], installed: set[str], active: set[str]) -> dict[str, Any]:

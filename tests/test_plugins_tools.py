@@ -204,6 +204,20 @@ class RepositoryTest(unittest.TestCase):
         self.assertEqual((nothing["plugins"], nothing["listed"]), ([], 2))
         self.assertIn("do not tell the user a reason", nothing["note"])
 
+    def test_words_shorter_than_a_variant_still_count(self):
+        from ai_agent.qgis_tools.plugins import find_plugin
+
+        viewer = {**ORS, "key": "Qgis2threejs", "name": "Qgis2threejs", "description": "3D viewer", "tags": ["3d"]}
+        self.repository.remember([QNEAT, ORS, viewer])
+        with (
+            mock.patch.object(find_plugin, "installed_plugins", return_value=set()),
+            mock.patch.object(find_plugin, "active_plugins", return_value=[]),
+        ):
+            found = find_plugin.FindPluginTool().execute({"query": "3d"})["plugins"]
+            self.assertEqual([plugin["plugin"] for plugin in found], ["Qgis2threejs"])
+            contours = find_plugin.FindPluginTool().execute({"query": "dem to contours"})
+        self.assertEqual(contours["plugins"], [])
+
     def test_an_empty_query_is_refused(self):
         from ai_agent.qgis_tools.plugins import find_plugin
 

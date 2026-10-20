@@ -1,6 +1,14 @@
 import unittest
+from unittest import mock
 
-from ai_agent.qgis_tools.common.expressions import ALL_ATTRIBUTES, check_columns, parse_order_by, sort_key
+from ai_agent.qgis_tools.common import expressions as expressions_module
+from ai_agent.qgis_tools.common.expressions import (
+    ALL_ATTRIBUTES,
+    check_columns,
+    compile_expression,
+    parse_order_by,
+    sort_key,
+)
 
 
 class ParseOrderByTest(unittest.TestCase):
@@ -70,3 +78,35 @@ class CheckColumnsTest(unittest.TestCase):
     def test_an_expression_in_double_quotes_is_told_to_drop_them(self):
         with self.assertRaisesRegex(ValueError, "without quotes.*geometry\\(@parent\\)"):
             check_columns(Referencing("within($geometry, @geometry)"), Layer(), "expression", "aggregate(...)")
+
+
+class Parsed:
+    KNOWN = ("decode_uri", "env", "eval", "layer_property", "load_layer", "sqlite_fetch_and_increment", "upper")
+
+    def __init__(self, text):
+        self._text = text
+
+    def hasParserError(self):
+        return False
+
+    def referencedFunctions(self):
+        return {name for name in self.KNOWN if f"{name}(" in self._text}
+
+    def referencedColumns(self):
+        return set()
+
+
+class UnsafeFunctionTest(unittest.TestCase):
+    def test_functions_that_write_read_secrets_or_run_text_are_refused(self):
+        with mock.patch.object(expressions_module, "QgsExpression", Parsed):
+            for text in (
+                "sqlite_fetch_and_increment('/tmp/x.gpkg', 't', 'id', 'n', 'a', map()) > 0",
+                "upper(env('HOME'))",
+                "eval('1 + 1')",
+                "load_layer('/tmp/x.shp', 'ogr') IS NULL",
+                "layer_property(@layer, 'source')",
+                "decode_uri(@layer, 'path')",
+            ):
+                with self.subTest(text=text), self.assertRaisesRegex(ValueError, r"\(\) is not allowed in 'filter'"):
+                    compile_expression(text, "filter")
+            compile_expression("upper(\"name\") = 'A'", "filter")

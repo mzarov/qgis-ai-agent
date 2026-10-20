@@ -1,3 +1,4 @@
+import json
 import os
 import tempfile
 import unittest
@@ -416,6 +417,34 @@ class HistoryTest(unittest.TestCase):
         self.assertLessEqual(len(history_module.shorten("x" * 1000)), history_module.MAX_VALUE_CHARS)
         self.assertEqual(len(history_module.shorten(list(range(50)))), history_module.MAX_LIST_ITEMS + 1)
         self.assertEqual(history_module.shorten(object.__new__(_Named))[:1], "<")
+
+    def test_secrets_inside_json_values_and_secret_named_parameters_are_hidden(self):
+        data = {
+            "user": "me",
+            "password": "hunter2",  # pragma: allowlist secret
+            "list": [{"api_key": "k-123"}],  # pragma: allowlist secret
+            "deep": {"x": {"token": "t-9"}},
+        }
+        run = {
+            "algorithm_id": "native:httprequest",
+            "parameters": {
+                "inputs": {
+                    "URL": "https://api.example/login",
+                    "DATA": " " + json.dumps(data),
+                    "PASSWORD": "pg-secret",  # pragma: allowlist secret
+                    "HEADERS": {"Authorization": "Bearer xyz", "deep": {"deeper": {"token": "t-1"}}},
+                }
+            },
+            "results": {"OUTPUT": '{"session": {"refresh_token": "r-7"}}'},
+        }
+        shaped = history_module.history_entry(run, "", {})
+        shown = json.dumps(shaped)
+        for secret in ("hunter2", "k-123", "t-9", "pg-secret", "xyz", "t-1", "r-7"):
+            self.assertNotIn(secret, shown)
+        self.assertEqual(json.loads(shaped["parameters"]["DATA"])["user"], "me")
+        self.assertEqual(json.loads(shaped["parameters"]["DATA"])["password"], "<hidden>")
+        self.assertEqual(shaped["parameters"]["PASSWORD"], "<hidden>")
+        self.assertEqual(history_module.shorten("[not json"), "[not json")
 
     def test_the_latest_runs_come_oldest_first_within_the_limit(self):
         entries = [_Entry(index, {**BUFFER_RUN, "algorithm_id": f"native:step{index}"}) for index in (3, 1, 2)]

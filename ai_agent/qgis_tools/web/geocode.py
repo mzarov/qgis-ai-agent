@@ -165,7 +165,8 @@ def _photon_matches(raw: Any) -> list[dict[str, Any]]:
         if len(extent) == 4:
             edges = [_number(edge) for edge in extent]
             if all(edge is not None for edge in edges):
-                west, south, east, north = edges
+                # Photon's extent runs west, north, east, south.
+                west, north, east, south = edges
                 entry["bbox"] = f"{west},{south},{east},{north}"
         matches.append(entry)
     return matches

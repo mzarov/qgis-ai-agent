@@ -57,7 +57,7 @@ def _scrubbed(text: str, depth: int) -> str:
 
 def _scrubbed_item(match: re.Match[str], depth: int) -> str:
     lead, name, value = match.groups()
-    if _is_secret_name(name):
+    if is_secret_name(name):
         return f"{lead}{name}={MASKED_VALUE}"
     return f"{lead}{name}={_scrubbed_value(value, depth)}"
 
@@ -74,7 +74,7 @@ def _scrubbed_value(value: str, depth: int) -> str:
     return MASKED_VALUE.join(quote(part, safe="") for part in scrubbed.split(MASKED_VALUE))
 
 
-def _is_secret_name(name: str) -> bool:
+def is_secret_name(name: str) -> bool:
     # `http-header:x-api-key=…` keeps a request header in a QGIS URI: the header's name decides.
     plain = unquote(name).strip().lower().replace("-", "_").rsplit(":", 1)[-1]
     return plain in SECRET_NAMES or plain.endswith(SECRET_NAME_SUFFIXES)

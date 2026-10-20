@@ -6,12 +6,13 @@ import unittest
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE, SAFETY_WRITE
 from ai_agent.qgis_tools.layout import export_layout as layout_module
 from ai_agent.qgis_tools.layout.export_layout import ExportLayoutTool
-from ai_agent.qgis_tools.processing.run_processing import (
-    RunProcessingTool,
-    _check_destinations,
-    _destination_paths,
-    _destination_values,
+from ai_agent.qgis_tools.processing.destinations import (
+    check_destinations,
+    database_destinations,
+    destination_values,
+    provider_destination,
 )
+from ai_agent.qgis_tools.processing.run_processing import RunProcessingTool
 from ai_agent.qgis_tools.project import export_layer as layer_module
 from ai_agent.qgis_tools.project.export_layer import ExportLayerTool
 
@@ -257,25 +258,49 @@ class OutputSafetyTest(unittest.TestCase):
             "OUTPUT": self.existing_pdf,
             "SECONDARY_DESTINATION": "TEMPORARY_OUTPUT",
         }
-        self.assertEqual(_destination_paths(parameters), [self.existing_pdf])
+        self.assertEqual(destination_values(parameters), [self.existing_pdf])
 
     def test_processing_refuses_an_implicit_overwrite(self):
         with self.assertRaisesRegex(ValueError, "overwrite=true"):
-            _check_destinations({"OUTPUT": self.existing_pdf}, overwrite=False)
+            check_destinations({"OUTPUT": self.existing_pdf}, overwrite=False)
 
     def test_processing_uses_typed_destination_names_not_only_output_spelling(self):
         self.assertEqual(
-            _destination_paths({"FOLDER": self.root}, ["FOLDER"]),
+            destination_values({"FOLDER": self.root}, ["FOLDER"]),
             [self.root],
         )
         with self.assertRaisesRegex(ValueError, "overwrite=true"):
-            _check_destinations({"FOLDER": self.root}, False, ["FOLDER"])
+            check_destinations({"FOLDER": self.root}, False, ["FOLDER"])
 
-    def test_database_destination_is_external_but_not_a_filesystem_path(self):
-        parameters = {"OUTPUT": "postgres:dbname=gis table=roads"}
-        self.assertEqual(_destination_values(parameters), [parameters["OUTPUT"]])
-        self.assertEqual(_destination_paths(parameters), [])
-        self.assertTrue(RunProcessingTool().has_external_effect({"parameters": parameters}))
+    def test_a_provider_destination_is_read_as_processing_reads_it(self):
+        for value, provider in (
+            ("ogr:dbname='/data/x.gpkg' table=\"roads\" (geom)", "ogr"),
+            ("ogr://dbname='/data/x.gpkg' table=roads", "ogr"),
+            ("postgres:dbname=gis table=roads", "postgres"),
+            ("SpatiaLite:dbname=/data/x.sqlite table=roads", "spatialite"),
+            ("hana:driver='HDB' table=roads", "hana"),
+            ("/data/x.gpkg", ""),
+            ("C:\\data\\x.shp", ""),
+        ):
+            with self.subTest(value=value):
+                self.assertEqual(provider_destination(value)[0], provider)
+
+    def test_a_database_destination_replaces_its_table_so_it_needs_confirmation(self):
+        tool = RunProcessingTool()
+        for value in (
+            "postgres:dbname=gis table=roads",
+            "spatialite:dbname=/data/x.sqlite table=roads",
+            "oracle:dbname=gis table=roads",
+            "mssql:dbname=gis table=roads",
+            "hana:driver='HDB' table=roads",
+        ):
+            with self.subTest(value=value):
+                call = {"algorithm_id": "native:buffer", "parameters": {"OUTPUT": value}}
+                self.assertEqual(database_destinations(call["parameters"]), [value])
+                self.assertTrue(tool.has_external_effect(call))
+                self.assertEqual(tool.safety_for(call), SAFETY_DESTRUCTIVE)
+        plain = {"algorithm_id": "native:buffer", "parameters": {"OUTPUT": os.path.join(self.root, "new.gpkg")}}
+        self.assertEqual(tool.safety_for(plain), SAFETY_WRITE)
 
     def test_database_sql_algorithm_always_gets_destructive_confirmation(self):
         call = {"algorithm_id": "native:postgisexecutesql", "parameters": {"SQL": "DELETE FROM roads"}}
