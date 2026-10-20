@@ -102,7 +102,8 @@ it off deletes the counts not yet sent.
 
 Once a day the plugin sends one small report to the project's collector on
 Cloudflare (`telemetry/worker`): the number of runs and applies, the names of
-the tools and skills used and how many tool calls failed, the kinds of
+the plugin's own tools and built-in skills used (never a name the model made
+up or a skill you wrote) and how many tool calls failed, the kinds of
 failures, the plugin and QGIS versions, the OS family, the interface language,
 whether a model is set up, and whether it is local or remote and which API
 format it uses. A day QGIS loaded the plugin counts as active even with no

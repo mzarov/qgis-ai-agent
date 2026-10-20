@@ -10,6 +10,8 @@ from ai_agent.core.orchestrator.orchestrator import CoreOrchestrator
 from ai_agent.core.state.conversation import ConversationState
 from ai_agent.core.state.store import SessionStore
 from ai_agent.core.state.trace import TRACE_ROLE
+from ai_agent.skills.base import Skill
+from ai_agent.skills.registry import LOCAL, SKILL_REGISTRY
 from tests.test_orchestrator import Agent, Call, Iface, Result, StepDock
 
 NOTHING_TO_APPLY = "There are no changes to apply."
@@ -222,6 +224,19 @@ class RetryAndCompactTest(OrchestratorCase):
         session = self.orchestrator.conversation._session
         self.assertEqual((session.context_tokens, session.spent_tokens, session.requests), (1200, 2800, 2))
         self.assertEqual(self.compaction.refresh.call_count, 2)
+
+
+class UsageNamesTest(OrchestratorCase):
+    def test_only_the_plugins_own_tools_and_skills_are_counted(self):
+        usage = self.orchestrator.usage = mock.Mock()
+        local = Skill(name="acme_cadastre_rules", description="The user's own rules.", origin=LOCAL)
+        with mock.patch.dict(SKILL_REGISTRY._local, {local.name: local}):
+            self.orchestrator.on_tool_finished("count_parcels_of_ivanov_estate", False)
+            self.orchestrator.on_skill_loaded("acme_cadastre_rules")
+            self.orchestrator.on_tool_finished("query_layer", False)
+            self.orchestrator.on_skill_loaded("style")
+        counted = [call.args for call in usage.note.call_args_list]
+        self.assertEqual(counted, [("tools", "query_layer"), ("tool_errors", "query_layer"), ("skills", "style")])
 
 
 class FeedEventsTest(OrchestratorCase):
