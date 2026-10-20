@@ -133,6 +133,27 @@ class SessionStoreTest(unittest.TestCase):
         self.assertEqual(reasons, ["No space left on device"])
         self.assertEqual(self.store.recent("/p.qgz"), [])
 
+    def test_a_save_that_cannot_serialise_is_reported_not_raised(self):
+        reasons = []
+        self.store.on_failure = reasons.append
+        for error in (ValueError("Circular reference detected"), TypeError("Object of type set is not JSON")):
+            with mock.patch.object(store_module, "atomic_write_json", side_effect=error):
+                self._saved()
+        self.assertEqual(reasons, ["Circular reference detected", "Object of type set is not JSON"])
+
+    def test_text_with_a_broken_surrogate_is_saved_and_later_messages_too(self):
+        reasons = []
+        self.store.on_failure = reasons.append
+        state = ConversationState(store=self.store)
+        state.add("user", "hi")
+        state.add("assistant", "smile \ud83d")
+        state.add("assistant", "a pair split across chunks \ud83d\ude00")
+        state.add("user", "next question")
+        stored = self.store.load(state.session_identifier)
+        contents = [message["content"] for message in stored.messages]
+        self.assertEqual(contents, ["hi", "smile \ud83d", "a pair split across chunks 😀", "next question"])
+        self.assertEqual(reasons, [])
+
     def test_save_and_load(self):
         session = self._saved()
         loaded = self.store.load(session.identifier)
