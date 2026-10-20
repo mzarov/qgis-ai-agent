@@ -383,6 +383,45 @@ class ToolLessStreamingTest(unittest.TestCase):
                 self.assertEqual((turn.text, turn.protocol), (self.reply, turns.PROTOCOL_NATIVE))
 
 
+class ReasoningOpenedInPromptTest(unittest.TestCase):
+    REPLY = (text_delta("Thinking it over."), text_delta("</think>"), text_delta("Two layers."))
+
+    def setUp(self):
+        for name, value in (
+            ("post_stream", streaming(*self.REPLY)),
+            ("build_request", lambda *args: ("http://localhost:11434/v1/chat/completions", {}, "r1")),
+            ("get_supports_streaming", lambda *args: True),
+            ("get_supports_tools", lambda *args: True),
+            ("get_reasoning_enabled", lambda: False),
+            ("_OPENED_IN_PROMPT", set()),
+        ):
+            patch = mock.patch.object(transport, name, value)
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def shown(self, model):
+        shown = []
+        overrides = {"model_override": model, "dialect_override": "openai"}
+        turn = transport._dispatch([], SCHEMAS, overrides, 10, "http://localhost:11434/v1", shown.append)
+        self.assertEqual(turn.text, "Two layers.")
+        return "".join(shown)
+
+    def test_once_a_model_closed_unopened_reasoning_its_next_drafts_hold_until_the_close(self):
+        self.shown("r1")
+        self.assertEqual(self.shown("r1"), "Two layers.")
+
+    def test_a_reply_without_the_close_tag_gives_the_live_draft_back(self):
+        self.shown("r1")
+        transport.post_stream = streaming(text_delta("Two "), text_delta("layers."))
+        self.shown("r1")
+        self.assertEqual(transport._OPENED_IN_PROMPT, set())
+
+    def test_another_model_keeps_its_live_draft(self):
+        self.shown("r1")
+        transport.post_stream = streaming(text_delta("Two "), text_delta("layers."))
+        self.assertEqual(self.shown("other"), "Two layers.")
+
+
 class StreamRunnerSourceTest(unittest.TestCase):
     SOURCE = (pathlib.Path(__file__).parent.parent / "ai_agent/core/llm/stream_runner.py").read_text()
 

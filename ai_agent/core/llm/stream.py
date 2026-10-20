@@ -2,7 +2,7 @@ import json
 from collections.abc import Callable
 from typing import Any
 
-from ai_agent.core.llm.thinking import ThinkSplitter
+from ai_agent.core.llm.thinking import ThinkSplitter, leading_close
 
 DATA_PREFIX = "data:"
 DONE_MARKER = "[DONE]"
@@ -122,12 +122,13 @@ class StreamedCompletion:
         self,
         on_text: Callable[[str], None] | None = None,
         on_thinking: Callable[[str], None] | None = None,
+        held: bool = False,
     ):
         self._on_text = on_text
         self._on_thinking = on_thinking
         self._text_parts: list[str] = []
         self._thinking_parts: list[str] = []
-        self._splitter = ThinkSplitter()
+        self._splitter = ThinkSplitter(held)
         self._calls: dict[int, dict[str, Any]] = {}
         self._moved: dict[int, int] = {}
         self._finish_reason = ""
@@ -139,6 +140,10 @@ class StreamedCompletion:
     @property
     def finished(self) -> bool:
         return self.done or bool(self._finish_reason)
+
+    @property
+    def closed_without_opening(self) -> bool:
+        return self._splitter.closed_without_opening or bool(leading_close("".join(self._text_parts))[1])
 
     def take(self, event: str) -> None:
         if event == DONE_MARKER:

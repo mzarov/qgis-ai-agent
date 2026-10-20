@@ -3,12 +3,33 @@ CLOSE_TAGS = ("</think>", "</thinking>", "</reasoning>")
 
 
 class ThinkSplitter:
-    def __init__(self) -> None:
+    def __init__(self, held: bool = False) -> None:
         self._pending = ""
         self._inside = False
+        self._held = held
+        self.closed_without_opening = False
 
     def feed(self, text: str) -> tuple[str, str]:
         self._pending += text or ""
+        held_thought = self._release() if self._held else ""
+        if self._held:
+            return "", ""
+        visible, thought = self._split()
+        return visible, held_thought + thought
+
+    def _release(self) -> str:
+        close_index, close_tag = leading_close(self._pending)
+        if close_tag:
+            thought = self._pending[:close_index]
+            self._pending = self._pending[close_index + len(close_tag) :]
+            self._held = False
+            self.closed_without_opening = True
+            return thought
+        if _earliest(self._pending, OPEN_TAGS)[1]:
+            self._held = False
+        return ""
+
+    def _split(self) -> tuple[str, str]:
         visible: list[str] = []
         thought: list[str] = []
         while True:
@@ -29,14 +50,22 @@ class ThinkSplitter:
     def flush(self) -> tuple[str, str]:
         rest = self._pending
         self._pending = ""
+        self._held = False
         return ("", rest) if self._inside else (rest, "")
+
+
+def leading_close(text: str) -> tuple[int, str]:
+    close_index, close_tag = _earliest(text, CLOSE_TAGS)
+    open_index, _ = _earliest(text, OPEN_TAGS)
+    if close_tag and (open_index < 0 or close_index < open_index):
+        return close_index, close_tag
+    return -1, ""
 
 
 def split_thinking(text: str) -> tuple[str, str]:
     text = text or ""
-    close_index, close_tag = _earliest(text, CLOSE_TAGS)
-    open_index, _ = _earliest(text, OPEN_TAGS)
-    if close_tag and (open_index < 0 or close_index < open_index):
+    close_index, close_tag = leading_close(text)
+    if close_tag:
         visible, thought = split_thinking(text[close_index + len(close_tag) :])
         return visible, text[:close_index] + thought
     splitter = ThinkSplitter()

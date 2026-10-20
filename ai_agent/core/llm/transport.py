@@ -47,6 +47,9 @@ from ai_agent.core.settings import (
     set_supports_tools,
 )
 
+# Models whose chat template opens the reasoning in the prompt: their drafts wait for the bare close tag.
+_OPENED_IN_PROMPT: set[tuple[str, str, str]] = set()
+
 
 def call_model(
     messages: list[dict[str, Any]],
@@ -260,7 +263,8 @@ def _try_streaming(
     parse: Callable[[dict[str, Any]], ModelTurn] = parse_native_turn,
     live: bool = True,
 ) -> ModelTurn | None:
-    cache_url, cache_model, cache_dialect = _capability_scope(url, overrides)
+    scope = _capability_scope(url, overrides)
+    cache_url, cache_model, cache_dialect = scope
     if on_chunk is None or get_supports_streaming(cache_url, cache_model, cache_dialect) is False:
         return None
     endpoint, headers, model = build_request(
@@ -278,8 +282,8 @@ def _try_streaming(
         "stream_options": {"include_usage": True},
     }
     body.update(_openai_options(url, tool_schemas, reasoning))
+    completion = StreamedCompletion(on_chunk if live else None, on_thinking, held=scope in _OPENED_IN_PROMPT)
     try:
-        completion = StreamedCompletion(on_chunk if live else None, on_thinking)
         stream_options = {}
         if overrides.get("feedback_override") is not None:
             stream_options["feedback"] = overrides["feedback_override"]
@@ -298,6 +302,10 @@ def _try_streaming(
             return None
         raise
     turn = parse(data)
+    if completion.closed_without_opening:
+        _OPENED_IN_PROMPT.add(scope)
+    elif turn.text:
+        _OPENED_IN_PROMPT.discard(scope)
     if data.get(STREAM_EVENTS_KEY) == 0:
         set_supports_streaming(cache_url, False, cache_model, cache_dialect)
         if not turn.text and not turn.tool_calls:

@@ -88,7 +88,11 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    (DeepSeek, OpenRouter) and Anthropic `thinking` blocks. `llm/thinking.py`
    cuts the tags out — across chunk boundaries, and before the JSON protocol
    parses, or the parser may pick a candidate object out of the reasoning.
-   The reasoning **text** goes to the UI and never back to the model; the saved
+   A chat template that opens the reasoning in the prompt (R1, QwQ) streams it
+   as plain text up to a bare `</think>`. Once a model has done that, its later
+   streams hold the draft until that tag (`transport._OPENED_IN_PROMPT`, for
+   the session); holding every model's draft would cost all of them the live
+   answer. The reasoning **text** goes to the UI and never back to the model; the saved
    conversation keeps it only as a display-only trace entry (`state/trace.py`)
    that the model's window skips — a reopened chat shows it again (the user's
    call). Anthropic blocks are the exception: with tools
