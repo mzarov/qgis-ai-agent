@@ -342,6 +342,14 @@ class PrepareNewLayerTest(DrawTestBase):
         self.assertEqual(prepared["fields"], {"built": "date", "note": "text", "height": "double"})
         self.assertEqual(prepared["features"][0]["attributes"]["height"], 3.0)
 
+    def test_metres_with_only_a_projected_layer_crs_are_read_in_that_crs(self):
+        prepared = self.tool.prepare(self.new_point([412000.0, 6178000.0], layer_crs="EPSG:32637"))
+        self.assertEqual((prepared["crs"], prepared["layer_crs"]), ("EPSG:32637", "EPSG:32637"))
+
+    def test_degrees_without_crs_stay_degrees_even_with_a_projected_layer_crs(self):
+        prepared = self.tool.prepare(self.new_point(layer_crs="EPSG:32637"))
+        self.assertEqual((prepared["crs"], prepared["layer_crs"]), ("EPSG:4326", "EPSG:32637"))
+
     def test_utm_picks_the_zone_from_the_coordinates(self):
         prepared = self.tool.prepare(self.new_point(layer_crs="utm"))
         self.assertEqual(prepared["layer_crs"], "EPSG:32637")

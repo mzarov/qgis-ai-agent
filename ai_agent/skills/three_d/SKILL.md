@@ -1,6 +1,6 @@
 ---
 name: three_d
-description: Open a 3D map view. Load this for "show in 3D", "terrain view", "tilt the map"; terrain, exaggeration and camera are then set with run_python from the python skill.
+description: Open a 3D map view. Load this for "show in 3D", "terrain view", "tilt the map". Open the view first; terrain, exaggeration and camera come after it, with run_python from the python skill.
 tools: [open_3d_view]
 ---
 

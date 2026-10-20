@@ -44,6 +44,9 @@ and the `Qgs*` / Qt classes — no imports needed for those.
 
 `print()` is how you report back. Print what you checked, not just "done".
 
+The map background is `iface.mapCanvas().setCanvasColor(QColor(...))`; to keep
+it with the project, also `project.setBackgroundColor(QColor(...))`.
+
 Errors come back with the traceback — fix the snippet and queue a corrected
 one instead of asking the user what went wrong.
 
