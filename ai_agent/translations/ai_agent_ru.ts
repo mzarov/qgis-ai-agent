@@ -337,7 +337,7 @@
         <translation>Локальному серверу ключ не нужен.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="162"/>
+        <location filename="ai_agent/core/llm/client.py" line="166"/>
         <source>A non-local model endpoint must use HTTPS. Use an SSH tunnel to localhost for a trusted LAN server.</source>
         <translation>Нелокальная конечная точка модели должна использовать HTTPS. Для доверенного сервера в локальной сети используйте SSH-туннель на localhost.</translation>
     </message>
@@ -516,7 +516,7 @@
         <translation>Добавляю виртуальное поле «{0}» в «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="262"/>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="265"/>
         <source>Adding {0} feature(s) to '{1}'.</source>
         <translation>Добавляю объекты ({0}) в «{1}».</translation>
     </message>
@@ -531,17 +531,17 @@
         <translation>Добавляю слой {0} «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="259"/>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="262"/>
         <source>Adding {0} line(s) to '{1}'.</source>
         <translation>Добавляю линии ({0}) в «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="257"/>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="260"/>
         <source>Adding {0} point(s) to '{1}'.</source>
         <translation>Добавляю точки ({0}) в «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="261"/>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="264"/>
         <source>Adding {0} polygon(s) to '{1}'.</source>
         <translation>Добавляю полигоны ({0}) в «{1}».</translation>
     </message>
@@ -1175,7 +1175,7 @@
         <translation>Сервис недоступен — проверьте подключение к интернету или прокси в QGIS.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="45"/>
+        <location filename="ai_agent/core/llm/client.py" line="49"/>
         <source>Could not reach {endpoint}: {reason}. Check the address, the network and the QGIS proxy settings.</source>
         <translation>Не удалось достучаться до {endpoint}: {reason}. Проверьте адрес, сеть и настройки прокси в QGIS.</translation>
     </message>
@@ -1313,7 +1313,7 @@
         <translation>Подробно</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="168"/>
+        <location filename="ai_agent/core/llm/client.py" line="172"/>
         <source>Do not put credentials in the API URL. Store the provider secret in the API key field instead.</source>
         <translation>Не добавляйте учётные данные в URL API. Сохраните секрет провайдера в поле API-ключа.</translation>
     </message>
@@ -1372,22 +1372,22 @@
         <translation>Рисую диаграмму: {0}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="252"/>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="255"/>
         <source>Drawing {0} feature(s) in new scratch layer '{1}'.</source>
         <translation>Рисую объекты ({0}) в новом временном слое «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="249"/>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="252"/>
         <source>Drawing {0} line(s) in new scratch layer '{1}'.</source>
         <translation>Рисую линии ({0}) в новом временном слое «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="247"/>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="250"/>
         <source>Drawing {0} point(s) in new scratch layer '{1}'.</source>
         <translation>Рисую точки ({0}) в новом временном слое «{1}».</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="251"/>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="254"/>
         <source>Drawing {0} polygon(s) in new scratch layer '{1}'.</source>
         <translation>Рисую полигоны ({0}) в новом временном слое «{1}».</translation>
     </message>
@@ -1501,7 +1501,7 @@
         </translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="179"/>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="182"/>
         <source>Features to add: {0}</source>
         <translation>Будет добавлено объектов: {0}</translation>
     </message>
@@ -1833,7 +1833,7 @@
         <translation>Слой «{0}» перерисован</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="178"/>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="181"/>
         <location filename="ai_agent/qgis_tools/edit/delete_features.py" line="57"/>
         <location filename="ai_agent/qgis_tools/edit/update_attributes.py" line="76"/>
         <source>Layer: {0}</source>
@@ -2162,12 +2162,12 @@
         <translation>Ночные огни (VIIRS Black Marble 2016)</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="145"/>
+        <location filename="ai_agent/core/llm/client.py" line="149"/>
         <source>No API URL. Set one in Settings.</source>
         <translation>Не задан адрес API. Укажите его в настройках.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="41"/>
+        <location filename="ai_agent/core/llm/client.py" line="45"/>
         <source>No API key. Set one in Settings — or connect to a local model: an address on localhost needs no key.</source>
         <translation>Не задан ключ API. Укажите его в настройках — или подключитесь к локальной модели: адресу на localhost ключ не нужен.</translation>
     </message>
@@ -3361,29 +3361,29 @@
         <translation>Проверяю подключение…</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="159"/>
-        <location filename="ai_agent/core/llm/client.py" line="149"/>
-        <location filename="ai_agent/core/llm/client.py" line="157"/>
+        <location filename="ai_agent/core/llm/client.py" line="163"/>
+        <location filename="ai_agent/core/llm/client.py" line="153"/>
+        <location filename="ai_agent/core/llm/client.py" line="161"/>
         <source>The API URL is malformed. Check its host, brackets and port.</source>
         <translation>URL API некорректен. Проверьте адрес узла, скобки и порт.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="152"/>
+        <location filename="ai_agent/core/llm/client.py" line="156"/>
         <source>The API URL must use http or https.</source>
         <translation>URL API должен использовать http или https.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="274"/>
+        <location filename="ai_agent/core/llm/client.py" line="287"/>
         <source>The API returned non-JSON: {0}</source>
         <translation>API вернул не JSON: {0}</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="277"/>
+        <location filename="ai_agent/core/llm/client.py" line="290"/>
         <source>The API returned something that is not a JSON object.</source>
         <translation>API вернул нечто, что не является объектом JSON.</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="124"/>
+        <location filename="ai_agent/core/llm/client.py" line="128"/>
         <source>The API returned {0}: {1}</source>
         <translation>API вернул {0}: {1}</translation>
     </message>
@@ -3658,7 +3658,7 @@
         <translation>Эти временные слои вернутся пустыми: {0}.</translation>
     </message>
     <message>
-        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="180"/>
+        <location filename="ai_agent/qgis_tools/draw/draw_features.py" line="183"/>
         <source>They are committed to the layer's data source; Undo does not remove them.</source>
         <translation>Они записываются в источник данных слоя; отмена их не удалит.</translation>
     </message>
@@ -4128,7 +4128,7 @@
         <translation>выбираю объекты</translation>
     </message>
     <message>
-        <location filename="ai_agent/core/llm/client.py" line="220"/>
+        <location filename="ai_agent/core/llm/client.py" line="234"/>
         <source>service unavailable</source>
         <translation>сервис недоступен</translation>
     </message>
@@ -4241,6 +4241,11 @@
         <location filename="ai_agent/ui/settings_advanced.py" line="73"/>
         <source>{0}, {1}. This cannot be undone.</source>
         <translation>{0}, {1}. Отменить нельзя.</translation>
+    </message>
+    <message>
+        <location filename="ai_agent/core/llm/client.py" line="41"/>
+        <source>{endpoint} did not answer within {seconds} s, the QGIS network timeout. Raise it in Settings → Options → Network → Timeout, or use a faster model.</source>
+        <translation>{endpoint} не ответил за {seconds} с — это сетевой тайм-аут QGIS. Увеличьте его в меню Настройки → Параметры → Сеть → Тайм-аут или выберите модель побыстрее.</translation>
     </message>
     <message>
         <location filename="ai_agent/core/llm/client.py" line="37"/>

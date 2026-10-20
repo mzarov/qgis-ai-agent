@@ -65,6 +65,11 @@ class CompactorTest(unittest.TestCase):
     def test_estimates_count_characters_by_four(self):
         self.assertEqual(estimated_tokens([{"content": "x" * 400}, {"content": "y" * 40}]), 110)
 
+    def test_a_picture_counts_as_a_flat_amount_not_as_its_base64(self):
+        picture = {"type": "image_url", "image_url": {"url": "data:image/png;base64," + "A" * 700_000}}
+        message = {"role": "user", "content": [{"type": "text", "text": "x" * 400}, picture]}
+        self.assertEqual(estimated_tokens([message]), 100 + compaction.IMAGE_TOKENS)
+
 
 class Dock:
     def __init__(self):

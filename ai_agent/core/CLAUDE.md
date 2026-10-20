@@ -88,7 +88,11 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    (DeepSeek, OpenRouter) and Anthropic `thinking` blocks. `llm/thinking.py`
    cuts the tags out — across chunk boundaries, and before the JSON protocol
    parses, or the parser may pick a candidate object out of the reasoning.
-   The reasoning **text** goes to the UI and never back to the model; the saved
+   A chat template that opens the reasoning in the prompt (R1, QwQ) streams it
+   as plain text up to a bare `</think>`. Once a model has done that, its later
+   streams hold the draft until that tag (`transport._OPENED_IN_PROMPT`, for
+   the session); holding every model's draft would cost all of them the live
+   answer. The reasoning **text** goes to the UI and never back to the model; the saved
    conversation keeps it only as a display-only trace entry (`state/trace.py`)
    that the model's window skips — a reopened chat shows it again (the user's
    call). Anthropic blocks are the exception: with tools
@@ -117,6 +121,8 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    A final reply cut off by the output limit, or an empty one, gets exactly one
    more turn with a plugin note (`notices.CONTINUE_TRUNCATED` / `EMPTY_REPLY`);
    the cut-off text is kept as a preamble first so the chat does not lose it.
+   A cut JSON-protocol reply is raw JSON and a continued tail would not parse:
+   it is not kept, and the note is `CALLS_CUT_OFF`, to send it again.
    The queued steps the model sees are `WriteBatch.pending_lines()` — tool name
    and public arguments, never the translated UI summaries — and an identical
    second call is answered `duplicate: true` instead of a silent success.
@@ -139,7 +145,9 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    that are genuinely the user's.
 10. **The user can break in mid-run.** `interject` appends the message to the
    live transcript framed as a correction, so the model sees it on its next
-   step instead of the run having to be restarted. The composer stays editable
+   step instead of the run having to be restarted. The turn that was on its way
+   goes before the correction, with its results; a final turn it overtook is
+   kept as a preamble and gets one more step. The composer stays editable
    while busy for exactly this; the ■ button is still an abort, not a send.
 11. **The transcript compacts itself.** Only the last `KEEP_FULL_RESULTS` tool
    results are rendered in full and only the newest image is carried; older ones
@@ -198,7 +206,8 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     status ≥ 500 (529 is Anthropic's overload), never on a 429 for an exhausted
     quota, and on connection failures that came back **fast**
     (under `FAST_FAILURE_SECONDS`) — a fast failure is a reset or a refusal, a
-    slow one is a timeout that would only time out again. Never after a stream
+    slow one is a timeout that would only time out again; a `ModelTimeout` is
+    never retried. Never after a stream
     has delivered chunks (the draft would be duplicated), never after the user
     cancelled (the pause polls the feedback every quarter second); streamed
     reasoning counts as delivered too. Each pause is logged to the QGIS message
@@ -206,7 +215,13 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     → `AgentLoop.retrying`) to the status line, which counts down until the feed
     moves on; it never becomes a feed message. Blocking calls wait `blocking_timeout` — five
     times the stream idle limit — because a non-streamed answer arrives only
-    when the model is done. A failure that survives the retries leaves the
+    when the model is done. QGIS aborts any reply quiet for its global network
+    timeout (60 s by default), whatever the request asked, and reports success
+    with no status: a stream raises that reply's QGIS timer past its own idle
+    limit (`network.py`), a blocking call cannot, so every model call with
+    `on_chunk` streams, tool-less and JSON-protocol ones too, and a blocking
+    answer without a status is a transport failure — a `ModelTimeout` naming the
+    QGIS setting when it came at that limit. A failure that survives the retries leaves the
     worker as a `TurnFailure` (`llm/failure_kinds.py`): the message plus its
     kind — connection, timeout, key, quota, busy, not found, setup. The loop
     keeps the kind (`failure_kind`), `explain_run_failure`

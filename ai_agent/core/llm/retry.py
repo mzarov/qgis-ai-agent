@@ -5,7 +5,7 @@ from typing import Any
 
 from qgis.core import Qgis, QgsMessageLog
 
-from ai_agent.core.llm.client import ApiResponseError
+from ai_agent.core.llm.client import ApiResponseError, ModelTimeout
 
 LOG_TAG = "AI Agent"
 RETRYABLE_STATUSES = frozenset({408, 425, 429})
@@ -105,6 +105,8 @@ def is_retryable(error: Exception, elapsed: float) -> bool:
         if error.status_code == 429 and any(marker in (error.body or "").lower() for marker in QUOTA_MARKERS):
             return False
         return error.status_code in RETRYABLE_STATUSES or error.status_code >= SERVER_ERROR
+    if isinstance(error, ModelTimeout):
+        return False
     return isinstance(error, ConnectionError) and elapsed < FAST_FAILURE_SECONDS
 
 

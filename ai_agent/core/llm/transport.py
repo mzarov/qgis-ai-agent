@@ -47,6 +47,9 @@ from ai_agent.core.settings import (
     set_supports_tools,
 )
 
+# Models whose chat template opens the reasoning in the prompt: their drafts wait for the bare close tag.
+_OPENED_IN_PROMPT: set[tuple[str, str, str]] = set()
+
 
 def call_model(
     messages: list[dict[str, Any]],
@@ -123,26 +126,23 @@ def _call_openai(
     supports_tools = get_supports_tools(cache_url, cache_model, cache_dialect)
 
     if supports_tools is not False and tool_schemas:
-        streamed = _try_streaming(messages, tool_schemas, overrides, timeout, url, on_chunk, on_thinking, reasoning)
-        if streamed is not None:
-            return streamed
         try:
-            data = post_chat_completion(
-                messages,
-                extra_body=_openai_options(url, tool_schemas, reasoning),
-                timeout=blocking_timeout(timeout),
-                **overrides,
+            return _call_with_tools(
+                messages, tool_schemas, overrides, timeout, url, on_chunk, on_thinking, reasoning, supports_tools
             )
         except ApiResponseError as err:
             if not tools_unsupported(err) or _refuses_reasoning(err, reasoning):
                 raise
             set_supports_tools(cache_url, False, cache_model, cache_dialect)
-        else:
-            if supports_tools is None:
-                set_supports_tools(cache_url, True, cache_model, cache_dialect)
-            return parse_native_turn(data)
 
-    return parse_json_turn(
+    # Tools listed in the prompt make the reply a JSON object: parsed as the protocol, never shown as a draft.
+    parse = parse_json_turn if tool_schemas else parse_native_turn
+    streamed = _try_streaming(
+        messages, [], overrides, timeout, url, on_chunk, on_thinking, reasoning, parse, live=not tool_schemas
+    )
+    if streamed is not None:
+        return streamed
+    return parse(
         post_chat_completion(
             messages,
             extra_body=_openai_options(url, reasoning=reasoning),
@@ -150,6 +150,32 @@ def _call_openai(
             **overrides,
         )
     )
+
+
+def _call_with_tools(
+    messages: list[dict[str, Any]],
+    tool_schemas: list[dict[str, Any]],
+    overrides: dict[str, Any],
+    timeout: int,
+    url: str,
+    on_chunk: Callable[[str], None] | None,
+    on_thinking: Callable[[str], None] | None,
+    reasoning: bool,
+    supports_tools: bool | None,
+) -> ModelTurn:
+    streamed = _try_streaming(messages, tool_schemas, overrides, timeout, url, on_chunk, on_thinking, reasoning)
+    if streamed is not None:
+        return streamed
+    data = post_chat_completion(
+        messages,
+        extra_body=_openai_options(url, tool_schemas, reasoning),
+        timeout=blocking_timeout(timeout),
+        **overrides,
+    )
+    if supports_tools is None:
+        cache_url, cache_model, cache_dialect = _capability_scope(url, overrides)
+        set_supports_tools(cache_url, True, cache_model, cache_dialect)
+    return parse_native_turn(data)
 
 
 def _refuses_reasoning(err: ApiResponseError, reasoning: bool) -> bool:
@@ -234,8 +260,11 @@ def _try_streaming(
     on_chunk: Callable[[str], None] | None,
     on_thinking: Callable[[str], None] | None = None,
     reasoning: bool = False,
+    parse: Callable[[dict[str, Any]], ModelTurn] = parse_native_turn,
+    live: bool = True,
 ) -> ModelTurn | None:
-    cache_url, cache_model, cache_dialect = _capability_scope(url, overrides)
+    scope = _capability_scope(url, overrides)
+    cache_url, cache_model, cache_dialect = scope
     if on_chunk is None or get_supports_streaming(cache_url, cache_model, cache_dialect) is False:
         return None
     endpoint, headers, model = build_request(
@@ -253,8 +282,8 @@ def _try_streaming(
         "stream_options": {"include_usage": True},
     }
     body.update(_openai_options(url, tool_schemas, reasoning))
+    completion = StreamedCompletion(on_chunk if live else None, on_thinking, held=scope in _OPENED_IN_PROMPT)
     try:
-        completion = StreamedCompletion(on_chunk, on_thinking)
         stream_options = {}
         if overrides.get("feedback_override") is not None:
             stream_options["feedback"] = overrides["feedback_override"]
@@ -272,7 +301,11 @@ def _try_streaming(
             set_supports_streaming(cache_url, False, cache_model, cache_dialect)
             return None
         raise
-    turn = parse_native_turn(data)
+    turn = parse(data)
+    if completion.closed_without_opening:
+        _OPENED_IN_PROMPT.add(scope)
+    elif turn.text:
+        _OPENED_IN_PROMPT.discard(scope)
     if data.get(STREAM_EVENTS_KEY) == 0:
         set_supports_streaming(cache_url, False, cache_model, cache_dialect)
         if not turn.text and not turn.tool_calls:
@@ -280,7 +313,8 @@ def _try_streaming(
         return turn
     if get_supports_streaming(cache_url, cache_model, cache_dialect) is None:
         set_supports_streaming(cache_url, True, cache_model, cache_dialect)
-        set_supports_tools(cache_url, True, cache_model, cache_dialect)
+        if tool_schemas:
+            set_supports_tools(cache_url, True, cache_model, cache_dialect)
     return turn
 
 

@@ -224,6 +224,25 @@ class LoopApplyFailureTest(unittest.TestCase):
         self.assertEqual((self.applied, self.interrupted), ([], []))
         self.assertEqual(self.executor.ran, ["run_processing"])
 
+    def test_unloading_while_apply_pumps_events_runs_no_further_step(self):
+        class Pump:
+            @staticmethod
+            def processEvents():
+                self.loop.shutdown()
+
+        self.loop._batch._calls = calls("set_opacity", "set_symbol")
+        with mock.patch.object(apply_run_module, "QApplication", Pump):
+            self.loop.confirm_pending()
+        self.assertEqual(self.executor.ran, [])
+        self.assertEqual((self.applied, self.interrupted), ([], []))
+        self.assertFalse(self.loop.is_applying)
+
+    def test_a_detached_batch_stays_cancelled(self):
+        self.loop._batch._calls = calls("run_processing", "set_symbol")
+        self.loop.confirm_pending()
+        self.loop.shutdown()
+        self.assertTrue(self.loop._batch._cancel_requested)
+
     def test_cancel_during_a_long_step_stops_it_and_reports_the_partial_apply(self):
         progress = []
         self.loop.tool_progressed.connect(lambda percent, done: progress.append(percent))

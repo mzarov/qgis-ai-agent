@@ -71,6 +71,12 @@ class JsonTurnTest(unittest.TestCase):
         self.assertEqual(turn.text, "просто текст")
         self.assertEqual(turn.tool_calls, [])
 
+    def test_the_finish_reason_is_kept_whatever_the_reply_holds(self):
+        for content in ("", "plain prose", '{"text": "t", "tool_calls": []}'):
+            with self.subTest(content=content):
+                data = {"choices": [{"message": {"content": content}, "finish_reason": "length"}]}
+                self.assertEqual(parse_json_turn(data).finish_reason, "length")
+
     def test_params_key_is_accepted(self):
         turn = parse_json_turn(json_reply('{"tool_calls":[{"tool":"list_layers","params":{"a":1}}]}'))
         self.assertEqual(turn.tool_calls[0].arguments, {"a": 1})

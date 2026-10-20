@@ -54,6 +54,8 @@ class ApplyRun:
                 call = self._calls.pop(0)
                 self._on_start(call)
                 QApplication.processEvents()
+                if self._detached:
+                    break
                 result = self._blocked(call)
                 if result is None:
                     self._batch._executing_call = call

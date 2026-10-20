@@ -4,6 +4,7 @@ from qgis.PyQt.QtCore import QObject, pyqtSignal
 
 from ai_agent.core.agent.request import build_overrides
 from ai_agent.core.agent.turn_thread import TurnThreadOwner
+from ai_agent.core.llm.images import IMAGE_URL_BLOCK
 from ai_agent.core.llm.turns import ModelTurn
 
 COMPACT_SYSTEM = (
@@ -22,12 +23,25 @@ COMPACT_REQUEST = "Write the handoff summary now."
 EMPTY_SUMMARY = "The model returned an empty summary."
 CHARS_PER_TOKEN = 4
 WIDE_CHARS_PER_TOKEN = 2.5
+IMAGE_TOKENS = 1600
 
 
 def estimated_tokens(messages: list[dict[str, Any]]) -> int:
-    text = "".join(str(message.get("content") or "") for message in messages)
+    texts: list[str] = []
+    images = 0
+    for message in messages:
+        content = message.get("content")
+        if not isinstance(content, list):
+            texts.append(str(content or ""))
+            continue
+        for block in content:
+            if isinstance(block, dict) and block.get("type") == IMAGE_URL_BLOCK:
+                images += 1
+            elif isinstance(block, dict):
+                texts.append(str(block.get("text") or ""))
+    text = "".join(texts)
     latin = sum(1 for character in text if character.isascii())
-    return int(latin / CHARS_PER_TOKEN + (len(text) - latin) / WIDE_CHARS_PER_TOKEN)
+    return int(latin / CHARS_PER_TOKEN + (len(text) - latin) / WIDE_CHARS_PER_TOKEN) + images * IMAGE_TOKENS
 
 
 class Compactor(QObject):  # type: ignore[misc]

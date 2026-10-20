@@ -6,7 +6,7 @@ from ai_agent.core.agent.announcements import announces_a_step
 from ai_agent.core.agent.batch import MODEL_LINE_LIMIT, _model_line
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.transcript import ToolResult
-from ai_agent.core.llm.turns import ModelTurn, ToolCall
+from ai_agent.core.llm.turns import PROTOCOL_JSON, ModelTurn, ToolCall, parse_json_turn
 from ai_agent.skills.registry import SKILL_REGISTRY
 
 
@@ -70,6 +70,13 @@ class NudgeTest(unittest.TestCase):
         self.assertEqual(self.last_user_text(), notices.CONTINUE_TRUNCATED)
         self.loop._on_turn(ModelTurn(text="rest.", finish_reason="length"))
         self.assertEqual(self.finished, ["rest."])
+
+    def test_a_cut_off_json_protocol_reply_is_sent_again_not_shown_raw(self):
+        self.loop._prompt_protocol = PROTOCOL_JSON
+        raw = '{"text": "Buffering.", "tool_calls": [{"name": "run_python", "arguments": {"code": "for f in'
+        self.loop._on_turn(parse_json_turn({"choices": [{"message": {"content": raw}, "finish_reason": "length"}]}))
+        self.assertEqual((self.finished, self.kept), ([], []))
+        self.assertEqual(self.last_user_text(), notices.CALLS_CUT_OFF)
 
     def test_an_empty_answer_gets_one_more_turn(self):
         self.loop._on_turn(ModelTurn(text=""))
