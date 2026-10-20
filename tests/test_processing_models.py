@@ -419,14 +419,19 @@ class HistoryTest(unittest.TestCase):
         self.assertEqual(history_module.shorten(object.__new__(_Named))[:1], "<")
 
     def test_secrets_inside_json_values_and_secret_named_parameters_are_hidden(self):
-        data = {"user": "me", "password": "hunter2", "list": [{"api_key": "k-123"}], "deep": {"x": {"token": "t-9"}}}
+        data = {
+            "user": "me",
+            "password": "hunter2",  # pragma: allowlist secret
+            "list": [{"api_key": "k-123"}],  # pragma: allowlist secret
+            "deep": {"x": {"token": "t-9"}},
+        }
         run = {
             "algorithm_id": "native:httprequest",
             "parameters": {
                 "inputs": {
                     "URL": "https://api.example/login",
                     "DATA": " " + json.dumps(data),
-                    "PASSWORD": "pg-secret",
+                    "PASSWORD": "pg-secret",  # pragma: allowlist secret
                     "HEADERS": {"Authorization": "Bearer xyz", "deep": {"deeper": {"token": "t-1"}}},
                 }
             },
