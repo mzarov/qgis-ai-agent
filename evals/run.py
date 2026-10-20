@@ -25,6 +25,8 @@ KEY_VARIABLE = "EVAL_API_KEY"
 BEARER = "Bearer"
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
 MAX_CONCURRENCY = 2
+# A slow gateway answers in minutes, and a case may ask it up to four times.
+PROVIDER_TIMEOUT_MS = 30 * 60 * 1000
 MAX_TOKENS = 4096
 FAILURE_ERROR = 2
 
@@ -42,23 +44,24 @@ def write_config(suite: str, cases: Path, models: list[str], url: str, locale: s
     tools = OUT / f"{suite}.tools.json"
     tools.write_text(json.dumps(agent_request.tool_schemas(skill), ensure_ascii=False, indent=1), encoding="utf-8")
     keyless = urlsplit(url).hostname in LOCAL_HOSTS and not os.environ.get(KEY_VARIABLE)
+    # The key stays in the environment: the provider reads it when it sends, so it never lands on disk.
     provider_config: dict[str, Any] = {
-        "apiBaseUrl": url,
-        "apiKeyEnvar": KEY_VARIABLE,
-        "tools": f"file://{tools}",
-        "tool_choice": "auto",
+        "url": url,
+        "tools": str(tools),
         "temperature": 0,
         "max_tokens": MAX_TOKENS,
+        "key_variable": "" if keyless else KEY_VARIABLE,
+        "auth": auth.strip() or BEARER,
+        "timeout": PROVIDER_TIMEOUT_MS,
+        "workers": MAX_CONCURRENCY,
     }
-    if keyless:
-        provider_config["apiKeyRequired"] = False
-    elif auth.strip().casefold() != BEARER.casefold():
-        # promptfoo fills the key in from the environment when it sends, so it is never written into the config.
-        provider_config["headers"] = {"Authorization": f"{auth.strip()} {{{{ env.{KEY_VARIABLE} }}}}"}
     config = {
         "description": f"AI Agent skill evals: {suite}",
         "prompts": [{"id": f"file://{EVALS / 'prompt.py'}:build", "label": "agent request"}],
-        "providers": [{"id": f"openai:chat:{model}", "label": model, "config": provider_config} for model in models],
+        "providers": [
+            {"id": f"file://{EVALS / 'provider.py'}", "label": model, "config": {**provider_config, "model": model}}
+            for model in models
+        ],
         "defaultTest": {
             "vars": {"skill": skill, "locale": locale},
             "assert": [{"type": "python", "value": f"file://{EVALS / 'checks.py'}:expected"}],
@@ -106,6 +109,7 @@ def run_suite(
         "PROMPTFOO_DISABLE_TELEMETRY": "1",
         "PROMPTFOO_DISABLE_UPDATE": "1",
         "PROMPTFOO_DISABLE_SHARING": "1",
+        "PROMPTFOO_SCHEDULER_QUEUE_TIMEOUT_MS": str(PROVIDER_TIMEOUT_MS),
         **(extra_env or {}),
     }
     subprocess.run(command, cwd=REPO, env=environment, check=False)

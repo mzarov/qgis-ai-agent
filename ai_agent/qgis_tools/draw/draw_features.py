@@ -15,6 +15,8 @@ from ai_agent.qgis_tools.draw.coordinates import (
     GEOMETRIES,
     LINE,
     MAX_FEATURES,
+    MAX_LATITUDE,
+    MAX_LONGITUDE,
     POINT,
     POLYGON,
     UTM_KEYWORD,
@@ -127,8 +129,9 @@ class DrawFeaturesTool(BaseTool):
         geometry = checked_geometry(params.get("geometry"))
         new_name = _new_name(params)
         _check_target_choice(params, new_name)
-        source = checked_crs(params.get("crs"))
         shapes, rows = _parsed_features(params.get("features"), geometry, allow_empty=bool(new_name))
+        params = _with_implied_crs(params, shapes, new_name)
+        source = checked_crs(params.get("crs"))
         crs_text = crs_label(source, params.get("crs"))
         vertices = [vertex for shape in shapes for vertex in shape]
         prepared = {key: value for key, value in params.items() if key not in NEW_LAYER_ONLY and value is not None}
@@ -260,3 +263,15 @@ def _append_summary(kind: str) -> str:
     if kind == POLYGON:
         return tr("Adding {0} polygon(s) to '{1}'.")
     return tr("Adding {0} feature(s) to '{1}'.")
+
+
+def _with_implied_crs(params: dict[str, Any], shapes: list[list[Vertex]], new_name: str) -> dict[str, Any]:
+    # Metres with only a projected layer_crs cannot be degrees: they are in that CRS.
+    layer_crs = str(params.get("layer_crs") or "").strip()
+    if str(params.get("crs") or "").strip() or not new_name or not layer_crs or layer_crs.lower() == UTM_KEYWORD:
+        return params
+    pairs = [vertex for shape in shapes for vertex in shape]
+    if not pairs or all(abs(x) <= MAX_LONGITUDE and abs(y) <= MAX_LATITUDE for x, y in pairs):
+        return params
+    target = checked_crs(layer_crs, "layer_crs")
+    return params if target.isGeographic() else {**params, "crs": layer_crs}

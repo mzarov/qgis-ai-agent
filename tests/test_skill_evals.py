@@ -1,5 +1,7 @@
 import json
+import math
 import re
+import shutil
 import sys
 import tempfile
 import unittest
@@ -11,7 +13,9 @@ sys.path.insert(0, str(EVALS))
 
 import checks  # noqa: E402
 import context as agent_request  # noqa: E402
+import fixture_reads  # noqa: E402
 import prompt as prompt_function  # noqa: E402
+import provider  # noqa: E402
 import run as runner  # noqa: E402
 import thresholds  # noqa: E402
 
@@ -23,6 +27,8 @@ from ai_agent.skills.registry import SKILL_REGISTRY  # noqa: E402
 
 CALL_LINE = re.compile(r"^\s*(?:-\s*)?call:\s*(\[[^\]]*\]|[A-Za-z0-9_]+)", re.MULTILINE)
 LOADS = re.compile(r"(?:loads|not_loads):\s*\[([^\]]*)\]")
+NAMED_READS = re.compile(r"^[ \t]*reads:[ \t]*(\S.*)$", re.MULTILINE)
+EARTH_RADIUS = 6378137.0
 
 
 def names_in(value: str) -> list[str]:
@@ -82,6 +88,14 @@ class CasesTest(unittest.TestCase):
 
     def test_the_main_skills_have_cases(self):
         self.assertTrue({"routing", "inspect", "style", "processing", "fields", "project"} <= set(runner.suites()))
+
+    def test_every_read_a_case_names_is_in_the_fixture(self):
+        data = fixture_reads.load()
+        for suite, cases in runner.suites().items():
+            for match in NAMED_READS.finditer(cases.read_text(encoding="utf-8")):
+                for read in prompt_function.reads(match.group(1)):
+                    with self.subTest(suite=suite, read=read):
+                        self.assertTrue(agent_request._read(read, data)[2])
 
     def test_no_case_uses_a_list_for_its_reads(self):
         for suite, cases in runner.suites().items():
@@ -157,11 +171,281 @@ class ChecksTest(unittest.TestCase):
             checks.mismatch(expect, checks.tool_calls(guessing)), "called draw_features, which this case forbids"
         )
 
+    def test_a_call_can_be_required_to_come_after_another(self):
+        expect = {"call": ["describe_processing"], "after": {"run_processing": "describe_processing"}}
+        describe = self.call("describe_processing", algorithm_id="native:buffer")
+        run = self.call("run_processing", algorithm_id="native:buffer")
+        self.assertIsNone(checks.mismatch(expect, checks.tool_calls([describe, run])))
+        self.assertIsNone(checks.mismatch(expect, checks.tool_calls([describe])))
+        self.assertEqual(
+            checks.mismatch(expect, checks.tool_calls([run, describe])),
+            "called run_processing before describe_processing",
+        )
+
+    def test_an_osm_area_named_canvas_counts_as_the_current_view(self):
+        output = [self.call("download_osm", key="building", area="Canvas")]
+        self.assertIsNone(
+            checks.mismatch(
+                {"call": "download_osm", "args": {"key": "building", "bbox": "canvas"}}, checks.tool_calls(output)
+            )
+        )
+        self.assertEqual(
+            checks.tool_calls([self.call("download_osm", area="Berlin")]), [("download_osm", {"area": "Berlin"})]
+        )
+
     def test_outputs_in_every_shape_promptfoo_gives(self):
         call = self.call("save_project")
         for output in ([call], {"content": "", "tool_calls": [call]}, json.dumps([call])):
             with self.subTest(output=type(output).__name__):
                 self.assertEqual(checks.tool_calls(output), [("save_project", {})])
+
+
+def model_call(name, **arguments):
+    return {"id": f"call_{name}", "type": "function", "function": {"name": name, "arguments": json.dumps(arguments)}}
+
+
+def model_answer(*calls, tokens=10):
+    usage = {"prompt_tokens": tokens, "completion_tokens": 1, "total_tokens": tokens + 1}
+    return {"choices": [{"message": {"content": "", "tool_calls": list(calls)}}], "usage": usage}
+
+
+class ProviderTest(unittest.TestCase):
+    def setUp(self):
+        folder = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, folder, True)
+        tools = Path(folder) / "tools.json"
+        tools.write_text("[]", encoding="utf-8")
+        self.options = {"config": {"tools": str(tools), "model": "m", "url": "http://127.0.0.1:9/v1"}}
+        self.sent = []
+
+    def run_with(self, *answers):
+        replies = iter(answers)
+
+        def chat(config, messages, tools):
+            self.sent.append([dict(message) for message in messages])
+            return next(replies)
+
+        with mock.patch.object(provider, "chat", chat):
+            return provider.call_api(json.dumps([{"role": "user", "content": "Set capacity"}]), self.options, {})
+
+    def test_reads_the_fixture_holds_are_answered_and_the_action_is_judged(self):
+        result = self.run_with(
+            model_answer(model_call("get_field_values", layer_name="schools", field_name="kind")),
+            model_answer(model_call("load_skill", names=["edit"])),
+        )
+        self.assertEqual([name for name, _ in checks.tool_calls(result["output"])], ["get_field_values", "load_skill"])
+        answered = json.loads(self.sent[1][-1]["content"])
+        self.assertIn("lyceum", answered["unique_values"])
+        self.assertEqual(self.sent[1][-1]["tool_call_id"], "call_get_field_values")
+        self.assertEqual(result["tokenUsage"], {"prompt": 20, "completion": 2, "total": 22})
+
+    def test_a_read_the_fixture_lacks_ends_the_case_there(self):
+        result = self.run_with(model_answer(model_call("get_selection")))
+        self.assertEqual(len(self.sent), 1)
+        self.assertEqual([name for name, _ in checks.tool_calls(result["output"])], ["get_selection"])
+
+    def test_reads_stop_after_the_last_round(self):
+        read = model_call("describe_layer", layer_name="schools")
+        result = self.run_with(*[model_answer(read)] * (provider.MAX_READ_ROUNDS + 1))
+        self.assertEqual(len(self.sent), provider.MAX_READ_ROUNDS + 1)
+        self.assertEqual(len(checks.tool_calls(result["output"])), provider.MAX_READ_ROUNDS + 1)
+
+    def test_a_failed_request_is_an_error_not_a_verdict(self):
+        with mock.patch.object(provider, "chat", side_effect=OSError("refused")):
+            result = provider.call_api("[]", self.options, {})
+        self.assertIn("refused", result["error"])
+
+    def test_a_busy_gateway_is_retried_and_a_refusal_is_not(self):
+        attempts = []
+
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return json.dumps(model_answer()).encode()
+
+        def busy_then_fine(request, timeout):
+            attempts.append(request)
+            if len(attempts) == 1:
+                raise provider.urllib.error.HTTPError(request.full_url, 429, "Too Many Requests", {}, None)
+            if len(attempts) == 2:
+                raise ConnectionResetError(54, "Connection reset by peer")
+            return Response()
+
+        with (
+            mock.patch.object(provider.urllib.request, "urlopen", busy_then_fine),
+            mock.patch.object(provider.time, "sleep") as slept,
+        ):
+            self.assertIn("choices", provider.chat(self.options["config"], [], []))
+        self.assertEqual(len(attempts), 3)
+        self.assertEqual([call.args[0] for call in slept.call_args_list], list(provider.RETRY_DELAYS_S[:2]))
+
+        def refused(request, timeout):
+            raise provider.urllib.error.HTTPError(request.full_url, 401, "Unauthorized", {}, None)
+
+        with (
+            mock.patch.object(provider.urllib.request, "urlopen", refused),
+            mock.patch.object(provider.time, "sleep"),
+            self.assertRaises(provider.urllib.error.HTTPError),
+        ):
+            provider.chat(self.options["config"], [], [])
+
+    def test_the_key_comes_from_the_environment_with_the_auth_scheme(self):
+        sent = []
+
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return json.dumps(model_answer()).encode()
+
+        def urlopen(request, timeout):
+            sent.append(request)
+            return Response()
+
+        config = {**self.options["config"], "key_variable": "EVAL_TEST_KEY", "auth": "OAuth"}
+        with (
+            mock.patch.dict("os.environ", {"EVAL_TEST_KEY": "secret"}),
+            mock.patch.object(provider.urllib.request, "urlopen", urlopen),
+        ):
+            provider.chat(config, [], [])
+            provider.chat({**config, "key_variable": ""}, [], [])
+        self.assertEqual(sent[0].get_header("Authorization"), "OAuth secret")
+        self.assertIsNone(sent[1].get_header("Authorization"), "a local server gets no key")
+        self.assertTrue(sent[0].full_url.endswith("/v1/chat/completions"))
+
+
+# Layer ids are left out of every answer, as in describe_layer: cases name layers by name.
+FIELD_VALUE_KEYS = {"layer_name", "field_name", "field_type", "unique_values"}
+LISTED_LAYER_KEYS = {"name", "kind", "crs", "crs_is_geographic", "style_summary", "style_note"}
+PLUGIN_KEYS = {"plugin", "name", "version", "description"}
+PROJECT_INFO_KEYS = {
+    "title",
+    "display_name",
+    "file_name",
+    "has_unsaved_changes",
+    "crs",
+    "distance_units",
+    "area_units",
+    "ellipsoid",
+    "measurement_note",
+    "layer_tree",
+    "map_themes",
+}
+
+
+def mercator(longitude, latitude):
+    x = math.radians(longitude) * EARTH_RADIUS
+    return x, math.log(math.tan(math.pi / 4 + math.radians(latitude) / 2)) * EARTH_RADIUS
+
+
+class FixtureReadsTest(unittest.TestCase):
+    def setUp(self):
+        self.data = fixture_reads.load()
+
+    def answer(self, name, **arguments):
+        return provider.answered(model_call(name, **arguments), self.data)
+
+    def test_field_values_have_the_tools_keys_and_numbers_a_range(self):
+        capacity = self.answer("get_field_values", layer_name="schools", field_name="capacity")
+        self.assertEqual(set(capacity), FIELD_VALUE_KEYS | {"unique_values_count", "min", "max"})
+        self.assertLess(capacity["min"], 100, "the edit case deletes schools below 100")
+        names = self.answer("get_field_values", layer_name="Roads", field_name=" name")
+        self.assertEqual(set(names), FIELD_VALUE_KEYS | {"unique_values_count", "has_null_values", "null_note"})
+        self.assertIn("Tverskaya", names["unique_values"])
+        ids = self.answer("get_field_values", layer_name="roads", field_name="fid")
+        self.assertEqual(set(ids), FIELD_VALUE_KEYS | {"unique_values_note", "min", "max"})
+
+    def test_project_reads_have_the_tools_keys(self):
+        self.assertEqual(set(self.answer("get_canvas_extent")), {"extent", "project_crs"})
+        self.assertEqual(set(self.answer("get_qgis_info")), {"qgis_version", "locale", "processing_providers"})
+        self.assertEqual(set(self.answer("get_project_info")), PROJECT_INFO_KEYS)
+        listed = self.answer("list_layers")
+        self.assertEqual(set(listed), {"layers", "count"})
+        for layer in listed["layers"]:
+            vector = {"geometry", "feature_count"} if layer["kind"] == "vector" else set()
+            self.assertEqual(set(layer), LISTED_LAYER_KEYS | vector)
+        style = self.answer("describe_style", layer_name="roads")
+        self.assertEqual(set(style), {"name", "kind", "opacity", "renderer", "labeling"})
+        self.assertEqual(style["renderer"]["type"], "singleSymbol")
+        self.assertEqual(set(self.answer("describe_style", layer_name="dem")), {"name", "kind", "opacity", "renderer"})
+
+    def test_plugins_are_filtered_by_query_words_like_the_tool(self):
+        everything = self.answer("list_plugins")
+        self.assertEqual(everything["count"], len(everything["plugins"]))
+        for plugin in everything["plugins"]:
+            self.assertLessEqual(PLUGIN_KEYS, set(plugin))
+        self.assertEqual(self.answer("list_plugins", query="network"), {"plugins": [], "count": 0})
+        self.assertEqual(self.answer("list_plugins", query="isochrones")["count"], 0, "a case reads this as empty")
+        found = self.answer("list_plugins", query="web map")
+        self.assertEqual([plugin["plugin"] for plugin in found["plugins"]], ["qgis2web"])
+        self.assertIn("QuickOSM", [plugin["plugin"] for plugin in self.answer("list_plugins", query="OSM")["plugins"]])
+
+    def test_an_unknown_layer_or_field_is_not_answered(self):
+        self.assertIsNone(self.answer("get_field_values", layer_name="rivers", field_name="name"))
+        self.assertIsNone(self.answer("get_field_values", layer_name="schools", field_name="pupils"))
+        self.assertIsNone(self.answer("describe_style", layer_name="rivers"))
+        self.assertIsNone(self.answer("describe_layer", layer_name="rivers"))
+        self.assertIsNone(self.answer("get_selection"))
+
+    def test_field_values_agree_with_the_described_layers(self):
+        for name, layer in self.data["describe_layer"].items():
+            if layer["kind"] != "vector":
+                continue
+            values = self.data["get_field_values"][name]
+            self.assertEqual([field["name"] for field in layer["fields"]], list(values))
+            for field in layer["fields"]:
+                answer = values[field["name"]]
+                self.assertEqual(answer["field_type"], field["type"])
+                for row in layer["sample"]:
+                    with self.subTest(layer=name, field=field["name"]):
+                        if "min" in answer:
+                            self.assertTrue(answer["min"] <= row[field["name"]] <= answer["max"])
+                        if "unique_values_count" in answer:
+                            self.assertIn(row[field["name"]], answer["unique_values"])
+
+    def test_project_reads_agree_with_the_described_project(self):
+        listed = {layer["name"]: layer for layer in self.data["list_layers"]["layers"]}
+        for name in listed:
+            self.assertIn(f"{name} (", self.data["project_context"])
+        for name, layer in self.data["describe_layer"].items():
+            self.assertEqual(listed[name]["crs"], layer["crs"])
+            self.assertEqual(listed[name].get("feature_count"), layer.get("feature_count"))
+        project = self.data["get_project_info"]
+        tree = [node["name"] for node in project["layer_tree"]]
+        self.assertEqual(set(tree), set(listed))
+        places = [self.data["project_context"].index(f"{name} (") for name in tree]
+        self.assertEqual(places, sorted(places), "the tree lists the layers in the context's order")
+        self.assertIn(f"Project CRS: {project['crs']['authid']}.", self.data["project_context"])
+        units = f"$length in {project['distance_units']}, $area in {project['area_units']}"
+        self.assertIn(f"ellipsoid {project['ellipsoid']}; {units}", self.data["project_context"])
+        view = self.data["get_canvas_extent"]
+        self.assertIn(f"Project CRS: {view['project_crs']}.", self.data["project_context"])
+        districts = self.data["describe_layer"]["districts"]["extent"]
+        west, south = mercator(districts["xmin"], districts["ymin"])
+        east, north = mercator(districts["xmax"], districts["ymax"])
+        extent = view["extent"]
+        self.assertTrue(extent["xmin"] < west < east < extent["xmax"], "the view shows the districts")
+        self.assertTrue(extent["ymin"] < south < north < extent["ymax"], "the view shows the districts")
+        plugins = self.data["list_plugins"]["plugins"]
+        added = {provider for plugin in plugins for provider in plugin.get("processing_providers", [])}
+        self.assertLessEqual(added, set(self.data["get_qgis_info"]["processing_providers"]))
+
+    def test_a_named_field_read_builds_the_tools_answer(self):
+        messages, _ = agent_request.build("edit", "Delete the small schools", ["schools", "schools/capacity"])
+        call = messages[-2]["tool_calls"][0]["function"]
+        self.assertEqual(call["name"], "get_field_values")
+        self.assertEqual(json.loads(call["arguments"]), {"layer_name": "schools", "field_name": "capacity"})
+        self.assertIn('"field_type": "Integer"', messages[-1]["content"])
+        self.assertIn('"min": 60', messages[-1]["content"])
 
 
 class RunnerTest(unittest.TestCase):
@@ -171,7 +455,8 @@ class RunnerTest(unittest.TestCase):
             config = json.loads(path.read_text(encoding="utf-8"))
             tools = json.loads((Path(folder) / "style.tools.json").read_text(encoding="utf-8"))
         self.assertEqual([provider["label"] for provider in config["providers"]], ["m1", "m2"])
-        self.assertFalse(config["providers"][0]["config"]["apiKeyRequired"], "a local server needs no key")
+        self.assertEqual(config["providers"][0]["config"]["key_variable"], "", "a local server needs no key")
+        self.assertEqual(config["providers"][1]["config"]["model"], "m2")
         self.assertEqual(config["defaultTest"]["vars"], {"skill": "style", "locale": "ru"})
         self.assertTrue(config["tests"].endswith("skills/style/evals/cases.yaml"))
         self.assertIn("set_categories", [schema["function"]["name"] for schema in tools])
@@ -182,7 +467,9 @@ class RunnerTest(unittest.TestCase):
                 "fields", runner.suites()["fields"], ["m"], "https://gw.example/v1", "en", "OAuth"
             )
             text = path.read_text(encoding="utf-8")
-        self.assertIn('"Authorization": "OAuth {{ env.EVAL_API_KEY }}"', text)
+        config = json.loads(text)["providers"][0]["config"]
+        self.assertEqual((config["auth"], config["key_variable"]), ("OAuth", "EVAL_API_KEY"))
+        self.assertNotIn("Authorization", text)
 
     def test_a_key_typed_in_a_cyrillic_layout_is_caught_before_the_run(self):
         self.assertEqual(runner.key_problem("sk-abc123"), "")

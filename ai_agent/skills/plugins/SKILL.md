@@ -19,7 +19,8 @@ impossible.
    then by downloads; prefer a plugin that is not experimental. Tell the user
    in one line what it is and why, then queue `install_plugin` with its key —
    the user confirms the installation. A result marked `installed` but not
-   `active` is switched on by the same call.
+   `active` is switched on by the same call. A fitting plugin already found
+   in this conversation is enough: do not search again.
 3. `describe_plugin` — what that plugin offers. A plugin queued for install
    exists only once applied: when the next step needs it, call `apply_now`.
 4. Prefer its **Processing algorithms**: they run through the processing skill

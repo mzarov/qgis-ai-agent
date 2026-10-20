@@ -35,7 +35,8 @@
             suggestions:
               - "Invalid geometries: native:fixgeometries (processing skill) repairs them into a new layer; the source stays as it is."
               - "Repeated geometries: native:deleteduplicategeometries (processing skill) keeps one feature of each in a new layer; their attributes may differ, so show the user the sample ids first."
-    expect: {loads: [processing], not_loads: [edit, python]}
+    # The suggestion asks to show the duplicate ids first: reading them is the expected first step too.
+    expect: {any_of: [{loads: [processing]}, {call: query_layer}], not_loads: [edit, python]}
 
 - description: A clean layer is reported clean and nothing else is done
   vars:

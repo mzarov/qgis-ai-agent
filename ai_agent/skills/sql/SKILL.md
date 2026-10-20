@@ -14,7 +14,8 @@ tools: [query_sql, create_sql_layer]
 - `create_sql_layer` keeps the result as a new virtual layer that stays live
   like a view. Use it when the user wants the result on the map, to style or
   export it, not for an answer in words. Run the query through `query_sql`
-  first when you are not sure of it.
+  first when you are not sure of it; once its result is in the conversation,
+  call `create_sql_layer` with it straight away.
 - A single-layer count, sum or top N is still `query_layer`; a field written
   onto an existing layer is `fields` or Processing.
 

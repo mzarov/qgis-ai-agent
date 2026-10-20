@@ -17,6 +17,15 @@ schemas after the skill under test is loaded, the project context and the
 user's request. The project is described by `evals/fixture.json`. A change to a
 `SKILL.md` or a tool description is measured on the next run.
 
+A model that reads first is not marked down for it. When a turn holds only
+reads the fixture can answer (`describe_layer`, `get_field_values` for any
+field, `describe_processing`, `describe_style`, `list_layers`,
+`get_project_info`, `get_canvas_extent`, `get_qgis_info`, `list_plugins`),
+`evals/provider.py` answers them and asks again, up to three times. The
+answers have the real tools' shape, taken from a headless QGIS run on a
+project built to match the fixture, without layer ids. The case is judged on
+every call made, so a forbidden call still fails it wherever it appears.
+
 Suites:
 
 - **routing** (`evals/routing.yaml`): the first turn, with only `inspect`
@@ -44,7 +53,8 @@ Suites:
   `{steps: [{tool, args, result}]}`. Do not use a YAML list here: promptfoo
   turns a list in `vars` into one test per item.
 - `expect`: `call` and `args`, `loads` and `not_loads`, `not` (tools it must
-  not call), `answer` (a reply without a tool call) and `any_of`.
+  not call), `after` (`{run_processing: describe_processing}`: a run only
+  once described), `answer` (a reply without a tool call) and `any_of`.
   `evals/checks.py` documents every key.
 
 Matching is lenient: strings ignore case, `"500"` equals `500`, a dict matches

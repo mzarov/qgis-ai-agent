@@ -9,7 +9,7 @@ from urllib.parse import parse_qs
 from ai_agent.qgis_tools.base import SAFETY_READ
 from ai_agent.qgis_tools.common.editing import edit_session
 from ai_agent.qgis_tools.common.network import Answer
-from ai_agent.qgis_tools.osm import download_osm, extent, fetch, load, overpass, run_overpass, selectors, tags
+from ai_agent.qgis_tools.osm import args, download_osm, extent, fetch, load, overpass, run_overpass, selectors, tags
 from ai_agent.qgis_tools.osm.run_overpass import RunOverpassTool
 
 
@@ -246,6 +246,13 @@ class ToolTest(unittest.TestCase):
         prepared = self.tool.prepare({"key": "shop", "bbox": "37,55,37.5,55.5"})
         self.assertEqual(prepared["bbox"], "37.000000,55.000000,37.500000,55.500000")
         self.assertEqual(prepared["area"], "")
+
+    def test_the_canvas_keyword_given_as_area_is_the_current_view(self):
+        with mock.patch.object(args, "canvas_bbox", return_value=(37.5, 55.6, 37.7, 55.8)):
+            prepared = self.tool.prepare({"key": "amenity", "value": "cafe", "area": " Canvas "})
+        self.assertEqual(prepared["area"], "")
+        self.assertEqual(prepared["bbox"], "37.500000,55.600000,37.700000,55.800000")
+        self.assertNotIn("area", download_osm._request(prepared)[0], "no place called canvas is searched")
 
     def test_bad_bbox_is_rejected_before_queueing(self):
         with self.assertRaises(ValueError):

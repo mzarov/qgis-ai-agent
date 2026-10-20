@@ -1,15 +1,15 @@
 ---
 name: three_d
-description: Open a 3D map view. Load this for "show in 3D", "terrain view", "tilt the map"; terrain, exaggeration and camera are then set with run_python from the python skill.
+description: Open a 3D map view. Load this for "show in 3D", "terrain view", "tilt the map". Open the view first; terrain, exaggeration and camera come after it, with run_python from the python skill.
 tools: [open_3d_view]
 ---
 
 # 3D views
 
-`open_3d_view` opens the window; everything inside it — terrain source,
-vertical exaggeration, camera position — is adjusted through `run_python`
-from the `python` skill, because the 3D API surface is wide and changes
-between QGIS releases.
+Open the view first with `open_3d_view`, and load `python` only afterwards.
+Everything inside it — terrain source, vertical exaggeration, camera
+position — is adjusted through `run_python` from the `python` skill, because
+the 3D API surface is wide and changes between QGIS releases.
 
 Do not write 3D configuration from memory. The reliable route for terrain
 from a DEM:
