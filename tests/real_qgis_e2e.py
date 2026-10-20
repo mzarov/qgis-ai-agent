@@ -622,6 +622,37 @@ class RewindScenario(ScenarioCase):
         self.assertTrue(any("project is back" in note for note in notes), notes)
         self.shot("rewound")
 
+    def place_of(self, text: str) -> int:
+        messages = self.orchestrator.conversation.messages
+        return next(index for index, message in enumerate(messages) if message["content"] == text)
+
+    def test_a_message_sent_again_after_a_conversation_rewind_rewinds_to_the_project_before_it(self) -> None:
+        self.model.script(
+            call("load_skill", names=["project"]),
+            call("configure_layer", layer_name="districts", properties={"name": "Districts A"}),
+            say("Renamed to Districts A."),
+            call("configure_layer", layer_name="Districts A", properties={"name": "Districts B"}),
+            say("Renamed to Districts B."),
+            call("configure_layer", layer_name="Districts B", properties={"name": "Districts C"}),
+            say("Renamed to Districts C."),
+        )
+        self.ask("Rename districts to Districts A")
+        self.apply()
+        self.ask("Now rename it to Districts B")
+        self.apply()
+        second = self.place_of("Now rename it to Districts B")
+        self.dock.choose_rewind = lambda project_available: "conversation"
+        self.orchestrator.on_rewind(second)
+        pump(0.1)
+        self.layer("Districts B")
+        self.ask("Rename it to Districts C")
+        self.apply()
+        self.assertEqual(self.place_of("Rename it to Districts C"), second, "the new message must take the same place")
+        self.dock.choose_rewind = lambda project_available: "both" if project_available else None
+        self.orchestrator.on_rewind(second)
+        pump(0.1)
+        self.layer("Districts B")
+
 
 class LongRewindScenario(ScenarioCase):
     def rewind_from_bubble(self, text: str) -> None:
@@ -904,6 +935,23 @@ class QuestionScenario(ScenarioCase):
         self.assertFalse(cards[0].is_open, "an answered card still offers its choices")
         self.assertIn("pop2020", self.model.sent_text(-1))
         self.assertEqual(self.last(), "I will colour by pop2020.")
+
+    def test_rewinding_past_the_question_ends_it(self) -> None:
+        self.model.script(
+            call("ask_user", question="Buffer by which distance?", options=["100 m", "500 m"]),
+            say("Main rivers is one line."),
+        )
+        self.ask("Buffer the roads")
+        self.assertTrue(self.agent.is_awaiting_answer)
+        self.dock.choose_rewind = lambda project_available: "conversation"
+        self.orchestrator.on_rewind(0)
+        pump(0.1)
+        self.assertFalse(self.agent.is_awaiting_answer, "the question outlived the conversation it was asked in")
+        self.dock.clear_prompt()
+        self.ask("Describe the rivers layer")
+        sent = self.model.sent_text(-1)
+        self.assertNotIn("Buffer the roads", sent, "the request rewound away still reached the model")
+        self.assertEqual(self.last(), "Main rivers is one line.")
 
 
 class AutoModeScenario(ScenarioCase):
