@@ -1158,6 +1158,30 @@ class GisWorkflowsTest(unittest.TestCase):
         colours = {category.value(): category.symbol().color().name() for category in classes.renderer().categories()}
         self.assertEqual(colours, {1: "#008000", 2: "#ffff00", 10: "#ff0000"})
 
+    def test_a_label_offset_moves_the_label_and_keeps_the_other_offsets_unit(self):
+        name = self.layer.name()
+        self._run("set_labels", layer_name=name, properties={"field": "name", "offset_x": 2})
+        settings = self.layer.labeling().settings()
+        self.assertEqual(settings.placement, Qgis.LabelPlacement.OverPoint, "around the point ignores offsets")
+        self.assertEqual((settings.xOffset, settings.offsetUnits), (2.0, Qgis.RenderUnit.Millimeters))
+        self._run("set_labels", layer_name=name, properties={"placement": "around", "offset_y": 1})
+        self.assertEqual(self.layer.labeling().settings().placement, Qgis.LabelPlacement.AroundPoint)
+        settings = self.layer.labeling().settings()
+        settings.offsetUnits, settings.xOffset, settings.yOffset = Qgis.RenderUnit.Points, 0.0, 3.0
+        self.layer.setLabeling(QgsVectorLayerSimpleLabeling(settings))
+        self._run("set_labels", layer_name=name, properties={"offset_x": 2})
+        kept = self.layer.labeling().settings()
+        self.assertEqual((kept.offsetUnits, kept.yOffset), (Qgis.RenderUnit.Points, 3.0))
+        self.assertAlmostEqual(kept.xOffset, 2 * 72 / 25.4)
+        kept.offsetUnits = Qgis.RenderUnit.MapUnits
+        self.layer.setLabeling(QgsVectorLayerSimpleLabeling(kept))
+        lone = {"layer_name": name, "properties": {"offset_x": 1}}
+        with self.assertRaisesRegex(ValueError, "offset_x and offset_y together"):
+            WriteBatch(ToolExecutor()).add(ToolCall("lone", "set_labels", lone))
+        self._run("set_labels", layer_name=name, properties={"offset_x": 1, "offset_y": -1})
+        both = self.layer.labeling().settings()
+        self.assertEqual((both.xOffset, both.yOffset, both.offsetUnits), (1.0, -1.0, Qgis.RenderUnit.Millimeters))
+
     def test_a_csv_export_keeps_the_geometry(self):
         path = self.root / "points.csv"
         self._run("export_layer", layer_name=self.layer.name(), path=str(path))
