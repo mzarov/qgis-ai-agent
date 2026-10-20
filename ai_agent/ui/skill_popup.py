@@ -137,6 +137,7 @@ class SkillPopup(controls.RoundedFrame):
         line.setSpacing(ROW_GAP)
         line.addWidget(self._icon_tile())
         title = QLabel(f"{self._prefix}{name}")
+        title.setTextFormat(Qt.TextFormat.PlainText)
         font = title.font()
         font.setBold(True)
         title.setFont(font)

@@ -146,6 +146,12 @@ model writes bold, lists and code — all of it must display, not show as
 asterisks. The height follows the content, because there is a single scroll —
 the feed's.
 
+Its `AnswerBrowser` reads nothing an answer names (an image path may be
+/dev/zero or a pipe) and opens only http(s) links, in the system browser.
+Every other label showing model, data or user text is `PlainText`, and such a
+tooltip goes through `controls.plain_tip`: Qt's AutoText would follow
+`<img src=…>` to the file.
+
 While an answer streams, `append` does **not** render. Re-parsing the whole
 document per token is quadratic work on the main thread, and the tokens arrive
 faster than an eye can read them. Deltas accumulate and a single-shot timer

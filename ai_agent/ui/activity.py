@@ -212,7 +212,6 @@ class StepRow(TraceRow):
             self._label.setWordWrap(True)
             column.addWidget(self._label)
         self.note = controls.small("", palette)
-        self.note.setTextFormat(Qt.TextFormat.PlainText)
         style.ink(self.note, style.faint(palette))
         self.note.setVisible(False)
         column.addWidget(self.note)

@@ -153,7 +153,9 @@ class TableCard(QWidget):
         full = next((text for box, text in self._cells if box.contains(position)), "")
         if full:
             QToolTip.showText(
-                event.globalPosition().toPoint() if hasattr(event, "globalPosition") else event.globalPos(), full, self
+                event.globalPosition().toPoint() if hasattr(event, "globalPosition") else event.globalPos(),
+                controls.plain_tip(full),
+                self,
             )
         else:
             QToolTip.hideText()

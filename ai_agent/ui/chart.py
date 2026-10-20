@@ -363,7 +363,9 @@ class ChartCard(QWidget):
         tip = next((text for box, text in self._hits if box.contains(position)), "")
         if tip:
             QToolTip.showText(
-                event.globalPosition().toPoint() if hasattr(event, "globalPosition") else event.globalPos(), tip, self
+                event.globalPosition().toPoint() if hasattr(event, "globalPosition") else event.globalPos(),
+                controls.plain_tip(tip),
+                self,
             )
         else:
             QToolTip.hideText()

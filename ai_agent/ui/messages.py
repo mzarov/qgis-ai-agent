@@ -38,6 +38,7 @@ class UserMessage(QWidget):
         row.addWidget(self.rewind, 0, Qt.AlignmentFlag.AlignVCenter)
 
         label = QLabel(text)
+        label.setTextFormat(Qt.TextFormat.PlainText)
         label.setWordWrap(True)
         label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         label.setStyleSheet(
@@ -159,6 +160,7 @@ class SystemMessage(QWidget):
         row.setContentsMargins(0, SYSTEM_VERTICAL_PADDING, 0, SYSTEM_VERTICAL_PADDING)
 
         label = QLabel(text)
+        label.setTextFormat(Qt.TextFormat.PlainText)
         label.setWordWrap(True)
         label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         style.scale_font(label, SYSTEM_FONT_SCALE)

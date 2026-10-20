@@ -1,3 +1,4 @@
+import dataclasses
 import os
 import pathlib
 import shutil
@@ -7,15 +8,29 @@ import tempfile
 import time
 import unittest
 from typing import Any
+from unittest import mock
 
 from e2e_harness import PluginCase, pump
 from qgis.PyQt.QtCore import QEvent, QObject, QPoint, QPointF, Qt, QUrl, pyqtSlot
-from qgis.PyQt.QtGui import QColor, QDesktopServices, QImage, QKeyEvent, QMouseEvent, QTextCursor, QWheelEvent
-from qgis.PyQt.QtWidgets import QApplication, QLabel, QLineEdit, QScrollBar, QTextBrowser, QWidget
+from qgis.PyQt.QtGui import (
+    QColor,
+    QDesktopServices,
+    QImage,
+    QKeyEvent,
+    QMouseEvent,
+    QTextCursor,
+    QTextDocument,
+    QWheelEvent,
+)
+from qgis.PyQt.QtWidgets import QApplication, QLabel, QLineEdit, QScrollBar, QTextBrowser, QToolTip, QWidget
 
+from ai_agent.config import personal
+from ai_agent.core.orchestrator.notices import STATUS_DONE
 from ai_agent.ui import compass, controls, progress, settings_fields, style
 from ai_agent.ui.activity import ActivityGroup
+from ai_agent.ui.chart import ChartCard
 from ai_agent.ui.composer_parts import LAYER_TOKEN, SKILL_TOKEN
+from ai_agent.ui.connection_widgets import STATE_BAD, StatusCard
 from ai_agent.ui.conversation import ConversationView
 from ai_agent.ui.dropdown import Dropdown
 from ai_agent.ui.messages import AssistantMessage, SystemMessage
@@ -44,7 +59,18 @@ WIDE_TABLE = {
     "rows": [[f"value {index}" for index in range(9)] + [LAST_CELL]] * 3,
     "total": 3,
 }
+PAYLOAD = "<b>bold</b>"
 RED = QColor(255, 0, 0)
+
+
+def shown(text: str, text_format: Any = Qt.TextFormat.AutoText) -> str:
+    # What Qt draws: AutoText, as a tooltip, turns rich at a tag on the first line.
+    plain = text_format == Qt.TextFormat.PlainText
+    if plain or (text_format == Qt.TextFormat.AutoText and "<" not in text.split("\n", 1)[0]):
+        return text
+    document = QTextDocument()
+    document.setHtml(text)
+    return document.toPlainText()
 
 
 def red_pixels(widget: QWidget) -> int:
@@ -70,6 +96,12 @@ def click_text(browser: QTextBrowser, text: str) -> None:
     left = Qt.MouseButton.LeftButton
     mouse(browser.viewport(), QEvent.Type.MouseButtonPress, point, left, left)
     mouse(browser.viewport(), QEvent.Type.MouseButtonRelease, point, left, Qt.MouseButton.NoButton)
+
+
+def tip_at(widget: QWidget, point: QPointF) -> str:
+    none = Qt.MouseButton.NoButton
+    mouse(widget, QEvent.Type.MouseMove, point, none, none)
+    return QToolTip.text()
 
 
 class UrlCatcher(QObject):
@@ -364,8 +396,6 @@ class UsageNoticeTest(PluginCase):
     model_name = "qwen3"
 
     def test_the_first_load_shows_the_notice_once_and_turn_off_says_no(self) -> None:
-        from unittest import mock
-
         from qgis.core import QgsSettings
         from qgis.gui import QgsMessageBar
 
@@ -551,8 +581,6 @@ class SettingsBehaviourTest(PluginCase):
 
 
 def close_during_a_slow_test(close: str) -> int:
-    from unittest import mock
-
     from qgis.PyQt.QtWidgets import QMainWindow, QMessageBox
 
     from ai_agent.core.llm import probe_worker
@@ -834,3 +862,83 @@ class AnswerSafetyTest(unittest.TestCase):
             pump(0.05)
             self.assertEqual(browser.toPlainText(), before, f"the {name} link replaced the answer")
         self.assertEqual(catcher.urls, [links["website"]])
+
+
+class PlainTextTest(PluginCase):
+    api_url = "http://localhost:11434/v1"
+    model_name = "qwen3"
+
+    def _assert_literal(self, root: QWidget) -> None:
+        for widget in [root, *root.findChildren(QWidget)]:
+            if isinstance(widget, QLabel) and "bold" in widget.text():
+                drawn = shown(widget.text(), widget.textFormat())
+                self.assertIn(PAYLOAD, drawn, f"{type(widget.parent()).__name__} draws {drawn!r}")
+            if "bold" in widget.toolTip():
+                self.assertIn(PAYLOAD, shown(widget.toolTip()), f"{type(widget).__name__} tip {widget.toolTip()!r}")
+
+    def test_text_from_the_model_data_and_user_shows_as_written(self) -> None:
+        dock = self.dock
+        dock.set_project_line(PAYLOAD)
+        self._assert_literal(dock)
+        dock.set_conversation_title(PAYLOAD)
+        dock.set_active_layer(PAYLOAD, PAYLOAD)
+        dock.add_user_message(PAYLOAD)
+        dock.add_tool_message(PAYLOAD)
+        dock.add_system_message(PAYLOAD)
+        dock.add_error_message(PAYLOAD)
+        dock.add_plan_message([f"{PAYLOAD} · {PAYLOAD}"], layer=PAYLOAD)
+        dock.add_visual({"type": "legend", "title": PAYLOAD, "items": [{"label": PAYLOAD, "color": "#ff0000"}]})
+        dock.add_run_failure(PAYLOAD, PAYLOAD, f"{PAYLOAD}\n{PAYLOAD}", "connection", True, True)
+        load = personal.load
+        with mock.patch.object(personal, "load", lambda: dataclasses.replace(load(), auto_answer=30)):
+            dock.add_question(PAYLOAD, [f"{PAYLOAD} — {PAYLOAD}", "second"])
+        dock.set_busy(True)
+        dock.show_outcome(STATUS_DONE, PAYLOAD)
+        dock.composer.set_layer_source(lambda: [(PAYLOAD, PAYLOAD, "")])
+        dock.composer._edit.insertPlainText("@")
+        pump(0.1)
+        self._assert_literal(dock)
+        dock.set_session_source(lambda: [("one", PAYLOAD, time.time(), True)])
+        dock._show_sessions()
+        self._assert_literal(dock._sessions_popup)
+        dock._sessions_popup.hide()
+        status = StatusCard(dock.palette(), QWidget())
+        status.show_state(STATE_BAD, PAYLOAD, PAYLOAD)
+        self._assert_literal(status)
+        status.deleteLater()
+
+    def test_local_skills_show_as_written(self) -> None:
+        from ai_agent.ui import skills_settings
+
+        described = {
+            "path": "",
+            "skills": [{"name": PAYLOAD, "description": PAYLOAD, "tools": [PAYLOAD], "path": ""}],
+            "drafts": [{"name": PAYLOAD, "path": ""}],
+            "problems": [PAYLOAD],
+        }
+        with mock.patch.object(skills_settings, "describe_local_skills", return_value=described):
+            page = skills_settings.SkillsSettings(self.dock.palette())
+        self._assert_literal(page.widget)
+        page.widget.deleteLater()
+
+    def test_table_and_chart_tips_show_as_written(self) -> None:
+        long_cell = f"{PAYLOAD} {'x' * 300}"
+        self.dock.add_visual({"type": "table", "title": "t", "columns": ["name"], "rows": [[long_cell]], "total": 1})
+        self.dock.add_visual(
+            {
+                "type": "chart",
+                "kind": "bar",
+                "title": "t",
+                "labels": [PAYLOAD],
+                "series": [{"name": "s", "values": [3]}],
+            }
+        )
+        pump(0.3)
+        feed = self.dock.conversation.widget()
+        for card, hits in ((feed.findChildren(TableCard)[0], "_cells"), (feed.findChildren(ChartCard)[0], "_hits")):
+            card.grab()
+            box, text = getattr(card, hits)[0]
+            self.assertIn(PAYLOAD, text)
+            tip = tip_at(card, box.center())
+            QToolTip.hideText()
+            self.assertIn(PAYLOAD, shown(tip), f"{type(card).__name__} tip {tip!r}")
