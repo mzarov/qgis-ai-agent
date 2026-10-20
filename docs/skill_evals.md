@@ -53,7 +53,8 @@ Suites:
   `{steps: [{tool, args, result}]}`. Do not use a YAML list here: promptfoo
   turns a list in `vars` into one test per item.
 - `expect`: `call` and `args`, `loads` and `not_loads`, `not` (tools it must
-  not call), `answer` (a reply without a tool call) and `any_of`.
+  not call), `after` (`{run_processing: describe_processing}`: a run only
+  once described), `answer` (a reply without a tool call) and `any_of`.
   `evals/checks.py` documents every key.
 
 Matching is lenient: strings ignore case, `"500"` equals `500`, a dict matches

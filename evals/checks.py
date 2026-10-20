@@ -36,6 +36,10 @@ def mismatch(expect: dict[str, Any], calls: list[tuple[str, dict[str, Any]]]) ->
     forbidden = [name for name in _as_list(expect.get("not")) if name in names]
     if forbidden:
         return f"called {', '.join(forbidden)}, which this case forbids"
+    for later, earlier in (expect.get("after") or {}).items():
+        wanted_first = _as_list(earlier)
+        if later in names and not any(name in wanted_first for name in names[: names.index(later)]):
+            return f"called {later} before {' or '.join(wanted_first)}"
     loaded = [str(skill) for name, args in calls if name == LOAD_SKILL for skill in _as_list(args.get("names"))]
     wanted = [skill for skill in _as_list(expect.get("loads")) if skill not in loaded]
     if wanted:

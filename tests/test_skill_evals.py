@@ -171,6 +171,17 @@ class ChecksTest(unittest.TestCase):
             checks.mismatch(expect, checks.tool_calls(guessing)), "called draw_features, which this case forbids"
         )
 
+    def test_a_call_can_be_required_to_come_after_another(self):
+        expect = {"call": ["describe_processing"], "after": {"run_processing": "describe_processing"}}
+        describe = self.call("describe_processing", algorithm_id="native:buffer")
+        run = self.call("run_processing", algorithm_id="native:buffer")
+        self.assertIsNone(checks.mismatch(expect, checks.tool_calls([describe, run])))
+        self.assertIsNone(checks.mismatch(expect, checks.tool_calls([describe])))
+        self.assertEqual(
+            checks.mismatch(expect, checks.tool_calls([run, describe])),
+            "called run_processing before describe_processing",
+        )
+
     def test_outputs_in_every_shape_promptfoo_gives(self):
         call = self.call("save_project")
         for output in ([call], {"content": "", "tool_calls": [call]}, json.dumps([call])):

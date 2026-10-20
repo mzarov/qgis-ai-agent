@@ -5,10 +5,10 @@
 - description: An algorithm is discovered before it is run
   vars:
     request: Make a 500 m buffer around the stations
-    # Checking the layer's CRS first is fair: metres need a metric CRS. Running from memory is not.
+    # Reading the layer first is fair: the fixture answers it. Running before describing is not.
     expect:
-      call: [search_processing, describe_processing, describe_layer]
-      not: [run_processing]
+      call: [search_processing, describe_processing]
+      after: {run_processing: describe_processing}
 
 - description: Once described, a buffer runs with the exact parameters
   vars:
