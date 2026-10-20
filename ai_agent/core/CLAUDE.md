@@ -145,7 +145,9 @@ UI signal → CoreOrchestrator → AgentLoop.start()
    that are genuinely the user's.
 10. **The user can break in mid-run.** `interject` appends the message to the
    live transcript framed as a correction, so the model sees it on its next
-   step instead of the run having to be restarted. The composer stays editable
+   step instead of the run having to be restarted. The turn that was on its way
+   goes before the correction, with its results; a final turn it overtook is
+   kept as a preamble and gets one more step. The composer stays editable
    while busy for exactly this; the ■ button is still an abort, not a send.
 11. **The transcript compacts itself.** Only the last `KEEP_FULL_RESULTS` tool
    results are rendered in full and only the newest image is carried; older ones

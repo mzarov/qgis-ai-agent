@@ -173,6 +173,37 @@ class AnswerTest(LoopCase):
         self.assertEqual(self.loop._transcript.entries[-1], {"kind": "user", "text": "roads", "images": []})
 
 
+class InterjectionTimingTest(LoopCase):
+    def kinds(self):
+        return [entry["kind"] for entry in self.loop._transcript.entries]
+
+    def test_a_correction_sent_during_a_final_turn_gets_one_more_step(self):
+        shown = []
+        self.loop.preamble.connect(shown.append)
+        self.assertTrue(self.loop.interject("Use blue, not red"))
+        self.turns.answer(ModelTurn(text="Done: the roads are red."))
+        self.assertEqual((self.turns.started, self.finished), (2, []))
+        self.assertEqual(shown, ["Done: the roads are red."])
+        self.assertEqual(self.kinds(), ["user", "turn", "user"])
+        self.turns.answer(ModelTurn(text="Done: the roads are blue."))
+        self.assertEqual(self.finished, ["Done: the roads are blue."])
+
+    def test_a_correction_sent_during_a_turn_with_calls_follows_its_results(self):
+        self.assertTrue(self.loop.interject("Use blue, not red"))
+        self.turns.answer(ModelTurn(tool_calls=[call("list_layers")]))
+        self.assertEqual(self.kinds(), ["user", "turn", "results", "user"])
+        self.assertEqual(self.turns.started, 2)
+
+    def test_a_correction_sent_while_a_read_runs_still_follows_the_results(self):
+        self.use_executor(Executor(during=lambda: self.loop.interject("Use blue, not red")))
+        self.turns.answer(ModelTurn(tool_calls=[call("list_layers")]))
+        self.assertEqual(self.kinds(), ["user", "turn", "results", "user"])
+
+    def test_without_a_correction_a_final_turn_ends_the_run(self):
+        self.turns.answer(ModelTurn(text="Two layers."))
+        self.assertEqual((self.turns.started, self.finished), (1, ["Two layers."]))
+
+
 class RequestFailureTest(LoopCase):
     def test_a_request_that_cannot_be_built_fails_the_run_and_keeps_the_plan(self):
         self.loop._batch._calls.append(call("set_opacity", layer_name="roads", opacity=0.5))

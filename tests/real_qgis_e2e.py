@@ -906,6 +906,25 @@ class QuestionScenario(ScenarioCase):
         self.assertEqual(self.last(), "I will colour by pop2020.")
 
 
+class InterjectionScenario(ScenarioCase):
+    def test_a_correction_sent_during_the_final_answer_gets_one_more_step(self) -> None:
+        self.model.script(
+            say("Done: the roads would be red, as you asked. " * 10, 0.05),
+            say("Done: the roads are blue."),
+        )
+        self.orchestrator.on_prompt("Colour the roads red")
+        pump(0.3)
+        self.assertTrue(self.agent.is_running, "the answer ended before the correction could be sent")
+        self.orchestrator.on_prompt("Blue, not red")
+        self.wait_idle()
+        self.assertEqual(len(self.model.requests), 2, "the correction never reached the model")
+        sent = self.model.requests[-1]["messages"]
+        self.assertEqual([message["role"] for message in sent], ["system", "user", "assistant", "user"])
+        self.assertIn("Blue, not red", sent[-1]["content"])
+        self.assertTrue(self.answers()[0].startswith("Done: the roads would be red"))
+        self.assertEqual(self.last(), "Done: the roads are blue.")
+
+
 class AutoModeScenario(ScenarioCase):
     def tearDown(self) -> None:
         set_work_mode("ask")

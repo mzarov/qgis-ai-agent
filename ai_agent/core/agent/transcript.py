@@ -103,14 +103,20 @@ class Transcript:
     def add_user(self, text: str, images: list[str] | None = None) -> None:
         self.entries.append({"kind": "user", "text": text, "images": list(images or [])})
 
-    def add_turn(self, turn: ModelTurn) -> None:
+    def add_turn(self, turn: ModelTurn, at: int | None = None) -> None:
         # Ids must be unique across the run, not the turn: Apply puts results back by call id.
         turn.tool_calls = _unique_tool_calls(turn.tool_calls, self._call_ids())
-        self.entries.append({"kind": "turn", "turn": turn})
+        self._insert({"kind": "turn", "turn": turn}, at)
 
-    def add_results(self, results: list[ToolResult], protocol: str) -> None:
+    def add_results(self, results: list[ToolResult], protocol: str, at: int | None = None) -> None:
         if results:
-            self.entries.append({"kind": "results", "results": results, "protocol": protocol})
+            self._insert({"kind": "results", "results": results, "protocol": protocol}, at)
+
+    def _insert(self, entry: TranscriptEntry, at: int | None) -> None:
+        if at is None:
+            self.entries.append(entry)
+        else:
+            self.entries.insert(at, entry)
 
     def replace_results(self, results: list[ToolResult], protocol: str) -> None:
         remaining = {result.call.id: result for result in results}
