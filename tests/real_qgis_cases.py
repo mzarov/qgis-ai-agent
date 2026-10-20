@@ -25,6 +25,7 @@ from qgis.core import (
     QgsProcessingContext,
     QgsProject,
     QgsRasterLayer,
+    QgsRasterRange,
     QgsRectangle,
     QgsRenderContext,
     QgsVectorFileWriter,
@@ -1278,6 +1279,21 @@ class GisWorkflowsTest(unittest.TestCase):
         image = self._rendered(dem, size)
         brightness = sorted(image.pixelColor(x, y).value() for x in range(0, size, 5) for y in range(0, size, 5))
         self.assertGreater(brightness[len(brightness) // 10], 100, "the relief renders near black")
+
+    def test_hidden_values_add_to_a_rasters_no_data(self):
+        path = self.root / "counts.tif"
+        dataset = gdal.GetDriverByName("GTiff").Create(str(path), 20, 20, 1, gdal.GDT_Float32)
+        dataset.SetGeoTransform((0, 1, 0, 20, 0, -1))
+        dataset.GetRasterBand(1).WriteRaster(0, 0, 20, 20, struct.pack("400f", *[float(v) for v in range(400)]))
+        dataset = None
+        raster = QgsRasterLayer(str(path), "counts")
+        self.assertTrue(raster.isValid())
+        self.project.addMapLayer(raster)
+        raster.dataProvider().setUserNoDataValue(1, [QgsRasterRange(399, 399)])
+        for _ in range(2):
+            self._run("set_raster_style", layer_name="counts", mode="gray", no_data_values=[0])
+        ranges = sorted((item.min(), item.max()) for item in raster.dataProvider().userNoDataValues(1))
+        self.assertEqual(ranges, [(0.0, 0.0), (399.0, 399.0)])
 
     def _rendered(self, layer, size):
         settings = QgsMapSettings()

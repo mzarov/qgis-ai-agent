@@ -172,8 +172,17 @@ def apply_no_data(layer: Any, numbers: list[float]) -> dict[int, list[Any]]:
     provider = layer.dataProvider()
     for band in range(1, int(layer.bandCount()) + 1):
         previous[band] = list(provider.userNoDataValues(band))
-        provider.setUserNoDataValue(band, [QgsRasterRange(value, value) for value in numbers])
+        # Added to the ranges already hidden: the call names values to hide, not the whole no-data list.
+        kept = [item for item in previous[band] if not any(_covers(item, value) for value in numbers)]
+        provider.setUserNoDataValue(band, kept + [QgsRasterRange(value, value) for value in numbers])
     return previous
+
+
+def _covers(item: Any, value: float) -> bool:
+    try:
+        return float(item.min()) == value == float(item.max())
+    except Exception:
+        return False
 
 
 def restore_no_data(layer: Any, previous: dict[int, list[Any]]) -> None:
