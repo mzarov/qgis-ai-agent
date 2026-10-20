@@ -69,6 +69,16 @@ class NoteStore:
         self._write(stored)
         return True
 
+    def carry(self, previous: str, current: str) -> None:
+        stored = self.all_notes()
+        if previous == current or not _notes_for(stored, previous) or _notes_for(stored, current):
+            return
+        stored[current] = _notes_for(stored, previous)
+        try:
+            self._write(stored)
+        except ValueError:
+            return
+
     def user_notes(self) -> list[str]:
         return _notes_for(self.all_notes(), USER_KEY)
 

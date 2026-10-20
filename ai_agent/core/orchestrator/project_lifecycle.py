@@ -3,6 +3,7 @@ from ai_agent.core.orchestrator.contracts import OrchestratorHost
 from ai_agent.core.orchestrator.notices import PREVIOUS_APPLY_INTERRUPTED, PROJECT_CHANGED
 from ai_agent.core.orchestrator.presentation import interrupted_outcome, project_line
 from ai_agent.core.orchestrator.scope import conversation_scope
+from ai_agent.qgis_tools.project.notes import NoteStore
 from ai_agent.qgis_tools.project.snapshots import follow_project_move
 
 UNDO_TOOL = "undo_last_apply"
@@ -21,6 +22,9 @@ class ProjectLifecycleMixin(OrchestratorHost):
         if not previous:
             return
         follow_project_move(previous)
+        current = self.conversation.project_key
+        self.agent.project_moved(previous, current)
+        NoteStore().carry(previous, current)
         if self._apply_scope == (previous, self.conversation.session_identifier):
             self._apply_scope = conversation_scope(self.conversation)
         self.dock_widget.set_project_line(project_line())

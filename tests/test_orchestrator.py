@@ -56,6 +56,7 @@ class Iface:
 
 class Agent:
     def __init__(self):
+        self.moved = []
         self.is_running = False
         self.has_pending_writes = False
         self.is_awaiting_answer = False
@@ -68,6 +69,9 @@ class Agent:
         self.stops = 0
         self.is_applying = False
         self.active_apply_tool = ""
+
+    def project_moved(self, previous, current):
+        self.moved.append((previous, current))
 
     def start(
         self,
@@ -304,11 +308,16 @@ class OrchestratorSessionTest(unittest.TestCase):
         saved = conversation_module.current_project_key
         conversation_module.current_project_key = lambda: "/saved/as/copy.qgz"
         try:
-            with mock.patch.object(lifecycle_module, "follow_project_move") as moved:
+            with (
+                mock.patch.object(lifecycle_module, "follow_project_move") as moved,
+                mock.patch.object(lifecycle_module, "NoteStore") as notes,
+            ):
                 self.orchestrator.on_project_changed()
         finally:
             conversation_module.current_project_key = saved
         moved.assert_called_once_with(old_key)
+        self.assertEqual(self.orchestrator.agent.moved, [(old_key, "/saved/as/copy.qgz")], "a cancelled plan follows")
+        notes.return_value.carry.assert_called_once_with(old_key, "/saved/as/copy.qgz")
         self.assertEqual(self.orchestrator.agent.aborts, 0)
         self.assertEqual(self.orchestrator.conversation.session_identifier, identifier)
         self.assertEqual(self.orchestrator._apply_scope, ("/saved/as/copy.qgz", identifier))

@@ -154,6 +154,10 @@ class BatchApplyMixin:
         else:
             self._write_journal(notices.APPLY_DECLINED_MESSAGE)
 
+    def project_moved(self, previous: str, current: str) -> None:
+        if self._declined_project == previous:
+            self._declined_project = current
+
     def restore_declined(self) -> bool:
         calls, self._declined = self._declined, []
         busy = self.is_running or self._batch.is_applying or bool(self._batch) or bool(self._question)

@@ -28,6 +28,15 @@ class NoteStoreTest(unittest.TestCase):
         self.store.remember("POP2020 is the 2020 census", PROJECT)
         self.assertEqual(NoteStore(self.root).notes(PROJECT), ["POP2020 is the 2020 census"])
 
+    def test_notes_follow_a_project_saved_under_a_new_name_and_stay_with_the_old_file(self):
+        self.store.remember("POP2020 is the 2020 census", PROJECT)
+        self.store.carry(PROJECT, "/maps/copy.qgz")
+        self.assertEqual(self.store.notes("/maps/copy.qgz"), ["POP2020 is the 2020 census"])
+        self.assertEqual(self.store.notes(PROJECT), ["POP2020 is the 2020 census"])
+        self.store.remember("Use EPSG:32637", "/maps/copy.qgz")
+        self.store.carry(PROJECT, "/maps/copy.qgz")
+        self.assertEqual(len(self.store.notes("/maps/copy.qgz")), 2, "existing notes of the new file are kept")
+
     def test_notes_are_scoped_to_their_project(self):
         self.store.remember("for the city", PROJECT)
         self.store.remember("for the region", "region.qgz")
