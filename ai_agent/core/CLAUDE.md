@@ -179,7 +179,8 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     no dependency for it, behaves the same on all three platforms, and the
     master password is a dialog the user already knows. Only the identifier of
     the stored entry goes into `QgsSettings`; the secret never does. A refused
-    master password reads as an empty key with a stated reason, never as a crash.
+    master password reads as an empty key with a stated reason, never as a crash,
+    and reads do not ask again until the user opens Settings or saves a key.
 16. **Slash commands preload skills; the loop stays skill-agnostic.**
     `orchestrator/slash.py` parses `/name rest`: an unknown name is refused with
     the list before anything is sent; a known one becomes

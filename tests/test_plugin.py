@@ -175,6 +175,30 @@ class SettingsWhileUnloadingTest(unittest.TestCase):
         self.assertEqual(parents, [window])
         dock.put_prompt.assert_not_called()
 
+    def test_opening_settings_may_ask_for_the_master_password_again(self):
+        plugin = QgisAiAgentPlugin(mock.Mock())
+        order = []
+
+        class Dialog:
+            chosen_prompt = ""
+            history_erased = False
+
+            def __init__(self, parent):
+                order.append("dialog")
+
+            def exec(self):
+                return plugin_module.QDialog.DialogCode.Rejected
+
+            def deleteLater(self):
+                pass
+
+        with (
+            mock.patch.object(plugin_module, "SettingsDialog", Dialog),
+            mock.patch.object(plugin_module.credentials, "ask_again", side_effect=lambda: order.append("ask")),
+        ):
+            plugin._on_open_settings()
+        self.assertEqual(order, ["ask", "dialog"])
+
 
 class UsageNoticeTest(unittest.TestCase):
     def setUp(self):

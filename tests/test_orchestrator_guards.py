@@ -99,6 +99,11 @@ class RequestGuardsTest(OrchestratorCase):
         self.assertIn(notices.SWITCH_WHILE_RUNNING, self.dock.system)
         self.assertEqual(self.messages, [])
 
+    def test_one_panel_refresh_reads_the_key_once(self):
+        with mock.patch.object(orchestrator_module, "is_configured", return_value=True) as configured:
+            self.orchestrator.refresh_configured()
+        self.assertEqual(configured.call_count, 1, "each read of a locked key opens the master password dialog")
+
     def test_a_skill_command_keeps_its_request_beside_the_layer_chip(self):
         self.dock.context_mention = lambda: "@districts"
         for typed, sent in (
