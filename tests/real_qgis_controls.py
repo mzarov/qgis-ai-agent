@@ -26,7 +26,7 @@ from qgis.PyQt.QtWidgets import QApplication, QLabel, QLineEdit, QScrollBar, QTe
 
 from ai_agent.config import personal
 from ai_agent.core.orchestrator.notices import STATUS_DONE, SWITCH_WHILE_RUNNING
-from ai_agent.ui import compass, controls, progress, settings_fields, skill_popup, style
+from ai_agent.ui import compass, controls, progress, settings_fields, skill_popup, style, transitions
 from ai_agent.ui.activity import ActivityGroup, PulseRing
 from ai_agent.ui.chart import ChartCard
 from ai_agent.ui.composer_parts import LAYER_TOKEN, SKILL_TOKEN
@@ -63,6 +63,8 @@ WIDE_TABLE = {
 }
 PAYLOAD = "<b>bold</b>"
 RED = QColor(255, 0, 0)
+LONG_FEED = 120
+DISTRICT_LIST = "A district list:\n\n" + "\n".join(f"- item {index}" for index in range(8))
 
 
 def shown(text: str, text_format: Any = Qt.TextFormat.AutoText) -> str:
@@ -645,8 +647,6 @@ class ComposerBehaviourTest(PluginCase):
     model_name = "qwen3"
 
     def test_a_menu_drops_in_and_settles_where_it_opened(self) -> None:
-        from ai_agent.ui import transitions
-
         toolbar = self.dock.composer.toolbar
         toolbar.mode.click()
         popup = toolbar.modes
@@ -1058,3 +1058,35 @@ class PlanOfferTest(PluginCase):
         self.assertIn(SWITCH_WHILE_RUNNING, lines)
         self.assertEqual(offer._question.text(), RUN_PLAN_QUESTION)
         self.assertFalse(any(row.isHidden() for row in offer._rows), "a refused offer can no longer be taken")
+
+
+class PaintCounter(QObject):
+    def __init__(self, watched: QWidget) -> None:
+        super().__init__()
+        self.paints = 0
+        watched.installEventFilter(self)
+
+    def eventFilter(self, _watched: QObject, event: QEvent) -> bool:
+        if event.type() == QEvent.Type.Paint:
+            self.paints += 1
+        return False
+
+
+class LongFeedArrivalTest(unittest.TestCase):
+    def test_opening_a_long_conversation_paints_only_what_shows(self) -> None:
+        view = ConversationView()
+        view.resize(PANEL_WIDTH, 600)
+        view.show()
+        for index in range(LONG_FEED):
+            view.add_user_message(f"question {index}", animate=False)
+            view.add_assistant_message(DISTRICT_LIST)
+        pump(0.2)
+        self.assertGreater(view.widget().height(), 5 * view.height())
+        answers = view.widget().findChildren(AssistantMessage)
+        far, near = PaintCounter(answers[0]._browser.viewport()), PaintCounter(answers[-1]._browser.viewport())
+        view.play_entrance(view.viewport().grab())
+        pump(transitions.LEAVE_MS / 1000 + (transitions.ARRIVE_MS + transitions.LAG_MS) / 1000 + 0.3)
+        self.assertGreater(near.paints, 0, "the arrival drew nothing")
+        self.assertEqual(far.paints, 0, "every frame rendered the whole feed, the first answer far above too")
+        view.hide()
+        view.deleteLater()
