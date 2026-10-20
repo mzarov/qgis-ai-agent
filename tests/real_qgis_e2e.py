@@ -490,6 +490,27 @@ class FailureScenario(ScenarioCase):
         self.assertAlmostEqual(self.layer("districts").opacity(), 0.5)
         self.shot("failure_keeps_plan")
 
+    def test_retry_waits_for_the_prepared_steps_and_comes_back_once_they_are_cancelled(self) -> None:
+        self.model.script(
+            call("load_skill", names=["style"]),
+            call("set_opacity", layer_name="districts", opacity=0.5),
+            fail(400, '{"error": "the upstream gave up"}'),
+        )
+        self.ask("Make districts half transparent")
+        self.assertTrue(self.agent.has_pending_writes)
+        failure = self.dock.conversation.findChildren(FailureCard)[-1]
+        self.assertTrue(failure.retry.isHidden(), "Retry would start over without the prepared steps")
+        self.dock.conversation.findChildren(PlanCard)[-1].cancelled.emit()
+        pump(0.05)
+        self.assertFalse(failure.retry.isHidden(), "Retry did not come back once the steps were cancelled")
+        self.model.script(say("Districts can be made half transparent with set_opacity."))
+        failure.retry.click()
+        self.wait_idle()
+        self.assertEqual(self.last(), "Districts can be made half transparent with set_opacity.")
+        users = [message for message in self.orchestrator.conversation.messages if message["role"] == "user"]
+        self.assertEqual(len(users), 1, "the retried request was written twice")
+        self.assertEqual(self.model.sent_text(-1).count("Make districts half transparent"), 1)
+
 
 class StageRefusedScenario(ScenarioCase):
     ANSWER = "Districts is being edited by hand: commit or roll back those edits, then ask me again."

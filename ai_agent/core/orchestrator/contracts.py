@@ -144,6 +144,7 @@ class OrchestratorHost:
         _snapshot_before_apply: str
         _restoring_snapshot: bool
         _retry_args: RetryArgs | None
+        _retry_after_plan: bool
         _done_summary: str
         _last_request: str
 

@@ -106,6 +106,9 @@ class PlanMixin(OrchestratorHost):
             self._plan_settled(CANCELLED)
             self._restorable_plan_id = self._plan_message_id
         self._plan_message_id = None
+        if self._retry_after_plan and self.is_idle:
+            self._retry_after_plan = False
+            self.dock_widget.offer_retry()
 
     def on_restore_plan(self, message_id: int) -> None:
         restorable = message_id == self._restorable_plan_id and self.is_idle

@@ -18,6 +18,7 @@ from ai_agent.core.orchestrator.notices import (
     MESSAGE_DURATION_SEC,
     NOT_SAVED,
     RUN_STOPPED,
+    STEPS_WAITING,
     SWITCH_WHILE_RUNNING,
     UNKNOWN_SKILL,
 )
@@ -59,6 +60,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self._plan_marks: list[list[str]] = []
         self._restorable_plan_id: int | None = None
         self._retry_args: RetryArgs | None = None
+        self._retry_after_plan = False
         self._done_summary = ""
         self._snapshot_before_apply = ""
         self._invalidated_scope: tuple[str, str] | None = None
@@ -112,7 +114,9 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
 
     def on_busy(self, busy: bool) -> None:
         self.dock_widget.set_busy(busy)
-        if not busy:
+        if busy:
+            self._retry_after_plan = False
+        else:
             self.usage.flush()
             self.dock_widget.set_run_kind("")
             self.on_active_layer_changed()
@@ -210,6 +214,10 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
             begin()
 
     def on_retry(self) -> None:
+        working = self.agent.is_running or bool(getattr(self.agent, "is_applying", False))
+        if self.agent.has_pending_writes and not working:
+            self.dock_widget.add_system_message(STEPS_WAITING)
+            return
         if not self.is_idle:
             self.dock_widget.add_system_message(SWITCH_WHILE_RUNNING)
             return
@@ -217,9 +225,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
             return
         shown, prompt, request, skills, images, planning = self._retry_args
         self.dock_widget.clear_prompt()
-        history = self.conversation.window()
-        if history and history[-1].get("role") == "user" and history[-1].get("content") == shown:
-            history = history[:-1]
+        history = _before_request(self.conversation.window(), shown)
         self._last_request = request
         self.dock_widget.drop_failures()
         self.conversation.drop_failures()
@@ -320,6 +326,14 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
 
 def _is_configured() -> bool:
     return is_configured()
+
+
+def _before_request(history: list[dict[str, str]], shown: str) -> list[dict[str, str]]:
+    # The failed run may have saved a preamble, a partial answer or an interjection after its request.
+    for index in range(len(history) - 1, -1, -1):
+        if history[index].get("role") == "user" and history[index].get("content") == shown:
+            return history[:index]
+    return history
 
 
 def _consented(url: str | None) -> bool:

@@ -156,13 +156,16 @@ class RunEventsMixin(OrchestratorHost):
         )
         self.usage.note("failures", failure.kind)
         retryable = self._retry_args is not None and not getattr(self.agent, "is_verification", False)
+        retryable = retryable and failure.retry_helps
+        # Retry would start over without the steps the run prepared: it waits until they are cancelled.
+        self._retry_after_plan = retryable and self.agent.has_pending_writes
         self.dock_widget.add_run_failure(
             failure.title,
             failure.detail,
             str(message),
             failure.kind,
             failure.fixed_in_settings,
-            retryable and failure.retry_helps,
+            retryable and not self._retry_after_plan,
         )
         self.conversation.add_failure(
             {"title": failure.title, "detail": failure.detail, "message": str(message), "kind": failure.kind}

@@ -199,6 +199,45 @@ class RetryAndCompactTest(OrchestratorCase):
         self.assertIsNone(self.agent.started)
         self.assertIn(notices.SWITCH_WHILE_RUNNING, self.dock.system)
 
+    def fail_beside_prepared_steps(self):
+        offered = []
+        self.dock.add_run_failure = lambda *args: offered.append(args[-1]) or 1
+        self.orchestrator.on_prompt("Colour the rivers")
+        self.agent.has_pending_writes = True
+        self.orchestrator.on_failed("HTTP 500")
+        self.agent.started = None
+        return offered
+
+    def test_retry_waits_for_the_prepared_steps_and_comes_back_once_they_are_cancelled(self):
+        self.assertEqual(self.fail_beside_prepared_steps(), [False], "Retry would throw the prepared steps away")
+        self.orchestrator.on_retry()
+        self.assertIsNone(self.agent.started)
+        self.assertEqual(self.dock.system[-1:], [notices.STEPS_WAITING])
+        self.orchestrator.on_cancel_plan()
+        self.assertEqual(self.dock.retry_offers, 1)
+        self.orchestrator.on_retry()
+        self.assertEqual(self.agent.started, ("Colour the rivers", []))
+
+    def test_prepared_steps_applied_after_a_failure_do_not_bring_retry_back(self):
+        self.fail_beside_prepared_steps()
+        self.orchestrator.on_confirm_plan()
+        self.orchestrator.on_busy(True)
+        self.orchestrator.on_busy(False)
+        self.orchestrator.on_cancel_plan()
+        self.assertEqual(self.dock.retry_offers, 0)
+
+    def test_retry_after_a_preamble_sends_the_request_once(self):
+        self.orchestrator.on_prompt("Earlier question")
+        self.orchestrator.on_finished("Earlier answer")
+        self.orchestrator.on_prompt("Colour the rivers")
+        self.orchestrator.on_preamble("I'll load the style rules first.")
+        self.orchestrator.on_failed("HTTP 500")
+        self.agent.started = None
+        self.orchestrator.on_retry()
+        prompt, history = self.agent.started
+        self.assertEqual(prompt, "Colour the rivers")
+        self.assertEqual([message["content"] for message in history], ["Earlier question", "Earlier answer"])
+
     def test_saved_settings_offer_retry_only_when_idle(self):
         self.orchestrator.on_prompt("Colour the rivers")
         self.orchestrator.on_failed("HTTP 401")

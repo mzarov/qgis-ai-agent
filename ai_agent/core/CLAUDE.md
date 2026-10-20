@@ -212,10 +212,11 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     keeps the kind (`failure_kind`), `explain_run_failure`
     (`agent/run_failure.py`) turns it into a title, one sentence and whether
     sending again can help, for the feed's failure card. Retry
-    (`CoreOrchestrator.on_retry`) sends the failed request again over the same
-    history without adding the user message a second time; a wrong path or a
-    refused key is offered Retry only after the settings are saved
-    (`on_settings_saved`).
+    (`CoreOrchestrator.on_retry`) sends the failed request again over the
+    history before it, without adding the user message a second time; a wrong
+    path or a refused key is offered Retry only after the settings are saved
+    (`on_settings_saved`). Beside steps the failed run prepared, Retry waits:
+    it would start over without them, so it comes back once they are cancelled.
 18. **The prefix never moves; the state rides at the end.** Everything that
     changes during a run — notes, plan, queued steps, project context — is one
     state message appended after the transcript (`llm/live.py`), never part of
