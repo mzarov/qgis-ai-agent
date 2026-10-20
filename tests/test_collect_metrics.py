@@ -3,6 +3,7 @@ import io
 import sys
 import tempfile
 import unittest
+import urllib.error
 import xml.etree.ElementTree as ElementTree
 from pathlib import Path
 from unittest import mock
@@ -75,6 +76,46 @@ class MetricsTest(unittest.TestCase):
         self.assertIn("| 0.3.0 | 2026-10-13 | 87 |", readme)
         self.assertNotIn("GitHub traffic", readme)
         self.assertTrue((self.folder / "daily_downloads.svg").exists())
+
+    def test_a_plugin_page_without_versions_fails_and_adds_no_day(self):
+        downloads = self.folder / "downloads.csv"
+        downloads.write_text("day,version,downloads,uploaded\n2026-10-19,0.4.0,48,2026-10-17\n", encoding="utf-8")
+        for payload in ({"plugin": {"name": "AI Agent"}, "releases": []}, {"versions": []}, {"versions": "0.4.0"}):
+            with (
+                self.subTest(payload=payload),
+                mock.patch.object(collect_metrics, "fetch_json", return_value=payload),
+                self.assertRaisesRegex(ValueError, "no versions"),
+            ):
+                collect_metrics.collect(self.folder, "owner/repo", "", "2026-10-20")
+        self.assertNotIn("2026-10-20", downloads.read_text(encoding="utf-8"))
+        self.assertFalse((self.folder / "README.md").exists())
+
+    def test_the_run_exits_with_an_error_when_the_downloads_are_missing(self):
+        errors = io.StringIO()
+        with (
+            mock.patch.object(collect_metrics, "fetch_json", return_value={}),
+            contextlib.redirect_stderr(errors),
+        ):
+            self.assertEqual(collect_metrics.main(["--data", str(self.folder)]), 1)
+        self.assertIn("::error::", errors.getvalue())
+
+    def test_a_traffic_timeout_still_keeps_the_days_downloads(self):
+        for failure in (urllib.error.URLError(TimeoutError("timed out")), TimeoutError("The read operation timed out")):
+
+            def fetch(url, token="", failure=failure):
+                if "plugins.qgis.org" in url:
+                    return PLUGIN
+                raise failure
+
+            printed = io.StringIO()
+            with (
+                self.subTest(failure=type(failure).__name__),
+                mock.patch.object(collect_metrics, "fetch_json", side_effect=fetch),
+                contextlib.redirect_stdout(printed),
+            ):
+                collect_metrics.collect(self.folder, "owner/repo", "token", "2026-10-16")
+            self.assertIn("Traffic skipped", printed.getvalue())
+            self.assertIn("2026-10-16,0.3.0,87", (self.folder / "downloads.csv").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
