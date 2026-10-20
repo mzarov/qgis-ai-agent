@@ -65,6 +65,7 @@ WIDE_TABLE = {
 PAYLOAD = "<b>bold</b>"
 RED = QColor(255, 0, 0)
 LONG_FEED = 120
+LAYOUT_WAIT_S = 10
 DISTRICT_LIST = "A district list:\n\n" + "\n".join(f"- item {index}" for index in range(8))
 BAR_CHART = {
     "type": "chart",
@@ -1131,7 +1132,10 @@ class LongFeedArrivalTest(unittest.TestCase):
         for index in range(LONG_FEED):
             view.add_user_message(f"question {index}", animate=False)
             view.add_assistant_message(DISTRICT_LIST)
-        pump(0.2)
+        # A slow CI machine lays the answers out over several event rounds.
+        deadline = time.monotonic() + LAYOUT_WAIT_S
+        while view.widget().height() <= 5 * view.height() and time.monotonic() < deadline:
+            pump(0.1)
         self.assertGreater(view.widget().height(), 5 * view.height())
         answers = view.widget().findChildren(AssistantMessage)
         far, near = PaintCounter(answers[0]._browser.viewport()), PaintCounter(answers[-1]._browser.viewport())
