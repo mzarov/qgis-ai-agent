@@ -88,6 +88,14 @@ class HtmlTextTest(unittest.TestCase):
     def test_plain_text_survives(self):
         self.assertEqual(html_to_text("просто текст"), "просто текст")
 
+    def test_a_page_without_closing_head_keeps_its_body(self):
+        for page in (
+            "<html><head><title>Title</title><meta charset=utf-8><body><p>Body text</p></body></html>",
+            "<!doctype html><title>Title</title><p>Body text",
+        ):
+            with self.subTest(page=page):
+                self.assertEqual(html_to_text(page), "Body text")
+
     def test_malformed_drop_tags_are_processed_with_a_linear_budget(self):
         started = time.monotonic()
         self.assertEqual(html_to_text("<script>" * 20_000), "")
