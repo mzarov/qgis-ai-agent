@@ -689,6 +689,20 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertAlmostEqual(restored.opacity(), 1.0)
         self.assertEqual(restored.featureCount(), 2)
 
+    def test_a_save_as_neither_stops_the_batch_nor_blocks_its_undo(self):
+        self.assertTrue(take_snapshot())
+        target = self.root / "city.qgz"
+        batch = WriteBatch(ToolExecutor())
+        batch.add(ToolCall("save", "save_project", {"path": str(target)}))
+        batch.add(ToolCall("fade", "set_opacity", {"layer_name": self.layer.name(), "opacity": 0.3}))
+        results = self._applied(batch)
+        self.assertTrue(all(result.ok for result in results), [result.payload for result in results])
+        self.assertEqual(self.project.fileName(), str(target))
+        _, result = self._run("undo_last_apply")
+        self.assertAlmostEqual(self.project.mapLayersByName("points")[0].opacity(), 1.0)
+        self.assertEqual(self.project.fileName(), "")
+        self.assertIn("city.qgz", result["saved_as_note"])
+
     def test_undo_brings_scratch_layers_back_with_their_features(self):
         identifier = self.layer.id()
         self.assertTrue(take_snapshot())

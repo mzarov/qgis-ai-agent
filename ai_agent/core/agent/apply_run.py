@@ -7,7 +7,7 @@ from qgis.PyQt.QtWidgets import QApplication
 from ai_agent.core.agent.transcript import SKIPPED_STATUS, ToolResult
 from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.common.layers import follow_batch_renames, layer_names_by_id, layer_pin_error
-from ai_agent.qgis_tools.common.project_identity import project_identity
+from ai_agent.qgis_tools.common.project_identity import project_identity, same_project
 from ai_agent.qgis_tools.registry import get_tool_by_name
 
 if TYPE_CHECKING:
@@ -117,7 +117,7 @@ class ApplyRun:
             return _skipped_result(call, self._failed.call)
         if self._batch._cancel_requested:
             return _failure(call, CANCELLED_ERROR)
-        if project_identity(QgsProject.instance()) != self._expected:
+        if not same_project(project_identity(QgsProject.instance()), self._expected):
             return _failure(call, PROJECT_CHANGED_ERROR)
         target_error = layer_pin_error(_follow(call, self._names_at_start))
         return _failure(call, target_error) if target_error else None

@@ -2,6 +2,7 @@ from typing import Any
 
 from qgis.core import QgsProject
 
+from ai_agent.qgis_tools.common.project_identity import same_project
 from ai_agent.qgis_tools.project.scratch_copies import restore_scratch_layers
 from ai_agent.qgis_tools.project.snapshots import (
     capture_project_state,
@@ -26,6 +27,10 @@ RENUMBERED_NOTE = (
     "between their features to keep each one's own; a virtual field or anything else built on $id may now "
     "read differently."
 )
+SAVED_AS_NOTE = (
+    "The undone steps saved the project as '{saved}'; that file still holds them. The project is back "
+    "where it was before them: {original}."
+)
 OTHER_PROJECT = (
     "The snapshot belongs to another project ('{expected}'), while "
     "the current project is '{current}'. Switch back before restoring it."
@@ -37,7 +42,7 @@ def restore_snapshot(path: str) -> dict[str, Any]:
     ensure_project_read_safe(project)
     before_read = capture_project_state(project)
     original = snapshot_state(path)
-    if original is not None and before_read.identity != original.identity:
+    if original is not None and not same_project(before_read.identity, original.identity):
         raise ValueError(
             OTHER_PROJECT.format(
                 expected=original.file_name or "unsaved project",
@@ -57,6 +62,10 @@ def restore_snapshot(path: str) -> dict[str, Any]:
     empty = [*scratch.not_copied, *restore_scratch_layers(project, scratch)]
     drop_snapshot(path)
     result: dict[str, Any] = {"restored_from": path, "note": SCOPE_NOTE}
+    if original is not None and before_read.identity != original.identity:
+        result["saved_as_note"] = SAVED_AS_NOTE.format(
+            saved=before_read.file_name, original=original.file_name or "an unsaved project"
+        )
     if empty:
         result["empty_scratch_layers"] = empty
         result["scratch_note"] = EMPTY_SCRATCH_NOTE.format(layers=", ".join(empty))

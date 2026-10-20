@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.llm.turns import ToolCall
-from ai_agent.qgis_tools.common.project_identity import project_identity
+from ai_agent.qgis_tools.common.project_identity import project_identity, remember_save_as, same_project
 from ai_agent.qgis_tools.project import restore as undo_module
 from ai_agent.qgis_tools.project import scratch_copies, snapshots
 from ai_agent.qgis_tools.project.remove_layer import RemoveLayerTool
@@ -595,6 +595,16 @@ class ProcessFolderTest(unittest.TestCase):
             snapshots._cleanup_process_folder()
         snapshots._PROCESS_FOLDER = ""
         snapshots._cleanup_process_folder()
+
+
+class SaveAsIdentityTest(unittest.TestCase):
+    def test_a_save_as_keeps_the_project_and_another_project_stays_another(self):
+        remember_save_as("unsaved:save-as-test", "/maps/city.qgz")
+        remember_save_as("/maps/city.qgz", "/maps/city-final.qgz")
+        self.assertTrue(same_project("/maps/city-final.qgz", "unsaved:save-as-test"))
+        self.assertTrue(same_project("/maps/city.qgz", "/maps/city.qgz"))
+        self.assertFalse(same_project("/maps/other.qgz", "unsaved:save-as-test"))
+        self.assertFalse(same_project("unsaved:save-as-test", "/maps/city.qgz"), "a Save As is not undone backwards")
 
 
 if __name__ == "__main__":
