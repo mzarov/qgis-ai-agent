@@ -24,6 +24,7 @@ from qgis.core import (
     QgsProcessingContext,
     QgsProject,
     QgsRasterLayer,
+    QgsRectangle,
     QgsRenderContext,
     QgsVectorFileWriter,
     QgsVectorLayer,
@@ -31,6 +32,7 @@ from qgis.core import (
 )
 from qgis.gui import QgsGui
 from qgis.PyQt.QtCore import QCoreApplication, QDate, QDateTime, QEvent, QEventLoop, QSize, QTime, QTimer
+from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import QMainWindow
 
 from ai_agent.core.agent.batch import WriteBatch
@@ -42,6 +44,7 @@ from ai_agent.plugin import QgisAiAgentPlugin
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE
 from ai_agent.qgis_tools.charts import chart_layer
 from ai_agent.qgis_tools.common.background import STOPPED, InTask
+from ai_agent.qgis_tools.common.colors import parse_color
 from ai_agent.qgis_tools.common.editing import edit_session
 from ai_agent.qgis_tools.common.layers import suggest_metric_crs
 from ai_agent.qgis_tools.draw.draw_features import DrawFeaturesTool
@@ -1113,6 +1116,31 @@ class GisWorkflowsTest(unittest.TestCase):
         changed = self.layer.labeling().settings().format()
         self.assertEqual((changed.size(), changed.sizeUnit()), (10.0, Qgis.RenderUnit.Points))
         self.assertEqual((changed.buffer().size(), changed.buffer().sizeUnit()), (1.5, Qgis.RenderUnit.Millimeters))
+
+    def _drawn(self, layer, half_width):
+        settings = QgsMapSettings()
+        settings.setLayers([layer])
+        settings.setDestinationCrs(layer.crs())
+        settings.setExtent(QgsRectangle(-half_width, -half_width, half_width, half_width))
+        settings.setOutputSize(QSize(200, 200))
+        settings.setBackgroundColor(QColor(255, 255, 255))
+        job = QgsMapRendererSequentialJob(settings)
+        job.start()
+        job.waitForFinished()
+        return job.renderedImage()
+
+    def test_a_see_through_fill_comes_from_a_colour_with_alpha_in_css_order(self):
+        square = "POLYGON ((-500 -500, 500 -500, 500 500, -500 500, -500 -500))"
+        zones, _ = self._shapes("zones", "Polygon?crs=EPSG:3857", [square])
+        self.assertEqual(parse_color("#ff000080").getRgb(), (255, 0, 0, 128))
+        outline = {"stroke_color": "black", "stroke_width": 3}
+        self._run("set_symbol", layer_name="zones", properties={"color": "#ff000080", **outline})
+        image = self._drawn(zones, 1000)
+        fill, edge = image.pixelColor(100, 100), image.pixelColor(150, 100)
+        self.assertEqual((fill.red(), fill.blue()), (255, 127), "the fill is not half see-through red")
+        self.assertEqual(edge.name(), "#000000", "the outline lost its colour")
+        self._run("set_symbol", layer_name="zones", properties={"color": "red", "opacity": 0.3, **outline})
+        self.assertGreater(self._drawn(zones, 1000).pixelColor(150, 100).red(), 100, "opacity fades the outline too")
 
     def test_a_csv_export_keeps_the_geometry(self):
         path = self.root / "points.csv"

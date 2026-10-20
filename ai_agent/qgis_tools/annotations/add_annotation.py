@@ -11,11 +11,11 @@ from qgis.core import (
     QgsProject,
     QgsTextFormat,
 )
-from qgis.PyQt.QtGui import QColor
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.annotations.store import annotation_crs, annotation_layer, item_text
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
+from ai_agent.qgis_tools.common.colors import parse_color
 
 KIND_TEXT = "text"
 KIND_MARKER = "marker"
@@ -67,8 +67,8 @@ class AddAnnotationTool(BaseTool):
         if prepared["kind"] == KIND_TEXT and not str(params.get("text") or "").strip():
             raise ValueError("A text annotation needs the text field.")
         colour = str(params.get("color") or "").strip()
-        if colour and not QColor(colour).isValid():
-            raise ValueError(f"'{colour}' is not a colour. Use #rrggbb or a colour name.")
+        if colour:
+            parse_color(colour)
         authid = _checked_crs(params.get("crs")).authid()
         prepared["crs"] = authid if isinstance(authid, str) and authid else str(params.get("crs") or WGS84).strip()
         return prepared
@@ -101,7 +101,7 @@ class AddAnnotationTool(BaseTool):
         if kind == KIND_TEXT and item_text(item) != str(params.get("text") or "").strip():
             return False
         colour = str(params.get("color") or "").strip()
-        if colour and _item_colour(item, kind) != QColor(colour).name():
+        if colour and _item_colour(item, kind) != parse_color(colour).name():
             return False
         wanted = _to_layer_point(*_checked_xy(params), _checked_crs(params.get("crs")))
         centre = item.boundingBox().center()
@@ -154,7 +154,7 @@ def _apply_marker_colour(item: Any, params: dict[str, Any]) -> None:
     colour = str(params.get("color") or "").strip()
     if colour:
         symbol = item.symbol().clone()
-        symbol.setColor(QColor(colour))
+        symbol.setColor(parse_color(colour))
         item.setSymbol(symbol)
 
 
@@ -172,7 +172,7 @@ def _apply_text_look(item: Any, params: dict[str, Any]) -> None:
         text_format.setSize(_size(params.get("size")))
         colour = str(params.get("color") or "").strip()
         if colour:
-            text_format.setColor(QColor(colour))
+            text_format.setColor(parse_color(colour))
         item.setFormat(text_format)
 
 
