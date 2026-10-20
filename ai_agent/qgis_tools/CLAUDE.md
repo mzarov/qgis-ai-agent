@@ -63,7 +63,9 @@ not by name.
 
 Built-in Processing algorithms that modify existing sources belong in
 `processing/effects.py::SOURCE_WRITERS`. Add an effect-policy regression test
-when adding an entry. Unknown providers, scripts and models are conservative by
+when adding an entry. Other unchecked effects go to `UNCHECKED_WRITERS`
+(destructive, external), free SQL to `SQL_RUNNERS`, data sent out to
+`NETWORK_SENDERS` (both confirmed per call). Unknown providers, scripts and models are conservative by
 default; output-path checks still apply to ordinary built-in algorithms.
 
 `get_openai_schema()` is built from `params_schema` automatically — never write

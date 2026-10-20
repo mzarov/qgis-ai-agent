@@ -215,5 +215,67 @@ class SearchIndexTest(unittest.TestCase):
         self.assertEqual([item["name"] for item in found["algorithms"]], ["Audit buffer v2"])
 
 
+class _Parsed:
+    def __init__(self, text):
+        self._text = text
+
+    def referencedFunctions(self):
+        return {name for name in ("env", "eval", "upper") if f"{name}(" in self._text}
+
+
+class _Calculator:
+    @staticmethod
+    def id():
+        return "native:fieldcalculator"
+
+    @staticmethod
+    def parameterDefinitions():
+        return [
+            _Parameter("FORMULA", "expression"),
+            _Parameter("FIELDS_MAPPING", "fields_mapping"),
+            _Parameter("AGGREGATES", "aggregates"),
+            _Parameter("FIELD_NAME", "string"),
+        ]
+
+
+class ExpressionParameterTest(unittest.TestCase):
+    def test_every_expression_a_run_evaluates_is_found(self):
+        arguments = {
+            "FORMULA": "upper(name)",
+            "FIELDS_MAPPING": [{"name": "a", "expression": "eval('1')"}, {"name": "b"}],
+            "AGGREGATES": [{"aggregate": "first_value", "input": "env('HOME')"}],
+            "FIELD_NAME": "env('not an expression')",
+        }
+        self.assertEqual(
+            utils.expression_texts(_Calculator(), arguments),
+            [("FORMULA", "upper(name)"), ("FIELDS_MAPPING", "eval('1')"), ("AGGREGATES", "env('HOME')")],
+        )
+
+    def test_run_processing_refuses_an_unsafe_function_in_any_expression(self):
+        from ai_agent.qgis_tools.common import expressions
+        from ai_agent.qgis_tools.processing import run_processing
+
+        tool = run_processing.RunProcessingTool()
+        with (
+            mock.patch.object(expressions, "QgsExpression", _Parsed),
+            mock.patch.object(run_processing, "find_algorithm", return_value=_Calculator()),
+            mock.patch.object(run_processing, "coerce_parameters", side_effect=lambda algorithm, arguments: arguments),
+            mock.patch.object(run_processing, "check_distance_units"),
+        ):
+            for parameters in (
+                {"FORMULA": "env('HOME')"},
+                {"FIELDS_MAPPING": [{"name": "a", "expression": "eval('env(''HOME'')')"}]},
+                {"AGGREGATES": [{"input": "env('HOME')"}]},
+            ):
+                arguments = {"algorithm_id": "native:fieldcalculator", "parameters": parameters}
+                with self.subTest(parameters=parameters), self.assertRaisesRegex(ValueError, r"\(\) is not allowed in"):
+                    tool.prepare(arguments)
+                with self.subTest(parameters=parameters), self.assertRaisesRegex(ValueError, r"\(\) is not allowed in"):
+                    tool.execute(arguments)
+            safe = {"algorithm_id": "native:fieldcalculator", "parameters": {"FORMULA": "upper(name)"}}
+            with mock.patch.object(run_processing, "destination_parameter_names", return_value=[]):
+                self.assertEqual(tool.prepare(safe)["parameters"], {"FORMULA": "upper(name)"})
+
+
 if __name__ == "__main__":
     unittest.main()

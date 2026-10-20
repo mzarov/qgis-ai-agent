@@ -1029,6 +1029,34 @@ class GisWorkflowsTest(unittest.TestCase):
         )
         self.assertEqual(counted.payload["matched"], 1)
 
+    def test_processing_expressions_never_write_files_or_read_the_environment(self):
+        counters = self._counters()
+        write = f"sqlite_fetch_and_increment('{counters}', 'counters', 'id', 'name', 'zz', map('name', 'zz'))"
+        batch = WriteBatch(ToolExecutor())
+        for algorithm_id, parameters in (
+            ("native:fieldcalculator", {"FIELD_NAME": "home", "FIELD_TYPE": 2, "FORMULA": "env('HOME')"}),
+            ("native:extractbyexpression", {"EXPRESSION": f"{write} > 0"}),
+            ("native:refactorfields", {"FIELDS_MAPPING": [{"name": "n", "type": 2, "expression": "eval('1')"}]}),
+            ("native:aggregate", {"GROUP_BY": "NULL", "AGGREGATES": [{"aggregate": "max", "input": "env('HOME')"}]}),
+        ):
+            with self.subTest(algorithm_id=algorithm_id), self.assertRaisesRegex(ValueError, "is not allowed in"):
+                batch.add(
+                    ToolCall(
+                        "expression",
+                        "run_processing",
+                        {"algorithm_id": algorithm_id, "parameters": {"INPUT": "points", **parameters}},
+                    )
+                )
+        self.assertEqual(self._counter_rows(counters), [(5, "a")])
+        self._run(
+            "run_processing",
+            algorithm_id="native:fieldcalculator",
+            parameters={"INPUT": "points", "FIELD_NAME": "loud", "FIELD_TYPE": 2, "FORMULA": "upper(name)"},
+            output_name="loud points",
+        )
+        loud = self.project.mapLayersByName("loud points")[0]
+        self.assertEqual(sorted(feature["loud"] for feature in loud.getFeatures()), ["POINT-0", "POINT-1"])
+
     def test_processing_sql_with_qgis_functions_waits_for_its_own_confirmation(self):
         self._districts_and_schools()
         counters = self._counters()

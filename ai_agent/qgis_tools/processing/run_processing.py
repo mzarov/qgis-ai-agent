@@ -6,6 +6,7 @@ from ai_agent.config import limits
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_DESTRUCTIVE, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.background import Background
+from ai_agent.qgis_tools.common.expressions import refuse_unsafe_functions
 from ai_agent.qgis_tools.processing.background_run import ProcessingInBackground, runs_in_background
 from ai_agent.qgis_tools.processing.deadline import DeadlineFeedback
 from ai_agent.qgis_tools.processing.destinations import check_destinations, database_destinations, destination_values
@@ -21,6 +22,7 @@ from ai_agent.qgis_tools.processing.utils import (
     coerce_parameters,
     destination_parameter_names,
     empty_output_warnings,
+    expression_texts,
     find_algorithm,
     normalize_output,
     project_layer_ids,
@@ -183,6 +185,8 @@ class RunProcessingTool(BaseTool):
         if not isinstance(arguments, dict):
             raise ValueError("The parameters argument must be an object.")
         prepared = coerce_parameters(algorithm, arguments)
+        for name, text in expression_texts(algorithm, prepared):
+            refuse_unsafe_functions(text, name)
         check_distance_units(algorithm, prepared)
         return algorithm, prepared
 
