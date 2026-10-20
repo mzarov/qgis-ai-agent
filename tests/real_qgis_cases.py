@@ -340,6 +340,22 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual(len(drawn()), 4)
         self.assertNotIn(drawn()[-1], ("A", "B", "points"), "the basemap is not drawn at the bottom")
 
+    def test_showing_a_layer_in_a_hidden_group_shows_the_group_too(self):
+        root = self.project.layerTreeRoot()
+        group = root.addGroup("Transport")
+        node = root.findLayer(self.layer.id())
+        group.insertChildNode(0, node.clone())
+        root.removeChildNode(node)
+        group.setItemVisibilityChecked(False)
+        root.findLayer(self.layer.id()).setItemVisibilityChecked(False)
+        queued, payload = self._run("configure_layer", layer_name="points", properties={"visible": True})
+        self.assertTrue(root.findLayer(self.layer.id()).isVisible())
+        self.assertTrue(payload["visible"])
+        tool = get_tool_by_name("configure_layer")
+        self.assertTrue(tool.confirm_applied(queued.arguments, payload))
+        group.setItemVisibilityChecked(False)
+        self.assertFalse(tool.confirm_applied(queued.arguments, payload), "a layer in a hidden group is not drawn")
+
     def test_symbol_changes_are_visible_in_the_actual_renderer(self):
         self._run("set_symbol", layer_name=self.layer.name(), properties={"color": "#123456", "size": 4})
         symbol = self.layer.renderer().symbol()

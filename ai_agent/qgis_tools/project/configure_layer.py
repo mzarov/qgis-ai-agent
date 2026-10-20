@@ -76,8 +76,11 @@ class ConfigureLayerTool(BaseTool):
         layer = find_layer(params.get("layer_name") or "")
         properties = LAYER_PROPERTIES.coerce_all(properties_of(params, LAYER_PROPERTIES.subject))
         node = tree_node(layer)
-        if "visible" in properties:
-            node.setItemVisibilityChecked(bool(properties["visible"]))
+        if properties.get("visible"):
+            # Checking the layer alone leaves it undrawn inside a hidden group.
+            node.setItemVisibilityCheckedParentRecursive(True)
+        elif "visible" in properties:
+            node.setItemVisibilityChecked(False)
         if "name" in properties:
             layer.setName(properties["name"])
         if "group" in properties or "position" in properties:
@@ -136,7 +139,7 @@ def _at_position(node: Any, position: Any) -> bool:
 
 def _visible(node: Any) -> bool:
     try:
-        return bool(node.itemVisibilityChecked())
+        return bool(node.isVisible())
     except Exception:
         return True
 
