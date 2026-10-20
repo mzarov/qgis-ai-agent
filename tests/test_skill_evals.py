@@ -157,6 +157,15 @@ class ChecksTest(unittest.TestCase):
         self.assertIn("processing", checks.mismatch({"loads": ["osm", "processing"]}, checks.tool_calls(output)))
         self.assertIsNotNone(checks.mismatch({"not_loads": ["osm"]}, checks.tool_calls(output)))
 
+    def test_a_skill_loaded_by_name_counts_as_the_plugin_reads_it(self):
+        by_name = [("load_skill", {"name": "style"})]
+        self.assertIsNone(checks.mismatch({"loads": ["style"]}, by_name))
+        self.assertEqual(
+            checks.mismatch({"not_loads": ["style"]}, by_name), "loaded style, which this case does not need"
+        )
+        both = [("load_skill", {"names": ["osm"], "name": "style"})]
+        self.assertIn("did not load style", checks.mismatch({"loads": ["osm", "style"]}, both))
+
     def test_any_of_and_an_answer_in_words(self):
         calls = checks.tool_calls([self.call("describe_processing", algorithm_id="native:reprojectlayer")])
         options = {"any_of": [{"call": "run_processing"}, {"call": "describe_processing"}]}
