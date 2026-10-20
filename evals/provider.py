@@ -1,22 +1,23 @@
 import json
 import os
+import sys
 import urllib.request
 from pathlib import Path
 from typing import Any
 
-FIXTURE = Path(__file__).with_name("fixture.json")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import fixture_reads  # noqa: E402
+
 MAX_READ_ROUNDS = 3
 TIMEOUT_S = 300
-DESCRIBE_LAYER = "describe_layer"
-FIELD_VALUES = "get_field_values"
-DESCRIBE_ALGORITHM = "describe_processing"
 
 
 def call_api(prompt: str, options: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
     config = (options or {}).get("config") or {}
     messages = json.loads(prompt)
     tools = json.loads(Path(config["tools"]).read_text(encoding="utf-8"))
-    data = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    data = fixture_reads.load()
     calls: list[dict[str, Any]] = []
     usage = {"prompt": 0, "completion": 0, "total": 0}
     text = ""
@@ -66,14 +67,7 @@ def answered(call: dict[str, Any], data: dict[str, Any]) -> Any:
         return None
     if not isinstance(arguments, dict):
         return None
-    name = function.get("name")
-    if name == DESCRIBE_LAYER:
-        return data[DESCRIBE_LAYER].get(arguments.get("layer_name"))
-    if name == FIELD_VALUES:
-        return data[FIELD_VALUES].get(f"{arguments.get('layer_name')}/{arguments.get('field_name')}")
-    if name == DESCRIBE_ALGORITHM:
-        return data[DESCRIBE_ALGORITHM].get(arguments.get("algorithm_id"))
-    return None
+    return fixture_reads.answer(str(function.get("name") or ""), arguments, data)
 
 
 def add_usage(total: dict[str, int], usage: dict[str, Any]) -> None:

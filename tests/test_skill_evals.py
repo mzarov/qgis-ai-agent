@@ -1,4 +1,5 @@
 import json
+import math
 import re
 import shutil
 import sys
@@ -12,6 +13,7 @@ sys.path.insert(0, str(EVALS))
 
 import checks  # noqa: E402
 import context as agent_request  # noqa: E402
+import fixture_reads  # noqa: E402
 import prompt as prompt_function  # noqa: E402
 import provider  # noqa: E402
 import run as runner  # noqa: E402
@@ -25,6 +27,8 @@ from ai_agent.skills.registry import SKILL_REGISTRY  # noqa: E402
 
 CALL_LINE = re.compile(r"^\s*(?:-\s*)?call:\s*(\[[^\]]*\]|[A-Za-z0-9_]+)", re.MULTILINE)
 LOADS = re.compile(r"(?:loads|not_loads):\s*\[([^\]]*)\]")
+NAMED_READS = re.compile(r"^[ \t]*reads:[ \t]*(\S.*)$", re.MULTILINE)
+EARTH_RADIUS = 6378137.0
 
 
 def names_in(value: str) -> list[str]:
@@ -84,6 +88,14 @@ class CasesTest(unittest.TestCase):
 
     def test_the_main_skills_have_cases(self):
         self.assertTrue({"routing", "inspect", "style", "processing", "fields", "project"} <= set(runner.suites()))
+
+    def test_every_read_a_case_names_is_in_the_fixture(self):
+        data = fixture_reads.load()
+        for suite, cases in runner.suites().items():
+            for match in NAMED_READS.finditer(cases.read_text(encoding="utf-8")):
+                for read in prompt_function.reads(match.group(1)):
+                    with self.subTest(suite=suite, read=read):
+                        self.assertTrue(agent_request._read(read, data)[2])
 
     def test_no_case_uses_a_list_for_its_reads(self):
         for suite, cases in runner.suites().items():
@@ -248,6 +260,109 @@ class ProviderTest(unittest.TestCase):
         self.assertEqual(sent[0].get_header("Authorization"), "OAuth secret")
         self.assertIsNone(sent[1].get_header("Authorization"), "a local server gets no key")
         self.assertTrue(sent[0].full_url.endswith("/v1/chat/completions"))
+
+
+# Layer ids are left out of every answer, as in describe_layer: cases name layers by name.
+FIELD_VALUE_KEYS = {"layer_name", "field_name", "field_type", "unique_values"}
+LISTED_LAYER_KEYS = {"name", "kind", "crs", "crs_is_geographic", "style_summary", "style_note"}
+PLUGIN_KEYS = {"plugin", "name", "version", "description"}
+
+
+def mercator(longitude, latitude):
+    x = math.radians(longitude) * EARTH_RADIUS
+    return x, math.log(math.tan(math.pi / 4 + math.radians(latitude) / 2)) * EARTH_RADIUS
+
+
+class FixtureReadsTest(unittest.TestCase):
+    def setUp(self):
+        self.data = fixture_reads.load()
+
+    def answer(self, name, **arguments):
+        return provider.answered(model_call(name, **arguments), self.data)
+
+    def test_field_values_have_the_tools_keys_and_numbers_a_range(self):
+        capacity = self.answer("get_field_values", layer_name="schools", field_name="capacity")
+        self.assertEqual(set(capacity), FIELD_VALUE_KEYS | {"unique_values_count", "min", "max"})
+        self.assertLess(capacity["min"], 100, "the edit case deletes schools below 100")
+        names = self.answer("get_field_values", layer_name="Roads", field_name=" name")
+        self.assertEqual(set(names), FIELD_VALUE_KEYS | {"unique_values_count", "has_null_values", "null_note"})
+        self.assertIn("Tverskaya", names["unique_values"])
+        ids = self.answer("get_field_values", layer_name="roads", field_name="fid")
+        self.assertEqual(set(ids), FIELD_VALUE_KEYS | {"unique_values_note", "min", "max"})
+
+    def test_project_reads_have_the_tools_keys(self):
+        self.assertEqual(set(self.answer("get_canvas_extent")), {"extent", "project_crs"})
+        self.assertEqual(set(self.answer("get_qgis_info")), {"qgis_version", "locale", "processing_providers"})
+        listed = self.answer("list_layers")
+        self.assertEqual(set(listed), {"layers", "count"})
+        for layer in listed["layers"]:
+            vector = {"geometry", "feature_count"} if layer["kind"] == "vector" else set()
+            self.assertEqual(set(layer), LISTED_LAYER_KEYS | vector)
+        style = self.answer("describe_style", layer_name="roads")
+        self.assertEqual(set(style), {"name", "kind", "opacity", "renderer", "labeling"})
+        self.assertEqual(style["renderer"]["type"], "singleSymbol")
+        self.assertEqual(set(self.answer("describe_style", layer_name="dem")), {"name", "kind", "opacity", "renderer"})
+
+    def test_plugins_are_filtered_by_query_words_like_the_tool(self):
+        everything = self.answer("list_plugins")
+        self.assertEqual(everything["count"], len(everything["plugins"]))
+        for plugin in everything["plugins"]:
+            self.assertLessEqual(PLUGIN_KEYS, set(plugin))
+        self.assertEqual(self.answer("list_plugins", query="network"), {"plugins": [], "count": 0})
+        self.assertEqual(self.answer("list_plugins", query="isochrones")["count"], 0, "a case reads this as empty")
+        found = self.answer("list_plugins", query="web map")
+        self.assertEqual([plugin["plugin"] for plugin in found["plugins"]], ["qgis2web"])
+        self.assertIn("QuickOSM", [plugin["plugin"] for plugin in self.answer("list_plugins", query="OSM")["plugins"]])
+
+    def test_an_unknown_layer_or_field_is_not_answered(self):
+        self.assertIsNone(self.answer("get_field_values", layer_name="rivers", field_name="name"))
+        self.assertIsNone(self.answer("get_field_values", layer_name="schools", field_name="pupils"))
+        self.assertIsNone(self.answer("describe_style", layer_name="rivers"))
+        self.assertIsNone(self.answer("describe_layer", layer_name="rivers"))
+        self.assertIsNone(self.answer("get_project_info"))
+
+    def test_field_values_agree_with_the_described_layers(self):
+        for name, layer in self.data["describe_layer"].items():
+            if layer["kind"] != "vector":
+                continue
+            values = self.data["get_field_values"][name]
+            self.assertEqual([field["name"] for field in layer["fields"]], list(values))
+            for field in layer["fields"]:
+                answer = values[field["name"]]
+                self.assertEqual(answer["field_type"], field["type"])
+                for row in layer["sample"]:
+                    with self.subTest(layer=name, field=field["name"]):
+                        if "min" in answer:
+                            self.assertTrue(answer["min"] <= row[field["name"]] <= answer["max"])
+                        if "unique_values_count" in answer:
+                            self.assertIn(row[field["name"]], answer["unique_values"])
+
+    def test_project_reads_agree_with_the_described_project(self):
+        listed = {layer["name"]: layer for layer in self.data["list_layers"]["layers"]}
+        for name in listed:
+            self.assertIn(f"{name} (", self.data["project_context"])
+        for name, layer in self.data["describe_layer"].items():
+            self.assertEqual(listed[name]["crs"], layer["crs"])
+            self.assertEqual(listed[name].get("feature_count"), layer.get("feature_count"))
+        view = self.data["get_canvas_extent"]
+        self.assertIn(f"Project CRS: {view['project_crs']}.", self.data["project_context"])
+        districts = self.data["describe_layer"]["districts"]["extent"]
+        west, south = mercator(districts["xmin"], districts["ymin"])
+        east, north = mercator(districts["xmax"], districts["ymax"])
+        extent = view["extent"]
+        self.assertTrue(extent["xmin"] < west < east < extent["xmax"], "the view shows the districts")
+        self.assertTrue(extent["ymin"] < south < north < extent["ymax"], "the view shows the districts")
+        plugins = self.data["list_plugins"]["plugins"]
+        added = {provider for plugin in plugins for provider in plugin.get("processing_providers", [])}
+        self.assertLessEqual(added, set(self.data["get_qgis_info"]["processing_providers"]))
+
+    def test_a_named_field_read_builds_the_tools_answer(self):
+        messages, _ = agent_request.build("edit", "Delete the small schools", ["schools", "schools/capacity"])
+        call = messages[-2]["tool_calls"][0]["function"]
+        self.assertEqual(call["name"], "get_field_values")
+        self.assertEqual(json.loads(call["arguments"]), {"layer_name": "schools", "field_name": "capacity"})
+        self.assertIn('"field_type": "Integer"', messages[-1]["content"])
+        self.assertIn('"min": 60', messages[-1]["content"])
 
 
 class RunnerTest(unittest.TestCase):

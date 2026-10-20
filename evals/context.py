@@ -1,4 +1,3 @@
-import json
 import sys
 from pathlib import Path
 from typing import Any
@@ -18,7 +17,9 @@ from ai_agent.core.llm.live import fold_live  # noqa: E402
 from ai_agent.core.llm.reasoning import wire_messages  # noqa: E402
 from ai_agent.core.llm.turns import PROTOCOL_NATIVE, ModelTurn, ToolCall  # noqa: E402
 
-FIXTURE_PATH = Path(__file__).with_name("fixture.json")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import fixture_reads  # noqa: E402
+
 OVERRIDES = {
     "url_override": "http://eval.invalid/v1",
     "model_override": "eval",
@@ -27,10 +28,7 @@ OVERRIDES = {
     "dialect_override": "openai",
     "verify_override": True,
 }
-DESCRIBE_LAYER = "describe_layer"
-FIELD_VALUES = "get_field_values"
 FIELD_SEPARATOR = "/"
-DESCRIBE_ALGORITHM = "describe_processing"
 ALGORITHM_SEPARATOR = ":"
 NO_MEASUREMENTS = "none"
 MEASUREMENTS = "Measurements:"
@@ -42,10 +40,6 @@ def without_ellipsoid(context: str) -> str:
     return "\n".join(line if item.startswith(MEASUREMENTS) else item for item in context.splitlines())
 
 
-def fixture() -> dict[str, Any]:
-    return json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
-
-
 def build(
     skill: str = "",
     request: str = "",
@@ -54,7 +48,7 @@ def build(
     locale: str = "en",
     measurements: str = "",
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    data = fixture()
+    data = fixture_reads.load()
     if measurements == NO_MEASUREMENTS:
         data["project_context"] = without_ellipsoid(data["project_context"])
     loaded = list(PRELOADED_SKILLS)
@@ -92,16 +86,25 @@ def _add_step(transcript: Transcript, call: ToolCall, result: ToolResult) -> Non
 
 def _read(read: Any, data: dict[str, Any]) -> tuple[str, dict[str, Any], dict[str, Any]]:
     if isinstance(read, str):
-        if ALGORITHM_SEPARATOR in read:
-            return DESCRIBE_ALGORITHM, {"algorithm_id": read}, data[DESCRIBE_ALGORITHM][read]
-        if FIELD_SEPARATOR in read:
-            layer, field = read.split(FIELD_SEPARATOR, 1)
-            payload = data[FIELD_VALUES][read]
-            return FIELD_VALUES, {"layer_name": layer, "field_name": field}, payload
-        return DESCRIBE_LAYER, {"layer_name": read}, data[DESCRIBE_LAYER][read]
+        tool, arguments = _named_read(read)
+        payload = fixture_reads.answer(tool, arguments, data)
+        if payload is None:
+            raise ValueError(f"The read '{read}' is not in the fixture")
+        return tool, arguments, payload
     tool = str(read["tool"])
     arguments = dict(read.get("args") or {})
     payload = read.get("result")
     if payload is None:
+        payload = fixture_reads.answer(tool, arguments, data)
+    if payload is None:
         raise ValueError(f"The read {tool} {arguments} has no result and none is in the fixture")
     return tool, arguments, dict(payload)
+
+
+def _named_read(read: str) -> tuple[str, dict[str, Any]]:
+    if ALGORITHM_SEPARATOR in read:
+        return fixture_reads.DESCRIBE_ALGORITHM, {"algorithm_id": read}
+    if FIELD_SEPARATOR in read:
+        layer, field = read.split(FIELD_SEPARATOR, 1)
+        return fixture_reads.FIELD_VALUES, {"layer_name": layer, "field_name": field}
+    return fixture_reads.DESCRIBE_LAYER, {"layer_name": read}

@@ -229,53 +229,408 @@
     }
   },
   "get_field_values": {
-    "roads/highway": {
-      "field": "highway",
-      "unique_values": [
-        "footway",
-        "primary",
-        "residential",
-        "secondary",
-        "service",
-        "tertiary"
-      ],
-      "count": 6
+    "districts": {
+      "fid": {
+        "layer_name": "districts",
+        "field_name": "fid",
+        "field_type": "Integer64",
+        "unique_values": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "unique_values_count": 12,
+        "min": 1,
+        "max": 12
+      },
+      "name": {
+        "layer_name": "districts",
+        "field_name": "name",
+        "field_type": "String",
+        "unique_values": [
+          "Arbat",
+          "Basmanny",
+          "Khamovniki",
+          "Krasnoselsky",
+          "Meshchansky",
+          "Ostankinsky",
+          "Presnensky",
+          "Sokolniki",
+          "Tagansky",
+          "Tverskoy",
+          "Yakimanka",
+          "Zamoskvorechye"
+        ],
+        "unique_values_count": 12
+      },
+      "okrug": {
+        "layer_name": "districts",
+        "field_name": "okrug",
+        "field_type": "String",
+        "unique_values": [
+          "Central",
+          "North",
+          "South"
+        ],
+        "unique_values_count": 3
+      },
+      "pop2020": {
+        "layer_name": "districts",
+        "field_name": "pop2020",
+        "field_type": "Integer64",
+        "unique_values": [
+          36257,
+          46210,
+          51870,
+          58920,
+          59750,
+          64930,
+          97340,
+          103420,
+          110660,
+          112512,
+          122830,
+          128510
+        ],
+        "unique_values_count": 12,
+        "min": 36257,
+        "max": 128510
+      },
+      "area_km2": {
+        "layer_name": "districts",
+        "field_name": "area_km2",
+        "field_type": "Real",
+        "unique_values": [
+          2.11,
+          4.32,
+          4.4,
+          4.8,
+          5.15,
+          6.86,
+          7.27,
+          7.92,
+          8.38,
+          9.61,
+          10.08,
+          11.01
+        ],
+        "unique_values_count": 12,
+        "min": 2.11,
+        "max": 11.01
+      }
     },
-    "schools/kind": {
-      "field": "kind",
-      "unique_values": [
-        "gymnasium",
-        "lyceum",
-        "school"
-      ],
-      "count": 3
+    "roads": {
+      "fid": {
+        "layer_name": "roads",
+        "field_name": "fid",
+        "field_type": "Integer64",
+        "unique_values": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25
+        ],
+        "unique_values_note": "showing the first 25, there are more values",
+        "min": 1,
+        "max": 340
+      },
+      "name": {
+        "layer_name": "roads",
+        "field_name": "name",
+        "field_type": "String",
+        "unique_values": [
+          "Arbat",
+          "Bolshaya Nikitskaya",
+          "Bolshaya Ordynka",
+          "Garden Ring",
+          "Granatny",
+          "Kozikhinsky",
+          "Kutuzovsky Prospekt",
+          "Leningradsky Prospekt",
+          "Leninsky Prospekt",
+          "Malaya Bronnaya",
+          "Myasnitskaya",
+          "Novy Arbat",
+          "Ostozhenka",
+          "Patriarshy",
+          "Petrovka",
+          "Pokrovka",
+          "Prechistenka",
+          "Profsoyuznaya",
+          "Prospekt Mira",
+          "Shosse Entuziastov",
+          "Sivtsev Vrazhek",
+          "Spiridonovka",
+          "Tverskaya",
+          "Tverskoy Boulevard",
+          "Varshavskoye Shosse"
+        ],
+        "unique_values_count": 25,
+        "has_null_values": true,
+        "null_note": "the field has empty values, they are not included in the list"
+      },
+      "highway": {
+        "layer_name": "roads",
+        "field_name": "highway",
+        "field_type": "String",
+        "unique_values": [
+          "footway",
+          "primary",
+          "residential",
+          "secondary",
+          "service",
+          "tertiary"
+        ],
+        "unique_values_count": 6
+      },
+      "lanes": {
+        "layer_name": "roads",
+        "field_name": "lanes",
+        "field_type": "Integer",
+        "unique_values": [
+          1,
+          2,
+          3,
+          4,
+          6,
+          8
+        ],
+        "unique_values_count": 6,
+        "has_null_values": true,
+        "null_note": "the field has empty values, they are not included in the list",
+        "min": 1,
+        "max": 8
+      },
+      "maxspeed": {
+        "layer_name": "roads",
+        "field_name": "maxspeed",
+        "field_type": "Integer",
+        "unique_values": [
+          20,
+          40,
+          60,
+          80
+        ],
+        "unique_values_count": 4,
+        "has_null_values": true,
+        "null_note": "the field has empty values, they are not included in the list",
+        "min": 20,
+        "max": 80
+      }
     },
-    "districts/okrug": {
-      "field": "okrug",
-      "unique_values": [
-        "Central",
-        "North",
-        "South"
-      ],
-      "count": 3
+    "schools": {
+      "fid": {
+        "layer_name": "schools",
+        "field_name": "fid",
+        "field_type": "Integer64",
+        "unique_values": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25
+        ],
+        "unique_values_note": "showing the first 25, there are more values",
+        "min": 1,
+        "max": 58
+      },
+      "name": {
+        "layer_name": "schools",
+        "field_name": "name",
+        "field_type": "String",
+        "unique_values": [
+          "Gymnasium 1514",
+          "Gymnasium 1520",
+          "Gymnasium 1527",
+          "Gymnasium 1530",
+          "Gymnasium 1534",
+          "Gymnasium 1543",
+          "Gymnasium 1567",
+          "Gymnasium 1584",
+          "Gymnasium 1590",
+          "Lyceum 1501",
+          "Lyceum 1502",
+          "Lyceum 1535",
+          "Lyceum 1553",
+          "Lyceum 1561",
+          "Lyceum 1571",
+          "Lyceum 1580",
+          "Lyceum 2",
+          "Lyceum 2007",
+          "School 1173",
+          "School 1199",
+          "School 1210",
+          "School 1253",
+          "School 1257",
+          "School 1265",
+          "School 1279"
+        ],
+        "unique_values_note": "showing the first 25, there are more values"
+      },
+      "kind": {
+        "layer_name": "schools",
+        "field_name": "kind",
+        "field_type": "String",
+        "unique_values": [
+          "gymnasium",
+          "lyceum",
+          "school"
+        ],
+        "unique_values_count": 3
+      },
+      "capacity": {
+        "layer_name": "schools",
+        "field_name": "capacity",
+        "field_type": "Integer",
+        "unique_values": [
+          60,
+          85,
+          95,
+          300,
+          350,
+          390,
+          410,
+          450,
+          470,
+          530,
+          560,
+          600,
+          640,
+          680,
+          720,
+          760,
+          820,
+          880,
+          900,
+          910,
+          1050,
+          1100,
+          1200,
+          1350,
+          1500
+        ],
+        "unique_values_count": 25,
+        "min": 60,
+        "max": 1500
+      }
     },
-    "districts/name": {
-      "field": "name",
-      "unique_values": [
-        "Arbat",
-        "Basmanny",
-        "Khamovniki",
-        "Meshchansky",
-        "Presnensky",
-        "Tagansky",
-        "Tverskoy",
-        "Yakimanka",
-        "Zamoskvorechye",
-        "Krasnoselsky",
-        "Ostankinsky",
-        "Sokolniki"
-      ],
-      "count": 12
+    "stations": {
+      "fid": {
+        "layer_name": "stations",
+        "field_name": "fid",
+        "field_type": "Integer64",
+        "unique_values": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "unique_values_count": 9,
+        "min": 1,
+        "max": 9
+      },
+      "name": {
+        "layer_name": "stations",
+        "field_name": "name",
+        "field_type": "String",
+        "unique_values": [
+          "Arbatskaya",
+          "Chistye Prudy",
+          "Kurskaya",
+          "Lubyanka",
+          "Novokuznetskaya",
+          "Okhotny Ryad",
+          "Ploshchad Revolyutsii",
+          "Teatralnaya",
+          "Tverskaya"
+        ],
+        "unique_values_count": 9
+      },
+      "line": {
+        "layer_name": "stations",
+        "field_name": "line",
+        "field_type": "String",
+        "unique_values": [
+          "Blue",
+          "Green",
+          "Red"
+        ],
+        "unique_values_count": 3
+      },
+      "passengers": {
+        "layer_name": "stations",
+        "field_name": "passengers",
+        "field_type": "Integer",
+        "unique_values": [
+          27600,
+          29800,
+          30700,
+          33900,
+          35400,
+          38500,
+          41000,
+          52300,
+          74100
+        ],
+        "unique_values_count": 9,
+        "min": 27600,
+        "max": 74100
+      }
     }
   },
   "describe_processing": {
@@ -616,5 +971,240 @@
         }
       ]
     }
+  },
+  "describe_style": {
+    "districts": {
+      "name": "districts",
+      "kind": "vector",
+      "opacity": 1.0,
+      "renderer": {
+        "type": "singleSymbol",
+        "type_readable": "single symbol",
+        "symbol": {
+          "kind": "polygon",
+          "color": "#e5d8b0",
+          "opacity": 1.0,
+          "stroke_color": "#6d5a3c",
+          "stroke_width": 0.26
+        }
+      },
+      "labeling": {
+        "enabled": false
+      }
+    },
+    "roads": {
+      "name": "roads",
+      "kind": "vector",
+      "opacity": 1.0,
+      "renderer": {
+        "type": "singleSymbol",
+        "type_readable": "single symbol",
+        "symbol": {
+          "kind": "line",
+          "color": "#4a6fa5",
+          "opacity": 1.0,
+          "width": 0.26
+        }
+      },
+      "labeling": {
+        "enabled": false
+      }
+    },
+    "schools": {
+      "name": "schools",
+      "kind": "vector",
+      "opacity": 1.0,
+      "renderer": {
+        "type": "singleSymbol",
+        "type_readable": "single symbol",
+        "symbol": {
+          "kind": "point",
+          "color": "#3f9b4f",
+          "opacity": 1.0,
+          "size": 2.0,
+          "stroke_color": "#232323",
+          "stroke_width": 0.0
+        }
+      },
+      "labeling": {
+        "enabled": false
+      }
+    },
+    "stations": {
+      "name": "stations",
+      "kind": "vector",
+      "opacity": 1.0,
+      "renderer": {
+        "type": "singleSymbol",
+        "type_readable": "single symbol",
+        "symbol": {
+          "kind": "point",
+          "color": "#d6402b",
+          "opacity": 1.0,
+          "size": 3.0,
+          "stroke_color": "#ffffff",
+          "stroke_width": 0.0
+        }
+      },
+      "labeling": {
+        "enabled": false
+      }
+    },
+    "dem": {
+      "name": "dem",
+      "kind": "raster",
+      "opacity": 1.0,
+      "renderer": {
+        "type": "singlebandgray",
+        "bands": [
+          1
+        ]
+      }
+    }
+  },
+  "list_layers": {
+    "layers": [
+      {
+        "name": "OpenStreetMap",
+        "kind": "raster",
+        "crs": "EPSG:3857",
+        "crs_is_geographic": false,
+        "style_summary": "singlebandcolordata",
+        "style_note": "this is only the kind of styling; colours, classes and labels are not returned here — describe_style from the style skill reads those"
+      },
+      {
+        "name": "dem",
+        "kind": "raster",
+        "crs": "EPSG:32637",
+        "crs_is_geographic": false,
+        "style_summary": "singlebandgray",
+        "style_note": "this is only the kind of styling; colours, classes and labels are not returned here — describe_style from the style skill reads those"
+      },
+      {
+        "name": "districts",
+        "kind": "vector",
+        "crs": "EPSG:4326",
+        "crs_is_geographic": true,
+        "geometry": "polygon",
+        "feature_count": 12,
+        "style_summary": "single symbol",
+        "style_note": "this is only the kind of styling; colours, classes and labels are not returned here — describe_style from the style skill reads those"
+      },
+      {
+        "name": "roads",
+        "kind": "vector",
+        "crs": "EPSG:4326",
+        "crs_is_geographic": true,
+        "geometry": "line",
+        "feature_count": 340,
+        "style_summary": "single symbol",
+        "style_note": "this is only the kind of styling; colours, classes and labels are not returned here — describe_style from the style skill reads those"
+      },
+      {
+        "name": "schools",
+        "kind": "vector",
+        "crs": "EPSG:4326",
+        "crs_is_geographic": true,
+        "geometry": "point",
+        "feature_count": 58,
+        "style_summary": "single symbol",
+        "style_note": "this is only the kind of styling; colours, classes and labels are not returned here — describe_style from the style skill reads those"
+      },
+      {
+        "name": "stations",
+        "kind": "vector",
+        "crs": "EPSG:32637",
+        "crs_is_geographic": false,
+        "geometry": "point",
+        "feature_count": 9,
+        "style_summary": "single symbol",
+        "style_note": "this is only the kind of styling; colours, classes and labels are not returned here — describe_style from the style skill reads those"
+      }
+    ],
+    "count": 6
+  },
+  "get_canvas_extent": {
+    "extent": {
+      "xmin": 4118356.80301,
+      "ymin": 7455229.199058,
+      "xmax": 4259548.074092,
+      "ymax": 7552779.531805
+    },
+    "project_crs": "EPSG:3857"
+  },
+  "get_qgis_info": {
+    "qgis_version": "4.2.1-Belém do Pará",
+    "locale": "en",
+    "processing_providers": [
+      "3d",
+      "gdal",
+      "grass",
+      "model",
+      "native",
+      "pdal",
+      "project",
+      "qgis",
+      "quickosm",
+      "script"
+    ]
+  },
+  "list_plugins": {
+    "plugins": [
+      {
+        "plugin": "MetaSearch",
+        "name": "MetaSearch Catalog Client",
+        "version": "0.3.6",
+        "description": "MetaSearch is a QGIS plugin to interact with metadata catalog services (CSW and OGC API - Records).",
+        "menu_commands": 2
+      },
+      {
+        "plugin": "QuickOSM",
+        "name": "QuickOSM",
+        "version": "2.5.4",
+        "description": "Download OSM data thanks to the Overpass API. You can also open local OSM or PBF files. A special parser, on top of OGR, is used to let you see all OSM keys ava",
+        "processing_providers": [
+          "quickosm"
+        ],
+        "menu_commands": 2
+      },
+      {
+        "plugin": "db_manager",
+        "name": "DB Manager",
+        "version": "0.1.20",
+        "description": "Manage your databases within QGIS",
+        "menu_commands": 1
+      },
+      {
+        "plugin": "grassprovider",
+        "name": "GRASS Processing Provider",
+        "version": "2.12.99",
+        "description": "GRASS Processing provider",
+        "processing_providers": [
+          "grass"
+        ]
+      },
+      {
+        "plugin": "processing",
+        "name": "Processing",
+        "version": "2.12.99",
+        "description": "Spatial data processing framework for QGIS",
+        "processing_providers": [
+          "gdal",
+          "model",
+          "project",
+          "qgis",
+          "script"
+        ],
+        "menu_commands": 5
+      },
+      {
+        "plugin": "qgis2web",
+        "name": "qgis2web",
+        "version": "3.24.0",
+        "description": "Export to an OpenLayers/Leaflet webmap",
+        "menu_commands": 1
+      }
+    ],
+    "count": 6
   }
 }
