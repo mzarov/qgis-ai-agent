@@ -1,7 +1,9 @@
-# A read tool runs unconfirmed: refuse all but one SELECT, and SpatiaLite's file functions.
+# A read tool runs unconfirmed: refuse all but one SELECT, SpatiaLite's file functions and unreviewed QGIS ones.
 
 import re
 from dataclasses import dataclass
+
+from ai_agent.qgis_tools.sql.functions import unreviewed_functions
 
 WORD = "word"
 QUOTED = "quoted"
@@ -55,6 +57,10 @@ DENIED_ERROR = (
     "The function {0}() is not allowed here: it reads or writes files, or changes the database. "
     "Use plain SQLite and SpatiaLite functions over the project's layers."
 )
+QGIS_DENIED_ERROR = (
+    "The function {0}() is not allowed here: it is a QGIS expression function that can read or change "
+    "files, settings or layers outside the query. Use SQLite and SpatiaLite functions over the project's layers."
+)
 
 
 @dataclass(frozen=True)
@@ -74,9 +80,13 @@ def checked_sql(raw: object) -> str:
     main = _main_statement(tokens)
     if main != READ_STATEMENT:
         raise ValueError(NOT_SELECT_ERROR.format(main or "a WITH clause without a SELECT"))
-    for name in function_names(tokens):
+    called = function_names(tokens)
+    for name in called:
         if DENIED_FUNCTIONS.fullmatch(name):
             raise ValueError(DENIED_ERROR.format(name))
+    refused = unreviewed_functions(called)
+    if refused:
+        raise ValueError(QGIS_DENIED_ERROR.format(refused[0]))
     return text[: tokens[-1].end]
 
 

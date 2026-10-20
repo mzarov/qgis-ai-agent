@@ -1,5 +1,6 @@
 import json
 import pathlib
+import sqlite3
 import struct
 import tempfile
 import threading
@@ -16,6 +17,7 @@ from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsCoordinateTransformContext,
+    QgsExpression,
     QgsFeature,
     QgsGeometry,
     QgsMapRendererSequentialJob,
@@ -27,6 +29,7 @@ from qgis.core import (
     QgsVectorFileWriter,
     QgsVectorLayer,
     QgsVectorLayerSimpleLabeling,
+    qgsfunction,
 )
 from qgis.gui import QgsGui
 from qgis.PyQt.QtCore import QCoreApplication, QEvent, QEventLoop, QSize, QTimer
@@ -898,6 +901,56 @@ class GisWorkflowsTest(unittest.TestCase):
                 ToolCall("bad", "create_sql_layer", {"sql": 'SELECT nme FROM "districts"', "name": "never"})
             )
         self.assertEqual(self.project.mapLayersByName("never"), [])
+
+    def _counters(self):
+        path = self.root / "counters.sqlite"
+        connection = sqlite3.connect(path)
+        with connection:
+            connection.execute("CREATE TABLE counters (id INTEGER, name TEXT)")
+            connection.execute("INSERT INTO counters VALUES (5, 'a')")
+        connection.close()
+        return path
+
+    def _counter_rows(self, path):
+        connection = sqlite3.connect(path)
+        try:
+            return connection.execute("SELECT id, name FROM counters ORDER BY id").fetchall()
+        finally:
+            connection.close()
+
+    def test_sql_refuses_qgis_functions_that_reach_outside_the_query(self):
+        self._districts_and_schools()
+        counters = self._counters()
+        touched = []
+
+        @qgsfunction(group="Custom", referenced_columns=[])
+        def ai_agent_probe(value, feature, parent):
+            touched.append(value)
+            return value
+
+        # QGIS keeps only a pointer: the Python function must outlive its registration.
+        self.probe = ai_agent_probe
+        self.addCleanup(QgsExpression.unregisterFunction, "ai_agent_probe")
+        for sql in (
+            f"SELECT sqlite_fetch_and_increment('{counters}', 'counters', 'id', 'name', 'zz', map('name', 'zz')) AS v",
+            "SELECT env('HOME') AS home",
+            f"SELECT load_layer('{counters}', 'ogr') AS layer",
+            "SELECT layer_property('districts', 'source') AS source",
+            'SELECT ai_agent_probe(name) FROM "districts"',
+        ):
+            with self.subTest(sql=sql):
+                refused = self._query(sql)
+                self.assertFalse(refused.ok, refused.payload)
+                self.assertIn("is not allowed here", refused.payload["error"])
+        with self.assertRaisesRegex(ValueError, "is not allowed here"):
+            WriteBatch(ToolExecutor()).add(
+                ToolCall("live", "create_sql_layer", {"sql": "SELECT env('HOME') AS home", "name": "home"})
+            )
+        self.assertEqual(self._counter_rows(counters), [(5, "a")])
+        self.assertEqual(touched, [])
+        pure = self._query('SELECT _left(name, 2) AS short, to_string(code) AS code FROM "districts" ORDER BY name')
+        self.assertTrue(pure.ok, pure.payload)
+        self.assertEqual(pure.payload["rows"], [["Ea", "3"], ["No", "1"], ["So", "2"]])
 
     def test_changing_live_labels_keeps_the_field_and_the_rest(self):
         self._run("set_labels", layer_name=self.layer.name(), properties={"field": "name", "size": 14})
