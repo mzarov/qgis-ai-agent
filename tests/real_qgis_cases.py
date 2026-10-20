@@ -163,6 +163,24 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertAlmostEqual(place[0], 37.6175, places=5)
         self.assertAlmostEqual(place[1], 55.752, places=5)
 
+    def test_a_note_lands_in_the_annotation_layers_crs_after_a_project_crs_change(self):
+        self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:3857"))
+        self._run("add_annotation", kind="text", x=30.3, y=59.9, text="first")
+        # A layer holding items keeps its CRS when the project's changes.
+        self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:4326"))
+        layer = self.project.mainAnnotationLayer()
+        self.assertEqual(layer.crs().authid(), "EPSG:3857")
+        queued, marker = self._run("add_annotation", kind="marker", x=37.62, y=55.75)
+        centre = layer.items()[marker["id"]].boundingBox().center()
+        self.assertAlmostEqual(centre.x(), 4_187_839, delta=10)
+        self.assertAlmostEqual(centre.y(), 7_508_808, delta=10)
+        tool = get_tool_by_name("add_annotation")
+        self.assertTrue(tool.confirm_applied(queued.arguments, marker))
+        self.assertFalse(tool.confirm_applied({**queued.arguments, "x": 30.3}, marker))
+        listed = get_tool_by_name("list_annotations").execute({})["annotations"]
+        place = next((item["lon"], item["lat"]) for item in listed if item["id"] == marker["id"])
+        self.assertEqual(place, (37.62, 55.75))
+
     def test_a_marker_and_a_note_come_in_the_asked_colour(self):
         tool = get_tool_by_name("add_annotation")
         for kind, extra in (("marker", {}), ("text", {"text": "start here"})):

@@ -14,7 +14,7 @@ from qgis.core import (
 from qgis.PyQt.QtGui import QColor
 
 from ai_agent.i18n import tr
-from ai_agent.qgis_tools.annotations.store import annotation_layer, item_text
+from ai_agent.qgis_tools.annotations.store import annotation_crs, annotation_layer, item_text
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 
 KIND_TEXT = "text"
@@ -82,7 +82,7 @@ class AddAnnotationTool(BaseTool):
         kind = _checked_kind(params.get("kind"))
         x, y = _checked_xy(params)
         layer = annotation_layer()
-        point = _to_project_point(x, y, _checked_crs(params.get("crs")))
+        point = _to_layer_point(x, y, _checked_crs(params.get("crs")))
         if kind == KIND_MARKER:
             item = QgsAnnotationMarkerItem(point)
             _apply_marker_colour(item, params)
@@ -103,7 +103,7 @@ class AddAnnotationTool(BaseTool):
         colour = str(params.get("color") or "").strip()
         if colour and _item_colour(item, kind) != QColor(colour).name():
             return False
-        wanted = _to_project_point(*_checked_xy(params), _checked_crs(params.get("crs")))
+        wanted = _to_layer_point(*_checked_xy(params), _checked_crs(params.get("crs")))
         centre = item.boundingBox().center()
         return _near(centre.x(), wanted.x()) and _near(centre.y(), wanted.y())
 
@@ -126,19 +126,18 @@ def _checked_xy(params: dict[str, Any]) -> tuple[float, float]:
         raise ValueError("x and y are numbers — longitude and latitude for EPSG:4326.") from None
 
 
-def _to_project_point(x: float, y: float, source: Any) -> Any:
+def _to_layer_point(x: float, y: float, source: Any) -> Any:
     point = QgsPoint(x, y)
-    project = QgsProject.instance()
-    target = project.crs()
+    target = annotation_crs()
     # Not by authid: two custom CRSs both have an empty one.
     if not target.isValid() or source == target:
         return point
     try:
-        point.transform(QgsCoordinateTransform(source, target, project))
+        point.transform(QgsCoordinateTransform(source, target, QgsProject.instance()))
     except Exception as failure:
         raise ValueError(
-            f"Could not move ({x}, {y}) from {source.authid()} into the project CRS {target.authid()}: {failure}. "
-            "Check that x/y are in the given crs (lon/lat for EPSG:4326)."
+            f"Could not move ({x}, {y}) from {source.authid()} into the annotation CRS {target.authid()}: "
+            f"{failure}. Check that x/y are in the given crs (lon/lat for EPSG:4326)."
         ) from None
     return point
 

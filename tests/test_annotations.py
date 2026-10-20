@@ -169,7 +169,7 @@ class AnnotationsTest(unittest.TestCase):
             patch.object(add_module, "QgsPoint", return_value=point),
             patch.object(add_module, "QgsCoordinateTransform") as transform,
         ):
-            add_module._to_project_point(500000.0, 6000000.0, source)
+            add_module._to_layer_point(500000.0, 6000000.0, source)
         transform.assert_called_once_with(source, target, project)
         point.transform.assert_called_once_with(transform.return_value)
 
