@@ -81,6 +81,9 @@ def evaluate(expression: QgsExpression, context: QgsExpressionContext, feature) 
 
 def build_request(filter_text: str, layer=None) -> QgsFeatureRequest:
     request = QgsFeatureRequest()
+    # Without the layer's scopes $area is flat in layer units and is_selected() matches nothing.
+    if layer is not None:
+        request.setExpressionContext(build_context(layer))
     text = (filter_text or "").strip()
     if not text:
         return request

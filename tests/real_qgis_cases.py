@@ -781,6 +781,69 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual((capped.payload["features"], capped.payload.get("partial")), (2, True))
         self.assertIn("first 2", capped.payload["note"])
 
+    def _lakes(self):
+        self.project.setCrs(QgsCoordinateReferenceSystem("EPSG:3857"))
+        self.project.setEllipsoid("EPSG:7030")
+        memory = QgsVectorLayer("Polygon?crs=EPSG:4326&field=name:string", "lakes", "memory")
+        # Square degrees mislead: the arctic lake covers twice the equator's, yet is the smaller one.
+        rows = [
+            ("POLYGON((10 0, 10.01 0, 10.01 0.01, 10 0.01, 10 0))", ["equator lake"]),
+            ("POLYGON((10 70, 10.02 70, 10.02 70.01, 10 70.01, 10 70))", ["arctic lake"]),
+            ("POLYGON((11 60, 11.0002 60, 11.0002 60.00009, 11 60.00009, 11 60))", ["pond"]),
+        ]
+        features = []
+        for wkt, attributes in rows:
+            feature = QgsFeature(memory.fields())
+            feature.setGeometry(QgsGeometry.fromWkt(wkt))
+            feature.setAttributes(attributes)
+            features.append(feature)
+        memory.dataProvider().addFeatures(features)
+        return self._saved(memory, "lakes.gpkg", "GPKG")
+
+    def _saved(self, memory, file_name, driver):
+        path = self.root / file_name
+        options = QgsVectorFileWriter.SaveVectorOptions()
+        options.driverName = driver
+        written = QgsVectorFileWriter.writeAsVectorFormatV3(memory, str(path), QgsCoordinateTransformContext(), options)
+        self.assertEqual(written[0], QgsVectorFileWriter.WriterError.NoError, written)
+        layer = QgsVectorLayer(str(path), memory.name(), "ogr")
+        self.assertTrue(layer.isValid())
+        self.project.addMapLayer(layer)
+        return layer
+
+    def test_a_filter_and_an_order_measure_on_the_ellipsoid_like_the_aggregates(self):
+        lakes = self._lakes()
+        query = get_tool_by_name("query_layer")
+        small = {"layer_name": "lakes", "filter": "$area < 10000"}
+        self.assertEqual([row["name"] for row in query.execute(small)["features"]], ["pond"])
+        self.assertEqual(query.execute({**small, "aggregate": "count"})["value"], 1)
+        grouped = query.execute({**small, "aggregate": "count", "group_by": "name"})["groups"]
+        self.assertEqual([group["group"] for group in grouped], ["pond"])
+        largest = query.execute({"layer_name": "lakes", "order_by": "$area DESC", "limit": 1})["features"]
+        self.assertEqual([row["name"] for row in largest], ["equator lake"])
+        chart = get_tool_by_name("chart_layer").execute({**small, "group_by": "name"})
+        self.assertEqual(chart["features"], 1)
+        table = get_tool_by_name("show_table").execute({**small, "fields": ["name"]})
+        self.assertEqual(table["first_rows"], [["pond"]])
+        queued, deleted = self._run("delete_features", **small)
+        self.assertEqual((queued.arguments["matched_estimate"], deleted["deleted"]), (1, 1))
+        self.assertEqual(sorted(feature["name"] for feature in lakes.getFeatures()), ["arctic lake", "equator lake"])
+
+    def test_a_filter_on_the_selection_finds_the_selected_features(self):
+        lakes = self._lakes()
+        lakes.selectByExpression("name = 'pond'")
+        selected = {"layer_name": "lakes", "filter": "is_selected()"}
+        query = get_tool_by_name("query_layer")
+        self.assertEqual([row["name"] for row in query.execute(selected)["features"]], ["pond"])
+        self.assertEqual(query.execute({**selected, "aggregate": "count"})["value"], 1)
+        both = {**selected, "selected_only": True, "filter": "is_selected() and $area < 10000"}
+        self.assertEqual(query.execute(both)["matched"], 1)
+        update = get_tool_by_name("update_attributes").prepare({**selected, "values": {"name": "tarn"}})
+        self.assertEqual(update["matched_estimate"], 1)
+        self.assertEqual(get_tool_by_name("delete_features").prepare(selected)["matched_estimate"], 1)
+        table = get_tool_by_name("show_table").execute({**selected, "fields": ["name"]})
+        self.assertEqual(table["first_rows"], [["pond"]])
+
     def _memory(self, uri, name, rows):
         layer = QgsVectorLayer(uri, name, "memory")
         self.assertTrue(layer.isValid())
