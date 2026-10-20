@@ -9,7 +9,12 @@ from ai_agent.qgis_tools.common.background import Background
 from ai_agent.qgis_tools.common.paths import check_overwrite
 from ai_agent.qgis_tools.processing.background_run import ProcessingInBackground, runs_in_background
 from ai_agent.qgis_tools.processing.deadline import DeadlineFeedback
-from ai_agent.qgis_tools.processing.effects import contacts_network, sends_network_data, writes_external_data
+from ai_agent.qgis_tools.processing.effects import (
+    contacts_network,
+    creates_folders,
+    needs_own_confirmation,
+    writes_external_data,
+)
 from ai_agent.qgis_tools.processing.units import check_distance_units
 from ai_agent.qgis_tools.processing.utils import (
     apply_output_name,
@@ -95,7 +100,7 @@ class RunProcessingTool(BaseTool):
         }
 
     def safety_for(self, params: dict[str, Any]) -> str:
-        if _known_external_algorithm(params) or sends_network_data(str(params.get("algorithm_id") or "")):
+        if _known_external_algorithm(params) or needs_own_confirmation(str(params.get("algorithm_id") or "")):
             return SAFETY_DESTRUCTIVE
         if bool(params.get("overwrite_outputs")):
             return SAFETY_DESTRUCTIVE
@@ -106,8 +111,10 @@ class RunProcessingTool(BaseTool):
 
     def has_external_effect(self, params: dict[str, Any]) -> bool:
         arguments = params.get("parameters")
-        return _known_external_algorithm(params) or (
-            isinstance(arguments, dict) and bool(_destination_values(arguments, params.get("_destination_names")))
+        return (
+            _known_external_algorithm(params)
+            or creates_folders(str(params.get("algorithm_id") or ""))
+            or (isinstance(arguments, dict) and bool(_destination_values(arguments, params.get("_destination_names"))))
         )
 
     def summarize_call(self, params: dict[str, Any]) -> str:

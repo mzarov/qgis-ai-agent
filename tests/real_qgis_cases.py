@@ -35,6 +35,7 @@ from qgis.gui import QgsGui
 from qgis.PyQt.QtCore import QCoreApplication, QEvent, QEventLoop, QSize, QTimer
 from qgis.PyQt.QtWidgets import QMainWindow
 
+from ai_agent.core.agent.auto_apply import applies_itself
 from ai_agent.core.agent.batch import WriteBatch
 from ai_agent.core.agent.executor import ToolExecutor
 from ai_agent.core.context.project import measurement_line
@@ -951,6 +952,28 @@ class GisWorkflowsTest(unittest.TestCase):
         pure = self._query('SELECT _left(name, 2) AS short, to_string(code) AS code FROM "districts" ORDER BY name')
         self.assertTrue(pure.ok, pure.payload)
         self.assertEqual(pure.payload["rows"], [["Ea", "3"], ["No", "1"], ["So", "2"]])
+
+    def test_processing_sql_with_qgis_functions_waits_for_its_own_confirmation(self):
+        self._districts_and_schools()
+        counters = self._counters()
+        sql = (
+            f"SELECT sqlite_fetch_and_increment('{counters}', 'counters', 'id', 'name', 'zz', map('name', 'zz')) "
+            "AS v, * FROM input1"
+        )
+        call = ToolCall(
+            "sql",
+            "run_processing",
+            {
+                "algorithm_id": "qgis:executesql",
+                "parameters": {"INPUT_DATASOURCES": ["districts"], "INPUT_QUERY": sql, "OUTPUT": "TEMPORARY_OUTPUT"},
+                "load_output": False,
+            },
+        )
+        queued = WriteBatch(ToolExecutor()).add(call)
+        self.assertEqual(RunProcessingTool().safety_for(queued.arguments), SAFETY_DESTRUCTIVE)
+        with patch("ai_agent.core.agent.auto_apply.get_auto_apply", return_value=True):
+            self.assertFalse(applies_itself([queued]))
+        self.assertEqual(self._counter_rows(counters), [(5, "a")])
 
     def test_changing_live_labels_keeps_the_field_and_the_rest(self):
         self._run("set_labels", layer_name=self.layer.name(), properties={"field": "name", "size": 14})
