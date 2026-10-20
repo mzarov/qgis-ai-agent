@@ -24,6 +24,7 @@ from qgis.core import (
     QgsProcessingContext,
     QgsProject,
     QgsRasterLayer,
+    QgsRenderContext,
     QgsVectorFileWriter,
     QgsVectorLayer,
     QgsVectorLayerSimpleLabeling,
@@ -881,6 +882,46 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertTrue(first.ok and second.ok, second.payload)
         self.assertEqual(second.payload["deleted"], 2)
         self.assertEqual(sorted(feature["name"] for feature in points.getFeatures()), ["p0", "p3", "p4"])
+
+    def _survey(self):
+        uri = "Point?crs=EPSG:4326&field=name:string&field=d:date&field=dt:datetime&field=note:string"
+        rows = [("POINT (10 60)", ["a", QDate(2024, 1, 1), None, None]), ("POINT (11 60)", ["b", None, None, None])]
+        memory = self._memory(uri, "survey memory", rows)
+        survey = self._saved(memory, "survey.gpkg", "GPKG")
+        survey.setName("survey")
+        return memory, survey
+
+    def test_date_fields_take_real_dates_from_expressions_and_text(self):
+        memory, survey = self._survey()
+        day = "to_date('2024-05-17')"
+        expressions = {"d": day, "dt": "make_datetime(2024,5,17,10,30,0)", "note": day}
+        for layer in (survey, memory):
+            with self.subTest(provider=layer.providerType()):
+                self._run("update_attributes", layer_id=layer.id(), filter="name = 'a'", expressions=expressions)
+                self._run("update_attributes", layer_id=layer.id(), filter="name = 'b'", values={"d": "2024-06-01"})
+                stored = {feature["name"]: feature for feature in layer.getFeatures()}
+                self.assertEqual(stored["a"]["d"], QDate(2024, 5, 17))
+                self.assertEqual(stored["a"]["dt"], QDateTime(QDate(2024, 5, 17), QTime(10, 30)))
+                self.assertEqual(stored["a"]["note"], "2024-05-17")
+                self.assertEqual(stored["b"]["d"], QDate(2024, 6, 1))
+
+    def test_dates_read_as_iso_text_and_colour_by_category(self):
+        memory, _ = self._survey()
+        memory.dataProvider().changeAttributeValues({1: {2: QDateTime(QDate(2024, 5, 17), QTime(10, 30))}})
+        values = get_tool_by_name("get_field_values").execute({"layer_name": "survey memory", "field_name": "d"})
+        self.assertEqual(values["unique_values"], ["2024-01-01"])
+        row = get_tool_by_name("query_layer").execute({"layer_name": "survey memory", "filter": "name = 'a'"})
+        self.assertEqual((row["features"][0]["d"], row["features"][0]["dt"]), ("2024-01-01", "2024-05-17T10:30:00.000"))
+        for field in ("d", "dt"):
+            with self.subTest(field=field):
+                memory.dataProvider().changeAttributeValues({2: {1: QDate(2024, 2, 1)}})
+                self._run("set_categories", layer_name="survey memory", field=field)
+                renderer = memory.renderer()
+                context = QgsRenderContext()
+                renderer.startRender(context, memory.fields())
+                drawn = [renderer.symbolForFeature(feature, context) is not None for feature in memory.getFeatures()]
+                renderer.stopRender(context)
+                self.assertEqual(drawn[0], True, "a dated feature gets no symbol")
 
     def test_a_filter_on_the_selection_finds_the_selected_features(self):
         lakes = self._lakes()

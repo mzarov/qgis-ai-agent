@@ -7,9 +7,9 @@ from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_DESTRUCTIVE, BaseTool
 from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.editing import edit_session
-from ai_agent.qgis_tools.common.expressions import build_context, build_request, evaluate, prepared
+from ai_agent.qgis_tools.common.expressions import build_context, build_request, evaluate_raw, prepared
 from ai_agent.qgis_tools.common.layers import bind_layer_reference, find_layer_by_id, find_layer_by_name
-from ai_agent.qgis_tools.common.values import suggest_fields
+from ai_agent.qgis_tools.common.values import plain_value, suggest_fields
 from ai_agent.qgis_tools.edit.pinned import pinned_features
 
 MAX_SCAN = 50000
@@ -105,10 +105,11 @@ class UpdateAttributesTool(BaseTool):
         context = build_context(layer)
         compiled = {name: _measuring(prepared(text, name, context, layer), layer) for name, text in expressions.items()}
         # Every value is computed before the first write: a failing expression leaves nothing changed.
-        rows = [
-            (feature.id(), {**values, **{name: evaluate(expr, context, feature) for name, expr in compiled.items()}})
-            for feature in features
-        ]
+        rows = []
+        for feature in features:
+            computed = {name: evaluate_raw(expr, context, feature) for name, expr in compiled.items()}
+            row = {name: _stored(layer, name, value) for name, value in {**values, **computed}.items()}
+            rows.append((feature.id(), row))
         with edit_session(layer, "the attribute edits"):
             for feature_id, row in rows:
                 for name, value in row.items():
@@ -159,6 +160,14 @@ def _measuring(expression: Any, layer: QgsVectorLayer) -> Any:
         expression.setDistanceUnits(project.distanceUnits())
         expression.setAreaUnits(project.areaUnits())
     return expression
+
+
+def _stored(layer: QgsVectorLayer, name: str, value: Any) -> Any:
+    # As the field calculator does: a date reaches a date field as a date, and text as the field's type.
+    try:
+        return layer.fields().field(name).convertCompatible(value)
+    except Exception:
+        return value if value is None or isinstance(value, (str, int, float, bool)) else plain_value(value)
 
 
 def _names(raw: Any) -> list[str]:

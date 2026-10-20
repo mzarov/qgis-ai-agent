@@ -70,13 +70,17 @@ def prepared(text: str, label: str, context: QgsExpressionContext, layer=None) -
 
 
 def evaluate(expression: QgsExpression, context: QgsExpressionContext, feature) -> Any:
+    return plain_value(evaluate_raw(expression, context, feature))
+
+
+def evaluate_raw(expression: QgsExpression, context: QgsExpressionContext, feature) -> Any:
     context.setFeature(feature)
     value = expression.evaluate(context)
     if expression.hasEvalError():
         raise ValueError(
             f"Could not evaluate the expression '{expression.expression()}': {expression.evalErrorString().strip()}"
         )
-    return plain_value(value)
+    return value
 
 
 def build_request(filter_text: str, layer=None) -> QgsFeatureRequest:

@@ -503,6 +503,7 @@ _qtcore = _mod(
         "QVariant",
         "QMetaType",
         "QCoreApplication",
+        "QDate",
         "QDateTime",
     ],
 )
