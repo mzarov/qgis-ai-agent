@@ -1148,6 +1148,14 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual((result["applied"], result["skipped"]), (["color"], ["stroke_color"]))
         self.assertEqual(roads.renderer().symbol().color().name(), "#ffa500")
 
+    def test_category_colours_follow_numbers_in_numeric_order(self):
+        rows = [(f"POINT ({number} 0)", [number]) for number in (10, 1, 2)]
+        classes = self._memory("Point?crs=EPSG:3857&field=cls:integer", "classes", rows)
+        queued, _ = self._run("set_categories", layer_name="classes", field="cls", colors=["green", "yellow", "red"])
+        self.assertEqual(queued.arguments["values"], [1, 2, 10])
+        colours = {category.value(): category.symbol().color().name() for category in classes.renderer().categories()}
+        self.assertEqual(colours, {1: "#008000", 2: "#ffff00", 10: "#ff0000"})
+
     def test_a_csv_export_keeps_the_geometry(self):
         path = self.root / "points.csv"
         self._run("export_layer", layer_name=self.layer.name(), path=str(path))
