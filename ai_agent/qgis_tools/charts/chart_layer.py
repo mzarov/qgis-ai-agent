@@ -4,12 +4,13 @@ from qgis.core import QgsFeatureRequest, QgsVectorLayer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
-from ai_agent.qgis_tools.charts.spec import MAX_CATEGORIES, attach, chart, fold_other
+from ai_agent.qgis_tools.charts.spec import MAX_CATEGORIES, MAX_PIE_SLICES, OTHER, attach, chart, fold_other
 from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.expressions import build_context, build_request, compile_expression, evaluate
 from ai_agent.qgis_tools.common.layers import find_layer_by_name
 
 AGGREGATES = ("count", "sum", "mean", "min", "max")
+ADDITIVE = ("count", "sum")
 CHART_KINDS = ("auto", "bar", "pie", "histogram")
 DEFAULT_BINS = 10
 MAX_BINS = 30
@@ -196,16 +197,19 @@ def _grouped(
             bucket.append(float(value))
     totals = {key: _combine(values, aggregate) for key, values in groups.items()}
     ordered = sorted(totals, key=lambda key: -(totals[key] or 0))
-    top = max(1, min(int(params.get("top") or DEFAULT_TOP), MAX_CATEGORIES))
-    labels, values = (
-        fold_other(ordered, [totals[key] for key in ordered], top)
-        if aggregate in ("count", "sum")
-        else (
-            ordered[:top],
-            [totals[key] for key in ordered[:top]],
-        )
-    )
     chosen = "pie" if kind == "pie" else "bar"
+    top = max(1, min(int(params.get("top") or DEFAULT_TOP), MAX_CATEGORIES))
+    if chosen == "pie":
+        top = min(top, MAX_PIE_SLICES)
+    if aggregate in ADDITIVE:
+        labels, values = fold_other(ordered, [totals[key] for key in ordered], top)
+    elif chosen == "pie" and len(ordered) > top:
+        # A mean, a minimum or a maximum does not add up: the rest is combined from its own values.
+        rest = [value for key in ordered[top - 1 :] for value in groups[key]]
+        labels = ordered[: top - 1] + [OTHER]
+        values = [totals[key] for key in ordered[: top - 1]] + [_combine(rest, aggregate)]
+    else:
+        labels, values = ordered[:top], [totals[key] for key in ordered[:top]]
     value_text = str(params.get("value") or "features")
     title = str(params.get("title") or "").strip() or f"{layer.name()}: {aggregate} of {value_text}"
     unit = str(params.get("unit") or "")
@@ -215,7 +219,7 @@ def _grouped(
 def _combine(values: list[float], aggregate: str) -> float | None:
     if not values:
         return None
-    if aggregate in ("count", "sum"):
+    if aggregate in ADDITIVE:
         return sum(values)
     if aggregate == "mean":
         return sum(values) / len(values)

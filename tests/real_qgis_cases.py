@@ -902,6 +902,17 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertTrue(result.ok, result.payload)
         self.assertEqual((result.payload["rows_shown"], result.visual["total"]), (1, 3))
 
+    def test_a_pie_of_means_folds_the_rest_into_their_mean(self):
+        rows = [(f"POINT ({index} 0)", [index * 10 + offset, f"g{index}"]) for index in range(10) for offset in (0, 2)]
+        self._memory("Point?crs=EPSG:3857&field=n:integer&field=kind:string", "groups", rows)
+        arguments = {"layer_name": "groups", "kind": "pie", "aggregate": "mean", "value": "n", "group_by": "kind"}
+        result = ToolExecutor().run(ToolCall("pie", "chart_layer", arguments))
+        self.assertTrue(result.ok, result.payload)
+        pie = dict(zip(result.visual["labels"], result.visual["series"][0]["values"], strict=True))
+        self.assertEqual(len(pie), 8)
+        self.assertEqual(pie["g9"], 91.0)
+        self.assertEqual(pie["Other"], 11.0, "a sum of means is no mean")
+
     def test_a_chart_past_the_feature_cap_says_it_is_partial(self):
         rows = [("POINT (0 0)", ["a"]), ("POINT (1 0)", ["a"]), ("POINT (2 0)", ["b"])]
         self._memory("Point?crs=EPSG:3857&field=kind:string", "kinds", rows)
