@@ -3,8 +3,7 @@
 name = "ai-agent-usage"
 main = "src/index.js"
 compatibility_date = "2026-09-01"
-# The dashboard reads the workers.dev address; no per-version preview address
-# may keep an older Worker reachable.
+# The dashboard reads workers.dev; preview URLs would keep older versions reachable.
 workers_dev = true
 preview_urls = false
 
@@ -13,8 +12,7 @@ binding = "DB"
 database_name = "ai-agent-usage"
 database_id = "__DATABASE_ID__"
 
-# Pings per client address and minute. The limiter keeps short-lived counters
-# only; the address is never stored. namespace_id must be unique in the account.
+# Pings per address and minute; the address is never stored. namespace_id is unique per account.
 [[ratelimits]]
 name = "PING_LIMITER"
 namespace_id = "7401"

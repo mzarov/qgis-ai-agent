@@ -21,8 +21,7 @@ APPLICATIONS = Path("/Applications")
 NATIVE = "native"
 DOCKER = "docker"
 LOG_NAME = "agent-server.log"
-# Only a provider the plugin could not reach or use is an error, which leaves the pass rate;
-# a run whose request the provider refused is graded, and fails.
+# Only an unreachable or unusable provider is an error, which leaves the pass rate; a refused request is graded.
 TRANSFORM = (
     "({output: JSON.stringify(json),"
     " error: json.error ? String(json.error).trim().split('\\n').slice(-3).join(' | ')"

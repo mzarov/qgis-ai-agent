@@ -2,8 +2,7 @@ export const PING_VERSIONS = [1, 2];
 export const MAX_BODY_BYTES = 4096;
 export const MAX_COUNT = 100000;
 export const MAX_MAP_KEYS = 150;
-// A finished day waits until QGIS next starts, up to a week of the client's local days,
-// and a local date runs at most a day either side of the UTC one.
+// A day waits up to a week of local days for QGIS to start, and a local date is at most a day off UTC.
 export const MAX_DAYS_BACK = 8;
 export const MAX_DAYS_AHEAD = 1;
 export const SERIES_DAYS = 90;

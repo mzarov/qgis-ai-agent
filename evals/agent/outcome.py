@@ -8,8 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from checks import matches  # noqa: E402
 
 FIRST_LINES = 6
-# Failure kinds of ai_agent/core/llm/failure_kinds.py that say the provider could not be reached or
-# used; any other, such as a request the provider refused, is the plugin's and counts against it.
+# Kinds from ai_agent/core/llm/failure_kinds.py; any other, such as a refused request, counts against the plugin.
 UNREACHED_KINDS = frozenset({"connection", "timeout", "auth", "quota", "busy", "not_found", "setup"})
 
 
