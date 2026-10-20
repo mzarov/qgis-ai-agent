@@ -32,6 +32,7 @@ FORMATS = {
     ".csv": "CSV",
 }
 CSV_SUFFIX = ".csv"
+GPKG = "GPKG"
 # Without it the CSV driver silently drops the geometry.
 CSV_GEOMETRY_OPTIONS = ["GEOMETRY=AS_WKT"]
 CSV_NOTE = "The geometry is stored as WKT text in a column named WKT."
@@ -133,6 +134,11 @@ class ExportLayerTool(BaseTool):
         crs = _checked_crs(params.get("crs"))
         if crs is not None:
             options.ct = _transform(layer, crs)
+        if options.driverName == GPKG:
+            # Without a layer name the table is named after the file, and overwriting drops every other table.
+            options.layerName = layer.name()
+            if os.path.isfile(path):
+                options.actionOnExistingFile = QgsVectorFileWriter.ActionOnExistingFile.CreateOrOverwriteLayer
         error = QgsVectorFileWriter.writeAsVectorFormatV3(layer, path, QgsCoordinateTransformContext(), options)
         code = error[0] if isinstance(error, tuple) else error
         if code != QgsVectorFileWriter.WriterError.NoError:
@@ -144,6 +150,8 @@ class ExportLayerTool(BaseTool):
             "format": options.driverName,
             "selected_only": options.onlySelectedFeatures,
         }
+        if options.driverName == GPKG:
+            result["table"] = str(error[3]) if isinstance(error, tuple) and len(error) > 3 else layer.name()
         if spatial_csv:
             result["note"] = CSV_NOTE
         return result
@@ -156,7 +164,8 @@ class ExportLayerTool(BaseTool):
         expected = _written_count(source, bool(payload.get("selected_only"))) if source is not None else None
         if expected is None:
             return None
-        written = QgsVectorLayer(path, "export check", "ogr")
+        table = str(payload.get("table") or "")
+        written = QgsVectorLayer(f"{path}|layername={table}" if table else path, "export check", "ogr")
         return bool(written.isValid()) and written.featureCount() == expected
 
 

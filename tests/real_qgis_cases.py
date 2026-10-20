@@ -1076,6 +1076,27 @@ class GisWorkflowsTest(unittest.TestCase):
                 self.project.removeMapLayer(stations.id())
         self.assertIn("2,b,11,61", path.read_text(encoding="utf-8"))
 
+    def test_an_export_into_a_geopackage_replaces_only_its_own_table(self):
+        path = self.root / "data.gpkg"
+        roads = QgsVectorLayer("LineString?crs=EPSG:4326&field=name:string", "roads", "memory")
+        line = QgsFeature(roads.fields())
+        line.setGeometry(QgsGeometry.fromWkt("LINESTRING (0 0, 1 1)"))
+        roads.dataProvider().addFeatures([line])
+        options = QgsVectorFileWriter.SaveVectorOptions()
+        options.driverName = "GPKG"
+        options.layerName = "roads"
+        QgsVectorFileWriter.writeAsVectorFormatV3(roads, str(path), QgsCoordinateTransformContext(), options)
+        square = "POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0))"
+        self._memory("Polygon?crs=EPSG:4326&field=name:string", "parks", [(square, ["central"])])
+        tool = get_tool_by_name("export_layer")
+        for _ in range(2):
+            queued, payload = self._run("export_layer", layer_name="parks", path=str(path), overwrite=True)
+            self.assertTrue(tool.confirm_applied(queued.arguments, payload))
+        for table in ("roads", "parks"):
+            written = QgsVectorLayer(f"{path}|layername={table}", table, "ogr")
+            self.assertTrue(written.isValid(), f"table {table} is gone")
+            self.assertEqual(written.featureCount(), 1)
+
     def test_bookmarks_are_saved_into_the_project(self):
         before = len(self.project.bookmarkManager().bookmarks())
         self._run("save_bookmark", name="centre")
