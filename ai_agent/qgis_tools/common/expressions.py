@@ -15,6 +15,14 @@ ASCENDING_MARKERS = ("asc", "ascending")
 SPECIAL_COLUMNS = {"*", "$geometry", "$id", "$area", "$length", "$perimeter", "$x", "$y"}
 # An @parent aggregate references ALL_ATTRIBUTES; refusing it breaks valid expressions.
 ALL_ATTRIBUTES = "#!allattributes!#"
+# A read tool runs a model-written expression unconfirmed: these write files, read secrets or run text as code.
+UNSAFE_FUNCTIONS = frozenset(
+    {"decode_uri", "env", "eval", "eval_template", "layer_property", "load_layer", "sqlite_fetch_and_increment"}
+)
+UNSAFE_ERROR = (
+    "The function {name}() is not allowed in '{label}': it can write outside the project, read the environment "
+    "or a layer's credentials, or run text as an expression. Use the layer's fields and other QGIS functions."
+)
 QUOTED_EXPRESSION_HINT = (
     "A name in double quotes is a field; an expression goes without quotes — inside aggregate, for one: "
     "aggregate('schools', 'count', $id, intersects($geometry, geometry(@parent)))."
@@ -35,6 +43,9 @@ def compile_expression(text: str, label: str, layer=None) -> QgsExpression:
             f"Could not parse the expression in '{label}': {expression.parserErrorString().strip()}. "
             f"The expression was: {text}"
         )
+    for name in expression.referencedFunctions():
+        if str(name).lower() in UNSAFE_FUNCTIONS:
+            raise ValueError(UNSAFE_ERROR.format(name=name, label=label))
     if layer is not None:
         check_columns(expression, layer, label, text)
     return expression

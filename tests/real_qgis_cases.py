@@ -1006,6 +1006,29 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertTrue(pure.ok, pure.payload)
         self.assertEqual(pure.payload["rows"], [["Ea", "3"], ["No", "1"], ["So", "2"]])
 
+    def test_expressions_never_write_files_or_read_the_environment(self):
+        counters = self._counters()
+        executor = ToolExecutor()
+        write = f"sqlite_fetch_and_increment('{counters}', 'counters', 'id', 'name', 'zz', map('name', 'zz')) > 0"
+        for name, arguments in (
+            ("query_layer", {"layer_name": "points", "aggregate": "max", "expression": "env('HOME')"}),
+            ("query_layer", {"layer_name": "points", "filter": "eval('1 = 1')"}),
+            ("select_features", {"layer_name": "points", "filter": write}),
+        ):
+            with self.subTest(name=name, arguments=arguments):
+                refused = executor.run(ToolCall("expression", name, arguments))
+                self.assertFalse(refused.ok, refused.payload)
+                self.assertIn("is not allowed in", refused.payload["error"])
+        with self.assertRaisesRegex(ValueError, "is not allowed in"):
+            WriteBatch(executor).add(
+                ToolCall("edit", "update_attributes", {"layer_name": "points", "expressions": {"name": "env('HOME')"}})
+            )
+        self.assertEqual(self._counter_rows(counters), [(5, "a")])
+        counted = executor.run(
+            ToolCall("expression", "query_layer", {"layer_name": "points", "filter": "upper(name) = 'POINT-1'"})
+        )
+        self.assertEqual(counted.payload["matched"], 1)
+
     def test_processing_sql_with_qgis_functions_waits_for_its_own_confirmation(self):
         self._districts_and_schools()
         counters = self._counters()
