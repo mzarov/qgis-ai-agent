@@ -9,6 +9,7 @@ on:
   pull_request:
     paths:
       - "telemetry/**"
+      - "docs/assets/usage-stats.js"
       - ".github/workflows/usage-stats.yml"
   workflow_dispatch:
 

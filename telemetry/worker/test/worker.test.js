@@ -239,6 +239,15 @@ describe("usage worker", () => {
     assert.deepEqual(body.tools, { run_python: 30, inspect_project: 10 });
   });
 
+  it("caps a tool's errors at its calls, also in rows stored before the check", async () => {
+    for (const install of crowd(MIN_INSTALLS)) {
+      await send(ping2(install, "2026-10-17", { tools: { run_python: 2 }, tool_errors: { run_python: 1 } }));
+    }
+    sqlite.prepare("UPDATE ping_extras SET tool_errors = ?").run('{"run_python":100000}');
+    const body = JSON.parse((await stats()).text);
+    assert.deepEqual(body.tool_errors, { run_python: { errors: 10, calls: 10 } });
+  });
+
   it("stores a ping under the hash of the install id", async () => {
     const response = await send(ping(INSTALLS.a, "2026-10-17", { tools: { inspect_project: 5 } }));
     assert.equal(response.status, 204);

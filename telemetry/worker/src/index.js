@@ -85,10 +85,11 @@ const RETENTION = `SELECT ${RETENTION_DAYS.map(
 ).join(",\n    ")}
   FROM (SELECT MIN(day) AS first_day, MAX(day) AS last_day FROM pings GROUP BY install_hash)`;
 
-// Only v2 rows report errors, so only their calls count towards the rate.
+// Only v2 rows report errors, so only their calls count towards the rate; a row
+// stored before errors were checked against calls is capped, so no rate passes 100%.
 const TOOL_ERRORS = `WITH calls AS (
     SELECT ping.install_hash, entry.key AS tool, entry.value AS calls,
-      COALESCE(json_extract(extra.tool_errors, '$.' || entry.key), 0) AS errors
+      MIN(COALESCE(json_extract(extra.tool_errors, '$.' || entry.key), 0), entry.value) AS errors
     FROM pings AS ping
       JOIN ping_extras AS extra USING (install_hash, day)
       JOIN json_each(ping.tools) AS entry

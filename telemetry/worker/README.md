@@ -61,7 +61,8 @@ node --test 'telemetry/worker/test/*.test.js'
 ```
 
 The tests run `schema.sql` and every query on real SQLite through
-`node:sqlite` (Node 22.13 or later).
+`node:sqlite` (Node 22.13 or later). `test/dashboard.test.js` draws
+`docs/assets/usage-stats.js` into a minimal DOM.
 
 ## Deploy
 
