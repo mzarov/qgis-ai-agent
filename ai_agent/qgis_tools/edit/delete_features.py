@@ -1,6 +1,6 @@
 from typing import Any
 
-from qgis.core import QgsFeatureRequest, QgsVectorLayer
+from qgis.core import QgsVectorLayer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_DESTRUCTIVE, BaseTool
@@ -8,6 +8,7 @@ from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.editing import edit_session
 from ai_agent.qgis_tools.common.expressions import build_request
 from ai_agent.qgis_tools.common.layers import bind_layer_reference, find_layer_by_id, find_layer_by_name
+from ai_agent.qgis_tools.edit.pinned import pinned_features
 
 MAX_DELETE = 10000
 ALL_MARKER = "all"
@@ -109,16 +110,9 @@ def _matched_ids(layer: QgsVectorLayer, raw_filter: str) -> list[int]:
 
 def _prepared_ids(layer: QgsVectorLayer, params: dict[str, Any]) -> list[int]:
     pinned = params.get("_feature_ids")
+    text = str(params.get("filter") or "").strip()
     if not isinstance(pinned, list):
-        return _matched_ids(layer, params.get("filter") or "")
-    wanted = {int(identifier) for identifier in pinned}
-    request = QgsFeatureRequest()
-    request.setFilterFids(list(wanted))
-    found = {feature.id() for feature in layer.getFeatures(request) if feature.id() in wanted}
-    missing = wanted - found
-    if missing:
-        raise ValueError(
-            f"{len(missing)} feature(s) selected during planning no longer exist. "
-            "Nothing was deleted; review the layer and plan again."
-        )
+        return _matched_ids(layer, text)
+    request = build_request(text, layer) if text and text.lower() != ALL_MARKER else None
+    pinned_features(layer, pinned, request, "deleted")
     return [int(identifier) for identifier in pinned]

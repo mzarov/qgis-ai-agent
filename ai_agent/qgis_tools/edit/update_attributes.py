@@ -1,7 +1,7 @@
 from contextlib import suppress
 from typing import Any
 
-from qgis.core import QgsDistanceArea, QgsFeatureRequest, QgsProject, QgsVectorLayer
+from qgis.core import QgsDistanceArea, QgsProject, QgsVectorLayer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_DESTRUCTIVE, BaseTool
@@ -10,6 +10,7 @@ from ai_agent.qgis_tools.common.editing import edit_session
 from ai_agent.qgis_tools.common.expressions import build_context, build_request, evaluate, prepared
 from ai_agent.qgis_tools.common.layers import bind_layer_reference, find_layer_by_id, find_layer_by_name
 from ai_agent.qgis_tools.common.values import suggest_fields
+from ai_agent.qgis_tools.edit.pinned import pinned_features
 
 MAX_SCAN = 50000
 
@@ -208,18 +209,7 @@ def _matched_ids(layer: QgsVectorLayer, filter_text: str) -> list[int]:
 
 def _prepared_features(layer: QgsVectorLayer, params: dict[str, Any]) -> list[Any]:
     pinned = params.get("_feature_ids")
+    text = (params.get("filter") or "").strip()
     if not isinstance(pinned, list):
-        request = build_request((params.get("filter") or "").strip(), layer)
-        return list(layer.getFeatures(request))
-    wanted = {int(identifier) for identifier in pinned}
-    request = QgsFeatureRequest()
-    request.setFilterFids(list(wanted))
-    features = [feature for feature in layer.getFeatures(request) if feature.id() in wanted]
-    found = {feature.id() for feature in features}
-    missing = wanted - found
-    if missing:
-        raise ValueError(
-            f"{len(missing)} feature(s) selected during planning no longer exist. "
-            "Nothing was updated; review the layer and plan again."
-        )
-    return features
+        return list(layer.getFeatures(build_request(text, layer)))
+    return pinned_features(layer, pinned, build_request(text, layer) if text else None, "updated")

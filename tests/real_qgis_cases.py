@@ -846,6 +846,42 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertEqual((queued.arguments["matched_estimate"], deleted["deleted"]), (1, 1))
         self.assertEqual(sorted(feature["name"] for feature in lakes.getFeatures()), ["arctic lake", "equator lake"])
 
+    def _kinds(self, name):
+        rows = [(f"POINT ({index} 0)", [f"p{index}", kind]) for index, kind in enumerate("abbcc")]
+        return self._memory("Point?crs=EPSG:4326&field=name:string&field=kind:string", name, rows)
+
+    def test_a_step_refuses_feature_ids_an_earlier_deletion_renumbered(self):
+        memory = self._kinds("memory points")
+        later = (
+            ("delete_features", {"filter": "kind = 'b'"}),
+            ("update_attributes", {"filter": "kind = 'b'", "values": {"name": "x"}}),
+        )
+        for tool_name, arguments in later:
+            with self.subTest(tool_name):
+                path = self.root / f"{tool_name}.shp"
+                target = {"layer_id": self._saved(memory, path.name, "ESRI Shapefile").id()}
+                batch = WriteBatch(ToolExecutor())
+                batch.add(ToolCall("first", "delete_features", {**target, "filter": "kind = 'a'"}))
+                batch.add(ToolCall("second", tool_name, {**target, **arguments}))
+                first, second = self._applied(batch)
+                self.assertTrue(first.ok, first.payload)
+                self.assertFalse(second.ok, second.payload)
+                self.assertIn("no longer match the filter", second.payload["error"])
+                written = QgsVectorLayer(str(path), "check", "ogr")
+                rows = sorted((feature["name"], feature["kind"]) for feature in written.getFeatures())
+                self.assertEqual(rows[-4:], [("p1", "b"), ("p2", "b"), ("p3", "c"), ("p4", "c")])
+
+    def test_a_step_keeps_to_its_planned_features_when_more_match_later(self):
+        points = self._kinds("kinds")
+        batch = WriteBatch(ToolExecutor())
+        changed = {"layer_name": "kinds", "filter": "name = 'p0'", "values": {"kind": "b"}}
+        batch.add(ToolCall("first", "update_attributes", changed))
+        batch.add(ToolCall("second", "delete_features", {"layer_name": "kinds", "filter": "kind = 'b'"}))
+        first, second = self._applied(batch)
+        self.assertTrue(first.ok and second.ok, second.payload)
+        self.assertEqual(second.payload["deleted"], 2)
+        self.assertEqual(sorted(feature["name"] for feature in points.getFeatures()), ["p0", "p3", "p4"])
+
     def test_a_filter_on_the_selection_finds_the_selected_features(self):
         lakes = self._lakes()
         lakes.selectByExpression("name = 'pond'")
