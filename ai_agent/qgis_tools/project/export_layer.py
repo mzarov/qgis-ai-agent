@@ -24,6 +24,7 @@ from ai_agent.qgis_tools.common.layers import (
     pinned_layer,
 )
 from ai_agent.qgis_tools.common.paths import check_overwrites, outputs_safety, related_output_paths, same_path
+from ai_agent.qgis_tools.project.export_fields import field_changes
 
 FORMATS = {
     ".gpkg": "GPKG",
@@ -33,6 +34,7 @@ FORMATS = {
 }
 CSV_SUFFIX = ".csv"
 GPKG = "GPKG"
+SHAPEFILE = "ESRI Shapefile"
 # Without it the CSV driver silently drops the geometry.
 CSV_GEOMETRY_OPTIONS = ["GEOMETRY=AS_WKT"]
 CSV_NOTE = "The geometry is stored as WKT text in a column named WKT."
@@ -154,6 +156,8 @@ class ExportLayerTool(BaseTool):
             result["table"] = str(error[3]) if isinstance(error, tuple) and len(error) > 3 else layer.name()
         if spatial_csv:
             result["note"] = CSV_NOTE
+        if options.driverName == SHAPEFILE:
+            result.update(field_changes(layer, path))
         return result
 
     def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
@@ -162,7 +166,7 @@ class ExportLayerTool(BaseTool):
             return False
         source = pinned_layer(params)
         expected = _written_count(source, bool(payload.get("selected_only"))) if source is not None else None
-        if expected is None:
+        if expected is None or payload.get("renamed_fields") or payload.get("retyped_fields"):
             return None
         table = str(payload.get("table") or "")
         written = QgsVectorLayer(f"{path}|layername={table}" if table else path, "export check", "ogr")

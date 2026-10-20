@@ -29,7 +29,7 @@ from qgis.core import (
     QgsVectorLayerSimpleLabeling,
 )
 from qgis.gui import QgsGui
-from qgis.PyQt.QtCore import QCoreApplication, QEvent, QEventLoop, QSize, QTimer
+from qgis.PyQt.QtCore import QCoreApplication, QDate, QDateTime, QEvent, QEventLoop, QSize, QTime, QTimer
 from qgis.PyQt.QtWidgets import QMainWindow
 
 from ai_agent.core.agent.batch import WriteBatch
@@ -1096,6 +1096,23 @@ class GisWorkflowsTest(unittest.TestCase):
             written = QgsVectorLayer(f"{path}|layername={table}", table, "ogr")
             self.assertTrue(written.isValid(), f"table {table} is gone")
             self.assertEqual(written.featureCount(), 1)
+
+    def test_a_shapefile_export_names_the_fields_it_cut_and_retyped(self):
+        uri = "Point?crs=EPSG:4326&field=population_2020:integer&field=population_2021:integer"
+        stats = self._memory(
+            uri + "&field=observed_at:datetime&field=big:int8",
+            "stats",
+            [("POINT (1 1)", [100, 200, QDateTime(QDate(2024, 5, 17), QTime(14, 30)), 2**40 + 1])],
+        )
+        queued, payload = self._run("export_layer", layer_id=stats.id(), path=str(self.root / "stats.shp"))
+        self.assertEqual(
+            payload["renamed_fields"],
+            {"population_2020": "population", "population_2021": "populati_1", "observed_at": "observed_a"},
+        )
+        self.assertEqual(payload["retyped_fields"], {"observed_at": "datetime → text", "big": "integer → real"})
+        self.assertIsNone(get_tool_by_name("export_layer").confirm_applied(queued.arguments, payload))
+        _, plain = self._run("export_layer", layer_name=self.layer.name(), path=str(self.root / "points.shp"))
+        self.assertNotIn("renamed_fields", plain)
 
     def test_bookmarks_are_saved_into_the_project(self):
         before = len(self.project.bookmarkManager().bookmarks())
