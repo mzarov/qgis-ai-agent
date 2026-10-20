@@ -1123,6 +1123,54 @@
     ],
     "count": 6
   },
+  "get_project_info": {
+    "title": "",
+    "display_name": "moscow",
+    "file_name": "moscow.qgz",
+    "has_unsaved_changes": false,
+    "crs": {
+      "authid": "EPSG:3857",
+      "description": "WGS 84 / Pseudo-Mercator",
+      "is_geographic": false
+    },
+    "distance_units": "meters",
+    "area_units": "m2",
+    "ellipsoid": "EPSG:7030",
+    "measurement_note": "$length and $area are measured on ellipsoid EPSG:7030 and returned in project units, even when the layer is stored in degrees.",
+    "layer_tree": [
+      {
+        "kind": "layer",
+        "name": "districts",
+        "visible": true
+      },
+      {
+        "kind": "layer",
+        "name": "roads",
+        "visible": true
+      },
+      {
+        "kind": "layer",
+        "name": "schools",
+        "visible": true
+      },
+      {
+        "kind": "layer",
+        "name": "stations",
+        "visible": true
+      },
+      {
+        "kind": "layer",
+        "name": "dem",
+        "visible": true
+      },
+      {
+        "kind": "layer",
+        "name": "OpenStreetMap",
+        "visible": true
+      }
+    ],
+    "map_themes": []
+  },
   "get_canvas_extent": {
     "extent": {
       "xmin": 4118356.80301,

@@ -229,9 +229,9 @@ class ProviderTest(unittest.TestCase):
         self.assertEqual(result["tokenUsage"], {"prompt": 20, "completion": 2, "total": 22})
 
     def test_a_read_the_fixture_lacks_ends_the_case_there(self):
-        result = self.run_with(model_answer(model_call("get_project_info")))
+        result = self.run_with(model_answer(model_call("get_selection")))
         self.assertEqual(len(self.sent), 1)
-        self.assertEqual([name for name, _ in checks.tool_calls(result["output"])], ["get_project_info"])
+        self.assertEqual([name for name, _ in checks.tool_calls(result["output"])], ["get_selection"])
 
     def test_reads_stop_after_the_last_round(self):
         read = model_call("describe_layer", layer_name="schools")
@@ -277,6 +277,19 @@ class ProviderTest(unittest.TestCase):
 FIELD_VALUE_KEYS = {"layer_name", "field_name", "field_type", "unique_values"}
 LISTED_LAYER_KEYS = {"name", "kind", "crs", "crs_is_geographic", "style_summary", "style_note"}
 PLUGIN_KEYS = {"plugin", "name", "version", "description"}
+PROJECT_INFO_KEYS = {
+    "title",
+    "display_name",
+    "file_name",
+    "has_unsaved_changes",
+    "crs",
+    "distance_units",
+    "area_units",
+    "ellipsoid",
+    "measurement_note",
+    "layer_tree",
+    "map_themes",
+}
 
 
 def mercator(longitude, latitude):
@@ -304,6 +317,7 @@ class FixtureReadsTest(unittest.TestCase):
     def test_project_reads_have_the_tools_keys(self):
         self.assertEqual(set(self.answer("get_canvas_extent")), {"extent", "project_crs"})
         self.assertEqual(set(self.answer("get_qgis_info")), {"qgis_version", "locale", "processing_providers"})
+        self.assertEqual(set(self.answer("get_project_info")), PROJECT_INFO_KEYS)
         listed = self.answer("list_layers")
         self.assertEqual(set(listed), {"layers", "count"})
         for layer in listed["layers"]:
@@ -330,7 +344,7 @@ class FixtureReadsTest(unittest.TestCase):
         self.assertIsNone(self.answer("get_field_values", layer_name="schools", field_name="pupils"))
         self.assertIsNone(self.answer("describe_style", layer_name="rivers"))
         self.assertIsNone(self.answer("describe_layer", layer_name="rivers"))
-        self.assertIsNone(self.answer("get_project_info"))
+        self.assertIsNone(self.answer("get_selection"))
 
     def test_field_values_agree_with_the_described_layers(self):
         for name, layer in self.data["describe_layer"].items():
@@ -355,6 +369,14 @@ class FixtureReadsTest(unittest.TestCase):
         for name, layer in self.data["describe_layer"].items():
             self.assertEqual(listed[name]["crs"], layer["crs"])
             self.assertEqual(listed[name].get("feature_count"), layer.get("feature_count"))
+        project = self.data["get_project_info"]
+        tree = [node["name"] for node in project["layer_tree"]]
+        self.assertEqual(set(tree), set(listed))
+        places = [self.data["project_context"].index(f"{name} (") for name in tree]
+        self.assertEqual(places, sorted(places), "the tree lists the layers in the context's order")
+        self.assertIn(f"Project CRS: {project['crs']['authid']}.", self.data["project_context"])
+        units = f"$length in {project['distance_units']}, $area in {project['area_units']}"
+        self.assertIn(f"ellipsoid {project['ellipsoid']}; {units}", self.data["project_context"])
         view = self.data["get_canvas_extent"]
         self.assertIn(f"Project CRS: {view['project_crs']}.", self.data["project_context"])
         districts = self.data["describe_layer"]["districts"]["extent"]

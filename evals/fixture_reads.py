@@ -8,7 +8,7 @@ FIELD_VALUES = "get_field_values"
 DESCRIBE_ALGORITHM = "describe_processing"
 DESCRIBE_STYLE = "describe_style"
 LIST_PLUGINS = "list_plugins"
-PROJECT_READS = ("list_layers", "get_canvas_extent", "get_qgis_info")
+PROJECT_READS = ("list_layers", "get_project_info", "get_canvas_extent", "get_qgis_info")
 
 
 def load() -> dict[str, Any]:
