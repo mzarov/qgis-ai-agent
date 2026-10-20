@@ -353,8 +353,11 @@ class Composer(QWidget):
         self._edit.setFocus()
 
     def put(self, text: str) -> None:
-        self._edit.setPlainText(text)
-        self._edit.moveCursor(QTextCursor.MoveOperation.End)
+        # Through a cursor, not setPlainText: that would wipe the draft's undo history with it.
+        cursor = self._edit.textCursor()
+        cursor.select(QTextCursor.SelectionType.Document)
+        cursor.insertText(text)
+        self._edit.setTextCursor(cursor)
         self._edit.setFocus()
 
     def focus(self) -> None:

@@ -834,6 +834,14 @@ class ComposerBehaviourTest(PluginCase):
         composer._insert_layer("roads")
         self.assertEqual(edit.toPlainText(), "show me @ro", "a choice away from the mention rewrote the text")
 
+    def test_a_connector_example_keeps_the_draft_for_undo(self) -> None:
+        edit = self.dock.composer._edit
+        edit.insertPlainText("my long draft")
+        self.dock.put_prompt("Show the population of Paris")
+        self.assertEqual(edit.toPlainText(), "Show the population of Paris")
+        edit.undo()
+        self.assertEqual(edit.toPlainText(), "my long draft")
+
     def test_typing_a_reply_holds_the_auto_answer(self) -> None:
         load = personal.load
         with mock.patch.object(personal, "load", lambda: dataclasses.replace(load(), auto_answer=1)):
