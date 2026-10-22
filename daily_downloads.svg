@@ -1,11 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 240" font-family="-apple-system, Segoe UI, sans-serif" font-size="11">
 <text x="44" y="16" fill="#8B8F98" font-size="12">New downloads per day, plugins.qgis.org</text>
 <line x1="44" y1="212" x2="708" y2="212" stroke="#8B8F98" stroke-width="1"/>
-<text x="38" y="32" fill="#8B8F98" text-anchor="end">91</text>
+<text x="38" y="32" fill="#8B8F98" text-anchor="end">96</text>
 <text x="38" y="212" fill="#8B8F98" text-anchor="end">0</text>
-<rect x="45.0" y="66.4" width="219.3" height="145.6" rx="1.5" fill="#4C78C8"><title>2026-10-19: 72</title></rect>
-<rect x="266.3" y="56.3" width="219.3" height="155.7" rx="1.5" fill="#4C78C8"><title>2026-10-20: 77</title></rect>
-<rect x="487.7" y="28.0" width="219.3" height="184.0" rx="1.5" fill="#4C78C8"><title>2026-10-21: 91</title></rect>
-<text x="154.7" y="232" fill="#8B8F98" text-anchor="middle">10-19</text>
-<text x="597.3" y="232" fill="#8B8F98" text-anchor="middle">10-21</text>
+<rect x="45.0" y="74.0" width="164.0" height="138.0" rx="1.5" fill="#4C78C8"><title>2026-10-19: 72</title></rect>
+<rect x="211.0" y="64.4" width="164.0" height="147.6" rx="1.5" fill="#4C78C8"><title>2026-10-20: 77</title></rect>
+<rect x="377.0" y="37.6" width="164.0" height="174.4" rx="1.5" fill="#4C78C8"><title>2026-10-21: 91</title></rect>
+<rect x="543.0" y="28.0" width="164.0" height="184.0" rx="1.5" fill="#4C78C8"><title>2026-10-22: 96</title></rect>
+<text x="127.0" y="232" fill="#8B8F98" text-anchor="middle">10-19</text>
+<text x="625.0" y="232" fill="#8B8F98" text-anchor="middle">10-22</text>
 </svg>
