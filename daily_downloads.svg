@@ -3,12 +3,13 @@
 <line x1="44" y1="212" x2="708" y2="212" stroke="#8B8F98" stroke-width="1"/>
 <text x="38" y="32" fill="#8B8F98" text-anchor="end">96</text>
 <text x="38" y="212" fill="#8B8F98" text-anchor="end">0</text>
-<rect x="45.0" y="74.0" width="108.7" height="138.0" rx="1.5" fill="#4C78C8"><title>2026-10-19: 72</title></rect>
-<rect x="155.7" y="64.4" width="108.7" height="147.6" rx="1.5" fill="#4C78C8"><title>2026-10-20: 77</title></rect>
-<rect x="266.3" y="37.6" width="108.7" height="174.4" rx="1.5" fill="#4C78C8"><title>2026-10-21: 91</title></rect>
-<rect x="377.0" y="28.0" width="108.7" height="184.0" rx="1.5" fill="#4C78C8"><title>2026-10-22: 96</title></rect>
-<rect x="487.7" y="91.2" width="108.7" height="120.8" rx="1.5" fill="#4C78C8"><title>2026-10-23: 63</title></rect>
-<rect x="598.3" y="118.1" width="108.7" height="93.9" rx="1.5" fill="#4C78C8"><title>2026-10-24: 49</title></rect>
-<text x="99.3" y="232" fill="#8B8F98" text-anchor="middle">10-19</text>
-<text x="652.7" y="232" fill="#8B8F98" text-anchor="middle">10-24</text>
+<rect x="45.0" y="74.0" width="92.9" height="138.0" rx="1.5" fill="#4C78C8"><title>2026-10-19: 72</title></rect>
+<rect x="139.9" y="64.4" width="92.9" height="147.6" rx="1.5" fill="#4C78C8"><title>2026-10-20: 77</title></rect>
+<rect x="234.7" y="37.6" width="92.9" height="174.4" rx="1.5" fill="#4C78C8"><title>2026-10-21: 91</title></rect>
+<rect x="329.6" y="28.0" width="92.9" height="184.0" rx="1.5" fill="#4C78C8"><title>2026-10-22: 96</title></rect>
+<rect x="424.4" y="91.2" width="92.9" height="120.8" rx="1.5" fill="#4C78C8"><title>2026-10-23: 63</title></rect>
+<rect x="519.3" y="118.1" width="92.9" height="93.9" rx="1.5" fill="#4C78C8"><title>2026-10-24: 49</title></rect>
+<rect x="614.1" y="102.8" width="92.9" height="109.2" rx="1.5" fill="#4C78C8"><title>2026-10-25: 57</title></rect>
+<text x="91.4" y="232" fill="#8B8F98" text-anchor="middle">10-19</text>
+<text x="660.6" y="232" fill="#8B8F98" text-anchor="middle">10-25</text>
 </svg>
