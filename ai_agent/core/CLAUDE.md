@@ -225,8 +225,8 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     QGIS setting when it came at that limit. A failure that survives the retries leaves the
     worker as a `TurnFailure` (`llm/failure_kinds.py`): the message plus its
     kind — connection, timeout, key, quota, busy, not found, setup, otherwise
-    `http_<status>` or the error's class name, which only the statistics tell
-    apart. The loop
+    `http_<status>_<provider code>` or the error's class with the plugin file
+    and line, which only the statistics tell apart. The loop
     keeps the kind (`failure_kind`), `explain_run_failure`
     (`agent/run_failure.py`) turns it into a title, one sentence and whether
     sending again can help, for the feed's failure card. Retry

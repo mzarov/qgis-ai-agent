@@ -22,8 +22,9 @@ report. A report holds:
   built-in skill loaded. A name the model made up and the names of skills you
   wrote yourself are not sent;
 - how many runs failed, by kind: a category such as a timeout or a refused
-  key, otherwise the HTTP status code or the error's class name. The error
-  text is not sent.
+  key, otherwise the HTTP status code with the provider's short error code
+  (such as `context_length_exceeded`), or the error's class name with the
+  plugin file and line it came from. The error text is not sent.
 
 A day without a connection is sent later; the last three such days wait.
 
