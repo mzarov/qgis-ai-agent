@@ -591,6 +591,16 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.assertFalse(any("429" in text for text in self.dock.system))
         self.assertEqual(self.orchestrator.iface.pushed, [], "a banner over the map would repeat the card")
 
+    def test_a_failed_run_is_counted_by_its_exact_kind(self):
+        noted, cards = [], []
+        self.orchestrator.usage = SimpleNamespace(note=lambda kind, name="": noted.append((kind, name)))
+        self.dock.add_run_failure = lambda *args: cards.append(args) or 1
+        self.orchestrator.on_prompt("сделай реки синими")
+        self.orchestrator.agent.failure_kind = "http_402"
+        self.orchestrator.on_failed("The API returned 402: Insufficient credits")
+        self.assertIn(("failures", "http_402"), noted)
+        self.assertEqual(cards[0][3], "other", "the card has no words of its own for a 402")
+
     def test_a_failure_settings_must_fix_offers_retry_only_once_they_are_saved(self):
         from ai_agent.core.llm import failure_kinds
 

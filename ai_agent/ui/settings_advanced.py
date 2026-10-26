@@ -60,7 +60,7 @@ JOURNAL_NOTE = tr("A Markdown file with the steps and calls after every Apply.")
 USAGE_SECTION = tr("Usage statistics")
 USAGE_LABEL = tr("Share anonymous usage counts")
 USAGE_NOTE = tr(
-    "Once a day: how many runs and applies, which tools, skills and errors, the versions. "
+    "Daily totals: how many runs and applies, which tools, skills and errors, the versions. "
     "Never what you wrote, the answers, your data or places. The totals are public."
 )
 JOURNAL_HINT = tr(

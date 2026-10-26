@@ -1,3 +1,5 @@
+import re
+
 from ai_agent.core.llm.client import ApiResponseError, ModelTimeout, SetupError
 from ai_agent.core.llm.retry import QUOTA_MARKERS, is_overload
 
@@ -12,6 +14,7 @@ OTHER = "other"
 AUTH_STATUSES = frozenset({401, 403})
 NOT_FOUND_STATUS = 404
 RATE_LIMITED = 429
+ERROR_NAME = re.compile(r"^[a-z][a-z0-9_]{0,39}$")
 
 
 class TurnFailure(str):
@@ -38,10 +41,11 @@ def failure_kind(error: BaseException) -> str:
             return BUSY
         if status == NOT_FOUND_STATUS:
             return NOT_FOUND
-        return OTHER
+        return f"http_{status}" if isinstance(status, int) else OTHER
     if isinstance(error, ConnectionError):
         return CONNECTION
-    return OTHER
+    name = type(error).__name__.lower()
+    return name if ERROR_NAME.match(name) else OTHER
 
 
 def turn_failure(error: BaseException) -> TurnFailure:

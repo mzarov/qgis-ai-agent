@@ -149,7 +149,7 @@ class UsageStatsTest(unittest.TestCase):
         manager.post = lambda request, body: posted.append(request) or Reply()
         with mock.patch.object(usage_stats.QgsNetworkAccessManager, "instance", return_value=manager):
             self.stats.flush()
-            self.assertEqual(posted, [], "today is not over yet")
+            self.assertEqual(posted, [], "today waits for its delay")
             self.today = "2026-10-18"
             self.stats.flush()
         self.assertIn(usage_stats.PENDING_KEY, MemorySettings.values)
@@ -199,6 +199,65 @@ class UsageStatsTest(unittest.TestCase):
             while self.stats._reply is not None:
                 self.stats._sent()
         return days
+
+    def test_today_goes_out_a_minute_after_a_change_and_stays_counted(self):
+        usage_stats.mark_noticed()
+        self.stats.note(usage_stats.ACTIVE)
+        self.assertTrue(self.stats._timer.isActive(), "the first notice gets a minute to be answered")
+        self.stats.note("runs")
+        self.assertEqual(self.stats._timer.started, 1, "more counts do not push the send back")
+        sent = []
+
+        def post(request, body):
+            sent.append(json.loads(bytes(body)))
+            return Reply()
+
+        manager = mock.Mock(post=post)
+        with (
+            mock.patch.object(usage_stats.QgsNetworkAccessManager, "instance", return_value=manager),
+            mock.patch.object(usage_stats, "QByteArray", side_effect=lambda raw: raw),
+        ):
+            self.stats._timer.fire()
+            self.stats._sent()
+            self.assertEqual([(ping["day"], ping["runs"]) for ping in sent], [("2026-10-17", 1)])
+            self.assertEqual(self.counts()["runs"], 1, "the day goes out whole again once it is over")
+            self.stats.note("runs")
+            self.stats._timer.fire()
+            self.stats._sent()
+            self.today = "2026-10-18"
+            self.stats.flush()
+            self.stats._sent()
+        self.assertEqual([(ping["day"], ping["runs"]) for ping in sent], [("2026-10-17", runs) for runs in (1, 2, 2)])
+        self.assertNotIn(usage_stats.PENDING_KEY, MemorySettings.values)
+
+    def test_today_never_leaves_once_counting_is_turned_off(self):
+        usage_stats.mark_noticed()
+        self.stats.note(usage_stats.ACTIVE)
+        usage_stats.set_consent(False)
+        manager = mock.Mock()
+        with mock.patch.object(usage_stats.QgsNetworkAccessManager, "instance", return_value=manager):
+            self.stats._timer.fire()
+        manager.post.assert_not_called()
+
+    def test_a_day_that_ends_while_today_is_on_its_way_still_goes_out_whole(self):
+        usage_stats.set_consent(True)
+        self.stats.note("runs")
+        manager = mock.Mock(post=lambda request, body: Reply())
+        with mock.patch.object(usage_stats.QgsNetworkAccessManager, "instance", return_value=manager):
+            self.stats._timer.fire()
+            self.today = "2026-10-18"
+            self.stats.note("runs")
+            self.assertIn(usage_stats.PENDING_KEY, MemorySettings.values)
+            self.stats._sent()
+        waiting = json.loads(MemorySettings.values[usage_stats.PENDING_KEY])
+        self.assertEqual([entry["day"] for entry in waiting], ["2026-10-17"], "the earlier ping held part of it")
+        self.assertIsNotNone(self.stats._reply, "the finished day follows at once")
+
+    def test_unloading_stops_the_wait(self):
+        usage_stats.set_consent(True)
+        self.stats.note("runs")
+        self.stats.stop()
+        self.assertFalse(self.stats._timer.isActive())
 
     def test_days_missed_offline_go_out_oldest_first(self):
         usage_stats.set_consent(True)

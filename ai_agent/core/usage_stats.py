@@ -6,7 +6,7 @@ import uuid
 from typing import Any
 
 from qgis.core import Qgis, QgsMessageLog, QgsNetworkAccessManager, QgsSettings
-from qgis.PyQt.QtCore import QByteArray, QUrl
+from qgis.PyQt.QtCore import QByteArray, QTimer, QUrl
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 
 from ai_agent.core.about import plugin_version
@@ -39,6 +39,7 @@ MAX_PENDING_DAYS = 3
 CLIENT_ERRORS = range(400, 500)
 RATE_LIMITED = 429
 ACTIVE = "active"
+TODAY_DELAY_MS = 60_000
 
 
 def collector_url() -> str:
@@ -130,6 +131,11 @@ class UsageStats:
         self._today = today or (lambda: datetime.date.today().isoformat())
         self._reply: Any = None
         self._sending = ""
+        self._today_due = False
+        self._timer = QTimer()
+        self._timer.setSingleShot(True)
+        self._timer.setInterval(TODAY_DELAY_MS)
+        self._timer.timeout.connect(self._send_today)
 
     def note(self, kind: str, name: str = "") -> None:
         if not enabled():
@@ -139,6 +145,12 @@ class UsageStats:
         counts = _loaded(settings.value(COUNTS_KEY, "", type=str))
         settings.setValue(COUNTS_KEY, json.dumps(add(counts, kind, name)))
         settings.setValue(DAY_KEY, self._today())
+        # The delay leaves time to turn counting off after the first notice, before anything of today leaves.
+        if not self._timer.isActive():
+            self._timer.start()
+
+    def stop(self) -> None:
+        self._timer.stop()
 
     def flush(self) -> None:
         if not enabled() or self._reply is not None:
@@ -147,10 +159,23 @@ class UsageStats:
         today = self._today()
         days = [entry for entry in _pending_days() if has_counts(entry["counts"]) and not _too_old(entry["day"], today)]
         _keep_pending(days)
-        if not days:
-            return
-        self._sending = days[0]["day"]
-        body = json.dumps(payload(self._install(), days[0]["day"], days[0]["counts"])).encode("utf-8")
+        if days:
+            self._post(days[0]["day"], days[0]["counts"], finished=True)
+        elif self._today_due:
+            self._today_due = False
+            settings = QgsSettings()
+            counts = _loaded(settings.value(COUNTS_KEY, "", type=str))
+            if has_counts(counts):
+                # The collector keeps a day's latest ping, and the whole day goes out again once it is over.
+                self._post(settings.value(DAY_KEY, "", type=str) or today, counts, finished=False)
+
+    def _send_today(self) -> None:
+        self._today_due = True
+        self.flush()
+
+    def _post(self, day: str, counts: dict[str, Any], finished: bool) -> None:
+        self._sending = day if finished else ""
+        body = json.dumps(payload(self._install(), day, counts)).encode("utf-8")
         request = QNetworkRequest(QUrl(collector_url() + PING_PATH))
         request.setHeader(QNetworkRequest.KnownHeaders.ContentTypeHeader, "application/json")
         self._reply = QgsNetworkAccessManager.instance().post(request, QByteArray(body))
@@ -184,7 +209,8 @@ class UsageStats:
                 Qgis.MessageLevel.Info,
             )
             return
-        _keep_pending([entry for entry in _pending_days() if entry["day"] != self._sending])
+        if self._sending:
+            _keep_pending([entry for entry in _pending_days() if entry["day"] != self._sending])
         self.flush()
 
     @staticmethod

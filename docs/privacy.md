@@ -100,11 +100,13 @@ a notice in the QGIS message bar says so and offers **Turn off**. Nothing is
 counted before that notice. The switch is also in Settings → Privacy; turning
 it off deletes the counts not yet sent.
 
-Once a day the plugin sends one small report to the project's collector on
-Cloudflare (`telemetry/worker`): the number of runs and applies, the names of
-the plugin's own tools and built-in skills used (never a name the model made
-up or a skill you wrote) and how many tool calls failed, the kinds of
-failures, the plugin and QGIS versions, the OS family, the interface language,
+A minute after the counts change, the plugin sends the day so far to the
+project's collector on Cloudflare (`telemetry/worker`), which keeps one small
+report per install per day: the number of runs and applies, the names of the
+plugin's own tools and built-in skills used (never a name the model made up or
+a skill you wrote) and how many tool calls failed, the kinds of failures (a
+category, an HTTP status code or an error class name, never the error text),
+the plugin and QGIS versions, the OS family, the interface language,
 whether a model is set up, and whether it is local or remote and which API
 format it uses. A day QGIS loaded the plugin counts as active even with no
 run. A random install id tells installs apart; the collector stores only its

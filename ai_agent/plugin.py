@@ -52,6 +52,7 @@ class QgisAiAgentPlugin:
     def unload(self) -> None:
         self._disconnect_project_lifecycle()
         self._drop_usage_notice()
+        self._usage.stop()
         self._follow_active_layer(False)
         if self._picker is not None:
             # A pick still waiting on the map gives the canvas its tool back before the plugin goes.

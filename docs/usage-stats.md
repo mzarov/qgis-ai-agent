@@ -7,7 +7,9 @@ them on.
 
 ## What is sent
 
-At most one report per install per day:
+The collector keeps one report per install per day. A minute after the counts
+change, the plugin sends the day so far, and it replaces that day's earlier
+report. A report holds:
 
 - a random install id, created on your computer and linked to nothing else;
 - the date, without a time;
@@ -16,9 +18,12 @@ At most one report per install per day:
 - whether a model is set up in Settings, as yes or no;
 - the number of runs and applied batches (a day the plugin was loaded counts
   even with none);
-- how often each of the plugin's tools was called and failed, each built-in
-  skill loaded and each kind of failure happened. A name the model made up and
-  the names of skills you wrote yourself are not sent.
+- how often each of the plugin's tools was called and failed, and each
+  built-in skill loaded. A name the model made up and the names of skills you
+  wrote yourself are not sent;
+- how many runs failed, by kind: a category such as a timeout or a refused
+  key, otherwise the HTTP status code or the error's class name. The error
+  text is not sent.
 
 A day without a connection is sent later; the last three such days wait.
 

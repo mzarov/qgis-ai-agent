@@ -1226,6 +1226,11 @@
         <translation>Под себя</translation>
     </message>
     <message>
+        <location filename="ai_agent/ui/settings_advanced.py" line="62"/>
+        <source>Daily totals: how many runs and applies, which tools, skills and errors, the versions. Never what you wrote, the answers, your data or places. The totals are public.</source>
+        <translation>Счётчики за день: сколько запусков и применений, какие инструменты, навыки и ошибки, версии. Никогда — то, что вы написали, ответы, ваши данные или места. Итоги публичны.</translation>
+    </message>
+    <message>
         <location filename="ai_agent/ui/personalisation_settings.py" line="95"/>
         <source>Dark</source>
         <translation>Тёмная</translation>
@@ -2314,11 +2319,6 @@
         <translation>Часто</translation>
     </message>
     <message>
-        <location filename="ai_agent/ui/settings_advanced.py" line="62"/>
-        <source>Once a day: how many runs and applies, which tools, skills and errors, the versions. Never what you wrote, the answers, your data or places. The totals are public.</source>
-        <translation>Раз в день: сколько запусков и применений, какие инструменты, навыки и ошибки, версии. Никогда — то, что вы написали, ответы, ваши данные или места. Итоги публичны.</translation>
-    </message>
-    <message>
         <location filename="ai_agent/ui/settings_advanced.py" line="118"/>
         <source>One per line, Name: value. Keys go in the API key field.</source>
         <translation>По одному на строке, «Имя: значение». Ключи — в поле «Ключ API».</translation>
@@ -3109,8 +3109,8 @@
     </message>
     <message>
         <location filename="ai_agent/ui/usage_notice.py" line="13"/>
-        <source>Sends anonymous usage counts once a day — never what you write or your data.</source>
-        <translation>Раз в день отправляет анонимные счётчики использования — никогда ваши тексты и данные.</translation>
+        <source>Sends anonymous daily usage counts — never what you write or your data.</source>
+        <translation>Отправляет анонимные счётчики использования за день — никогда ваши тексты и данные.</translation>
     </message>
     <message>
         <location filename="ai_agent/qgis_tools/data/sources/planetary-computer.json" line="6"/>
