@@ -105,10 +105,10 @@ project's collector on Cloudflare (`telemetry/worker`), which keeps one small
 report per install per day: the number of runs and applies, the names of the
 plugin's own tools and built-in skills used (never a name the model made up or
 a skill you wrote) and how many tool calls failed, the kinds of failures (a
-category, an HTTP status code or an error class name, never the error text),
-the plugin and QGIS versions, the OS family, the interface language,
-whether a model is set up, and whether it is local or remote and which API
-format it uses. A day QGIS loaded the plugin counts as active even with no
+category, an HTTP status with the provider's error code, or an error class
+with the plugin file and line, never the error text), the plugin and QGIS
+versions, the OS family, the interface language, whether a model is set up,
+and whether it is local or remote and which API format it uses. A day QGIS loaded the plugin counts as active even with no
 run. A random install id tells installs apart; the collector stores only its
 hash. Your IP address is used only to limit how many reports one address can
 send a minute and is never stored. Your requests, answers, layer names,

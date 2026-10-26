@@ -209,7 +209,7 @@ class RequestFailureTest(LoopCase):
         with mock.patch.object(loop_module, "build_step_request", side_effect=ValueError("schema too large")):
             self.loop._request_step()
         self.assertEqual(self.failed, ["schema too large"])
-        self.assertEqual(self.loop.failure_kind, "valueerror")
+        self.assertRegex(self.loop.failure_kind, r"^valueerror_loop_\d+$")
         self.assertEqual([(len(calls), auto) for calls, auto in self.cards], [(1, False)])
         self.assertEqual(self.turns.started, 1)
         self.assertFalse(self.loop.is_running)

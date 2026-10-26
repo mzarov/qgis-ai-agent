@@ -9,6 +9,7 @@ from ai_agent.core.agent.run_failure import (
     host_label,
 )
 from ai_agent.core.llm import failure_kinds as kinds
+from ai_agent.core.llm import turns
 from ai_agent.core.llm.client import ApiResponseError
 
 
@@ -61,6 +62,53 @@ class KindTest(unittest.TestCase):
         for error, kind in cases:
             with self.subTest(kind=kind):
                 self.assertEqual(kinds.failure_kind(error), kind)
+
+    def test_the_provider_s_own_error_code_rides_along_but_never_its_text(self):
+        cases = [
+            (
+                json.dumps(
+                    {
+                        "error": {
+                            "message": "too long",
+                            "type": "invalid_request_error",
+                            "code": "context_length_exceeded",
+                        }
+                    }
+                ),
+                "http_400_context_length_exceeded",
+            ),
+            (
+                json.dumps(
+                    {"type": "error", "error": {"type": "invalid_request_error", "message": "prompt is too long"}}
+                ),
+                "http_400_invalid_request_error",
+            ),
+            (
+                json.dumps([{"error": {"code": 400, "message": "API key not valid", "status": "INVALID_ARGUMENT"}}]),
+                "http_400_invalid_argument",
+            ),
+            (json.dumps({"error": {"code": "req_8f3a2", "type": "Invalid Request"}}), "http_400"),
+            (json.dumps({"error": "model 'qwen3' not found, try pulling it first"}), "http_400"),
+            (json.dumps({"error": {"code": "x" * 60}}), "http_400"),
+            ("[" * 100_000, "http_400"),
+        ]
+        for text, kind in cases:
+            with self.subTest(kind=kind):
+                self.assertEqual(kinds.failure_kind(ApiResponseError(400, text)), kind)
+
+    def test_a_bug_of_ours_names_the_file_and_line_it_came_from(self):
+        # assertRaises drops the traceback, and the traceback is what names the place.
+        kind = ""
+        try:
+            turns._first_choice({"choices": []})
+        except ValueError as error:
+            kind = kinds.failure_kind(error)
+        self.assertRegex(kind, r"^valueerror_turns_\d+$")
+        try:
+            raise KeyError("choices")
+        except KeyError as error:
+            kind = kinds.failure_kind(error)
+        self.assertEqual(kind, "keyerror", "a test file is not the plugin")
 
     def test_the_card_still_reads_an_unexplained_kind_as_a_plain_failure(self):
         failure = explain_run_failure("http_402", "The API returned 402: Insufficient credits")
