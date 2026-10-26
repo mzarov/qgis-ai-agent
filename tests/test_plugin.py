@@ -234,6 +234,10 @@ class UsageNoticeTest(unittest.TestCase):
         self.assertFalse(self.states["noticed"])
         self.assertIsNone(self.plugin._usage_notice)
 
+    def test_unload_stops_the_wait_before_today_goes_out(self):
+        self.plugin.unload()
+        self.plugin._usage.stop.assert_called_once_with()
+
     def test_unload_takes_the_notice_away(self):
         with mock.patch.object(plugin_module, "UsageNotice") as notice:
             self.plugin._notify_usage_stats()

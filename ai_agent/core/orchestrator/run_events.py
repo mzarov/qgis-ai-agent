@@ -150,13 +150,15 @@ class RunEventsMixin(OrchestratorHost):
         self._plan_message_id = None
         self._keep_partial_answer()
         overrides = getattr(self.agent, "overrides", None) or {}
+        kind = str(getattr(self.agent, "failure_kind", "") or "")
         failure = explain_run_failure(
-            str(getattr(self.agent, "failure_kind", "") or ""),
+            kind,
             message,
             str(overrides.get("url_override") or ""),
             str(overrides.get("model_override") or ""),
         )
-        self.usage.note("failures", failure.kind)
+        # The card folds unknown kinds into "other"; the count keeps the status or the error's class.
+        self.usage.note("failures", kind or failure.kind)
         retryable = self._retry_args is not None and not getattr(self.agent, "is_verification", False)
         retryable = retryable and failure.retry_helps
         # Retry would start over without the steps the run prepared: it waits until they are cancelled.

@@ -20,7 +20,7 @@ from ai_agent.core.agent.run_journal import RunJournal
 from ai_agent.core.agent.skills import extend_loaded
 from ai_agent.core.agent.transcript import ToolResult, Transcript
 from ai_agent.core.agent.turn_thread import TurnCallbacks, TurnThreadOwner
-from ai_agent.core.llm.failure_kinds import OTHER
+from ai_agent.core.llm.failure_kinds import OTHER, turn_failure
 from ai_agent.core.llm.retry import RetryNotice
 from ai_agent.core.llm.turns import PROTOCOL_JSON, PROTOCOL_NATIVE, ModelTurn, ToolCall
 from ai_agent.core.settings import get_token_budget
@@ -262,7 +262,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):  # type: ignore[misc]
                 planning=self._planning,
             )
         except Exception as err:
-            self._fail(str(err), generation)
+            self._fail(turn_failure(err), generation)
             return
         if not self._is_current(generation):
             return

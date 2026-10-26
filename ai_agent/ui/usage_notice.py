@@ -10,7 +10,7 @@ from ai_agent.i18n import locale_code, tr
 from ai_agent.ui.theme import MESSAGE_BAR_BORDER, MESSAGE_BAR_INK
 
 TITLE = "AI Agent"
-TEXT = tr("Sends anonymous usage counts once a day — never what you write or your data.")
+TEXT = tr("Sends anonymous daily usage counts — never what you write or your data.")
 TURN_OFF = tr("Turn off")
 DETAILS = tr("What is sent")
 TURNED_OFF = tr("Usage statistics are off. Turn them back on in Settings → Privacy.")

@@ -224,7 +224,9 @@ UI signal → CoreOrchestrator → AgentLoop.start()
     answer without a status is a transport failure — a `ModelTimeout` naming the
     QGIS setting when it came at that limit. A failure that survives the retries leaves the
     worker as a `TurnFailure` (`llm/failure_kinds.py`): the message plus its
-    kind — connection, timeout, key, quota, busy, not found, setup. The loop
+    kind — connection, timeout, key, quota, busy, not found, setup, otherwise
+    `http_<status>` or the error's class name, which only the statistics tell
+    apart. The loop
     keeps the kind (`failure_kind`), `explain_run_failure`
     (`agent/run_failure.py`) turns it into a title, one sentence and whether
     sending again can help, for the feed's failure card. Retry
@@ -320,7 +322,7 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `llm/providers.py`       | provider presets for the settings dialog            |
 | `llm/context_window.py`  | the model's window: setting, detected, guessed; the 90 % mark |
 | `credentials.py`         | API keys in the QGIS authentication database        |
-| `usage_stats.py`         | daily usage counts, on by default after a one-time notice; a no stops them, one ping per finished day, the last few missed days sent oldest first |
+| `usage_stats.py`         | daily usage counts, on by default after a one-time notice; a no stops them, today's counts a minute after a change (the collector keeps a day's latest), the last few missed days sent oldest first |
 | `local_skills.py`        | the profile's skills folder: rescan, validation, example |
 | `attachments.py`         | attached files: data added as layers at once (the user's own act, not a queued write), pictures encoded for the request |
 | `orchestrator/compacting.py` | the context meter and compaction before a request or by hand |

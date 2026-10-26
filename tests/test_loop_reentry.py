@@ -6,7 +6,6 @@ from ai_agent.core.agent import loop as loop_module
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.prompts import APPLY_NOW_TOOL, ASK_USER_TOOL
 from ai_agent.core.agent.transcript import ToolResult
-from ai_agent.core.llm.failure_kinds import OTHER
 from ai_agent.core.llm.turns import PROTOCOL_JSON, PROTOCOL_NATIVE, ModelTurn, ToolCall
 
 REQUEST = SimpleNamespace(messages=[], tool_schemas=[], overrides={}, protocol=PROTOCOL_NATIVE)
@@ -210,7 +209,7 @@ class RequestFailureTest(LoopCase):
         with mock.patch.object(loop_module, "build_step_request", side_effect=ValueError("schema too large")):
             self.loop._request_step()
         self.assertEqual(self.failed, ["schema too large"])
-        self.assertEqual(self.loop.failure_kind, OTHER)
+        self.assertEqual(self.loop.failure_kind, "valueerror")
         self.assertEqual([(len(calls), auto) for calls, auto in self.cards], [(1, False)])
         self.assertEqual(self.turns.started, 1)
         self.assertFalse(self.loop.is_running)

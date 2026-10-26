@@ -1,3 +1,4 @@
+import json
 import unittest
 
 from ai_agent.core.agent.run_failure import (
@@ -8,6 +9,7 @@ from ai_agent.core.agent.run_failure import (
     host_label,
 )
 from ai_agent.core.llm import failure_kinds as kinds
+from ai_agent.core.llm.client import ApiResponseError
 
 
 class LabelTest(unittest.TestCase):
@@ -44,6 +46,25 @@ class ExplainTest(unittest.TestCase):
         failure = explain_run_failure("", "Something odd")
         self.assertEqual((failure.kind, failure.title, failure.detail), (kinds.OTHER, RUN_FAILED, "Something odd"))
         self.assertTrue(failure.retry_helps)
+
+
+class KindTest(unittest.TestCase):
+    def test_an_unexplained_failure_keeps_its_status_or_its_class_for_the_statistics(self):
+        cases = [
+            (ApiResponseError(401, "bad key"), kinds.AUTH),
+            (ApiResponseError(402, "Insufficient credits"), "http_402"),
+            (ApiResponseError(500, "boom"), "http_500"),
+            (KeyError("choices"), "keyerror"),
+            (json.JSONDecodeError("Expecting value", "", 0), "jsondecodeerror"),
+            (type("Ошибка", (Exception,), {})(), kinds.OTHER),
+        ]
+        for error, kind in cases:
+            with self.subTest(kind=kind):
+                self.assertEqual(kinds.failure_kind(error), kind)
+
+    def test_the_card_still_reads_an_unexplained_kind_as_a_plain_failure(self):
+        failure = explain_run_failure("http_402", "The API returned 402: Insufficient credits")
+        self.assertEqual((failure.kind, failure.title, failure.retry_helps), (kinds.OTHER, RUN_FAILED, True))
 
 
 if __name__ == "__main__":
