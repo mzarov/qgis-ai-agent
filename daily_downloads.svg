@@ -3,14 +3,15 @@
 <line x1="44" y1="212" x2="708" y2="212" stroke="#8B8F98" stroke-width="1"/>
 <text x="38" y="32" fill="#8B8F98" text-anchor="end">96</text>
 <text x="38" y="212" fill="#8B8F98" text-anchor="end">0</text>
-<rect x="45.0" y="74.0" width="81.0" height="138.0" rx="1.5" fill="#4C78C8"><title>2026-10-19: 72</title></rect>
-<rect x="128.0" y="64.4" width="81.0" height="147.6" rx="1.5" fill="#4C78C8"><title>2026-10-20: 77</title></rect>
-<rect x="211.0" y="37.6" width="81.0" height="174.4" rx="1.5" fill="#4C78C8"><title>2026-10-21: 91</title></rect>
-<rect x="294.0" y="28.0" width="81.0" height="184.0" rx="1.5" fill="#4C78C8"><title>2026-10-22: 96</title></rect>
-<rect x="377.0" y="91.2" width="81.0" height="120.8" rx="1.5" fill="#4C78C8"><title>2026-10-23: 63</title></rect>
-<rect x="460.0" y="118.1" width="81.0" height="93.9" rx="1.5" fill="#4C78C8"><title>2026-10-24: 49</title></rect>
-<rect x="543.0" y="102.8" width="81.0" height="109.2" rx="1.5" fill="#4C78C8"><title>2026-10-25: 57</title></rect>
-<rect x="626.0" y="108.5" width="81.0" height="103.5" rx="1.5" fill="#4C78C8"><title>2026-10-26: 54</title></rect>
-<text x="85.5" y="232" fill="#8B8F98" text-anchor="middle">10-19</text>
-<text x="666.5" y="232" fill="#8B8F98" text-anchor="middle">10-26</text>
+<rect x="45.0" y="74.0" width="71.8" height="138.0" rx="1.5" fill="#4C78C8"><title>2026-10-19: 72</title></rect>
+<rect x="118.8" y="64.4" width="71.8" height="147.6" rx="1.5" fill="#4C78C8"><title>2026-10-20: 77</title></rect>
+<rect x="192.6" y="37.6" width="71.8" height="174.4" rx="1.5" fill="#4C78C8"><title>2026-10-21: 91</title></rect>
+<rect x="266.3" y="28.0" width="71.8" height="184.0" rx="1.5" fill="#4C78C8"><title>2026-10-22: 96</title></rect>
+<rect x="340.1" y="91.2" width="71.8" height="120.8" rx="1.5" fill="#4C78C8"><title>2026-10-23: 63</title></rect>
+<rect x="413.9" y="118.1" width="71.8" height="93.9" rx="1.5" fill="#4C78C8"><title>2026-10-24: 49</title></rect>
+<rect x="487.7" y="102.8" width="71.8" height="109.2" rx="1.5" fill="#4C78C8"><title>2026-10-25: 57</title></rect>
+<rect x="561.4" y="108.5" width="71.8" height="103.5" rx="1.5" fill="#4C78C8"><title>2026-10-26: 54</title></rect>
+<rect x="635.2" y="89.3" width="71.8" height="122.7" rx="1.5" fill="#4C78C8"><title>2026-10-27: 64</title></rect>
+<text x="80.9" y="232" fill="#8B8F98" text-anchor="middle">10-19</text>
+<text x="671.1" y="232" fill="#8B8F98" text-anchor="middle">10-27</text>
 </svg>
