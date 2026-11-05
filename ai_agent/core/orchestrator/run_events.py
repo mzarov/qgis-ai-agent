@@ -2,6 +2,7 @@ from typing import Any
 
 from qgis.core import Qgis, QgsMessageLog
 
+from ai_agent.core import usage_payload
 from ai_agent.core.agent.run_failure import explain_run_failure
 from ai_agent.core.orchestrator.contracts import OrchestratorHost
 from ai_agent.core.orchestrator.notices import (
@@ -30,6 +31,7 @@ RUN_FAILED_LOG = "The model request failed: {0}"
 
 class RunEventsMixin(OrchestratorHost):
     def on_aborted(self) -> None:
+        self._count_run_end(usage_payload.STOPPED)
         applying = bool(getattr(self.agent, "is_applying", False))
         if self._active_tool_message_id is not None and not applying:
             self.dock_widget.mark_tool_done(self._active_tool_message_id, False)
@@ -128,6 +130,7 @@ class RunEventsMixin(OrchestratorHost):
         self.dock_widget.add_system_message(tr("Run journal: {0}").format(path))
 
     def on_finished(self, text: str) -> None:
+        self._count_run_end()
         message = (text or "").strip()
         if not message:
             self.dock_widget.add_system_message(tr("The model returned nothing. Try rephrasing."))
@@ -137,6 +140,12 @@ class RunEventsMixin(OrchestratorHost):
         self.naming.after_answer()
         if getattr(self.agent, "is_planning", False) and not getattr(self.agent, "ended_on_limit", False):
             self.dock_widget.offer_plan()
+
+    def _count_run_end(self, outcome: str = "") -> None:
+        if not outcome:
+            limited = getattr(self.agent, "ended_on_limit", False)
+            outcome = usage_payload.LIMIT if limited else usage_payload.ANSWERED
+        self.usage.run_ended(outcome, getattr(self.agent, "usage", None))
 
     def _render_answer(self, message: str) -> None:
         if not self.dock_widget.finish_stream(message):
@@ -159,6 +168,7 @@ class RunEventsMixin(OrchestratorHost):
         )
         # The card folds unknown kinds into "other"; the count keeps the status or the error's class.
         self.usage.note("failures", kind or failure.kind)
+        self._count_run_end(usage_payload.FAILED)
         retryable = self._retry_args is not None and not getattr(self.agent, "is_verification", False)
         retryable = retryable and failure.retry_helps
         # Retry would start over without the steps the run prepared: it waits until they are cancelled.

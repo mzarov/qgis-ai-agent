@@ -3,6 +3,7 @@ import time
 from qgis.core import Qgis
 from qgis.PyQt.QtCore import QTimer
 
+from ai_agent.core import usage_payload
 from ai_agent.core.agent.failures import explain_failure
 from ai_agent.core.agent.quick_check import confirmed_by_reading
 from ai_agent.core.agent.transcript import StepOutcome, ToolResult
@@ -41,6 +42,8 @@ TIME_FORMAT = "%H:%M"
 
 class PlanMixin(OrchestratorHost):
     def on_confirm_needed(self, calls: list[ToolCall], final_text: str, applies_itself: bool = False) -> None:
+        self._count_run_end()
+        self.usage.note("plans", usage_payload.AUTO if applies_itself else usage_payload.SHOWN)
         if final_text:
             self._render_answer(final_text)
         lines = [self._plan_line(call) for call in calls]
@@ -103,6 +106,7 @@ class PlanMixin(OrchestratorHost):
         self.agent.cancel_pending()
         if self._plan_message_id is not None:
             self.dock_widget.mark_plan_cancelled(self._plan_message_id, restorable=True)
+            self.usage.note("plans", usage_payload.CANCELLED)
             self._plan_settled(CANCELLED)
             self._restorable_plan_id = self._plan_message_id
         self._plan_message_id = None
@@ -157,7 +161,7 @@ class PlanMixin(OrchestratorHost):
 
     def on_applied(self, results: list[ToolResult]) -> None:
         failed = [result for result in results if not result.ok]
-        self.usage.note("applies")
+        self.usage.note_apply(self.conversation.session_identifier)
         self._close_plan_card(results, bool(failed))
         self._done_summary = "" if failed else applied_summary(results)
         self.dock_widget.show_outcome(STATUS_FAILED if failed else STATUS_DONE, self._done_summary)
@@ -196,6 +200,7 @@ class PlanMixin(OrchestratorHost):
         kind = RUN_LOOK_INTO if failed else RUN_CHECK
         self.dock_widget.set_run_kind(kind)
         self.conversation.trace.kind = kind
+        self.usage.run_started(usage_payload.CHECKS)
         self.agent.start(
             start.prompt,
             self.conversation.window(),

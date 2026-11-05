@@ -47,6 +47,8 @@ files = [
     "ai_agent/core/llm",
     "ai_agent/core/orchestrator",
     "ai_agent/core/state",
+    "ai_agent/core/usage_payload.py",
+    "ai_agent/core/usage_stats.py",
     "ai_agent/skills",
     "ai_agent/qgis_tools/base.py",
     "ai_agent/qgis_tools/call_summary.py",

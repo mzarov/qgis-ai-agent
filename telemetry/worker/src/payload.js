@@ -1,5 +1,5 @@
-export const PING_VERSIONS = [1, 2];
-export const MAX_BODY_BYTES = 4096;
+export const PING_VERSIONS = [1, 2, 3];
+export const MAX_BODY_BYTES = 8192;
 export const MAX_COUNT = 100000;
 export const MAX_MAP_KEYS = 150;
 // A day waits up to a week of local days for QGIS to start, and a local date is at most a day off UTC.
@@ -16,10 +16,28 @@ export const MIN_INSTALLS = 5;
 export const OS_VALUES = ["macos", "windows", "linux", "other"];
 export const PROVIDER_VALUES = ["local", "remote"];
 export const DIALECT_VALUES = ["openai", "anthropic"];
+export const FAMILY_VALUES = ["openai", "openrouter", "anthropic", "gemini", "deepseek", "mistral", "groq", "xai", "together", "fireworks", "moonshot", "qwen", "zhipu", "yandex", "nvidia", "huggingface", "cerebras", "perplexity", "azure", "ollama", "lmstudio", "other_local", "other_remote"];
+
+const REQUEST_BUCKETS = ["r1", "r2", "r3_5", "r6_10", "r11_plus"];
+// A v3 map may hold only these keys, and the stats list every one of them in this order.
+export const DETAIL_MAPS = {
+  outcomes: ["answered", "failed", "stopped", "limit"],
+  modes: ["plan", "auto"],
+  plans: ["shown", "cancelled", "undone", "auto"],
+  session_requests: REQUEST_BUCKETS,
+  to_apply: REQUEST_BUCKETS,
+  steps: ["s0", "s1", "s2_3", "s4_7", "s8_15", "s16_plus"],
+  durations: ["t0_10", "t10_30", "t30_60", "t60_180", "t180_plus"],
+  tokens: ["k0_5", "k5_20", "k20_50", "k50_200", "k200_plus"],
+};
+export const DETAIL_COUNTS = ["retries", "checks", "sessions"];
+export const ACTIVATION_STEPS = ["configured", "ran", "applied"];
+export const ACTIVATION_BUCKETS = ["d0", "d1", "d2_7", "d8_plus", "never"];
 
 export const DIMENSIONS = ["plugin", "qgis", "os", "locale", "provider", "dialect"];
 export const COUNTERS = ["tools", "skills", "failures"];
 export const EXTRA_COLUMNS = ["install_hash", "day", "configured", "tool_errors"];
+export const DETAIL_COLUMNS = ["install_hash", "day", "family", ...DETAIL_COUNTS, ...Object.keys(DETAIL_MAPS)];
 
 export const PING_COLUMNS = [
   "install_hash",
@@ -39,12 +57,12 @@ const MS_PER_DAY = 86_400_000;
 const ECHOED_KEY_CHARS = 40;
 
 const V1_FIELDS = ["v", "install", "day", ...DIMENSIONS, "runs", "applies"];
+const V2_FIELDS = [...V1_FIELDS, "configured"];
+const V3_FIELDS = [...V2_FIELDS, "family", ...DETAIL_COUNTS];
 const FIELDS = {
   1: { required: V1_FIELDS, known: new Set([...V1_FIELDS, ...COUNTERS]) },
-  2: {
-    required: [...V1_FIELDS, "configured"],
-    known: new Set([...V1_FIELDS, "configured", ...COUNTERS, "tool_errors"]),
-  },
+  2: { required: V2_FIELDS, known: new Set([...V2_FIELDS, ...COUNTERS, "tool_errors"]) },
+  3: { required: V3_FIELDS, known: new Set([...V3_FIELDS, ...COUNTERS, "tool_errors", ...Object.keys(DETAIL_MAPS)]) },
 };
 
 export class PingError extends Error {}
@@ -86,6 +104,23 @@ function counts(name, value) {
   return Object.fromEntries(entries.sort(([a], [b]) => (a < b ? -1 : 1)));
 }
 
+function listed(name, value, keys) {
+  if (value === undefined) return {};
+  if (!isPlainObject(value)) fail(`${name} must be an object`);
+  for (const [key, number] of Object.entries(value)) {
+    if (!keys.includes(key)) fail(`${name} has an unknown key`);
+    count(`${name}.${key}`, number);
+  }
+  return Object.fromEntries(keys.filter((key) => Object.hasOwn(value, key)).map((key) => [key, value[key]]));
+}
+
+function details(body) {
+  const result = { family: oneOf("family", body.family, FAMILY_VALUES) };
+  for (const name of DETAIL_COUNTS) result[name] = count(name, body[name]);
+  for (const [name, keys] of Object.entries(DETAIL_MAPS)) result[name] = listed(name, body[name], keys);
+  return result;
+}
+
 function dayStart(year, month, day) {
   const time = Date.UTC(year, month - 1, day);
   const date = new Date(time);
@@ -113,7 +148,7 @@ function flag(name, value) {
 export function validatePing(body, now = new Date()) {
   if (!isPlainObject(body)) fail("body must be a JSON object");
   if (!Object.hasOwn(body, "v")) fail("missing field v");
-  if (!PING_VERSIONS.includes(body.v)) fail(`v must be ${PING_VERSIONS.join(" or ")}`);
+  if (!PING_VERSIONS.includes(body.v)) fail(`v must be one of ${PING_VERSIONS.join(", ")}`);
   const fields = FIELDS[body.v];
   for (const key of Object.keys(body)) {
     if (!fields.known.has(key)) fail(`unknown field ${JSON.stringify(key.slice(0, ECHOED_KEY_CHARS))}`);
@@ -138,6 +173,7 @@ export function validatePing(body, now = new Date()) {
     failures: counts("failures", body.failures),
     configured: body.v >= 2 ? flag("configured", body.configured) : null,
     tool_errors: counts("tool_errors", body.tool_errors),
+    details: body.v >= 3 ? details(body) : null,
   };
   for (const [tool, errors] of Object.entries(ping.tool_errors)) {
     if (errors > (ping.tools[tool] ?? 0)) fail(`tool_errors.${tool} is more than its calls`);
@@ -160,6 +196,14 @@ export function pingRow(ping, installHash) {
 
 export function extrasRow(ping, installHash) {
   return [installHash, ping.day, ping.configured ? 1 : 0, JSON.stringify(ping.tool_errors)];
+}
+
+export function detailsRow(ping, installHash) {
+  return DETAIL_COLUMNS.map((column) => {
+    if (column === "install_hash") return installHash;
+    if (column === "day") return ping.day;
+    return Object.hasOwn(DETAIL_MAPS, column) ? JSON.stringify(ping.details[column]) : ping.details[column];
+  });
 }
 
 export function utcDay(date) {
@@ -196,7 +240,14 @@ export function fillDays(rows, window) {
   const days = [];
   for (let day = window.seriesSince; day <= window.today; day = shiftDay(day, 1)) {
     const row = byDay.get(day);
-    days.push({ day, installs: number(row?.installs), runs: number(row?.runs), applies: number(row?.applies) });
+    days.push({
+      day,
+      installs: number(row?.installs),
+      runs: number(row?.runs),
+      applies: number(row?.applies),
+      sessions: number(row?.sessions),
+      failed: number(row?.failed),
+    });
   }
   return days;
 }
@@ -205,10 +256,10 @@ function widelyReported(row) {
   return number(row.installs) >= MIN_INSTALLS;
 }
 
-export function rankFacet(rows, facet) {
+export function rankFacet(rows, facet, field = "n") {
   const entries = rows
     .filter((row) => row.facet === facet && row.value !== null && row.value !== undefined && widelyReported(row))
-    .map((row) => [String(row.value), number(row.n)])
+    .map((row) => [String(row.value), number(row[field])])
     .sort(([a, x], [b, y]) => y - x || (a < b ? -1 : 1))
     .slice(0, MAX_VALUES_PER_FACET);
   // fromEntries defines own properties, so a value such as "__proto__" stays data.
@@ -252,7 +303,61 @@ export function rankToolErrors(rows) {
   return Object.fromEntries(entries);
 }
 
-export function shapeStats({ generated, window, totals, days, facets, funnel, weeks, retention, toolErrors }) {
+export function shapeActivity(row) {
+  return {
+    installs: number(row?.installs),
+    requests: number(row?.requests),
+    ...Object.fromEntries(DETAIL_COUNTS.map((name) => [name, number(row?.[name])])),
+    applies: number(row?.applies),
+  };
+}
+
+export function shapeDetailSums(rows) {
+  const sums = new Map(rows.map((row) => [`${row.map}.${row.key}`, number(row.n)]));
+  return Object.fromEntries(
+    Object.entries(DETAIL_MAPS).map(([name, keys]) => [
+      name,
+      Object.fromEntries(keys.map((key) => [key, sums.get(`${name}.${key}`) ?? 0])),
+    ]),
+  );
+}
+
+export function shapeFamilies(rows) {
+  const entries = rows
+    .filter((row) => row.family !== null && row.family !== undefined && widelyReported(row))
+    .sort((a, b) => number(b.installs) - number(a.installs) || (a.family < b.family ? -1 : 1))
+    .map((row) => [
+      String(row.family),
+      { installs: number(row.installs), runs: number(row.runs), failed: number(row.failed) },
+    ]);
+  return Object.fromEntries(entries);
+}
+
+export function shapeActivation(row) {
+  const activation = { installs: number(row?.installs) };
+  for (const step of ACTIVATION_STEPS) {
+    activation[step] = Object.fromEntries(
+      ACTIVATION_BUCKETS.map((bucket) => [bucket, number(row?.[`${step}_${bucket}`])]),
+    );
+  }
+  return activation;
+}
+
+export function shapeStats({
+  generated,
+  window,
+  totals,
+  days,
+  facets,
+  funnel,
+  weeks,
+  retention,
+  toolErrors,
+  activity,
+  detailSums,
+  families,
+  activation,
+}) {
   const stats = {
     generated,
     installs_total: number(totals?.installs_total),
@@ -263,6 +368,11 @@ export function shapeStats({ generated, window, totals, days, facets, funnel, we
     retention: shapeRetention(retention),
     tool_errors: rankToolErrors(toolErrors ?? []),
   };
-  for (const facet of [...DIMENSIONS, ...COUNTERS]) stats[facet] = rankFacet(facets, facet);
+  for (const facet of [...DIMENSIONS, ...COUNTERS, "family"]) stats[facet] = rankFacet(facets, facet);
+  stats.activity = shapeActivity(activity);
+  Object.assign(stats, shapeDetailSums(detailSums ?? []));
+  stats.families = shapeFamilies(families ?? []);
+  stats.failure_installs = rankFacet(facets, "failures", "installs");
+  stats.activation = shapeActivation(activation);
   return stats;
 }

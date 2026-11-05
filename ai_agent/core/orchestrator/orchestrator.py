@@ -38,6 +38,7 @@ from ai_agent.core.settings import (
     set_data_sharing_consent,
 )
 from ai_agent.core.state.conversation import ConversationState
+from ai_agent.core.usage_payload import REQUESTS, RETRIES
 from ai_agent.core.usage_stats import UsageStats
 from ai_agent.i18n import tr
 
@@ -115,6 +116,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
 
     def on_busy(self, busy: bool) -> None:
         self.dock_widget.set_busy(busy)
+        self.usage.note_busy(busy)
         if busy:
             self._retry_after_plan = False
         else:
@@ -193,7 +195,6 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         images: list[str] | None = None,
     ) -> None:
         self.dock_widget.begin_work()
-        self.usage.note("runs")
         entry = self._show_user_bubble(shown)
         # A check that failed before its first step left its kind on an empty trace.
         self.conversation.trace.kind = ""
@@ -210,6 +211,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
             self._last_request = request
             self._done_summary = ""
             self._retry_args = (shown, prompt, request, skills, images, planning)
+            self.usage.run_started(REQUESTS, self.conversation.session_identifier, get_work_mode())
             self.agent.start(prompt, history, skills=skills, images=images, planning=planning)
 
         def stopped() -> None:
@@ -235,6 +237,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.dock_widget.drop_failures()
         self.conversation.drop_failures()
         self.dock_widget.begin_work()
+        self.usage.run_started(RETRIES)
         self.agent.start(prompt, history, skills=skills, images=images, planning=planning)
 
     def on_settings_saved(self) -> None:
