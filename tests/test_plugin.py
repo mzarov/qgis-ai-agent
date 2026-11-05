@@ -215,7 +215,7 @@ class UsageNoticeTest(unittest.TestCase):
     def test_loading_marks_the_day_active_and_sends_a_finished_one(self):
         with mock.patch.object(plugin_module, "UsageNotice"), mock.patch.object(plugin_module, "QAction"):
             self.plugin.initGui()
-        self.plugin._usage.note.assert_called_once_with(self.stats.ACTIVE)
+        self.plugin._usage.note.assert_called_once_with(plugin_module.usage_payload.ACTIVE)
         self.plugin._usage.flush.assert_called_once_with()
 
     def test_the_notice_is_shown_once_and_its_turn_off_says_no(self):

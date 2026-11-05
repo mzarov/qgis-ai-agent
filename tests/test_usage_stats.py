@@ -1,10 +1,11 @@
 import ast
 import json
 import pathlib
+import re
 import unittest
 from unittest import mock
 
-from ai_agent.core import settings, usage_stats
+from ai_agent.core import settings, usage_payload, usage_stats
 
 
 class MemorySettings:
@@ -42,20 +43,22 @@ class Reply:
 class UsageStatsTest(unittest.TestCase):
     def setUp(self):
         MemorySettings.values = {}
-        for target, value in (
-            ("QgsSettings", MemorySettings),
-            ("COLLECTOR_URL", "https://stats.example/"),
-            ("get_api_url", lambda: "http://localhost:11434/v1"),
-            ("get_dialect", lambda: "openai"),
-            ("has_saved_model", lambda: True),
-            ("plugin_version", lambda: "0.4.0"),
-            ("locale_code", lambda: "ru"),
+        for module, target, value in (
+            (usage_stats, "QgsSettings", MemorySettings),
+            (usage_stats, "COLLECTOR_URL", "https://stats.example/"),
+            (usage_stats, "plugin_version", lambda: "0.4.0"),
+            (usage_payload, "get_api_url", lambda: "http://localhost:11434/v1"),
+            (usage_payload, "get_dialect", lambda: "openai"),
+            (usage_payload, "has_saved_model", lambda: True),
+            (usage_payload, "plugin_version", lambda: "0.4.0"),
+            (usage_payload, "locale_code", lambda: "ru"),
         ):
-            patcher = mock.patch.object(usage_stats, target, value)
+            patcher = mock.patch.object(module, target, value)
             patcher.start()
             self.addCleanup(patcher.stop)
         self.today = "2026-10-17"
-        self.stats = usage_stats.UsageStats(lambda: self.today)
+        self.now = 0.0
+        self.stats = usage_stats.UsageStats(lambda: self.today, lambda: self.now)
 
     def counts(self):
         return json.loads(MemorySettings.values.get(usage_stats.COUNTS_KEY, "{}"))
@@ -100,7 +103,7 @@ class UsageStatsTest(unittest.TestCase):
 
     def test_a_day_the_plugin_loaded_goes_out_without_runs(self):
         usage_stats.mark_noticed()
-        self.stats.note(usage_stats.ACTIVE)
+        self.stats.note(usage_payload.ACTIVE)
         manager = mock.Mock(post=lambda request, body: Reply())
         self.today = "2026-10-18"
         with (
@@ -108,9 +111,9 @@ class UsageStatsTest(unittest.TestCase):
             mock.patch.object(usage_stats, "payload", wraps=usage_stats.payload) as built,
         ):
             self.stats.flush()
-        install, day, counts = built.call_args.args
+        install, day, counts, _plugin = built.call_args.args
         self.assertEqual(day, "2026-10-17")
-        body = usage_stats.payload(install, day, counts)
+        body = usage_payload.payload(install, day, counts)
         self.assertEqual((body["runs"], body["applies"], body["tools"]), (0, 0, {}))
 
     def test_a_day_waits_a_week_for_the_next_start(self):
@@ -202,7 +205,7 @@ class UsageStatsTest(unittest.TestCase):
 
     def test_today_goes_out_a_minute_after_a_change_and_stays_counted(self):
         usage_stats.mark_noticed()
-        self.stats.note(usage_stats.ACTIVE)
+        self.stats.note(usage_payload.ACTIVE)
         self.assertTrue(self.stats._timer.isActive(), "the first notice gets a minute to be answered")
         self.stats.note("runs")
         self.assertEqual(self.stats._timer.started, 1, "more counts do not push the send back")
@@ -232,7 +235,7 @@ class UsageStatsTest(unittest.TestCase):
 
     def test_today_never_leaves_once_counting_is_turned_off(self):
         usage_stats.mark_noticed()
-        self.stats.note(usage_stats.ACTIVE)
+        self.stats.note(usage_payload.ACTIVE)
         usage_stats.set_consent(False)
         manager = mock.Mock()
         with mock.patch.object(usage_stats.QgsNetworkAccessManager, "instance", return_value=manager):
@@ -294,7 +297,7 @@ class UsageStatsTest(unittest.TestCase):
         self.assertEqual([entry["day"] for entry in waiting], ["2026-10-18"])
 
     def test_the_ping_carries_counts_and_versions_only(self):
-        sent = usage_stats.payload("1f0e…", "2026-10-17", {"runs": 3, "applies": 1, "tools": {"query_layer": 2}})
+        sent = usage_payload.payload("1f0e…", "2026-10-17", {"runs": 3, "applies": 1, "tools": {"query_layer": 2}})
         self.assertEqual(
             set(sent),
             {
@@ -306,18 +309,31 @@ class UsageStatsTest(unittest.TestCase):
                 "os",
                 "locale",
                 "provider",
+                "family",
                 "dialect",
                 "configured",
+                "sessions",
+                "session_requests",
                 "runs",
                 "applies",
+                "retries",
+                "checks",
                 "failures",
                 "tools",
                 "tool_errors",
                 "skills",
+                "outcomes",
+                "modes",
+                "plans",
+                "to_apply",
+                "steps",
+                "durations",
+                "tokens",
             },
         )
-        self.assertEqual(sent["v"], 2)
-        self.assertEqual((sent["provider"], sent["locale"], sent["plugin"]), ("local", "ru", "0.4.0"))
+        self.assertEqual(sent["v"], 3)
+        self.assertEqual((sent["provider"], sent["family"]), ("local", "ollama"))
+        self.assertEqual((sent["locale"], sent["plugin"]), ("ru", "0.4.0"))
         self.assertIn(sent["os"], ("macos", "windows", "linux", "other"))
         self.assertIs(sent["configured"], True)
         self.assertNotIn("localhost", json.dumps(sent), "the address itself never goes out")
@@ -326,9 +342,114 @@ class UsageStatsTest(unittest.TestCase):
         usage_stats.set_consent(True)
         for kind, name in (("tools", "run_python"), ("tools", "run_python"), ("tool_errors", "run_python")):
             self.stats.note(kind, name)
-        sent = usage_stats.payload("1f0e…", "2026-10-17", self.counts())
+        sent = usage_payload.payload("1f0e…", "2026-10-17", self.counts())
         self.assertEqual((sent["tools"], sent["tool_errors"]), ({"run_python": 2}, {"run_python": 1}))
-        self.assertEqual(usage_stats.payload("1f0e…", "2026-10-17", {"runs": 1})["tool_errors"], {})
+        self.assertEqual(usage_payload.payload("1f0e…", "2026-10-17", {"runs": 1})["tool_errors"], {})
+
+    def test_a_request_records_its_outcome_steps_active_time_and_tokens(self):
+        usage_stats.set_consent(True)
+        self.stats.run_started(usage_payload.REQUESTS, "000000000001", "plan")
+        self.now = 12.0
+        self.stats.note_busy(False)
+        self.now = 112.0
+        self.stats.note_busy(True)
+        self.now = 130.0
+        spent = {"prompt_tokens": 28_000, "completion_tokens": 2_000, "requests": 4}
+        self.stats.run_ended(usage_payload.ANSWERED, spent)
+        self.stats.run_ended(usage_payload.FAILED, spent)
+        counts = self.counts()
+        self.assertEqual((counts["runs"], counts["modes"], counts["outcomes"]), (1, {"plan": 1}, {"answered": 1}))
+        self.assertEqual(counts["durations"], {"t10_30": 1}, "the wait for the user's answer is not work")
+        self.assertEqual((counts["steps"], counts["tokens"]), ({"s4_7": 1}, {"k20_50": 1}))
+
+    def test_retries_and_checks_are_counted_apart_from_requests(self):
+        usage_stats.set_consent(True)
+        self.stats.run_started(usage_payload.RETRIES)
+        self.stats.run_ended(usage_payload.STOPPED, None)
+        self.stats.run_started(usage_payload.CHECKS, mode="ask")
+        self.stats.run_ended(usage_payload.LIMIT, {"requests": 30})
+        counts = self.counts()
+        self.assertEqual((counts["retries"], counts["checks"]), (1, 1))
+        self.assertNotIn("runs", counts)
+        self.assertNotIn("modes", counts, "the default mode is what is left over")
+        self.assertEqual(counts["steps"], {"s0": 1, "s16_plus": 1})
+
+    def test_requests_until_the_first_apply_are_counted_once_per_result(self):
+        usage_stats.set_consent(True)
+        for _ in range(3):
+            self.stats.run_started(usage_payload.REQUESTS, "000000000001")
+        self.stats.note_apply("000000000001")
+        self.stats.note_apply("000000000001")
+        self.stats.run_started(usage_payload.REQUESTS, "000000000001")
+        self.stats.note_apply("000000000001")
+        counts = self.counts()
+        self.assertEqual(counts["applies"], 3)
+        self.assertEqual(counts["to_apply"], {"r3_5": 1, "r1": 1}, "a later stage of one request is no new result")
+        self.assertEqual(counts["conversations"], {"c000000000001": 4})
+
+    def test_only_the_latest_conversations_wait_for_an_apply(self):
+        usage_stats.set_consent(True)
+        for number in range(usage_stats.MAX_TASKS + 10):
+            self.stats.run_started(usage_payload.REQUESTS, f"{number:012x}")
+        self.stats.run_started(usage_payload.REQUESTS, f"{0:012x}")
+        kept = json.loads(MemorySettings.values[usage_stats.TASKS_KEY])
+        self.assertEqual(len(kept), usage_stats.MAX_TASKS)
+        self.assertEqual(list(kept)[-1], f"{0:012x}", "a conversation in use moves to the end")
+
+    def test_conversations_leave_as_a_histogram_only(self):
+        counts = {"runs": 6, "conversations": {"c000000000001": 1, "c000000000002": 5}}
+        sent = usage_payload.payload("1f0e…", "2026-10-17", counts)
+        self.assertEqual((sent["sessions"], sent["session_requests"]), (2, {"r1": 1, "r3_5": 1}))
+        self.assertNotIn("000000000001", json.dumps(sent))
+
+    def test_the_version_is_read_once_at_load(self):
+        usage_stats.set_consent(True)
+        self.stats.note("runs")
+        self.today = "2026-10-18"
+        sent = []
+
+        def post(request, body):
+            sent.append(json.loads(bytes(body)))
+            return Reply()
+
+        manager = mock.Mock(post=post)
+        with (
+            mock.patch.object(usage_stats, "plugin_version", lambda: "1.9.3"),
+            mock.patch.object(usage_payload, "plugin_version", lambda: "1.9.3"),
+            mock.patch.object(usage_stats.QgsNetworkAccessManager, "instance", return_value=manager),
+            mock.patch.object(usage_stats, "QByteArray", side_effect=lambda raw: raw),
+        ):
+            self.stats.flush()
+        self.assertEqual(sent[0]["plugin"], "0.4.0", "another plugin's metadata.txt in our folder")
+
+
+class ProviderFamilyTest(unittest.TestCase):
+    def test_a_known_service_is_named_and_anything_else_is_only_local_or_remote(self):
+        cases = {
+            "https://api.openai.com/v1": "openai",
+            "https://openrouter.ai/api/v1": "openrouter",
+            "https://eu.api.openai.com/v1": "openai",
+            "https://my-team.openai.azure.com/openai": "azure",
+            "https://dashscope-intl.aliyuncs.com/compatible-mode/v1": "qwen",
+            "https://api.openai.com.evil.example/v1": "other_remote",
+            "https://llm.internal.example/v1": "other_remote",
+            "http://localhost:11434/v1": "ollama",
+            "http://127.0.0.1:1234/v1": "lmstudio",
+            "http://localhost:8000/v1": "other_local",
+            "http://[::1": "other_remote",
+            "": "other_remote",
+        }
+        for url, family in cases.items():
+            with self.subTest(url=url):
+                self.assertEqual(usage_payload.provider_family(url), family)
+
+    def test_the_collector_accepts_every_family_the_plugin_sends(self):
+        source = (pathlib.Path(__file__).parents[1] / "telemetry/worker/src/payload.js").read_text(encoding="utf-8")
+        listed = re.search(r"FAMILY_VALUES = \[([^\]]*)\]", source)
+        accepted = set(re.findall(r'"([a-z_]+)"', listed.group(1)))
+        sent = {family for _domain, family in usage_payload.FAMILY_HOSTS}
+        sent |= {family for _port, family in usage_payload.LOCAL_FAMILIES}
+        self.assertEqual(sent | {usage_payload.OTHER_LOCAL, usage_payload.OTHER_REMOTE}, accepted)
 
 
 class SavedModelTest(unittest.TestCase):

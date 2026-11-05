@@ -3,6 +3,10 @@ import { createHash } from "node:crypto";
 import { describe, it } from "node:test";
 
 import {
+  DETAIL_COLUMNS,
+  DETAIL_MAPS,
+  FAMILY_VALUES,
+  MAX_BODY_BYTES,
   MAX_MAP_KEYS,
   MAX_VALUES_PER_FACET,
   MIN_INSTALLS,
@@ -10,6 +14,7 @@ import {
   PingError,
   SERIES_DAYS,
   SERIES_WEEKS,
+  detailsRow,
   extrasRow,
   fillDays,
   fillWeeks,
@@ -17,6 +22,9 @@ import {
   pingRow,
   rankFacet,
   rankToolErrors,
+  shapeActivation,
+  shapeDetailSums,
+  shapeFamilies,
   shapeRetention,
   shapeStats,
   statsWindow,
@@ -47,8 +55,22 @@ function ping(overrides = {}) {
   };
 }
 
-function without(field) {
-  const body = ping();
+function ping3(overrides = {}) {
+  return ping({
+    v: 3,
+    configured: true,
+    family: "deepseek",
+    retries: 1,
+    checks: 2,
+    sessions: 1,
+    outcomes: { failed: 1, answered: 2 },
+    modes: { plan: 1 },
+    steps: { s2_3: 3 },
+    ...overrides,
+  });
+}
+
+function without(field, body = ping()) {
   delete body[field];
   return body;
 }
@@ -114,7 +136,54 @@ describe("validatePing", () => {
   });
 
   it("rejects another contract version", () => {
-    for (const v of [3, "1", "2", 0, null]) rejects(ping({ v }), "v must be 1 or 2");
+    for (const v of [4, "1", "3", 0, null]) rejects(ping({ v }), "v must be one of 1, 2, 3");
+  });
+
+  it("accepts a v3 ping and keeps its maps in allowlist order", () => {
+    const result = validatePing(ping3(), NOW);
+    assert.equal(result.version, 3);
+    assert.equal(result.configured, true);
+    assert.deepEqual(result.details, {
+      family: "deepseek",
+      retries: 1,
+      checks: 2,
+      sessions: 1,
+      outcomes: { answered: 2, failed: 1 },
+      modes: { plan: 1 },
+      plans: {},
+      session_requests: {},
+      to_apply: {},
+      steps: { s2_3: 3 },
+      durations: {},
+      tokens: {},
+    });
+    assert.equal(validatePing(ping({ v: 2, configured: true }), NOW).details, null);
+  });
+
+  it("accepts every family and every allowlisted key", () => {
+    for (const family of FAMILY_VALUES) validatePing(ping3({ family }), NOW);
+    const full = Object.fromEntries(
+      Object.entries(DETAIL_MAPS).map(([name, keys]) => [name, Object.fromEntries(keys.map((key) => [key, 1]))]),
+    );
+    validatePing(ping3(full), NOW);
+  });
+
+  it("requires the v3 fields and refuses them in older versions", () => {
+    for (const field of ["family", "retries", "checks", "sessions", "configured"]) {
+      rejects(without(field, ping3()), `missing field ${field}`);
+    }
+    rejects(ping({ v: 2, configured: true, family: "openai" }), "unknown field");
+    rejects(ping({ v: 2, configured: true, outcomes: { failed: 1 } }), "unknown field");
+  });
+
+  it("rejects an unknown family, bad counts and keys outside an allowlist", () => {
+    for (const family of ["OpenAI", "claude", "", null]) rejects(ping3({ family }), "family must be one of");
+    for (const sessions of [-1, 1.5, "1", 100001]) rejects(ping3({ sessions }), "sessions must be an integer");
+    rejects(ping3({ outcomes: { crashed: 1 } }), "outcomes has an unknown key");
+    rejects(ping3({ to_apply: { r12: 1 } }), "to_apply has an unknown key");
+    rejects(ping3({ tokens: JSON.parse('{"__proto__": 1}') }), "tokens has an unknown key");
+    rejects(ping3({ durations: { t0_10: -1 } }), "durations.t0_10 must be an integer");
+    for (const modes of [[], null, "plan"]) rejects(ping3({ modes }), "modes must be an object");
   });
 
   it("accepts a v2 ping and carries its new fields", () => {
@@ -226,6 +295,31 @@ describe("extrasRow", () => {
   });
 });
 
+describe("detailsRow", () => {
+  it("lines the v3 fields up with the columns, maps as JSON", async () => {
+    const hash = await hashInstall(INSTALL);
+    const row = detailsRow(validatePing(ping3(), NOW), hash);
+    const byColumn = Object.fromEntries(DETAIL_COLUMNS.map((column, i) => [column, row[i]]));
+    assert.equal(row.length, DETAIL_COLUMNS.length);
+    assert.equal(byColumn.install_hash, hash);
+    assert.equal(byColumn.family, "deepseek");
+    assert.equal(byColumn.sessions, 1);
+    assert.equal(byColumn.outcomes, '{"answered":2,"failed":1}');
+    assert.equal(byColumn.tokens, "{}");
+    assert.equal(row.includes(INSTALL), false);
+  });
+});
+
+describe("MAX_BODY_BYTES", () => {
+  it("fits a v3 ping with every map full", () => {
+    const full = Object.fromEntries(
+      Object.entries(DETAIL_MAPS).map(([name, keys]) => [name, Object.fromEntries(keys.map((key) => [key, 100000]))]),
+    );
+    assert.ok(new TextEncoder().encode(JSON.stringify(ping3(full))).length < MAX_BODY_BYTES);
+    assert.equal(MAX_BODY_BYTES, 8192);
+  });
+});
+
 describe("statsWindow", () => {
   it("ends today and spans thirty and ninety inclusive days and thirteen weeks", () => {
     assert.deepEqual(statsWindow(NOW), {
@@ -311,11 +405,13 @@ describe("rankToolErrors", () => {
 
 describe("fillDays", () => {
   it("returns every day of the window, zero where nobody pinged", () => {
-    const days = fillDays([{ day: "2026-10-16", installs: 2, runs: 5, applies: 1 }], statsWindow(NOW));
+    const rows = [{ day: "2026-10-16", installs: 2, runs: 5, applies: 1, sessions: 3, failed: 1 }];
+    const days = fillDays(rows, statsWindow(NOW));
+    const empty = { installs: 0, runs: 0, applies: 0, sessions: 0, failed: 0 };
     assert.equal(days.length, SERIES_DAYS);
-    assert.deepEqual(days[0], { day: "2026-07-20", installs: 0, runs: 0, applies: 0 });
-    assert.deepEqual(days.at(-2), { day: "2026-10-16", installs: 2, runs: 5, applies: 1 });
-    assert.deepEqual(days.at(-1), { day: "2026-10-17", installs: 0, runs: 0, applies: 0 });
+    assert.deepEqual(days[0], { day: "2026-07-20", ...empty });
+    assert.deepEqual(days.at(-2), rows[0]);
+    assert.deepEqual(days.at(-1), { day: "2026-10-17", ...empty });
   });
 });
 
@@ -363,6 +459,50 @@ describe("rankFacet", () => {
   });
 });
 
+describe("shapeDetailSums", () => {
+  it("lists every allowlisted key in order, zero where nothing was reported", () => {
+    const sums = shapeDetailSums([
+      { map: "outcomes", key: "failed", n: 3 },
+      { map: "outcomes", key: "answered", n: 5 },
+      { map: "modes", key: "unlisted", n: 9 },
+    ]);
+    assert.deepEqual(Object.keys(sums), Object.keys(DETAIL_MAPS));
+    assert.deepEqual(Object.entries(sums.outcomes), [
+      ["answered", 5],
+      ["failed", 3],
+      ["stopped", 0],
+      ["limit", 0],
+    ]);
+    assert.deepEqual(sums.modes, { plan: 0, auto: 0 });
+  });
+});
+
+describe("shapeFamilies", () => {
+  it("orders families by installs and drops the ones fewer than five installs reported", () => {
+    const families = shapeFamilies([
+      { family: "ollama", installs: MIN_INSTALLS, runs: 9, failed: 0 },
+      { family: "openai", installs: MIN_INSTALLS + 2, runs: 20, failed: 4 },
+      { family: "zhipu", installs: MIN_INSTALLS - 1, runs: 50, failed: 1 },
+    ]);
+    assert.deepEqual(Object.entries(families), [
+      ["openai", { installs: 7, runs: 20, failed: 4 }],
+      ["ollama", { installs: 5, runs: 9, failed: 0 }],
+    ]);
+  });
+});
+
+describe("shapeActivation", () => {
+  it("lists every step with every bucket", () => {
+    const activation = shapeActivation({ installs: 3, configured_d0: 2, configured_never: 1, ran_d2_7: 1 });
+    assert.deepEqual(activation, {
+      installs: 3,
+      configured: { d0: 2, d1: 0, d2_7: 0, d8_plus: 0, never: 1 },
+      ran: { d0: 0, d1: 0, d2_7: 1, d8_plus: 0, never: 0 },
+      applied: { d0: 0, d1: 0, d2_7: 0, d8_plus: 0, never: 0 },
+    });
+  });
+});
+
 describe("shapeStats", () => {
   it("produces exactly the public keys", () => {
     const stats = shapeStats({
@@ -370,7 +510,12 @@ describe("shapeStats", () => {
       window: statsWindow(NOW),
       totals: { installs_total: 4, installs_30d: 2 },
       days: [],
-      facets: [{ facet: "tools", value: "inspect_project", n: 7, installs: MIN_INSTALLS }],
+      facets: [
+        { facet: "tools", value: "inspect_project", n: 7, installs: MIN_INSTALLS },
+        { facet: "failures", value: "timeout", n: 30, installs: MIN_INSTALLS + 1 },
+        { facet: "failures", value: "http_401", n: 40, installs: MIN_INSTALLS - 1 },
+        { facet: "family", value: "openai", n: MIN_INSTALLS, installs: MIN_INSTALLS },
+      ],
     });
     assert.deepEqual(Object.keys(stats), [
       "generated",
@@ -390,8 +535,21 @@ describe("shapeStats", () => {
       "tools",
       "skills",
       "failures",
+      "family",
+      "activity",
+      ...Object.keys(DETAIL_MAPS),
+      "families",
+      "failure_installs",
+      "activation",
     ]);
     assert.deepEqual(stats.tools, { inspect_project: 7 });
+    assert.deepEqual(stats.failures, { timeout: 30 });
+    assert.deepEqual(stats.failure_installs, { timeout: 6 });
+    assert.deepEqual(stats.family, { openai: 5 });
+    assert.deepEqual(stats.activity, { installs: 0, requests: 0, retries: 0, checks: 0, sessions: 0, applies: 0 });
+    assert.deepEqual(stats.plans, { shown: 0, cancelled: 0, undone: 0, auto: 0 });
+    assert.deepEqual(stats.families, {});
+    assert.equal(stats.activation.installs, 0);
     assert.deepEqual(stats.os, {});
     assert.deepEqual(stats.funnel, { active: 0, configured: 0, ran: 0, applied: 0 });
     assert.equal(stats.weeks.length, SERIES_WEEKS);

@@ -4,7 +4,7 @@ import { DatabaseSync } from "node:sqlite";
 import { beforeEach, describe, it } from "node:test";
 
 import { handle } from "../src/index.js";
-import { MIN_INSTALLS, hashInstall } from "../src/payload.js";
+import { DETAIL_MAPS, MAX_BODY_BYTES, MIN_INSTALLS, hashInstall } from "../src/payload.js";
 
 const SCHEMA = readFileSync(new URL("../schema.sql", import.meta.url), "utf8");
 const BASE = "https://ai-agent-usage.example.workers.dev";
@@ -96,6 +96,10 @@ function ping2(install, day, overrides = {}) {
   return ping(install, day, { v: 2, configured: true, ...overrides });
 }
 
+function ping3(install, day, overrides = {}) {
+  return ping2(install, day, { v: 3, family: "openai", retries: 0, checks: 0, sessions: 1, ...overrides });
+}
+
 function noon(day) {
   return new Date(`${day}T12:00:00Z`);
 }
@@ -117,6 +121,10 @@ describe("usage worker", () => {
 
   async function send(body, now = NOW) {
     return handle(post(body), env, now);
+  }
+
+  function rows(table) {
+    return sqlite.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n;
   }
 
   async function stats(now = NOW) {
@@ -172,6 +180,32 @@ describe("usage worker", () => {
     assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM ping_extras").get().n, 1);
     await send(ping(INSTALLS.a, "2026-10-17"));
     assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM ping_extras").get().n, 0);
+  });
+
+  it("stores the v3 fields in the same batch and clears them when an older ping replaces the day", async () => {
+    await send(ping3(INSTALLS.a, "2026-10-17", { family: "ollama", sessions: 2, outcomes: { stopped: 1, answered: 1 } }));
+    assert.equal(env.DB.batches, 1);
+    assert.deepEqual(
+      sqlite.prepare("SELECT * FROM ping_details").all().map((row) => ({ ...row })),
+      [
+        {
+          install_hash: await hashInstall(INSTALLS.a),
+          day: "2026-10-17",
+          family: "ollama",
+          retries: 0,
+          checks: 0,
+          sessions: 2,
+          ...Object.fromEntries(Object.keys(DETAIL_MAPS).map((name) => [name, "{}"])),
+          outcomes: '{"answered":1,"stopped":1}',
+        },
+      ],
+    );
+    assert.deepEqual([rows("pings"), rows("ping_extras")], [1, 1]);
+    await send(ping2(INSTALLS.a, "2026-10-17"));
+    assert.deepEqual([rows("pings"), rows("ping_extras"), rows("ping_details")], [1, 1, 0]);
+    await send(ping3(INSTALLS.a, "2026-10-17"));
+    await send(ping(INSTALLS.a, "2026-10-17"));
+    assert.deepEqual([rows("pings"), rows("ping_extras"), rows("ping_details")], [1, 0, 0]);
   });
 
   it("answers 429 to an address over its ping limit and stores the address nowhere", async () => {
@@ -293,8 +327,8 @@ describe("usage worker", () => {
     }
   });
 
-  it("refuses a body over 4096 bytes, declared or streamed", async () => {
-    const big = JSON.stringify({ ...ping(INSTALLS.a, "2026-10-17"), padding: "x".repeat(5000) });
+  it("refuses a body over 8192 bytes, declared or streamed", async () => {
+    const big = JSON.stringify({ ...ping(INSTALLS.a, "2026-10-17"), padding: "x".repeat(MAX_BODY_BYTES) });
     const declared = post(big, { "content-type": "application/json", "content-length": String(big.length) });
     assert.equal((await handle(declared, env, NOW)).status, 413);
     assert.equal((await send(big)).status, 413);
@@ -388,11 +422,12 @@ describe("usage worker", () => {
     assert.equal(body.installs_total, 8);
     assert.equal(body.installs_30d, 6);
     assert.equal(body.days.length, 90);
-    assert.deepEqual(body.days.at(-1), { day: "2026-10-17", installs: 5, runs: 15, applies: 10 });
-    assert.deepEqual(body.days.at(-2), { day: "2026-10-16", installs: 6, runs: 21, applies: 5 });
+    const none = { sessions: 0, failed: 0 };
+    assert.deepEqual(body.days.at(-1), { day: "2026-10-17", installs: 5, runs: 15, applies: 10, ...none });
+    assert.deepEqual(body.days.at(-2), { day: "2026-10-16", installs: 6, runs: 21, applies: 5, ...none });
     assert.deepEqual(
       body.days.find((day) => day.day === "2026-08-01"),
-      { day: "2026-08-01", installs: 1, runs: 1, applies: 0 },
+      { day: "2026-08-01", installs: 1, runs: 1, applies: 0, ...none },
     );
     assert.deepEqual(body.plugin, { "0.4.0": 6, "0.3.0": 5 });
     assert.deepEqual(body.qgis, { "4.2.1": 5 });
@@ -409,6 +444,79 @@ describe("usage worker", () => {
       assert.equal(text.includes(await hashInstall(install)), false);
     }
     assert.doesNotMatch(text, /[0-9a-f]{32}/);
+  });
+
+  it("sums the v3 fields over the 30 days and publishes a family only once five installs reported it", async () => {
+    for (const install of crowd(MIN_INSTALLS)) {
+      await send(
+        ping3(install, "2026-10-16", {
+          runs: 4,
+          applies: 1,
+          retries: 1,
+          checks: 1,
+          sessions: 2,
+          failures: { http_401: 1 },
+          outcomes: { answered: 3, failed: 1 },
+          modes: { plan: 1 },
+          session_requests: { r3_5: 2 },
+          tokens: { k5_20: 4 },
+        }),
+      );
+    }
+    await send(
+      ping3(INSTALLS.a, "2026-10-17", {
+        family: "zhipu",
+        runs: 2,
+        failures: { timeout: 3 },
+        outcomes: { failed: 2 },
+        modes: { auto: 1 },
+        plans: { auto: 1 },
+      }),
+    );
+    // b: a v2 client, so no session counts. c: a v3 day outside the 30 days.
+    await send(ping2(INSTALLS.b, "2026-10-17", { runs: 7 }));
+    await send(ping3(INSTALLS.c, "2026-09-01", { runs: 5, sessions: 5, outcomes: { answered: 5 } }), noon("2026-09-01"));
+
+    const body = JSON.parse((await stats()).text);
+    assert.deepEqual(body.days.at(-1), { day: "2026-10-17", installs: 2, runs: 9, applies: 0, sessions: 1, failed: 2 });
+    assert.deepEqual(body.days.at(-2), { day: "2026-10-16", installs: 5, runs: 20, applies: 5, sessions: 10, failed: 5 });
+    assert.equal(body.days.find((day) => day.day === "2026-09-01").sessions, 5);
+    assert.deepEqual(body.activity, { installs: 6, requests: 22, retries: 5, checks: 5, sessions: 11, applies: 5 });
+    assert.deepEqual(body.outcomes, { answered: 15, failed: 7, stopped: 0, limit: 0 });
+    assert.deepEqual(body.modes, { plan: 5, auto: 1 });
+    assert.deepEqual(body.plans, { shown: 0, cancelled: 0, undone: 0, auto: 1 });
+    assert.deepEqual(body.session_requests, { r1: 0, r2: 0, r3_5: 10, r6_10: 0, r11_plus: 0 });
+    assert.deepEqual(body.to_apply, { r1: 0, r2: 0, r3_5: 0, r6_10: 0, r11_plus: 0 });
+    assert.deepEqual(body.tokens, { k0_5: 0, k5_20: 20, k20_50: 0, k50_200: 0, k200_plus: 0 });
+    assert.deepEqual(Object.keys(body.steps), ["s0", "s1", "s2_3", "s4_7", "s8_15", "s16_plus"]);
+    assert.deepEqual(body.family, { openai: 5 });
+    assert.deepEqual(body.families, { openai: { installs: 5, runs: 20, failed: 5 } });
+    assert.deepEqual(body.failures, { http_401: 5 });
+    assert.deepEqual(body.failure_installs, { http_401: 5 });
+  });
+
+  it("times each install's first configured, run and applied day from its first day", async () => {
+    // a: configured on its first day, ran the next, applied a week later.
+    await send(ping2(INSTALLS.a, "2026-10-10", { runs: 0 }), noon("2026-10-10"));
+    await send(ping2(INSTALLS.a, "2026-10-11", { runs: 1 }), noon("2026-10-11"));
+    await send(ping2(INSTALLS.a, "2026-10-17", { runs: 0, applies: 1 }));
+    // b: a v1 day without a model, configured eight days later, never ran.
+    await send(ping(INSTALLS.b, "2026-09-01", { runs: 0 }), noon("2026-09-01"));
+    await send(ping2(INSTALLS.b, "2026-09-09", { runs: 0 }), noon("2026-09-09"));
+    // c: a v1 run on its first day counts as configured.
+    await send(ping(INSTALLS.c, "2026-10-16"));
+    // d: first seen on the window's first day and never configured; e: first seen the day before it.
+    await send(ping2(INSTALLS.d, "2026-07-20", { runs: 0, configured: false }), noon("2026-07-20"));
+    await send(ping(INSTALLS.e, "2026-07-19"), noon("2026-07-19"));
+    await send(ping(INSTALLS.e, "2026-10-17", { applies: 1 }));
+
+    const body = JSON.parse((await stats()).text);
+    assert.deepEqual(body.activation, {
+      installs: 4,
+      configured: { d0: 2, d1: 0, d2_7: 0, d8_plus: 1, never: 1 },
+      ran: { d0: 1, d1: 1, d2_7: 0, d8_plus: 0, never: 2 },
+      applied: { d0: 0, d1: 0, d2_7: 1, d8_plus: 0, never: 3 },
+    });
   });
 
   it("publishes a value only once five installs reported it", async () => {

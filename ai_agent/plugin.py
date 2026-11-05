@@ -9,7 +9,7 @@ from qgis.PyQt.QtWidgets import QAction, QDialog
 
 from ai_agent import i18n
 from ai_agent.config import personal
-from ai_agent.core import credentials, usage_stats
+from ai_agent.core import credentials, usage_payload, usage_stats
 from ai_agent.core.orchestrator.map_pick import MapPicker
 from ai_agent.core.orchestrator.orchestrator import CoreOrchestrator
 from ai_agent.i18n import tr
@@ -46,7 +46,7 @@ class QgisAiAgentPlugin:
         self._connect_project_lifecycle()
         self._follow_active_layer(True)
         self._notify_usage_stats()
-        self._usage.note(usage_stats.ACTIVE)
+        self._usage.note(usage_payload.ACTIVE)
         self._usage.flush()
 
     def unload(self) -> None:

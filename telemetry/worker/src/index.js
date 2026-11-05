@@ -1,11 +1,16 @@
 import {
+  ACTIVATION_BUCKETS,
+  ACTIVATION_STEPS,
   COUNTERS,
+  DETAIL_COLUMNS,
+  DETAIL_MAPS,
   DIMENSIONS,
   EXTRA_COLUMNS,
   MAX_BODY_BYTES,
   PING_COLUMNS,
   PingError,
   RETENTION_DAYS,
+  detailsRow,
   extrasRow,
   hashInstall,
   pingRow,
@@ -30,8 +35,12 @@ const INSERT_PING = `INSERT OR REPLACE INTO pings (${PING_COLUMNS.join(", ")})
 const INSERT_EXTRAS = `INSERT OR REPLACE INTO ping_extras (${EXTRA_COLUMNS.join(", ")})
   VALUES (${EXTRA_COLUMNS.map(() => "?").join(", ")})`;
 
-// A v1 resend replaces the pings row, so a v2 row left beside it would describe another ping.
+const INSERT_DETAILS = `INSERT OR REPLACE INTO ping_details (${DETAIL_COLUMNS.join(", ")})
+  VALUES (${DETAIL_COLUMNS.map(() => "?").join(", ")})`;
+
+// An older resend replaces the pings row, so a newer row left beside it would describe another ping.
 const DELETE_EXTRAS = "DELETE FROM ping_extras WHERE install_hash = ?1 AND day = ?2";
+const DELETE_DETAILS = "DELETE FROM ping_details WHERE install_hash = ?1 AND day = ?2";
 
 const READ_SNAPSHOT = "SELECT generated, body FROM stats_snapshot WHERE id = 1";
 const WRITE_SNAPSHOT = "INSERT OR REPLACE INTO stats_snapshot (id, generated, body) VALUES (1, ?1, ?2)";
@@ -41,8 +50,10 @@ const TOTALS = `SELECT
   (SELECT COUNT(DISTINCT install_hash) FROM pings) AS installs_total,
   (SELECT COUNT(DISTINCT install_hash) FROM pings WHERE day BETWEEN ?1 AND ?2) AS installs_30d`;
 
-const DAYS = `SELECT day, COUNT(*) AS installs, SUM(runs) AS runs, SUM(applies) AS applies
-  FROM pings WHERE day BETWEEN ?1 AND ?2 GROUP BY day`;
+const DAYS = `SELECT ping.day, COUNT(*) AS installs, SUM(ping.runs) AS runs, SUM(ping.applies) AS applies,
+    SUM(detail.sessions) AS sessions, SUM(json_extract(detail.outcomes, '$.failed')) AS failed
+  FROM pings AS ping LEFT JOIN ping_details AS detail USING (install_hash, day)
+  WHERE ping.day BETWEEN ?1 AND ?2 GROUP BY ping.day`;
 
 // One SELECT per facet (D1 refuses a long compound one); columns come from fixed lists, never a request.
 const FACETS = [
@@ -56,6 +67,9 @@ const FACETS = [
         COUNT(DISTINCT CASE WHEN entry.value > 0 THEN pings.install_hash END) AS installs
       FROM pings, json_each(pings.${column}) AS entry WHERE pings.day BETWEEN ?1 AND ?2 GROUP BY entry.key`,
   ),
+  `SELECT 'family' AS facet, family AS value,
+      COUNT(DISTINCT install_hash) AS n, COUNT(DISTINCT install_hash) AS installs
+    FROM ping_details WHERE day BETWEEN ?1 AND ?2 GROUP BY family`,
 ];
 
 // v1 rows carry no configured flag; a run needs a configured model, so a run counts as one.
@@ -97,6 +111,48 @@ const TOOL_ERRORS = `WITH calls AS (
   SELECT tool, SUM(calls) AS calls, SUM(errors) AS errors,
     COUNT(DISTINCT CASE WHEN errors > 0 THEN install_hash END) AS installs
   FROM calls GROUP BY tool`;
+
+const ACTIVITY = `SELECT COUNT(DISTINCT ping.install_hash) AS installs, SUM(ping.runs) AS requests,
+    SUM(detail.retries) AS retries, SUM(detail.checks) AS checks, SUM(detail.sessions) AS sessions,
+    SUM(ping.applies) AS applies
+  FROM pings AS ping JOIN ping_details AS detail USING (install_hash, day)
+  WHERE ping.day BETWEEN ?1 AND ?2`;
+
+const DETAIL_SUMS = Object.keys(DETAIL_MAPS).map(
+  (column) => `SELECT '${column}' AS map, entry.key AS key, SUM(entry.value) AS n
+    FROM ping_details, json_each(ping_details.${column}) AS entry
+    WHERE ping_details.day BETWEEN ?1 AND ?2 GROUP BY entry.key`,
+);
+
+const FAMILIES = `SELECT family, COUNT(DISTINCT install_hash) AS installs,
+    SUM((SELECT SUM(entry.value) FROM json_each(outcomes) AS entry)) AS runs,
+    SUM(json_extract(outcomes, '$.failed')) AS failed
+  FROM ping_details WHERE day BETWEEN ?1 AND ?2 GROUP BY family`;
+
+// The same steps as FUNNEL, timed from an install's first day.
+const ACTIVATION_REACHED = {
+  configured: "COALESCE(extra.configured, 0) OR ping.runs > 0 OR ping.applies > 0",
+  ran: "ping.runs > 0 OR ping.applies > 0",
+  applied: "ping.applies > 0",
+};
+const ACTIVATION_WAIT = { d0: "= 0", d1: "= 1", d2_7: "BETWEEN 2 AND 7", d8_plus: ">= 8", never: "IS NULL" };
+
+const reachedDay = (step) => `MIN(CASE WHEN ${ACTIVATION_REACHED[step]} THEN ping.day END) AS ${step}_day`;
+const waitCount = (step, bucket) =>
+  `COUNT(CASE WHEN julianday(${step}_day) - julianday(first_day) ${ACTIVATION_WAIT[bucket]} THEN 1 END)`;
+
+const ACTIVATION = `WITH firsts AS (
+    SELECT MIN(ping.day) AS first_day, ${ACTIVATION_STEPS.map(reachedDay).join(", ")}
+    FROM pings AS ping LEFT JOIN ping_extras AS extra USING (install_hash, day)
+    WHERE ping.day <= ?2
+    GROUP BY ping.install_hash
+    HAVING MIN(ping.day) >= ?1
+  )
+  SELECT COUNT(*) AS installs,
+    ${ACTIVATION_STEPS.flatMap((step) =>
+      ACTIVATION_BUCKETS.map((bucket) => `${waitCount(step, bucket)} AS ${step}_${bucket}`),
+    ).join(",\n    ")}
+  FROM firsts`;
 
 function json(status, body, headers = {}) {
   return new Response(JSON.stringify(body), { status, headers: { ...JSON_HEADERS, ...headers } });
@@ -168,21 +224,33 @@ async function handlePing(request, env, now) {
     ping.version >= 2
       ? env.DB.prepare(INSERT_EXTRAS).bind(...extrasRow(ping, installHash))
       : env.DB.prepare(DELETE_EXTRAS).bind(installHash, ping.day);
-  await env.DB.batch([env.DB.prepare(INSERT_PING).bind(...pingRow(ping, installHash)), extras]);
+  const details =
+    ping.version >= 3
+      ? env.DB.prepare(INSERT_DETAILS).bind(...detailsRow(ping, installHash))
+      : env.DB.prepare(DELETE_DETAILS).bind(installHash, ping.day);
+  await env.DB.batch([env.DB.prepare(INSERT_PING).bind(...pingRow(ping, installHash)), extras, details]);
   return new Response(null, { status: 204 });
 }
 
 async function computeStats(db, now) {
   const window = statsWindow(now);
-  const [totals, days, funnel, weeks, retention, toolErrors, ...facets] = await db.batch([
-    db.prepare(TOTALS).bind(window.recentSince, window.today),
-    db.prepare(DAYS).bind(window.seriesSince, window.today),
-    db.prepare(FUNNEL).bind(window.recentSince, window.today),
-    db.prepare(WEEKS).bind(window.weeksSince, window.today),
-    db.prepare(RETENTION).bind(window.today),
-    db.prepare(TOOL_ERRORS).bind(window.recentSince, window.today),
-    ...FACETS.map((sql) => db.prepare(sql).bind(window.recentSince, window.today)),
-  ]);
+  const recent = (sql) => db.prepare(sql).bind(window.recentSince, window.today);
+  const [totals, days, funnel, weeks, retention, toolErrors, activity, families, activation, ...rest] =
+    await db.batch([
+      recent(TOTALS),
+      db.prepare(DAYS).bind(window.seriesSince, window.today),
+      recent(FUNNEL),
+      db.prepare(WEEKS).bind(window.weeksSince, window.today),
+      db.prepare(RETENTION).bind(window.today),
+      recent(TOOL_ERRORS),
+      recent(ACTIVITY),
+      recent(FAMILIES),
+      db.prepare(ACTIVATION).bind(window.seriesSince, window.today),
+      ...DETAIL_SUMS.map(recent),
+      ...FACETS.map(recent),
+    ]);
+  const detailSums = rest.slice(0, DETAIL_SUMS.length);
+  const facets = rest.slice(DETAIL_SUMS.length);
   return shapeStats({
     generated: now.toISOString(),
     window,
@@ -193,6 +261,10 @@ async function computeStats(db, now) {
     weeks: weeks.results,
     retention: retention.results[0],
     toolErrors: toolErrors.results,
+    activity: activity.results[0],
+    detailSums: detailSums.flatMap((sums) => sums.results),
+    families: families.results,
+    activation: activation.results[0],
   });
 }
 

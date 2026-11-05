@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from qgis.core import Qgis, QgsMessageLog
 
+from ai_agent.core import usage_payload
 from ai_agent.core.orchestrator.contracts import OrchestratorHost
 from ai_agent.core.orchestrator.notices import (
     LOG_TAG,
@@ -97,6 +98,7 @@ class RewindMixin(OrchestratorHost):
         note = self._rewind_project(checkpoint, UNDONE_PROJECT, later)
         if not note:
             return
+        self.usage.note("plans", usage_payload.UNDONE)
         gone = {item.snapshot for item in later}
         for plan_id, snapshot in list(self._plan_snapshots.items()):
             if plan_id == message_id or snapshot in gone:

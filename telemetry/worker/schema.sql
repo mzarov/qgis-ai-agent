@@ -41,3 +41,22 @@ CREATE TABLE IF NOT EXISTS ping_extras (
   tool_errors TEXT NOT NULL DEFAULT '{}',
   PRIMARY KEY (install_hash, day)
 );
+
+-- Fields added in ping v3. Each map column is a JSON object of allowlisted keys.
+CREATE TABLE IF NOT EXISTS ping_details (
+  install_hash TEXT NOT NULL,
+  day TEXT NOT NULL,
+  family TEXT NOT NULL,
+  retries INTEGER NOT NULL,
+  checks INTEGER NOT NULL,
+  sessions INTEGER NOT NULL,
+  outcomes TEXT NOT NULL DEFAULT '{}',
+  modes TEXT NOT NULL DEFAULT '{}',
+  plans TEXT NOT NULL DEFAULT '{}',
+  session_requests TEXT NOT NULL DEFAULT '{}',
+  to_apply TEXT NOT NULL DEFAULT '{}',
+  steps TEXT NOT NULL DEFAULT '{}',
+  durations TEXT NOT NULL DEFAULT '{}',
+  tokens TEXT NOT NULL DEFAULT '{}',
+  PRIMARY KEY (install_hash, day)
+);
