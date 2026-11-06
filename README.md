@@ -4,22 +4,23 @@ Collected once a day by `.github/workflows/metrics.yml` on `main` (`tools/collec
 
 ![New downloads per day](daily_downloads.svg)
 
-## Downloads by version, 2026-11-05
+## Downloads by version, 2026-11-06
 
 | version | published | downloads |
 | --- | --- | --- |
-| 0.4.2 | 2026-10-26 | 447 |
+| 0.4.2 | 2026-10-26 | 485 |
 | 0.4.1 | 2026-10-20 | 363 |
-| 0.4.0 | 2026-10-17 | 295 |
+| 0.4.0 | 2026-10-17 | 296 |
 | 0.3.0 | 2026-10-13 | 179 |
 | 0.2.0 | 2026-10-04 | 518 |
-| 0.1.1 | 2026-10-01 | 167 |
+| 0.1.1 | 2026-10-01 | 168 |
 | 0.1.0 | 2026-09-01 | 892 |
 
 ## Last days
 
 | day | total | new |
 | --- | --- | --- |
+| 2026-11-06 | 2901 | 40 |
 | 2026-11-05 | 2861 | 63 |
 | 2026-11-04 | 2798 | 55 |
 | 2026-11-03 | 2743 | 56 |
@@ -33,12 +34,12 @@ Collected once a day by `.github/workflows/metrics.yml` on `main` (`tools/collec
 | 2026-10-26 | 2223 | 54 |
 | 2026-10-25 | 2169 | 57 |
 | 2026-10-24 | 2112 | 49 |
-| 2026-10-23 | 2063 | 63 |
 
 ## GitHub traffic
 
 | day | views (unique) | clones (unique) |
 | --- | --- | --- |
+| 2026-11-05 | 1 (1) | 12 (2) |
 | 2026-11-04 | 0 (0) | 1 (1) |
 | 2026-11-03 | 1 (1) | 2 (2) |
 | 2026-11-02 | 0 (0) | 3 (3) |
@@ -52,4 +53,3 @@ Collected once a day by `.github/workflows/metrics.yml` on `main` (`tools/collec
 | 2026-10-25 | 1 (1) | 10 (5) |
 | 2026-10-24 | 0 (0) | 11 (6) |
 | 2026-10-23 | 0 (0) | 3 (3) |
-| 2026-10-22 | 0 (0) | 9 (5) |
