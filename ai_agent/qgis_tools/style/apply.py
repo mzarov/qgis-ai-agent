@@ -36,8 +36,9 @@ def resolve_ramp(name: str, fallbacks: tuple[str, ...] = ()) -> Any:
     available = sorted(style.colorRampNames())
     wanted = (name or "").strip()
     if wanted:
-        if wanted in available:
-            return style.colorRamp(wanted)
+        match = next((ramp for ramp in available if ramp.lower() == wanted.lower()), "")
+        if match:
+            return style.colorRamp(match)
         raise ValueError(f"QGIS has no colour ramp called '{wanted}'. {describe_ramps(available)}")
     for candidate in fallbacks:
         if candidate in available:

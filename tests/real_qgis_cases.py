@@ -1554,6 +1554,22 @@ class GisWorkflowsTest(unittest.TestCase):
         self.assertGreaterEqual(image.pixelColor(19, 19).red(), 253)
         self.assertAlmostEqual(image.pixelColor(0, 10).red(), 127, delta=2)
 
+    def test_a_pseudocolor_raster_paints_its_range_with_the_ramp(self):
+        path = self.root / "heights.tif"
+        dataset = gdal.GetDriverByName("GTiff").Create(str(path), 20, 20, 1, gdal.GDT_Float32)
+        dataset.SetGeoTransform((0, 1, 0, 20, 0, -1))
+        dataset.GetRasterBand(1).WriteRaster(0, 0, 20, 20, struct.pack("400f", *[float(v) for v in range(400)]))
+        dataset = None
+        raster = QgsRasterLayer(str(path), "heights")
+        self.assertTrue(raster.isValid())
+        self.project.addMapLayer(raster)
+        _, result = self._run("set_raster_style", layer_name="heights", mode="pseudocolor", ramp="viridis", classes=7)
+        self.assertEqual((result["min"], result["max"], result["classes"]), (0.0, 399.0, 7))
+        items = raster.renderer().shader().rasterShaderFunction().colorRampItemList()
+        self.assertEqual(len(items), 7)
+        image = self._rendered(raster, 20)
+        self.assertNotEqual(image.pixelColor(0, 0), image.pixelColor(19, 19), "the ramp left one colour")
+
     def test_a_hillshade_over_degrees_scales_the_heights_to_metres(self):
         path = self.root / "dem4326.tif"
         size = 200

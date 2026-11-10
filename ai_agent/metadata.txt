@@ -4,7 +4,7 @@ qgisMinimumVersion=4.0
 qgisMaximumVersion=4.99
 description=An AI agent that inspects your QGIS project and processes data from plain-language requests.
 about=The agent reads the project, styles layers, runs Processing, loads OpenStreetMap and open data, and builds print layouts from plain-language requests. Changes wait in a plan until you press Apply, unless you switch on Auto mode. Everything the agent reads, including attribute values, extents and rendered map images, goes to the language model you configure; use a local model server for data that must not leave your computer. Tools that contact a web service ask before each call, except in Auto mode. Anonymous usage statistics are on by default: the first start says so with a Turn off button, and the switch is also in Settings → Privacy. API keys are stored in the QGIS authentication database. Details: https://mzarov.github.io/qgis-ai-agent/privacy/
-version=0.4.3
+version=0.4.4
 author=mzarov
 email=mzarov@duck.com
 
@@ -19,7 +19,10 @@ homepage=https://mzarov.github.io/qgis-ai-agent/
 repository=https://github.com/mzarov/qgis-ai-agent
 tracker=https://github.com/mzarov/qgis-ai-agent/issues
 
-changelog=0.4.3
+changelog=0.4.4
+    - Colouring a raster with a colour ramp works again
+    - Web search falls back to Wikipedia when DuckDuckGo refuses the request
+    0.4.3
     - Usage statistics count requests, conversations and how each run ended
     - Time, steps and tokens per run are sent as ranges, never exact values
     - The provider is named only from a fixed list of known services
