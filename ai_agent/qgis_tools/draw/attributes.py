@@ -78,7 +78,7 @@ def check_existing_fields(layer: QgsVectorLayer, rows: list[dict[str, Any]]) -> 
         )
     for row in rows:
         for name, value in row.items():
-            _check_convertible(layer, name, value)
+            row[name] = _check_convertible(layer, name, value)
 
 
 def _checked_name(raw: Any, taken: dict[str, str]) -> str:
@@ -166,16 +166,27 @@ def _boolean(value: Any) -> bool:
     raise ValueError("not a boolean")
 
 
-def _check_convertible(layer: QgsVectorLayer, name: str, value: Any) -> None:
+def _is_boolean(field: Any) -> bool:
+    try:
+        return bool(field.type() == QMetaType.Type.Bool)
+    except Exception:
+        return False
+
+
+def _check_convertible(layer: QgsVectorLayer, name: str, value: Any) -> Any:
     try:
         field = layer.fields().field(name)
         convert = field.convertCompatible
     except Exception:
-        return
+        return value
     try:
+        # Qt reads any text but "false" and "0" as true, "no" included.
+        if isinstance(value, str) and _is_boolean(field):
+            value = _boolean(value)
         convert(value)
         if isinstance(value, int) and field.type() == QMetaType.Type.LongLong:
             _long_long(value)
+        return value
     except ValueError as err:
         kind = ""
         with suppress(Exception):

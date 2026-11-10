@@ -76,6 +76,12 @@ class BudgetTest(unittest.TestCase):
         self.assertIn("not a security sandbox", result["error"])
         self.assertGreaterEqual(result["lines_executed"], 500)
 
+    def test_a_snippet_that_catches_exceptions_is_still_stopped(self):
+        code = "n = 0\nwhile True:\n    try:\n        n += 1\n    except Exception:\n        pass\n"
+        result = run_snippet(code, limit=300)
+        self.assertIn("best-effort budget", result["error"])
+        self.assertLessEqual(result["lines_executed"], 301)
+
     def test_the_budget_restores_the_previous_tracer(self):
         import sys
 

@@ -130,6 +130,13 @@ class SessionStoreTest(unittest.TestCase):
         self.store.save(session)
         return session
 
+    def test_a_conversation_rewound_to_nothing_leaves_no_file(self):
+        session = self._saved()
+        session.truncate(0)
+        self.store.save(session)
+        self.assertEqual(self.store.recent("/p.qgz"), [])
+        self.assertEqual(os.listdir(self.root), [])
+
     def test_a_save_the_disk_refuses_names_the_reason(self):
         reasons = []
         self.store.on_failure = reasons.append

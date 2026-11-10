@@ -11,6 +11,7 @@ from ai_agent.ui.durations import format_seconds
 TEXT_FONT_SCALE = 0.96
 SMALL = 0.92
 REPAINT_INTERVAL_MS = 80
+LIVE_TAIL_CHARS = 2000
 SHORTEST_SHOWN = 0.1
 CHEVRON = 12
 BOX_GAP = 6
@@ -104,8 +105,8 @@ class ThinkingBlock(QFrame):
 
     def restore(self, text: str, seconds: Any = None) -> None:
         self._text = text
-        self._render_text()
         self._finished = True
+        self._render_text()
         self._recorded = float(seconds) if isinstance(seconds, (int, float)) else None
         self.set_expanded(False, animate=False)
         self._refresh()
@@ -120,7 +121,11 @@ class ThinkingBlock(QFrame):
             self._repaint.start()
 
     def _render_text(self) -> None:
-        self._body.setText(self._text)
+        # A wrapping label lays its whole text out on every set: while it streams only the tail is shown.
+        if self._finished or len(self._text) <= LIVE_TAIL_CHARS:
+            self._body.setText(self._text)
+        else:
+            self._body.setText("…" + self._text[-LIVE_TAIL_CHARS:])
 
     @property
     def _watched_live(self) -> bool:

@@ -289,6 +289,11 @@ def find_layer_by_name(name: str) -> QgsMapLayer:
     raise ValueError(f"Layer not found: '{wanted}'. Available layers: {hint}.")
 
 
+def target_reference(params: dict[str, Any]) -> str:
+    # The id prepare bound comes first: a name two layers share cannot find its layer again.
+    return str(params.get("layer_id") or params.get("layer_name") or "").strip()
+
+
 def find_layer_by_id(layer_id: str) -> QgsMapLayer:
     wanted = (layer_id or "").strip()
     if not wanted:

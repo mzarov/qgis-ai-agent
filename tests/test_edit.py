@@ -130,6 +130,23 @@ class TypedFields(Fields):
         return IntegerField()
 
 
+class BooleanField(IntegerField):
+    def type(self):
+        return update_module.QMetaType.Type.Bool
+
+    def convertCompatible(self, value):
+        return bool(value)
+
+
+class OriginFields(Fields):
+    def __init__(self, names, origins):
+        super().__init__(names)
+        self._origins = origins
+
+    def fieldOrigin(self, index):
+        return self._origins[index]
+
+
 class UpdateAttributesTest(EditTestBase):
     def setUp(self):
         super().setUp()
@@ -141,6 +158,23 @@ class UpdateAttributesTest(EditTestBase):
             self.tool.prepare({"layer_name": "Дороги", "values": {"lanes": "many"}})
         prepared = self.tool.prepare({"layer_name": "Дороги", "values": {"lanes": "4", "name": None}})
         self.assertEqual(prepared["values"], {"lanes": "4", "name": None})
+
+    def test_a_computed_or_joined_field_is_refused_before_the_user_confirms(self):
+        origin = update_module.Qgis.FieldOrigin
+        self.layer._fields = OriginFields(["name", "cuisine", "pop"], [origin.Provider, origin.Expression, origin.Join])
+        with self.assertRaisesRegex(ValueError, "'cuisine' is a virtual field.*add_field"):
+            self.tool.prepare({"layer_name": "Дороги", "values": {"cuisine": "italian"}})
+        with self.assertRaisesRegex(ValueError, "'pop' comes from a joined table"):
+            self.tool.prepare({"layer_name": "Дороги", "expressions": {"pop": "1"}})
+        self.tool.prepare({"layer_name": "Дороги", "values": {"name": "x"}})
+
+    def test_the_word_no_is_false_in_a_boolean_field(self):
+        self.layer._fields = TypedFields(["name", "open"])
+        self.layer._fields.field = lambda name: BooleanField()
+        prepared = self.tool.prepare({"layer_name": "Дороги", "values": {"open": "no"}})
+        self.assertIs(prepared["values"]["open"], False)
+        with self.assertRaisesRegex(ValueError, "not a boolean"):
+            self.tool.prepare({"layer_name": "Дороги", "values": {"open": "maybe"}})
 
     def test_detail_shows_the_filter_and_every_value(self):
         detail = self.tool.detail_call(

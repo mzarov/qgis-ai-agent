@@ -6,7 +6,7 @@ from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtGui import QPixmap
 from qgis.PyQt.QtWidgets import QDockWidget, QVBoxLayout, QWidget
 
-from ai_agent.ui import chrome, confirmations, style
+from ai_agent.ui import chrome, confirmations, style, theme
 from ai_agent.ui.composer import Composer
 from ai_agent.ui.conversation import ConversationView
 from ai_agent.ui.sessions_popup import Entry, SessionsPopup
@@ -43,6 +43,7 @@ class AgentDockWidget(QDockWidget):
         self.destroyed.connect(_ignore)
         self.destroyed.disconnect(_ignore)
         # Before any child is built: children read the panel's palette, which must already be the theme's.
+        theme.pin_auto(self.palette())
         style.apply_palette(self)
         self.setWindowTitle(TITLE)
         self._run_kind = ""
@@ -121,7 +122,7 @@ class AgentDockWidget(QDockWidget):
         self.conversation.rewind_requested.connect(self.rewind_requested.emit)
         self.conversation.plan_undo_requested.connect(self.plan_undo_requested.emit)
         self.conversation.plan_restore_requested.connect(self.plan_restore_requested.emit)
-        self.conversation.question_answered.connect(self.prompt_submitted.emit)
+        self.conversation.question_answered.connect(self._submit_beside_draft)
         self.conversation.cancel_requested.connect(self.cancel_plan_clicked.emit)
         self.conversation.suggestion_chosen.connect(self._on_suggestion)
         self.conversation.settings_requested.connect(self.open_settings_clicked.emit)
@@ -166,6 +167,9 @@ class AgentDockWidget(QDockWidget):
     def restore_prompt(self, text: str) -> None:
         self.composer.restore(text)
 
+    def draft(self) -> str:
+        return self.composer.text()
+
     def put_prompt(self, text: str) -> None:
         self.composer.put(text)
 
@@ -188,8 +192,15 @@ class AgentDockWidget(QDockWidget):
         return self.composer.take_attachments()
 
     def _on_suggestion(self, text: str) -> None:
-        self.prompt_submitted.emit(text)
+        self._submit_beside_draft(text)
         self.composer.focus()
+
+    def _submit_beside_draft(self, text: str) -> None:
+        # Sending clears the box, and a click on a suggestion or an offered answer did not come from it.
+        draft = self.composer.text()
+        self.prompt_submitted.emit(text)
+        if draft.strip():
+            self.composer.put(draft)
 
     def _show_sessions(self) -> None:
         entries = [Entry(*item) for item in self._sessions_provider()]

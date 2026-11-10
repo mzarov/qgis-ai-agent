@@ -14,7 +14,7 @@ BUDGET_MESSAGE = (
 )
 
 
-class BudgetExceeded(RuntimeError):
+class BudgetExceeded(BaseException):  # Not an Exception: a snippet's own `except Exception` must not swallow it.
     pass
 
 

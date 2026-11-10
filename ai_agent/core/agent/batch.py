@@ -7,21 +7,13 @@ from qgis.core import QgsProject
 
 from ai_agent.core.agent.apply_run import ApplyRun
 from ai_agent.core.agent.executor import ToolExecutor
-from ai_agent.core.agent.transcript import ToolResult
+from ai_agent.core.agent.transcript import ToolResult, call_signature
 from ai_agent.core.llm.turns import ToolCall
 from ai_agent.qgis_tools.common.layers import pin_layer_references, validate_public_layer_references
 from ai_agent.qgis_tools.common.project_identity import project_identity
 from ai_agent.qgis_tools.registry import prepare_tool_call
 
 UNDO_TOOL = "undo_last_apply"
-
-
-def _signature(call: ToolCall) -> str:
-    try:
-        arguments = json.dumps(call.arguments, ensure_ascii=False, sort_keys=True, default=str)
-    except (TypeError, ValueError):
-        arguments = str(sorted(call.arguments.items()))
-    return f"{call.name}|{arguments}"
 
 
 class WriteBatch:
@@ -70,9 +62,9 @@ class WriteBatch:
         self._calls = list(calls)
 
     def _same_call(self, queued: ToolCall) -> ToolCall | None:
-        signature = _signature(queued)
+        signature = call_signature(queued)
         for call in self._calls:
-            if _signature(call) == signature:
+            if call_signature(call) == signature:
                 return call
         return None
 

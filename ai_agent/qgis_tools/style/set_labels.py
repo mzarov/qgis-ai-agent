@@ -5,7 +5,12 @@ from qgis.core import QgsVectorLayerSimpleLabeling
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common import params
-from ai_agent.qgis_tools.common.layers import geometry_type_name, layer_reference, pinned_layer
+from ai_agent.qgis_tools.common.layers import (
+    bind_layer_reference,
+    geometry_type_name,
+    layer_reference,
+    pinned_layer,
+)
 from ai_agent.qgis_tools.common.properties import as_bool, properties_of, shown
 from ai_agent.qgis_tools.common.values import suggest_fields
 from ai_agent.qgis_tools.style.apply import (
@@ -67,10 +72,9 @@ class SetLabelsTool(BaseTool):
     ]
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = require_vector_layer(params.get("layer_name") or "")
+        layer = require_vector_layer(params)
         properties = LABELS.coerce_all(properties_of(params, LABELS.subject))
-        prepared = dict(params)
-        prepared["layer_name"] = layer.name()
+        prepared = bind_layer_reference(params, layer)
         prepared["properties"] = properties
         if not _is_enabled(properties):
             return prepared
@@ -96,7 +100,7 @@ class SetLabelsTool(BaseTool):
         return tr("Setting up labels for '{0}': {1}.").format(layer_name, shown(properties, LABELS))
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = require_vector_layer(params.get("layer_name") or "")
+        layer = require_vector_layer(params)
         properties = LABELS.coerce_all(properties_of(params, LABELS.subject))
         if not _is_enabled(properties):
             layer.setLabelsEnabled(False)

@@ -17,6 +17,7 @@ NUMBER_PATTERN = re.compile(r"(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?")
 ALLOWED_STARTS = frozenset({"SELECT", "WITH"})
 STATEMENT_WORDS = frozenset({"SELECT", "VALUES", "INSERT", "UPDATE", "DELETE", "REPLACE"})
 READ_STATEMENT = "SELECT"
+TABLE_INTRODUCERS = frozenset({"FROM", "JOIN", "IN"})
 SQL_KEYWORDS = re.compile(
     r"ALL|AND|AS|ASC|BETWEEN|BY|CASE|CAST|CROSS|DESC|DISTINCT|ELSE|END|ESCAPE|EXCEPT|EXISTS|FROM|FULL|GLOB"
     r"|GROUP|HAVING|IN|INNER|INTERSECT|IS|ISNULL|JOIN|LEFT|LIKE|LIMIT|MATERIALIZED|NATURAL|NOT|NOTNULL|NULL"
@@ -143,6 +144,20 @@ def identifiers(tokens: list[Token]) -> list[str]:
     return found
 
 
+def alias_names(tokens: list[Token]) -> set[str]:
+    # A name given as an alias and never read as a table: it must not be looked up among the layers.
+    declared: set[str] = set()
+    tables: set[str] = set()
+    for preceding, token in zip(tokens, tokens[1:], strict=False):
+        if not _names(token):
+            continue
+        if _names(preceding) or _is(preceding, ")") or _word(preceding) == "AS":
+            declared.add(token.text.casefold())
+        elif _word(preceding) in TABLE_INTRODUCERS or _is(preceding, ","):
+            tables.add(token.text.casefold())
+    return declared - tables
+
+
 def function_names(tokens: list[Token]) -> list[str]:
     return [
         token.text
@@ -198,6 +213,14 @@ def _main_statement(tokens: list[Token]) -> str:
     if words[0] != "WITH":
         return words[0]
     return next((word for word in words[1:] if word in STATEMENT_WORDS), "")
+
+
+def _names(token: Token) -> bool:
+    return token.kind == QUOTED or (token.kind == WORD and not SQL_KEYWORDS.fullmatch(token.text))
+
+
+def _word(token: Token) -> str:
+    return token.text.upper() if token.kind == WORD else ""
 
 
 def _is(token: Token, mark: str) -> bool:

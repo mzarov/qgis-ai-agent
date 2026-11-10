@@ -2,7 +2,7 @@ import json
 import re
 import time
 from typing import Any
-from urllib.parse import parse_qsl, urlsplit
+from urllib.parse import parse_qsl, urlsplit, urlunsplit
 
 from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtNetwork import QNetworkRequest, QSslSocket
@@ -46,6 +46,19 @@ MISSING_KEY_MSG = tr(
     "No API key. Set one in Settings — or connect to a local model: an address on localhost needs no key."
 )
 ERROR_BODY_LIMIT = 300
+ERROR_STATUS = {
+    "invalid_request_error": 400,
+    "authentication_error": 401,
+    "permission_error": 403,
+    "not_found_error": 404,
+    "request_too_large": 413,
+    "rate_limit_error": 429,
+    "api_error": 500,
+    "timeout_error": 504,
+    "overloaded_error": 529,
+}
+DEFAULT_ERROR_STATUS = 502
+ANSWER_KEYS = ("choices", "content")
 TRANSPORT_FAILED = tr(
     "Could not reach {endpoint}: {reason}. Check the address, the network and the QGIS proxy settings."
 )
@@ -131,6 +144,17 @@ class ApiResponseError(RuntimeError):
         self.retry_after = retry_after
 
 
+def error_status(error: dict[str, Any]) -> int:
+    code = error.get("code")
+    if isinstance(code, int) and not isinstance(code, bool) and 400 <= code <= 599:
+        return code
+    for field in ("type", "code"):
+        status = ERROR_STATUS.get(str(error.get(field) or ""))
+        if status:
+            return status
+    return DEFAULT_ERROR_STATUS
+
+
 def blocking_timeout(idle_timeout: int) -> int:
     return int(idle_timeout) * BLOCKING_TIMEOUT_FACTOR
 
@@ -195,7 +219,15 @@ def build_request(
     # The user's headers come first: whatever the transport sets itself always wins.
     headers = {**extra_headers.lenient(extra), **headers_for(dialect, key, auth_type, url)}
     model = (model_override if model_override is not None else get_model()) or ""
-    return url + path_for(dialect), headers, model
+    return _with_path(url, path_for(dialect)), headers, model
+
+
+def _with_path(url: str, path: str) -> str:
+    if "?" not in url:
+        return url + path
+    # A gateway's query (api-version=…) stays a query: the path goes before it.
+    parts = urlsplit(url)
+    return urlunsplit(parts._replace(path=parts.path.rstrip("/") + path))
 
 
 def is_local(url: str) -> bool:
@@ -288,6 +320,11 @@ def _decoded(text: str, status: int) -> dict[str, Any]:
         ) from None
     if not isinstance(parsed, dict):
         raise ApiResponseError(status, text, tr("The API returned something that is not a JSON object."))
+    # OpenRouter reports a failure after it accepted the request as an error object under status 200.
+    error = parsed.get("error")
+    if error and not any(key in parsed for key in ANSWER_KEYS):
+        detail = error if isinstance(error, dict) else {"message": str(error)}
+        raise ApiResponseError(error_status(detail), json.dumps(detail, ensure_ascii=False))
     return parsed
 
 

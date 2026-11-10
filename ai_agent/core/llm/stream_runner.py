@@ -1,7 +1,13 @@
 import json
 from typing import Any
 
-from ai_agent.core.llm.client import ApiResponseError, ModelTimeout, build_network_request, retry_after_of
+from ai_agent.core.llm.client import (
+    ApiResponseError,
+    ModelTimeout,
+    build_network_request,
+    error_status,
+    retry_after_of,
+)
 from ai_agent.core.llm.dialects import safe_endpoint_label
 from ai_agent.core.llm.stream import SseAccumulator
 from ai_agent.qgis_tools.common.network import send
@@ -11,9 +17,6 @@ STREAM_CANCELLED = "The streaming connection to {endpoint} was cancelled."
 STREAM_FAILED = "Could not stream from {endpoint}: {reason}."
 STREAM_INCOMPLETE = "The stream from {endpoint} ended before the answer was complete."
 STREAM_EVENTS_KEY = "_stream_events"
-ERROR_STATUS = {"overloaded_error": 529, "rate_limit_error": 429, "api_error": 500, "timeout_error": 504}
-DEFAULT_ERROR_STATUS = 502
-ERROR_BODY_LIMIT = 300
 ACCEPT_HEADER = {"Accept": "text/event-stream"}
 
 
@@ -45,9 +48,7 @@ def post_stream(
         raise ModelTimeout(STREAM_TIMED_OUT.format(endpoint=safe_endpoint_label(endpoint)))
     if answer.status >= 400:
         text = b"".join(error_tail).decode("utf-8", errors="replace")
-        raise ApiResponseError(
-            answer.status, text[:ERROR_BODY_LIMIT] or f"HTTP {answer.status}", retry_after=retry_after_of(answer)
-        )
+        raise ApiResponseError(answer.status, text or f"HTTP {answer.status}", retry_after=retry_after_of(answer))
     if answer.failed:
         raise ConnectionError(STREAM_FAILED.format(endpoint=safe_endpoint_label(endpoint), reason=answer.error))
     for event in accumulator.flush():
@@ -58,8 +59,7 @@ def post_stream(
 def _finished_response(completion: Any, accumulator: SseAccumulator, endpoint: str) -> dict[str, Any]:
     error = getattr(completion, "error", None)
     if error:
-        kind = str(error.get("type") or error.get("code") or "")
-        raise ApiResponseError(ERROR_STATUS.get(kind, DEFAULT_ERROR_STATUS), json.dumps(error, ensure_ascii=False))
+        raise ApiResponseError(error_status(error), json.dumps(error, ensure_ascii=False))
     if accumulator.event_count == 0:
         plain = accumulator.plain_json()
         response = plain if isinstance(plain, dict) else completion.response()

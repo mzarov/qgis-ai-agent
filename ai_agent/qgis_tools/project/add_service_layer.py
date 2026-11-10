@@ -1,7 +1,7 @@
 from typing import Any
-from urllib.parse import quote, urlencode
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
-from qgis.core import QgsCoordinateReferenceSystem, QgsRasterLayer, QgsVectorLayer
+from qgis.core import QgsCoordinateReferenceSystem, QgsDataSourceUri, QgsRasterLayer, QgsVectorLayer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
@@ -13,6 +13,28 @@ WFS = "wfs"
 SERVICES = (WMS, WFS)
 DEFAULT_CRS = "EPSG:3857"
 DEFAULT_IMAGE_FORMAT = "image/png"
+WFS_VERSION = "1.1.0"
+# The request's own parameters: QGIS writes them itself. Anything else (MapServer's map=) is the endpoint.
+REQUEST_KEYS = frozenset(
+    {
+        "service",
+        "request",
+        "version",
+        "layers",
+        "styles",
+        "format",
+        "crs",
+        "srs",
+        "bbox",
+        "width",
+        "height",
+        "transparent",
+        "typename",
+        "typenames",
+        "srsname",
+        "outputformat",
+    }
+)
 
 
 class AddServiceLayerTool(BaseTool):
@@ -111,10 +133,17 @@ class AddServiceLayerTool(BaseTool):
 
 def _built(service: str, url: str, published: str, title: str, crs: str) -> Any:
     if service == WMS:
-        source = urlencode({"url": url, "layers": published, "crs": crs, "format": DEFAULT_IMAGE_FORMAT, "styles": ""})
+        # quote, not the default quote_plus: QGIS reads "+" in a layer name as a plus.
+        source = urlencode(
+            {"url": url, "layers": published, "crs": crs, "format": DEFAULT_IMAGE_FORMAT, "styles": ""},
+            quote_via=quote,
+        )
         return QgsRasterLayer(source, title, WMS)
-    source = f"{url}?service=WFS&version=1.1.0&request=GetFeature&typename={quote(published, safe='')}&srsname={crs}"
-    return QgsVectorLayer(source, title, WFS)
+    # Keyed, not a request URL: there a typename's colon would need encoding, and QGIS does not decode it.
+    uri = QgsDataSourceUri()
+    for key, value in (("url", url), ("typename", published), ("version", WFS_VERSION), ("srsname", crs)):
+        uri.setParam(key, value)
+    return QgsVectorLayer(uri.uri(False), title, WFS)
 
 
 def _checked_service(raw: Any) -> str:
@@ -137,4 +166,8 @@ def _checked_url(raw: Any) -> str:
     url = str(raw or "").strip()
     if not url.lower().startswith(("http://", "https://")):
         raise ValueError(f"The service url must start with http:// or https://, got '{url}'.")
-    return url.split("?")[0]
+    parts = urlsplit(url)
+    kept = [
+        (key, value) for key, value in parse_qsl(parts.query, keep_blank_values=True) if key.lower() not in REQUEST_KEYS
+    ]
+    return urlunsplit(parts._replace(query=urlencode(kept, quote_via=quote, safe="/:"), fragment=""))

@@ -27,6 +27,7 @@ class ProcessingEffectsTest(unittest.TestCase):
             "native:spatialiteexecutesqlregistered",
             "native:importintospatialiteregistered",
             "gdal:assignprojection",
+            "gdal:extractprojection",
             "gdal:overviews",
             "gdal:rasterize_over",
             "gdal:rasterize_over_fixed_value",
@@ -51,6 +52,12 @@ class ProcessingEffectsTest(unittest.TestCase):
                 params = {"algorithm_id": identifier, "parameters": {"OUTPUT": "TEMPORARY_OUTPUT"}}
                 self.assertEqual(RunProcessingTool().safety_for(params), SAFETY_WRITE)
                 self.assertFalse(RunProcessingTool().has_external_effect(params))
+
+    def test_aligned_rasters_are_files_written_outside_the_project(self):
+        layers = [{"inputFile": "/data/in.tif", "outputFile": "/data/aligned.tif"}]
+        params = {"algorithm_id": "native:alignrasters", "parameters": {"LAYERS": layers}}
+        self.assertTrue(RunProcessingTool().has_external_effect(params))
+        self.assertEqual(RunProcessingTool().safety_for({**params, "overwrite_outputs": True}), SAFETY_DESTRUCTIVE)
 
     def test_a_new_folder_is_outside_the_project_but_replaces_nothing(self):
         params = {"algorithm_id": "native:createdirectory", "parameters": {"PATH": "/tmp/new"}}

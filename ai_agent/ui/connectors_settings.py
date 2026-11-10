@@ -138,6 +138,7 @@ class ConnectorsSettings(QObject):
         self.search.setClearButtonEnabled(True)
         self.search.setStyleSheet(fields.input_style(palette))
         self.search.textChanged.connect(self._filter)
+        self.search.setProperty(fields.OWN_RETURN, True)
         column.addWidget(self.search)
         self._category = ""
         column.addSpacing(SEARCH_TO_CHIPS)

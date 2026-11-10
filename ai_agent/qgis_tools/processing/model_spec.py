@@ -1,5 +1,5 @@
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 INPUT_TYPES = ("vector", "raster", "number", "distance", "field", "string", "crs")
@@ -254,16 +254,10 @@ def _with_parent(model_input: ModelInput, inputs: list[ModelInput]) -> ModelInpu
     if model_input.kind == "field":
         if len(candidates) != 1:
             raise ValueError(f"Field input '{model_input.name}' needs parent: the vector input whose fields it lists.")
-        return _replace_parent(model_input, candidates[0].name)
+        return replace(model_input, parent=candidates[0].name)
     # Never a layer's units by default: a model that reprojects first would get degrees.
     crs_inputs = [other for other in candidates if other.kind == "crs"]
-    return _replace_parent(model_input, crs_inputs[0].name) if len(crs_inputs) == 1 else model_input
-
-
-def _replace_parent(model_input: ModelInput, parent: str) -> ModelInput:
-    return ModelInput(
-        model_input.name, model_input.kind, model_input.description, model_input.default, model_input.optional, parent
-    )
+    return replace(model_input, parent=crs_inputs[0].name) if len(crs_inputs) == 1 else model_input
 
 
 def _default(name: str, kind: str, value: Any) -> Any:

@@ -24,6 +24,8 @@ DEFAULT_SIZE = 12.0
 MAX_SIZE = 72.0
 WGS84 = "EPSG:4326"
 POSITION_TOLERANCE = 1e-6
+MAX_LONGITUDE = 180.0
+MAX_LATITUDE = 90.0
 
 
 class AddAnnotationTool(BaseTool):
@@ -69,7 +71,10 @@ class AddAnnotationTool(BaseTool):
         colour = str(params.get("color") or "").strip()
         if colour:
             parse_color(colour)
-        authid = _checked_crs(params.get("crs")).authid()
+        crs = _checked_crs(params.get("crs"))
+        _check_range(prepared["x"], prepared["y"], crs)
+        _to_layer_point(prepared["x"], prepared["y"], crs)
+        authid = crs.authid()
         prepared["crs"] = authid if isinstance(authid, str) and authid else str(params.get("crs") or WGS84).strip()
         return prepared
 
@@ -81,8 +86,10 @@ class AddAnnotationTool(BaseTool):
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         kind = _checked_kind(params.get("kind"))
         x, y = _checked_xy(params)
+        crs = _checked_crs(params.get("crs"))
+        _check_range(x, y, crs)
         layer = annotation_layer()
-        point = _to_layer_point(x, y, _checked_crs(params.get("crs")))
+        point = _to_layer_point(x, y, crs)
         if kind == KIND_MARKER:
             item = QgsAnnotationMarkerItem(point)
             _apply_marker_colour(item, params)
@@ -124,6 +131,20 @@ def _checked_xy(params: dict[str, Any]) -> tuple[float, float]:
         return float(params.get("x")), float(params.get("y"))
     except (TypeError, ValueError):
         raise ValueError("x and y are numbers — longitude and latitude for EPSG:4326.") from None
+
+
+def _check_range(x: float, y: float, crs: Any) -> None:
+    # Projected metres read as degrees still transform, and land nowhere on the map.
+    if not crs.isGeographic() or (abs(x) <= MAX_LONGITUDE and abs(y) <= MAX_LATITUDE):
+        return
+    if abs(y) <= MAX_LONGITUDE and abs(x) <= MAX_LATITUDE:
+        raise ValueError(
+            f"({x}, {y}) has a latitude beyond ±90: the pair looks swapped. x is the longitude — pass x={y}, y={x}."
+        )
+    raise ValueError(
+        f"({x}, {y}) is outside longitude ±180, latitude ±90, so it is not in {crs.authid() or WGS84}. "
+        "Coordinates read from the canvas or a layer are in that CRS: pass it as crs."
+    )
 
 
 def _to_layer_point(x: float, y: float, source: Any) -> Any:

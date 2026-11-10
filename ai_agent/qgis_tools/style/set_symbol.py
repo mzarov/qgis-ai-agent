@@ -5,7 +5,7 @@ from qgis.core import QgsSingleSymbolRenderer
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common import params
-from ai_agent.qgis_tools.common.layers import geometry_type_name, layer_reference
+from ai_agent.qgis_tools.common.layers import bind_layer_reference, geometry_type_name, layer_reference
 from ai_agent.qgis_tools.common.properties import properties_of, shown
 from ai_agent.qgis_tools.style.apply import refresh, require_vector_layer
 from ai_agent.qgis_tools.style.symbol_build import build_symbol, note_for
@@ -50,14 +50,13 @@ class SetSymbolTool(BaseTool):
     ]
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = require_vector_layer(params.get("layer_name") or "")
+        layer = require_vector_layer(params)
         properties = SYMBOLS.coerce_all(properties_of(params, SYMBOLS.subject))
         if not properties:
             raise ValueError(
                 'No symbol property was given. describe_style_options with kind="symbol" lists the available ones.'
             )
-        prepared = dict(params)
-        prepared["layer_name"] = layer.name()
+        prepared = bind_layer_reference(params, layer)
         prepared["properties"] = properties
         return prepared
 
@@ -70,7 +69,7 @@ class SetSymbolTool(BaseTool):
         return tr("Styling '{0}': {1}.").format(layer_name, shown(properties, SYMBOLS))
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = require_vector_layer(params.get("layer_name") or "")
+        layer = require_vector_layer(params)
         properties = SYMBOLS.coerce_all(properties_of(params, SYMBOLS.subject))
         symbol, outcome = build_symbol(layer, properties)
         layer.setRenderer(QgsSingleSymbolRenderer(symbol))

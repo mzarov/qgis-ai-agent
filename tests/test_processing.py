@@ -135,6 +135,10 @@ class OutputNameTest(unittest.TestCase):
     def tearDown(self):
         utils.QgsProject, utils.find_layer_by_name = self.saved
 
+    def test_an_algorithm_that_returns_its_input_does_not_rename_it(self):
+        self.assertEqual(utils.apply_output_name({"OUTPUT": "earlier-id"}, "Selected", {"earlier-id"}), "")
+        self.assertEqual(self.earlier.name(), "old centres")
+
     def test_a_file_output_names_the_layer_loaded_from_it_not_an_earlier_one(self):
         self.assertEqual(utils.apply_output_name({"OUTPUT": self.PATH}, "Desired", {"earlier-id"}), "Desired")
         self.assertEqual((self.loaded.name(), self.earlier.name()), ("Desired", "old centres"))
@@ -275,6 +279,130 @@ class ExpressionParameterTest(unittest.TestCase):
             safe = {"algorithm_id": "native:fieldcalculator", "parameters": {"FORMULA": "upper(name)"}}
             with mock.patch.object(run_processing, "destination_parameter_names", return_value=[]):
                 self.assertEqual(tool.prepare(safe)["parameters"], {"FORMULA": "upper(name)"})
+
+
+class _Checked(_Parameter):
+    def __init__(self, name, kind, accepts=lambda value: True, options=(), static=False, parent=""):
+        super().__init__(name, kind)
+        self._accepts, self._options, self._static, self._parent = accepts, list(options), static, parent
+
+    def checkValueIsAcceptable(self, value):
+        return self._accepts(value)
+
+    def options(self):
+        return self._options
+
+    def usesStaticStrings(self):
+        return self._static
+
+    def parentParameterName(self):
+        return self._parent
+
+    def description(self):
+        return self._name
+
+    def flags(self):
+        return 0
+
+    def defaultValue(self):
+        return None
+
+
+class _Buffer(_Algorithm):
+    @staticmethod
+    def id():
+        return "native:buffer"
+
+
+class ParameterCheckTest(unittest.TestCase):
+    def setUp(self):
+        self.algorithm = _Buffer(
+            _Checked("INPUT", "source", lambda value: value is not None),
+            _Checked("DISTANCE", "distance", lambda value: value is None or isinstance(value, (int, float))),
+        )
+
+    def test_a_misspelled_name_is_refused_with_the_real_ones(self):
+        with self.assertRaisesRegex(ValueError, "no parameter 'DISTANSE'.*INPUT, DISTANCE"):
+            utils.check_parameter_names(self.algorithm, {"INPUT": "pts", "DISTANSE": 500})
+        utils.check_parameter_names(self.algorithm, {"INPUT": "pts", "DISTANCE": 500})
+
+    def test_a_missing_or_mistyped_value_is_refused_before_the_queue(self):
+        with self.assertRaisesRegex(ValueError, "needs a value for INPUT"):
+            utils.check_parameter_values(self.algorithm, {"DISTANCE": 5})
+        with self.assertRaisesRegex(ValueError, "does not accept DISTANCE='far'"):
+            utils.check_parameter_values(self.algorithm, {"INPUT": "pts", "DISTANCE": "far"})
+        utils.check_parameter_values(self.algorithm, {"INPUT": "a layer an earlier step makes"})
+
+    def test_an_enum_qgis_takes_by_text_keeps_its_text(self):
+        encoding = _Checked("ENCODING", "enum", options=["ISO-8859-1", "cp1251"], static=True)
+        self.assertEqual(utils.coerce_enum(encoding, "CP1251"), "cp1251")
+        self.assertEqual(utils.coerce_enum(encoding, 1), "cp1251")
+        self.assertEqual(utils.describe_parameter(encoding)["options"], ["ISO-8859-1", "cp1251"])
+        ordinary = _Checked("JOIN_STYLE", "enum", options=["Round", "Miter"])
+        self.assertEqual(utils.coerce_enum(ordinary, "Miter"), 1)
+        self.assertEqual(utils.describe_parameter(ordinary)["options"][1], {"value": 1, "label": "Miter"})
+
+
+class _Degrees:
+    def __init__(self, name="parcels"):
+        self._name = name
+
+    def name(self):
+        return self._name
+
+    def crs(self):
+        return type("Crs", (), {"authid": staticmethod(lambda: "EPSG:4326")})()
+
+
+class DegreesGuardTest(unittest.TestCase):
+    def setUp(self):
+        from ai_agent.qgis_tools.processing import units
+
+        self.units = units
+        self.layer = _Degrees()
+        patches = (
+            mock.patch.object(units, "resolve_layer", lambda value: self.layer),
+            mock.patch.object(units, "crs_is_geographic", lambda layer: True),
+            mock.patch.object(units, "suggest_metric_crs", lambda layer: "EPSG:32633"),
+        )
+        for patch in patches:
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def _check(self, kind, name, value):
+        algorithm = _Algorithm(_Checked("INPUT", "source"), _Checked(name, kind, parent="INPUT"))
+        self.units.check_distance_units(algorithm, {"INPUT": "parcels-id-4216", name: value})
+
+    def test_a_negative_distance_and_an_area_are_caught_too(self):
+        with self.assertRaisesRegex(ValueError, "-500.0 degrees"):
+            self._check("distance", "DISTANCE", -500)
+        with self.assertRaisesRegex(ValueError, "1000.0 square degrees"):
+            self._check("area", "MIN_AREA", 1000)
+        self._check("distance", "DISTANCE", -0.01)
+
+    def test_the_error_names_the_layer_not_its_id(self):
+        with self.assertRaises(ValueError) as caught:
+            self._check("distance", "DISTANCE", 500)
+        self.assertIn('"INPUT": "parcels"', str(caught.exception))
+        self.assertNotIn("parcels-id-4216", str(caught.exception))
+
+
+class RunnerParametersTest(unittest.TestCase):
+    def test_the_runner_cannot_change_the_parameters_the_payload_reports(self):
+        from ai_agent.qgis_tools.processing import run_processing
+
+        def runner(algorithm_id, parameters, feedback=None):
+            parameters["OUTPUT"] = object()
+            return {}
+
+        tool = run_processing.RunProcessingTool()
+        with (
+            mock.patch.object(tool, "_ready", return_value=(_Buffer(), {"OUTPUT": "TEMPORARY_OUTPUT"}, False)),
+            mock.patch.object(tool, "_get_runner", return_value=runner),
+            mock.patch.object(run_processing, "project_layer_ids", return_value=set()),
+        ):
+            payload = tool.execute({"algorithm_id": "native:buffer", "parameters": {}})
+        self.assertEqual(payload["parameters_used"], {"OUTPUT": "TEMPORARY_OUTPUT"})
 
 
 if __name__ == "__main__":

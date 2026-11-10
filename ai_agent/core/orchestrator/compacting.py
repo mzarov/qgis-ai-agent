@@ -1,9 +1,10 @@
 from collections.abc import Callable
 
 from ai_agent.core.agent.compaction import Compactor, estimated_tokens
+from ai_agent.core.agent.failures import failure_text
 from ai_agent.core.llm.context_window import auto_compact_at, window_for
 from ai_agent.core.orchestrator.contracts import DockWidgetContract
-from ai_agent.core.orchestrator.presentation import compact_number, failure_text
+from ai_agent.core.orchestrator.presentation import compact_number
 from ai_agent.core.settings import get_api_url, get_dialect, get_model
 from ai_agent.core.state.conversation import ConversationState
 from ai_agent.i18n import tr

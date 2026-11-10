@@ -28,7 +28,7 @@ class _Request:
         self.limit = value
         return self
 
-    def setSubsetOfAttributes(self, indexes, fields):
+    def setSubsetOfAttributes(self, indexes):
         self.subset = list(indexes)
         return self
 
@@ -63,6 +63,22 @@ class QueryBoundsTest(unittest.TestCase):
         request = _Request()
         run_rows(_Layer(size=1), request, object(), {"fields": ["value"]})
         self.assertEqual(request.subset, [0])
+
+    def test_empty_values_come_last_in_both_directions(self):
+        rows = [(None, {"n": "a"}), (5, {"n": "b"}), (None, {"n": "c"}), (9, {"n": "d"}), (1, {"n": "e"})]
+        self.assertEqual([key for key, _ in queries._ordered(rows, ascending=False)], [9, 5, 1, None, None])
+        self.assertEqual([key for key, _ in queries._ordered(rows, ascending=True)], [1, 5, 9, None, None])
+
+    def test_the_provider_is_told_to_put_empty_values_last(self):
+        clauses = []
+        request = _Request()
+        request.setOrderBy = lambda order: request
+        with (
+            patch.object(queries.QgsFeatureRequest, "OrderByClause", lambda *args: clauses.append(args), create=True),
+            patch.object(queries.QgsFeatureRequest, "OrderBy", lambda items: items, create=True),
+        ):
+            self.assertTrue(queries._bound_request(request, "pop", False, 5, [], _Layer()))
+        self.assertEqual(clauses, [("pop", False, False)])
 
 
 if __name__ == "__main__":

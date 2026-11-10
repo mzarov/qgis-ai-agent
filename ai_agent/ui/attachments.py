@@ -3,7 +3,7 @@ from typing import Any
 
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtGui import QPixmap
-from qgis.PyQt.QtWidgets import QFileDialog, QHBoxLayout, QLabel, QToolButton, QWidget
+from qgis.PyQt.QtWidgets import QFileDialog, QHBoxLayout, QLabel, QToolButton, QVBoxLayout, QWidget
 
 from ai_agent.i18n import tr
 from ai_agent.ui import controls, style
@@ -84,10 +84,10 @@ class AttachmentChips(QWidget):
         super().__init__()
         self._palette = palette
         self._chips: list[AttachmentChip] = []
-        self._line = QHBoxLayout(self)
+        # One under another: in a row every picture would add its width to the panel's minimum.
+        self._line = QVBoxLayout(self)
         self._line.setContentsMargins(0, 0, 0, 2)
         self._line.setSpacing(CHIP_GAP)
-        self._line.addStretch(1)
         self.setVisible(False)
 
     @property
@@ -100,7 +100,7 @@ class AttachmentChips(QWidget):
         chip = AttachmentChip(path, self._palette)
         chip.removed.connect(self.remove)
         self._chips.append(chip)
-        self._line.insertWidget(len(self._chips) - 1, chip)
+        self._line.addWidget(chip, 0, Qt.AlignmentFlag.AlignLeft)
         self.setVisible(True)
         self.changed.emit()
 

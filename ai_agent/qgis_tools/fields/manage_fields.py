@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Any
 
 from qgis.core import QgsVectorLayer
@@ -15,6 +16,7 @@ from ai_agent.qgis_tools.fields.schema import (
     checked_new_name,
     field_names,
     infer_virtual_type,
+    is_virtual_field,
     require_field_index,
     require_vector,
 )
@@ -68,8 +70,8 @@ class AddFieldTool(BaseTool):
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = _field_target(params)
-        name = checked_new_name(layer, params.get("name"))
         expression = str(params.get("expression") or "").strip()
+        name = checked_new_name(layer, params.get("name"), stored=not expression)
         prepared = bind_layer_reference(params, layer)
         if expression:
             compile_expression(expression, name, layer)
@@ -90,8 +92,8 @@ class AddFieldTool(BaseTool):
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = _field_target(params)
-        name = checked_new_name(layer, params.get("name"))
         expression = str(params.get("expression") or "").strip()
+        name = checked_new_name(layer, params.get("name"), stored=not expression)
         if expression:
             compile_expression(expression, name, layer)
             kind = str(params.get("type") or "").strip().lower() or infer_virtual_type(layer, expression)
@@ -100,15 +102,22 @@ class AddFieldTool(BaseTool):
                 raise ValueError(f"QGIS refused to add virtual field '{name}'.")
             return {"layer": layer.name(), "field": name, "virtual": True, "type": kind, "note": VIRTUAL_NOTE}
         field = build_field(name, params.get("type") or "text")
+        before = field_names(layer)
         with edit_session(layer, "the schema change"):
             if not layer.addAttribute(field):
                 raise ValueError(f"QGIS refused to add field '{name}'.")
-        return {"layer": layer.name(), "field": name, "virtual": False}
+        return {"layer": layer.name(), "field": _stored_name(layer, before, name), "virtual": False}
 
     def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
         if str(params.get("expression") or "").strip():
             return None
         return _has_field(params, params.get("name"))
+
+
+def _stored_name(layer: QgsVectorLayer, before: list[str], wanted: str) -> str:
+    # A format may store the name its own way: report what the layer has now.
+    added = [name for name in field_names(layer) if name not in before]
+    return wanted if wanted in added or not added else added[-1]
 
 
 class RenameFieldTool(BaseTool):
@@ -128,10 +137,13 @@ class RenameFieldTool(BaseTool):
         {"name": "new_name", "type": "string", "description": "New field name", "required": True},
     ]
 
+    def has_external_effect(self, params: dict[str, Any]) -> bool:
+        return not _targets_virtual(params)
+
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = _field_target(params)
-        require_field_index(layer, params.get("name") or "")
-        checked_new_name(layer, params.get("new_name"))
+        index = require_field_index(layer, params.get("name") or "")
+        checked_new_name(layer, params.get("new_name"), stored=not is_virtual_field(layer, index))
         return bind_layer_reference(params, layer)
 
     def summarize_call(self, params: dict[str, Any]) -> str:
@@ -142,11 +154,13 @@ class RenameFieldTool(BaseTool):
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = _field_target(params)
         index = require_field_index(layer, params.get("name") or "")
-        new_name = checked_new_name(layer, params.get("new_name"))
-        with edit_session(layer, "the schema change"):
-            if not layer.renameAttribute(index, new_name):
-                raise ValueError(f"QGIS refused to rename field '{params.get('name')}'.")
-        return {"layer": layer.name(), "renamed": params.get("name"), "to": new_name}
+        virtual = is_virtual_field(layer, index)
+        new_name = checked_new_name(layer, params.get("new_name"), stored=not virtual)
+        refusal = f"QGIS refused to rename field '{params.get('name')}'."
+        _change_schema(layer, virtual, lambda: layer.renameAttribute(index, new_name), refusal)
+        stored = field_names(layer)[index : index + 1]
+        landed = stored[0] if stored and stored[0] != params.get("name") else new_name
+        return {"layer": layer.name(), "renamed": params.get("name"), "to": landed}
 
     def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
         return _has_field(params, params.get("new_name")) and not _has_field(params, params.get("name"))
@@ -171,6 +185,9 @@ class DeleteFieldTool(BaseTool):
         {"name": "name", "type": "string", "description": "Field to remove", "required": True},
     ]
 
+    def has_external_effect(self, params: dict[str, Any]) -> bool:
+        return not _targets_virtual(params)
+
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
         layer = _field_target(params)
         require_field_index(layer, params.get("name") or "")
@@ -188,14 +205,32 @@ class DeleteFieldTool(BaseTool):
         index = require_field_index(layer, params.get("name") or "")
         if len(field_names(layer)) <= 1:
             raise ValueError("This is the layer's only field — removing it would leave no attributes at all.")
-        with edit_session(layer, "the schema change"):
-            if not layer.deleteAttribute(index):
-                raise ValueError(f"QGIS refused to delete field '{params.get('name')}'.")
+        refusal = f"QGIS refused to delete field '{params.get('name')}'."
+        _change_schema(layer, is_virtual_field(layer, index), lambda: layer.deleteAttribute(index), refusal)
         return {"layer": layer.name(), "deleted": params.get("name")}
 
     def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
         layer = pinned_layer(params)
         return layer is not None and not _has_field(params, params.get("name"))
+
+
+def _change_schema(layer: QgsVectorLayer, virtual: bool, change: Callable[[], bool], refusal: str) -> None:
+    # A virtual field lives in the project: a read-only source cannot open an edit session, and needs none.
+    if virtual:
+        if not change():
+            raise ValueError(refusal)
+        return
+    with edit_session(layer, "the schema change"):
+        if not change():
+            raise ValueError(refusal)
+
+
+def _targets_virtual(params: dict[str, Any]) -> bool:
+    try:
+        layer = _field_target(params)
+        return is_virtual_field(layer, require_field_index(layer, params.get("name") or ""))
+    except Exception:
+        return False
 
 
 def _has_field(params: dict[str, Any], name: Any) -> bool:

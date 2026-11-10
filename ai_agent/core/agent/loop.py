@@ -13,6 +13,7 @@ from ai_agent.core.agent.budget import TokenBudget
 from ai_agent.core.agent.compaction import estimated_tokens
 from ai_agent.core.agent.dispatch import DispatchMixin
 from ai_agent.core.agent.executor import ToolExecutor
+from ai_agent.core.agent.failures import failure_text
 from ai_agent.core.agent.prompts import render_queued_steps, render_task_plan
 from ai_agent.core.agent.repeats import FailureMemory
 from ai_agent.core.agent.request import build_overrides, build_step_request
@@ -100,7 +101,8 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):  # type: ignore[misc]
 
     @property
     def is_running(self) -> bool:
-        return self._turn.is_running
+        # Not the thread's own state: it ends before its turn is delivered, and a message sent then is lost.
+        return self._turn_callbacks is not None
 
     @property
     def endpoint(self) -> str:
@@ -117,6 +119,10 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):  # type: ignore[misc]
     @property
     def question_options(self) -> list[str]:
         return list(self._question_options) if self._question else []
+
+    @property
+    def is_staged(self) -> bool:
+        return self._staged
 
     @property
     def is_planning(self) -> bool:
@@ -279,12 +285,10 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):  # type: ignore[misc]
         )
         self._turn_callbacks = callbacks
         self._journal.asked()
-        self._turn.start(
-            request.messages,
-            request.tool_schemas,
-            request.overrides,
-            *callbacks,
-        )
+        try:
+            self._turn.start(request.messages, request.tool_schemas, request.overrides, *callbacks)
+        except Exception as err:
+            self._fail(turn_failure(err), generation)
 
     def _queued_summaries(self) -> str:
         return render_queued_steps(self._batch.pending_lines())
@@ -376,7 +380,8 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):  # type: ignore[misc]
     def _nudge_once(self, turn: ModelTurn, generation: int) -> bool:
         truncated = turn.finish_reason in notices.TRUNCATED_REASONS
         text = turn.text.strip()
-        announced = not self._tools_called and announces_a_step(text)
+        # In plan mode a reply that says what it would do is the answer.
+        announced = not self._planning and not self._tools_called and announces_a_step(text)
         if self._nudged or not (truncated or not text or announced):
             return False
         self._nudged = True
@@ -438,8 +443,8 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):  # type: ignore[misc]
             self.journal_written.emit(path)
 
     def _track_usage(self, turn: ModelTurn) -> None:
-        self._budget.add(turn)
         prompt = max(0, int(turn.input_tokens)) or self._request_estimate
+        self._budget.add(turn, prompt)
         self._journal.answered(prompt, max(0, int(turn.output_tokens)))
         self.turn_counted.emit(prompt, max(0, int(turn.output_tokens)), self._budget.requests == 1)
 
@@ -466,7 +471,7 @@ class AgentLoop(BatchApplyMixin, DispatchMixin, QObject):  # type: ignore[misc]
         self.busy_changed.emit(False)
         if not self._is_current(generation):
             return
-        self._write_journal(f"Run failed: {message}")
+        self._write_journal(f"Run failed: {failure_text(message)}")
         self.failed.emit(message)
         if self._batch and self._is_current(generation):
             # Never auto-applied after a failure: the user looks first.

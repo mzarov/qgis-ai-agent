@@ -23,6 +23,7 @@ SOURCE_WRITERS = frozenset(
         "qgis:importintopostgis",
         "qgis:importintospatialite",
         "gdal:assignprojection",
+        "gdal:extractprojection",
         "gdal:overviews",
         "gdal:rasterize_over",
         "gdal:rasterize_over_fixed_value",

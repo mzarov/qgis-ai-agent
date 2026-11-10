@@ -5,6 +5,7 @@ from qgis.PyQt.QtGui import QGuiApplication, QPixmap
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QScrollArea,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -59,6 +60,8 @@ class ConversationView(QScrollArea):
 
         holder = QWidget()
         holder.setObjectName(FEED_NAME)
+        # One unbreakable token (a Windows path) must not widen the feed past a viewport that cannot scroll sideways.
+        holder.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         style.fill(holder, style.background(self.palette()))
         self.viewport().setAutoFillBackground(False)
         self._column = QVBoxLayout(holder)
@@ -251,7 +254,6 @@ class ConversationView(QScrollArea):
                 self._new_activity()
             block = ThinkingBlock()
             self._activity.add_widget(block)
-            self._activity.reveal()
             self._thinking = block
         self._thinking.append(delta)
         self._scroll_when_pinned()
@@ -307,9 +309,11 @@ class ConversationView(QScrollArea):
         return self._remember(step)
 
     def mark_activity_step(self, entry_id: int, ok: bool, note: str = "") -> None:
+        # Through the row's own group: a result may arrive after a note closed the group.
         label = self._entries.get(entry_id)
-        if label is not None and self._activity is not None:
-            self._activity.mark_step(label, ok, note)
+        group = getattr(label, "group", None)
+        if group is not None:
+            group.mark_step(label, ok, note)
 
     def add_rejected_step(self, text: str) -> int:
         entry_id = self.add_activity_step(text)
