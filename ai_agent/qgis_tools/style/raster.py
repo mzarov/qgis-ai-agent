@@ -107,7 +107,7 @@ def build_pseudocolor(layer: Any, band: int, ramp_name: str, classes: int, inter
     ramp = resolve_ramp(ramp_name, DEFAULT_RAMPS)
     shader_function = QgsColorRampShader(minimum, maximum, ramp, INTERPOLATION[interpolation])
     shader_function.setClassificationMode(QgsColorRampShader.ClassificationMode.EqualInterval)
-    shader_function.classifyColorRamp(classes, -1, None, None)
+    shader_function.classifyColorRamp(classes)
     shader = QgsRasterShader()
     shader.setRasterShaderFunction(shader_function)
     renderer = QgsSingleBandPseudoColorRenderer(layer.dataProvider(), band, shader)

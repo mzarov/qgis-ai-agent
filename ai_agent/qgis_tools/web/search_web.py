@@ -24,7 +24,7 @@ WIKIPEDIA_ENDPOINT = (
 )
 WIKIPEDIA_PAGE = "https://{lang}.wikipedia.org/wiki/{title}"
 WIKIPEDIA_NOTE = (
-    "The general search engine was unreachable from this network, so these "
+    "The general search engine was unreachable or refused an automated request, so these "
     "results are from Wikipedia only — an encyclopedia, not the whole web."
 )
 
@@ -68,20 +68,17 @@ class SearchWebTool(BaseTool):
             html = get_text(SEARCH_ENDPOINT.format(query=encoded(query)), epoch=epoch)
             guard_not_cancelled(epoch)
             results = parse_results(html)
-            note = ""
-            engine = "duckduckgo"
         except ValueError:
             guard_not_cancelled(epoch)
-            results = wikipedia_results(query, epoch=epoch)
-            guard_not_cancelled(epoch)
-            note = WIKIPEDIA_NOTE
-            engine = "wikipedia"
-        guard_not_cancelled(epoch)
+            results = []
+        answer: dict[str, Any] = {"query": query, "engine": "duckduckgo", "results": results}
+        # DuckDuckGo answers many automated requests with a bot check that holds no results.
         if not results:
+            answer = {"query": query, "engine": "wikipedia", "results": wikipedia_results(query, epoch=epoch)}
+            answer["note"] = WIKIPEDIA_NOTE
+        guard_not_cancelled(epoch)
+        if not answer["results"]:
             raise ValueError(NOTHING)
-        answer: dict[str, Any] = {"query": query, "engine": engine, "results": results}
-        if note:
-            answer["note"] = note
         return answer
 
 

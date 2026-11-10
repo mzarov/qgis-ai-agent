@@ -746,6 +746,9 @@ WIKI = """{"query": {"search": [
 ]}}"""
 
 
+BOT_CHECK = "<html><body><div class='anomaly-modal'>Select all squares</div></body></html>"
+
+
 class WikipediaFallbackTest(unittest.TestCase):
     def test_wikipedia_hits_become_results_with_links(self):
         results = search_module.parse_wikipedia(WIKI, "ru")
@@ -768,6 +771,23 @@ class WikipediaFallbackTest(unittest.TestCase):
             search_module.get_text = saved
         self.assertEqual(result["engine"], "wikipedia")
         self.assertIn("Wikipedia", result["note"])
+
+    def test_a_bot_check_instead_of_results_falls_back_to_wikipedia(self):
+        def fake(url, **options):
+            return BOT_CHECK if "duckduckgo" in url else WIKI
+
+        with mock.patch.object(search_module, "get_text", side_effect=fake):
+            result = SearchWebTool().execute({"query": "казань utm"})
+        self.assertEqual(result["engine"], "wikipedia")
+        self.assertEqual(result["results"][0]["title"], "UTM-метки")
+
+    def test_no_results_anywhere_is_still_an_error(self):
+        with (
+            mock.patch.object(search_module, "get_text", return_value="<html></html>"),
+            self.assertRaises(ValueError) as caught,
+        ):
+            SearchWebTool().execute({"query": "kazan"})
+        self.assertIn("no results", str(caught.exception))
 
     def test_the_language_follows_the_query(self):
         seen = []

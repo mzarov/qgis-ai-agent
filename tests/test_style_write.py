@@ -193,6 +193,10 @@ class SetCategoriesTest(StyleWriteCase):
             self.tool.prepare({"layer_name": "Дороги", "field": "type", "ramp": "НетТакой"})
         self.assertIn("Spectral", str(caught.exception))
 
+    def test_a_ramp_name_in_another_case_is_found(self):
+        self.assertEqual(apply.resolve_ramp("viridis")._name, "Viridis")
+        self.assertEqual(apply.resolve_ramp(" SPECTRAL ")._name, "Spectral")
+
     def test_colour_count_must_match_categories(self):
         with self.assertRaises(ValueError) as caught:
             self.tool.prepare({"layer_name": "Дороги", "field": "type", "colors": ["#111111"]})
