@@ -102,14 +102,27 @@ it off deletes the counts not yet sent.
 
 A minute after the counts change, the plugin sends the day so far to the
 project's collector on Cloudflare (`telemetry/worker`), which keeps one small
-report per install per day: the number of runs and applies, the names of the
-plugin's own tools and built-in skills used (never a name the model made up or
-a skill you wrote) and how many tool calls failed, the kinds of failures (a
-category, an HTTP status with the provider's error code, or an error class
-with the plugin file and line, never the error text), the plugin and QGIS
-versions, the OS family, the interface language, whether a model is set up,
-and whether it is local or remote and which API format it uses. A day QGIS loaded the plugin counts as active even with no
-run. A random install id tells installs apart; the collector stores only its
+report per install per day:
+
+- how many requests, retries, checks after Apply and applies there were, and
+  how many conversations had a request;
+- how each run ended (answered, failed, stopped, hit a limit), whether it ran
+  in Plan or Auto mode, and whether a plan was shown, applied by itself,
+  cancelled or undone;
+- ranges, never exact values: model turns, working time and tokens per run,
+  requests per conversation and requests until the first Apply;
+- the names of the plugin's own tools and built-in skills used (never a name
+  the model made up or a skill you wrote) and how many tool calls failed;
+- the kinds of failures: a category, an HTTP status with the provider's error
+  code, or an error class with the plugin file and line, never the error text;
+- the plugin and QGIS versions, the OS family, the interface language, whether
+  a model is set up, whether it is local or remote, which API format it uses,
+  and the provider's name when the address belongs to a known service from a
+  fixed list (OpenAI, OpenRouter, Ollama and the like).
+
+A day QGIS loaded the plugin counts as active even with no
+run. Conversations are told apart only on your computer; the report holds how
+many there were. A random install id tells installs apart; the collector stores only its
 hash. Your IP address is used only to limit how many reports one address can
 send a minute and is never stored. Your requests, answers, layer names,
 values, places, file paths, keys, model addresses and model names are never

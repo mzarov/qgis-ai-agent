@@ -1,7 +1,6 @@
 import datetime
 import json
-import re
-import sys
+import time
 import uuid
 from typing import Any
 
@@ -10,13 +9,23 @@ from qgis.PyQt.QtCore import QByteArray, QTimer, QUrl
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 
 from ai_agent.core.about import plugin_version
-from ai_agent.core.llm.client import is_local
-from ai_agent.core.settings import get_api_url, get_dialect, has_saved_model
-from ai_agent.i18n import locale_code
+from ai_agent.core.usage_payload import (
+    CONVERSATIONS,
+    COUNTED_MODES,
+    REQUEST_BUCKETS,
+    REQUESTS,
+    SECOND_BUCKETS,
+    STEP_BUCKETS,
+    TOKEN_BUCKETS,
+    add,
+    bucket,
+    has_counts,
+    payload,
+    version_text,
+)
 
 COLLECTOR_URL = "https://ai-agent-usage.mzarov.workers.dev"
 PING_PATH = "/v1/ping"
-PAYLOAD_VERSION = 2
 PREFIX = "ai_agent/usage"
 CONSENT_KEY = f"{PREFIX}/consent"
 INSTALL_KEY = f"{PREFIX}/install"
@@ -24,22 +33,17 @@ DAY_KEY = f"{PREFIX}/day"
 COUNTS_KEY = f"{PREFIX}/counts"
 PENDING_KEY = f"{PREFIX}/pending"
 NOTICE_KEY = f"{PREFIX}/noticed"
+TASKS_KEY = f"{PREFIX}/tasks"
 CONSENT_YES = "yes"
 CONSENT_NO = "no"
-NAME = re.compile(r"^[a-z][a-z0-9_]{0,48}$")
-MAX_NAMES = 150
-MAX_COUNT = 100_000
-VERSION_CHARS = 32
 LOG_TAG = "AI Agent"
-OS_FAMILIES = (("darwin", "macos"), ("win", "windows"), ("linux", "linux"))
-DIALECTS = ("openai", "anthropic")
 OK_STATUSES = (200, 204)
 MAX_DAY_AGE = 7
 MAX_PENDING_DAYS = 3
 CLIENT_ERRORS = range(400, 500)
 RATE_LIMITED = 429
-ACTIVE = "active"
 TODAY_DELAY_MS = 60_000
+MAX_TASKS = 50
 
 
 def collector_url() -> str:
@@ -55,7 +59,7 @@ def set_consent(agreed: bool) -> None:
     settings = QgsSettings()
     settings.setValue(CONSENT_KEY, CONSENT_YES if agreed else CONSENT_NO)
     if not agreed:
-        for key in (COUNTS_KEY, DAY_KEY, PENDING_KEY):
+        for key in (COUNTS_KEY, DAY_KEY, PENDING_KEY, TASKS_KEY):
             settings.remove(key)
 
 
@@ -76,59 +80,15 @@ def enabled() -> bool:
     return bool(collector_url()) and choice != CONSENT_NO and (choice == CONSENT_YES or noticed())
 
 
-def add(counts: dict[str, Any], kind: str, name: str = "") -> dict[str, Any]:
-    if kind == ACTIVE:
-        counts[ACTIVE] = True
-        return counts
-    if kind in ("runs", "applies"):
-        counts[kind] = min(MAX_COUNT, int(counts.get(kind, 0)) + 1)
-        return counts
-    key = str(name or "").strip().lower()
-    group = counts.setdefault(kind, {})
-    if not NAME.match(key) or (key not in group and len(group) >= MAX_NAMES):
-        return counts
-    group[key] = min(MAX_COUNT, int(group.get(key, 0)) + 1)
-    return counts
-
-
-def payload(install: str, day: str, counts: dict[str, Any]) -> dict[str, Any]:
-    url = get_api_url()
-    dialect = get_dialect()
-    return {
-        "v": PAYLOAD_VERSION,
-        "install": install,
-        "day": day,
-        "plugin": _version(plugin_version()),
-        "qgis": _version(str(Qgis.version()).split("-")[0]),
-        "os": os_family(sys.platform),
-        "locale": re.sub(r"[^A-Za-z_-]", "", locale_code())[:16] or "en",
-        "provider": "local" if url and is_local(url) else "remote",
-        "dialect": dialect if dialect in DIALECTS else "openai",
-        "configured": has_saved_model(),
-        "runs": int(counts.get("runs", 0)),
-        "applies": int(counts.get("applies", 0)),
-        "failures": dict(counts.get("failures") or {}),
-        "tools": dict(counts.get("tools") or {}),
-        "tool_errors": dict(counts.get("tool_errors") or {}),
-        "skills": dict(counts.get("skills") or {}),
-    }
-
-
-def os_family(platform: str) -> str:
-    return next((family for prefix, family in OS_FAMILIES if platform.startswith(prefix)), "other")
-
-
-def has_counts(counts: dict[str, Any]) -> bool:
-    return bool(counts.get(ACTIVE) or counts.get("runs") or counts.get("applies") or counts.get("tools"))
-
-
-def _version(text: str) -> str:
-    return re.sub(r"[^0-9A-Za-z._+-]", "", text)[:VERSION_CHARS] or "unknown"
-
-
 class UsageStats:
-    def __init__(self, today: Any = None) -> None:
+    def __init__(self, today: Any = None, clock: Any = time.monotonic) -> None:
         self._today = today or (lambda: datetime.date.today().isoformat())
+        self._clock = clock
+        # Read once: a plugin installed later into the same folder would lend its version to this one.
+        self._plugin = version_text(plugin_version())
+        self._run_open = False
+        self._busy_since: float | None = None
+        self._active = 0.0
         self._reply: Any = None
         self._sending = ""
         self._today_due = False
@@ -151,6 +111,56 @@ class UsageStats:
 
     def stop(self) -> None:
         self._timer.stop()
+
+    def run_started(self, kind: str, conversation: str = "", mode: str = "") -> None:
+        self.note(kind)
+        if kind == REQUESTS and conversation:
+            self.note(CONVERSATIONS, f"c{conversation}")
+            self._count_task(conversation)
+        if mode in COUNTED_MODES:
+            self.note("modes", mode)
+        self._run_open = True
+        self._active = 0.0
+        self._busy_since = self._clock()
+
+    def note_busy(self, busy: bool) -> None:
+        if busy and self._busy_since is None:
+            self._busy_since = self._clock()
+        elif not busy and self._busy_since is not None:
+            self._active += self._clock() - self._busy_since
+            self._busy_since = None
+
+    def run_ended(self, outcome: str, spent: Any) -> None:
+        if not self._run_open:
+            return
+        self.note_busy(False)
+        self._run_open = False
+        spent = spent if isinstance(spent, dict) else {}
+        tokens = int(spent.get("prompt_tokens", 0)) + int(spent.get("completion_tokens", 0))
+        self.note("outcomes", outcome)
+        self.note("steps", bucket(int(spent.get("requests", 0)), STEP_BUCKETS))
+        self.note("durations", bucket(self._active, SECOND_BUCKETS))
+        self.note("tokens", bucket(tokens, TOKEN_BUCKETS))
+
+    def note_apply(self, conversation: str) -> None:
+        self.note("applies")
+        if not enabled():
+            return
+        tasks = _loaded(QgsSettings().value(TASKS_KEY, "", type=str))
+        pending = int(tasks.get(conversation, 0) or 0)
+        # A later stage of the same request is not a new result.
+        if pending > 0:
+            self.note("to_apply", bucket(pending, REQUEST_BUCKETS))
+            tasks[conversation] = 0
+            _keep_tasks(tasks)
+
+    def _count_task(self, conversation: str) -> None:
+        if not enabled():
+            return
+        tasks = _loaded(QgsSettings().value(TASKS_KEY, "", type=str))
+        pending = int(tasks.pop(conversation, 0) or 0)
+        tasks[conversation] = pending + 1
+        _keep_tasks(tasks)
 
     def flush(self) -> None:
         if not enabled() or self._reply is not None:
@@ -175,7 +185,7 @@ class UsageStats:
 
     def _post(self, day: str, counts: dict[str, Any], finished: bool) -> None:
         self._sending = day if finished else ""
-        body = json.dumps(payload(self._install(), day, counts)).encode("utf-8")
+        body = json.dumps(payload(self._install(), day, counts, self._plugin)).encode("utf-8")
         request = QNetworkRequest(QUrl(collector_url() + PING_PATH))
         request.setHeader(QNetworkRequest.KnownHeaders.ContentTypeHeader, "application/json")
         self._reply = QgsNetworkAccessManager.instance().post(request, QByteArray(body))
@@ -216,7 +226,7 @@ class UsageStats:
     @staticmethod
     def _install() -> str:
         settings = QgsSettings()
-        install = settings.value(INSTALL_KEY, "", type=str)
+        install = str(settings.value(INSTALL_KEY, "", type=str) or "")
         if not install:
             install = str(uuid.uuid4())
             settings.setValue(INSTALL_KEY, install)
@@ -247,6 +257,10 @@ def _keep_pending(days: list[dict[str, Any]]) -> None:
         QgsSettings().setValue(PENDING_KEY, json.dumps(days))
     else:
         QgsSettings().remove(PENDING_KEY)
+
+
+def _keep_tasks(tasks: dict[str, Any]) -> None:
+    QgsSettings().setValue(TASKS_KEY, json.dumps(dict(list(tasks.items())[-MAX_TASKS:])))
 
 
 def _loaded(text: Any) -> dict[str, Any]:

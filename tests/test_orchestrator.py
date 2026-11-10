@@ -592,14 +592,42 @@ class OrchestratorSessionTest(unittest.TestCase):
         self.assertEqual(self.orchestrator.iface.pushed, [], "a banner over the map would repeat the card")
 
     def test_a_failed_run_is_counted_by_its_exact_kind(self):
-        noted, cards = [], []
-        self.orchestrator.usage = SimpleNamespace(note=lambda kind, name="": noted.append((kind, name)))
+        cards = []
+        usage = self.orchestrator.usage = mock.Mock()
         self.dock.add_run_failure = lambda *args: cards.append(args) or 1
         self.orchestrator.on_prompt("сделай реки синими")
         self.orchestrator.agent.failure_kind = "http_402"
         self.orchestrator.on_failed("The API returned 402: Insufficient credits")
-        self.assertIn(("failures", "http_402"), noted)
+        self.assertIn(("failures", "http_402"), [call.args for call in usage.note.call_args_list])
         self.assertEqual(cards[0][3], "other", "the card has no words of its own for a 402")
+
+    def test_a_request_is_counted_from_its_start_to_its_outcome(self):
+        usage = self.orchestrator.usage = mock.Mock()
+        agent = self.orchestrator.agent
+        agent.usage = {"prompt_tokens": 900, "completion_tokens": 100, "requests": 2}
+        with mock.patch.object(orchestrator_module, "get_work_mode", return_value="auto"):
+            self.orchestrator.on_prompt("сделай реки синими")
+        session = self.orchestrator.conversation.session_identifier
+        usage.run_started.assert_called_once_with("runs", session, "auto")
+        self.orchestrator.on_busy(False)
+        usage.note_busy.assert_called_once_with(False)
+        agent.failure_kind = "timeout"
+        self.orchestrator.on_failed("The model did not answer in time.")
+        usage.run_ended.assert_called_once_with("failed", agent.usage)
+        self.orchestrator.on_retry()
+        usage.run_started.assert_called_with("retries")
+        agent.ended_on_limit = True
+        self.orchestrator.on_finished("Готово.")
+        self.orchestrator.on_aborted()
+        outcomes = [call.args[0] for call in usage.run_ended.call_args_list]
+        self.assertEqual(outcomes, ["failed", "limit", "stopped"])
+
+    def test_a_check_after_apply_is_counted_as_a_check(self):
+        usage = self.orchestrator.usage = mock.Mock()
+        self.orchestrator.on_prompt("сделай реки синими")
+        self.orchestrator.on_applied([Result()])
+        usage.note_apply.assert_called_once_with(self.orchestrator.conversation.session_identifier)
+        usage.run_started.assert_called_with("checks")
 
     def test_a_failure_settings_must_fix_offers_retry_only_once_they_are_saved(self):
         from ai_agent.core.llm import failure_kinds
@@ -1090,6 +1118,17 @@ class PlanUndoTest(unittest.TestCase):
         self.assertEqual(self.restored, ["/tmp/after-plan.qgz"])
         self.assertEqual(self.dock.undone_plans, [7])
         self.assertIn("undone", self.orchestrator.conversation.messages[-1]["content"])
+
+    def test_plans_are_counted_as_shown_cancelled_and_undone(self):
+        usage = self.orchestrator.usage = mock.Mock()
+        self._apply()
+        self.orchestrator.on_undo_plan(7)
+        self.orchestrator.on_confirm_needed([Call()], "", applies_itself=True)
+        self.orchestrator.on_confirm_needed([Call()], "")
+        self.orchestrator.on_cancel_plan()
+        plans = [call.args[1] for call in usage.note.call_args_list if call.args[0] == "plans"]
+        self.assertEqual(plans, ["shown", "undone", "auto", "shown", "cancelled"])
+        self.assertEqual(usage.run_ended.call_args.args[0], "answered", "a run that offers a plan ends well")
 
     def test_a_vanished_snapshot_says_so(self):
         self._apply()
