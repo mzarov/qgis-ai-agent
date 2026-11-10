@@ -7,6 +7,7 @@ from qgis.core import Qgis
 
 from ai_agent.core.about import plugin_version
 from ai_agent.core.llm.client import is_local
+from ai_agent.core.llm.dialects import resolve
 from ai_agent.core.settings import get_api_url, get_dialect, has_saved_model
 from ai_agent.i18n import locale_code
 
@@ -98,7 +99,7 @@ def bucket(value: float, edges: tuple[tuple[int | None, str], ...]) -> str:
 
 def payload(install: str, day: str, counts: dict[str, Any], plugin: str | None = None) -> dict[str, Any]:
     url = get_api_url()
-    dialect = get_dialect()
+    dialect = resolve(url, get_dialect())
     conversations = [int(number) for number in dict(counts.get(CONVERSATIONS) or {}).values()]
     session_requests: dict[str, int] = {}
     for number in conversations:

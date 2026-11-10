@@ -1,8 +1,9 @@
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 from qgis.core import QgsRasterLayer
 
+from ai_agent.config.connectors import disabled_connectors
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.project.tree import follow_in_drawing_order, layer_names, layer_tree, project
@@ -36,6 +37,17 @@ PRESETS = {
         "© Esri, Maxar, Earthstar Geographics",
     ),
 }
+
+
+# Tile hosts that belong to a connector the user can switch off in Settings → Connectors.
+CONNECTOR_HOSTS = {
+    "tile.openstreetmap.org": ("openstreetmap", "OpenStreetMap"),
+    "tile.opentopomap.org": ("opentopomap", "OpenTopoMap"),
+}
+TURNED_OFF = (
+    "The {connector} connector is turned off in Settings → Connectors, so its tiles are not available. "
+    "Tell the user; they can turn it on there, or pick another basemap."
+)
 
 
 class AddBasemapTool(BaseTool):
@@ -76,6 +88,7 @@ class AddBasemapTool(BaseTool):
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
         title, url, _ = _resolved(params)
+        _check_connector(url)
         if title in layer_names():
             raise ValueError(f"A layer named '{title}' is already in the project. Give another name.")
         prepared = dict(params)
@@ -92,12 +105,23 @@ class AddBasemapTool(BaseTool):
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         title, url, attribution = _resolved(params)
+        _check_connector(url)
         layer = QgsRasterLayer(_xyz_source(url), title, WMS_PROVIDER)
         if not layer.isValid():
             raise ValueError(f"QGIS could not open the tile service at {url}.")
         project().addMapLayer(layer, False)
         follow_in_drawing_order(layer_tree().addLayer(layer))
         return {"name": layer.name(), "url": url, "attribution": attribution, "placed": "bottom"}
+
+
+def _check_connector(url: str) -> None:
+    try:
+        host = (urlsplit(url).hostname or "").lower()
+    except ValueError:
+        return
+    identifier, title = CONNECTOR_HOSTS.get(host, ("", ""))
+    if identifier and identifier in disabled_connectors():
+        raise ValueError(TURNED_OFF.format(connector=title))
 
 
 def _resolved(params: dict[str, Any]) -> tuple[str, str, str]:

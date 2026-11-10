@@ -73,25 +73,41 @@ class LoadImageryTool(BaseTool):
         temporary = False
         expiry = ""
         for item_id in ids:
-            found = item(entry.id, item_id)
-            name = _layer_name(given, entry, found, len(ids))
-            if asset == TRUE_COLOR and entry.rgb:
-                source, in_temp, expiry = _stacked(entry, found, name)
-                temporary = temporary or in_temp
-            else:
-                link, expiry = signed(asset_href(found, asset))
-                source = VSICURL + link
-            layer = QgsRasterLayer(source, name, "gdal")
-            if not layer.isValid():
-                raise ValueError(f"QGIS could not open scene '{item_id}' ({asset}). The service may be busy.")
-            if entry.nodata is not None:
-                _transparent_nodata(layer, entry.nodata)
+            try:
+                layer, in_temp, expiry = _scene_layer(entry, asset, item_id, given, len(ids))
+            except ValueError as failure:
+                raise ValueError(_with_added(str(failure), added)) from failure
+            temporary = temporary or in_temp
             _add_under_vectors(layer)
             added.append({"layer": layer.name(), "id": layer.id(), "scene": item_id, "asset": asset})
         result: dict[str, Any] = {"added": added, "note": LINK_NOTE.format(expiry=expiry or "within a day")}
         if temporary:
             result["storage_note"] = TEMP_NOTE
         return result
+
+
+def _scene_layer(entry: Dataset, asset: str, item_id: str, given: str, count: int) -> tuple[QgsRasterLayer, bool, str]:
+    found = item(entry.id, item_id)
+    name = _layer_name(given, entry, found, count)
+    in_temp = False
+    if asset == TRUE_COLOR and entry.rgb:
+        source, in_temp, expiry = _stacked(entry, found, name)
+    else:
+        link, expiry = signed(asset_href(found, asset))
+        source = VSICURL + link
+    layer = QgsRasterLayer(source, name, "gdal")
+    if not layer.isValid():
+        raise ValueError(f"QGIS could not open scene '{item_id}' ({asset}). The service may be busy.")
+    if entry.nodata is not None:
+        _transparent_nodata(layer, entry.nodata)
+    return layer, in_temp, expiry
+
+
+def _with_added(message: str, added: list[dict[str, Any]]) -> str:
+    if not added:
+        return message
+    names = ", ".join(f"'{record['layer']}'" for record in added)
+    return f"{message} Scenes before it are already in the project as {names}: do not load them again."
 
 
 def _layer_name(given: str, entry: Dataset, found: dict[str, Any], count: int) -> str:

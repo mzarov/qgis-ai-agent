@@ -41,6 +41,7 @@ class SettingsSearch(QWidget):
         if glass is not None:
             self.field.addAction(glass, QLineEdit.ActionPosition.LeadingPosition)
         self.field.textChanged.connect(self._search)
+        self.field.setProperty(fields.OWN_RETURN, True)
         column.addWidget(self.field)
         self._results = QWidget()
         self._list = QVBoxLayout(self._results)

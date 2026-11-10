@@ -348,12 +348,12 @@ def reset_capabilities(url: str, model: str | None = None, dialect: str | None =
 
 # Keys live in the QGIS authentication database, never here.
 def get_api_key(url: str | None = None, dialect: str | None = None) -> str:
-    endpoint = (url if url is not None else get_api_url()) or ""
+    endpoint = _endpoint(url)
     return credentials.read(_credential_account(endpoint, dialect))
 
 
 def set_api_key(value: str, url: str | None = None, dialect: str | None = None) -> None:
-    endpoint = (url if url is not None else get_api_url()) or ""
+    endpoint = _endpoint(url)
     secret = (value or "").strip()
     if not secret:
         delete_api_key(endpoint, dialect)
@@ -362,7 +362,7 @@ def set_api_key(value: str, url: str | None = None, dialect: str | None = None) 
 
 
 def delete_api_key(url: str | None = None, dialect: str | None = None) -> None:
-    endpoint = (url if url is not None else get_api_url()) or ""
+    endpoint = _endpoint(url)
     credentials.remove(_credential_account(endpoint, dialect))
 
 

@@ -157,7 +157,8 @@ def properties_of(params: dict[str, Any], subject: str) -> dict[str, Any]:
             f"Properties ({subject}) are passed as an object of key-value pairs, "
             "not as a string or a list. Call describe_style_options for the list of keys."
         )
-    return dict(properties)
+    # A null is a key the model left unused, never a value to apply.
+    return {key: value for key, value in properties.items() if value is not None}
 
 
 def shown(properties: dict[str, Any], known: PropertySet) -> str:

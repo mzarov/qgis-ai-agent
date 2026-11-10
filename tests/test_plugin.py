@@ -109,7 +109,12 @@ class ThemeSwitchTest(unittest.TestCase):
     def _plugin(self, idle):
         iface = self.Iface()
         plugin = QgisAiAgentPlugin(iface)
-        plugin.dock_widget = mock.Mock(isVisible=lambda: True)
+        plugin.dock_widget = mock.Mock(
+            isVisible=lambda: True,
+            isFloating=lambda: True,
+            draft=lambda: "half-typed",
+            take_attachments=lambda: ["a.png"],
+        )
         plugin._orchestrator = mock.Mock(is_idle=idle)
         return plugin, iface
 
@@ -126,6 +131,9 @@ class ThemeSwitchTest(unittest.TestCase):
         self.assertIs(plugin.dock_widget, dock_class.return_value)
         plugin._orchestrator.attach_dock.assert_called_once_with(plugin.dock_widget)
         self.assertEqual(iface.added, [(2, plugin.dock_widget)])
+        plugin.dock_widget.put_prompt.assert_called_once_with("half-typed")
+        plugin.dock_widget.add_attachment.assert_called_once_with("a.png")
+        plugin.dock_widget.setFloating.assert_called_once_with(True)
 
     def test_a_busy_agent_keeps_the_panel_and_says_when(self):
         plugin, iface = self._plugin(idle=False)
@@ -143,6 +151,12 @@ class ThemeSwitchTest(unittest.TestCase):
             plugin._follow_theme()
         self.assertIs(plugin.dock_widget, old)
         self.assertEqual(iface.removed, [])
+
+    def test_showing_the_panel_again_does_not_put_it_back_in_its_first_area(self):
+        plugin, iface = self._plugin(idle=True)
+        plugin.run()
+        plugin.run()
+        self.assertEqual(iface.added, [])
 
 
 class SettingsWhileUnloadingTest(unittest.TestCase):

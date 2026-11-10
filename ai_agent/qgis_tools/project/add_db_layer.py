@@ -1,6 +1,7 @@
+from contextlib import suppress
 from typing import Any
 
-from qgis.core import QgsVectorLayer
+from qgis.core import QgsDataSourceUri, QgsVectorLayer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
@@ -73,8 +74,7 @@ class AddDbLayerTool(BaseTool):
         connection = require_connection(params.get("connection") or "")
         schema = (params.get("schema") or "").strip()
         table = (params.get("table") or "").strip()
-        uri = connection.tableUri(schema, table)
-        layer = QgsVectorLayer(uri, _wanted_name(params), DB_PROVIDER)
+        layer = QgsVectorLayer(_table_uri(connection, schema, table), _wanted_name(params), DB_PROVIDER)
         if not layer.isValid():
             raise ValueError(
                 f"QGIS could not open {schema}.{table}: check the names with "
@@ -87,6 +87,16 @@ class AddDbLayerTool(BaseTool):
             "geometry": geometry_type_name(layer),
             **feature_count_block(layer),
         }
+
+
+def _table_uri(connection: Any, schema: str, table: str) -> str:
+    uri = QgsDataSourceUri(connection.tableUri(schema, table))
+    # tableUri names no geometry column, and without one PostGIS loads the table as attributes only.
+    with suppress(Exception):
+        column = connection.table(schema, table).geometryColumn()
+        if column:
+            uri.setGeometryColumn(column)
+    return str(uri.uri(False))
 
 
 def _wanted_name(params: dict[str, Any]) -> str:

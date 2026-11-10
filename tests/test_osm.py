@@ -102,6 +102,15 @@ class SelectorTest(unittest.TestCase):
             selectors.normalize(['node["a"]; out; node["b"]'])
         self.assertIn("not allowed", str(caught.exception))
 
+    def test_a_quoted_value_may_hold_what_a_statement_may_not(self):
+        kept = ['node["name"="Lookout Point"]', 'node["website"~"https://"]', 'node["cuisine"="pizza;italian"]']
+        self.assertEqual(selectors.normalize(kept), kept)
+
+    def test_an_open_quote_cannot_hide_a_second_statement(self):
+        for smuggled in ('node["a"="x]; out; node["b"]', 'node["a"="b\\"]; out; node["c"]'):
+            with self.subTest(selector=smuggled), self.assertRaisesRegex(ValueError, "quotes"):
+                selectors.normalize([smuggled])
+
     def test_output_directive_is_refused(self):
         with self.assertRaises(ValueError):
             selectors.normalize(['node["a"]', "out skel qt"])
@@ -193,6 +202,26 @@ class BboxTest(unittest.TestCase):
 class ToolTest(unittest.TestCase):
     def setUp(self):
         self.tool = download_osm.DownloadOsmTool()
+
+    def test_the_switched_off_connector_stops_both_tools_before_any_request(self):
+        download = {"key": "amenity", "value": "cafe", "area": "Berlin"}
+        query = {"query": "[out:xml];node(1);out body;", "name": "x", "intent": "y"}
+        with mock.patch.object(overpass, "disabled_connectors", return_value=frozenset({overpass.CONNECTOR})):
+            for call in (
+                lambda: self.tool.prepare(download),
+                lambda: self.tool.execute(download),
+                lambda: self.tool.start(download),
+                lambda: RunOverpassTool().prepare(query),
+                lambda: RunOverpassTool().execute(query),
+                lambda: RunOverpassTool().start(query),
+            ):
+                with self.assertRaisesRegex(ValueError, "connector is turned off"):
+                    call()
+        self.assertEqual(self.tool.prepare(download)["area"], "Berlin")
+
+    def test_the_connector_id_is_the_catalogue_one(self):
+        sources = pathlib.Path(overpass.__file__).parents[1] / "data" / "sources"
+        self.assertTrue((sources / f"{overpass.CONNECTOR}.json").is_file())
 
     def test_territory_is_required(self):
         with self.assertRaises(ValueError) as caught:
@@ -354,6 +383,11 @@ class SublayerTest(unittest.TestCase):
 
     def test_several_sublayers_get_a_suffix(self):
         self.assertEqual(load._title("Roads", "points", "all"), "Roads — points")
+
+    def test_no_two_sublayers_share_a_title(self):
+        for geometry, sublayers in load.SUBLAYERS.items():
+            titles = [load._title("Bus routes", sublayer, geometry) for sublayer in sublayers]
+            self.assertEqual(len(set(titles)), len(titles), geometry)
 
     def test_file_name_is_safe_for_disk(self):
         self.assertNotIn("/", load._slug("amenity=cafe/../etc"))

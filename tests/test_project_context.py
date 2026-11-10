@@ -186,6 +186,18 @@ class ProjectContextTest(unittest.TestCase):
         self.use(Project([Layer(f"l{index}") for index in range(15)], crs=""))
         self.assertTrue(context.get_project_context().endswith("and 3 more."))
 
+    def test_layers_past_the_cap_are_not_even_asked(self):
+        asked = []
+
+        class Watched(Layer):
+            def featureCount(self):
+                asked.append(self.name())
+                return 17
+
+        self.use(Project([Watched(f"l{index}") for index in range(context.MAX_LISTED + 3)], crs=""))
+        self.assertTrue(context.get_project_context().endswith("l11 (point, EPSG:4326, 17 features) and 3 more."))
+        self.assertEqual(asked, [f"l{index}" for index in range(context.MAX_LISTED)])
+
 
 if __name__ == "__main__":
     unittest.main()

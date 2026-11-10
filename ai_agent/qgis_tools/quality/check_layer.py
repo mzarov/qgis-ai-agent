@@ -15,7 +15,7 @@ from ai_agent.qgis_tools.common.layers import (
 )
 from ai_agent.qgis_tools.quality import findings
 from ai_agent.qgis_tools.quality.raster import FILE_PROVIDER, raster_findings
-from ai_agent.qgis_tools.quality.scan import MAX_FEATURES, scan_layer
+from ai_agent.qgis_tools.quality.scan import MAX_FEATURES, is_spatial, scan_layer
 
 LOG_TAG = "AI Agent"
 KIND_VECTOR = "vector"
@@ -148,13 +148,6 @@ def project_crs_labels() -> list[str]:
         if own and valid:
             labels.append(label)
     return labels
-
-
-def is_spatial(layer: QgsVectorLayer) -> bool:
-    try:
-        return bool(layer.isSpatial())
-    except Exception:
-        return True
 
 
 def partial_note(checked: int, total: int | None) -> str:

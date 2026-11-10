@@ -18,6 +18,21 @@ VECTOR = "vector"
 RASTER = "raster"
 OGR = "ogr"
 MAX_GROUP_NAME = 120
+# GDAL opens these over the network: the source is fetched when the layer is added.
+REMOTE_MARKERS = (
+    "http://",
+    "https://",
+    "ftp://",
+    "/vsicurl",
+    "/vsis3",
+    "/vsigs",
+    "/vsiaz",
+    "/vsiadls",
+    "/vsioss",
+    "/vsiswift",
+    "/vsiwebhdfs",
+    "/vsihdfs",
+)
 
 
 class AddLayerTool(BaseTool):
@@ -82,6 +97,10 @@ class AddLayerTool(BaseTool):
             )
         check_group_name(params.get("group"))
         return prepared
+
+    def has_network_access(self, params: dict[str, Any]) -> bool:
+        source = str(params.get("source") or "").lower()
+        return any(marker in source for marker in REMOTE_MARKERS)
 
     def summarize_call(self, params: dict[str, Any]) -> str:
         source = (params.get("source") or "").strip()

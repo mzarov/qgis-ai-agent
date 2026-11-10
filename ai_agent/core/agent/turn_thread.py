@@ -37,6 +37,8 @@ class TurnThreadOwner:
         on_thinking: Callable[[str], None] | None = None,
         on_retry: Callable[[RetryNotice], None] | None = None,
     ) -> None:
+        # The thread that just delivered its turn may still be leaving run().
+        self.release()
         thread = ModelTurnThread(messages, tool_schemas, overrides)
         thread.finished_turn.connect(on_turn)
         thread.error.connect(on_error)

@@ -22,6 +22,7 @@ CAPTION_SCALE = 12 / 13
 TITLE_SCALE = 18 / 13
 SEPARATOR_NAME = "settingsSeparator"
 SEARCH_PROPERTY = "settingsSearch"
+OWN_RETURN = "ownReturn"
 STEPPER_NAME = "settingsStepper"
 STEPPER_HEIGHT = 30
 STEPPER_VALUE_WIDTH = 64

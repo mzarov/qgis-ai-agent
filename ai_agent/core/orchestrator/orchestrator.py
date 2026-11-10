@@ -17,6 +17,7 @@ from ai_agent.core.orchestrator.notices import (
     INTERJECTED,
     MESSAGE_DURATION_SEC,
     NOT_SAVED,
+    OPTION_WHY,
     RUN_STOPPED,
     STEPS_WAITING,
     SWITCH_WHILE_RUNNING,
@@ -62,6 +63,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self._restorable_plan_id: int | None = None
         self._retry_args: RetryArgs | None = None
         self._retry_after_plan = False
+        self._retry_once_fixed = False
         self._done_summary = ""
         self._snapshot_before_apply = ""
         self._invalidated_scope: tuple[str, str] | None = None
@@ -118,7 +120,9 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.dock_widget.set_busy(busy)
         self.usage.note_busy(busy)
         if busy:
+            # A run or an apply since the failure: sending its request again would redo what they did.
             self._retry_after_plan = False
+            self._retry_once_fixed = False
         else:
             self.usage.flush()
             self.dock_widget.set_run_kind("")
@@ -241,7 +245,7 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
         self.agent.start(prompt, history, skills=skills, images=images, planning=planning)
 
     def on_settings_saved(self) -> None:
-        if self._retry_args is not None and self.is_idle:
+        if self._retry_once_fixed and self.is_idle:
             self.dock_widget.offer_retry()
 
     @property
@@ -299,7 +303,9 @@ class CoreOrchestrator(SessionsMixin, PlanMixin, RunEventsMixin, ProjectLifecycl
             return
         self._show_user_message(text)
         self.dock_widget.clear_prompt()
-        chosen = text in list(getattr(self.agent, "question_options", None) or [])
+        # The card sends an offered answer without its " — why" part.
+        options = [str(option) for option in getattr(self.agent, "question_options", None) or []]
+        chosen = text in options or text in [option.partition(OPTION_WHY)[0].strip() for option in options]
         self.conversation.add("user", text, chosen=chosen)
         self.dock_widget.begin_work()
         self.agent.answer(text)

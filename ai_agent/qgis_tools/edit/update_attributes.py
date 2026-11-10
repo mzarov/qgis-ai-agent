@@ -1,7 +1,8 @@
 from contextlib import suppress
 from typing import Any
 
-from qgis.core import QgsDistanceArea, QgsProject, QgsVectorLayer
+from qgis.core import Qgis, QgsVectorLayer
+from qgis.PyQt.QtCore import QMetaType
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_DESTRUCTIVE, BaseTool
@@ -13,6 +14,16 @@ from ai_agent.qgis_tools.common.values import plain_value, suggest_fields
 from ai_agent.qgis_tools.edit.pinned import pinned_features
 
 MAX_SCAN = 50000
+TRUE_WORDS = frozenset({"true", "yes", "1"})
+FALSE_WORDS = frozenset({"false", "no", "0"})
+VIRTUAL_FIELD = (
+    "Field '{name}' is a virtual field: an expression computes it and it stores no values. "
+    "Add a real field with add_field and update that one."
+)
+JOINED_FIELD = (
+    "Field '{name}' comes from a joined table, so it cannot be edited through layer '{layer}'. "
+    "Update it on the joined table's own layer."
+)
 
 
 class UpdateAttributesTool(BaseTool):
@@ -103,7 +114,7 @@ class UpdateAttributesTool(BaseTool):
         indexes = {name: layer.fields().indexFromName(name) for name in [*values, *expressions]}
         features = _prepared_features(layer, params)
         context = build_context(layer)
-        compiled = {name: _measuring(prepared(text, name, context, layer), layer) for name, text in expressions.items()}
+        compiled = {name: prepared(text, name, context, layer) for name, text in expressions.items()}
         # Every value is computed before the first write: a failing expression leaves nothing changed.
         rows = []
         for feature in features:
@@ -141,25 +152,25 @@ def _checked_changes(layer: QgsVectorLayer, params: dict[str, Any]) -> tuple[dic
             f"Layer '{layer.name()}' has no field(s) {', '.join(unknown)}. {suggest_fields(unknown, names)} "
             "A field added in this run exists only once applied: call apply_now first."
         )
-    for name, value in values.items():
-        _check_convertible(layer, name, value)
+    for name in [*values, *expressions]:
+        _refuse_unstored(layer, name)
+    checked = {name: _check_convertible(layer, name, value) for name, value in values.items()}
     context = build_context(layer)
     for name, text in expressions.items():
         prepared(str(text), name, context, layer)
-    return dict(values), {name: str(text) for name, text in expressions.items()}
+    return checked, {name: str(text) for name, text in expressions.items()}
 
 
-def _measuring(expression: Any, layer: QgsVectorLayer) -> Any:
-    # $area and $length need the project's ellipsoid and units, as the field calculator sets them.
-    project = QgsProject.instance()
-    with suppress(Exception):
-        calculator = QgsDistanceArea()
-        calculator.setSourceCrs(layer.crs(), project.transformContext())
-        calculator.setEllipsoid(project.ellipsoid())
-        expression.setGeomCalculator(calculator)
-        expression.setDistanceUnits(project.distanceUnits())
-        expression.setAreaUnits(project.areaUnits())
-    return expression
+def _refuse_unstored(layer: QgsVectorLayer, name: str) -> None:
+    # Such a field passes the existence check and then fails at Apply, after the user confirmed.
+    try:
+        origin = layer.fields().fieldOrigin(layer.fields().indexFromName(name))
+    except Exception:
+        return
+    if origin == Qgis.FieldOrigin.Expression:
+        raise ValueError(VIRTUAL_FIELD.format(name=name))
+    if origin == Qgis.FieldOrigin.Join:
+        raise ValueError(JOINED_FIELD.format(name=name, layer=layer.name()))
 
 
 def _stored(layer: QgsVectorLayer, name: str, value: Any) -> Any:
@@ -174,14 +185,24 @@ def _names(raw: Any) -> list[str]:
     return [str(name) for name in raw] if isinstance(raw, dict) else []
 
 
-def _check_convertible(layer: QgsVectorLayer, name: str, value: Any) -> None:
+def _is_boolean(field: Any) -> bool:
+    try:
+        return bool(field.type() == QMetaType.Type.Bool)
+    except Exception:
+        return False
+
+
+def _check_convertible(layer: QgsVectorLayer, name: str, value: Any) -> Any:
     try:
         field = layer.fields().field(name)
         convert = field.convertCompatible
     except Exception:
-        return
+        return value
     try:
+        if isinstance(value, str) and _is_boolean(field):
+            value = _boolean(value)
         convert(value)
+        return value
     except ValueError as err:
         kind = ""
         with suppress(Exception):
@@ -190,6 +211,14 @@ def _check_convertible(layer: QgsVectorLayer, name: str, value: Any) -> None:
             f"Value {value!r} does not fit field '{name}'{kind}: {err}. "
             "Give a value of the field's type, or null to clear it."
         ) from None
+
+
+def _boolean(text: str) -> bool:
+    # Qt reads any text but "false" and "0" as true, "no" included.
+    word = text.strip().lower()
+    if word not in TRUE_WORDS | FALSE_WORDS:
+        raise ValueError("not a boolean")
+    return word in TRUE_WORDS
 
 
 def _filter_line(raw: Any) -> str:

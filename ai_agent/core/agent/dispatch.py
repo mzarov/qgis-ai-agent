@@ -24,11 +24,16 @@ from ai_agent.qgis_tools.registry import (
     summarize_tool_call,
     validate_tool_arguments,
 )
+from ai_agent.skills.registry import SKILL_REGISTRY
 
 LOG_TAG = "AI Agent"
 MAX_OPTION_CHARS = 120
 DUPLICATE_NOTE = "An identical call is already queued; it was not added again."
 PLAN_MODE_REFUSAL = "Plan mode is on: {tool} would change the project, so it was not run. Put the step in your plan."
+SKILL_OFF = (
+    "The user switched the '{skill}' skill off in Settings, so {tool} was not run. "
+    "Do the task another way, or tell the user it needs that skill."
+)
 NO_IMAGE_INPUT = (
     "{tool} returns only an image, and this model does not accept image input. "
     "Check the result with the read tools of the skills you used instead."
@@ -82,6 +87,8 @@ class DispatchMixin:
         tool = get_tool_by_name(call.name)
         if tool is None:
             return self._run_now(call)
+        if SKILL_REGISTRY.is_disabled(tool.skill):
+            return ToolResult.failure(call, SKILL_OFF.format(tool=tool.name, skill=tool.skill), tool.egress)
         if tool.returns_image and detect_images_unsupported(self._overrides):
             return ToolResult.failure(call, NO_IMAGE_INPUT.format(tool=tool.name), tool.egress)
         reads = tool.safety_for(call.arguments) == SAFETY_READ
@@ -101,16 +108,7 @@ class DispatchMixin:
 
     def _queue_write(self, call: ToolCall) -> ToolResult:
         before = len(self._batch.pending())
-        try:
-            queued = self._batch.add(call)
-        except Exception as err:
-            self.tool_rejected.emit(summarize_tool_call(call.name, call.arguments))
-            QgsMessageLog.logMessage(
-                f"Step {call.name} [{call.id}] rejected ({type(err).__name__}).",
-                LOG_TAG,
-                Qgis.MessageLevel.Warning,
-            )
-            return ToolResult.failure(call, str(err))
+        queued = self._batch.add(call)
         if len(self._batch.pending()) == before:
             # The prepared call, not the model's: Apply matches the duplicate to its twin by prepared arguments.
             return ToolResult(

@@ -1,6 +1,8 @@
 import unittest
+from types import SimpleNamespace
 
 from ai_agent.qgis_tools.common.renderers import renderer_summary, style_block
+from ai_agent.qgis_tools.style import raster
 from ai_agent.qgis_tools.style.renderers import describe_vector_renderer
 from ai_agent.qgis_tools.style.symbols import symbol_info
 
@@ -216,6 +218,30 @@ class SymbolInfoTest(unittest.TestCase):
 
     def test_symbol_kind_is_named(self):
         self.assertEqual(symbol_info(Symbol(kind=0))["kind"], "point")
+
+
+class _SparseProvider:
+    def __init__(self, sampled, whole):
+        self._ranges = {raster.STATISTICS_SAMPLE_CELLS: sampled, raster.WHOLE_BAND: whole}
+        self.samples = []
+
+    def bandStatistics(self, band, flags, extent, cells):
+        self.samples.append(cells)
+        low, high = self._ranges[cells]
+        return SimpleNamespace(minimumValue=low, maximumValue=high)
+
+
+class RasterRangeTest(unittest.TestCase):
+    def test_a_sparse_raster_is_read_whole_before_it_is_called_constant(self):
+        provider = _SparseProvider(sampled=(0.0, 0.0), whole=(-300.0, 5000.0))
+        layer = SimpleNamespace(dataProvider=lambda: provider)
+        self.assertEqual(raster.band_range(layer, 1), (-300.0, 5000.0))
+        self.assertEqual(provider.samples, [raster.STATISTICS_SAMPLE_CELLS, raster.WHOLE_BAND])
+
+    def test_a_truly_constant_band_is_still_refused(self):
+        layer = SimpleNamespace(dataProvider=lambda: _SparseProvider(sampled=(7.0, 7.0), whole=(7.0, 7.0)))
+        with self.assertRaisesRegex(ValueError, "no value range"):
+            raster.band_range(layer, 1)
 
 
 if __name__ == "__main__":

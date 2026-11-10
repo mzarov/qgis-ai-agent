@@ -239,7 +239,7 @@ def _assistant_message(message: dict[str, Any]) -> dict[str, Any] | None:
                 "type": TOOL_USE,
                 "id": call.get("id") or "",
                 "name": function.get("name") or "",
-                "input": _as_object(function.get("arguments")),
+                "input": as_object(function.get("arguments")),
             }
         )
     if not blocks:
@@ -283,7 +283,7 @@ def _as_blocks(content: Any) -> list[dict[str, Any]]:
     return [{"type": TEXT_BLOCK, "text": str(content)}]
 
 
-def _as_object(raw: Any) -> dict[str, Any]:
+def as_object(raw: Any) -> dict[str, Any]:
     if isinstance(raw, dict):
         return raw
     try:

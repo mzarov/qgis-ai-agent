@@ -189,6 +189,27 @@ class GetSelectionTest(unittest.TestCase):
         self.assertIn("selected_only", result["note"])
         self.assertEqual(len(layer.requests), 1)
 
+    def test_the_sample_is_asked_for_with_calls_qgis_4_has(self):
+        class Request:
+            def setLimit(self, limit):
+                self.limit = limit
+                return self
+
+            def setFlags(self, flags):
+                self.flags = flags
+                return self
+
+        layer = SelectionLayer("Дороги", [{"name": "a"}])
+        holder = type("P", (), {"instance": staticmethod(lambda: Project([layer]))})
+        with (
+            patch.object(selection_module, "QgsProject", holder),
+            patch.object(selection_module, "QgsFeatureRequest", Request),
+            patch.object(selection_module, "selected_count", lambda item: item.selectedFeatureCount()),
+        ):
+            result = GetSelectionTool().execute({})
+        self.assertEqual(result["selections"][0]["features"], [{"name": "a"}])
+        self.assertEqual(layer.requests[0].limit, selection_module.SAMPLE_LIMIT)
+
     def test_only_the_sample_is_read_from_a_large_selection(self):
         class Feature(dict):
             pass

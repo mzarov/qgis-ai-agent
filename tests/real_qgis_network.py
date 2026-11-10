@@ -47,7 +47,8 @@ class _Handler(BaseHTTPRequestHandler):
         self.server.requests.append((self.path, json.loads(raw)))
         if self.path.startswith("/status/"):
             status = int(self.path.rsplit("/", 1)[1])
-            content = json.dumps({"error": {"message": f"fixture-{status}"}}).encode()
+            body = {"error": {"message": f"fixture-{status}"}} if status >= 400 else {"choices": []}
+            content = json.dumps(body).encode()
             self.send_response(status)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(content)))

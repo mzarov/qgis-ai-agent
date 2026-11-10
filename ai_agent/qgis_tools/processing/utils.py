@@ -116,10 +116,20 @@ def describe_parameter(parameter: QgsProcessingParameterDefinition) -> dict[str,
     if default is not None:
         info["default"] = default
     options = parameter_options(parameter)
-    if options:
+    if options and uses_static_strings(parameter):
+        info["options"] = options
+        info["value_hint"] = "Pass the option text itself, not its number."
+    elif options:
         info["options"] = [{"value": index, "label": label} for index, label in enumerate(options)]
         info["value_hint"] = "Pass the number from the value field, not the text from label."
     return info
+
+
+def uses_static_strings(parameter: Any) -> bool:
+    try:
+        return parameter.usesStaticStrings() is True
+    except AttributeError:
+        return False
 
 
 def _default_value(parameter) -> Any:
@@ -142,6 +152,39 @@ def coerce_parameters(algorithm, arguments: dict[str, Any]) -> dict[str, Any]:
         elif param_type in DESTINATION_TYPES and name not in result and not is_optional(parameter):
             result[name] = TEMPORARY_OUTPUT
     return result
+
+
+def check_parameter_names(algorithm: Any, arguments: dict[str, Any]) -> None:
+    known = [parameter.name() for parameter in algorithm.parameterDefinitions()]
+    unknown = [str(name) for name in arguments if name not in known]
+    if unknown:
+        # Processing ignores a name it does not know and runs with the default instead.
+        raise ValueError(
+            f"{algorithm.id()} has no parameter {', '.join(repr(name) for name in unknown)}. "
+            f"Its parameters are: {', '.join(known)}. Names are case sensitive."
+        )
+
+
+def check_parameter_values(algorithm: Any, prepared: dict[str, Any]) -> None:
+    for parameter in algorithm.parameterDefinitions():
+        name = parameter.name()
+        value = prepared.get(name)
+        # Without a context QGIS checks the value's shape only: a layer made by an earlier step still passes.
+        try:
+            acceptable = parameter.checkValueIsAcceptable(value)
+        except Exception:
+            continue
+        if acceptable is not False:
+            continue
+        if value is None:
+            raise ValueError(
+                f"{algorithm.id()} needs a value for {name} ({parameter.type()}). "
+                "describe_processing shows what it takes."
+            )
+        raise ValueError(
+            f"{algorithm.id()} does not accept {name}={value!r}: it takes a value of type {parameter.type()}. "
+            "describe_processing shows what it takes."
+        )
 
 
 def expression_texts(algorithm: Any, arguments: dict[str, Any]) -> list[tuple[str, str]]:
@@ -195,9 +238,18 @@ def coerce_enum(parameter: Any, value: Any) -> Any:
     options = parameter_options(parameter)
     if not options:
         return value
+    coerce = _static_enum_value if uses_static_strings(parameter) else _coerce_enum_value
     if isinstance(value, list):
-        return [_coerce_enum_value(options, item) for item in value]
-    return _coerce_enum_value(options, value)
+        return [coerce(options, item) for item in value]
+    return coerce(options, value)
+
+
+def _static_enum_value(options: list[str], value: Any) -> Any:
+    # QGIS takes these enums by their text only: an index is turned back into it.
+    index = _coerce_enum_value(options, value)
+    if isinstance(index, int) and not isinstance(index, bool) and 0 <= index < len(options):
+        return options[index]
+    return value
 
 
 def _coerce_enum_value(options: list[str], value: Any) -> Any:
@@ -253,7 +305,8 @@ def apply_output_name(result: dict[str, Any], output_name: str, layers_before: C
     keys = [PRIMARY_OUTPUT_KEY] + [key for key in result if key != PRIMARY_OUTPUT_KEY]
     for key in keys:
         layer = output_layer(result.get(key), layers_before)
-        if layer is not None:
+        # An algorithm that returns its input (select, index, zonal statistics) must not rename the user's layer.
+        if layer is not None and layer.id() not in layers_before:
             layer.setName(name)
             return name
     return ""

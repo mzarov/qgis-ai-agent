@@ -8,6 +8,8 @@ from ai_agent.qgis_tools.common.paths import check_overwrite
 
 TEMPORARY_OUTPUT = "TEMPORARY_OUTPUT"
 MEMORY_PREFIX = "memory:"
+# native:alignrasters names its outputs inside the LAYERS items, not in a destination parameter.
+ITEM_OUTPUT_KEY = "outputFile"
 OGR_PROVIDER = "ogr"
 # Processing writes "key://uri", or "key:uri" with a key of three or more characters, through that provider.
 PROVIDER_URI = re.compile(r"(\w+?)://(.+)|(.{3,}?):(.*)", re.DOTALL)
@@ -27,15 +29,21 @@ def destination_values(parameters: dict[str, Any], destination_names: list[str] 
     for name, value in parameters.items():
         key = str(name)
         upper = key.upper()
-        if key not in selected and "OUTPUT" not in upper and "DESTINATION" not in upper:
-            continue
-        if not isinstance(value, str):
-            continue
-        destination = value.strip()
-        if not destination or destination.upper() == TEMPORARY_OUTPUT or destination.startswith(MEMORY_PREFIX):
-            continue
-        values.append(destination)
+        named = key in selected or "OUTPUT" in upper or "DESTINATION" in upper
+        for candidate in [value] if named else _item_outputs(value):
+            if not isinstance(candidate, str):
+                continue
+            destination = candidate.strip()
+            if not destination or destination.upper() == TEMPORARY_OUTPUT or destination.startswith(MEMORY_PREFIX):
+                continue
+            values.append(destination)
     return values
+
+
+def _item_outputs(value: Any) -> list[Any]:
+    if not isinstance(value, (list, tuple)):
+        return []
+    return [item.get(ITEM_OUTPUT_KEY) for item in value if isinstance(item, dict)]
 
 
 def check_destinations(parameters: dict[str, Any], overwrite: bool, destination_names: list[str] | None = None) -> None:

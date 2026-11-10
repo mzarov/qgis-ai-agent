@@ -543,6 +543,7 @@ _mod(
         "QDesktopServices",
         "QTextCursor",
         "QTextDocument",
+        "QTextOption",
         "QSyntaxHighlighter",
         "QTextCharFormat",
     ],

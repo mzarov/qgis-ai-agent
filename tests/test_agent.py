@@ -271,6 +271,9 @@ class AbortReentrancyTest(unittest.TestCase):
             def release(self):
                 return None
 
+            def detach(self, *callbacks):
+                return None
+
         loop = AgentLoop()
         turns = CapturingTurns()
         loop._turn = turns
@@ -297,6 +300,8 @@ class AbortReentrancyTest(unittest.TestCase):
         ):
             self.assertTrue(loop.start("old"))
             old_callbacks = turns.callbacks[-1]
+            self.assertFalse(loop.start("new"), "a request is in flight")
+            loop.abort()
             self.assertTrue(loop.start("new"))
             new_callbacks = turns.callbacks[-1]
 

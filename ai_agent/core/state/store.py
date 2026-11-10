@@ -19,6 +19,8 @@ class SessionStore:
 
     def save(self, session: Session) -> None:
         if session.is_empty:
+            # Rewound to its first message: the file would bring the whole conversation back.
+            self.delete(session.identifier)
             return
         path = self._path(session.identifier)
         is_new = not os.path.exists(path)

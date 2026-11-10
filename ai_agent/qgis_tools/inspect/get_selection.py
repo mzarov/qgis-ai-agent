@@ -1,7 +1,7 @@
 from contextlib import suppress
 from typing import Any
 
-from qgis.core import QgsFeatureRequest, QgsProject
+from qgis.core import Qgis, QgsFeatureRequest, QgsProject
 
 from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
@@ -61,8 +61,9 @@ def _sample(layer: Any) -> list[dict[str, Any]]:
     try:
         names = layer.fields().names()
         # Not selectedFeatures(): it would load every selected feature with geometry.
-        features = layer.getSelectedFeatures(QgsFeatureRequest().setLimit(SAMPLE_LIMIT).setNoGeometry())
-    except Exception:
+        request = QgsFeatureRequest().setLimit(SAMPLE_LIMIT).setFlags(Qgis.FeatureRequestFlag.NoGeometry)
+        features = layer.getSelectedFeatures(request)
+    except (AttributeError, RuntimeError, TypeError):
         return []
     sampled = []
     for feature in features:

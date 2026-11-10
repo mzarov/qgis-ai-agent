@@ -13,6 +13,8 @@ MAX_TEXT = 80
 MAX_TABLE_ROWS = 50
 MAX_TABLE_COLUMNS = 10
 MAX_CELL = 120
+CELL_DIGITS = 6
+MAX_DECIMALS = 12
 OTHER = "Other"
 
 
@@ -112,6 +114,16 @@ def _numbers(raw: Any, name: str) -> list[float | None]:
     return numbers
 
 
+def plain_number(value: float, digits: int) -> str:
+    # The "g" format turns to an exponent past its digits: a person reads 1,234,568, not 1.23457e+06.
+    if not value or not math.isfinite(value):
+        return "0" if not value else str(value)
+    decimals = min(MAX_DECIMALS, max(0, digits - 1 - math.floor(math.log10(abs(value)))))
+    text = f"{value:,.{decimals}f}"
+    text = text.rstrip("0").rstrip(".") if "." in text else text
+    return "0" if text in ("-0", "") else text
+
+
 def _text(value: Any) -> str:
     return " ".join(str(value or "").split())[:MAX_TEXT]
 
@@ -120,5 +132,5 @@ def _cell(value: Any) -> str:
     if value is None:
         return ""
     if isinstance(value, float):
-        return f"{value:,.6g}" if abs(value) < 1e15 else str(value)
+        return plain_number(value, CELL_DIGITS) if abs(value) < 1e15 else str(value)
     return " ".join(str(value).split())[:MAX_CELL]
