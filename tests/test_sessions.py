@@ -450,7 +450,7 @@ class ProjectIdentityTest(unittest.TestCase):
     def test_relative_saved_path_is_canonical(self):
         key = project_identity(Project("projects/../map.qgz"))
         self.assertTrue(os.path.isabs(key))
-        self.assertEqual(key, os.path.realpath(os.path.abspath("map.qgz")))
+        self.assertEqual(key, os.path.normcase(os.path.realpath(os.path.abspath("map.qgz"))))
 
     def test_unsaved_identity_is_stable_until_the_project_is_cleared(self):
         project = Project()
@@ -512,7 +512,8 @@ class ProjectIdentityTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             project = Project("map.qgz")
             project.absoluteFilePath = lambda: os.path.join(root, "maps", "..", "map.qgz")
-            self.assertEqual(project_identity(project), os.path.realpath(os.path.join(root, "map.qgz")))
+            expected = os.path.normcase(os.path.realpath(os.path.join(root, "map.qgz")))
+            self.assertEqual(project_identity(project), expected)
 
     def test_a_database_project_without_its_storage_is_still_hashed_without_credentials(self):
         names = (

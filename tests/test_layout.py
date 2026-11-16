@@ -305,7 +305,7 @@ class NorthArrowPathTest(unittest.TestCase):
 class ExportPathTest(unittest.TestCase):
     def test_wrong_extension_is_refused(self):
         with self.assertRaises(ValueError) as caught:
-            _checked_path("/tmp/map.svg")
+            _checked_path(os.path.join(tempfile.gettempdir(), "map.svg"))
         self.assertIn(".pdf", str(caught.exception))
 
     def test_missing_folder_is_refused(self):
@@ -314,7 +314,8 @@ class ExportPathTest(unittest.TestCase):
         self.assertIn("does not exist", str(caught.exception))
 
     def test_valid_pdf_path_passes(self):
-        self.assertEqual(_checked_path("/tmp/map.pdf"), "/tmp/map.pdf")
+        path = os.path.join(tempfile.gettempdir(), "map.pdf")
+        self.assertEqual(_checked_path(path), path)
 
     def test_summary_never_raises(self):
         saved = export_module.find_layout

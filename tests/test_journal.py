@@ -103,8 +103,9 @@ class WriteTest(unittest.TestCase):
             self.assertTrue(path.endswith(".md"))
             with open(path, encoding="utf-8") as handle:
                 self.assertEqual(handle.read(), "# j")
-            self.assertEqual(stat.S_IMODE(os.stat(folder).st_mode), 0o700)
-            self.assertEqual(stat.S_IMODE(os.stat(path).st_mode), 0o600)
+            if os.name != "nt":
+                self.assertEqual(stat.S_IMODE(os.stat(folder).st_mode), 0o700)
+                self.assertEqual(stat.S_IMODE(os.stat(path).st_mode), 0o600)
         finally:
             shutil.rmtree(folder, ignore_errors=True)
 

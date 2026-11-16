@@ -514,6 +514,13 @@ class SnapshotIntegrityTest(unittest.TestCase):
         self.assertTrue(all(snapshots.snapshot_exists(path) for path in kept))
         self.assertEqual(snapshots.last_snapshot(), kept[-1])
 
+    def test_two_snapshots_in_one_clock_tick_do_not_share_a_file(self):
+        with patch.object(snapshots.time, "time_ns", return_value=1_000):
+            first = snapshots.take_snapshot()
+            second = snapshots.take_snapshot()
+        self.assertNotEqual(first, second)
+        self.assertTrue(os.path.exists(first) and os.path.exists(second))
+
     def test_a_snapshot_deleted_behind_the_plugins_back_is_skipped(self):
         first = snapshots.take_snapshot()
         second = snapshots.take_snapshot()
@@ -593,7 +600,8 @@ class ProcessFolderTest(unittest.TestCase):
         snapshots._PROCESS_FOLDER = ""
         folder = snapshots.snapshot_folder()
         self.addCleanup(os.rmdir, folder)
-        self.assertEqual(os.stat(folder).st_mode & 0o777, 0o700)
+        if os.name != "nt":
+            self.assertEqual(os.stat(folder).st_mode & 0o777, 0o700)
         self.assertEqual(snapshots.snapshot_folder(), folder)
 
     def test_quitting_removes_the_snapshots_and_only_them(self):

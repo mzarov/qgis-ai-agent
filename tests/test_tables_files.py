@@ -1,5 +1,6 @@
 import json
 import os
+import pathlib
 import tempfile
 import time
 import unittest
@@ -116,7 +117,7 @@ class ReadTableTest(FileCase):
 
     def test_file_urls_are_paths(self):
         path = self.write("my stats.csv", "a\n1\n")
-        url = "file://" + path.replace(" ", "%20")
+        url = pathlib.Path(path).as_uri()
         self.assertEqual(read_table(url).path, os.path.abspath(path))
 
     def test_a_large_lon_lat_file_is_checked_quickly(self):

@@ -472,7 +472,7 @@ class RunnerTest(unittest.TestCase):
         self.assertEqual(config["providers"][0]["config"]["key_variable"], "", "a local server needs no key")
         self.assertEqual(config["providers"][1]["config"]["model"], "m2")
         self.assertEqual(config["defaultTest"]["vars"], {"skill": "style", "locale": "ru"})
-        self.assertTrue(config["tests"].endswith("skills/style/evals/cases.yaml"))
+        self.assertEqual(Path(config["tests"]).parts[-4:], ("skills", "style", "evals", "cases.yaml"))
         self.assertIn("set_categories", [schema["function"]["name"] for schema in tools])
 
     def test_an_oauth_gateway_gets_its_header_without_the_key_on_disk(self):
@@ -784,9 +784,9 @@ class AgentBenchConfigTest(unittest.TestCase):
             self.assertEqual(app.name, "QGIS-final-4_2_1.app", "a QGIS without PyQGIS in its bundle was taken")
             python, environment = bench.native_python(app)
         self.assertEqual(python.name, "python3.12")
-        self.assertTrue(environment["PYTHONHOME"].endswith("Resources/python3.12"))
+        self.assertEqual(Path(environment["PYTHONHOME"]).parts[-2:], ("Resources", "python3.12"))
         self.assertIn("site-packages", environment["PYTHONPATH"])
-        self.assertTrue(environment["PROJ_DATA"].endswith("qgis/proj"))
+        self.assertEqual(Path(environment["PROJ_DATA"]).parts[-2:], ("qgis", "proj"))
         self.assertEqual(environment["QT_QPA_PLATFORM"], "offscreen")
 
     def test_no_installed_qgis_means_docker(self):

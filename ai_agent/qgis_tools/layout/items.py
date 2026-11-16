@@ -79,7 +79,7 @@ def north_arrow_path(style: str) -> str:
     except Exception:
         folders = []
     for folder in folders:
-        candidate = os.path.join(folder, relative)
+        candidate = os.path.normpath(os.path.join(folder, relative))
         if os.path.isfile(candidate):
             return candidate
     return os.path.join(folders[0], relative) if folders else ""
