@@ -1,8 +1,7 @@
 from typing import Any
 
-from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject
+from ai_agent.qgis_tools.common.layers import to_wgs84
 
-WGS84 = "EPSG:4326"
 PARTS = 4
 MAX_DEGREES = 180.0
 MAX_SPAN_DEGREES = 5.0
@@ -27,8 +26,7 @@ def canvas_bbox() -> tuple[float, float, float, float]:
     rectangle, source = _canvas_extent()
     if rectangle is None:
         raise ValueError("The map is not available, so the current view cannot be read. Give bbox as numbers, or area.")
-    if source is not None and source.authid() != WGS84:
-        rectangle = _to_wgs84(rectangle, source)
+    rectangle = to_wgs84(rectangle, source)
     return checked_bbox(rectangle.xMinimum(), rectangle.yMinimum(), rectangle.xMaximum(), rectangle.yMaximum())
 
 
@@ -40,11 +38,6 @@ def _canvas_extent() -> tuple[Any, Any]:
         return canvas.extent(), canvas.mapSettings().destinationCrs()
     except Exception:
         return None, None
-
-
-def _to_wgs84(rectangle: Any, source: Any) -> Any:
-    transform = QgsCoordinateTransform(source, QgsCoordinateReferenceSystem(WGS84), QgsProject.instance())
-    return transform.transformBoundingBox(rectangle)
 
 
 def checked_bbox(west: float, south: float, east: float, north: float) -> tuple[float, float, float, float]:

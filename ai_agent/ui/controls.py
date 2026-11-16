@@ -1,8 +1,8 @@
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from html import escape
 from typing import Any
 
-from qgis.PyQt.QtCore import QEasingCurve, QRectF, QSize, Qt, QVariantAnimation, pyqtSignal
+from qgis.PyQt.QtCore import QEasingCurve, QPointF, QRectF, QSize, Qt, QVariantAnimation, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QKeySequence, QPainter, QPen
 from qgis.PyQt.QtWidgets import (
     QButtonGroup,
@@ -14,12 +14,14 @@ from qgis.PyQt.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QToolButton,
+    QToolTip,
     QWidget,
     QWidgetAction,
 )
 
 from ai_agent.ui import icons, style, transitions
 
+NUMBER_KEYS = {getattr(Qt.Key, f"Key_{digit}"): digit - 1 for digit in range(1, 10)}
 SEGMENT_NAME = "segmented"
 SEGMENT_RADIUS = 8
 SEGMENT_INNER_RADIUS = 6
@@ -552,6 +554,16 @@ class KeyCap(QLabel):
 def plain_tip(text: str) -> str:
     # Rich, so a long tip wraps; escaped, so a tag in it is shown, never followed.
     return f"<qt>{escape(text, quote=False).replace(NEWLINE, LINE_BREAK)}</qt>" if text else ""
+
+
+def show_hover_tip(owner: QWidget, event: Any, hits: Iterable[tuple[Any, str]]) -> None:
+    position = event.position() if hasattr(event, "position") else QPointF(event.pos())
+    tip = next((text for box, text in hits if box.contains(position)), "")
+    if not tip:
+        QToolTip.hideText()
+        return
+    place = event.globalPosition().toPoint() if hasattr(event, "globalPosition") else event.globalPos()
+    QToolTip.showText(place, plain_tip(tip), owner)
 
 
 class ElidedLabel(QLabel):

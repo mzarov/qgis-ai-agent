@@ -9,7 +9,8 @@ from qgis.core import (
     QgsProject,
 )
 
-WGS84 = "EPSG:4326"
+from ai_agent.qgis_tools.common.layers import WGS84
+
 UTM_KEYWORD = "utm"
 POINT = "point"
 LINE = "line"

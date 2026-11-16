@@ -1,7 +1,7 @@
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from ai_agent.qgis_tools.quality.tally import Bounds, Tally
+from ai_agent.qgis_tools.quality.tally import COORD_DIGITS, Bounds, Tally
 
 PROBLEM_INVALID = "invalid_geometry"
 PROBLEM_EMPTY = "empty_geometry"
@@ -26,7 +26,6 @@ MAX_DEGREES_Y = 90.0
 MAX_LISTED_FIELDS = 20
 MANY_CRS = 3
 MAX_LISTED_CRS = 6
-COORD_DIGITS = 6
 
 SUGGESTIONS = {
     PROBLEM_CRS: (

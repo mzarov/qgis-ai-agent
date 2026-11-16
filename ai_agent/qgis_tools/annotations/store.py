@@ -3,7 +3,8 @@ from typing import Any
 
 from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject
 
-WGS84 = "EPSG:4326"
+from ai_agent.qgis_tools.common.layers import WGS84
+
 COORD_DECIMALS = 6
 
 

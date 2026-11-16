@@ -6,11 +6,10 @@ from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.layers import enum_name, feature_count_block, find_layer_by_name, layer_reference
-from ai_agent.qgis_tools.common.values import clamp_limit, plain_value, wanted_fields
+from ai_agent.qgis_tools.common.values import clamp_limit, plain_value, short_value, wanted_fields
 
 DEFAULT_LIMIT = 5
 MAX_LIMIT = 20
-MAX_VALUE_CHARS = 120
 
 
 class SampleFeaturesTool(BaseTool):
@@ -77,7 +76,7 @@ class SampleFeaturesTool(BaseTool):
         for name in names:
             if wanted is not None and name not in wanted:
                 continue
-            attributes[name] = _truncated(plain_value(feature[name]))
+            attributes[name] = short_value(plain_value(feature[name]))
         entry: dict[str, Any] = {"attributes": attributes}
         geometry_type = _geometry_type(feature)
         if geometry_type:
@@ -93,9 +92,3 @@ def _geometry_type(feature) -> str:
         return enum_name(geometry.type()).lower()
     except Exception:
         return ""
-
-
-def _truncated(value: Any) -> Any:
-    if not isinstance(value, str) or len(value) <= MAX_VALUE_CHARS:
-        return value
-    return value[:MAX_VALUE_CHARS] + "…"

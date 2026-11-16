@@ -9,7 +9,8 @@ from qgis.core import (
     QgsRectangle,
 )
 
-WGS84 = "EPSG:4326"
+from ai_agent.qgis_tools.common.layers import WGS84
+
 VIEW_TOO_WIDE = 25.0
 
 Box = tuple[float, ...]

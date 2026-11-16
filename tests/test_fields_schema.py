@@ -45,7 +45,7 @@ class FieldsCase(unittest.TestCase):
 
     def setUp(self):
         self.saved = (fields_module.require_vector, fields_module.compile_expression)
-        fields_module.require_vector = lambda name: self.layer
+        fields_module.require_vector = lambda name, layer_id="": self.layer
         fields_module.compile_expression = lambda text, label, layer=None: None
 
     def tearDown(self):

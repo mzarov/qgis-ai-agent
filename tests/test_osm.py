@@ -12,6 +12,7 @@ from ai_agent.qgis_tools.base import SAFETY_READ
 from ai_agent.qgis_tools.common import geocoding
 from ai_agent.qgis_tools.common.editing import edit_session
 from ai_agent.qgis_tools.common.network import Answer
+from ai_agent.qgis_tools.common.paths import file_slug
 from ai_agent.qgis_tools.osm import (
     args,
     download_osm,
@@ -334,7 +335,7 @@ class PayloadIsolationTest(unittest.TestCase):
             folders = [os.path.join(root, name) for name in ("first", "second")]
             for folder in folders:
                 os.mkdir(folder)
-            with mock.patch.object(load.tempfile, "mkdtemp", side_effect=folders):
+            with mock.patch.object(tempfile, "mkdtemp", side_effect=folders):
                 first, first_temporary = load.write_payload("<osm/>", "cafes")
                 second, _ = load.write_payload("<osm/>", "cafes")
 
@@ -405,7 +406,7 @@ class SublayerTest(unittest.TestCase):
             self.assertEqual(len(set(titles)), len(titles), geometry)
 
     def test_file_name_is_safe_for_disk(self):
-        self.assertNotIn("/", load._slug("amenity=cafe/../etc"))
+        self.assertNotIn("/", file_slug("amenity=cafe/../etc", load.FALLBACK_STEM))
 
     def test_geometry_options_match_the_tool_schema(self):
         schema = {item["name"]: item for item in download_osm.DownloadOsmTool().params_schema}

@@ -7,6 +7,7 @@ from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_IMAGE, RESULT_IMAGE_KEY, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common.images import encoded_png
 from ai_agent.qgis_tools.common.layers import extent_dict, find_layer_by_name, safe_extent
+from ai_agent.qgis_tools.common.values import clamp_limit
 
 DEFAULT_WIDTH = 900
 MIN_WIDTH = 200
@@ -60,7 +61,7 @@ class RenderMapTool(BaseTool):
         layer_name = (params.get("layer_name") or "").strip()
         if layer_name:
             _frame_layer(canvas, settings, layer_name)
-        width = _clamped_width(params.get("width"))
+        width = clamp_limit(params.get("width"), DEFAULT_WIDTH, MAX_WIDTH, MIN_WIDTH)
         settings.setOutputSize(QSize(width, _height_for(settings, width)))
         image = _rendered(settings)
         encoded = encoded_png(image)
@@ -95,14 +96,6 @@ def _frame_layer(canvas: Any, settings: Any, layer_name: str) -> None:
         geographic = settings.destinationCrs().isGeographic()
         framed.grow(POINT_MARGIN_DEGREES if geographic else POINT_MARGIN_METRES)
     settings.setExtent(framed)
-
-
-def _clamped_width(raw: Any) -> int:
-    try:
-        wanted = int(raw) if raw is not None else DEFAULT_WIDTH
-    except (TypeError, ValueError):
-        wanted = DEFAULT_WIDTH
-    return max(MIN_WIDTH, min(MAX_WIDTH, wanted))
 
 
 def _height_for(settings: Any, width: int) -> int:

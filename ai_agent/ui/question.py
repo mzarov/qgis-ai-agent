@@ -26,7 +26,6 @@ RECOMMENDED = tr("recommended")
 OWN_ANSWER = tr("Your own answer…")
 COUNTDOWN = tr("Choosing “{0}” in {1}")
 TICK_MS = 1000
-NUMBER_KEYS = {getattr(Qt.Key, f"Key_{digit}"): digit - 1 for digit in range(1, 10)}
 
 
 def split_option(option: str) -> tuple[str, str]:
@@ -224,7 +223,7 @@ class QuestionCard(controls.RoundedFrame):
         return not self._choices.isHidden()
 
     def keyPressEvent(self, event: Any) -> None:
-        index = NUMBER_KEYS.get(event.key())
+        index = controls.NUMBER_KEYS.get(event.key())
         if index is not None and index < len(self.rows) and self.is_open:
             self._pick(self.rows[index].text)
         elif index == len(self.rows) and self.is_open:

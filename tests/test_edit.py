@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import patch
 
 from qgis.core import QgsVectorLayer
+from qgis.PyQt.QtCore import QMetaType
 
 from ai_agent.core.agent.batch import WriteBatch
 from ai_agent.core.agent.executor import ToolExecutor
@@ -132,7 +133,7 @@ class TypedFields(Fields):
 
 class BooleanField(IntegerField):
     def type(self):
-        return update_module.QMetaType.Type.Bool
+        return QMetaType.Type.Bool
 
     def convertCompatible(self, value):
         return bool(value)

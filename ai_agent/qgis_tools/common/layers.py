@@ -125,12 +125,22 @@ def project_metric_crs(project: Any) -> str:
 def wgs84_extent(layer: QgsMapLayer, project: Any = None) -> Any:
     extent = layer.extent()
     with suppress(Exception):
-        crs = layer.crs()
-        if crs.isValid() and crs.authid() != WGS84:
-            context = project if project is not None else QgsProject.instance()
-            transform = QgsCoordinateTransform(crs, QgsCoordinateReferenceSystem(WGS84), context)
-            return transform.transformBoundingBox(extent)
+        return to_wgs84(extent, layer.crs(), project)
     return extent
+
+
+def is_spatial(layer: Any, unknown: bool = True) -> bool:
+    try:
+        return bool(layer.isSpatial())
+    except Exception:
+        return unknown
+
+
+def to_wgs84(rectangle: Any, crs: Any, project: Any = None) -> Any:
+    if crs is None or not crs.isValid() or crs.authid() == WGS84:
+        return rectangle
+    context = project if project is not None else QgsProject.instance()
+    return QgsCoordinateTransform(crs, QgsCoordinateReferenceSystem(WGS84), context).transformBoundingBox(rectangle)
 
 
 def _has_extent(layer: QgsMapLayer) -> bool:

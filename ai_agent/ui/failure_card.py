@@ -91,9 +91,6 @@ class FailureCard(controls.RoundedFrame):
         self._palette = palette
         self._show_retry(retryable)
 
-    def plain_text(self) -> str:
-        return f"{self.title.text()} {self.detail.text()}"
-
     def offer_retry(self) -> None:
         self._show_retry(True)
 

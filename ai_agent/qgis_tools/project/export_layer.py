@@ -20,6 +20,7 @@ from ai_agent.qgis_tools.common.layers import (
     feature_count_if_cheap,
     find_layer_by_id,
     find_layer_by_name,
+    is_spatial,
     layer_reference,
     pinned_layer,
 )
@@ -101,7 +102,7 @@ class ExportLayerTool(BaseTool):
         layer_id = str(params.get("layer_id") or "").strip()
         layer = _require_vector(layer_name, layer_id) if layer_id else _require_vector(layer_name)
         path = _checked_path(params.get("path") or "")
-        if FORMATS[_suffix(path)] == SHAPEFILE and not _is_spatial(layer):
+        if FORMATS[_suffix(path)] == SHAPEFILE and not is_spatial(layer):
             raise ValueError(TABLE_AS_SHAPEFILE.format(name=layer.name()))
         _refuse_a_layer_source(path)
         outputs = related_output_paths(path)
@@ -136,7 +137,7 @@ class ExportLayerTool(BaseTool):
         options = QgsVectorFileWriter.SaveVectorOptions()
         options.driverName = FORMATS[_suffix(path)]
         options.onlySelectedFeatures = bool(params.get("selected_only"))
-        spatial_csv = _suffix(path) == CSV_SUFFIX and _is_spatial(layer)
+        spatial_csv = _suffix(path) == CSV_SUFFIX and is_spatial(layer)
         if spatial_csv:
             options.layerOptions = list(CSV_GEOMETRY_OPTIONS)
         crs = _checked_crs(params.get("crs"))
@@ -191,13 +192,6 @@ def _require_vector(layer_name: str, layer_id: str = "") -> Any:
     if not isinstance(layer, QgsVectorLayer):
         raise ValueError(f"Layer '{layer.name()}' is not a vector layer — rasters export through processing.")
     return layer
-
-
-def _is_spatial(layer: Any) -> bool:
-    try:
-        return bool(layer.isSpatial())
-    except Exception:
-        return True
 
 
 def _prepared_vector(params: dict[str, Any]) -> Any:

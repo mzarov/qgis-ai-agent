@@ -6,6 +6,7 @@ from qgis.PyQt.QtCore import QDate, QDateTime, Qt, QTime
 
 MAX_LISTED_FIELDS = 25
 CLOSE_MATCH_CUTOFF = 0.6
+MAX_VALUE_CHARS = 120
 
 
 def plain_value(value: Any) -> Any:
@@ -24,12 +25,18 @@ def plain_value(value: Any) -> Any:
     return str(value)
 
 
-def clamp_limit(raw: Any, default: int, maximum: int) -> int:
+def clamp_limit(raw: Any, default: int, maximum: int, minimum: int = 1) -> int:
     try:
         value = int(raw) if raw is not None else default
     except (TypeError, ValueError):
         value = default
-    return max(1, min(value, maximum))
+    return max(minimum, min(value, maximum))
+
+
+def short_value(value: Any) -> Any:
+    if not isinstance(value, str) or len(value) <= MAX_VALUE_CHARS:
+        return value
+    return value[:MAX_VALUE_CHARS] + "…"
 
 
 def wanted_fields(layer: QgsMapLayer, raw: Any) -> list[str] | None:

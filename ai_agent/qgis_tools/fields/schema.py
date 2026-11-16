@@ -5,7 +5,7 @@ from qgis.core import Qgis, QgsFeatureRequest, QgsField, QgsVectorLayer
 from qgis.PyQt.QtCore import QMetaType
 
 from ai_agent.qgis_tools.common.expressions import build_context, compile_expression
-from ai_agent.qgis_tools.common.layers import find_layer_by_name
+from ai_agent.qgis_tools.common.layers import find_layer_by_id, find_layer_by_name
 from ai_agent.qgis_tools.common.values import suggest_fields
 
 FIELD_TYPES = {
@@ -32,8 +32,8 @@ SHAPEFILE_STORAGE = "ESRI Shapefile"
 SHAPEFILE_NAME_BYTES = 10
 
 
-def require_vector(layer_name: str) -> QgsVectorLayer:
-    layer = find_layer_by_name(layer_name)
+def require_vector(layer_name: str, layer_id: str = "") -> QgsVectorLayer:
+    layer = find_layer_by_id(layer_id) if layer_id else find_layer_by_name(layer_name)
     if not isinstance(layer, QgsVectorLayer):
         raise ValueError(f"Layer '{layer.name()}' is not a vector layer, it has no attribute schema.")
     return layer
