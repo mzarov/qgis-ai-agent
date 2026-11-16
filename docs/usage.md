@@ -151,6 +151,9 @@ skill, built-in or yours, can be switched off there.
 ## Settings
 
 - **Connection**: the provider, address, model and key. See [Setup](SETUP.md).
+  The arrow in the Model field lists the server's models. Save tests a changed
+  connection first; if the test fails, nothing is stored until you press
+  **Save anyway**.
 - **Privacy**: where your data goes, SSL checking, how long conversations are
   kept, the run journal (off by default), usage statistics and **Delete
   history and journals**. See [Data and privacy](privacy.md).

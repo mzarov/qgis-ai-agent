@@ -351,6 +351,10 @@
   "text": "qwen3"
  },
  {
+  "depth": 8,
+  "type": "QToolButton"
+ },
+ {
   "depth": 6,
   "type": "QFrame",
   "name": "settingsSeparator"

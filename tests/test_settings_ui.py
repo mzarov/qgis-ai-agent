@@ -19,8 +19,8 @@ from ai_agent.core.llm import (
     probe as settings_probe,
 )
 from ai_agent.core.llm.dialects import ANTHROPIC, OPENAI, resolve
-from ai_agent.ui import controls, settings_advanced
-from ai_agent.ui.settings_dialog import SettingsDialog
+from ai_agent.ui import controls, model_list, settings_advanced
+from ai_agent.ui.settings_dialog import UNSAVED, SettingsDialog
 from tests.test_credentials import MemorySettings
 
 
@@ -509,6 +509,30 @@ class ProbeWorkerTest(unittest.TestCase):
         self.assertEqual(completed, [])
 
 
+class ModelListWorkerTest(unittest.TestCase):
+    def setUp(self):
+        self.addCleanup(setattr, probe_worker, "list_models", probe_worker.list_models)
+
+    def test_the_list_is_asked_with_the_threads_feedback_and_handed_over(self):
+        seen = {}
+        probe_worker.list_models = lambda overrides: (seen.update(overrides) or ["a", "b"], "")
+        worker = probe_worker.ModelListThread({"url_override": "http://localhost:11434/v1"})
+        listed = []
+        worker.listed.connect(lambda names, problem: listed.append((names, problem)))
+        worker.run()
+        self.assertEqual(listed, [(["a", "b"], "")])
+        self.assertIs(seen["feedback_override"], worker._feedback)
+
+    def test_a_cancelled_request_hands_nothing_over(self):
+        probe_worker.list_models = lambda overrides: (["a"], "")
+        worker = probe_worker.ModelListThread({})
+        listed = []
+        worker.listed.connect(lambda names, problem: listed.append(names))
+        worker.cancel()
+        worker.run()
+        self.assertEqual(listed, [])
+
+
 class RunningProbe:
     def __init__(self):
         self.running = True
@@ -547,9 +571,9 @@ class ClosingDuringAProbeTest(unittest.TestCase):
         self.dialog._on_probe_finished(self.probe)
 
     def test_save_stores_at_once_and_closes_once_the_probe_stopped(self):
-        self.dialog.model_edit.setText("saved-model")
+        self.dialog.reasoning_cb.setChecked(True)
         self.dialog._save()
-        self.assertEqual(settings.get_model(), "saved-model")
+        self.assertTrue(settings.get_reasoning_enabled())
         self.assertTrue(self.probe.cancelled)
         self.assertIsNone(self.dialog.closed_with, "the window outlived the probe's thread")
         self._probe_stops()
@@ -584,6 +608,234 @@ class ClosingDuringAProbeTest(unittest.TestCase):
         self.dialog._probe_thread = None
         self.dialog._save()
         self.assertEqual(self.dialog.closed_with, QDialog.DialogCode.Accepted)
+
+
+class ProbingDialog(ClosingDialog):
+    def __init__(self):
+        super().__init__()
+        self.probes = []
+
+    def _start_probe(self):
+        self._probed = self._connection()
+        self._probe_scope = (self._edited_url(), self.model_edit.text(), None)
+        self._probe_thread = RunningProbe()
+        self.probes.append(self._probe_thread)
+
+    def answer(self, ok):
+        probe = self.probes[-1]
+        if not probe.cancelled:
+            self._on_probe_completed(ok, "the server's words")
+        probe.running = False
+        self._on_probe_finished(probe)
+
+
+class ProbeOnSaveTest(unittest.TestCase):
+    def setUp(self):
+        MemorySettings.values = {}
+        for module in (settings, geocoder_config):
+            patcher = mock.patch.object(module, "QgsSettings", MemorySettings)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.dialog = ProbingDialog()
+
+    def test_a_changed_connection_is_tested_before_it_is_stored(self):
+        self.dialog.model_edit.setText("new-model")
+        self.dialog._save()
+        self.assertEqual(len(self.dialog.probes), 1)
+        self.assertEqual(settings.get_model(), settings.DEFAULT_MODEL)
+        self.assertIsNone(self.dialog.closed_with)
+        self.dialog.answer(True)
+        self.assertEqual(settings.get_model(), "new-model")
+        self.assertEqual(self.dialog.closed_with, QDialog.DialogCode.Accepted)
+        self.assertEqual(len(self.dialog.probes), 1)
+
+    def test_a_failed_test_stores_nothing_and_the_next_save_stores_without_asking_again(self):
+        self.dialog.model_edit.setText("new-model")
+        self.dialog._save()
+        self.dialog.answer(False)
+        self.assertEqual(settings.get_model(), settings.DEFAULT_MODEL)
+        self.assertIsNone(self.dialog.closed_with)
+        self.assertEqual(self.dialog._refused, self.dialog._connection())
+        self.dialog._save()
+        self.assertEqual(settings.get_model(), "new-model")
+        self.assertEqual(self.dialog.closed_with, QDialog.DialogCode.Accepted)
+        self.assertEqual(len(self.dialog.probes), 1)
+
+    def test_an_edit_after_a_failed_test_is_tested_again(self):
+        self.dialog.model_edit.setText("new-model")
+        self.dialog._save()
+        self.dialog.answer(False)
+        self.dialog.model_edit.setText("another-model")
+        self.dialog._forget_refusal()
+        self.dialog._save()
+        self.assertEqual(len(self.dialog.probes), 2)
+        self.assertEqual(settings.get_model(), settings.DEFAULT_MODEL)
+
+    def test_a_save_that_leaves_the_connection_alone_asks_the_server_nothing(self):
+        self.dialog.reasoning_cb.setChecked(True)
+        self.dialog._save()
+        self.assertEqual(self.dialog.probes, [])
+        self.assertEqual(self.dialog.closed_with, QDialog.DialogCode.Accepted)
+
+    def test_a_connection_that_passed_the_test_by_hand_is_not_tested_again(self):
+        self.dialog.model_edit.setText("new-model")
+        self.dialog._test_connection()
+        self.dialog.answer(True)
+        self.dialog._save()
+        self.assertEqual(len(self.dialog.probes), 1)
+        self.assertEqual(settings.get_model(), "new-model")
+
+    def test_a_failed_test_by_hand_already_offers_to_save_anyway(self):
+        self.dialog.model_edit.setText("new-model")
+        self.dialog._test_connection()
+        self.dialog.answer(False)
+        self.dialog._save()
+        self.assertEqual(len(self.dialog.probes), 1)
+        self.assertEqual(settings.get_model(), "new-model")
+
+    def test_a_save_during_the_test_of_other_values_starts_its_own_test(self):
+        self.dialog.model_edit.setText("first")
+        self.dialog._test_connection()
+        self.dialog.model_edit.setText("second")
+        self.dialog._save()
+        self.assertTrue(self.dialog.probes[0].cancelled)
+        self.dialog.answer(True)
+        self.assertEqual(len(self.dialog.probes), 2)
+        self.assertEqual(settings.get_model(), settings.DEFAULT_MODEL)
+        self.dialog.answer(True)
+        self.assertEqual(settings.get_model(), "second")
+
+    def test_a_save_during_the_test_of_the_same_values_waits_for_its_answer(self):
+        self.dialog.model_edit.setText("new-model")
+        self.dialog._test_connection()
+        self.dialog._save()
+        self.assertFalse(self.dialog.probes[0].cancelled)
+        self.dialog.answer(True)
+        self.assertEqual(len(self.dialog.probes), 1)
+        self.assertEqual(settings.get_model(), "new-model")
+
+    def test_cancelling_the_test_drops_the_waiting_save(self):
+        self.dialog.model_edit.setText("new-model")
+        self.dialog._save()
+        self.dialog._test_connection()
+        self.dialog.answer(True)
+        self.assertEqual(len(self.dialog.probes), 1)
+        self.assertEqual(settings.get_model(), settings.DEFAULT_MODEL)
+        self.assertIsNone(self.dialog.closed_with)
+
+    def test_cancel_during_the_test_closes_without_storing(self):
+        self.dialog.model_edit.setText("new-model")
+        self.dialog._save()
+        self.dialog.reject()
+        self.dialog.answer(True)
+        self.assertEqual(self.dialog.closed_with, QDialog.DialogCode.Rejected)
+        self.assertEqual(settings.get_model(), settings.DEFAULT_MODEL)
+
+    def test_an_address_without_a_model_is_refused_before_any_test(self):
+        self.dialog.model_edit.setText("")
+        self.dialog._save()
+        self.assertEqual(self.dialog.probes, [])
+        self.assertIsNone(self.dialog.closed_with)
+
+
+class ModelListDialogTest(unittest.TestCase):
+    def setUp(self):
+        MemorySettings.values = {}
+        for module in (settings, geocoder_config):
+            patcher = mock.patch.object(module, "QgsSettings", MemorySettings)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.dialog = ClosingDialog()
+        self.threads = []
+        self.shown = []
+        patcher = mock.patch.object(model_list, "ModelListThread", self._thread)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.dialog._show_models = self.shown.append
+
+    def _thread(self, overrides, _parent):
+        thread = RunningProbe()
+        thread.overrides = overrides
+        thread.listed = mock.Mock()
+        thread.finished = mock.Mock()
+        thread.start = mock.Mock()
+        self.threads.append(thread)
+        return thread
+
+    def _answer(self, names, problem=""):
+        thread = self.threads[-1]
+        self.dialog._on_models_listed(thread.overrides, names, problem)
+        thread.running = False
+        self.dialog._on_list_finished(thread)
+
+    def test_the_list_is_asked_with_what_is_typed_and_only_on_the_click(self):
+        self.assertEqual(self.threads, [])
+        self.dialog.url_edit.setText("http://localhost:11434/v1")
+        self.dialog._open_model_list()
+        self.assertEqual(self.threads[0].overrides["url_override"], "http://localhost:11434/v1")
+        self.assertEqual(self.dialog._model_field.hint.text(), model_list.LOADING)
+        self._answer(["b", "a"])
+        self.assertEqual(self.shown, [["b", "a"]])
+
+    def test_a_second_click_for_the_same_server_asks_nothing(self):
+        self.dialog._open_model_list()
+        self._answer(["a"])
+        self.dialog.model_edit.setText("typed")
+        self.dialog._open_model_list()
+        self.assertEqual(len(self.threads), 1)
+        self.assertEqual(self.shown, [["a"], ["a"]])
+        self.dialog.url_edit.setText("http://localhost:1234/v1")
+        self.dialog._open_model_list()
+        self.assertEqual(len(self.threads), 2)
+
+    def test_a_failure_and_an_empty_list_say_so_under_the_field(self):
+        self.dialog._open_model_list()
+        self._answer([], "The server refused the key.")
+        self.assertEqual(self.dialog._model_field.hint.text(), "The server refused the key.")
+        self.dialog._open_model_list()
+        self._answer([])
+        self.assertEqual(self.dialog._model_field.hint.text(), model_list.NO_MODELS)
+        self.assertEqual(self.shown, [])
+
+    def test_a_click_while_the_list_loads_asks_once(self):
+        self.dialog._open_model_list()
+        self.dialog._open_model_list()
+        self.assertEqual(len(self.threads), 1)
+
+    def test_the_window_closes_only_once_the_list_request_stopped(self):
+        self.dialog._open_model_list()
+        self.dialog.reject()
+        self.assertTrue(self.threads[0].cancelled)
+        self.assertIsNone(self.dialog.closed_with)
+        self.threads[0].running = False
+        self.dialog._on_list_finished(self.threads[0])
+        self.assertEqual(self.dialog.closed_with, QDialog.DialogCode.Rejected)
+
+    def test_a_chosen_name_fills_the_field_and_counts_as_an_edit(self):
+        self.dialog._choose_model("qwen3:14b")
+        self.assertEqual(self.dialog.model_edit.text(), "qwen3:14b")
+        self.assertEqual(self.dialog._note.text(), UNSAVED)
+
+
+class ModelListTest(unittest.TestCase):
+    NAMES = ["anthropic/claude", "gpt-4o", "gpt-4o-mini", "openai/gpt-4o", "qwen3"]
+
+    def test_what_is_typed_narrows_the_list_names_that_start_with_it_first(self):
+        self.assertEqual(model_list.matching(self.NAMES, " GPT-4 "), ["gpt-4o", "gpt-4o-mini", "openai/gpt-4o"])
+
+    def test_a_whole_name_or_one_that_matches_nothing_keeps_every_choice(self):
+        for typed in ("", "gpt-4o", "no such model"):
+            self.assertEqual(model_list.matching(self.NAMES, typed), self.NAMES)
+
+    def test_a_long_name_is_cut_in_the_middle_and_an_ampersand_stays_a_letter(self):
+        long = "a" * 100 + "&" + "b" * 100
+        self.assertLessEqual(len(model_list.shown(long)), model_list.MAX_SHOWN_CHARS + 1)
+        self.assertEqual(model_list.shown("r&d"), "r&&d")
+
+    def test_the_cached_list_belongs_to_the_server_not_to_the_model(self):
+        first = {"url_override": "u", "model_override": "a", "key_override": "k"}
+        self.assertEqual(model_list.listing_scope(first), model_list.listing_scope({**first, "model_override": "b"}))
+        self.assertNotEqual(model_list.listing_scope(first), model_list.listing_scope({**first, "key_override": "x"}))
 
 
 class ReasoningSwitchTest(unittest.TestCase):

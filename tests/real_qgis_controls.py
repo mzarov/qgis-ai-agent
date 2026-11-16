@@ -692,20 +692,236 @@ class SettingsBehaviourTest(PluginCase):
             self.assertEqual(top - under_chips, connectors_settings.GROUP_GAP, key)
 
 
+class ConnectionOnSaveTest(PluginCase):
+    api_url = "http://localhost:11434/v1"
+    model_name = "qwen3"
+    WAIT_S = 10.0
+
+    def setUp(self) -> None:
+        super().setUp()
+        from ai_agent.core.llm import probe_worker
+
+        self.asked: list[str] = []
+        self.answer = (True, "Model replied: ok")
+        for name, fake in (("probe", self._probe), ("detect", lambda _o: 0), ("sees_images", lambda _o: None)):
+            patcher = mock.patch.object(probe_worker, name, fake)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.dialog = SettingsDialog(self.dock)
+        self.dialog.show()
+        pump(0.1)
+
+    def tearDown(self) -> None:
+        self.dialog.reject()
+        self._settled()
+        self.dialog.deleteLater()
+        super().tearDown()
+
+    def _probe(self, overrides: dict) -> tuple[bool, str]:
+        self.asked.append(overrides["model_override"])
+        return self.answer
+
+    def _settled(self) -> None:
+        deadline = time.monotonic() + self.WAIT_S
+        while (self.dialog._probe_thread or self.dialog._list_thread) and time.monotonic() < deadline:
+            pump(0.05)
+        pump(0.05)
+
+    def _type_model(self, name: str) -> None:
+        self.dialog.model_edit.setText(name)
+        self.dialog.model_edit.textEdited.emit(name)
+
+    def test_a_connection_that_answers_is_stored_and_the_window_closes(self) -> None:
+        from ai_agent.core.settings import get_model
+
+        self._type_model("qwen3:14b")
+        self.dialog.save_btn.click()
+        self.assertFalse(self.dialog.save_btn.isEnabled(), "a second Save while the test runs")
+        self.assertEqual(get_model(), "qwen3", "stored before the server answered")
+        self._settled()
+        self.assertEqual(self.asked, ["qwen3:14b"])
+        self.assertFalse(self.dialog.isVisible())
+        self.assertEqual(get_model(), "qwen3:14b")
+
+    def test_a_refused_connection_stays_unsaved_until_save_anyway(self) -> None:
+        from ai_agent.core.settings import get_model
+        from ai_agent.ui import settings_layout, settings_probe
+        from ai_agent.ui.connection_widgets import STATE_BAD
+
+        self.answer = (False, "model 'typo' not found")
+        self.dialog.show_page(settings_layout.ADVANCED)
+        self._type_model("typo")
+        self.dialog.save_btn.click()
+        self._settled()
+        self.assertTrue(self.dialog.isVisible())
+        self.assertEqual(get_model(), "qwen3")
+        self.assertEqual(self.dialog.save_btn.text(), settings_probe.SAVE_ANYWAY)
+        self.assertTrue(self.dialog.save_btn.isEnabled())
+        self.assertEqual(self.dialog.pages.currentIndex(), settings_layout.CONNECTION, "the reason is on this page")
+        self.assertEqual(self.dialog.status_card.state, STATE_BAD)
+        self.assertIn("typo", self.dialog.status_card.detail.text())
+        self.dialog.save_btn.click()
+        self._settled()
+        self.assertFalse(self.dialog.isVisible())
+        self.assertEqual(get_model(), "typo")
+        self.assertEqual(self.asked, ["typo"], "Save anyway asked the server again")
+
+    def test_an_edit_after_a_refusal_brings_plain_save_and_a_new_test_back(self) -> None:
+        from ai_agent.ui import settings_probe
+
+        self.answer = (False, "refused")
+        self._type_model("typo")
+        self.dialog.save_btn.click()
+        self._settled()
+        self.assertEqual(self.dialog.save_btn.text(), settings_probe.SAVE_ANYWAY)
+        self.dialog.journal_cb.toggle()
+        self.assertEqual(self.dialog.save_btn.text(), settings_probe.SAVE_ANYWAY, "not a connection field")
+        for edit in (
+            lambda: self._type_model("other"),
+            lambda: self.dialog.key_edit.setText("sk-test"),
+            lambda: self.dialog.verify_ssl_cb.toggle(),
+            lambda: self.dialog.headers_edit.setPlainText("X-Team: gis"),
+        ):
+            self.dialog._refused = self.dialog._connection()
+            self.dialog.save_btn.setText(settings_probe.SAVE_ANYWAY)
+            edit()
+            self.assertEqual(self.dialog.save_btn.text(), settings_probe.SAVE)
+        self.dialog.save_btn.click()
+        self._settled()
+        self.assertEqual(len(self.asked), 2)
+
+    def test_a_save_of_other_pages_asks_the_server_nothing(self) -> None:
+        self.dialog.verify_apply_cb.toggle()
+        self.dialog.save_btn.click()
+        pump(0.1)
+        self.assertEqual(self.asked, [])
+        self.assertFalse(self.dialog.isVisible())
+
+    def test_cancel_during_the_test_closes_without_storing(self) -> None:
+        from ai_agent.core.settings import get_model
+
+        self._type_model("qwen3:14b")
+        self.dialog.save_btn.click()
+        self.dialog.reject()
+        self._settled()
+        self.assertFalse(self.dialog.isVisible())
+        self.assertEqual(get_model(), "qwen3")
+
+
+class ModelListTest(PluginCase):
+    api_url = "http://localhost:11434/v1"
+    model_name = "qwen3"
+    WAIT_S = 10.0
+    NAMES = ["gemma3", "qwen3", "qwen3:14b"]
+
+    def setUp(self) -> None:
+        super().setUp()
+        from ai_agent.core.llm import probe_worker
+
+        self.asked: list[dict] = []
+        self.listing: tuple[list[str], str] = (self.NAMES, "")
+        patcher = mock.patch.object(probe_worker, "list_models", self._list)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.dialog = SettingsDialog(self.dock)
+        self.dialog.show()
+        pump(0.1)
+
+    def tearDown(self) -> None:
+        close_menus()
+        self.dialog.reject()
+        self._settled()
+        self.dialog.deleteLater()
+        super().tearDown()
+
+    def _list(self, overrides: dict) -> tuple[list[str], str]:
+        self.asked.append(overrides)
+        return self.listing
+
+    def _settled(self) -> None:
+        deadline = time.monotonic() + self.WAIT_S
+        while self.dialog._list_thread and time.monotonic() < deadline:
+            pump(0.05)
+        pump(0.05)
+
+    def _open(self) -> list[Any]:
+        close_menus()
+        self.dialog.model_edit.actions()[0].trigger()
+        self._settled()
+        menus = [menu for menu in self.dialog.model_edit.findChildren(QMenu) if menu.isVisible()]
+        return menus[0].actions() if menus else []
+
+    def test_the_field_lists_the_servers_models_and_a_pick_fills_it(self) -> None:
+        self.assertEqual(self.asked, [], "the server was asked before the click")
+        rows = self._open()
+        self.assertEqual([row.text() for row in rows], self.NAMES)
+        self.assertEqual(self.asked[0]["url_override"], self.api_url)
+        self.assertFalse(self.dialog.save_btn.isEnabled())
+        rows[0].trigger()
+        self.assertEqual(self.dialog.model_edit.text(), "gemma3")
+        self.assertTrue(self.dialog.save_btn.isEnabled())
+
+    def test_what_is_typed_narrows_the_list_and_a_second_click_asks_nothing(self) -> None:
+        self.dialog.model_edit.setText("14")
+        self.assertEqual([row.text() for row in self._open()], ["qwen3:14b"])
+        self.dialog.model_edit.setText("gem")
+        self.assertEqual([row.text() for row in self._open()], ["gemma3"])
+        self.assertEqual(len(self.asked), 1)
+
+    def test_a_long_list_is_capped_with_a_line_saying_how_to_narrow_it(self) -> None:
+        from ai_agent.ui import model_list
+
+        self.listing = ([f"vendor/model-{index:03d}" for index in range(300)], "")
+        rows = [row for row in self._open() if not row.isSeparator()]
+        self.assertEqual(len(rows), model_list.MAX_ROWS + 1)
+        self.assertFalse(rows[-1].isEnabled())
+        self.assertIn(str(300 - model_list.MAX_ROWS), rows[-1].text())
+
+    def test_a_server_that_does_not_answer_says_why_and_typing_still_works(self) -> None:
+        from ai_agent.ui import model_list
+
+        self.listing = ([], "The server refused the key, so it did not list its models.")
+        self.assertEqual(self._open(), [])
+        hint = self.dialog._model_field.hint
+        self.assertTrue(hint.isVisible())
+        self.assertEqual(hint.text(), self.listing[1])
+        self.dialog.model_edit.setText("typed-by-hand")
+        self.assertEqual(hint.text(), self.listing[1])
+        self.dialog.key_edit.setText("sk-another")
+        self.assertEqual(hint.text(), model_list.MODEL_HINT, "the refusal outlived the key it was about")
+        self.assertEqual(self.dialog.model_edit.text(), "typed-by-hand")
+        self.listing = ([], "")
+        self.assertEqual(self._open(), [])
+        self.assertEqual(hint.text(), model_list.NO_MODELS)
+
+    def test_the_window_waits_for_a_list_request_before_it_closes(self) -> None:
+        from ai_agent.core.llm import probe_worker
+
+        with mock.patch.object(probe_worker, "list_models", lambda _o: time.sleep(0.4) or (self.NAMES, "")):
+            self.dialog.model_edit.actions()[0].trigger()
+            self.dialog.reject()
+            self.assertTrue(self.dialog.isVisible(), "closed over a running thread")
+            self._settled()
+        self.assertFalse(self.dialog.isVisible())
+        self.assertEqual(self.dialog.model_edit.findChildren(QMenu), [])
+
+
 def close_during_a_slow_test(close: str) -> int:
     from qgis.PyQt.QtWidgets import QMainWindow, QMessageBox
 
     from ai_agent.core.llm import probe_worker
+    from ai_agent.core.settings import set_api_url, set_model
     from ai_agent.ui import settings_advanced
 
     def slow_probe(_overrides: dict) -> tuple[bool, str]:
         time.sleep(SLOW_TEST_S)
         return False, "too late"
 
+    # Stored, so Save has nothing to test: this checks closing over a test that was started by hand.
+    set_api_url("http://localhost:11434/v1")
+    set_model("qwen3")
     window = QMainWindow()
     dialog = SettingsDialog(window)
-    dialog.url_edit.setText("http://localhost:11434/v1")
-    dialog.model_edit.setText("qwen3")
     dialog.show()
     with mock.patch.object(probe_worker, "probe", slow_probe):
         dialog._test_connection()

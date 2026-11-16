@@ -93,7 +93,8 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `style.py`        | colour roles read from `theme`, `fill()` and `ink()` through the palette, `scale_font()` |
 | `icons.py`        | the interface icons: Lucide outlines tinted to the caller's colour, one stroke weight |
 | `settings_dialog.py` | the settings window: state, dirty tracking, saving |
-| `settings_probe.py` | the connection test: start, cancel, report, close only once stopped |
+| `settings_probe.py` | the connection test: start, cancel, report, close only once stopped; the test a Save runs first for a connection not yet tested, and Save anyway after a refusal |
+| `model_list.py`   | the Model field's arrow: the server's `/models` asked on that click, a menu narrowed by what is typed, its states in the row's hint |
 | `settings_layout.py` | the sidebar (search, groups, counts, the versions at its foot), the page stack, per-page scrolling, pages built on their first visit |
 | `settings_fields.py` | the page and row grammar: page title, section captions, rows, wide rows, switches, steppers, inputs, buttons |
 | `settings_advanced.py` | the Privacy and Advanced pages: where data goes, history keeping and erasing, limits, extra headers, reset |
@@ -446,7 +447,10 @@ Pages scroll individually (`scrollable()`), with the viewport forced
 transparent so the window surface shows through — a `QScrollArea` left to
 its own devices paints its own grey. Test connection lives on the
 Connection page — it tests exactly what that page edits and means nothing on
-the others, and its answer stays in that page's status card. The validation
+the others, and its answer stays in that page's status card. Save runs the
+same test first when the connection differs from what was stored or already
+tested in this window; a refusal stores nothing, opens the Connection page and
+turns Save into Save anyway until a connection field is edited. The validation
 line, the saved/unsaved note and Cancel/Save sit in the footer under a full
 hairline, visible from every page.
 

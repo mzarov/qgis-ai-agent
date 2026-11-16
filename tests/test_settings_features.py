@@ -165,6 +165,7 @@ class EmptiedKeyTest(SettingsCase):
     def test_a_key_field_emptied_by_the_user_removes_the_stored_key(self):
         dialog = self._dialog("sk-old")
         dialog.key_edit.setText("")
+        dialog._tested.add(dialog._connection())
         with (
             mock.patch.object(settings_dialog, "delete_api_key") as removed,
             mock.patch.object(settings_dialog, "set_api_key") as stored,
@@ -191,6 +192,7 @@ class RefusedSaveTest(SettingsCase):
         self.dialog.url_edit.setText("https://other.example.com/v1")
         self.dialog.model_edit.setText("new-model")
         self.dialog.key_edit.setText("sk-new")
+        self.dialog._tested.add(self.dialog._connection())
 
     def test_a_refused_key_stores_nothing(self):
         refused = RuntimeError("The key store is locked.")
