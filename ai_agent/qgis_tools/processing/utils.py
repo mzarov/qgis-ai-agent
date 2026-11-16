@@ -165,16 +165,19 @@ def check_parameter_names(algorithm: Any, arguments: dict[str, Any]) -> None:
         )
 
 
+def _acceptable(parameter: Any, value: Any) -> bool:
+    # Without a context QGIS checks the value's shape only: a layer made by an earlier step still passes.
+    try:
+        return parameter.checkValueIsAcceptable(value) is not False
+    except Exception:
+        return True
+
+
 def check_parameter_values(algorithm: Any, prepared: dict[str, Any]) -> None:
     for parameter in algorithm.parameterDefinitions():
         name = parameter.name()
         value = prepared.get(name)
-        # Without a context QGIS checks the value's shape only: a layer made by an earlier step still passes.
-        try:
-            acceptable = parameter.checkValueIsAcceptable(value)
-        except Exception:
-            continue
-        if acceptable is not False:
+        if _acceptable(parameter, value):
             continue
         if value is None:
             raise ValueError(

@@ -21,7 +21,10 @@ from tests.test_orchestrator import Iface
 
 REQUEST = SimpleNamespace(messages=[], tool_schemas=[], overrides={}, protocol=PROTOCOL_NATIVE)
 UNDO_TOOL = "undo_last_apply"
-LEAKY = "Error transferring https://bob:hunter2@llm.example.com/v1/chat?key=AIzaSECRET123456 - Bad Gateway"
+LEAKY = (
+    "Error transferring https://bob:hunter2@llm.example.com/v1/chat"  # pragma: allowlist secret
+    "?key=AIzaSECRET123456 - Bad Gateway"
+)
 
 
 class Turns:
