@@ -2,8 +2,15 @@ from typing import Any
 
 from qgis.core import QgsSettings
 
+from ai_agent.config.connectors import disabled_connectors
+
 DEFAULT_ENDPOINT = "https://overpass-api.de/api/interpreter"
 SETTINGS_KEY = "ai_agent/overpass_url"
+CONNECTOR = "openstreetmap"
+TURNED_OFF = (
+    "The OpenStreetMap connector is turned off in Settings → Connectors, so Overpass is not contacted. "
+    "Tell the user; they can turn it on there, or work with data already in the project."
+)
 QUERY_TIMEOUT_SEC = 90
 ELEMENTS = ("node", "way", "relation")
 AREA_NAME_KEYS = ("name", "name:en", "int_name")
@@ -14,6 +21,11 @@ GEOMETRY_ELEMENTS = {
     "polygons": ("way", "relation"),
     "all": ELEMENTS,
 }
+
+
+def require_connector() -> None:
+    if CONNECTOR in disabled_connectors():
+        raise ValueError(TURNED_OFF)
 
 
 def endpoint() -> str:

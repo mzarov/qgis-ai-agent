@@ -153,8 +153,23 @@ class AnnotationsTest(unittest.TestCase):
             patch.object(add_module, "QgsPoint", return_value=point),
             self.assertRaisesRegex(ValueError, "latitude out of range"),
         ):
-            AddAnnotationTool().execute({"kind": "marker", "x": 10, "y": 95})
+            AddAnnotationTool().execute({"kind": "marker", "x": 10, "y": 85})
         self.assertEqual(self.layer.items(), {})
+
+    def test_coordinates_that_cannot_be_degrees_are_refused_before_apply(self):
+        geographic, projected = Mock(), Mock()
+        geographic.isGeographic.return_value = True
+        geographic.authid.return_value = "EPSG:4326"
+        projected.isGeographic.return_value = False
+        with patch.object(add_module, "_to_layer_point"):
+            with patch.object(add_module, "QgsCoordinateReferenceSystem", return_value=geographic):
+                with self.assertRaisesRegex(ValueError, "not in EPSG:4326.*pass it as crs"):
+                    AddAnnotationTool().prepare({"kind": "marker", "x": 4187000, "y": 7509000})
+                with self.assertRaisesRegex(ValueError, "looks swapped.*x=137.62, y=55.75"):
+                    AddAnnotationTool().prepare({"kind": "marker", "x": 55.75, "y": 137.62})
+                AddAnnotationTool().prepare({"kind": "marker", "x": 37.62, "y": 55.75})
+            with patch.object(add_module, "QgsCoordinateReferenceSystem", return_value=projected):
+                AddAnnotationTool().prepare({"kind": "marker", "x": 4187000, "y": 7509000, "crs": "EPSG:3857"})
 
     def test_two_crss_without_an_authority_id_are_still_transformed_between(self):
         source, target = Mock(), Mock()

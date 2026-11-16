@@ -166,6 +166,15 @@ class ItemsTest(unittest.TestCase):
             items.find_item(layout, "legend-1")
         self.assertIn("map-1", str(caught.exception))
 
+    def test_items_made_in_the_designer_are_addressed_by_their_uuid(self):
+        first, second = _label_item(""), _label_item("")
+        first.uuid, second.uuid = (lambda: "{uuid-1}"), (lambda: "{uuid-2}")
+        layout = FakeLayout([first, second])
+        self.assertEqual(items.describe_item(second)["id"], "{uuid-2}")
+        self.assertIs(items.find_item(layout, "{uuid-2}"), second)
+        with self.assertRaisesRegex(ValueError, "item_id is empty.*uuid-1"):
+            items.find_item(layout, "")
+
     def test_out_of_page_frame_is_refused_with_the_page_size(self):
         layout = FakeLayout()
         with self.assertRaises(ValueError) as caught:

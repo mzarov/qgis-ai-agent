@@ -117,6 +117,27 @@ def _given_index(raw: dict[str, Any]) -> int | None:
         return None
 
 
+def _starts_another(slot: dict[str, Any], raw: dict[str, Any]) -> bool:
+    if not slot["name"] or not (raw.get("function") or {}).get("name"):
+        return False
+    try:
+        json.loads(slot["arguments"])
+    except ValueError:
+        return False
+    return True
+
+
+def _built_call(slot: dict[str, Any]) -> dict[str, Any]:
+    call: dict[str, Any] = {
+        "id": slot["id"],
+        "type": "function",
+        "function": {"name": slot["name"], "arguments": slot["arguments"]},
+    }
+    if "extra_content" in slot:
+        call["extra_content"] = slot["extra_content"]
+    return call
+
+
 class StreamedCompletion:
     def __init__(
         self,
@@ -197,6 +218,8 @@ class StreamedCompletion:
         slot = self._calls.setdefault(index, {"id": "", "name": "", "arguments": ""})
         if raw.get("id"):
             slot["id"] = str(raw["id"])
+        if isinstance(raw.get("extra_content"), dict):
+            slot["extra_content"] = raw["extra_content"]
         function = raw.get("function") or {}
         name = str(function.get("name") or "")
         if name and slot["name"] != name:
@@ -217,6 +240,9 @@ class StreamedCompletion:
             index = max(self._calls) + 1
             if given is not None:
                 self._moved[given] = index
+        # No index and no id: a name after a complete call starts the next one.
+        elif given is None and not new_id and current is not None and _starts_another(current, raw):
+            index = max(self._calls) + 1
         return index
 
     def response(self) -> dict[str, Any]:
@@ -229,14 +255,7 @@ class StreamedCompletion:
         if self._thinking_parts:
             message["reasoning_content"] = "".join(self._thinking_parts)
         if self._calls:
-            message["tool_calls"] = [
-                {
-                    "id": slot["id"],
-                    "type": "function",
-                    "function": {"name": slot["name"], "arguments": slot["arguments"]},
-                }
-                for _, slot in sorted(self._calls.items())
-            ]
+            message["tool_calls"] = [_built_call(slot) for _, slot in sorted(self._calls.items())]
         built: dict[str, Any] = {"choices": [{"message": message, "finish_reason": self._finish_reason}]}
         if self._usage:
             built["usage"] = self._usage

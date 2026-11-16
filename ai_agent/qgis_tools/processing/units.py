@@ -4,35 +4,39 @@ from ai_agent.qgis_tools.common.layers import crs_is_geographic, suggest_metric_
 from ai_agent.qgis_tools.processing.utils import resolve_layer
 
 SUSPICIOUS_DEGREES = 1.0
+METRIC_TYPES = {"distance": "degrees", "area": "square degrees"}
 
 
 def check_distance_units(algorithm, arguments: dict[str, Any]) -> None:
     for parameter in algorithm.parameterDefinitions():
-        if parameter.type() != "distance":
+        unit = METRIC_TYPES.get(str(parameter.type()).lower())
+        if unit is None:
             continue
         distance = _as_float(arguments.get(parameter.name()))
-        if distance is None or distance <= SUSPICIOUS_DEGREES:
+        if distance is None or abs(distance) <= SUSPICIOUS_DEGREES:
             continue
         parent_name = _parent_parameter_name(parameter)
         layer = resolve_layer(arguments.get(parent_name))
         if layer is None or not crs_is_geographic(layer):
             continue
-        raise ValueError(_degrees_error(arguments[parent_name], layer, parameter.name(), distance, parent_name))
+        raise ValueError(_degrees_error(layer, parameter.name(), distance, parent_name, unit))
 
 
-def _degrees_error(layer_name, layer, parameter_name: str, distance: float, parent_name: str) -> str:
+def _degrees_error(layer, parameter_name: str, distance: float, parent_name: str, unit: str) -> str:
+    # The argument holds the layer id by now: the model and the user know the layer by its name.
+    layer_name = layer.name()
     target_crs = suggest_metric_crs(layer)
     output_name = f"{layer_name} {target_crs.replace('EPSG:', 'UTM ')}"
     return (
         f"Layer '{layer_name}' is in a geographic CRS ({layer.crs().authid()}), "
         f"whose unit is the degree, not the metre. The value {parameter_name}={distance} "
-        f"would be read as {distance} degrees and give a meaningless result.\n"
+        f"would be read as {distance} {unit} and give a meaningless result.\n"
         "Add a reprojection before this step and run the processing on its result:\n"
         f'run_processing(algorithm_id="native:reprojectlayer", '
         f'parameters={{"INPUT": "{layer_name}", "TARGET_CRS": "{target_crs}"}}, '
         f'output_name="{output_name}")\n'
         f"then repeat the current call with '{output_name}' in {parent_name}.\n"
-        f"If {distance} really was meant in degrees, say so to the user."
+        f"If {distance} really was meant in {unit}, say so to the user."
     )
 
 

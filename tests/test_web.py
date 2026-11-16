@@ -4,6 +4,7 @@ import json
 import time
 import unittest
 from unittest import mock
+from urllib.parse import quote
 
 from ai_agent.core.agent.transcript import ToolResult, Transcript
 from ai_agent.core.llm.turns import ToolCall
@@ -316,6 +317,28 @@ class RedirectTest(unittest.TestCase):
 
         self.assertEqual(downloaded, ["https://public.example/start", "https://public.example/next"])
         self.assertEqual(pinned, ["93.184.216.34", "93.184.216.34"])
+
+    def _fetched(self, hop):
+        with (
+            mock.patch.object(http_module, "_download_once", return_value=hop),
+            mock.patch.object(http_module, "_resolved_addresses", return_value={"93.184.216.34"}),
+        ):
+            return http_module.get_text("https://public.example/page")
+
+    def test_a_page_is_read_in_the_charset_it_declares(self):
+        text = "Население Казани"
+        by_header = http_module._Hop(text.encode("cp1251"), 200, content_type="text/html", charset="windows-1251")
+        by_meta = http_module._Hop(f"<meta charset='koi8-r'><p>{text}</p>".encode("koi8-r"), 200)
+        unknown = http_module._Hop(text.encode(), 200, charset="no-such-charset")
+        self.assertEqual(self._fetched(by_header), text)
+        self.assertIn(text, self._fetched(by_meta))
+        self.assertEqual(self._fetched(unknown), text)
+
+    def test_a_binary_answer_is_refused_instead_of_read_as_text(self):
+        with self.assertRaisesRegex(ValueError, "application/pdf, not text"):
+            self._fetched(http_module._Hop(b"%PDF-1.7\n\x00\x9c", 200, content_type="application/pdf"))
+        for kind in ("application/geo+json", "text/csv", ""):
+            self.assertEqual(self._fetched(http_module._Hop(b"ok", 200, content_type=kind)), "ok")
 
     def test_cancellation_between_hops_is_sticky(self):
         downloaded = []
@@ -681,6 +704,11 @@ class DnsAndCancellationTest(unittest.TestCase):
 
 
 class SearchParseTest(unittest.TestCase):
+    def test_a_wrapped_link_is_decoded_once(self):
+        target = "https://example.com/find?q=a%26b&doc=report%231.pdf"
+        wrapped = "//duckduckgo.com/l/?uddg=" + quote(target, safe="") + "&rut=abc"
+        self.assertEqual(search_module._unwrapped(wrapped), target)
+
     def test_results_carry_title_url_snippet(self):
         results = parse_results(DDG)
         self.assertEqual(results[0]["title"], "EPSG:32639")

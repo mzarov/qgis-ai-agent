@@ -57,6 +57,12 @@ class BuildRequestTest(unittest.TestCase):
         self.assertNotIn("Authorization", headers)
         self.assertEqual(model, "демо")
 
+    def test_the_path_goes_before_a_gateway_query(self):
+        endpoint, _, _ = request("http://localhost:8080/openai/deployments/gpt?api-version=2024-10-21", "")
+        self.assertEqual(
+            endpoint, "http://localhost:8080/openai/deployments/gpt/chat/completions?api-version=2024-10-21"
+        )
+
     def test_local_endpoint_still_uses_a_key_when_given(self):
         _, headers, _ = request("http://localhost:1234/v1", "ключ")
         self.assertEqual(headers["Authorization"], "Bearer ключ")

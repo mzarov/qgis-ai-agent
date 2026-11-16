@@ -83,6 +83,8 @@ def with_retries[T](
             if on_retry is not None:
                 on_retry(RetryNotice(delay, attempts + 1, total, is_overload(error)))
             _pause(delay, feedback, pause)
+            if is_cancelled(feedback):
+                raise
 
 
 def retry_delay(error: Exception, attempts: int) -> float:

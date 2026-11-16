@@ -76,6 +76,14 @@ class ChartLayerMathTest(unittest.TestCase):
         self.layer = mock.Mock()
         self.layer.name.return_value = "districts"
 
+    def test_numbers_are_never_shown_in_exponent_notation(self):
+        cells = [spec._cell(value) for value in (1234567.891, 55.751244, 0.000123456, 12.0, 0.0)]
+        self.assertEqual(cells, ["1,234,568", "55.7512", "0.000123456", "12", "0"])
+        wide = chart_layer._histogram([(v, None) for v in (1200.0, 250000.0, 990000.0)], {"bins": 3}, self.layer)
+        self.assertEqual(wide["labels"], ["1,200–330,800", "330,800–660,400", "660,400–990,000"])
+        narrow = chart_layer._histogram([(v, None) for v in (7040.2, 7041.9)], {"bins": 2}, self.layer)
+        self.assertEqual(narrow["labels"], ["7,040.2–7,041.05", "7,041.05–7,041.9"])
+
     def test_a_histogram_bins_the_numbers(self):
         rows = [(value, None) for value in (0, 1, 2, 3, 4, 10)]
         drawn = chart_layer._histogram(rows, {"value": "pop", "bins": 2}, self.layer)

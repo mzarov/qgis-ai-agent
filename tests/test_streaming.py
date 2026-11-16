@@ -3,6 +3,7 @@ import pathlib
 import unittest
 from unittest import mock
 
+from ai_agent.core.agent.transcript import Transcript
 from ai_agent.core.llm import transport, turns, worker
 from ai_agent.core.llm.client import ApiResponseError
 from ai_agent.core.llm.stream import SseAccumulator, StreamedCompletion
@@ -113,6 +114,48 @@ class StreamedCompletionTest(unittest.TestCase):
         self.assertEqual(calls[0]["id"], "c1")
         self.assertEqual(calls[0]["function"]["name"], "list_")
         self.assertEqual(calls[0]["function"]["arguments"], '{"a": 1}')
+
+    def test_a_call_signature_survives_the_stream_and_the_replay(self):
+        signature = {"google": {"thought_signature": "sig-a"}}
+        call = {"index": 0, "id": "a", "function": {"name": "list_layers"}, "extra_content": signature}
+        chunks = [
+            event({"choices": [{"delta": {"tool_calls": [call]}}]}),
+            event({"choices": [{"delta": {"tool_calls": [{"index": 0, "function": {"arguments": "{}"}}]}}]}),
+            event({"choices": [{"delta": {"tool_calls": [{"index": 1, "id": "b", "function": {"name": "x"}}]}}]}),
+        ]
+        turn = turns.parse_native_turn(consume(chunks))
+        replayed = Transcript._render_turn(turn)["tool_calls"]
+        self.assertEqual(replayed[0]["extra_content"], signature)
+        self.assertNotIn("extra_content", replayed[1])
+
+    def test_calls_without_index_or_id_stay_apart(self):
+        def delta(name, arguments):
+            return event(
+                {"choices": [{"delta": {"tool_calls": [{"function": {"name": name, "arguments": arguments}}]}}]}
+            )
+
+        calls = consume(
+            [delta("describe_layer", '{"layer_name": "a"}'), delta("describe_layer", '{"layer_name": "b"}')]
+        )
+        self.assertEqual(
+            [call["function"]["arguments"] for call in calls["choices"][0]["message"]["tool_calls"]],
+            ['{"layer_name": "a"}', '{"layer_name": "b"}'],
+        )
+
+    def test_an_error_event_keeps_its_own_status(self):
+        for error, status in (
+            ({"type": "invalid_request_error"}, 400),
+            ({"code": 402}, 402),
+            ({"type": "overloaded_error"}, 529),
+            ({"message": "?"}, 502),
+        ):
+            accumulator = SseAccumulator()
+            completion = StreamedCompletion(None, None)
+            for item in accumulator.feed(event({"error": error})):
+                completion.take(item)
+            with self.subTest(error=error), self.assertRaises(ApiResponseError) as caught:
+                finished_response(completion, accumulator, "https://example.test/v1")
+            self.assertEqual(caught.exception.status_code, status)
 
     def test_parallel_tool_calls_keep_their_index_order(self):
         chunks = [

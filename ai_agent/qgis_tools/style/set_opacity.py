@@ -3,7 +3,13 @@ from typing import Any
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common import params
-from ai_agent.qgis_tools.common.layers import find_layer_by_name, layer_reference, pinned_layer
+from ai_agent.qgis_tools.common.layers import (
+    bind_layer_reference,
+    find_layer_by_name,
+    layer_reference,
+    pinned_layer,
+    target_reference,
+)
 from ai_agent.qgis_tools.style.apply import refresh
 
 PERCENT_THRESHOLD = 1.0
@@ -37,9 +43,8 @@ class SetOpacityTool(BaseTool):
     ]
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = find_layer_by_name(params.get("layer_name") or "")
-        prepared = dict(params)
-        prepared["layer_name"] = layer.name()
+        layer = find_layer_by_name(target_reference(params))
+        prepared = bind_layer_reference(params, layer)
         prepared["opacity"] = _as_fraction(params.get("opacity"))
         return prepared
 
@@ -52,7 +57,7 @@ class SetOpacityTool(BaseTool):
         return tr("Setting opacity of '{0}' to {1}.").format(layer_name, percent)
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = find_layer_by_name(params.get("layer_name") or "")
+        layer = find_layer_by_name(target_reference(params))
         opacity = _as_fraction(params.get("opacity"))
         layer.setOpacity(opacity)
         refresh(layer)

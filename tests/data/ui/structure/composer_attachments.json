@@ -174,36 +174,40 @@
  },
  {
   "depth": 7,
+  "type": "QWidget"
+ },
+ {
+  "depth": 8,
   "type": "AttachmentChip"
  },
  {
-  "depth": 8,
+  "depth": 9,
   "type": "QLabel"
  },
  {
-  "depth": 8,
+  "depth": 9,
   "type": "ElidedLabel",
   "text": "sketch.png"
  },
  {
-  "depth": 8,
+  "depth": 9,
   "type": "QToolButton"
  },
  {
-  "depth": 7,
+  "depth": 8,
   "type": "AttachmentChip"
  },
  {
-  "depth": 8,
+  "depth": 9,
   "type": "QLabel"
  },
  {
-  "depth": 8,
+  "depth": 9,
   "type": "ElidedLabel",
   "text": "a photo of the paper map from the archive.jpg"
  },
  {
-  "depth": 8,
+  "depth": 9,
   "type": "QToolButton"
  },
  {

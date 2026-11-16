@@ -90,6 +90,14 @@ class TurnThreadOwnerTest(unittest.TestCase):
         thread.end()
         self.assertEqual(self.owner._retired, [])
 
+    def test_the_next_request_keeps_a_thread_that_is_still_leaving_run(self):
+        first = self.start()
+        second = self.start()
+        self.assertEqual(self.owner._retired, [first])
+        self.assertIs(self.owner._thread, second)
+        first.end()
+        self.assertEqual(self.owner._retired, [])
+
     def test_a_released_thread_that_already_ended_is_not_kept(self):
         thread = self.start()
         thread.running = False

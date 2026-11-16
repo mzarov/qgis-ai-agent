@@ -38,6 +38,10 @@ SHAPEFILE = "ESRI Shapefile"
 # Without it the CSV driver silently drops the geometry.
 CSV_GEOMETRY_OPTIONS = ["GEOMETRY=AS_WKT"]
 CSV_NOTE = "The geometry is stored as WKT text in a column named WKT."
+TABLE_AS_SHAPEFILE = (
+    "Layer '{name}' has no geometry, so a shapefile of it would be a lone .dbf with no .shp. "
+    "Export the table to .csv or .gpkg instead."
+)
 
 
 class ExportLayerTool(BaseTool):
@@ -97,6 +101,8 @@ class ExportLayerTool(BaseTool):
         layer_id = str(params.get("layer_id") or "").strip()
         layer = _require_vector(layer_name, layer_id) if layer_id else _require_vector(layer_name)
         path = _checked_path(params.get("path") or "")
+        if FORMATS[_suffix(path)] == SHAPEFILE and not _is_spatial(layer):
+            raise ValueError(TABLE_AS_SHAPEFILE.format(name=layer.name()))
         _refuse_a_layer_source(path)
         outputs = related_output_paths(path)
         check_overwrites(outputs, bool(params.get("overwrite")))

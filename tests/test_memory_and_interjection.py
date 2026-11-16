@@ -164,16 +164,13 @@ class NotesInPromptTest(unittest.TestCase):
         self.assertIn("POP2020 is population", prompt)
 
 
-class RunningThread:
-    is_running = True
-
-
 class InterjectionTest(unittest.TestCase):
     def setUp(self):
         self.loop = AgentLoop()
 
     def _make_busy(self):
-        self.loop._turn = RunningThread()
+        # A request in flight is what makes the loop running.
+        self.loop._turn_callbacks = (lambda *_: None,) * 5
 
     def test_nothing_is_taken_when_the_agent_is_idle(self):
         self.assertFalse(self.loop.interject("blue, not red"))

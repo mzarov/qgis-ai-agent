@@ -1421,11 +1421,12 @@ class KeptTurnTest(unittest.TestCase):
         self.assertEqual(plans[-1]["state"], CANCELLED)
 
     def test_an_answer_picked_from_the_offered_ones_is_flagged(self):
-        self.orchestrator.agent.is_awaiting_answer = True
-        self.orchestrator.agent.question_options = ["pop2020", "name"]
+        self.orchestrator.agent.question_options = ["pop2020 — the newest count", "name"]
         self.orchestrator._confirm_first_send = lambda *endpoint: True
-        self.orchestrator.on_prompt("pop2020")
-        self.assertTrue(self.orchestrator.conversation.messages[-1].get("chosen"))
+        for answer, picked in (("pop2020", True), ("name", True), ("something else", False)):
+            self.orchestrator.agent.is_awaiting_answer = True
+            self.orchestrator.on_prompt(answer)
+            self.assertEqual(bool(self.orchestrator.conversation.messages[-1].get("chosen")), picked)
 
 
 class LongStepProgressTest(unittest.TestCase):

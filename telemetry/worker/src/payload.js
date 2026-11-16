@@ -176,7 +176,7 @@ export function validatePing(body, now = new Date()) {
     details: body.v >= 3 ? details(body) : null,
   };
   for (const [tool, errors] of Object.entries(ping.tool_errors)) {
-    if (errors > (ping.tools[tool] ?? 0)) fail(`tool_errors.${tool} is more than its calls`);
+    if (errors > (Object.hasOwn(ping.tools, tool) ? ping.tools[tool] : 0)) fail(`tool_errors.${tool} is more than its calls`);
   }
   return ping;
 }

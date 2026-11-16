@@ -254,6 +254,7 @@ class ActivityGroup(QFrame):
         column.addWidget(self._rows_holder)
         self.items: list[TraceRow] = []
         self._show_steps = personal.load().show_steps
+        self._opened_for_thought = False
         self.quiet = False
         self._recorded: float | None = None
         self._started = 0.0
@@ -348,6 +349,7 @@ class ActivityGroup(QFrame):
             self._started = time.monotonic()
             if self._show_steps:
                 self.reveal()
+        row.group = self
         self.items.append(row)
         self._rows.addWidget(row)
         self.update()
@@ -360,6 +362,11 @@ class ActivityGroup(QFrame):
             row.set_bottom(0 if self.only_thoughts and row is self.items[-1] else ROW_BOTTOM)
         if self.only_thoughts and self._rows_holder.isHidden():
             self._rows_holder.set_open(True, animate=False)
+            self._opened_for_thought = True
+        elif not self.only_thoughts and self._opened_for_thought:
+            # Steps joined the thought: the rows follow the header again, not stay open under a closed chevron.
+            self._opened_for_thought = False
+            self._rows_holder.set_open(self._header.expanded, animate=False)
         working = self._pending and not self._closed
         title = self._working_title(count) if working else self._title(count)
         self._header.title.setText(title)

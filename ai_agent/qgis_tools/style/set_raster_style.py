@@ -5,7 +5,12 @@ from qgis.core import QgsRasterLayer
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common import params
-from ai_agent.qgis_tools.common.layers import find_layer_by_name, layer_reference
+from ai_agent.qgis_tools.common.layers import (
+    bind_layer_reference,
+    find_layer_by_name,
+    layer_reference,
+    target_reference,
+)
 from ai_agent.qgis_tools.style.apply import refresh
 from ai_agent.qgis_tools.style.legend import with_legend
 from ai_agent.qgis_tools.style.raster import (
@@ -108,7 +113,7 @@ class SetRasterStyleTool(BaseTool):
     ]
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = _require_raster(params.get("layer_name") or "")
+        layer = _require_raster(params)
         mode = _checked_mode(params.get("mode"))
         checked_band(layer, params.get("band"))
         require_local_raster(layer)
@@ -116,8 +121,7 @@ class SetRasterStyleTool(BaseTool):
         if mode == MODE_PSEUDOCOLOR:
             checked_classes(params.get("classes"))
             checked_interpolation(params.get("interpolation"))
-        prepared = dict(params)
-        prepared["layer_name"] = layer.name()
+        prepared = bind_layer_reference(params, layer)
         prepared["mode"] = mode
         return prepared
 
@@ -127,7 +131,7 @@ class SetRasterStyleTool(BaseTool):
         return tr("Styling raster '{0}': {1}.").format(layer_name, mode)
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = _require_raster(params.get("layer_name") or "")
+        layer = _require_raster(params)
         mode = _checked_mode(params.get("mode"))
         band = checked_band(layer, params.get("band"))
         require_local_raster(layer)
@@ -162,8 +166,8 @@ def _built(layer: Any, mode: str, band: int, params: dict[str, Any]) -> tuple[An
     return build_hillshade(layer, band, params.get("azimuth"), params.get("altitude"))
 
 
-def _require_raster(layer_name: str) -> QgsRasterLayer:
-    layer = find_layer_by_name(layer_name)
+def _require_raster(params: dict[str, Any]) -> QgsRasterLayer:
+    layer = find_layer_by_name(target_reference(params))
     if not isinstance(layer, QgsRasterLayer):
         raise ValueError(f"Layer '{layer.name()}' is not a raster layer — use the vector styling tools instead.")
     return layer

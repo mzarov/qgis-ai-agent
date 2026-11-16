@@ -93,13 +93,27 @@ def layout_items(layout: Any) -> list[Any]:
     return found
 
 
+def item_handle(item: Any) -> str:
+    # An item made in the layout designer has no id: its uuid is the only way to address it.
+    identifier = str(item.id() or "")
+    if identifier:
+        return identifier
+    try:
+        return str(item.uuid() or "")
+    except Exception:
+        return ""
+
+
 def find_item(layout: Any, item_id: str) -> Any:
     wanted = (item_id or "").strip()
-    for item in layout_items(layout):
-        if str(item.id() or "") == wanted:
-            return item
-    known = ", ".join(f"'{item.id()}'" for item in layout_items(layout) if item.id())
+    handles = [(item_handle(item), item) for item in layout_items(layout)]
+    known = ", ".join(f"'{handle}'" for handle, _ in handles if handle)
     hint = known or "the layout has no addressable items"
+    if not wanted:
+        raise ValueError(f"item_id is empty. Pass an id from describe_layout. Available: {hint}.")
+    for handle, item in handles:
+        if handle == wanted:
+            return item
     raise ValueError(f"No item with id '{wanted}' in this layout. Available: {hint}.")
 
 
@@ -122,7 +136,7 @@ def place(item: Any, x: float, y: float, width: float, height: float) -> None:
 
 
 def describe_item(item: Any) -> dict[str, Any]:
-    described: dict[str, Any] = {"id": str(item.id() or ""), "type": item_kind(item)}
+    described: dict[str, Any] = {"id": item_handle(item), "type": item_kind(item)}
     # The frame as placed, not the scene bounds: those grow by the frame's stroke on every read.
     with suppress(Exception):
         position = in_mm(item.layout(), item.positionWithUnits())

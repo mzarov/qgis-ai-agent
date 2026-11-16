@@ -1,7 +1,7 @@
 import json
 from html.parser import HTMLParser
 from typing import Any
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, urlparse
 
 from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_WEB_CONTENT, SAFETY_READ, BaseTool
@@ -170,8 +170,9 @@ def _unwrapped(href: str) -> str:
     host = (parsed.hostname or "").lower()
     if (host == "duckduckgo.com" or host.endswith(".duckduckgo.com")) and parsed.path.startswith("/l/"):
         packed = parse_qs(parsed.query).get("uddg", [""])[0]
+        # parse_qs decoded it already: a second pass would turn the target's own %26 into &.
         if packed:
-            return unquote(packed)
+            return packed
     return href
 
 

@@ -17,7 +17,7 @@ BUDGET_REACHED_MESSAGE = tr(
     "This task hit the token budget set in the settings, so I stopped where I got to. "
     "Raise the budget or split the request into smaller steps."
 )
-SNAPSHOT_FAILED_MESSAGE = tr("Could not create the safety snapshot. No planned changes were applied.")
+SNAPSHOT_FAILED_MESSAGE = "Could not create the safety snapshot. No planned changes were applied."
 CONTINUE_TRUNCATED = (
     "[Plugin note] Your reply was cut off by the output limit. Continue exactly where it "
     "stopped; do not repeat what you already wrote."

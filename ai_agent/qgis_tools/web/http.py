@@ -10,6 +10,12 @@ from qgis.PyQt.QtNetwork import QHostInfo, QNetworkRequest
 from ai_agent.qgis_tools.web.request import TIMEOUT_MS, request_uses_proxy
 from ai_agent.qgis_tools.web.request import network_request as _network_request
 from ai_agent.qgis_tools.web.response import (
+    charset_of,
+    decoded_text,
+    is_text_type,
+    redirect_of,
+)
+from ai_agent.qgis_tools.web.response import (
     content_type_of as _content_type_of,
 )
 from ai_agent.qgis_tools.web.response import (
@@ -17,9 +23,6 @@ from ai_agent.qgis_tools.web.response import (
 )
 from ai_agent.qgis_tools.web.response import (
     integer as _integer,
-)
-from ai_agent.qgis_tools.web.response import (
-    redirect_of,
 )
 from ai_agent.qgis_tools.web.url_policy import (
     MAX_URL_CHARS,
@@ -39,6 +42,7 @@ DNS_TIMEOUT_MS = 10_000
 MAX_REDIRECTS = 3
 MAX_LOCATION_BYTES = 8_192
 FETCH_FAILED = "Could not fetch {url}: {reason}."
+NOT_TEXT = "{url} is {kind}, not text. The web tools read pages and text files only; look for an HTML or text source."
 PRIVATE_ADDRESS = "The web tool does not access local, private, link-local or reserved network addresses."
 HTTPS_REQUIRED = "Web tools require an https URL."
 CROSS_ORIGIN_REDIRECT = "A cross-origin redirect from {source} was blocked."
@@ -64,6 +68,7 @@ class _Hop:
     redirect: str = ""
     error: str = ""
     content_type: str = ""
+    charset: str = ""
 
 
 def cancellation_epoch() -> int:
@@ -167,7 +172,9 @@ def _download_document(
         if hop.status == 0:
             raise _AddressFailure(FETCH_FAILED.format(url=safe_url_label(current), reason="service unavailable"))
         guard_not_cancelled(epoch)
-        return hop.body.decode("utf-8", errors="replace"), hop.content_type
+        if not is_text_type(hop.content_type):
+            raise ValueError(NOT_TEXT.format(url=safe_url_label(current), kind=hop.content_type))
+        return decoded_text(hop.body, hop.charset), hop.content_type
     raise ValueError(f"Too many redirects while fetching {safe_url_label(current)}.")
 
 
@@ -252,6 +259,7 @@ def _download_once(url: str, *, address: str, epoch: int) -> _Hop:
             redirect=redirect,
             error="" if redirect else _failure_of(reply),
             content_type=_content_type_of(reply),
+            charset=charset_of(reply),
         )
     finally:
         timer.stop()

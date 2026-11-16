@@ -12,6 +12,7 @@ from ai_agent.qgis_tools.common.values import clamp_limit, plain_value, suggest_
 
 DEFAULT_ROWS = 20
 PREVIEW_ROWS = 3
+NULLS_FIRST = False
 
 
 class ShowTableTool(BaseTool):
@@ -65,7 +66,7 @@ class ShowTableTool(BaseTool):
         request.setSubsetOfAttributes(columns, layer.fields())
         field, ascending = _order(layer, params)
         if field:
-            request.addOrderBy(f'"{field}"', ascending)
+            request.addOrderBy(f'"{field}"', ascending, NULLS_FIRST)
         limit = clamp_limit(params.get("limit"), DEFAULT_ROWS, MAX_TABLE_ROWS)
         request.setLimit(limit)
         rows = [[plain_value(feature[name]) for name in columns] for feature in layer.getFeatures(request)]

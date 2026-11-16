@@ -233,7 +233,7 @@ class SessionsPopup(controls.RoundedFrame):
         self._area.setFixedHeight(min(MAX_LIST_HEIGHT, holder.sizeHint().height()))
         self.adjustSize()
         corner = anchor.mapToGlobal(QPoint(0, anchor.height()))
-        self.move(corner.x(), corner.y() + controls.MENU_GAP)
+        controls.move_on_screen(self, anchor, corner.x(), corner.y() + controls.MENU_GAP)
         self.show()
 
     def keyPressEvent(self, event: Any) -> None:

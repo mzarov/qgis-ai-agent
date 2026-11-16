@@ -5,7 +5,8 @@ from qgis.core import QgsGraduatedSymbolRenderer
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common import params
-from ai_agent.qgis_tools.common.layers import layer_reference
+from ai_agent.qgis_tools.common.layers import bind_layer_reference, layer_reference
+from ai_agent.qgis_tools.common.values import plain_value
 from ai_agent.qgis_tools.style.apply import (
     base_symbol,
     refresh,
@@ -28,6 +29,10 @@ MIN_CLASSES = 2
 MAX_CLASSES = 20
 DEFAULT_RAMPS = ("Viridis", "Blues", "Spectral")
 EXACT_MODE = "equal"
+NO_RANGE = (
+    "QGIS could not build graduated classes on field '{field}': its values are all equal or all empty. "
+    "Pick a field that varies, or style the layer with set_symbol."
+)
 CLASS_COUNT_NOTE = (
     "{made} classes came out, not the {asked} asked for: the {mode} mode picks its own breaks. "
     "Only mode=equal always makes exactly the number given."
@@ -87,11 +92,11 @@ class SetGraduatedTool(BaseTool):
     ]
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = require_vector_layer(params.get("layer_name") or "")
+        layer = require_vector_layer(params)
         field = require_field(layer, (params.get("field") or "").strip())
         _require_numeric(layer, field)
-        prepared = dict(params)
-        prepared["layer_name"] = layer.name()
+        _require_range(layer, field)
+        prepared = bind_layer_reference(params, layer)
         prepared["field"] = field
         prepared["classes"] = _class_count(params.get("classes"))
         prepared["mode"] = _mode_name(params.get("mode"))
@@ -104,10 +109,11 @@ class SetGraduatedTool(BaseTool):
         return tr("Graduating '{0}' by '{1}', classes: {2}.").format(layer_name, params.get("field", ""), classes)
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = require_vector_layer(params.get("layer_name") or "")
+        layer = require_vector_layer(params)
         field = params.get("field") or ""
         classes = _class_count(params.get("classes"))
         mode = _mode_name(params.get("mode"))
+        _require_range(layer, field)
         renderer = QgsGraduatedSymbolRenderer.createRenderer(
             layer,
             field,
@@ -117,9 +123,7 @@ class SetGraduatedTool(BaseTool):
             resolve_ramp(params.get("ramp") or "", DEFAULT_RAMPS),
         )
         if renderer is None:
-            raise ValueError(
-                f"QGIS could not build graduated classes on field '{field}': the values may all be equal or empty."
-            )
+            raise ValueError(NO_RANGE.format(field=field))
         layer.setRenderer(renderer)
         refresh(layer)
         made = len(renderer.ranges())
@@ -144,6 +148,19 @@ def _require_numeric(layer: Any, field: str) -> None:
             f"Field '{field}' is not numeric, so graduated classes cannot be built on it. "
             "For text values use set_categories."
         )
+
+
+def _require_range(layer: Any, field: str) -> None:
+    # QGIS builds classes on such a field anyway: infinite or zero-width ranges that hide every feature.
+    try:
+        index = layer.fields().indexFromName(field)
+        low, high = plain_value(layer.minimumValue(index)), plain_value(layer.maximumValue(index))
+        float(low if low is not None else 0), float(high if high is not None else 0)
+    except Exception:
+        return
+    # An all-empty field reads back as the largest float for its minimum and the smallest for its maximum.
+    if low is None or high is None or not low < high:
+        raise ValueError(NO_RANGE.format(field=field))
 
 
 def _class_count(value: Any) -> int:

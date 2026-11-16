@@ -163,10 +163,12 @@ class RewindTest(unittest.TestCase):
             orchestrator.on_prompt("first")
             agent._batch.restore([ToolCall(id="w", name="set_opacity", arguments={"opacity": 0.5})])
             agent._staged = True
+            agent._turn_callbacks = None
             orchestrator.on_prompt("second")
         conversation = orchestrator.conversation
         self.assertEqual([m["role"] for m in conversation.messages], ["user", "assistant", "user"])
         self.assertEqual(conversation.message_at(dock.marks[-1])["content"], "second")
+        agent._turn_callbacks = None
         orchestrator.on_rewind(dock.marks[-1])
         self.assertEqual(dock.restored, "second")
         self.assertEqual([m["content"] for m in conversation.messages][-1], APPLY_DECLINED_MESSAGE)

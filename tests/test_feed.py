@@ -241,6 +241,18 @@ class ThinkingBlockTest(unittest.TestCase):
         block.finish()
         self.assertEqual(block.time.text(), "")
 
+    def test_a_long_stream_shows_its_tail_and_the_whole_text_once_finished(self):
+        from ai_agent.ui.thinking import LIVE_TAIL_CHARS
+
+        block = ThinkingBlock()
+        whole = "start " + "x" * (LIVE_TAIL_CHARS * 2)
+        block.append(whole[:10])
+        block.append(whole[10:])
+        block._render_text()
+        self.assertEqual(len(block._body.text()), LIVE_TAIL_CHARS + 1)
+        block.finish()
+        self.assertEqual(block._body.text(), whole)
+
     def test_finishing_twice_changes_nothing(self):
         block = ThinkingBlock()
         block.append("a")
@@ -356,6 +368,17 @@ class ActivityTitleTest(unittest.TestCase):
         self.assertIsInstance(row.glyph, PulseRing)
         view.mark_activity_step(entry_id, True)
         self.assertNotIsInstance(row.glyph, PulseRing)
+
+    def test_a_result_that_arrives_after_its_group_closed_is_still_marked(self):
+        from ai_agent.ui.activity import FAILED
+
+        view = ConversationView()
+        entry_id = view.add_activity_step("Compacting.")
+        group = view._activity
+        view.add_system_message("A note that closes the group.")
+        view.mark_activity_step(entry_id, False)
+        self.assertEqual(view._entries[entry_id].state, FAILED)
+        self.assertFalse(group._header.status.isHidden())
 
     def test_only_failures_are_marked_and_they_are_counted(self):
         view = ConversationView()
@@ -505,6 +528,17 @@ class FailedPlanCardTest(unittest.TestCase):
         card.mark_progress(0, 50.0, 3 * 1024 * 1024)
         self.assertFalse(step.bar.running)
         self.assertEqual(step.mark.text(), "50 %")
+
+    def test_a_step_stopped_mid_way_does_not_keep_sweeping(self):
+        from ai_agent.ui import plan as plan_module
+
+        card = plan_module.PlanCard(["Downloading cafes.", "Styling cafes."])
+        card.mark_step(0, "running")
+        card.mark_progress(0, -1.0, 4096)
+        card.mark_failed()
+        self.assertTrue(card._steps[0].bar.isHidden())
+        self.assertEqual(card._steps[0].mark.text(), plan_module.CANCELLED_MARK)
+        self.assertEqual(card._steps[1].mark.text(), "")
 
     def test_a_failed_step_shows_its_mark_and_reason_and_a_done_one_only_its_mark(self):
         from ai_agent.ui import plan as plan_module

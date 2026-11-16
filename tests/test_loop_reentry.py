@@ -1,12 +1,15 @@
+import importlib
 import unittest
 from types import SimpleNamespace
 from unittest import mock
 
 from ai_agent.core.agent import loop as loop_module
+from ai_agent.core.agent import notices
 from ai_agent.core.agent.loop import AgentLoop
 from ai_agent.core.agent.prompts import APPLY_NOW_TOOL, ASK_USER_TOOL
 from ai_agent.core.agent.transcript import ToolResult
 from ai_agent.core.llm.turns import PROTOCOL_JSON, PROTOCOL_NATIVE, ModelTurn, ToolCall
+from ai_agent.skills.registry import SKILL_REGISTRY
 
 REQUEST = SimpleNamespace(messages=[], tool_schemas=[], overrides={}, protocol=PROTOCOL_NATIVE)
 
@@ -227,6 +230,94 @@ class RequestFailureTest(LoopCase):
         self.loop._batch._applying = True
         self.loop._request_step()
         self.assertEqual(self.turns.started, 1)
+
+
+class RequestInFlightTest(LoopCase):
+    def setUp(self):
+        super().setUp()
+        # The thread has left run(), its turn is still queued for the main thread.
+        self.loop._turn = SimpleNamespace(
+            is_running=False, detach=lambda *callbacks: None, stop=lambda: None, release=lambda: None
+        )
+
+    def test_the_run_is_running_until_its_turn_is_delivered(self):
+        self.assertTrue(self.loop.is_running)
+        self.assertFalse(self.loop.start("Another request"), "the late turn would be dropped")
+        self.assertTrue(self.loop.interject("Use blue, not red"))
+
+    def test_stop_in_that_window_is_still_a_stop(self):
+        self.loop.abort()
+        self.assertEqual(self.aborted, [True])
+        self.assertFalse(self.loop.is_running)
+
+
+class RequestCannotStartTest(LoopCase):
+    def test_a_thread_that_cannot_start_fails_the_run_instead_of_leaving_it_running(self):
+        self.turns.start = mock.Mock(side_effect=RuntimeError("no thread"))
+        self.turns.answer(ModelTurn(tool_calls=[call("list_layers")]))
+        self.assertEqual(self.failed, ["no thread"])
+        self.assertFalse(self.loop.is_running)
+
+
+class PlanModeReplyTest(unittest.TestCase):
+    def test_a_plan_that_says_what_it_would_do_is_the_answer(self):
+        with mock.patch.object(loop_module, "build_step_request", return_value=REQUEST):
+            loop = AgentLoop()
+            loop._turn = turns = Turns()
+            finished = []
+            loop.finished.connect(finished.append)
+            loop.start("Plan the map", planning=True)
+            turns.answer(ModelTurn(text="I'll load the style tools and colour the roads."))
+        self.assertEqual(finished, ["I'll load the style tools and colour the roads."])
+        self.assertEqual(turns.started, 1)
+
+
+class BudgetTest(LoopCase):
+    def test_a_server_that_reports_no_usage_still_runs_into_the_budget(self):
+        self.loop._budget.reset(1000)
+        self.loop._request_estimate = 600
+        self.turns.answer(ModelTurn(tool_calls=[call("list_layers")]))
+        self.loop._request_estimate = 600
+        self.turns.answer(ModelTurn(tool_calls=[call("list_layers")]))
+        self.assertEqual(self.turns.started, 2, "the third request was sent over the budget")
+        self.assertTrue(self.loop.ended_on_limit)
+
+    def test_reported_usage_is_counted_as_it_is(self):
+        self.loop._budget.reset(1000)
+        self.loop._request_estimate = 600
+        self.turns.answer(ModelTurn(tool_calls=[call("list_layers")], input_tokens=40, output_tokens=2))
+        self.assertEqual(self.loop._budget.spent, 42)
+
+
+class SwitchedOffSkillTest(LoopCase):
+    def setUp(self):
+        super().setUp()
+        SKILL_REGISTRY.set_disabled(["sql", "python"])
+        self.addCleanup(SKILL_REGISTRY.set_disabled, [])
+
+    def test_a_read_tool_of_a_skill_switched_off_does_not_run(self):
+        result = self.loop._dispatch(call("query_sql", query="SELECT 1"))
+        self.assertFalse(result.ok)
+        self.assertIn("'sql' skill off", result.error)
+        self.assertEqual(self.executor.ran, [])
+
+    def test_a_write_tool_of_a_skill_switched_off_is_not_queued(self):
+        result = self.loop._dispatch(call("run_python", code="print(1)", intent="print one"))
+        self.assertFalse(result.ok)
+        self.assertFalse(self.loop.has_pending_writes)
+
+    def test_a_tool_of_a_skill_left_on_still_runs(self):
+        self.assertTrue(self.loop._dispatch(call("list_layers")).ok)
+        self.assertEqual(self.executor.ran, ["list_layers"])
+
+
+class SnapshotFailureTest(unittest.TestCase):
+    def test_the_model_reads_the_failure_in_english_whatever_the_interface_language(self):
+        self.addCleanup(importlib.reload, notices)
+        with mock.patch("ai_agent.i18n.tr", lambda text: f"ru:{text}"):
+            reloaded = importlib.reload(notices)
+            self.assertFalse(reloaded.SNAPSHOT_FAILED_MESSAGE.startswith("ru:"))
+            self.assertTrue(reloaded.APPLY_DECLINED_MESSAGE.startswith("ru:"), "the chat's own texts are translated")
 
 
 class RunSettingsTest(unittest.TestCase):

@@ -85,10 +85,18 @@ THEME_AUTO = "auto"
 THEME_LIGHT = "light"
 THEME_DARK = "dark"
 _override = [THEME_AUTO]
+_pinned: list[bool | None] = [None]
 
 
 def set_override(theme: str) -> None:
     _override[0] = theme if theme in (THEME_LIGHT, THEME_DARK) else THEME_AUTO
+    _pinned[0] = None
+
+
+def pin_auto(palette: QPalette) -> None:
+    # Feed widgets are built parentless: they would vote by QGIS's palette of that moment, not the panel's.
+    _pinned[0] = None
+    _pinned[0] = is_dark(palette)
 
 
 def override() -> str:
@@ -98,6 +106,8 @@ def override() -> str:
 def is_dark(palette: QPalette) -> bool:
     if _override[0] != THEME_AUTO:
         return _override[0] == THEME_DARK
+    if _pinned[0] is not None:
+        return _pinned[0]
     return palette.base().color().lightness() < DARK_LIGHTNESS
 
 

@@ -619,6 +619,15 @@ class AttributeHelpersTest(unittest.TestCase):
         rows = attributes_module.coerced_rows({"open": "boolean"}, [{"open": "yes"}, {"open": "0"}, {"open": None}])
         self.assertEqual([row["open"] for row in rows], [True, False, None])
 
+    def test_boolean_words_reach_an_existing_layer_as_booleans(self):
+        layer = types.SimpleNamespace(name=lambda: "shops", fields=lambda: FakeFields(["open"], {"open": "boolean"}))
+        rows = [{"open": "no"}, {"open": "Yes"}, {"open": None}]
+        with patch.dict(FIELD_TYPES, {"boolean": QMetaType.Type.Bool}):
+            attributes_module.check_existing_fields(layer, rows)
+            self.assertEqual([row["open"] for row in rows], [False, True, None])
+            with self.assertRaisesRegex(ValueError, "does not fit field 'open'"):
+                attributes_module.check_existing_fields(layer, [{"open": "maybe"}])
+
     def test_integers_refuse_fractions_and_booleans(self):
         for value in (2.5, True):
             with self.subTest(value=value), self.assertRaises(ValueError):

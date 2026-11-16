@@ -8,7 +8,7 @@ UNSUPPORTED_STATUS_CODES = (400, 404, 422, 501)
 REFUSAL_WORDS = (
     r"not supported|unsupported|not support|does not support|doesn't support|not available|"
     r"not allowed|not permitted|unrecognized|unrecognised|unknown|unexpected|extra inputs|"
-    r"invalid (?:field|parameter|argument)"
+    r"invalid (?:field|parameter|argument)|no endpoints found that support|is not enabled|requires --"
 )
 NEVER_A_REFUSAL = re.compile(
     r"context[_ ]length|maximum context|context window|prompt is too long|too many tokens|"

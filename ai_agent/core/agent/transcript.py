@@ -120,14 +120,14 @@ class Transcript:
 
     def replace_results(self, results: list[ToolResult], protocol: str) -> None:
         remaining = {result.call.id: result for result in results}
-        by_signature = {_result_signature(result): result for result in results}
+        by_signature = {call_signature(result.call): result for result in results}
         for entry in reversed(self.entries):
             if entry["kind"] != "results":
                 continue
             for index, existing in enumerate(entry["results"]):
                 replacement = remaining.pop(existing.call.id, None)
                 if replacement is None and existing.status == QUEUED_STATUS:
-                    canonical = by_signature.get(_result_signature(existing))
+                    canonical = by_signature.get(call_signature(existing.call))
                     if canonical is not None:
                         replacement = _deduplicated_result(canonical, existing.call)
                 if replacement is not None:
@@ -222,7 +222,7 @@ class Transcript:
 
     @staticmethod
     def _render_call(call: ToolCall) -> dict[str, Any]:
-        return {
+        rendered: dict[str, Any] = {
             "id": call.id,
             "type": "function",
             "function": {
@@ -230,6 +230,9 @@ class Transcript:
                 "arguments": json.dumps(call.arguments, ensure_ascii=False),
             },
         }
+        if call.extra_content:
+            rendered["extra_content"] = call.extra_content
+        return rendered
 
     @classmethod
     def _render_results(
@@ -308,12 +311,12 @@ def _unique_tool_calls(calls: list[ToolCall], taken: set[str]) -> list[ToolCall]
     return prepared
 
 
-def _result_signature(result: ToolResult) -> str:
+def call_signature(call: ToolCall) -> str:
     try:
-        arguments = json.dumps(result.call.arguments, ensure_ascii=False, sort_keys=True, default=str)
+        arguments = json.dumps(call.arguments, ensure_ascii=False, sort_keys=True, default=str)
     except (TypeError, ValueError):
-        arguments = str(sorted(result.call.arguments.items()))
-    return f"{result.call.name}|{arguments}"
+        arguments = str(sorted(call.arguments.items()))
+    return f"{call.name}|{arguments}"
 
 
 def _deduplicated_result(result: ToolResult, alias: ToolCall) -> ToolResult:

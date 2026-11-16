@@ -7,7 +7,7 @@ from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.colors import parse_color
 from ai_agent.qgis_tools.common.expressions import sort_key
-from ai_agent.qgis_tools.common.layers import layer_reference
+from ai_agent.qgis_tools.common.layers import bind_layer_reference, layer_reference
 from ai_agent.qgis_tools.common.values import plain_value
 from ai_agent.qgis_tools.style.apply import (
     coloured_symbol,
@@ -20,6 +20,7 @@ from ai_agent.qgis_tools.style.legend import with_legend
 
 MAX_CATEGORIES = 60
 DEFAULT_RAMPS = ("Set2", "Spectral", "Paired", "Viridis")
+NULL_LABEL = "NULL"
 
 
 class SetCategoriesTool(BaseTool):
@@ -77,7 +78,7 @@ class SetCategoriesTool(BaseTool):
     ]
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = require_vector_layer(params.get("layer_name") or "")
+        layer = require_vector_layer(params)
         field = require_field(layer, (params.get("field") or "").strip())
         values = _wanted_values(layer, field, params.get("values"))
         if not values:
@@ -97,8 +98,7 @@ class SetCategoriesTool(BaseTool):
             parse_color(color, "Category colour")
         if not colors:
             resolve_ramp(params.get("ramp") or "", DEFAULT_RAMPS)
-        prepared = dict(params)
-        prepared["layer_name"] = layer.name()
+        prepared = bind_layer_reference(params, layer)
         prepared["field"] = field
         prepared["values"] = values
         return prepared
@@ -108,12 +108,12 @@ class SetCategoriesTool(BaseTool):
         return tr("Colouring '{0}' by field '{1}'.").format(layer_name, params.get("field", ""))
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = require_vector_layer(params.get("layer_name") or "")
+        layer = require_vector_layer(params)
         field = params.get("field") or ""
         values = params.get("values") or _wanted_values(layer, field, None)
         colors = _colours_for(values, params.get("colors"), params.get("ramp"))
         categories = [
-            QgsRendererCategory(value, coloured_symbol(layer, colour), str(value))
+            QgsRendererCategory(value, coloured_symbol(layer, colour), NULL_LABEL if value is None else str(value))
             for value, colour in zip(values, colors, strict=False)
         ]
         layer.setRenderer(QgsCategorizedSymbolRenderer(field, categories))

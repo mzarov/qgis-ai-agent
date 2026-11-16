@@ -1,6 +1,8 @@
 import re
+from urllib.parse import urlsplit, urlunsplit
 
 from ai_agent.core.agent.transcript import ToolResult
+from ai_agent.core.llm.client import scrub_secrets
 from ai_agent.core.llm.turns import ToolCall
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.registry import summarize_tool_result
@@ -19,6 +21,20 @@ KINDS = (
     (DENIED, r"forbidden|\b403\b|unauthorized|\b401\b"),
     (SERVER_DOWN, r"internal server error|bad gateway|service unavailable|\b50[023]\b"),
 )
+URL = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*://[^\s'\"<>()]+")
+
+
+def failure_text(text: str) -> str:
+    # Qt's network errors quote the whole address: its login and query may hold a key.
+    return URL.sub(_bare_address, scrub_secrets(str(text)))
+
+
+def _bare_address(match: re.Match[str]) -> str:
+    try:
+        parts = urlsplit(match.group(0))
+    except ValueError:
+        return ""
+    return urlunsplit((parts.scheme, parts.netloc.rpartition("@")[2], parts.path, "", ""))
 
 
 def explain_failure(error: str) -> str:

@@ -153,6 +153,33 @@ class DeferredPagesTest(SettingsCase):
         geocoder_saved.assert_not_called()
 
 
+class EmptiedKeyTest(SettingsCase):
+    URL = "https://api.example.com/v1"
+
+    def _dialog(self, stored):
+        settings.set_api_url(self.URL)
+        settings.set_model("model")
+        with mock.patch.object(settings_dialog, "get_api_key", return_value=stored):
+            return settings_dialog.SettingsDialog()
+
+    def test_a_key_field_emptied_by_the_user_removes_the_stored_key(self):
+        dialog = self._dialog("sk-old")
+        dialog.key_edit.setText("")
+        with (
+            mock.patch.object(settings_dialog, "delete_api_key") as removed,
+            mock.patch.object(settings_dialog, "set_api_key") as stored,
+        ):
+            dialog._save()
+        removed.assert_called_once()
+        stored.assert_not_called()
+
+    def test_a_key_field_that_loaded_empty_removes_nothing(self):
+        dialog = self._dialog("")
+        with mock.patch.object(settings_dialog, "delete_api_key") as removed:
+            dialog._save()
+        removed.assert_not_called()
+
+
 class RefusedSaveTest(SettingsCase):
     OLD = ("https://api.example.com/v1", "old-model")
 

@@ -19,6 +19,7 @@ from qgis.PyQt.QtGui import (
     QImage,
     QKeyEvent,
     QMouseEvent,
+    QPixmap,
     QTextCursor,
     QTextDocument,
     QWheelEvent,
@@ -30,6 +31,7 @@ from ai_agent.core.orchestrator.notices import STATUS_DONE, SWITCH_WHILE_RUNNING
 from ai_agent.ui import compass, controls, progress, settings_fields, skill_popup, style, transitions
 from ai_agent.ui.activity import ActivityGroup, PulseRing
 from ai_agent.ui.chart import ChartCard
+from ai_agent.ui.composer import Composer
 from ai_agent.ui.composer_parts import LAYER_TOKEN, SKILL_TOKEN
 from ai_agent.ui.connection_widgets import STATE_BAD, StatusCard
 from ai_agent.ui.conversation import ConversationView
@@ -323,6 +325,60 @@ class NoteColumnTest(unittest.TestCase):
         self.assertEqual(text.x(), answer.mapTo(feed, QPoint(0, 0)).x())
         view.hide()
         view.deleteLater()
+
+
+class PictureRowTest(unittest.TestCase):
+    PICTURES = 5
+
+    def setUp(self) -> None:
+        self.folder = tempfile.TemporaryDirectory()
+        self.composer = Composer()
+        self.composer.resize(PANEL_WIDTH, 160)
+        self.composer.show()
+        pump(0.1)
+        self.narrow = self.composer.minimumSizeHint().width()
+        for index in range(self.PICTURES):
+            path = os.path.join(self.folder.name, f"a picture with a long name {index}.png")
+            picture = QPixmap(8, 8)
+            picture.fill(Qt.GlobalColor.darkCyan)
+            picture.save(path, "PNG")
+            self.composer.add_attachment(path)
+        pump(0.2)
+        self.row = self.composer.attachments
+
+    def tearDown(self) -> None:
+        self.composer.hide()
+        self.composer.deleteLater()
+        self.folder.cleanup()
+
+    def _wheel(self, dx: int, dy: int) -> None:
+        at = QPointF(self.row.rect().center())
+        event = QWheelEvent(
+            at,
+            QPointF(self.row.mapToGlobal(at.toPoint())),
+            QPoint(0, 0),
+            QPoint(dx, dy),
+            Qt.MouseButton.NoButton,
+            Qt.KeyboardModifier.NoModifier,
+            Qt.ScrollPhase.NoScrollPhase,
+            False,
+        )
+        QApplication.sendEvent(self.row.viewport(), event)
+        pump(0.05)
+
+    def test_pictures_do_not_widen_the_panel_and_the_newest_is_in_view(self) -> None:
+        self.assertEqual(self.composer.minimumSizeHint().width(), self.narrow)
+        self.assertLessEqual(self.row.width(), PANEL_WIDTH)
+        bar = self.row.horizontalScrollBar()
+        self.assertGreater(bar.maximum(), 0, "five pictures fit a narrow panel: the row has nothing to slide")
+        self.assertEqual(bar.value(), bar.maximum())
+
+    def test_a_plain_mouse_wheel_and_a_sideways_swipe_both_slide_the_row(self) -> None:
+        bar = self.row.horizontalScrollBar()
+        self._wheel(0, 10 * bar.maximum())
+        self.assertEqual(bar.value(), 0)
+        self._wheel(-10 * bar.maximum(), 0)
+        self.assertEqual(bar.value(), bar.maximum())
 
 
 class WideTableTest(unittest.TestCase):

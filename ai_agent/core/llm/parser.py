@@ -8,15 +8,22 @@ FENCE_PATTERN = re.compile(r"```(?:json)?\s*([\s\S]*?)```")
 
 def parse_model_json(reply: str) -> dict[str, Any]:
     raw = (reply or "").strip()
-    if "```" in raw:
+    parsed = _loaded_object(raw)
+    # Only an unparsable reply is unwrapped: a fence inside a JSON string is part of the answer.
+    if parsed is None and "```" in raw:
         match = FENCE_PATTERN.search(raw)
         if match:
             raw = match.group(1).strip()
+            parsed = _loaded_object(raw)
+    return parsed if parsed is not None else _parse_best_object(raw)
+
+
+def _loaded_object(raw: str) -> dict[str, Any] | None:
     try:
         parsed = json.loads(raw)
     except json.JSONDecodeError:
-        return _parse_best_object(raw)
-    return parsed if isinstance(parsed, dict) else _parse_best_object(raw)
+        return None
+    return parsed if isinstance(parsed, dict) else None
 
 
 def _parse_best_object(raw: str) -> dict[str, Any]:
@@ -51,8 +58,9 @@ def parse_tool_arguments(raw_arguments: object) -> dict[str, Any]:
     try:
         parsed = json.loads(text)
     except json.JSONDecodeError:
+        # Only the outermost object: a nested one would run the tool with the wrong arguments.
         try:
-            parsed = _parse_best_object(text)
+            parsed, _ = json.JSONDecoder().raw_decode(text[max(text.find("{"), 0) :])
         except json.JSONDecodeError:
             return {}
     return dict(parsed) if isinstance(parsed, dict) else {}

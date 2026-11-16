@@ -4,6 +4,7 @@ from qgis.PyQt.QtCore import QPointF, Qt, QTimer, pyqtSignal
 from qgis.PyQt.QtGui import QBrush, QFont, QPainter, QPen
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QVBoxLayout, QWidget
 
+from ai_agent.core.orchestrator.notices import OPTION_WHY
 from ai_agent.i18n import tr
 from ai_agent.ui import controls, style
 
@@ -19,7 +20,7 @@ TAG_RADIUS = 4
 SMALL = 0.92
 DETAIL = 12.5 / 13
 QUESTION_SCALE = 14 / 13
-WHY = " — "
+WHY = OPTION_WHY
 HEADING = tr("Needs clarification")
 RECOMMENDED = tr("recommended")
 OWN_ANSWER = tr("Your own answer…")

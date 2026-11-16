@@ -27,6 +27,7 @@ NATIVE_AGGREGATES = {
     "stdev": "StDevSample",
 }
 COUNT_EXPRESSION = "1"
+NULLS_FIRST = False
 _FAILED = object()
 SCAN_LIMIT_MESSAGE = (
     "More than {limit} features match the condition, so an exact answer cannot be computed. "
@@ -165,7 +166,7 @@ def run_rows(layer, request, context, params) -> dict[str, Any]:
         collected.append((key, _attributes(feature, slots)))
 
     if order_expression is not None and not provider_ordered:
-        collected.sort(key=lambda item: sort_key(item[0]), reverse=not ascending)
+        collected = _ordered(collected, ascending)
     has_more = bounded and len(collected) > limit
     info: dict[str, Any] = {
         "matched": len(collected),
@@ -181,11 +182,18 @@ def run_rows(layer, request, context, params) -> dict[str, Any]:
     return info
 
 
+def _ordered(collected: list[tuple[Any, dict[str, Any]]], ascending: bool) -> list[tuple[Any, dict[str, Any]]]:
+    # Empty values go last either way: "top N" must not open with NULL rows.
+    filled = [item for item in collected if item[0] is not None]
+    filled.sort(key=lambda item: sort_key(item[0]), reverse=not ascending)
+    return filled + [item for item in collected if item[0] is None]
+
+
 def _bound_request(request, order_text: str, ascending: bool, limit: int, slots, layer) -> bool:
     provider_ordered = False
     if order_text:
         try:
-            clause = QgsFeatureRequest.OrderByClause(order_text, ascending)
+            clause = QgsFeatureRequest.OrderByClause(order_text, ascending, NULLS_FIRST)
             request.setOrderBy(QgsFeatureRequest.OrderBy([clause]))
             provider_ordered = True
         except (AttributeError, TypeError, ValueError):
@@ -194,7 +202,7 @@ def _bound_request(request, order_text: str, ascending: bool, limit: int, slots,
         request.setLimit(limit + 1)
         if slots and not order_text:
             try:
-                request.setSubsetOfAttributes([index for _, index in slots], layer.fields())
+                request.setSubsetOfAttributes([index for _, index in slots])
             except (AttributeError, TypeError, ValueError):
                 pass
     return provider_ordered

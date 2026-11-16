@@ -260,6 +260,12 @@ class OutputSafetyTest(unittest.TestCase):
         }
         self.assertEqual(destination_values(parameters), [self.existing_pdf])
 
+    def test_an_output_named_inside_a_list_item_is_a_destination(self):
+        parameters = {"LAYERS": [{"inputFile": self.existing_gpkg, "outputFile": self.existing_pdf}]}
+        self.assertEqual(destination_values(parameters), [self.existing_pdf])
+        with self.assertRaisesRegex(ValueError, "overwrite=true"):
+            check_destinations(parameters, overwrite=False)
+
     def test_processing_refuses_an_implicit_overwrite(self):
         with self.assertRaisesRegex(ValueError, "overwrite=true"):
             check_destinations({"OUTPUT": self.existing_pdf}, overwrite=False)

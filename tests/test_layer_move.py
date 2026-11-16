@@ -126,6 +126,12 @@ class FakeLayer:
     def __init__(self, node):
         self._node = node
 
+    def name(self):
+        return self._node.layer_id
+
+    def id(self):
+        return f"{self._node.layer_id}-id"
+
 
 class ReorderTest(unittest.TestCase):
     def setUp(self):
@@ -146,7 +152,7 @@ class ReorderTest(unittest.TestCase):
         reorder_module.layer_tree = lambda: self.tree.root
         reorder_module.parent_of = lambda node: node._parent
         reorder_module.tree_node = lambda layer: layer._node
-        reorder_module.find_layer = lambda name: FakeLayer(self.nodes[name])
+        reorder_module.find_layer = lambda name: FakeLayer(self.nodes[name.removesuffix("-id")])
         self.tool = ReorderLayersTool()
 
     def tearDown(self):
@@ -163,6 +169,11 @@ class ReorderTest(unittest.TestCase):
     def test_the_named_order_becomes_the_panel_order(self):
         self.tool.execute({"layer_names": ["cafes", "roads", "parks", "boundary", "osm"]})
         self.assertEqual(self._ids(), ["cafes", "roads", "parks", "boundary", "osm"])
+
+    def test_a_queued_order_holds_ids_so_shared_names_stay_apart(self):
+        prepared = self.tool.prepare({"layer_names": ["cafes", "roads"]})
+        self.assertEqual(prepared["layer_names"], ["cafes-id", "roads-id"])
+        self.assertEqual(self.tool.execute(prepared)["order"], ["cafes", "roads"])
 
     def test_every_layer_survives(self):
         self.tool.execute({"layer_names": ["cafes", "roads", "parks", "boundary", "osm"]})

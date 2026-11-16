@@ -225,6 +225,40 @@ class LoadImageryTest(unittest.TestCase):
         project.layerTreeRoot.return_value.insertLayer.assert_called_once_with(2, added[0])
         self.assertIn("2026-10-07T11:00:00Z", result["note"])
 
+    def test_a_scene_that_fails_names_the_ones_already_loaded(self):
+        project = mock.Mock(addMapLayer=lambda layer, show=True: None)
+        project.layerTreeRoot.return_value.children.return_value = []
+
+        def found(collection, item_id):
+            if item_id == "S2C_Y":
+                raise ValueError("Scene 'S2C_Y' was not found.")
+            return SCENE
+
+        with (
+            mock.patch.object(load_imagery, "item", side_effect=found),
+            mock.patch.object(load_imagery, "signed", side_effect=lambda href: (href, "")),
+            mock.patch.object(load_imagery, "QgsRasterLayer", Layer),
+            mock.patch.object(load_imagery.QgsProject, "instance", return_value=project),
+            self.assertRaisesRegex(ValueError, "'S2C_Y' was not found.*already in the project as 'Sentinel-2"),
+        ):
+            load_imagery.LoadImageryTool().execute({"collection": "sentinel-2-l2a", "item_ids": ["S2C_X", "S2C_Y"]})
+
+
+class TokenExpiryTest(unittest.TestCase):
+    @unittest.skipUnless(hasattr(time, "tzset"), "the platform cannot switch the local time zone")
+    def test_an_expiry_is_read_as_utc_whatever_the_local_clock(self):
+        saved = os.environ.get("TZ")
+        os.environ["TZ"] = "Europe/Berlin"
+        time.tzset()
+        try:
+            self.assertEqual(stac._epoch("2026-07-01T12:00:00Z"), 1782907200.0)
+        finally:
+            if saved is None:
+                del os.environ["TZ"]
+            else:
+                os.environ["TZ"] = saved
+            time.tzset()
+
 
 class LoadDatasetTest(unittest.TestCase):
     def setUp(self):

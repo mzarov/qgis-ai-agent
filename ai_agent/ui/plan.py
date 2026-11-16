@@ -231,6 +231,10 @@ class PlanCard(controls.RoundedFrame):
         self._show_status(UNDONE_AT.format(at or _now()), False)
 
     def _settle(self, mark: str, heading: str, colour: Any) -> None:
+        # A step stopped mid-way gets no later update: left running, its bar would sweep forever.
+        for step in self._steps:
+            if step.running:
+                step.set_state(STEP_SKIPPED)
         self._paint_mark(mark, colour)
         self._heading.setText(heading)
         self._buttons.setVisible(False)
@@ -280,9 +284,11 @@ class PlanStep(QWidget):
         self.bar = controls.ThinBar(palette)
         grid.addWidget(self.bar, 3, 1, 1, 2)
         self.bar.setVisible(False)
+        self.running = False
         grid.setColumnStretch(1, 1)
 
     def set_progress(self, percent: float, done: int = 0) -> None:
+        self.running = True
         self.bar.setVisible(True)
         if percent >= 0:
             self.bar.set_fraction(percent / 100)
@@ -293,6 +299,7 @@ class PlanStep(QWidget):
         self.mark.setVisible(True)
 
     def set_state(self, state: str, note: str = "") -> None:
+        self.running = state == STEP_RUNNING
         self.bar.setVisible(False)
         mark, colour = STEP_MARKS.get(state, ("", style.muted))
         self.mark.setText(mark)

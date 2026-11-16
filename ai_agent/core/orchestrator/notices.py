@@ -5,6 +5,7 @@ REWIND_BOTH = "both"
 REWIND_CONVERSATION = "conversation"
 REWIND_PROJECT = "project"
 MESSAGE_DURATION_SEC = 8
+OPTION_WHY = " — "
 SESSION_MISSING = tr("Conversation not found.")
 NOT_SAVED = tr("Could not save the conversation: {0}. It is kept only until QGIS closes.")
 RUN_STOPPED = tr("Run stopped. Pending work was cancelled.")

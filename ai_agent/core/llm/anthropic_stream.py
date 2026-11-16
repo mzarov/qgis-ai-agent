@@ -2,7 +2,7 @@ import json
 from collections.abc import Callable
 from typing import Any
 
-from ai_agent.core.llm.anthropic import TEXT_BLOCK, THINKING_BLOCK, TOOL_USE
+from ai_agent.core.llm.anthropic import TEXT_BLOCK, THINKING_BLOCK, TOOL_USE, as_object
 from ai_agent.core.llm.client import ApiResponseError, blocking_timeout, post_json
 from ai_agent.core.llm.dialects import resolve
 from ai_agent.core.llm.refusals import streaming_unsupported, thinking_unsupported
@@ -119,7 +119,7 @@ class StreamedMessage:
         # Some providers send the whole input with the block's start and no deltas after it.
         streamed = "".join(self._json.get(index) or [])
         if streamed.strip():
-            block["input"] = _as_object(streamed)
+            block["input"] = as_object(streamed)
 
     def response(self) -> dict[str, Any]:
         return {
@@ -194,11 +194,3 @@ class AnthropicExchange:
         if get_supports_streaming(self._url, self._model, self._dialect) is None:
             set_supports_streaming(self._url, True, self._model, self._dialect)
         return data
-
-
-def _as_object(raw: str) -> dict[str, Any]:
-    try:
-        parsed = json.loads(raw or "{}")
-    except ValueError:
-        return {}
-    return parsed if isinstance(parsed, dict) else {}

@@ -75,13 +75,14 @@ class QgisAiAgentPlugin:
     def run(self) -> None:
         if self.dock_widget is None:
             self._build()
-        self.iface.addDockWidget(DOCK_AREA, self.dock_widget)
         self.dock_widget.show()
         self.dock_widget.raise_()
         self.dock_widget.focus_prompt()
 
     def _build(self) -> None:
         self.dock_widget = AgentDockWidget(self.iface.mainWindow())
+        # Only here: adding it again on every click would throw a moved or tabbed panel back to this area.
+        self.iface.addDockWidget(DOCK_AREA, self.dock_widget)
         self._orchestrator = CoreOrchestrator(self.iface, self.dock_widget)
         # One picker for the plugin's life: a rebuilt panel finds it through these two slots.
         self._picker = MapPicker(self.iface)
@@ -176,12 +177,19 @@ class QgisAiAgentPlugin:
         old = self.dock_widget
         area = self.iface.mainWindow().dockWidgetArea(old)
         visible = old.isVisible()
+        # What the user left in the box crosses over: the rebuild is not their doing.
+        draft, pictures, floating = old.draft(), old.take_attachments(), old.isFloating()
         self.dock_widget = AgentDockWidget(self.iface.mainWindow())
         self._connect_dock()
         self._orchestrator.attach_dock(self.dock_widget)
         self.iface.removeDockWidget(old)
         old.deleteLater()
         self.iface.addDockWidget(area, self.dock_widget)
+        self.dock_widget.setFloating(floating)
+        if draft.strip():
+            self.dock_widget.put_prompt(draft)
+        for path in pictures:
+            self.dock_widget.add_attachment(path)
         self.dock_widget.setVisible(visible)
 
     def _follow_active_layer(self, following: bool) -> None:

@@ -16,9 +16,10 @@ class TokenBudget:
         self.completion = 0
         self.requests = 0
 
-    def add(self, turn: ModelTurn) -> None:
+    def add(self, turn: ModelTurn, estimate: int = 0) -> None:
         self.requests += 1
-        incoming, outgoing = max(0, int(turn.input_tokens)), max(0, int(turn.output_tokens))
+        # A server that reports no usage must still run into the budget.
+        incoming, outgoing = max(0, int(turn.input_tokens)) or estimate, max(0, int(turn.output_tokens))
         self.prompt += incoming
         self.completion += outgoing
         self.spent += incoming + outgoing

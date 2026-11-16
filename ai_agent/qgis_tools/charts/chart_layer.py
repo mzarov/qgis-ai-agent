@@ -1,10 +1,19 @@
+import math
 from typing import Any
 
 from qgis.core import QgsFeatureRequest, QgsVectorLayer
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
-from ai_agent.qgis_tools.charts.spec import MAX_CATEGORIES, MAX_PIE_SLICES, OTHER, attach, chart, fold_other
+from ai_agent.qgis_tools.charts.spec import (
+    MAX_CATEGORIES,
+    MAX_DECIMALS,
+    MAX_PIE_SLICES,
+    OTHER,
+    attach,
+    chart,
+    fold_other,
+)
 from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.expressions import build_context, build_request, compile_expression, evaluate
 from ai_agent.qgis_tools.common.layers import find_layer_by_name
@@ -14,6 +23,7 @@ ADDITIVE = ("count", "sum")
 CHART_KINDS = ("auto", "bar", "pie", "histogram")
 DEFAULT_BINS = 10
 MAX_BINS = 30
+EDGE_DIGITS = 3
 DEFAULT_TOP = 12
 MAX_FEATURES = 200_000
 EMPTY = "(empty)"
@@ -178,7 +188,8 @@ def _histogram(rows: list[tuple[Any, Any]], params: dict[str, Any], layer: QgsVe
     counts = [0.0] * bins
     for number in numbers:
         counts[min(int((number - low) / width), bins - 1)] += 1
-    labels = [f"{_short(low + index * width)}–{_short(low + (index + 1) * width)}" for index in range(bins)]
+    edges = [_edge(low + index * width, width) for index in range(bins + 1)]
+    labels = [f"{edges[index]}–{edges[index + 1]}" for index in range(bins)]
     value_text = str(params.get("value") or "")
     title = str(params.get("title") or "").strip() or f"{layer.name()}: {value_text}"
     return chart("histogram", title, labels, [{"name": value_text, "values": counts}], value_text, "features")
@@ -230,5 +241,8 @@ def _is_number(value: Any) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
-def _short(number: float) -> str:
-    return f"{number:,.3g}"
+def _edge(number: float, width: float) -> str:
+    # As many decimals as the bin width needs to tell two neighbouring edges apart.
+    decimals = min(MAX_DECIMALS, max(0, EDGE_DIGITS - 1 - math.floor(math.log10(width))))
+    text = f"{number:,.{decimals}f}"
+    return (text.rstrip("0").rstrip(".") if "." in text else text) or "0"

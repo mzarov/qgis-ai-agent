@@ -39,6 +39,7 @@ class MemoryNotes(QObject):
         self.editor.setMaxLength(MAX_NOTE_CHARS)
         self.editor.setStyleSheet(fields.input_style(palette))
         self.editor.returnPressed.connect(self.add)
+        self.editor.setProperty(fields.OWN_RETURN, True)
         line.addWidget(self.editor, 1)
         self.add_button = QPushButton(ADD)
         self.add_button.setStyleSheet(fields.plain_button(palette))

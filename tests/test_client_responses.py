@@ -31,6 +31,20 @@ class BlockingResponseTest(unittest.TestCase):
                 self.assertEqual(caught.exception.status_code, status)
                 self.assertEqual(caught.exception.body, body.decode())
 
+    def test_an_error_object_under_status_200_is_an_api_error(self):
+        for body, status in (
+            (b'{"error":{"code":429,"message":"slow down"}}', 429),
+            (b'{"error":{"type":"invalid_request_error","message":"too long"}}', 400),
+            (b'{"error":"upstream failed"}', 502),
+        ):
+            with self.subTest(body=body):
+                self.answer = Answer(status=200, body=body)
+                with self.assertRaises(ApiResponseError) as caught:
+                    self.post()
+                self.assertEqual(caught.exception.status_code, status)
+        self.answer = Answer(status=200, body=b'{"choices":[],"error":null}')
+        self.assertEqual(self.post(), {"choices": [], "error": None})
+
     def test_an_http_failure_carries_the_wait_the_server_asked_for(self):
         self.answer = Answer(status=429, body=b"{}", failed=True, headers={"retry-after": "12"})
         with self.assertRaises(ApiResponseError) as caught:

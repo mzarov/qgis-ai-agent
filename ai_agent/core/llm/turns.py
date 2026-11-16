@@ -15,6 +15,8 @@ class ToolCall:
     id: str
     name: str
     arguments: dict[str, Any] = field(default_factory=dict)
+    # Gemini 3+ refuses a replayed call without the signature it sent here.
+    extra_content: dict[str, Any] | None = None
 
 
 @dataclass
@@ -96,6 +98,7 @@ def _native_call(index: int, raw: dict[str, Any]) -> ToolCall | None:
         id=raw.get("id") or f"call_{index}",
         name=name,
         arguments=parse_tool_arguments(function.get("arguments")),
+        extra_content=raw.get("extra_content") if isinstance(raw.get("extra_content"), dict) else None,
     )
 
 
@@ -133,7 +136,7 @@ def parse_json_turn(data: dict[str, Any]) -> ModelTurn:
         input_tokens=incoming,
         output_tokens=outgoing,
         thinking=thinking,
-        text=(parsed.get("text") or parsed.get("message") or "").strip(),
+        text=_json_text(parsed),
         tool_calls=[
             call
             for call in (_json_call(index, raw) for index, raw in enumerate(_as_call_list(parsed.get("tool_calls"))))
@@ -150,10 +153,20 @@ def _as_call_list(raw: Any) -> list[Any]:
     return raw if isinstance(raw, list) else []
 
 
+def _json_text(parsed: dict[str, Any]) -> str:
+    value = parsed.get("text") or parsed.get("message") or ""
+    if isinstance(value, list):
+        value = "\n".join(str(item) for item in value)
+    return str(value).strip()
+
+
 def _json_call(index: int, raw: Any) -> ToolCall | None:
     if not isinstance(raw, dict):
         return None
-    name = (raw.get("name") or raw.get("tool") or "").strip()
+    # Small local models answer the JSON protocol in the native shape, the call under "function".
+    if isinstance(raw.get("function"), dict):
+        raw = {**raw, **raw["function"]}
+    name = str(raw.get("name") or raw.get("tool") or "").strip()
     if not name:
         return None
     raw_arguments = raw.get("arguments") if "arguments" in raw else raw.get("params")

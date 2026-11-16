@@ -1,18 +1,19 @@
+import re
+
 from ai_agent.core.local_skills import register_local_skills, skill_choices
 from ai_agent.skills.registry import SKILL_REGISTRY
 
 SLASH = "/"
+COMMAND = re.compile(r"/([A-Za-z0-9_-]*)(?:\s+(.*))?\Z", re.DOTALL)
 DEFAULT_SKILL_PROMPT = "Apply the '{name}' skill to the current project."
 
 
 def parse_slash(text: str) -> tuple[str, str]:
-    stripped = (text or "").lstrip()
-    if not stripped.startswith(SLASH):
+    # A request may open with a path: only /name followed by a space or the end is a command.
+    command = COMMAND.match((text or "").strip())
+    if command is None:
         return "", text
-    parts = stripped[len(SLASH) :].split(None, 1)
-    name = parts[0].lower() if parts else ""
-    rest = parts[1].strip() if len(parts) > 1 else ""
-    return name, rest
+    return command.group(1).lower(), (command.group(2) or "").strip()
 
 
 def is_known_skill(name: str) -> bool:

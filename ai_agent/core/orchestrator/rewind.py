@@ -42,6 +42,9 @@ class RewindMixin(OrchestratorHost):
         if not path or path == getattr(self, "_snapshot_before_apply", ""):
             return
         self._snapshot_before_apply = path
+        # An undo the model queued leaves an older snapshot as the last one: it is no new checkpoint.
+        if any(item.snapshot == path for item in self._checkpoints):
+            return
         place = self.conversation.last_place("user")
         if place is not None:
             self._checkpoints.append(Checkpoint(path, self.conversation.session_identifier, place))

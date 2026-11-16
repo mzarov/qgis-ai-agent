@@ -3,6 +3,7 @@ from typing import Any
 from qgis.core import Qgis, QgsMessageLog
 
 from ai_agent.core import usage_payload
+from ai_agent.core.agent.failures import failure_text
 from ai_agent.core.agent.run_failure import explain_run_failure
 from ai_agent.core.orchestrator.contracts import OrchestratorHost
 from ai_agent.core.orchestrator.notices import (
@@ -17,7 +18,6 @@ from ai_agent.core.orchestrator.notices import (
     STEP_FAILED,
     STEP_RUNNING,
 )
-from ai_agent.core.orchestrator.presentation import failure_text
 from ai_agent.core.state.trace import CANCELLED as PLAN_CANCELLED
 from ai_agent.core.state.trace import FAILED as PLAN_FAILED
 from ai_agent.i18n import tr
@@ -170,6 +170,7 @@ class RunEventsMixin(OrchestratorHost):
         self.usage.note("failures", kind or failure.kind)
         self._count_run_end(usage_payload.FAILED)
         retryable = self._retry_args is not None and not getattr(self.agent, "is_verification", False)
+        self._retry_once_fixed = retryable
         retryable = retryable and failure.retry_helps
         # Retry would start over without the steps the run prepared: it waits until they are cancelled.
         self._retry_after_plan = retryable and self.agent.has_pending_writes

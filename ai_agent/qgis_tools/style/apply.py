@@ -4,16 +4,16 @@ from typing import Any
 from qgis.core import QgsStyle, QgsSymbol, QgsVectorLayer
 from qgis.PyQt.QtGui import QColor
 
-from ai_agent.qgis_tools.common.layers import find_layer_by_name
+from ai_agent.qgis_tools.common.layers import find_layer_by_name, target_reference
 from ai_agent.qgis_tools.common.values import suggest_fields
 
 RAMPS_SHOWN = 24
 
 
-def require_vector_layer(layer_name: str) -> QgsVectorLayer:
-    layer = find_layer_by_name(layer_name)
+def require_vector_layer(params: dict[str, Any]) -> QgsVectorLayer:
+    layer = find_layer_by_name(target_reference(params))
     if not isinstance(layer, QgsVectorLayer):
-        raise ValueError(f"Layer '{layer_name}' is not a vector layer. Symbol styling applies to vector layers only.")
+        raise ValueError(f"Layer '{layer.name()}' is not a vector layer. Symbol styling applies to vector layers only.")
     return layer
 
 

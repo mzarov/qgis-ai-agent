@@ -1,7 +1,7 @@
 from typing import Any
 
 from qgis.PyQt.QtCore import QSize, Qt, QTimer, QUrl, pyqtSignal
-from qgis.PyQt.QtGui import QDesktopServices, QImage, QTextDocument
+from qgis.PyQt.QtGui import QDesktopServices, QImage, QTextCursor, QTextDocument, QTextOption
 from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QTextBrowser, QToolButton, QVBoxLayout, QWidget
 
 from ai_agent.i18n import tr
@@ -94,6 +94,21 @@ class AnswerBrowser(QTextBrowser):
         return self._blank if kind == IMAGE_RESOURCE else ""
 
 
+def _wrap_code(document: QTextDocument) -> None:
+    # The answer cannot scroll sideways: a code line wraps instead of being cut off at the panel's edge.
+    try:
+        blocks = [document.findBlockByNumber(index) for index in range(document.blockCount())]
+    except (AttributeError, TypeError):
+        return
+    cursor = QTextCursor(document)
+    for block in blocks:
+        layout = block.blockFormat()
+        if layout.nonBreakableLines():
+            layout.setNonBreakableLines(False)
+            cursor.setPosition(block.position())
+            cursor.setBlockFormat(layout)
+
+
 class AssistantMessage(QWidget):
     def __init__(self, markdown: str):
         super().__init__()
@@ -105,6 +120,7 @@ class AssistantMessage(QWidget):
         browser.setFrameShape(QFrame.Shape.NoFrame)
         browser.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         browser.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        browser.setWordWrapMode(QTextOption.WrapMode.WrapAtWordBoundaryOrAnywhere)
         browser.setStyleSheet(f"background: transparent; color: {style.css_color(style.text(palette))}; border: none;")
         self._apply_markdown(browser, markdown)
         browser.document().documentLayout().documentSizeChanged.connect(lambda _: self._fit(browser))
@@ -141,6 +157,7 @@ class AssistantMessage(QWidget):
             document.setMarkdown(markdown)
         except AttributeError:
             browser.setPlainText(markdown)
+        _wrap_code(document)
 
     def _fit(self, browser: QTextBrowser) -> None:
         document = browser.document()

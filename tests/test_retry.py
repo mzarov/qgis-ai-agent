@@ -42,6 +42,17 @@ class WithRetriesTest(unittest.TestCase):
         self.assertEqual(len(seen), 2)
         self.assertAlmostEqual(sum(self.slept), retry.BACKOFF_SECONDS[0])
 
+    def test_a_stop_during_the_pause_sends_nothing_more(self):
+        feedback = Feedback()
+        attempt, seen = scripted(ApiResponseError(503, "busy"), "ok")
+
+        def sleep(_seconds):
+            feedback.cancelled = True
+
+        with self.assertRaises(ApiResponseError):
+            retry.with_retries(attempt, sleep=sleep, clock=lambda: 0.0, feedback=feedback)
+        self.assertEqual(len(seen), 1)
+
     def test_two_server_errors_then_success(self):
         attempt, seen = scripted(ApiResponseError(500, "x"), ApiResponseError(502, "y"), "ok")
         self.assertEqual(self.run_retries(attempt), "ok")

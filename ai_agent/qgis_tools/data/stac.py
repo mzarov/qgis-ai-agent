@@ -1,3 +1,4 @@
+import calendar
 import time
 from typing import Any
 from urllib.parse import quote, urlparse
@@ -104,6 +105,6 @@ def _summary(feature: dict[str, Any], bbox: tuple[float, float, float, float]) -
 
 def _epoch(text: str) -> float:
     try:
-        return time.mktime(time.strptime(text[:19], "%Y-%m-%dT%H:%M:%S")) - time.timezone
+        return float(calendar.timegm(time.strptime(text[:19], "%Y-%m-%dT%H:%M:%S")))
     except (ValueError, OverflowError):
         return 0.0

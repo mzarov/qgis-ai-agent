@@ -19,6 +19,8 @@ from ai_agent.qgis_tools.processing.effects import (
 from ai_agent.qgis_tools.processing.units import check_distance_units
 from ai_agent.qgis_tools.processing.utils import (
     apply_output_name,
+    check_parameter_names,
+    check_parameter_values,
     coerce_parameters,
     destination_parameter_names,
     empty_output_warnings,
@@ -163,7 +165,8 @@ class RunProcessingTool(BaseTool):
         feedback = DeadlineFeedback(limits.tool_seconds())
         layers_before = project_layer_ids()
         try:
-            result = runner(algorithm.id(), prepared, feedback=feedback)
+            # runAndLoadResults swaps the destinations for objects JSON cannot hold: it gets its own copy.
+            result = runner(algorithm.id(), dict(prepared), feedback=feedback)
         except Exception:
             if feedback.timed_out:
                 raise TimeoutError(feedback.timeout_message()) from None
@@ -184,9 +187,11 @@ class RunProcessingTool(BaseTool):
         arguments = params.get("parameters")
         if not isinstance(arguments, dict):
             raise ValueError("The parameters argument must be an object.")
+        check_parameter_names(algorithm, arguments)
         prepared = coerce_parameters(algorithm, arguments)
         for name, text in expression_texts(algorithm, prepared):
             refuse_unsafe_functions(text, name)
+        check_parameter_values(algorithm, prepared)
         check_distance_units(algorithm, prepared)
         return algorithm, prepared
 

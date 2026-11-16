@@ -63,6 +63,7 @@ MIN_HEIGHT = 640
 FOOTER_MARGINS = (28, 11, 16, 11)
 FOOTER_SPACING = 8
 FOOTER_DOT = 6
+RETURN_KEYS = (Qt.Key.Key_Return, Qt.Key.Key_Enter)
 CONNECTION_TITLE = tr("Connection")
 CONNECTION_LEAD = tr(
     "Any OpenAI-compatible server works. Keys are kept in the QGIS authentication database, not in the project."
@@ -92,6 +93,7 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         self._loading_endpoint = False
         self._active_credential_target: tuple[str, str] | None = None
         self._credential_drafts: dict[tuple[str, str], str] = {}
+        self._stored_keys: dict[tuple[str, str], str] = {}
         self._probe_thread: ProbeThread | None = None
         self._probe_was_cancelled = False
         self._close_after_probe: QDialog.DialogCode | None = None
@@ -225,6 +227,14 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         column.addStretch(1)
         return holder
 
+    def keyPressEvent(self, event: Any) -> None:
+        # Return in a search or add field is that field's own: the default Save must not fire with it.
+        focused = self.focusWidget()
+        if event.key() in RETURN_KEYS and focused is not None and focused.property(fields.OWN_RETURN):
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
     def _build_buttons(self, palette: Any) -> QHBoxLayout:
         row = QHBoxLayout()
         row.setSpacing(8)
@@ -335,6 +345,7 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         key = self._credential_drafts.get(target)
         if key is None:
             key = get_api_key(url, dialect)
+            self._stored_keys[target] = key
         self.key_edit.setText(key)
         self._active_credential_target = target
         self.verify_ssl_cb.setChecked(get_verify_ssl(url))
@@ -364,6 +375,7 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
             return
         self.key_edit.clear()
         self._credential_drafts[self._credential_target(url, dialect)] = ""
+        self._stored_keys[self._credential_target(url, dialect)] = ""
         self._show(KEY_REMOVED, style.success(self.palette()))
 
     def _use_example(self, identifier: str, text: str) -> None:
@@ -427,18 +439,23 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
 
     def _store_key_and_personalisation(self, url: str, dialect: str) -> bool:
         key = self.key_edit.text()
-        stored_key = get_api_key(url, dialect) if key else ""
-        if key:
-            try:
+        # An emptied field removes the key it was loaded with; a store that could not be read loads empty.
+        stored_key = (
+            get_api_key(url, dialect) if key else self._stored_keys.get(self._credential_target(url, dialect), "")
+        )
+        try:
+            if key:
                 set_api_key(key, url, dialect)
-            except RuntimeError as error:
-                self._show(str(error), style.danger(self.palette()))
-                return False
+            elif stored_key:
+                delete_api_key(url, dialect)
+        except RuntimeError as error:
+            self._show(str(error), style.danger(self.palette()))
+            return False
         if self._built(settings_layout.PERSONALISATION):
             try:
                 self.personalisation.save()
             except ValueError as error:
-                if key:
+                if key or stored_key:
                     with suppress(RuntimeError):
                         set_api_key(stored_key, url, dialect)
                 self._show(str(error), style.danger(self.palette()))

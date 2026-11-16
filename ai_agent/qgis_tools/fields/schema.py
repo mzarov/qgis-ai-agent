@@ -1,7 +1,7 @@
 from contextlib import suppress
 from typing import Any
 
-from qgis.core import QgsFeatureRequest, QgsField, QgsVectorLayer
+from qgis.core import Qgis, QgsFeatureRequest, QgsField, QgsVectorLayer
 from qgis.PyQt.QtCore import QMetaType
 
 from ai_agent.qgis_tools.common.expressions import build_context, compile_expression
@@ -13,7 +13,7 @@ FIELD_TYPES = {
     "integer": (QMetaType.Type.Int, 10, 0),
     "double": (QMetaType.Type.Double, 20, 6),
     "boolean": (QMetaType.Type.Bool, 1, 0),
-    "date": (QMetaType.Type.QDate, 10, 0),
+    "date": (QMetaType.Type.QDate, 0, 0),
     "datetime": (QMetaType.Type.QDateTime, 0, 0),
 }
 VIRTUAL_TYPES = {
@@ -28,6 +28,8 @@ FALLBACK_VIRTUAL_TYPE = "text"
 TYPE_SAMPLE_FEATURES = 20
 DATE_CLASSES = {"QDate": "date", "QDateTime": "datetime"}
 MAX_NAME_CHARS = 63
+SHAPEFILE_STORAGE = "ESRI Shapefile"
+SHAPEFILE_NAME_BYTES = 10
 
 
 def require_vector(layer_name: str) -> QgsVectorLayer:
@@ -54,12 +56,31 @@ def require_field_index(layer: QgsVectorLayer, name: str) -> int:
     return index
 
 
-def checked_new_name(layer: QgsVectorLayer, name: Any) -> str:
+def is_virtual_field(layer: QgsVectorLayer, index: int) -> bool:
+    try:
+        return bool(layer.fields().fieldOrigin(index) == Qgis.FieldOrigin.Expression)
+    except Exception:
+        return False
+
+
+def _is_shapefile(layer: QgsVectorLayer) -> bool:
+    try:
+        return str(layer.storageType()) == SHAPEFILE_STORAGE
+    except Exception:
+        return False
+
+
+def checked_new_name(layer: QgsVectorLayer, name: Any, stored: bool = True) -> str:
     wanted = str(name or "").strip()
     if not wanted:
         raise ValueError("The field needs a name.")
     if len(wanted) > MAX_NAME_CHARS:
         raise ValueError(f"'{wanted}' is longer than {MAX_NAME_CHARS} characters — most formats will truncate it.")
+    if stored and _is_shapefile(layer) and len(wanted.encode("utf-8")) > SHAPEFILE_NAME_BYTES:
+        raise ValueError(
+            f"'{wanted}' does not fit a Shapefile field name, which holds {SHAPEFILE_NAME_BYTES} bytes "
+            f"({SHAPEFILE_NAME_BYTES} Latin letters). Pass a shorter name, or export the layer to GeoPackage first."
+        )
     if wanted in field_names(layer):
         raise ValueError(f"Layer '{layer.name()}' already has a field named '{wanted}'.")
     return wanted

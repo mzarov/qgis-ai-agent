@@ -25,6 +25,8 @@ READABLE = {
     "multilinestrings": "lines",
     "multipolygons": "polygons",
 }
+# Two layers of one name could not be told apart: relations get their own title.
+TITLES = {**READABLE, "multilinestrings": "routes"}
 FOLDER_PREFIX = "ai-agent-osm-"
 PROJECT_FOLDER = "osm"
 LOG_TAG = "AI Agent"
@@ -134,7 +136,7 @@ def _materialized(raw: Any, path: str, sublayer: str) -> Any:
 def _title(name: str, sublayer: str, geometry: str) -> str:
     if geometry != "all" and len(SUBLAYERS.get(geometry, ())) == 1:
         return name
-    return f"{name} — {READABLE.get(sublayer, sublayer)}"
+    return f"{name} — {TITLES.get(sublayer, sublayer)}"
 
 
 def _count(layer: Any) -> int:

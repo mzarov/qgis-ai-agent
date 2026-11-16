@@ -336,6 +336,25 @@ class SourcesTest(SqlCase):
         sources = virtual_module.resolve_sources('SELECT * FROM "districts_2"')
         self.assertEqual(sources, [{"alias": "districts_2", "id": "districts_2"}])
 
+    def test_an_alias_that_repeats_a_shared_name_is_not_looked_up(self):
+        twin = Vector(name="districts", layer_id="districts_2")
+        self.project.layers[twin.id()] = twin
+        by_id = [{"alias": "districts_2", "id": "districts_2"}]
+        for sql in (
+            'SELECT districts.name FROM "districts_2" AS districts',
+            'SELECT districts.name FROM "districts_2" districts',
+            'SELECT count(*) AS districts FROM "districts_2"',
+        ):
+            with self.subTest(sql=sql):
+                self.assertEqual(virtual_module.resolve_sources(sql), by_id)
+        for sql in (
+            'SELECT s.name AS districts FROM "schools" AS s, districts',
+            "SELECT 1 AS districts FROM schools JOIN districts USING (code)",
+            "SELECT 1 AS districts FROM schools WHERE code IN districts",
+        ):
+            with self.subTest(sql=sql), self.assertRaisesRegex(ValueError, "ambiguous"):
+                virtual_module.resolve_sources(sql)
+
     def test_the_provider_error_loses_the_wrapper_and_keeps_the_reason(self):
         sql = 'SELEC name FROM "districts"'
         layer = Vector(name="q")

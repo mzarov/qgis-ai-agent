@@ -1,3 +1,4 @@
+import json
 import unittest
 
 from ai_agent.core.llm.parser import parse_model_json, parse_tool_arguments
@@ -65,6 +66,22 @@ class JsonTurnTest(unittest.TestCase):
     def test_markdown_fence_is_stripped(self):
         turn = parse_json_turn(json_reply('```json\n{"text":"t","tool_calls":[]}\n```'))
         self.assertEqual(turn.text, "t")
+
+    def test_a_fence_inside_the_answer_is_not_taken_for_the_reply(self):
+        reply = json.dumps({"text": 'Use this:\n```\n"population" > 1000\n```', "tool_calls": []})
+        self.assertIn("population", parse_json_turn(json_reply(reply)).text)
+
+    def test_a_call_in_the_native_shape_is_read(self):
+        reply = '{"tool_calls":[{"function":{"name":"list_layers","arguments":"{}"}}]}'
+        self.assertEqual([call.name for call in parse_json_turn(json_reply(reply)).tool_calls], ["list_layers"])
+
+    def test_text_that_is_not_a_string_does_not_crash(self):
+        self.assertEqual(parse_json_turn(json_reply('{"text": ["a", "b"]}')).text, "a\nb")
+        self.assertEqual(parse_json_turn(json_reply('{"text": 5}')).text, "5")
+
+    def test_broken_arguments_are_not_replaced_by_a_nested_object(self):
+        self.assertEqual(parse_tool_arguments('{"layer": "roads", "style": {"color": "red"}, }'), {})
+        self.assertEqual(parse_tool_arguments('Arguments: {"layer": "roads"}'), {"layer": "roads"})
 
     def test_prose_is_treated_as_final_answer(self):
         turn = parse_json_turn(json_reply("просто текст"))

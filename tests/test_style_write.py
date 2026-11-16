@@ -1,6 +1,7 @@
 import unittest
 
 from ai_agent.qgis_tools.common import colors
+from ai_agent.qgis_tools.common.layers import layer_identifier
 from ai_agent.qgis_tools.style import (
     apply,
     describe_options,
@@ -44,7 +45,7 @@ class StyleWriteCase(unittest.TestCase):
             setattr(apply, name, value)
 
     def _find(self, name):
-        if name != self.layer.name():
+        if name not in (self.layer.name(), layer_identifier(self.layer)):
             raise ValueError(f"Слоя «{name}» нет в проекте.")
         return self.layer
 
@@ -166,6 +167,10 @@ class SetCategoriesTest(StyleWriteCase):
         self.assertEqual(result["class_count"], 3)
         self.assertEqual(self.layer.renderer_set[1], "type")
 
+    def test_an_empty_value_is_not_labelled_none(self):
+        self.tool.execute({"layer_name": "Дороги", "field": "type", "values": ["road", None], "ramp": "Spectral"})
+        self.assertEqual([category[2] for category in self.layer.renderer_set[2]], ["road", "NULL"])
+
     def test_explicit_colours_win_over_ramp(self):
         self.tool.execute(
             {
@@ -256,9 +261,19 @@ class SetGraduatedTest(StyleWriteCase):
         try:
             with self.assertRaises(ValueError) as caught:
                 self.tool.execute({"layer_name": "Дороги", "field": "population", "ramp": "Blues"})
-            self.assertIn("all be equal", str(caught.exception))
+            self.assertIn("all equal", str(caught.exception))
         finally:
             _FakeGraduated.returns_none = False
+
+    def test_a_constant_or_empty_field_is_refused_before_apply(self):
+        arguments = {"layer_name": "Дороги", "field": "population"}
+        for low, high in ((5.0, 5.0), (1.7976931348623157e308, -1.7976931348623157e308), (None, None)):
+            self.layer.minimumValue = lambda index, low=low: low
+            self.layer.maximumValue = lambda index, high=high: high
+            with self.subTest(low=low), self.assertRaisesRegex(ValueError, "all equal or all empty"):
+                self.tool.prepare(arguments)
+        self.layer.minimumValue, self.layer.maximumValue = (lambda index: 1), (lambda index: 9)
+        self.assertEqual(self.tool.prepare(arguments)["field"], "population")
 
 
 class SetLabelsTest(StyleWriteCase):

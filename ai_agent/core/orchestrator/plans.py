@@ -42,7 +42,9 @@ TIME_FORMAT = "%H:%M"
 
 class PlanMixin(OrchestratorHost):
     def on_confirm_needed(self, calls: list[ToolCall], final_text: str, applies_itself: bool = False) -> None:
-        self._count_run_end()
+        # A staged run goes on after this plan: it is counted when it ends.
+        if not getattr(self.agent, "is_staged", False):
+            self._count_run_end()
         self.usage.note("plans", usage_payload.AUTO if applies_itself else usage_payload.SHOWN)
         if final_text:
             self._render_answer(final_text)
@@ -214,6 +216,9 @@ class PlanMixin(OrchestratorHost):
         self._record_checkpoint()
         taken = last_snapshot()
         if not taken or taken == before or self._plan_message_id is None:
+            return False
+        if taken in self._plan_snapshots.values():
+            # The plan was an undo: the snapshot it uncovered belongs to an earlier card.
             return False
         self._plan_snapshots[self._plan_message_id] = taken
         return True

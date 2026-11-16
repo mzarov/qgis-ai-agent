@@ -3,7 +3,7 @@ from typing import Any
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common import params
-from ai_agent.qgis_tools.common.layers import pinned_ids
+from ai_agent.qgis_tools.common.layers import bind_layer_reference, pinned_ids, target_reference
 from ai_agent.qgis_tools.project.scratch_copies import is_memory_layer, scratch_layers_over_budget
 from ai_agent.qgis_tools.project.tree import find_layer, project
 
@@ -27,15 +27,14 @@ class RemoveLayerTool(BaseTool):
     def has_external_effect(self, params: dict[str, Any]) -> bool:
         # A scratch layer too large to copy beside the snapshot is gone for good once removed.
         try:
-            layer = find_layer(params.get("layer_name") or "")
+            layer = find_layer(target_reference(params))
         except Exception:
             return False
         return is_memory_layer(layer) and str(layer.id()) in scratch_layers_over_budget(project())
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = find_layer(params.get("layer_name") or "")
-        prepared = dict(params)
-        prepared["layer_name"] = layer.name()
+        layer = find_layer(target_reference(params))
+        prepared = bind_layer_reference(params, layer)
         return prepared
 
     def summarize_call(self, params: dict[str, Any]) -> str:
@@ -43,7 +42,7 @@ class RemoveLayerTool(BaseTool):
         return tr("Removing layer '{0}' from the project.").format(layer_name)
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = find_layer(params.get("layer_name") or "")
+        layer = find_layer(target_reference(params))
         name = layer.name()
         scratch = is_memory_layer(layer)
         project().removeMapLayer(layer.id())

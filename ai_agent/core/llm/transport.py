@@ -222,7 +222,8 @@ def _call_anthropic(
         data = exchange.send(body(budget))
     except ApiResponseError as err:
         if _asks_for_fewer_tokens(err):
-            data = exchange.send(body(budget, anthropic.FALLBACK_MAX_TOKENS))
+            # Without thinking: a budget would lift max_tokens straight back over the model's limit.
+            data = exchange.send(body(0, anthropic.FALLBACK_MAX_TOKENS))
         elif budget and thinking_unsupported(err):
             set_supports_thinking(cache_url, False, cache_model, cache_dialect)
             data = exchange.send(body(0))

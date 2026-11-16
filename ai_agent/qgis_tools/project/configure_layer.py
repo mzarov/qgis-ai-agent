@@ -3,7 +3,7 @@ from typing import Any
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common import params
-from ai_agent.qgis_tools.common.layers import pinned_layer
+from ai_agent.qgis_tools.common.layers import bind_layer_reference, pinned_layer, target_reference
 from ai_agent.qgis_tools.common.properties import properties_of, shown
 from ai_agent.qgis_tools.project.catalogues import LAYER_PROPERTIES
 from ai_agent.qgis_tools.project.tree import (
@@ -54,13 +54,12 @@ class ConfigureLayerTool(BaseTool):
     ]
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = find_layer(params.get("layer_name") or "")
+        layer = find_layer(target_reference(params))
         properties = LAYER_PROPERTIES.coerce_all(properties_of(params, LAYER_PROPERTIES.subject))
         if not properties:
             raise ValueError("No property was given. Available: " + ", ".join(LAYER_PROPERTIES.names()) + ".")
         _check_name(properties, layer.name())
-        prepared = dict(params)
-        prepared["layer_name"] = layer.name()
+        prepared = bind_layer_reference(params, layer)
         prepared["properties"] = properties
         return prepared
 
@@ -73,7 +72,7 @@ class ConfigureLayerTool(BaseTool):
         return tr("Changing layer '{0}': {1}.").format(layer_name, shown(properties, LAYER_PROPERTIES))
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
-        layer = find_layer(params.get("layer_name") or "")
+        layer = find_layer(target_reference(params))
         properties = LAYER_PROPERTIES.coerce_all(properties_of(params, LAYER_PROPERTIES.subject))
         node = tree_node(layer)
         if properties.get("visible"):
@@ -145,9 +144,11 @@ def _visible(node: Any) -> bool:
 
 
 def _check_name(properties: dict[str, Any], current: str) -> None:
-    wanted = str(properties.get("name") or "").strip()
-    if not wanted:
+    if "name" not in properties:
         return
+    wanted = str(properties["name"] or "").strip()
+    if not wanted:
+        raise ValueError("The layer name cannot be empty. Leave name out to keep the current one.")
     if wanted != current and wanted in layer_names():
         raise ValueError(f"A layer named '{wanted}' is already in the project — pick another name.")
     properties["name"] = wanted

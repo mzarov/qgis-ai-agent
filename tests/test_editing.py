@@ -46,6 +46,28 @@ class EditSessionTest(unittest.TestCase):
         self.assertIn("connection lost", str(caught.exception))
         self.assertIn("may already contain partial changes", str(caught.exception))
 
+    def test_a_commit_that_failed_after_a_schema_change_is_never_rolled_back(self):
+        stored = [["value"], ["value", "populat"]]
+        names = type("Names", (), {"names": lambda self: stored[min(self.calls, 1)], "calls": 0})()
+        provider = type("Provider", (), {"fields": lambda self: names})()
+
+        def commit():
+            names.calls += 1
+            self.layer.commit_calls += 1
+            if self.layer.commit_calls == 2:
+                self.layer.editing = False
+            return self.layer.commit_calls == 2
+
+        with (
+            patch.object(self.layer, "dataProvider", lambda: provider, create=True),
+            patch.object(self.layer, "commitChanges", commit),
+            self.assertRaisesRegex(ValueError, "edit session was closed.*partial changes"),
+            edit_session(self.layer, "the schema change"),
+        ):
+            pass
+        self.assertFalse(self.layer.rolled_back)
+        self.assertFalse(self.layer.editing)
+
     def test_rollback_refusal_does_not_claim_recovery(self):
         with (
             patch.object(self.layer, "rollBack", return_value=False),

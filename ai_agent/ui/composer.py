@@ -346,6 +346,9 @@ class Composer(QWidget):
         self._edit.clear()
         self._hide_popup()
 
+    def text(self) -> str:
+        return str(self._edit.toPlainText())
+
     def restore(self, text: str) -> None:
         if text and not self._edit.toPlainText().strip():
             self._edit.setPlainText(text)

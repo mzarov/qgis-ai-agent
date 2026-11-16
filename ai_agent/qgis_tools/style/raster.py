@@ -37,24 +37,31 @@ METRES_PER_DEGREE = 111_320.0
 MAX_SCALED_LATITUDE = 80.0
 # Sampled: a large raster is not read whole on the main thread. An empty extent means all of it.
 STATISTICS_SAMPLE_CELLS = 250_000
+WHOLE_BAND = 0
 # Statistics on a web raster would download tiles on the main thread.
 WEB_RASTER_PROVIDERS = frozenset({"wms", "wcs", "xyz", "arcgismapserver", "arcgisfeatureserver"})
 
 
 def band_range(layer: Any, band: int) -> tuple[float, float]:
     provider = layer.dataProvider()
-    wanted = Qgis.RasterBandStatistic.Min | Qgis.RasterBandStatistic.Max
-    # sip picks the deprecated int overload for combined flags (QGIS 4.2): the warning is noise.
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", DeprecationWarning)
-        stats = provider.bandStatistics(band, wanted, QgsRectangle(), STATISTICS_SAMPLE_CELLS)
-    minimum = float(stats.minimumValue)
-    maximum = float(stats.maximumValue)
+    minimum, maximum = _sampled_range(provider, band, STATISTICS_SAMPLE_CELLS)
+    if maximum <= minimum:
+        # A sparse raster samples as constant: only the whole band tells whether it is.
+        minimum, maximum = _sampled_range(provider, band, WHOLE_BAND)
     if maximum <= minimum:
         raise ValueError(
             f"Band {band} has no value range (min equals max) — a colour ramp over it would be meaningless."
         )
     return minimum, maximum
+
+
+def _sampled_range(provider: Any, band: int, cells: int) -> tuple[float, float]:
+    wanted = Qgis.RasterBandStatistic.Min | Qgis.RasterBandStatistic.Max
+    # sip picks the deprecated int overload for combined flags (QGIS 4.2): the warning is noise.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        stats = provider.bandStatistics(band, wanted, QgsRectangle(), cells)
+    return float(stats.minimumValue), float(stats.maximumValue)
 
 
 def require_local_raster(layer: Any) -> None:

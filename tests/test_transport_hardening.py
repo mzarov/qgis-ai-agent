@@ -53,6 +53,15 @@ class RefusalTest(unittest.TestCase):
         self.assertTrue(streaming_unsupported(ApiResponseError(400, "stream is not supported by this endpoint")))
         self.assertTrue(thinking_unsupported(ApiResponseError(400, "Unknown field: thinking")))
 
+    def test_servers_that_word_a_missing_tool_feature_their_own_way(self):
+        for status, body in (
+            (404, "No endpoints found that support tool use. To learn more about provider routing, visit…"),
+            (400, '"auto" tool choice requires --enable-auto-tool-choice and --tool-call-parser to be set'),
+            (400, "Function calling is not enabled for models/gemma-3-27b-it"),
+        ):
+            with self.subTest(body=body):
+                self.assertTrue(tools_unsupported(ApiResponseError(status, body)))
+
     def test_a_structured_parameter_is_enough(self):
         body = json.dumps({"error": {"message": "Unrecognized request argument", "param": "tools"}})
         self.assertTrue(tools_unsupported(ApiResponseError(400, body)))

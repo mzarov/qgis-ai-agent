@@ -395,6 +395,16 @@ def menu(parent: QWidget, palette: Any) -> QMenu:
     return popup
 
 
+def move_on_screen(window: QWidget, anchor: QWidget, x: int, y: int) -> None:
+    try:
+        area = anchor.screen().availableGeometry()
+        x = max(area.left(), min(x, area.right() - window.width() + 1))
+        y = max(area.top(), min(y, area.bottom() - window.height() + 1))
+    except (AttributeError, TypeError):
+        pass
+    window.move(x, y)
+
+
 def as_popup(window: QWidget) -> None:
     try:
         flags = Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint | Qt.WindowType.NoDropShadowWindowHint

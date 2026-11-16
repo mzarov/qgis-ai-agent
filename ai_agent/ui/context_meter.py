@@ -157,7 +157,9 @@ class ContextPopup(controls.RoundedFrame):
     def open_above(self, anchor: QWidget) -> None:
         self.adjustSize()
         corner = anchor.mapToGlobal(QPoint(anchor.width(), 0))
-        self.move(corner.x() - self.width(), corner.y() - self.sizeHint().height() - controls.MENU_GAP)
+        controls.move_on_screen(
+            self, anchor, corner.x() - self.width(), corner.y() - self.sizeHint().height() - controls.MENU_GAP
+        )
         self.show()
 
     def _on_compact(self) -> None:

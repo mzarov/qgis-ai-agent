@@ -7,7 +7,7 @@ from typing import Any
 from qgis.core import QgsProject, QgsVectorLayer, QgsVirtualLayerDefinition
 
 from ai_agent.qgis_tools.common.layers import layer_identifier
-from ai_agent.qgis_tools.sql.statement import identifiers, statement_tokens
+from ai_agent.qgis_tools.sql.statement import alias_names, identifiers, statement_tokens
 
 PROVIDER = "virtual"
 SOURCES_KEY = "_sql_sources"
@@ -30,8 +30,10 @@ def resolve_sources(sql: str) -> list[dict[str, str]]:
     layers = _vector_layers()
     sources: list[dict[str, str]] = []
     taken: set[str] = set()
-    for name in identifiers(statement_tokens(sql)):
-        if name.casefold() in taken:
+    tokens = statement_tokens(sql)
+    aliases = alias_names(tokens)
+    for name in identifiers(tokens):
+        if name.casefold() in taken or name.casefold() in aliases:
             continue
         layer = _named_layer(name, layers)
         if layer is None:

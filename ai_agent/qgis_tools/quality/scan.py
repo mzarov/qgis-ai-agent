@@ -35,7 +35,7 @@ def scan_layer(layer: QgsVectorLayer) -> tuple[Tally, bool, int]:
     checked_fields = fields[:MAX_CHECKED_FIELDS]
     indexes = [index for index, _ in checked_fields]
     tally = Tally([name for _, name in checked_fields])
-    spatial = _is_spatial(layer)
+    spatial = is_spatial(layer)
     partial = False
     for feature in layer.getFeatures(_request(indexes, spatial)):
         if tally.checked >= MAX_FEATURES:
@@ -74,7 +74,7 @@ def _request(indexes: list[int], spatial: bool) -> QgsFeatureRequest:
     return request
 
 
-def _is_spatial(layer: QgsVectorLayer) -> bool:
+def is_spatial(layer: QgsVectorLayer) -> bool:
     try:
         return bool(layer.isSpatial())
     except Exception:

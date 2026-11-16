@@ -31,12 +31,15 @@ def get_project_context() -> str:
     active = active_layer_name()
     if active:
         lines.append(f"Active layer: {active}.")
-    layers = [context_line(layer) for layer in project.mapLayers().values()]
+    layers = list(project.mapLayers().values())
     if layers:
         measurement = measurement_line(project)
         if measurement:
             lines.append(measurement)
-    lines.append("Layers: " + _join_capped(layers) + "." if layers else NO_LAYERS)
+    # Only the listed layers are described: a count or a field list of the rest is paid for on every turn.
+    listed = ", ".join(context_line(layer) for layer in layers[:MAX_LISTED])
+    hidden = len(layers) - MAX_LISTED
+    lines.append(f"Layers: {listed}{f' and {hidden} more' if hidden > 0 else ''}." if layers else NO_LAYERS)
     return "\n".join(lines)
 
 
@@ -99,12 +102,6 @@ def selected_count(layer: Any) -> int:
     with suppress(Exception):
         return int(layer.selectedFeatureCount())
     return 0
-
-
-def _join_capped(items: list[str]) -> str:
-    if len(items) <= MAX_LISTED:
-        return ", ".join(items)
-    return ", ".join(items[:MAX_LISTED]) + f" and {len(items) - MAX_LISTED} more"
 
 
 LAYER_ORIGIN = "layer"

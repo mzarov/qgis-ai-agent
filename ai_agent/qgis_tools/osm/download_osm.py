@@ -14,7 +14,7 @@ from ai_agent.qgis_tools.osm.args import (
 )
 from ai_agent.qgis_tools.osm.fetch import fetch
 from ai_agent.qgis_tools.osm.load import SUBLAYERS, load_answer
-from ai_agent.qgis_tools.osm.overpass import build_query, endpoint
+from ai_agent.qgis_tools.osm.overpass import build_query, endpoint, require_connector
 
 NOTHING_FOUND = (
     "Overpass ran fine, but nothing matches this query. Either the tag is wrong — "
@@ -111,6 +111,7 @@ class DownloadOsmTool(BaseTool):
     ]
 
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
+        require_connector()
         chosen = selectors(params)
         prepared = dict(params)
         prepared["key"] = "" if chosen else required_key(params)
@@ -146,6 +147,7 @@ class DownloadOsmTool(BaseTool):
 
 
 def _request(params: dict[str, Any]) -> tuple[str, str, str]:
+    require_connector()
     chosen = selectors(params)
     key = "" if chosen else required_key(params)
     wanted = geometry(params)

@@ -72,6 +72,7 @@ class SkillsSettings(QObject):
         self.find.setFixedSize(FIND_WIDTH, FIND_HEIGHT)
         self.find.setStyleSheet(fields.input_style(palette))
         self.find.textChanged.connect(self._filter)
+        self.find.setProperty(fields.OWN_RETURN, True)
         self._column.addLayout(self._header(fields.heading(BUILT_IN.format(len(built_in)), palette), self.find))
         self._column.addSpacing(HEADER_GAP)
         self._column.addWidget(self._built_in_card(built_in))

@@ -1,7 +1,9 @@
+import re
 from typing import Any
 
 ELEMENT_WORDS = ("node", "way", "relation", "rel", "nwr", "nw", "wr")
 FORBIDDEN = (";", "[out:", "out ", "->", "/*", "//")
+QUOTED = re.compile(r""""(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'""")
 MAX_SELECTORS = 12
 MAX_LENGTH = 400
 SHAPE_HINT = (
@@ -47,8 +49,12 @@ def _checked(item: Any, index: int) -> str:
 
 
 def _check_forbidden(text: str, index: int) -> None:
+    # A quoted value is data to Overpass: "Lookout Point" and "https://" are not statements.
+    bare = QUOTED.sub("", text)
+    if '"' in bare or "'" in bare:
+        raise ValueError(f"The quotes in selector {index} do not match up.")
     for token in FORBIDDEN:
-        if token in text:
+        if token in bare:
             raise ValueError(
                 f"Selector {index} contains '{token.strip()}', which is not allowed: "
                 f"one selector describes one set of objects. {SHAPE_HINT}"

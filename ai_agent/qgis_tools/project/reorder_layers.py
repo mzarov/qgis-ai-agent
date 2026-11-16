@@ -2,7 +2,7 @@ from typing import Any
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
-from ai_agent.qgis_tools.common.layers import pinned_ids
+from ai_agent.qgis_tools.common.layers import layer_identifier, pinned_ids
 from ai_agent.qgis_tools.project.tree import (
     drawn_like_panel,
     find_layer,
@@ -53,7 +53,8 @@ class ReorderLayersTool(BaseTool):
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
         names = _checked_names(params.get("layer_names"))
         prepared = dict(params)
-        prepared["layer_names"] = [find_layer(name).name() for name in names]
+        # Ids, not names: two layers that share a name could not be told apart at apply.
+        prepared["layer_names"] = [layer_identifier(layer) or layer.name() for layer in map(find_layer, names)]
         return prepared
 
     def summarize_call(self, params: dict[str, Any]) -> str:
@@ -68,13 +69,17 @@ class ReorderLayersTool(BaseTool):
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         names = _checked_names(params.get("layer_names"))
         root = layer_tree()
-        for index, name in enumerate(names):
-            node = tree_node(find_layer(name))
+        layers = [find_layer(name) for name in names]
+        for index, layer in enumerate(layers):
+            node = tree_node(layer)
             clone = node.clone()
             root.insertChildNode(min(index, len(root.children())), clone)
             parent_of(node).removeChildNode(node)
             follow_in_drawing_order(clone)
-        return {"order": names, "note": "Listed layers now hold the top of the panel in this order."}
+        return {
+            "order": [layer.name() for layer in layers],
+            "note": "Listed layers now hold the top of the panel in this order.",
+        }
 
     def confirm_applied(self, params: dict[str, Any], payload: dict[str, Any]) -> bool | None:
         identifiers = pinned_ids(params)
