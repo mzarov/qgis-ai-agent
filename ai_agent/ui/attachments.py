@@ -1,9 +1,17 @@
 import os
 from typing import Any
 
-from qgis.PyQt.QtCore import Qt, pyqtSignal
+from qgis.PyQt.QtCore import QSize, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QPixmap
-from qgis.PyQt.QtWidgets import QFileDialog, QHBoxLayout, QLabel, QToolButton, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import (
+    QFileDialog,
+    QHBoxLayout,
+    QLabel,
+    QScrollArea,
+    QSizePolicy,
+    QToolButton,
+    QWidget,
+)
 
 from ai_agent.i18n import tr
 from ai_agent.ui import controls, style
@@ -23,6 +31,7 @@ CLOSE_RADIUS = 3
 TEXT_SCALE = 12 / 13
 NAME_WIDTH = 160
 CHIP_GAP = 6
+ROW_BOTTOM = 2
 
 
 def choose_files(parent: QWidget, kind: str) -> list[str]:
@@ -77,18 +86,57 @@ class AttachmentChip(controls.RoundedFrame):
         line.addWidget(close)
 
 
-class AttachmentChips(QWidget):
+class AttachmentChips(QScrollArea):
     changed = pyqtSignal()
 
     def __init__(self, palette: Any):
         super().__init__()
         self._palette = palette
         self._chips: list[AttachmentChip] = []
-        # One under another: in a row every picture would add its width to the panel's minimum.
-        self._line = QVBoxLayout(self)
-        self._line.setContentsMargins(0, 0, 0, 2)
+        # One row that slides sideways: laid out plainly, every picture would widen the panel by its chip.
+        self.setWidgetResizable(True)
+        self.setFrameShape(QScrollArea.Shape.NoFrame)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setStyleSheet("QScrollArea { background: transparent; }")
+        self.viewport().setAutoFillBackground(False)
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        self.setFixedHeight(CHIP_HEIGHT + ROW_BOTTOM)
+        row = QWidget()
+        row.setAutoFillBackground(False)
+        self._line = QHBoxLayout(row)
+        self._line.setContentsMargins(0, 0, 0, ROW_BOTTOM)
         self._line.setSpacing(CHIP_GAP)
+        self._line.addStretch(1)
+        self.setWidget(row)
+        self._show_newest = False
+        self.horizontalScrollBar().rangeChanged.connect(self._on_range)
         self.setVisible(False)
+
+    def sizeHint(self) -> QSize:
+        # From the chips themselves: the row's layout leaves a chip out until it has been shown.
+        widths = [chip.sizeHint().width() for chip in self._chips]
+        return QSize(sum(widths) + CHIP_GAP * max(0, len(widths) - 1), CHIP_HEIGHT + ROW_BOTTOM)
+
+    def minimumSizeHint(self) -> QSize:
+        return QSize(0, CHIP_HEIGHT + ROW_BOTTOM)
+
+    def wheelEvent(self, event: Any) -> None:
+        bar = self.horizontalScrollBar()
+        delta = event.angleDelta()
+        step = delta.x() or delta.y()
+        if bar.maximum() <= 0 or not step:
+            event.ignore()
+            return
+        # An ordinary mouse wheel has no sideways axis: over the row it slides the row.
+        self._show_newest = False
+        bar.setValue(bar.value() - step)
+        event.accept()
+
+    def _on_range(self, _low: int, high: int) -> None:
+        # Until the user slides the row themself: the layout settles in several steps after a picture is added.
+        if self._show_newest:
+            self.horizontalScrollBar().setValue(high)
 
     @property
     def paths(self) -> list[str]:
@@ -100,7 +148,9 @@ class AttachmentChips(QWidget):
         chip = AttachmentChip(path, self._palette)
         chip.removed.connect(self.remove)
         self._chips.append(chip)
-        self._line.addWidget(chip, 0, Qt.AlignmentFlag.AlignLeft)
+        self._line.insertWidget(len(self._chips) - 1, chip)
+        self._show_newest = True
+        self.updateGeometry()
         self.setVisible(True)
         self.changed.emit()
 
@@ -111,6 +161,7 @@ class AttachmentChips(QWidget):
             chip.hide()
             # Deleted later: the chip's own button is still inside its clicked signal.
             chip.deleteLater()
+        self.updateGeometry()
         self.setVisible(bool(self._chips))
         self.changed.emit()
 

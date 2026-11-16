@@ -68,7 +68,7 @@ Nothing but rendering logic lives here. No data processing, no LLM calls.
 | `sessions_popup.py` | the history menu: a new conversation, then the project's conversations by day with their time, rename in place, delete after the dock confirms |
 | `context_meter.py` | the ring under the composer and its popup: window, auto-compact, Compact, spent |
 | `choice_popup.py` | the mode menu: caption, rows with a note and a number key, the current one lit (no check), the Shift+Tab footer; as wide as its text |
-| `attachments.py`  | the + file pickers, drag-and-drop paths, the picture chips waiting in the composer |
+| `attachments.py`  | the + file pickers, drag-and-drop paths, the picture chips waiting in the composer: one row that slides sideways (wheel or swipe) instead of widening the panel, the newest in view |
 | `chart.py`        | a chart in the feed: bars, rows, lines, donut, histogram, scatter; painted, hover tips, copy image/CSV |
 | `failure_card.py` | a failed run: kind icon, title, one sentence, the server's words in monospace, Retry and Connection |
 | `legend.py`       | a restyled layer's legend under the outcome: ordered classes as one strip of 10 px cells with compact bounds, categories as swatch rows |
