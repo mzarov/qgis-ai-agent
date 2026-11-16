@@ -421,7 +421,7 @@ class DownloadInBackgroundTest(unittest.TestCase):
         timer = QTimer()
         timer.setInterval(10)
         timer.timeout.connect(lambda: ticks.append(True))
-        with mock.patch("ai_agent.qgis_tools.osm.run_overpass.endpoint", return_value=url):
+        with mock.patch("ai_agent.qgis_tools.osm.run_overpass.endpoints", return_value=(url,)):
             batch = WriteBatch(ToolExecutor())
             batch.add(ToolCall("overpass", "run_overpass", arguments))
             timer.start()
@@ -463,7 +463,7 @@ class OverpassExchangeTest(unittest.TestCase):
         url = f"http://127.0.0.1:{self.server.server_address[1]}/api/interpreter"
         arguments = {"intent": "cafes by name", "query": query, "name": "Cafes", "geometry": "points"}
         ended = []
-        with mock.patch("ai_agent.qgis_tools.osm.run_overpass.endpoint", return_value=url):
+        with mock.patch("ai_agent.qgis_tools.osm.run_overpass.endpoints", return_value=(url,)):
             batch = WriteBatch(ToolExecutor())
             batch.add(ToolCall("overpass", "run_overpass", arguments))
             batch.apply(lambda call: None, lambda call, result: None, done=ended.append)
@@ -484,3 +484,111 @@ class OverpassExchangeTest(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertIn('Query timed out in "query" at line 1.', result.payload["error"])
         self.assertEqual(QgsProject.instance().mapLayersByName("Cafes"), [], "a partial answer became a layer")
+
+
+class _BusyOverpass(BaseHTTPRequestHandler):
+    def do_POST(self):
+        self.rfile.read(int(self.headers.get("Content-Length", "0")))
+        self.server.hits.append(self.path)
+        content = b"<html><body>The server is probably too busy to handle your request.</body></html>"
+        self.send_response(504)
+        self.send_header("Content-Type", "text/html")
+        self.send_header("Content-Length", str(len(content)))
+        self.end_headers()
+        self.wfile.write(content)
+
+    def log_message(self, format, *args):
+        pass
+
+
+PLACE = {
+    "features": [
+        {
+            "geometry": {"coordinates": [37.62, 55.75]},
+            "properties": {
+                "name": "Moscow",
+                "country": "Russia",
+                "osm_type": "R",
+                "osm_id": 2555133,
+                "extent": [37.3, 55.9, 37.9, 55.5],
+            },
+        }
+    ]
+}
+
+
+class _Geocoder(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.server.asked.append(self.path)
+        content = json.dumps(PLACE).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(content)))
+        self.end_headers()
+        self.wfile.write(content)
+
+    def log_message(self, format, *args):
+        pass
+
+
+class OsmServicesTest(unittest.TestCase):
+    def setUp(self):
+        self.overpass = self._serve(_RecordingOverpass, forms=[], answer=OSM_ANSWER)
+        self.busy = self._serve(_BusyOverpass, hits=[])
+        self.geocoder = self._serve(_Geocoder, asked=[])
+        self.addCleanup(QgsProject.instance().clear)
+
+    def _serve(self, handler, **state):
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+        server.daemon_threads = True
+        for name, value in state.items():
+            setattr(server, name, value)
+        threading.Thread(target=server.serve_forever, kwargs={"poll_interval": 0.02}, daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        return server
+
+    @staticmethod
+    def _url(server, path="/api/interpreter"):
+        return f"http://127.0.0.1:{server.server_address[1]}{path}"
+
+    def _apply(self, name, arguments):
+        ended = []
+        batch = WriteBatch(ToolExecutor())
+        batch.add(ToolCall("osm", name, arguments))
+        batch.apply(lambda call: None, lambda call, result: None, done=ended.append)
+        self.assertTrue(_wait_until(lambda: bool(ended), 20000), "the download never ended")
+        return ended[0][0]
+
+    def test_a_busy_server_hands_the_query_to_the_mirror(self):
+        urls = (self._url(self.busy), self._url(self.overpass))
+        query = "[out:xml];node[amenity=cafe](55.7,37.6,55.8,37.7);out body;"
+        arguments = {"intent": "cafes", "query": query, "name": "Cafes", "geometry": "points"}
+        with mock.patch("ai_agent.qgis_tools.osm.run_overpass.endpoints", return_value=urls):
+            result = self._apply("run_overpass", arguments)
+        self.assertTrue(result.ok, result.payload)
+        self.assertEqual(result.payload["total_features"], 2)
+        self.assertEqual(len(self.busy.hits), 1)
+        self.assertEqual(self.overpass.forms, [{"data": [query]}])
+
+    def test_a_named_place_is_looked_up_first_and_searched_by_its_relation(self):
+        from ai_agent.qgis_tools.osm.territory import Geocoder
+
+        service = Geocoder("photon", self._url(self.geocoder, ""))
+        with (
+            mock.patch("ai_agent.qgis_tools.osm.download_osm.configured_geocoder", return_value=service),
+            mock.patch("ai_agent.qgis_tools.osm.territory.configured_geocoder", return_value=service),
+            mock.patch(
+                "ai_agent.qgis_tools.common.geocoding.search_url",
+                lambda service_url, place, provider: f"{service_url}/api?q={place}",
+            ),
+            mock.patch("ai_agent.qgis_tools.osm.download_osm.endpoints", return_value=(self._url(self.overpass),)),
+        ):
+            arguments = {"key": "amenity", "value": "cafe", "area": "Moscow", "geometry": "points"}
+            result = self._apply("download_osm", arguments)
+        self.assertTrue(result.ok, result.payload)
+        self.assertEqual(self.geocoder.asked, ["/api?q=Moscow"])
+        self.assertEqual(result.payload["territory"], "Moscow, Russia")
+        (form,) = self.overpass.forms
+        self.assertIn("area(id:3602555133)->.searchArea;", form["data"][0])
+        self.assertEqual(result.payload["total_features"], 2)

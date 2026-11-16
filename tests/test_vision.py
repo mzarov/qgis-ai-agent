@@ -12,12 +12,12 @@ from ai_agent.core.llm import anthropic, transport
 from ai_agent.core.llm.client import ApiResponseError
 from ai_agent.core.llm.turns import ModelTurn, ToolCall
 from ai_agent.qgis_tools.base import RESULT_IMAGE_KEY
+from ai_agent.qgis_tools.common.values import clamp_limit
 from ai_agent.qgis_tools.inspect.render_map import (
     DEFAULT_WIDTH,
     MAX_WIDTH,
     MIN_WIDTH,
     RenderMapTool,
-    _clamped_width,
 )
 
 PIXEL = base64.b64encode(b"fake-png-bytes").decode("ascii")
@@ -166,10 +166,13 @@ class RenderMapTest(unittest.TestCase):
         self.tool = RenderMapTool()
 
     def test_width_is_clamped_to_sane_bounds(self):
-        self.assertEqual(_clamped_width(None), DEFAULT_WIDTH)
-        self.assertEqual(_clamped_width("junk"), DEFAULT_WIDTH)
-        self.assertEqual(_clamped_width(10), MIN_WIDTH)
-        self.assertEqual(_clamped_width(99999), MAX_WIDTH)
+        def clamped(raw):
+            return clamp_limit(raw, DEFAULT_WIDTH, MAX_WIDTH, MIN_WIDTH)
+
+        self.assertEqual(clamped(None), DEFAULT_WIDTH)
+        self.assertEqual(clamped("junk"), DEFAULT_WIDTH)
+        self.assertEqual(clamped(10), MIN_WIDTH)
+        self.assertEqual(clamped(99999), MAX_WIDTH)
 
     def test_headless_run_reports_the_missing_window(self):
         import sys as _sys

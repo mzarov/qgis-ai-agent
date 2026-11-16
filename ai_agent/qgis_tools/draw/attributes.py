@@ -5,6 +5,7 @@ from typing import Any
 from qgis.core import QgsField, QgsFields, QgsVectorLayer
 from qgis.PyQt.QtCore import QMetaType
 
+from ai_agent.qgis_tools.common.editing import boolean_word, fitted_value
 from ai_agent.qgis_tools.common.values import suggest_fields
 
 TEXT = "text"
@@ -15,8 +16,6 @@ DATE = "date"
 FIELD_TYPES = (TEXT, INTEGER, DOUBLE, BOOLEAN, DATE)
 MAX_FIELD_NAME = 63
 MAX_FIELDS = 100
-TRUE_WORDS = frozenset({"true", "yes", "1"})
-FALSE_WORDS = frozenset({"false", "no", "0"})
 # QGIS silently wraps a whole number past the LongLong range.
 LONG_LONG_MIN = -(2**63)
 LONG_LONG_MAX = 2**63 - 1
@@ -127,7 +126,7 @@ def _convert(kind: str, value: Any) -> Any:
     if kind == TEXT:
         return str(value)
     if kind == BOOLEAN:
-        return _boolean(value)
+        return boolean_word(value)
     if kind == DATE:
         return datetime.date.fromisoformat(str(value)).isoformat()
     if isinstance(value, bool):
@@ -155,43 +154,10 @@ def _long_long(number: int) -> int:
     return number
 
 
-def _boolean(value: Any) -> bool:
-    if isinstance(value, bool):
-        return value
-    word = str(value).strip().lower()
-    if word in TRUE_WORDS:
-        return True
-    if word in FALSE_WORDS:
-        return False
-    raise ValueError("not a boolean")
-
-
-def _is_boolean(field: Any) -> bool:
-    try:
-        return bool(field.type() == QMetaType.Type.Bool)
-    except Exception:
-        return False
-
-
 def _check_convertible(layer: QgsVectorLayer, name: str, value: Any) -> Any:
-    try:
-        field = layer.fields().field(name)
-        convert = field.convertCompatible
-    except Exception:
-        return value
-    try:
-        # Qt reads any text but "false" and "0" as true, "no" included.
-        if isinstance(value, str) and _is_boolean(field):
-            value = _boolean(value)
-        convert(value)
-        if isinstance(value, int) and field.type() == QMetaType.Type.LongLong:
-            _long_long(value)
-        return value
-    except ValueError as err:
-        kind = ""
-        with suppress(Exception):
-            kind = f" ({field.typeName()})" if field.typeName() else ""
-        raise ValueError(
-            f"Value {value!r} does not fit field '{name}'{kind} of layer '{layer.name()}': {err}. "
-            "Give a value of the field's type, or null to leave it empty."
-        ) from None
+    return fitted_value(layer, name, value, f" of layer '{layer.name()}'", "leave it empty", _within_long_long)
+
+
+def _within_long_long(field: Any, value: Any) -> None:
+    if isinstance(value, int) and field.type() == QMetaType.Type.LongLong:
+        _long_long(value)

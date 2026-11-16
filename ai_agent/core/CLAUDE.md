@@ -323,7 +323,8 @@ UI signal → CoreOrchestrator → AgentLoop.start()
 | `llm/context_window.py`  | the model's window: setting, detected, guessed; the 90 % mark |
 | `credentials.py`         | API keys in the QGIS authentication database        |
 | `usage_stats.py`         | daily usage counts, on by default after a one-time notice; a no stops them, today's counts a minute after a change (the collector keeps a day's latest), the last few missed days sent oldest first |
-| `usage_payload.py`       | what a day's ping holds: counters, fixed ranges, the provider family from a fixed list; conversation keys stay local and leave as a histogram |
+| `usage_payload.py`       | what a day's ping holds: counters, fixed ranges, the provider family from a fixed list, per tool why its calls failed; conversation keys stay local and leave as a histogram |
+| `tool_failures.py`       | why a tool call failed, as one code of a fixed list read off the tool's English error (`AgentLoop.last_tool_error`); only the code is counted, never the text |
 | `local_skills.py`        | the profile's skills folder: rescan, validation, example |
 | `attachments.py`         | attached files: data added as layers at once (the user's own act, not a queued write), pictures encoded for the request |
 | `orchestrator/compacting.py` | the context meter and compaction before a request or by hand |

@@ -4,8 +4,8 @@ from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsP
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_READ, BaseTool
+from ai_agent.qgis_tools.common.layers import WGS84
 
-WGS84 = "EPSG:4326"
 DEFAULT_SCALE = 50000
 MIN_SCALE = 100
 MAX_SCALE = 500_000_000

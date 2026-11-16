@@ -6,13 +6,12 @@ from typing import Any
 
 from qgis.core import Qgis, QgsFeatureRequest, QgsGeometry, QgsMessageLog, QgsVectorLayer
 
-from ai_agent.qgis_tools.common.layers import enum_name
-from ai_agent.qgis_tools.quality.tally import Bounds, Tally
+from ai_agent.qgis_tools.common.layers import enum_name, is_spatial
+from ai_agent.qgis_tools.quality.tally import COORD_DIGITS, Bounds, Tally
 
 MAX_FEATURES = 50_000
 MAX_CHECKED_FIELDS = 100
 KEY_BYTES = 16
-COORD_DIGITS = 6
 EXPRESSION_ORIGIN = "expression"
 UNREADABLE_REASON = "GEOS could not read the geometry"
 UNKNOWN_REASON = "invalid"
@@ -72,13 +71,6 @@ def _request(indexes: list[int], spatial: bool) -> QgsFeatureRequest:
         request.setFlags(Qgis.FeatureRequestFlag.NoGeometry)
     request.setLimit(MAX_FEATURES + 1)
     return request
-
-
-def is_spatial(layer: QgsVectorLayer) -> bool:
-    try:
-        return bool(layer.isSpatial())
-    except Exception:
-        return True
 
 
 def _check_geometry(feature: Any, tally: Tally) -> None:

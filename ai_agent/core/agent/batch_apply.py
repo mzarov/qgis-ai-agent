@@ -30,6 +30,7 @@ class BatchApplyMixin:
         _staged: bool
         _stage_call: ToolCall | None
         _active_apply_call: ToolCall | None
+        last_tool_error: str
         _declined: list[ToolCall]
         _declined_project: str
         busy_changed: pyqtSignal
@@ -200,6 +201,7 @@ class BatchApplyMixin:
     ) -> None:
         if not self._is_current(generation) and call is not self._active_apply_call:
             return
+        self.last_tool_error = result.error
         self.tool_finished.emit(call.name, result.ok, outcome_note(call, result))
         if call is self._active_apply_call:
             self._active_apply_call = None

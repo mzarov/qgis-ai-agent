@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import { setImmediate } from "node:timers/promises";
 import vm from "node:vm";
 
-import { ACTIVATION_BUCKETS, DETAIL_MAPS } from "../src/payload.js";
+import { ACTIVATION_BUCKETS, DETAIL_MAPS, REASON_VALUES } from "../src/payload.js";
 
 const SCRIPT = readFileSync(new URL("../../../docs/assets/usage-stats.js", import.meta.url), "utf8");
 const PAGES = {
@@ -76,6 +76,14 @@ const V3 = {
   },
 };
 
+const V4 = {
+  ...V3,
+  tool_error_reasons: {
+    query_layer: { field_not_found: 9, bad_expression: 4 },
+    download_osm: { no_result: 6, made_up_later: 2 },
+  },
+};
+
 const NEW_CHARTS = [
   "activation",
   "run_kinds",
@@ -89,6 +97,7 @@ const NEW_CHARTS = [
   "tokens",
   "plans",
   "family",
+  "tool_reasons",
 ];
 
 // Just enough of the DOM for the dashboard to draw into; text() reads what a visitor would see.
@@ -262,6 +271,24 @@ describe("usage dashboard", () => {
     }
     const activation = figures.find((figure) => figure.dataset.chart === "activation");
     for (const bucket of ACTIVATION_BUCKETS) assert.ok(activation.dataset[bucket], bucket);
+  });
+
+  it("lists why tools failed, the most frequent first, under the page's own words", async () => {
+    const page = await rendered(V4);
+    assert.deepEqual(page.warnings, []);
+    const chart = page.chart("tool_reasons");
+    assert.match(chart, /query_layer: field not found: 9/);
+    assert.match(chart, /download_osm: made_up_later: 2/);
+    assert.ok(chart.indexOf("field not found") < chart.indexOf("nothing found"));
+    assert.match((await rendered(V3)).chart("tool_reasons"), /No data yet\./);
+    assert.match((await rendered(V4, { lang: "ru" })).chart("tool_reasons"), /query_layer: поле не найдено: 9/);
+  });
+
+  it("names every reason the Worker accepts", () => {
+    for (const markdown of Object.values(PAGES)) {
+      const figure = parsed(markdown).figures.find((candidate) => candidate.dataset.chart === "tool_reasons");
+      for (const reason of REASON_VALUES) assert.ok(figure.dataset[reason], reason);
+    }
   });
 
   it("never shows more errors than calls for a tool", async () => {

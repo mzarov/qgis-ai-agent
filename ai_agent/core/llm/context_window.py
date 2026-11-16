@@ -4,7 +4,8 @@ from urllib.parse import urlsplit, urlunsplit
 
 from ai_agent.core.llm.client import build_network_request, build_request
 from ai_agent.core.settings import get_context_window, get_detected_context_window
-from ai_agent.qgis_tools.common.network import send
+from ai_agent.i18n import tr
+from ai_agent.qgis_tools.common.network import Answer, send
 
 DEFAULT_WINDOW = 128_000
 AUTO_COMPACT_SHARE = 0.9
@@ -12,6 +13,14 @@ DETECT_TIMEOUT = 5
 OLLAMA_PORT = 11434
 LMSTUDIO_PORT = 1234
 WINDOW_KEYS = ("context_length", "max_model_len", "context_window", "max_context_length")
+LISTING_KEYS = ("data", "models")
+NAME_KEYS = ("id", "name", "model")
+MAX_LISTED = 2000
+MAX_NAME_CHARS = 200
+REFUSED_STATUSES = (401, 403)
+LIST_REFUSED = tr("The server refused the key, so it did not list its models.")
+LIST_UNREACHABLE = tr("Could not reach the server to list its models.")
+LIST_MISSING = tr("The server answered {0} instead of a model list.")
 KNOWN_WINDOWS = (
     ("gpt-4.1", 1_047_576),
     ("gpt-5", 400_000),
@@ -49,17 +58,9 @@ def guessed(model: str) -> int:
 
 def detect(overrides: dict[str, Any]) -> int:
     try:
-        endpoint, headers, model = build_request(
-            overrides.get("url_override"),
-            overrides.get("key_override"),
-            overrides.get("auth_type_override"),
-            overrides.get("model_override"),
-            overrides.get("dialect_override"),
-            overrides.get("extra_headers_override"),
-        )
+        base, headers, model = _server(overrides)
     except Exception:
         return 0
-    base = str(overrides.get("url_override") or "").rstrip("/") or endpoint.rsplit("/", 2)[0]
     verify = overrides.get("verify_override")
     feedback = overrides.get("feedback_override")
     for attempt in (_from_models_list, _from_ollama, _from_lmstudio):
@@ -72,6 +73,48 @@ def detect(overrides: dict[str, Any]) -> int:
         if found:
             return found
     return 0
+
+
+def list_models(overrides: dict[str, Any]) -> tuple[list[str], str]:
+    try:
+        base, headers, _model = _server(overrides)
+    except Exception as error:
+        return [], str(error) or type(error).__name__
+    try:
+        answer = _fetch(f"{base}/models", headers, overrides.get("verify_override"), overrides.get("feedback_override"))
+    except Exception:
+        return [], LIST_UNREACHABLE
+    if answer.status in REFUSED_STATUSES:
+        return [], LIST_REFUSED
+    if answer.failed or not answer.status:
+        return [], LIST_MISSING.format(answer.status) if answer.status else LIST_UNREACHABLE
+    return model_names(_parsed(answer)), ""
+
+
+def model_names(listing: dict[str, Any]) -> list[str]:
+    entries: list[Any] = next((listing[key] for key in LISTING_KEYS if isinstance(listing.get(key), list)), [])
+    names = {_name_of(entry) for entry in entries[:MAX_LISTED]}
+    return sorted(names - {""}, key=str.casefold)
+
+
+def _name_of(entry: Any) -> str:
+    if isinstance(entry, dict):
+        entry = next((entry[key] for key in NAME_KEYS if isinstance(entry.get(key), str)), "")
+    # A name is the server's text: one line, bounded, before it reaches a menu.
+    return " ".join(entry.split())[:MAX_NAME_CHARS] if isinstance(entry, str) else ""
+
+
+def _server(overrides: dict[str, Any]) -> tuple[str, dict[str, str], str]:
+    endpoint, headers, model = build_request(
+        overrides.get("url_override"),
+        overrides.get("key_override"),
+        overrides.get("auth_type_override"),
+        overrides.get("model_override"),
+        overrides.get("dialect_override"),
+        overrides.get("extra_headers_override"),
+    )
+    base = str(overrides.get("url_override") or "").rstrip("/") or endpoint.rsplit("/", 2)[0]
+    return base, headers, model
 
 
 def _from_models_list(base: str, headers: dict[str, str], model: str, verify: Any, feedback: Any) -> int:
@@ -118,9 +161,18 @@ def _root(base: str) -> str:
 def _request(
     url: str, headers: dict[str, str], verify: Any, feedback: Any, body: dict[str, Any] | None = None
 ) -> dict[str, Any]:
+    answer = _fetch(url, headers, verify, feedback, body)
+    return {} if answer.failed else _parsed(answer)
+
+
+def _fetch(url: str, headers: dict[str, str], verify: Any, feedback: Any, body: dict[str, Any] | None = None) -> Answer:
     request = build_network_request(url, headers, verify, DETECT_TIMEOUT)
-    answer = send(request, None if body is None else json.dumps(body).encode("utf-8"), feedback)
-    if answer.failed:
+    return send(request, None if body is None else json.dumps(body).encode("utf-8"), feedback)
+
+
+def _parsed(answer: Answer) -> dict[str, Any]:
+    try:
+        parsed = json.loads(answer.body.decode("utf-8", errors="replace") or "{}")
+    except ValueError:
         return {}
-    parsed = json.loads(answer.body.decode("utf-8", errors="replace") or "{}")
     return parsed if isinstance(parsed, dict) else {}

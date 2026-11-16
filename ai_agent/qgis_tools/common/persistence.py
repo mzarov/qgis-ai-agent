@@ -53,7 +53,7 @@ def _atomic_write(path: str, payload: bytes) -> None:
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temporary, path)
-        _sync_folder(folder)
+        sync_folder(folder)
     except Exception:
         try:
             os.remove(temporary)
@@ -62,7 +62,7 @@ def _atomic_write(path: str, payload: bytes) -> None:
         raise
 
 
-def _sync_folder(folder: str) -> None:
+def sync_folder(folder: str) -> None:
     try:
         descriptor = os.open(folder, os.O_RDONLY)
     except OSError:

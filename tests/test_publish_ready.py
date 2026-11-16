@@ -116,7 +116,7 @@ class ScannerConfigTest(unittest.TestCase):
 class EscapeHatchTest(unittest.TestCase):
     def test_exec_lives_in_exactly_one_place(self):
         users = [
-            str(path.relative_to(PACKAGE))
+            path.relative_to(PACKAGE).as_posix()
             for path in PACKAGE.rglob("*.py")
             if re.search(r"(?<![.\w])exec\(", path.read_text(encoding="utf-8"))
         ]
@@ -124,7 +124,7 @@ class EscapeHatchTest(unittest.TestCase):
 
     def test_the_suppression_is_narrow_and_stays_narrow(self):
         suppressions = [
-            f"{path.relative_to(PACKAGE)}:{number}"
+            f"{path.relative_to(PACKAGE).as_posix()}:{number}"
             for path in PACKAGE.rglob("*.py")
             for number, line in enumerate(path.read_text(encoding="utf-8").split("\n"), 1)
             if "nosec" in line
@@ -141,7 +141,7 @@ class EscapeHatchTest(unittest.TestCase):
 class NetworkStackTest(unittest.TestCase):
     def test_no_module_imports_requests(self):
         offenders = [
-            str(path.relative_to(PACKAGE))
+            path.relative_to(PACKAGE).as_posix()
             for path in PACKAGE.rglob("*.py")
             if "import requests" in path.read_text(encoding="utf-8")
         ]

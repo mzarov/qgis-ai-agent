@@ -4,7 +4,7 @@ from typing import Any
 
 from qgis.PyQt.QtCore import QPointF, QRectF, Qt
 from qgis.PyQt.QtGui import QFontMetrics, QGuiApplication, QPainter, QPen
-from qgis.PyQt.QtWidgets import QApplication, QScrollBar, QSizePolicy, QToolTip, QWidget
+from qgis.PyQt.QtWidgets import QApplication, QScrollBar, QSizePolicy, QWidget
 
 from ai_agent.i18n import tr
 from ai_agent.ui import controls, style
@@ -149,16 +149,7 @@ class TableCard(QWidget):
         return font
 
     def mouseMoveEvent(self, event: Any) -> None:
-        position = event.position() if hasattr(event, "position") else QPointF(event.pos())
-        full = next((text for box, text in self._cells if box.contains(position)), "")
-        if full:
-            QToolTip.showText(
-                event.globalPosition().toPoint() if hasattr(event, "globalPosition") else event.globalPos(),
-                controls.plain_tip(full),
-                self,
-            )
-        else:
-            QToolTip.hideText()
+        controls.show_hover_tip(self, event, self._cells)
 
     def wheelEvent(self, event: Any) -> None:
         delta = event.angleDelta()

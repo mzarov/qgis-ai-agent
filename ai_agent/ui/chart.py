@@ -5,7 +5,7 @@ from typing import Any
 
 from qgis.PyQt.QtCore import QPointF, QRectF, Qt
 from qgis.PyQt.QtGui import QColor, QFontMetrics, QGuiApplication, QPainter, QPainterPath, QPen
-from qgis.PyQt.QtWidgets import QSizePolicy, QToolTip, QWidget
+from qgis.PyQt.QtWidgets import QSizePolicy, QWidget
 
 from ai_agent.i18n import tr
 from ai_agent.ui import chart_scale, controls, style
@@ -43,9 +43,6 @@ class ChartCard(QWidget):
         self.setMouseTracking(True)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.setFixedHeight(self._height())
-
-    def plain_text(self) -> str:
-        return str(self.spec.get("title") or "")
 
     def horizontal(self) -> bool:
         return self.kind == "bar" and chart_scale.horizontal_bars(self.labels, len(self.series))
@@ -359,16 +356,7 @@ class ChartCard(QWidget):
         return QRectF(centre.x() - 14, centre.y() - 14, 28, 28)
 
     def mouseMoveEvent(self, event: Any) -> None:
-        position = event.position() if hasattr(event, "position") else QPointF(event.pos())
-        tip = next((text for box, text in self._hits if box.contains(position)), "")
-        if tip:
-            QToolTip.showText(
-                event.globalPosition().toPoint() if hasattr(event, "globalPosition") else event.globalPos(),
-                controls.plain_tip(tip),
-                self,
-            )
-        else:
-            QToolTip.hideText()
+        controls.show_hover_tip(self, event, self._hits)
 
     def contextMenuEvent(self, event: Any) -> None:
         popup = controls.menu(self, self.palette())

@@ -9,11 +9,13 @@ import {
   MAX_BODY_BYTES,
   PING_COLUMNS,
   PingError,
+  REASON_COLUMNS,
   RETENTION_DAYS,
   detailsRow,
   extrasRow,
   hashInstall,
   pingRow,
+  reasonsRow,
   shapeStats,
   statsWindow,
   validatePing,
@@ -38,9 +40,13 @@ const INSERT_EXTRAS = `INSERT OR REPLACE INTO ping_extras (${EXTRA_COLUMNS.join(
 const INSERT_DETAILS = `INSERT OR REPLACE INTO ping_details (${DETAIL_COLUMNS.join(", ")})
   VALUES (${DETAIL_COLUMNS.map(() => "?").join(", ")})`;
 
+const INSERT_REASONS = `INSERT OR REPLACE INTO ping_reasons (${REASON_COLUMNS.join(", ")})
+  VALUES (${REASON_COLUMNS.map(() => "?").join(", ")})`;
+
 // An older resend replaces the pings row, so a newer row left beside it would describe another ping.
 const DELETE_EXTRAS = "DELETE FROM ping_extras WHERE install_hash = ?1 AND day = ?2";
 const DELETE_DETAILS = "DELETE FROM ping_details WHERE install_hash = ?1 AND day = ?2";
+const DELETE_REASONS = "DELETE FROM ping_reasons WHERE install_hash = ?1 AND day = ?2";
 
 const READ_SNAPSHOT = "SELECT generated, body FROM stats_snapshot WHERE id = 1";
 const WRITE_SNAPSHOT = "INSERT OR REPLACE INTO stats_snapshot (id, generated, body) VALUES (1, ?1, ?2)";
@@ -111,6 +117,12 @@ const TOOL_ERRORS = `WITH calls AS (
   SELECT tool, SUM(calls) AS calls, SUM(errors) AS errors,
     COUNT(DISTINCT CASE WHEN errors > 0 THEN install_hash END) AS installs
   FROM calls GROUP BY tool`;
+
+const TOOL_REASONS = `SELECT tool.key AS tool, reason.key AS reason, SUM(reason.value) AS n,
+    COUNT(DISTINCT ping_reasons.install_hash) AS installs
+  FROM ping_reasons, json_each(ping_reasons.reasons) AS tool, json_each(tool.value) AS reason
+  WHERE ping_reasons.day BETWEEN ?1 AND ?2 AND reason.value > 0
+  GROUP BY tool.key, reason.key`;
 
 const ACTIVITY = `SELECT COUNT(DISTINCT ping.install_hash) AS installs, SUM(ping.runs) AS requests,
     SUM(detail.retries) AS retries, SUM(detail.checks) AS checks, SUM(detail.sessions) AS sessions,
@@ -228,14 +240,18 @@ async function handlePing(request, env, now) {
     ping.version >= 3
       ? env.DB.prepare(INSERT_DETAILS).bind(...detailsRow(ping, installHash))
       : env.DB.prepare(DELETE_DETAILS).bind(installHash, ping.day);
-  await env.DB.batch([env.DB.prepare(INSERT_PING).bind(...pingRow(ping, installHash)), extras, details]);
+  const reasons =
+    ping.version >= 4
+      ? env.DB.prepare(INSERT_REASONS).bind(...reasonsRow(ping, installHash))
+      : env.DB.prepare(DELETE_REASONS).bind(installHash, ping.day);
+  await env.DB.batch([env.DB.prepare(INSERT_PING).bind(...pingRow(ping, installHash)), extras, details, reasons]);
   return new Response(null, { status: 204 });
 }
 
 async function computeStats(db, now) {
   const window = statsWindow(now);
   const recent = (sql) => db.prepare(sql).bind(window.recentSince, window.today);
-  const [totals, days, funnel, weeks, retention, toolErrors, activity, families, activation, ...rest] =
+  const [totals, days, funnel, weeks, retention, toolErrors, toolReasons, activity, families, activation, ...rest] =
     await db.batch([
       recent(TOTALS),
       db.prepare(DAYS).bind(window.seriesSince, window.today),
@@ -243,6 +259,7 @@ async function computeStats(db, now) {
       db.prepare(WEEKS).bind(window.weeksSince, window.today),
       db.prepare(RETENTION).bind(window.today),
       recent(TOOL_ERRORS),
+      recent(TOOL_REASONS),
       recent(ACTIVITY),
       recent(FAMILIES),
       db.prepare(ACTIVATION).bind(window.seriesSince, window.today),
@@ -261,6 +278,7 @@ async function computeStats(db, now) {
     weeks: weeks.results,
     retention: retention.results[0],
     toolErrors: toolErrors.results,
+    toolReasons: toolReasons.results,
     activity: activity.results[0],
     detailSums: detailSums.flatMap((sums) => sums.results),
     families: families.results,

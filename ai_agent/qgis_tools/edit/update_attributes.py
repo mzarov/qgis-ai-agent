@@ -1,21 +1,17 @@
-from contextlib import suppress
 from typing import Any
 
 from qgis.core import Qgis, QgsVectorLayer
-from qgis.PyQt.QtCore import QMetaType
 
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_DESTRUCTIVE, BaseTool
 from ai_agent.qgis_tools.common import params
-from ai_agent.qgis_tools.common.editing import edit_session
+from ai_agent.qgis_tools.common.editing import edit_session, fitted_value
 from ai_agent.qgis_tools.common.expressions import build_context, build_request, evaluate_raw, prepared
 from ai_agent.qgis_tools.common.layers import bind_layer_reference, find_layer_by_id, find_layer_by_name
 from ai_agent.qgis_tools.common.values import plain_value, suggest_fields
 from ai_agent.qgis_tools.edit.pinned import pinned_features
 
 MAX_SCAN = 50000
-TRUE_WORDS = frozenset({"true", "yes", "1"})
-FALSE_WORDS = frozenset({"false", "no", "0"})
 VIRTUAL_FIELD = (
     "Field '{name}' is a virtual field: an expression computes it and it stores no values. "
     "Add a real field with add_field and update that one."
@@ -154,7 +150,7 @@ def _checked_changes(layer: QgsVectorLayer, params: dict[str, Any]) -> tuple[dic
         )
     for name in [*values, *expressions]:
         _refuse_unstored(layer, name)
-    checked = {name: _check_convertible(layer, name, value) for name, value in values.items()}
+    checked = {name: fitted_value(layer, name, value, "", "clear it") for name, value in values.items()}
     context = build_context(layer)
     for name, text in expressions.items():
         prepared(str(text), name, context, layer)
@@ -183,42 +179,6 @@ def _stored(layer: QgsVectorLayer, name: str, value: Any) -> Any:
 
 def _names(raw: Any) -> list[str]:
     return [str(name) for name in raw] if isinstance(raw, dict) else []
-
-
-def _is_boolean(field: Any) -> bool:
-    try:
-        return bool(field.type() == QMetaType.Type.Bool)
-    except Exception:
-        return False
-
-
-def _check_convertible(layer: QgsVectorLayer, name: str, value: Any) -> Any:
-    try:
-        field = layer.fields().field(name)
-        convert = field.convertCompatible
-    except Exception:
-        return value
-    try:
-        if isinstance(value, str) and _is_boolean(field):
-            value = _boolean(value)
-        convert(value)
-        return value
-    except ValueError as err:
-        kind = ""
-        with suppress(Exception):
-            kind = f" ({field.typeName()})" if field.typeName() else ""
-        raise ValueError(
-            f"Value {value!r} does not fit field '{name}'{kind}: {err}. "
-            "Give a value of the field's type, or null to clear it."
-        ) from None
-
-
-def _boolean(text: str) -> bool:
-    # Qt reads any text but "false" and "0" as true, "no" included.
-    word = text.strip().lower()
-    if word not in TRUE_WORDS | FALSE_WORDS:
-        raise ValueError("not a boolean")
-    return word in TRUE_WORDS
 
 
 def _filter_line(raw: Any) -> str:

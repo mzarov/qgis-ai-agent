@@ -1,6 +1,4 @@
-import json
 from typing import Any
-from urllib.parse import urlencode, urlsplit, urlunsplit
 
 from ai_agent.config.geocoder import (
     GEOCODER_NOMINATIM,
@@ -11,10 +9,10 @@ from ai_agent.config.geocoder import (
 )
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_WEB_CONTENT, SAFETY_READ, BaseTool
+from ai_agent.qgis_tools.common.geocoding import parse_matches, search_url
 from ai_agent.qgis_tools.web.http import checked_url, get_text, safe_url_label
 from ai_agent.qgis_tools.web.url_policy import bounded_text, short_text
 
-MAX_MATCHES = 5
 MAX_PLACE_CHARS = 500
 NOTHING = "The geocoding service knows no such place — check the spelling or add the region."
 
@@ -54,7 +52,7 @@ class GeocodeTool(BaseTool):
     def prepare(self, params: dict[str, Any]) -> dict[str, Any]:
         place = bounded_text(params.get("place"), "place name", MAX_PLACE_CHARS)
         provider, service_url = _configuration({}, resolve=False)
-        checked_url(_search_url(service_url, place, provider), resolve=False)
+        checked_url(search_url(service_url, place, provider), resolve=False)
         return {"place": place, "_geocoder_provider": provider, "_geocoder_url": service_url}
 
     def summarize_result(self, params: dict[str, Any], payload: dict[str, Any]) -> str:
@@ -67,7 +65,7 @@ class GeocodeTool(BaseTool):
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         place = bounded_text(params.get("place"), "place name", MAX_PLACE_CHARS)
         provider, service_url = _configuration(params, resolve=True)
-        endpoint = _search_url(service_url, place, provider)
+        endpoint = search_url(service_url, place, provider)
         matches = parse_matches(get_text(endpoint), provider)
         if not matches:
             raise ValueError(NOTHING)
@@ -77,55 +75,6 @@ class GeocodeTool(BaseTool):
             "matches": matches,
             "attribution": _attribution(provider),
         }
-
-
-def parse_matches(body: str, provider: str = GEOCODER_NOMINATIM) -> list[dict[str, Any]]:
-    try:
-        raw = json.loads(body or "[]")
-    except ValueError:
-        return []
-    if provider == GEOCODER_PHOTON:
-        return _photon_matches(raw)
-    return _nominatim_matches(raw)
-
-
-def _nominatim_matches(raw: Any) -> list[dict[str, Any]]:
-    matches = []
-    for item in raw[:MAX_MATCHES] if isinstance(raw, list) else []:
-        if not isinstance(item, dict):
-            continue
-        lat = _number(item.get("lat"))
-        lon = _number(item.get("lon"))
-        if lat is None or lon is None or not -90 <= lat <= 90 or not -180 <= lon <= 180:
-            continue
-        box = item.get("boundingbox") or []
-        entry = {
-            "name": item.get("display_name", ""),
-            "type": f"{item.get('category', '')}/{item.get('type', '')}",
-            "lat": lat,
-            "lon": lon,
-        }
-        if len(box) == 4:
-            edges = [_number(edge) for edge in box]
-            if all(edge is not None for edge in edges):
-                south, north, west, east = edges
-                entry["bbox"] = f"{west},{south},{east},{north}"
-        matches.append(entry)
-    return matches
-
-
-def _search_url(service_url: str, place: str, provider: str) -> str:
-    parsed = urlsplit(service_url)
-    path = parsed.path.rstrip("/")
-    if provider == GEOCODER_PHOTON:
-        if not path.endswith("/api"):
-            path += "/api"
-        query = urlencode({"limit": MAX_MATCHES, "q": place})
-    else:
-        if not path.endswith("/search"):
-            path += "/search"
-        query = urlencode({"format": "jsonv2", "limit": MAX_MATCHES, "q": place})
-    return urlunsplit(("https", parsed.netloc, path, query, ""))
 
 
 def _configuration(params: dict[str, Any], *, resolve: bool) -> tuple[str, str]:
@@ -139,51 +88,6 @@ def _configuration(params: dict[str, Any], *, resolve: bool) -> tuple[str, str]:
     return provider, checked_url(service_url, resolve=resolve)
 
 
-def _photon_matches(raw: Any) -> list[dict[str, Any]]:
-    features = raw.get("features", []) if isinstance(raw, dict) else []
-    matches = []
-    for feature in features[:MAX_MATCHES] if isinstance(features, list) else []:
-        if not isinstance(feature, dict):
-            continue
-        properties = feature.get("properties")
-        geometry = feature.get("geometry")
-        if not isinstance(properties, dict) or not isinstance(geometry, dict):
-            continue
-        coordinates = geometry.get("coordinates") or []
-        if len(coordinates) < 2:
-            continue
-        lon, lat = _number(coordinates[0]), _number(coordinates[1])
-        if lat is None or lon is None or not -90 <= lat <= 90 or not -180 <= lon <= 180:
-            continue
-        entry = {
-            "name": _photon_name(properties),
-            "type": f"{properties.get('osm_key', '')}/{properties.get('osm_value', '')}",
-            "lat": lat,
-            "lon": lon,
-        }
-        extent = properties.get("extent") or []
-        if len(extent) == 4:
-            edges = [_number(edge) for edge in extent]
-            if all(edge is not None for edge in edges):
-                # Photon's extent runs west, north, east, south.
-                west, north, east, south = edges
-                entry["bbox"] = f"{west},{south},{east},{north}"
-        matches.append(entry)
-    return matches
-
-
-def _photon_name(properties: dict[str, Any]) -> str:
-    values = [properties.get(key) for key in ("name", "city", "state", "country")]
-    return ", ".join(dict.fromkeys(str(value) for value in values if value))
-
-
 def _attribution(provider: str) -> str:
     suffix = "; geocoding by Photon" if provider == GEOCODER_PHOTON else ""
     return "© OpenStreetMap contributors" + suffix
-
-
-def _number(raw: Any) -> float | None:
-    try:
-        return round(float(raw), 6)
-    except (TypeError, ValueError):
-        return None

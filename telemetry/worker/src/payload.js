@@ -1,4 +1,4 @@
-export const PING_VERSIONS = [1, 2, 3];
+export const PING_VERSIONS = [1, 2, 3, 4];
 export const MAX_BODY_BYTES = 8192;
 export const MAX_COUNT = 100000;
 export const MAX_MAP_KEYS = 150;
@@ -31,6 +31,8 @@ export const DETAIL_MAPS = {
   tokens: ["k0_5", "k5_20", "k20_50", "k50_200", "k200_plus"],
 };
 export const DETAIL_COUNTS = ["retries", "checks", "sessions"];
+// Why a tool call failed, as the plugin classifies it: a v4 ping may name only these, in this order.
+export const REASON_VALUES = ["skipped", "cancelled", "connector_off", "timeout", "layer_ambiguous", "layer_not_found", "field_not_found", "bad_expression", "not_supported", "no_result", "network", "too_large", "qgis_refused", "bad_arguments", "algorithm_failed", "snippet_failed", "other"];
 export const ACTIVATION_STEPS = ["configured", "ran", "applied"];
 export const ACTIVATION_BUCKETS = ["d0", "d1", "d2_7", "d8_plus", "never"];
 
@@ -38,6 +40,7 @@ export const DIMENSIONS = ["plugin", "qgis", "os", "locale", "provider", "dialec
 export const COUNTERS = ["tools", "skills", "failures"];
 export const EXTRA_COLUMNS = ["install_hash", "day", "configured", "tool_errors"];
 export const DETAIL_COLUMNS = ["install_hash", "day", "family", ...DETAIL_COUNTS, ...Object.keys(DETAIL_MAPS)];
+export const REASON_COLUMNS = ["install_hash", "day", "reasons"];
 
 export const PING_COLUMNS = [
   "install_hash",
@@ -64,6 +67,7 @@ const FIELDS = {
   2: { required: V2_FIELDS, known: new Set([...V2_FIELDS, ...COUNTERS, "tool_errors"]) },
   3: { required: V3_FIELDS, known: new Set([...V3_FIELDS, ...COUNTERS, "tool_errors", ...Object.keys(DETAIL_MAPS)]) },
 };
+FIELDS[4] = { required: V3_FIELDS, known: new Set([...FIELDS[3].known, "tool_reasons"]) };
 
 export class PingError extends Error {}
 
@@ -119,6 +123,22 @@ function details(body) {
   for (const name of DETAIL_COUNTS) result[name] = count(name, body[name]);
   for (const [name, keys] of Object.entries(DETAIL_MAPS)) result[name] = listed(name, body[name], keys);
   return result;
+}
+
+function toolReasons(value, errors) {
+  if (value === undefined) return {};
+  if (!isPlainObject(value)) fail("tool_reasons must be an object");
+  const tools = Object.keys(value).sort();
+  // The name is not echoed: only a tool with counted errors has passed the key pattern.
+  if (!tools.every((tool) => Object.hasOwn(errors, tool))) fail("tool_reasons names a tool without errors");
+  return Object.fromEntries(
+    tools.map((tool) => {
+      const reasons = listed(`tool_reasons.${tool}`, value[tool], REASON_VALUES);
+      const total = Object.values(reasons).reduce((sum, number) => sum + number, 0);
+      if (total > errors[tool]) fail(`tool_reasons.${tool} is more than its errors`);
+      return [tool, reasons];
+    }),
+  );
 }
 
 function dayStart(year, month, day) {
@@ -178,6 +198,7 @@ export function validatePing(body, now = new Date()) {
   for (const [tool, errors] of Object.entries(ping.tool_errors)) {
     if (errors > (Object.hasOwn(ping.tools, tool) ? ping.tools[tool] : 0)) fail(`tool_errors.${tool} is more than its calls`);
   }
+  ping.tool_reasons = body.v >= 4 ? toolReasons(body.tool_reasons, ping.tool_errors) : null;
   return ping;
 }
 
@@ -204,6 +225,10 @@ export function detailsRow(ping, installHash) {
     if (column === "day") return ping.day;
     return Object.hasOwn(DETAIL_MAPS, column) ? JSON.stringify(ping.details[column]) : ping.details[column];
   });
+}
+
+export function reasonsRow(ping, installHash) {
+  return [installHash, ping.day, JSON.stringify(ping.tool_reasons)];
 }
 
 export function utcDay(date) {
@@ -303,6 +328,24 @@ export function rankToolErrors(rows) {
   return Object.fromEntries(entries);
 }
 
+export function rankToolReasons(rows) {
+  const tools = new Map();
+  for (const row of rows.filter((row) => widelyReported(row) && REASON_VALUES.includes(row.reason))) {
+    const reasons = tools.get(String(row.tool)) ?? new Map();
+    reasons.set(row.reason, number(row.n));
+    tools.set(String(row.tool), reasons);
+  }
+  const sum = (reasons) => [...reasons.values()].reduce((total, n) => total + n, 0);
+  const entries = [...tools]
+    .sort(([a, x], [b, y]) => sum(y) - sum(x) || (a < b ? -1 : 1))
+    .slice(0, MAX_VALUES_PER_FACET)
+    .map(([tool, reasons]) => [
+      tool,
+      Object.fromEntries(REASON_VALUES.filter((reason) => reasons.has(reason)).map((reason) => [reason, reasons.get(reason)])),
+    ]);
+  return Object.fromEntries(entries);
+}
+
 export function shapeActivity(row) {
   return {
     installs: number(row?.installs),
@@ -353,6 +396,7 @@ export function shapeStats({
   weeks,
   retention,
   toolErrors,
+  toolReasons: reasonRows,
   activity,
   detailSums,
   families,
@@ -367,6 +411,7 @@ export function shapeStats({
     weeks: fillWeeks(weeks ?? [], window),
     retention: shapeRetention(retention),
     tool_errors: rankToolErrors(toolErrors ?? []),
+    tool_error_reasons: rankToolReasons(reasonRows ?? []),
   };
   for (const facet of [...DIMENSIONS, ...COUNTERS, "family"]) stats[facet] = rankFacet(facets, facet);
   stats.activity = shapeActivity(activity);

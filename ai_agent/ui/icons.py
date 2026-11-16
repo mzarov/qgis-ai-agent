@@ -73,7 +73,3 @@ def drawn(role: str, colour: Any, size: int) -> QIcon | None:
     except Exception:
         return None
     return None if icon.isNull() else icon
-
-
-def chevron(expanded: bool, colour: Any, size: int) -> QIcon:
-    return glyph("expanded" if expanded else "collapsed", colour, size)

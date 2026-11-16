@@ -8,7 +8,7 @@ from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_DESTRUCTIVE, SAFETY
 from ai_agent.qgis_tools.common import params
 from ai_agent.qgis_tools.common.editing import edit_session
 from ai_agent.qgis_tools.common.expressions import compile_expression
-from ai_agent.qgis_tools.common.layers import bind_layer_reference, find_layer_by_id, pinned_layer
+from ai_agent.qgis_tools.common.layers import bind_layer_reference, pinned_layer
 from ai_agent.qgis_tools.fields.schema import (
     FIELD_TYPES,
     build_field,
@@ -240,10 +240,4 @@ def _has_field(params: dict[str, Any], name: Any) -> bool:
 
 
 def _field_target(params: dict[str, Any]) -> QgsVectorLayer:
-    layer_id = str(params.get("layer_id") or "").strip()
-    if not layer_id:
-        return require_vector(params.get("layer_name") or "")
-    layer = find_layer_by_id(layer_id)
-    if not isinstance(layer, QgsVectorLayer):
-        raise ValueError(f"Layer '{layer.name()}' is not a vector layer, it has no attribute schema.")
-    return layer
+    return require_vector(params.get("layer_name") or "", str(params.get("layer_id") or "").strip())

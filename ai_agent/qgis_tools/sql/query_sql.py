@@ -4,7 +4,7 @@ from qgis.core import QgsFeatureRequest
 
 from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
-from ai_agent.qgis_tools.common.layers import crs_authid, geometry_type_name, safe_feature_count
+from ai_agent.qgis_tools.common.layers import crs_authid, geometry_type_name, is_spatial, safe_feature_count
 from ai_agent.qgis_tools.common.values import plain_value
 from ai_agent.qgis_tools.sql.statement import SQL_PARAM, checked_sql, short_sql
 from ai_agent.qgis_tools.sql.virtual import open_query, resolve_sources
@@ -59,7 +59,7 @@ class QuerySqlTool(BaseTool):
         rows = [[cell(value) for value in feature.attributes()] for feature in layer.getFeatures(request)]
         result: dict[str, Any] = {"columns": list(layer.fields().names())}
         result.update(_counted(layer, rows))
-        if _is_spatial(layer):
+        if is_spatial(layer, unknown=False):
             result["geometry"] = geometry_type_name(layer)
             crs = crs_authid(layer)
             if crs:
@@ -90,10 +90,3 @@ def _counted(layer: Any, rows: list[list[Any]]) -> dict[str, Any]:
         counted["row_count"] = MAX_ROWS + 1
         counted["row_count_is_lower_bound"] = True
     return counted
-
-
-def _is_spatial(layer: Any) -> bool:
-    try:
-        return bool(layer.isSpatial())
-    except Exception:
-        return False

@@ -5,6 +5,7 @@ from qgis.core import QgsSettings
 from ai_agent.config.connectors import disabled_connectors
 
 DEFAULT_ENDPOINT = "https://overpass-api.de/api/interpreter"
+FALLBACK_ENDPOINT = "https://overpass.private.coffee/api/interpreter"
 SETTINGS_KEY = "ai_agent/overpass_url"
 CONNECTOR = "openstreetmap"
 TURNED_OFF = (
@@ -15,6 +16,7 @@ QUERY_TIMEOUT_SEC = 90
 ELEMENTS = ("node", "way", "relation")
 AREA_NAME_KEYS = ("name", "name:en", "int_name")
 RECURSE_DOWN = "(._;>;);"
+AREA_BINDING = "(area.searchArea)"
 GEOMETRY_ELEMENTS = {
     "points": ("node",),
     "lines": ("way",),
@@ -36,6 +38,12 @@ def endpoint() -> str:
     return (stored or DEFAULT_ENDPOINT).strip()
 
 
+def endpoints() -> tuple[str, ...]:
+    # The mirror stands in for the public server only: a server the user set is the one they chose.
+    chosen = endpoint()
+    return (chosen, FALLBACK_ENDPOINT) if chosen == DEFAULT_ENDPOINT else (chosen,)
+
+
 def build_query(
     key: str = "",
     value: str = "",
@@ -43,10 +51,13 @@ def build_query(
     bbox: tuple[float, float, float, float] | None = None,
     geometry: str = "all",
     selectors: list[str] | None = None,
+    area_id: int = 0,
 ) -> str:
     statements = selectors or _from_tag(key, value, geometry)
+    if area_id:
+        return _wrapped(statements, _area_id_header(area_id), AREA_BINDING)
     if area:
-        return _wrapped(statements, _area_header(area), "(area.searchArea)")
+        return _wrapped(statements, _area_header(area), AREA_BINDING)
     if bbox is None:
         raise ValueError("No search territory was given: either area or bbox is required.")
     return _wrapped(statements, _bbox_header(bbox), "")
@@ -66,6 +77,10 @@ def _area_header(area: str) -> str:
     clean = _escaped(area)
     matches = "\n".join(f'  area["{key}"="{clean}"];' for key in AREA_NAME_KEYS)
     return f"[out:xml][timeout:{QUERY_TIMEOUT_SEC}];\n(\n{matches}\n)->.searchArea;\n"
+
+
+def _area_id_header(area_id: int) -> str:
+    return f"[out:xml][timeout:{QUERY_TIMEOUT_SEC}];\narea(id:{int(area_id)})->.searchArea;\n"
 
 
 def _bbox_header(bbox: tuple[float, float, float, float]) -> str:

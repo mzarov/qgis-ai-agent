@@ -10,12 +10,13 @@ from ai_agent.qgis_tools.common.layers import (
     feature_count_if_cheap,
     find_layer_by_name,
     geometry_type_name,
+    is_spatial,
     layer_kind,
     layer_reference,
 )
 from ai_agent.qgis_tools.quality import findings
 from ai_agent.qgis_tools.quality.raster import FILE_PROVIDER, raster_findings
-from ai_agent.qgis_tools.quality.scan import MAX_FEATURES, is_spatial, scan_layer
+from ai_agent.qgis_tools.quality.scan import MAX_FEATURES, scan_layer
 
 LOG_TAG = "AI Agent"
 KIND_VECTOR = "vector"

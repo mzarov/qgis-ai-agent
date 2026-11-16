@@ -1,9 +1,9 @@
 import re
 from dataclasses import dataclass
 
+from ai_agent.qgis_tools.common.layers import WGS84
 from ai_agent.qgis_tools.tables.delimited import DelimitedTable
 
-WGS84 = "EPSG:4326"
 X_NAMES = frozenset({"lon", "lng", "long", "longitude", "x", "xcoord", "coordx", "pointx", "easting", "east"})
 Y_NAMES = frozenset({"lat", "latitude", "y", "ycoord", "coordy", "pointy", "northing", "north"})
 WKT_NAMES = frozenset({"wkt", "geom", "geometry", "thegeom", "shape", "wktgeom"})

@@ -1,8 +1,7 @@
 from typing import Any
 
-from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject
+from ai_agent.qgis_tools.common.layers import to_wgs84
 
-WGS84 = "EPSG:4326"
 PARTS = 4
 MAX_DEGREES = 180.0
 MAX_SPAN_DEGREES = 5.0
@@ -20,16 +19,15 @@ def parse_bbox(text: str) -> tuple[float, float, float, float]:
         west, south, east, north = (float(item) for item in parts)
     except ValueError:
         raise ValueError(f"bbox '{text}' holds a value that is not a number.") from None
-    return _checked(west, south, east, north)
+    return checked_bbox(west, south, east, north)
 
 
 def canvas_bbox() -> tuple[float, float, float, float]:
     rectangle, source = _canvas_extent()
     if rectangle is None:
         raise ValueError("The map is not available, so the current view cannot be read. Give bbox as numbers, or area.")
-    if source is not None and source.authid() != WGS84:
-        rectangle = _to_wgs84(rectangle, source)
-    return _checked(rectangle.xMinimum(), rectangle.yMinimum(), rectangle.xMaximum(), rectangle.yMaximum())
+    rectangle = to_wgs84(rectangle, source)
+    return checked_bbox(rectangle.xMinimum(), rectangle.yMinimum(), rectangle.xMaximum(), rectangle.yMaximum())
 
 
 def _canvas_extent() -> tuple[Any, Any]:
@@ -42,12 +40,7 @@ def _canvas_extent() -> tuple[Any, Any]:
         return None, None
 
 
-def _to_wgs84(rectangle: Any, source: Any) -> Any:
-    transform = QgsCoordinateTransform(source, QgsCoordinateReferenceSystem(WGS84), QgsProject.instance())
-    return transform.transformBoundingBox(rectangle)
-
-
-def _checked(west: float, south: float, east: float, north: float) -> tuple[float, float, float, float]:
+def checked_bbox(west: float, south: float, east: float, north: float) -> tuple[float, float, float, float]:
     if west >= east or south >= north:
         raise ValueError(
             "In bbox the west must be less than the east, and the south less than the north. "

@@ -61,8 +61,18 @@ def snapshot_error() -> str:
     return _LAST_ERROR
 
 
+def _free_path() -> str:
+    # The Windows clock ticks every 15 ms: two snapshots in one tick would share a name and a file.
+    stamp = time.time_ns()
+    while True:
+        path = os.path.join(snapshot_folder(), f"{PREFIX}_{stamp}{SUFFIX}")
+        if not os.path.exists(path):
+            return path
+        stamp += 1
+
+
 def _write_snapshot() -> str:
-    path = os.path.join(snapshot_folder(), f"{PREFIX}_{time.time_ns()}{SUFFIX}")
+    path = _free_path()
     project = QgsProject.instance()
     ensure_project_read_safe(project)
     state = capture_project_state(project)

@@ -16,13 +16,13 @@ from ai_agent.i18n import tr
 from ai_agent.qgis_tools.annotations.store import annotation_crs, annotation_layer, item_text
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.colors import parse_color
+from ai_agent.qgis_tools.common.layers import WGS84
 
 KIND_TEXT = "text"
 KIND_MARKER = "marker"
 KINDS = (KIND_TEXT, KIND_MARKER)
 DEFAULT_SIZE = 12.0
 MAX_SIZE = 72.0
-WGS84 = "EPSG:4326"
 POSITION_TOLERANCE = 1e-6
 MAX_LONGITUDE = 180.0
 MAX_LATITUDE = 90.0

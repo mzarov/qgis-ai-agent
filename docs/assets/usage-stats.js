@@ -541,6 +541,22 @@
     };
   }
 
+  function toolReasons(figure, stats) {
+    const rows = Object.entries(stats.tool_error_reasons || {})
+      .flatMap(([tool, reasons]) =>
+        Object.entries(reasons || {}).map(([reason, errors]) => [tool, figure.dataset[reason] || reason, number(errors)]),
+      )
+      .filter(([, , errors]) => errors > 0)
+      .sort((a, b) => b[2] - a[2] || a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]))
+      .slice(0, TOP_BARS);
+    if (!rows.length) return {};
+    return {
+      chart: barChart(figure, rows.map(([tool, reason, errors]) => [`${tool}: ${reason}`, errors])),
+      rows,
+      headers: [figure.dataset.key, figure.dataset.reason, figure.dataset.value],
+    };
+  }
+
   function facet(figure, stats, kind) {
     const rows = ranked(stats[kind]).map(([key, value]) => [kind === "family" ? familyName(key) : key, value]);
     return rows.length ? { chart: barChart(figure, rows), rows } : {};
@@ -567,6 +583,7 @@
     ["failures", failures],
     ["families", families],
     ["tool_errors", toolErrors],
+    ["tool_reasons", toolReasons],
     ...Object.keys(BUCKETS).map((kind) => [kind, buckets]),
   ]);
 

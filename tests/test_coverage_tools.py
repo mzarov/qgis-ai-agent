@@ -94,7 +94,7 @@ class FieldsTestBase(unittest.TestCase):
         self.saved_require = fields_module.require_vector
         self.saved_compile = fields_module.compile_expression
         self.saved_infer = fields_module.infer_virtual_type
-        fields_module.require_vector = lambda name: self.layer
+        fields_module.require_vector = lambda name, layer_id="": self.layer
         fields_module.compile_expression = lambda text, label, layer=None: None
         fields_module.infer_virtual_type = lambda layer, text: "text"
 

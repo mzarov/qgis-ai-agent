@@ -5,8 +5,10 @@ from unittest import mock
 from ai_agent.core.agent import compaction
 from ai_agent.core.agent.compaction import COMPACT_REQUEST, COMPACT_SYSTEM, Compactor, estimated_tokens
 from ai_agent.core.llm import context_window
+from ai_agent.core.llm.client import SetupError
 from ai_agent.core.orchestrator import compacting
 from ai_agent.core.orchestrator.compacting import SessionCompaction
+from ai_agent.qgis_tools.common.network import Answer
 from ai_agent.ui.context_meter import ContextMeter, tokens
 
 
@@ -307,6 +309,68 @@ class DetectionTest(unittest.TestCase):
         self.assertEqual(found, 8192)
         self.assertTrue(all(address.startswith("http://localhost:1234/") for address in asked))
         self.assertNotIn("http://localhost:1234/api/show", asked, "Ollama is asked only on its own port")
+
+
+class ModelListingTest(unittest.TestCase):
+    URL = "https://api.example.com/v1"
+
+    def listed(self, answer: Answer) -> tuple[tuple[list[str], str], list[str]]:
+        asked: list[str] = []
+
+        def fetch(address, _headers, _verify, _feedback, _body=None):
+            asked.append(address)
+            return answer
+
+        with (
+            mock.patch.object(context_window, "build_request", return_value=(f"{self.URL}/chat/completions", {}, "")),
+            mock.patch.object(context_window, "_fetch", side_effect=fetch),
+        ):
+            return context_window.list_models({"url_override": f"{self.URL}/"}), asked
+
+    def test_the_servers_list_is_asked_at_its_models_address_and_comes_back_sorted(self):
+        body = b'{"object": "list", "data": [{"id": "qwen3"}, {"id": "Gemma"}, {"id": "qwen3"}]}'
+        result, asked = self.listed(Answer(status=200, body=body))
+        self.assertEqual(result, (["Gemma", "qwen3"], ""))
+        self.assertEqual(asked, [f"{self.URL}/models"])
+
+    def test_every_shape_a_server_lists_models_in_is_read(self):
+        for listing, names in (
+            ({"data": [{"id": "claude-x", "display_name": "Claude X"}], "has_more": False}, ["claude-x"]),
+            ({"models": [{"name": "llama3.2:latest", "model": "other"}]}, ["llama3.2:latest"]),
+            ({"models": [{"model": "by-model-key"}]}, ["by-model-key"]),
+            ({"data": ["plain-a", "plain-b"]}, ["plain-a", "plain-b"]),
+            ({"data": [{"id": 7}, {"id": ""}, None, {"id": "kept"}]}, ["kept"]),
+            ({"data": "not a list"}, []),
+            ({}, []),
+        ):
+            with self.subTest(listing=listing):
+                self.assertEqual(context_window.model_names(listing), names)
+
+    def test_a_name_is_one_bounded_line_and_the_list_is_capped(self):
+        long = "x" * (context_window.MAX_NAME_CHARS + 50)
+        names = context_window.model_names({"data": [{"id": "two\nlines\there"}, {"id": long}]})
+        self.assertEqual(names, ["two lines here", "x" * context_window.MAX_NAME_CHARS])
+        many = {"data": [{"id": f"m{index:05d}"} for index in range(context_window.MAX_LISTED + 10)]}
+        self.assertEqual(len(context_window.model_names(many)), context_window.MAX_LISTED)
+
+    def test_a_refused_key_an_unreachable_server_and_a_missing_list_each_say_why(self):
+        for answer, problem in (
+            (Answer(status=401, failed=True), context_window.LIST_REFUSED),
+            (Answer(status=403, failed=True), context_window.LIST_REFUSED),
+            (Answer(failed=True, error="Host not found"), context_window.LIST_UNREACHABLE),
+            (Answer(status=404, failed=True), context_window.LIST_MISSING.format(404)),
+        ):
+            with self.subTest(answer=answer):
+                self.assertEqual(self.listed(answer)[0], ([], problem))
+        self.assertEqual(self.listed(Answer(status=200, body=b"<html>"))[0], ([], ""))
+
+    def test_a_missing_key_is_named_without_asking_the_server(self):
+        with (
+            mock.patch.object(context_window, "build_request", side_effect=SetupError("No API key.")),
+            mock.patch.object(context_window, "_fetch") as fetch,
+        ):
+            self.assertEqual(context_window.list_models({"url_override": self.URL}), ([], "No API key."))
+        fetch.assert_not_called()
 
 
 class TrimmingTest(unittest.TestCase):

@@ -1,5 +1,9 @@
 import os
+import tempfile
 from collections.abc import Iterable
+from typing import Any
+
+from qgis.core import QgsProject
 
 from ai_agent.qgis_tools.base import SAFETY_DESTRUCTIVE, SAFETY_WRITE
 
@@ -19,6 +23,32 @@ SHAPEFILE_SUFFIXES = (
 )
 CSV_SUFFIXES = (".csv", ".csvt")
 GPKG_SUFFIXES = ("", "-wal", "-shm", "-journal")
+SLUG_CHARS = 60
+PRIVATE_FOLDER = 0o700
+
+
+def download_folder(subfolder: str, temporary_prefix: str) -> tuple[str, bool]:
+    home = _project_home()
+    if home:
+        folder = os.path.join(home, subfolder)
+        os.makedirs(folder, exist_ok=True)
+        return folder, False
+    folder = tempfile.mkdtemp(prefix=temporary_prefix)
+    os.chmod(folder, PRIVATE_FOLDER)
+    return folder, True
+
+
+def file_slug(text: Any, fallback: str) -> str:
+    kept = [char if char.isalnum() or char in "-_" else "_" for char in str(text or fallback)]
+    return "".join(kept)[:SLUG_CHARS] or fallback
+
+
+def _project_home() -> str:
+    try:
+        home = QgsProject.instance().homePath()
+    except Exception:
+        return ""
+    return home if isinstance(home, str) and home.strip() and os.path.isdir(home) else ""
 
 
 def physical_path(path: str) -> str:

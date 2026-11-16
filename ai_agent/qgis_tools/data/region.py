@@ -1,10 +1,9 @@
 from typing import Any
 
-from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject
+from qgis.core import QgsProject
 
-from ai_agent.qgis_tools.common.layers import canvas_extent, find_layer_by_name
+from ai_agent.qgis_tools.common.layers import canvas_extent, find_layer_by_name, to_wgs84
 
-WGS84 = "EPSG:4326"
 CANVAS = "canvas"
 MAX_SPAN_DEGREES = 10.0
 REGION_HINT = (
@@ -38,9 +37,7 @@ def _numbers(text: str) -> tuple[float, float, float, float]:
 
 
 def _degrees(rectangle: Any, crs: Any) -> tuple[float, float, float, float]:
-    if crs is not None and crs.isValid() and crs.authid() != WGS84:
-        transform = QgsCoordinateTransform(crs, QgsCoordinateReferenceSystem(WGS84), QgsProject.instance())
-        rectangle = transform.transformBoundingBox(rectangle)
+    rectangle = to_wgs84(rectangle, crs)
     return rectangle.xMinimum(), rectangle.yMinimum(), rectangle.xMaximum(), rectangle.yMaximum()
 
 

@@ -41,6 +41,9 @@ NO_IMAGE_INPUT = (
 
 
 class DispatchMixin:
+    # The English text behind the newest tool_finished: the signal itself carries the translated line.
+    last_tool_error = ""
+
     if TYPE_CHECKING:
         _executor: ToolExecutor
         _batch: WriteBatch
@@ -101,6 +104,7 @@ class DispatchMixin:
     def _run_now(self, call: ToolCall) -> ToolResult:
         self.tool_started.emit(summarize_tool_call(call.name, call.arguments))
         result = self._executor.run(call)
+        self.last_tool_error = result.error
         self.tool_finished.emit(call.name, result.ok, outcome_note(call, result))
         if result.visual is not None:
             self.visual_ready.emit(result.visual)

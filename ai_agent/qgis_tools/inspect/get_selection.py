@@ -7,10 +7,9 @@ from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_FEATURE_VALUES, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common.layer_meta import selected_count
 from ai_agent.qgis_tools.common.layers import layer_reference
-from ai_agent.qgis_tools.common.values import plain_value
+from ai_agent.qgis_tools.common.values import plain_value, short_value
 
 SAMPLE_LIMIT = 10
-MAX_VALUE_CHARS = 120
 NOTHING_SELECTED = "Nothing is selected on the map right now."
 HOW_TO_USE = "To compute over just these features, call query_layer with selected_only=true."
 
@@ -72,12 +71,6 @@ def _sample(layer: Any) -> list[dict[str, Any]]:
         attributes = {}
         for name in names:
             with suppress(Exception):
-                attributes[name] = _short(plain_value(feature[name]))
+                attributes[name] = short_value(plain_value(feature[name]))
         sampled.append(attributes)
     return sampled
-
-
-def _short(value: Any) -> Any:
-    if isinstance(value, str) and len(value) > MAX_VALUE_CHARS:
-        return value[:MAX_VALUE_CHARS] + "…"
-    return value

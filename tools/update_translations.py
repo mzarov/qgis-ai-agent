@@ -34,7 +34,7 @@ def sources() -> list[tuple[str, str, int, bool]]:
             argument = node.args[0]
             if not isinstance(argument, ast.Constant) or not isinstance(argument.value, str):
                 raise SystemExit(f"{path}:{node.lineno}: {name}() needs a literal string")
-            location = str(path.relative_to(PACKAGE.parent))
+            location = path.relative_to(PACKAGE.parent).as_posix()
             found.append((argument.value, location, node.lineno, name == "tr_n"))
     return found + data_sources()
 
@@ -44,7 +44,7 @@ def data_sources() -> list[tuple[str, str, int, bool]]:
     for path in sorted(DATA_SOURCES.glob("*.json")):
         text = path.read_text(encoding="utf-8")
         lines = text.splitlines()
-        location = str(path.relative_to(PACKAGE.parent))
+        location = path.relative_to(PACKAGE.parent).as_posix()
         for value in connector_texts(json.loads(text)):
             quoted = json.dumps(value, ensure_ascii=False)
             lineno = next((index for index, line in enumerate(lines, 1) if quoted in line), 1)

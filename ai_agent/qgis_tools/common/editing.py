@@ -1,9 +1,62 @@
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager, suppress
+from typing import Any
 
 from qgis.core import QgsVectorLayer
+from qgis.PyQt.QtCore import QMetaType
 
 PARTIAL_COMMIT_NOTE = "The data source may already contain partial changes; inspect it before retrying."
+TRUE_WORDS = frozenset({"true", "yes", "1"})
+FALSE_WORDS = frozenset({"false", "no", "0"})
+
+
+def boolean_word(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    word = str(value).strip().lower()
+    if word in TRUE_WORDS:
+        return True
+    if word in FALSE_WORDS:
+        return False
+    raise ValueError("not a boolean")
+
+
+def fitted_value(
+    layer: QgsVectorLayer,
+    name: str,
+    value: Any,
+    where: str,
+    when_null: str,
+    check: Callable[[Any, Any], None] | None = None,
+) -> Any:
+    try:
+        field = layer.fields().field(name)
+        convert = field.convertCompatible
+    except Exception:
+        return value
+    try:
+        # Qt reads any text but "false" and "0" as true, "no" included.
+        if isinstance(value, str) and _is_boolean(field):
+            value = boolean_word(value)
+        convert(value)
+        if check is not None:
+            check(field, value)
+        return value
+    except ValueError as err:
+        kind = ""
+        with suppress(Exception):
+            kind = f" ({field.typeName()})" if field.typeName() else ""
+        raise ValueError(
+            f"Value {value!r} does not fit field '{name}'{kind}{where}: {err}. "
+            f"Give a value of the field's type, or null to {when_null}."
+        ) from None
+
+
+def _is_boolean(field: Any) -> bool:
+    try:
+        return bool(field.type() == QMetaType.Type.Bool)
+    except Exception:
+        return False
 
 
 @contextmanager

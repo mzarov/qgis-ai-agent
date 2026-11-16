@@ -12,8 +12,9 @@ from qgis.core import (
 from qgis.gui import QgsMapToolEmitPoint, QgsMapToolExtent
 from qgis.PyQt.QtCore import QObject, pyqtSignal
 
+from ai_agent.qgis_tools.common.layers import WGS84
+
 AREA = "area"
-WGS84 = "EPSG:4326"
 DECIMALS = 5
 LOG_TAG = "AI Agent"
 

@@ -14,7 +14,6 @@ FOOTER_MARGINS = (10, 2, 10, 4)
 PILL_RADIUS = 6
 NOTE_SCALE = 12 / 13
 NUMBER_SCALE = 11 / 13
-NUMBER_KEYS = {getattr(Qt.Key, f"Key_{digit}"): digit - 1 for digit in range(1, 10)}
 
 
 @dataclass(frozen=True)
@@ -122,8 +121,8 @@ class ChoicePopup(controls.RoundedFrame):
 
     def keyPressEvent(self, event: Any) -> None:
         key = event.key()
-        if key in NUMBER_KEYS and NUMBER_KEYS[key] < len(self._choices):
-            self.choose(self._choices[NUMBER_KEYS[key]].key)
+        if key in controls.NUMBER_KEYS and controls.NUMBER_KEYS[key] < len(self._choices):
+            self.choose(self._choices[controls.NUMBER_KEYS[key]].key)
         elif key in (Qt.Key.Key_Up, Qt.Key.Key_Down):
             step = -1 if key == Qt.Key.Key_Up else 1
             self._highlight((self._index + step) % len(self._choices))

@@ -12,6 +12,7 @@ import {
   MIN_INSTALLS,
   PING_COLUMNS,
   PingError,
+  REASON_VALUES,
   SERIES_DAYS,
   SERIES_WEEKS,
   detailsRow,
@@ -22,6 +23,8 @@ import {
   pingRow,
   rankFacet,
   rankToolErrors,
+  rankToolReasons,
+  reasonsRow,
   shapeActivation,
   shapeDetailSums,
   shapeFamilies,
@@ -68,6 +71,10 @@ function ping3(overrides = {}) {
     steps: { s2_3: 3 },
     ...overrides,
   });
+}
+
+function ping4(overrides = {}) {
+  return ping3({ v: 4, tools: { query_layer: 6, download_osm: 2 }, tool_errors: { query_layer: 3, download_osm: 1 }, ...overrides });
 }
 
 function without(field, body = ping()) {
@@ -136,7 +143,7 @@ describe("validatePing", () => {
   });
 
   it("rejects another contract version", () => {
-    for (const v of [4, "1", "3", 0, null]) rejects(ping({ v }), "v must be one of 1, 2, 3");
+    for (const v of [5, "1", "4", 0, null]) rejects(ping({ v }), "v must be one of 1, 2, 3, 4");
   });
 
   it("accepts a v3 ping and keeps its maps in allowlist order", () => {
@@ -217,6 +224,39 @@ describe("validatePing", () => {
     rejects(ping({ ...v2, tool_errors: { run_python: 3 } }), "tool_errors.run_python is more than its calls");
     rejects(ping({ ...v2, tool_errors: { inspect_project: 1 } }), "tool_errors.inspect_project is more than its calls");
     validatePing(ping({ ...v2, tool_errors: { inspect_project: 0 } }), NOW);
+  });
+
+  it("takes the reasons of a v4 ping only, in the allowlist's order, and never more than the tool's errors", () => {
+    const sent = { query_layer: { other: 1, field_not_found: 2 }, download_osm: { timeout: 1 } };
+    const result = validatePing(ping4({ tool_reasons: sent }), NOW);
+    assert.equal(result.version, 4);
+    assert.deepEqual(Object.entries(result.tool_reasons), [
+      ["download_osm", { timeout: 1 }],
+      ["query_layer", { field_not_found: 2, other: 1 }],
+    ]);
+    assert.deepEqual(reasonsRow(result, "hash"), ["hash", "2026-10-17", JSON.stringify(result.tool_reasons)]);
+    assert.deepEqual(validatePing(ping4(), NOW).tool_reasons, {});
+    assert.equal(validatePing(ping3(), NOW).tool_reasons, null);
+    rejects(ping3({ tool_reasons: {} }), "unknown field");
+    rejects(ping4({ tool_reasons: [] }), "tool_reasons must be an object");
+    rejects(ping4({ tool_reasons: { query_layer: 3 } }), "tool_reasons.query_layer must be an object");
+    rejects(ping4({ tool_reasons: { query_layer: { "Layer 'Parcels' not found": 1 } } }), "has an unknown key");
+    rejects(ping4({ tool_reasons: { query_layer: { timeout: -1 } } }), "tool_reasons.query_layer.timeout");
+    rejects(ping4({ tool_reasons: { query_layer: { timeout: 2, other: 2 } } }), "tool_reasons.query_layer is more than its errors");
+    rejects(ping4({ tool_reasons: { list_layers: { other: 1 } } }), "tool_reasons names a tool without errors");
+    rejects(ping4({ tool_reasons: { constructor: { other: 1 } } }), "tool_reasons names a tool without errors");
+    assert.throws(
+      () => validatePing(ping4({ tool_reasons: { "C:\\Users\\me\\roads.gpkg": { other: 1 } } }), NOW),
+      (error) => error instanceof PingError && !error.message.includes("roads"),
+    );
+  });
+
+  it("accepts a day as the plugin sends it, every map present and most of them empty", () => {
+    const empty = Object.fromEntries(Object.keys(DETAIL_MAPS).map((name) => [name, {}]));
+    const body = ping4({ ...empty, failures: {}, skills: {}, tool_reasons: {} });
+    const result = validatePing(body, NOW);
+    assert.deepEqual(result.tool_reasons, {});
+    assert.deepEqual(result.details.outcomes, {});
   });
 
   it("rejects an install that is not a UUID", () => {
@@ -403,6 +443,30 @@ describe("rankToolErrors", () => {
   });
 });
 
+describe("rankToolReasons", () => {
+  it("groups the reasons under their tool, most failures first, in the allowlist's order", () => {
+    const ranked = rankToolReasons([
+      { tool: "query_layer", reason: "other", n: 1, installs: MIN_INSTALLS },
+      { tool: "query_layer", reason: "field_not_found", n: 4, installs: MIN_INSTALLS },
+      { tool: "download_osm", reason: "no_result", n: 9, installs: MIN_INSTALLS + 2 },
+    ]);
+    assert.deepEqual(Object.entries(ranked), [
+      ["download_osm", { no_result: 9 }],
+      ["query_layer", { field_not_found: 4, other: 1 }],
+    ]);
+  });
+
+  it("drops a pair fewer than five installs reported, and a reason outside the list", () => {
+    const ranked = rankToolReasons([
+      { tool: "query_layer", reason: "timeout", n: 7, installs: MIN_INSTALLS - 1 },
+      { tool: "query_layer", reason: "bad_expression", n: 2, installs: MIN_INSTALLS },
+      { tool: "run_python", reason: "a stored oddity", n: 5, installs: MIN_INSTALLS },
+    ]);
+    assert.deepEqual(ranked, { query_layer: { bad_expression: 2 } });
+    assert.ok(REASON_VALUES.includes("other"));
+  });
+});
+
 describe("fillDays", () => {
   it("returns every day of the window, zero where nobody pinged", () => {
     const rows = [{ day: "2026-10-16", installs: 2, runs: 5, applies: 1, sessions: 3, failed: 1 }];
@@ -526,6 +590,7 @@ describe("shapeStats", () => {
       "weeks",
       "retention",
       "tool_errors",
+      "tool_error_reasons",
       "plugin",
       "qgis",
       "os",
@@ -554,5 +619,6 @@ describe("shapeStats", () => {
     assert.deepEqual(stats.funnel, { active: 0, configured: 0, ran: 0, applied: 0 });
     assert.equal(stats.weeks.length, SERIES_WEEKS);
     assert.deepEqual(stats.tool_errors, {});
+    assert.deepEqual(stats.tool_error_reasons, {});
   });
 });

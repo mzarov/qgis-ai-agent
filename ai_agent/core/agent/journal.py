@@ -8,6 +8,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from ai_agent.core.agent.transcript import StepOutcome, ToolResult, TranscriptEntry
+from ai_agent.qgis_tools.common.persistence import sync_folder
 
 FOLDER = "ai_agent_runs"
 JOURNAL_PREFIX = "run_"
@@ -78,7 +79,7 @@ def write_journal(markdown: str, folder: str | None = None) -> str:
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temporary, path)
-        _sync_folder(target)
+        sync_folder(target)
     except Exception:
         if descriptor >= 0:
             os.close(descriptor)
@@ -144,19 +145,6 @@ def _set_descriptor_mode(descriptor: int, path: str) -> None:
         os.fchmod(descriptor, FILE_MODE)
     except (AttributeError, OSError):
         os.chmod(path, FILE_MODE)
-
-
-def _sync_folder(folder: str) -> None:
-    try:
-        descriptor = os.open(folder, os.O_RDONLY)
-    except OSError:
-        return
-    try:
-        os.fsync(descriptor)
-    except OSError:
-        pass
-    finally:
-        os.close(descriptor)
 
 
 def _entry_lines(entry: TranscriptEntry) -> list[str]:

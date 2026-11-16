@@ -13,6 +13,7 @@
   "licence": "ODbL, credit OpenStreetMap contributors",
   "hosts": [
     "overpass-api.de",
+    "overpass.private.coffee",
     "tile.openstreetmap.org"
   ],
   "datasets": [

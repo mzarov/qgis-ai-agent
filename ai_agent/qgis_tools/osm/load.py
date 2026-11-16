@@ -1,5 +1,4 @@
 import os
-import tempfile
 from typing import Any
 
 from qgis.core import (
@@ -11,6 +10,7 @@ from qgis.core import (
     QgsVectorLayer,
 )
 
+from ai_agent.qgis_tools.common.paths import download_folder, file_slug
 from ai_agent.qgis_tools.osm.tags import promote_tags
 
 SUBLAYERS = {
@@ -34,6 +34,8 @@ SUFFIX = ".osm"
 GPKG_SUFFIX = ".gpkg"
 OGR = "ogr"
 MAX_STEM_ATTEMPTS = 1000
+FALLBACK_STEM = "osm"
+PRIVATE_FILE = 0o600
 TEMP_NOTE = (
     "The project is not saved, so the downloaded data lives in a temporary folder that the "
     "system may clear. Save the project, or export the layers with export_layer, to keep them."
@@ -41,19 +43,13 @@ TEMP_NOTE = (
 
 
 def write_payload(text: str, stem: str) -> tuple[str, bool]:
-    home = _project_home()
-    if home:
-        folder = os.path.join(home, PROJECT_FOLDER)
-        os.makedirs(folder, exist_ok=True)
-        path = os.path.join(folder, _unique_stem(folder, _slug(stem)) + SUFFIX)
-        _write(path, text)
-        return path, False
-    folder = tempfile.mkdtemp(prefix=FOLDER_PREFIX)
-    os.chmod(folder, 0o700)
-    path = os.path.join(folder, f"{_slug(stem)}{SUFFIX}")
+    folder, temporary = download_folder(PROJECT_FOLDER, FOLDER_PREFIX)
+    slug = file_slug(stem, FALLBACK_STEM)
+    path = os.path.join(folder, (slug if temporary else _unique_stem(folder, slug)) + SUFFIX)
     _write(path, text)
-    os.chmod(path, 0o600)
-    return path, True
+    if temporary:
+        os.chmod(path, PRIVATE_FILE)
+    return path, temporary
 
 
 def storage_note(temporary: bool) -> dict[str, str]:
@@ -154,14 +150,6 @@ def _counted_by_hand(layer: Any) -> int:
         return 0
 
 
-def _project_home() -> str:
-    try:
-        home = QgsProject.instance().homePath()
-    except Exception:
-        return ""
-    return home if isinstance(home, str) and home.strip() and os.path.isdir(home) else ""
-
-
 def _unique_stem(folder: str, stem: str) -> str:
     for attempt in range(1, MAX_STEM_ATTEMPTS + 1):
         candidate = stem if attempt == 1 else f"{stem}_{attempt}"
@@ -182,8 +170,3 @@ def _remove(path: str) -> None:
         os.remove(path)
     except OSError as err:
         QgsMessageLog.logMessage(f"Could not remove the raw OSM file {path}: {err}", LOG_TAG, Qgis.MessageLevel.Warning)
-
-
-def _slug(text: str) -> str:
-    kept = [char if char.isalnum() or char in "-_" else "_" for char in str(text or "osm")]
-    return "".join(kept)[:60] or "osm"

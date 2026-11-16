@@ -136,7 +136,9 @@ class SourceFileTest(unittest.TestCase):
         osm = next(connector for connector in CONNECTORS if connector.id == "openstreetmap")
         location, line = found[osm.description]
         self.assertTrue(location.endswith("sources/openstreetmap.json"))
-        self.assertIn(osm.description, (SOURCES / "openstreetmap.json").read_text().splitlines()[line - 1])
+        self.assertIn(
+            osm.description, (SOURCES / "openstreetmap.json").read_text(encoding="utf-8").splitlines()[line - 1]
+        )
         for text in (*osm.examples, osm.summary, osm.licence, *osm.labels.values()):
             self.assertIn(text, found)
         self.assertNotIn("Sentinel-2 Level-2A", found)

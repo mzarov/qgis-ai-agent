@@ -6,10 +6,8 @@ from qgis.core import QgsDataSourceUri, QgsVectorLayer
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.layers import crs_authid, feature_count_block, geometry_type_name
-from ai_agent.qgis_tools.project.list_db_connections import require_connection
+from ai_agent.qgis_tools.project.list_db_connections import DB_PROVIDER, require_connection
 from ai_agent.qgis_tools.project.tree import layer_names, project
-
-DB_PROVIDER = "postgres"
 
 
 class AddDbLayerTool(BaseTool):

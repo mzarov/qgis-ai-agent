@@ -310,7 +310,13 @@ class UsageNamesTest(OrchestratorCase):
             self.orchestrator.on_tool_finished("query_layer", False)
             self.orchestrator.on_skill_loaded("style")
         counted = [call.args for call in usage.note.call_args_list]
-        self.assertEqual(counted, [("tools", "query_layer"), ("tool_errors", "query_layer"), ("skills", "style")])
+        expected = [
+            ("tools", "query_layer"),
+            ("tool_errors", "query_layer"),
+            ("tool_reasons", "query_layer/other"),
+            ("skills", "style"),
+        ]
+        self.assertEqual(counted, expected)
 
 
 class FailureTextTest(OrchestratorCase):

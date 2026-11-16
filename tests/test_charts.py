@@ -22,6 +22,9 @@ def ticks_in_time(low: float, high: float) -> list[float]:
     def expire(*_args: object) -> None:
         raise TimeoutError(f"nice_ticks({low}, {high}) did not finish")
 
+    if not hasattr(signal, "SIGALRM"):
+        # Windows has no alarm: the Linux jobs guard the loop.
+        return chart_scale.nice_ticks(low, high)
     previous = signal.signal(signal.SIGALRM, expire)
     signal.alarm(TICKS_DEADLINE_S)
     try:

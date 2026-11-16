@@ -9,10 +9,15 @@ from ai_agent.core.about import plugin_version
 from ai_agent.core.llm.client import is_local
 from ai_agent.core.llm.dialects import resolve
 from ai_agent.core.settings import get_api_url, get_dialect, has_saved_model
+from ai_agent.core.tool_failures import REASONS
 from ai_agent.i18n import locale_code
 
-PAYLOAD_VERSION = 3
+PAYLOAD_VERSION = 4
 NAME = re.compile(r"^[a-z][a-z0-9_]{0,48}$")
+PAIR = "/"
+PAIR_NAME = re.compile(r"^[a-z][a-z0-9_]{0,48}/[a-z][a-z0-9_]{0,48}$")
+TOOL_REASONS = "tool_reasons"
+TOOL_ERRORS = "tool_errors"
 MAX_NAMES = 150
 MAX_COUNT = 100_000
 VERSION_CHARS = 32
@@ -87,10 +92,28 @@ def add(counts: dict[str, Any], kind: str, name: str = "") -> dict[str, Any]:
         return counts
     key = str(name or "").strip().lower()
     group = counts.setdefault(kind, {})
-    if not NAME.match(key) or (key not in group and len(group) >= MAX_NAMES):
+    wanted = PAIR_NAME if kind == TOOL_REASONS else NAME
+    if not wanted.match(key) or (key not in group and len(group) >= MAX_NAMES):
         return counts
     group[key] = min(MAX_COUNT, int(group.get(key, 0)) + 1)
     return counts
+
+
+def reason_key(tool: str, reason: str) -> str:
+    return f"{tool}{PAIR}{reason}"
+
+
+def tool_reasons(counts: dict[str, Any]) -> dict[str, dict[str, int]]:
+    # The collector refuses a day whose reasons outnumber a tool's errors, or name a tool without any.
+    left = {tool: int(number) for tool, number in dict(counts.get(TOOL_ERRORS) or {}).items()}
+    nested: dict[str, dict[str, int]] = {}
+    for key, number in dict(counts.get(TOOL_REASONS) or {}).items():
+        tool, _, reason = str(key).partition(PAIR)
+        kept = min(int(number), left.get(tool, 0))
+        if reason in REASONS and kept > 0:
+            left[tool] -= kept
+            nested.setdefault(tool, {})[reason] = kept
+    return nested
 
 
 def bucket(value: float, edges: tuple[tuple[int | None, str], ...]) -> str:
@@ -124,6 +147,7 @@ def payload(install: str, day: str, counts: dict[str, Any], plugin: str | None =
         body[kind] = int(counts.get(kind, 0))
     for kind in MAPS:
         body[kind] = dict(counts.get(kind) or {})
+    body[TOOL_REASONS] = tool_reasons(counts)
     return body
 
 

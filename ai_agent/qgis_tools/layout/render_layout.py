@@ -6,6 +6,7 @@ from qgis.PyQt.QtCore import QSize
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.base import EGRESS_IMAGE, RESULT_IMAGE_KEY, SAFETY_READ, BaseTool
 from ai_agent.qgis_tools.common.images import encoded_png
+from ai_agent.qgis_tools.common.values import clamp_limit
 from ai_agent.qgis_tools.layout.pages import current_page_mm, find_layout
 
 DEFAULT_WIDTH = 900
@@ -55,7 +56,7 @@ class RenderLayoutTool(BaseTool):
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         layout = find_layout(params.get("layout_name") or "")
-        width = _clamped_width(params.get("width"))
+        width = clamp_limit(params.get("width"), DEFAULT_WIDTH, MAX_WIDTH, MIN_WIDTH)
         page_width, page_height = current_page_mm(layout)
         height = max(1, int(width * page_height / max(page_width, 1.0)))
         image = QgsLayoutExporter(layout).renderPageToImage(FIRST_PAGE, QSize(width, height))
@@ -68,11 +69,3 @@ class RenderLayoutTool(BaseTool):
             "note": LOOK_NOTE,
             RESULT_IMAGE_KEY: encoded_png(image),
         }
-
-
-def _clamped_width(raw: Any) -> int:
-    try:
-        wanted = int(raw) if raw is not None else DEFAULT_WIDTH
-    except (TypeError, ValueError):
-        wanted = DEFAULT_WIDTH
-    return max(MIN_WIDTH, min(MAX_WIDTH, wanted))

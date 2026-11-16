@@ -16,7 +16,7 @@ from qgis.PyQt.QtWidgets import (
 from ai_agent.core.connectors import save_enabled
 from ai_agent.core.llm.client import is_local
 from ai_agent.core.llm.dialects import AUTO, resolve
-from ai_agent.core.llm.probe_worker import ProbeThread
+from ai_agent.core.llm.probe_worker import ModelListThread, ProbeThread
 from ai_agent.core.llm.providers import PRESETS, TITLES, by_title, matching
 from ai_agent.core.settings import (
     AUTH_TYPE_BEARER,
@@ -52,8 +52,9 @@ from ai_agent.ui import settings_fields as fields
 from ai_agent.ui.connection_widgets import ProviderTiles, StatusCard
 from ai_agent.ui.connectors_settings import ConnectorsSettings
 from ai_agent.ui.geocoder_settings import GeocoderSettings
+from ai_agent.ui.model_list import MODEL_HINT, ModelListMixin
 from ai_agent.ui.personalisation_settings import PersonalisationSettings
-from ai_agent.ui.settings_probe import MODEL_REQUIRED, ConnectionProbeMixin
+from ai_agent.ui.settings_probe import MODEL_REQUIRED, SAVE, ConnectionProbeMixin
 from ai_agent.ui.settings_status import SettingsStatusMixin
 from ai_agent.ui.skills_settings import SkillsSettings
 
@@ -76,7 +77,6 @@ BUDGET_INVALID = tr("A budget must be a whole number of tokens, such as 200000 o
 KEY_REMOVED = tr("The stored key for this endpoint was removed.")
 KEY_HINT = tr("Kept in the QGIS authentication database.")
 KEYLESS_HINT = tr("A local server needs no key.")
-MODEL_HINT = tr("As the provider names it.")
 DEFERRED_PAGES = {
     settings_layout.SKILLS: SkillsSettings,
     settings_layout.GEOCODING: GeocoderSettings,
@@ -85,7 +85,7 @@ DEFERRED_PAGES = {
 }
 
 
-class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
+class SettingsDialog(ConnectionProbeMixin, ModelListMixin, SettingsStatusMixin, QDialog):
     def __init__(self, parent: Any = None):
         super().__init__(parent)
         style.apply_palette(self)
@@ -95,6 +95,11 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         self._credential_drafts: dict[tuple[str, str], str] = {}
         self._stored_keys: dict[tuple[str, str], str] = {}
         self._probe_thread: ProbeThread | None = None
+        self._list_thread: ModelListThread | None = None
+        self._probed: tuple[Any, ...] | None = None
+        self._tested: set[tuple[Any, ...]] = set()
+        self._refused: tuple[Any, ...] | None = None
+        self._save_waits = False
         self._probe_was_cancelled = False
         self._close_after_probe: QDialog.DialogCode | None = None
         self.setWindowTitle(TITLE)
@@ -133,6 +138,8 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         self._show_untested()
         self._show_endpoint()
         self._watch_changes()
+        # What is stored counts as tested: a save that leaves the connection alone asks the server nothing.
+        self._tested.add(self._connection())
 
     def show_page(self, index: int) -> None:
         settings_layout.show_page(self, index)
@@ -197,6 +204,7 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         self.url_edit.textChanged.connect(self._show_endpoint)
         self.url_edit.editingFinished.connect(self._endpoint_finished)
         self.model_edit = QLineEdit(get_model())
+        self._offer_model_list(palette)
 
         key_box = QWidget()
         key_column = QVBoxLayout(key_box)
@@ -242,7 +250,7 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         close_btn.setStyleSheet(fields.plain_button(palette))
         close_btn.clicked.connect(self.reject)
         row.addWidget(close_btn)
-        self.save_btn = QPushButton(tr("Save"))
+        self.save_btn = QPushButton(SAVE)
         self.save_btn.setStyleSheet(fields.accent_button(palette))
         self.save_btn.setDefault(True)
         self.save_btn.setEnabled(False)
@@ -280,6 +288,22 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         for index, signals in pages.items():
             for signal in signals:
                 signal.connect(lambda *_args, at=index: self._mark_dirty(at))
+        server = [
+            self.url_edit.textChanged,
+            self.key_edit.textChanged,
+            self.verify_ssl_cb.toggled,
+            self.dialect_combo.currentIndexChanged,
+            self.auth_type_combo.currentTextChanged,
+            self.headers_edit.textChanged,
+        ]
+        for signal in server:
+            # A list asked of the server as it was, or its refusal under the field, says nothing about this one.
+            signal.connect(self._cancel_listing)
+        for signal in (*server, self.model_edit.textChanged):
+            signal.connect(self._forget_refusal)
+
+    def _model_chosen(self) -> None:
+        self._mark_dirty(settings_layout.CONNECTION)
 
     def _mark_dirty(self, index: int) -> None:
         if self._loading_endpoint:
@@ -411,6 +435,8 @@ class SettingsDialog(ConnectionProbeMixin, SettingsStatusMixin, QDialog):
         context_window = fields.parsed_budget(self.context_edit.text())
         if token_budget is None or thinking_budget is None or context_window is None:
             self._show(BUDGET_INVALID, style.danger(self.palette()))
+            return
+        if self._probe_before_save():
             return
         if not self._store_key_and_personalisation(url, dialect):
             return
