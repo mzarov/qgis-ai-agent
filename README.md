@@ -4,14 +4,14 @@ Collected once a day by `.github/workflows/metrics.yml` on `main` (`tools/collec
 
 ![New downloads per day](daily_downloads.svg)
 
-## Downloads by version, 2026-11-15
+## Downloads by version, 2026-11-16
 
 | version | published | downloads |
 | --- | --- | --- |
-| 0.4.4 | 2026-11-10 | 74 |
-| 0.4.2 | 2026-10-26 | 796 |
-| 0.4.1 | 2026-10-20 | 371 |
-| 0.4.0 | 2026-10-17 | 304 |
+| 0.4.4 | 2026-11-10 | 149 |
+| 0.4.2 | 2026-10-26 | 799 |
+| 0.4.1 | 2026-10-20 | 372 |
+| 0.4.0 | 2026-10-17 | 306 |
 | 0.3.0 | 2026-10-13 | 192 |
 | 0.2.0 | 2026-10-04 | 522 |
 | 0.1.1 | 2026-10-01 | 182 |
@@ -21,6 +21,7 @@ Collected once a day by `.github/workflows/metrics.yml` on `main` (`tools/collec
 
 | day | total | new |
 | --- | --- | --- |
+| 2026-11-16 | 3420 | 81 |
 | 2026-11-15 | 3339 | 32 |
 | 2026-11-14 | 3307 | 60 |
 | 2026-11-13 | 3247 | 48 |
@@ -34,7 +35,6 @@ Collected once a day by `.github/workflows/metrics.yml` on `main` (`tools/collec
 | 2026-11-05 | 2861 | 63 |
 | 2026-11-04 | 2798 | 55 |
 | 2026-11-03 | 2743 | 56 |
-| 2026-11-02 | 2687 | 67 |
 
 ## GitHub traffic
 
