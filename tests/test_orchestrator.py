@@ -1014,9 +1014,16 @@ class PlanProgressTest(unittest.TestCase):
         noted = []
         self.orchestrator.usage = SimpleNamespace(note=lambda kind, name="": noted.append((kind, name)))
         self.orchestrator.on_tool_finished("describe_layer", True, "")
+        self.orchestrator.agent.last_tool_error = "Could not fetch data from Overpass: Gateway Timeout."
         self.orchestrator.on_tool_finished("download_osm", False, "The service did not answer in time.")
         self.assertEqual(
-            noted, [("tools", "describe_layer"), ("tools", "download_osm"), ("tool_errors", "download_osm")]
+            noted,
+            [
+                ("tools", "describe_layer"),
+                ("tools", "download_osm"),
+                ("tool_errors", "download_osm"),
+                ("tool_reasons", "download_osm/timeout"),
+            ],
         )
 
 

@@ -60,3 +60,11 @@ CREATE TABLE IF NOT EXISTS ping_details (
   tokens TEXT NOT NULL DEFAULT '{}',
   PRIMARY KEY (install_hash, day)
 );
+
+-- Field added in ping v4: per tool, a JSON object of allowlisted failure reasons and their counts.
+CREATE TABLE IF NOT EXISTS ping_reasons (
+  install_hash TEXT NOT NULL,
+  day TEXT NOT NULL,
+  reasons TEXT NOT NULL DEFAULT '{}',
+  PRIMARY KEY (install_hash, day)
+);

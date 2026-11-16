@@ -55,7 +55,11 @@ the model and are not saved on disk.
 
 When a request needs them, tools also contact:
 
-- the Overpass API for OpenStreetMap data;
+- the Overpass API for OpenStreetMap data: `overpass-api.de`, and the mirror
+  `overpass.private.coffee` when the first one is busy or unreachable. A
+  server you set yourself has no mirror. With a geocoder chosen in Settings, a
+  download for a named place first sends that name to the geocoder; the plan
+  line says so;
 - the Microsoft Planetary Computer (the search area and dates; imagery is read
   through a short-lived signed link), GitHub (Natural Earth and geoBoundaries
   files) and the geoBoundaries API (the country code);
@@ -112,7 +116,8 @@ report per install per day:
 - ranges, never exact values: model turns, working time and tokens per run,
   requests per conversation and requests until the first Apply;
 - the names of the plugin's own tools and built-in skills used (never a name
-  the model made up or a skill you wrote) and how many tool calls failed;
+  the model made up or a skill you wrote), how many tool calls failed and why,
+  as a kind from a fixed list such as "layer not found" or "timed out";
 - the kinds of failures: a category, an HTTP status with the provider's error
   code, or an error class with the plugin file and line, never the error text;
 - the plugin and QGIS versions, the OS family, the interface language, whether

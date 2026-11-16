@@ -30,6 +30,9 @@ report. A report holds:
 - how often each of the plugin's tools was called and failed, and each
   built-in skill loaded. A name the model made up and the names of skills you
   wrote yourself are not sent;
+- why a tool call failed, as a kind from a fixed list such as "layer not
+  found", "timed out" or "bad arguments". The error text and the names in it
+  are not sent;
 - how many runs failed, by kind: a category such as a timeout or a refused
   key, otherwise the HTTP status code with the provider's short error code
   (such as `context_length_exceeded`), or the error's class name with the
@@ -55,8 +58,8 @@ name is shown once at least 5 installs reported it. The code is in
 Daily charts end with yesterday and weekly ones with last week; the last few
 days may still grow. Hover a bar or point for its value; each chart also opens
 as a table. Conversations, run ends, modes, plans, model services and the
-ranges per run come from plugin 0.4.3 and later; until such installs report,
-those charts have no data.
+ranges per run come from plugin 0.4.3 and later, the reasons for failed tool
+calls from 0.4.5; until such installs report, those charts have no data.
 
 <div id="usage-stats" data-loading="Loading the statistics…" data-failed="The statistics could not be loaded. Try again later." data-empty="No data yet." data-table="Show as a table" data-other_local="Other local server" data-other_remote="Other remote service">
 <p class="usage-stats-status" role="status">The charts need JavaScript.</p>
@@ -107,6 +110,7 @@ those charts have no data.
 <figure class="usage-chart" data-chart="failures" data-title="Top 15 failure kinds, last 30 days" data-key="Kind" data-value="Failures" data-installs="Installs"></figure>
 <figure class="usage-chart" data-chart="families" data-title="Failed runs by model service, last 30 days" data-key="Service" data-installs="Installs" data-runs="Runs" data-failed="Failed" data-rate="Failure rate" data-format="{0} ({1} of {2})"></figure>
 <figure class="usage-chart" data-chart="tool_errors" data-title="Top 15 tools by errors, with the error rate, last 30 days" data-key="Tool" data-value="Errors" data-calls="Calls" data-rate="Error rate"></figure>
+<figure class="usage-chart" data-chart="tool_reasons" data-title="Top 15 reasons a tool call failed, last 30 days" data-key="Tool" data-reason="Reason" data-value="Errors" data-skipped="skipped after an earlier failure" data-cancelled="run stopped" data-connector_off="connector switched off" data-timeout="timed out" data-layer_ambiguous="ambiguous layer name" data-layer_not_found="layer not found" data-field_not_found="field not found" data-bad_expression="bad expression or query" data-not_supported="not supported by the layer" data-no_result="nothing found" data-network="network or service error" data-too_large="too much data" data-qgis_refused="refused by QGIS" data-bad_arguments="bad arguments" data-algorithm_failed="algorithm failed" data-snippet_failed="Python snippet failed" data-other="other"></figure>
 <div class="usage-chart-row">
 <figure class="usage-chart" data-chart="steps" data-title="Steps per run" data-key="Steps" data-value="Runs" data-share="Share" data-s0="None" data-s1="1" data-s2_3="2–3" data-s4_7="4–7" data-s8_15="8–15" data-s16_plus="16+"></figure>
 <figure class="usage-chart" data-chart="durations" data-title="Active time per run" data-key="Time" data-value="Runs" data-share="Share" data-t0_10="Up to 10 s" data-t10_30="10–30 s" data-t30_60="30–60 s" data-t60_180="1–3 min" data-t180_plus="Over 3 min"></figure>

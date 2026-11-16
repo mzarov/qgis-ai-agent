@@ -321,6 +321,7 @@ class UsageStatsTest(unittest.TestCase):
                 "failures",
                 "tools",
                 "tool_errors",
+                "tool_reasons",
                 "skills",
                 "outcomes",
                 "modes",
@@ -331,7 +332,7 @@ class UsageStatsTest(unittest.TestCase):
                 "tokens",
             },
         )
-        self.assertEqual(sent["v"], 3)
+        self.assertEqual(sent["v"], 4)
         self.assertEqual((sent["provider"], sent["family"]), ("local", "ollama"))
         self.assertEqual((sent["locale"], sent["plugin"]), ("ru", "0.4.0"))
         self.assertIn(sent["os"], ("macos", "windows", "linux", "other"))

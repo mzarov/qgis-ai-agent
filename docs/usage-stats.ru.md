@@ -32,6 +32,9 @@ AI Agent отправляет анонимную статистику испол
 - сколько раз вызывался и завершался ошибкой каждый инструмент плагина и
   загружался каждый встроенный навык. Имя, придуманное моделью, и имена ваших
   собственных навыков не отправляются;
+- почему вызов инструмента завершился ошибкой — вид из фиксированного списка
+  вроде «слой не найден», «таймаут» или «неверные аргументы». Текст ошибки и
+  имена из него не отправляются;
 - сколько прогонов завершилось сбоем, по видам: категория вроде таймаута или
   отклонённого ключа, иначе код HTTP-ответа с коротким кодом ошибки провайдера
   (например, `context_length_exceeded`) или имя класса ошибки с файлом и строкой
@@ -59,8 +62,8 @@ AI Agent отправляет анонимную статистику испол
 последние дни ещё могут подрасти. Наведите курсор на столбец или точку, чтобы
 увидеть значение; каждый график открывается и таблицей. Диалоги, концы
 прогонов, режимы, планы, сервисы моделей и диапазоны по прогонам приходят
-только от плагина 0.4.3 и новее; пока такие установки не отчитались, на этих
-графиках нет данных.
+только от плагина 0.4.3 и новее, причины ошибок инструментов — от 0.4.5; пока
+такие установки не отчитались, на этих графиках нет данных.
 
 <div id="usage-stats" data-loading="Загружаем статистику…" data-failed="Не удалось загрузить статистику. Попробуйте позже." data-empty="Данных пока нет." data-table="Показать таблицей" data-other_local="Другой локальный сервер" data-other_remote="Другой удалённый сервис">
 <p class="usage-stats-status" role="status">Для графиков нужен JavaScript.</p>
@@ -111,6 +114,7 @@ AI Agent отправляет анонимную статистику испол
 <figure class="usage-chart" data-chart="failures" data-title="15 самых частых видов сбоев за 30 дней" data-key="Вид" data-value="Сбои" data-installs="Установки"></figure>
 <figure class="usage-chart" data-chart="families" data-title="Сбои прогонов по сервисам моделей за 30 дней" data-key="Сервис" data-installs="Установки" data-runs="Прогоны" data-failed="Сбои" data-rate="Доля сбоев" data-format="{0} ({1} из {2})"></figure>
 <figure class="usage-chart" data-chart="tool_errors" data-title="15 инструментов с наибольшим числом ошибок и доля ошибок за 30 дней" data-key="Инструмент" data-value="Ошибки" data-calls="Вызовы" data-rate="Доля ошибок"></figure>
+<figure class="usage-chart" data-chart="tool_reasons" data-title="15 самых частых причин ошибок инструментов за 30 дней" data-key="Инструмент" data-reason="Причина" data-value="Ошибки" data-skipped="пропущен после сбоя предыдущего шага" data-cancelled="прогон остановлен" data-connector_off="коннектор выключен" data-timeout="таймаут" data-layer_ambiguous="неоднозначное имя слоя" data-layer_not_found="слой не найден" data-field_not_found="поле не найдено" data-bad_expression="ошибка в выражении или запросе" data-not_supported="слой этого не поддерживает" data-no_result="ничего не найдено" data-network="ошибка сети или сервиса" data-too_large="слишком много данных" data-qgis_refused="отказ QGIS" data-bad_arguments="неверные аргументы" data-algorithm_failed="сбой алгоритма" data-snippet_failed="ошибка в коде Python" data-other="другое"></figure>
 <div class="usage-chart-row">
 <figure class="usage-chart" data-chart="steps" data-title="Шаги за прогон" data-key="Шаги" data-value="Прогоны" data-share="Доля" data-s0="Нет" data-s1="1" data-s2_3="2–3" data-s4_7="4–7" data-s8_15="8–15" data-s16_plus="16+"></figure>
 <figure class="usage-chart" data-chart="durations" data-title="Активное время прогона" data-key="Время" data-value="Прогоны" data-share="Доля" data-t0_10="До 10 с" data-t10_30="10–30 с" data-t30_60="30–60 с" data-t60_180="1–3 мин" data-t180_plus="Больше 3 мин"></figure>

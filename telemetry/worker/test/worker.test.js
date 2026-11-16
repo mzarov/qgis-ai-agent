@@ -100,6 +100,10 @@ function ping3(install, day, overrides = {}) {
   return ping2(install, day, { v: 3, family: "openai", retries: 0, checks: 0, sessions: 1, ...overrides });
 }
 
+function ping4(install, day, overrides = {}) {
+  return ping3(install, day, { v: 4, ...overrides });
+}
+
 function noon(day) {
   return new Date(`${day}T12:00:00Z`);
 }
@@ -206,6 +210,39 @@ describe("usage worker", () => {
     await send(ping3(INSTALLS.a, "2026-10-17"));
     await send(ping(INSTALLS.a, "2026-10-17"));
     assert.deepEqual([rows("pings"), rows("ping_extras"), rows("ping_details")], [1, 0, 0]);
+  });
+
+  it("stores the v4 reasons beside the ping and clears them when an older ping replaces the day", async () => {
+    const failed = { tools: { query_layer: 4 }, tool_errors: { query_layer: 2 } };
+    await send(ping4(INSTALLS.a, "2026-10-17", { ...failed, tool_reasons: { query_layer: { field_not_found: 2 } } }));
+    assert.equal(env.DB.batches, 1);
+    assert.deepEqual(
+      sqlite.prepare("SELECT * FROM ping_reasons").all().map((row) => ({ ...row })),
+      [{ install_hash: await hashInstall(INSTALLS.a), day: "2026-10-17", reasons: '{"query_layer":{"field_not_found":2}}' }],
+    );
+    await send(ping3(INSTALLS.a, "2026-10-17", failed));
+    assert.deepEqual([rows("pings"), rows("ping_extras"), rows("ping_details"), rows("ping_reasons")], [1, 1, 1, 0]);
+    const refused = await send(ping3(INSTALLS.a, "2026-10-17", { ...failed, tool_reasons: {} }));
+    assert.equal(refused.status, 400);
+  });
+
+  it("publishes a tool's reason only once five installs reported it", async () => {
+    const failed = { tools: { query_layer: 5, download_osm: 2 }, tool_errors: { query_layer: 3, download_osm: 1 } };
+    for (const install of crowd(MIN_INSTALLS)) {
+      await send(ping4(install, "2026-10-16", { ...failed, tool_reasons: { query_layer: { field_not_found: 2, other: 0 } } }));
+    }
+    for (const install of crowd(MIN_INSTALLS - 1, 100)) {
+      const reasons = { query_layer: { field_not_found: 1, timeout: 1 }, download_osm: { no_result: 1 } };
+      await send(ping4(install, "2026-10-17", { ...failed, tool_reasons: reasons }));
+    }
+    // A v3 day and a day outside the 30 days add nothing.
+    await send(ping3(INSTALLS.a, "2026-10-17", failed));
+    const old = { query_layer: { timeout: 3 } };
+    await send(ping4(INSTALLS.b, "2026-09-01", { ...failed, tool_reasons: old }), noon("2026-09-01"));
+
+    const body = JSON.parse((await stats()).text);
+    assert.deepEqual(body.tool_error_reasons, { query_layer: { field_not_found: 14 } });
+    assert.equal(body.tool_errors.query_layer.errors, 30);
   });
 
   it("answers 429 to an address over its ping limit and stores the address nowhere", async () => {

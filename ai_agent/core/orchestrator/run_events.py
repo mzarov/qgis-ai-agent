@@ -20,6 +20,7 @@ from ai_agent.core.orchestrator.notices import (
 )
 from ai_agent.core.state.trace import CANCELLED as PLAN_CANCELLED
 from ai_agent.core.state.trace import FAILED as PLAN_FAILED
+from ai_agent.core.tool_failures import failure_reason
 from ai_agent.i18n import tr
 from ai_agent.qgis_tools.call_summary import CallSummary
 from ai_agent.qgis_tools.registry import get_tool_by_name
@@ -87,6 +88,9 @@ class RunEventsMixin(OrchestratorHost):
             self.usage.note("tools", tool_name)
             if not ok:
                 self.usage.note("tool_errors", tool_name)
+                error = str(getattr(self.agent, "last_tool_error", ""))
+                reason = failure_reason(tool_name, error)
+                self.usage.note(usage_payload.TOOL_REASONS, usage_payload.reason_key(tool_name, reason))
         plan = self._applying_plan()
         if plan is not None and self._plan_step >= 0:
             state = STEP_DONE if ok else STEP_FAILED

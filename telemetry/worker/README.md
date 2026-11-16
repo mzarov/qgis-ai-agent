@@ -15,6 +15,8 @@ a row to `ping_extras`: whether a model is set up and the failed calls per
 tool. A v3 ping adds a row to `ping_details`: the model family, the `retries`,
 `checks` and `sessions` counts, and bucketed counts of run outcomes, modes,
 plans, requests per session and before an apply, steps, durations and tokens.
+A v4 ping adds a row to `ping_reasons`: per tool, why its calls failed, as
+counts under reasons from a fixed list.
 It stores no IP addresses and keeps no request logs. A resend for the same
 install and day replaces the rows, and an older version's resend drops the
 newer tables' row for that day.
@@ -41,21 +43,25 @@ and nothing else. Without the binding, as in the tests, pings are not limited.
 ```
 
 A v1 ping (plugin 0.4.0) has no `configured` or `tool_errors`, a v2 ping
-(0.4.1 and 0.4.2) none of the v3 fields; all three versions are accepted.
+(0.4.1 and 0.4.2) none of the v3 fields. A v4 ping is a v3 ping that may add
+`"tool_reasons": {"inspect_project": {"layer_not_found": 1}}`. All four
+versions are accepted.
 
 `src/payload.js` validates it strictly: no unknown fields, `day` at most eight
 days before and one day after the server's UTC date, counts from 0 to 100000,
 map keys matching
 `^[a-z][a-z0-9_]{0,48}$`, at most 150 per map, no more errors for a tool than
-calls of it. `family` and the keys of the v3 maps come from the fixed lists in
-`payload.js`. It answers `204`, or `400`, `413` or `415` for a bad body, size or
+calls of it. `family`, the keys of the v3 maps and the reasons under
+`tool_reasons` come from the fixed lists in `payload.js`; a tool has no more
+reasons than errors. It answers `204`, or `400`, `413` or `415` for a bad body, size or
 content type, and `429` to an address over its limit.
 
 `GET /v1/stats` returns the public aggregates with
 `Access-Control-Allow-Origin: *`: install totals, one entry per day for the
 last 90 days, one entry per ISO week (new and returning installs) for the last
 13, the 30-day funnel (active, set up, ran, applied), the share of installs
-still active 7 and 30 days after their first day, failed calls per tool, and
+still active 7 and 30 days after their first day, failed calls per tool (from
+v4 pings also by reason), and
 per-value counts for the last 30 days (at most 100 values each, and only
 values at least 5 installs reported). From v3 pings it adds sessions and
 failed runs per day, 30-day activity totals and bucket sums, runs and failures
