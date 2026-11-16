@@ -1,15 +1,29 @@
+import json
 import os
 import pathlib
 import stat
 import tempfile
 import unittest
 from unittest import mock
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlsplit
 
+from ai_agent.config.geocoder import GEOCODER_NOMINATIM, GEOCODER_PHOTON
 from ai_agent.qgis_tools.base import SAFETY_READ
+from ai_agent.qgis_tools.common import geocoding
 from ai_agent.qgis_tools.common.editing import edit_session
 from ai_agent.qgis_tools.common.network import Answer
-from ai_agent.qgis_tools.osm import args, download_osm, extent, fetch, load, overpass, run_overpass, selectors, tags
+from ai_agent.qgis_tools.osm import (
+    args,
+    download_osm,
+    extent,
+    fetch,
+    load,
+    overpass,
+    run_overpass,
+    selectors,
+    tags,
+    territory,
+)
 from ai_agent.qgis_tools.osm.run_overpass import RunOverpassTool
 
 
@@ -281,7 +295,8 @@ class ToolTest(unittest.TestCase):
             prepared = self.tool.prepare({"key": "amenity", "value": "cafe", "area": " Canvas "})
         self.assertEqual(prepared["area"], "")
         self.assertEqual(prepared["bbox"], "37.500000,55.600000,37.700000,55.800000")
-        self.assertNotIn("area", download_osm._request(prepared)[0], "no place called canvas is searched")
+        job = download_osm._job(prepared)
+        self.assertEqual((job.area, job.bbox), ("", (37.5, 55.6, 37.7, 55.8)), "no place called canvas is searched")
 
     def test_bad_bbox_is_rejected_before_queueing(self):
         with self.assertRaises(ValueError):
@@ -611,9 +626,324 @@ class FetchTest(unittest.TestCase):
         params = {"query": '[out:xml];node["amenity"="cafe"](55,37,56,38);out body;', "name": "Cafes"}
         with (
             mock.patch.object(_Overpass, "answer", TIMED_OUT_ANSWER),
-            mock.patch.object(fetch, "endpoint", return_value=OVERPASS_URL),
+            mock.patch.object(run_overpass, "endpoints", return_value=(OVERPASS_URL,)),
             mock.patch.object(run_overpass, "load_answer") as load_answer,
             self.assertRaises(ValueError),
         ):
             RunOverpassTool().execute(params)
         load_answer.assert_not_called()
+
+
+MIRROR_URL = "https://mirror.test/api/interpreter"
+CAFES = (
+    b'<?xml version="1.0"?><osm version="0.6">'
+    b'<node id="1" lat="52.5" lon="13.4"><tag k="amenity" v="cafe"/></node></osm>'
+)
+BUSY_REMARK = (
+    b'<?xml version="1.0"?><osm version="0.6"><remark> runtime error: open64: 0 Success '
+    b"/osm3s_osm_base Dispatcher_Client::request_read_and_idx::timeout. The server is probably too busy "
+    b"to handle your request. </remark></osm>"
+)
+OUT_OF_MEMORY = (
+    b'<?xml version="1.0"?><osm version="0.6"><remark> runtime error: Query run out of memory '
+    b"using about 2048 MB of RAM. </remark></osm>"
+)
+PARSE_ERROR = (
+    b"<html><body><p>The data included in this document is from www.openstreetmap.org.</p>"
+    b'<p><strong style="color:#FF0000">Error</strong>: line 1: parse error: Unknown type &quot;nod&quot; </p>'
+    b"</body></html>"
+)
+
+
+class _Servers:
+    def __init__(self, answers):
+        self.answers = answers
+        self.asked = []
+
+    def send(self, request, payload=None, feedback=None, on_progress=None):
+        self.asked.append(payload)
+        return self.answers[len(self.asked) - 1]
+
+
+class MirrorTest(unittest.TestCase):
+    URLS = (OVERPASS_URL, MIRROR_URL)
+
+    def _fetch(self, *answers, urls=URLS, feedback=None):
+        servers = _Servers(answers)
+        with mock.patch.object(fetch, "send", servers.send), mock.patch.object(fetch, "QgsMessageLog"):
+            try:
+                return fetch.fetch_anywhere("[out:xml];node(1);out body;", urls, feedback), servers
+            except ValueError as failure:
+                return failure, servers
+
+    def test_a_server_that_does_not_answer_hands_the_query_to_the_mirror(self):
+        unanswered = (
+            Answer(status=504, failed=True, error="Gateway Timeout"),
+            Answer(status=429, failed=True, error="Too Many Requests"),
+            Answer(status=0, failed=True, error="Host not found"),
+            Answer(status=200, body=BUSY_REMARK),
+            Answer(status=200, body=TIMED_OUT_ANSWER),
+            Answer(status=200, body=b"<html>The server is probably too busy to handle your request.</html>"),
+        )
+        for first in unanswered:
+            with self.subTest(first=first):
+                text, servers = self._fetch(first, Answer(status=200, body=CAFES))
+                self.assertEqual(text, CAFES.decode())
+                self.assertEqual(len(servers.asked), 2)
+                self.assertEqual(servers.asked[0], servers.asked[1])
+
+    def test_a_query_the_server_could_not_run_is_not_sent_again(self):
+        refused = (
+            Answer(status=400, failed=True, error="Bad Request", body=PARSE_ERROR),
+            Answer(status=200, body=OUT_OF_MEMORY),
+            Answer(status=200, body=b"<html>nothing like OSM here</html>"),
+        )
+        for first in refused:
+            with self.subTest(first=first):
+                failure, servers = self._fetch(first, Answer(status=200, body=CAFES))
+                self.assertIsInstance(failure, ValueError)
+                self.assertEqual(len(servers.asked), 1)
+
+    def test_a_refused_query_comes_back_with_what_overpass_said(self):
+        failure, _ = self._fetch(Answer(status=400, failed=True, error="Bad Request", body=PARSE_ERROR))
+        self.assertIn('line 1: parse error: Unknown type "nod"', str(failure))
+
+    def test_an_empty_answer_is_an_answer(self):
+        text, servers = self._fetch(Answer(status=200, body=_Overpass.answer), Answer(status=200, body=CAFES))
+        self.assertEqual(text, _Overpass.answer.decode())
+        self.assertEqual(len(servers.asked), 1)
+
+    def test_a_stopped_download_does_not_move_to_the_mirror(self):
+        stopped = mock.Mock(isCanceled=lambda: True)
+        failure, servers = self._fetch(
+            Answer(status=0, failed=True, error="Operation canceled", cancelled=True), feedback=stopped
+        )
+        self.assertIsInstance(failure, ValueError)
+        self.assertEqual(len(servers.asked), 1)
+
+    def test_both_servers_failing_names_the_mirror_too(self):
+        busy = Answer(status=504, failed=True, error="Gateway Timeout")
+        failure, servers = self._fetch(busy, busy)
+        self.assertEqual(len(servers.asked), 2)
+        self.assertIn("Gateway Timeout", str(failure))
+        self.assertIn("mirror.test", str(failure))
+
+    def test_only_the_public_server_has_a_mirror(self):
+        with mock.patch.object(overpass, "endpoint", return_value=overpass.DEFAULT_ENDPOINT):
+            self.assertEqual(overpass.endpoints(), (overpass.DEFAULT_ENDPOINT, overpass.FALLBACK_ENDPOINT))
+        with mock.patch.object(overpass, "endpoint", return_value="https://overpass.example.org/api/interpreter"):
+            self.assertEqual(overpass.endpoints(), ("https://overpass.example.org/api/interpreter",))
+
+    def test_every_overpass_host_is_one_the_connector_names(self):
+        sources = pathlib.Path(overpass.__file__).parents[1] / "data" / "sources"
+        hosts = json.loads((sources / f"{overpass.CONNECTOR}.json").read_text(encoding="utf-8"))["hosts"]
+        for url in (overpass.DEFAULT_ENDPOINT, overpass.FALLBACK_ENDPOINT):
+            self.assertIn(urlsplit(url).hostname, hosts)
+
+
+BERLIN_PHOTON = json.dumps(
+    {
+        "features": [
+            {
+                "geometry": {"coordinates": [13.3888, 52.517]},
+                "properties": {
+                    "name": "Berlin",
+                    "country": "Germany",
+                    "osm_type": "R",
+                    "osm_id": 62422,
+                    "osm_key": "place",
+                    "osm_value": "city",
+                    "extent": [13.08, 52.67, 13.76, 52.33],
+                },
+            }
+        ]
+    }
+)
+VILLAGE_NOMINATIM = json.dumps(
+    [
+        {
+            "display_name": "Divnomorskoye, Krasnodar Krai",
+            "category": "place",
+            "type": "village",
+            "osm_type": "node",
+            "osm_id": 27505009,
+            "lat": "44.5052",
+            "lon": "38.1305",
+            "boundingbox": ["44.49", "44.52", "38.11", "38.15"],
+        }
+    ]
+)
+COUNTRY_NODE = json.dumps(
+    [
+        {
+            "display_name": "Россия",
+            "category": "place",
+            "type": "country",
+            "osm_type": "node",
+            "osm_id": 1,
+            "lat": "64.6",
+            "lon": "97.7",
+            "boundingbox": ["41.1", "82.0", "19.6", "180.0"],
+        }
+    ]
+)
+PHOTON_SERVICE = territory.Geocoder(GEOCODER_PHOTON, "https://photon.test")
+NOMINATIM_SERVICE = territory.Geocoder(GEOCODER_NOMINATIM, "https://geo.test/nominatim")
+
+
+class GeocodedTerritoryTest(unittest.TestCase):
+    def setUp(self):
+        self.tool = download_osm.DownloadOsmTool()
+        self.requests = []
+        self.queries = []
+        self.geocoder_answer = Answer(status=200, body=BERLIN_PHOTON.encode())
+        for target, replacement in (
+            (geocoding, self._geocoder),
+            (fetch, self._overpass),
+        ):
+            patcher = mock.patch.object(target, "send", replacement)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        for name, value in (("QUrl", str), ("QNetworkRequest", mock.Mock(side_effect=lambda url: _Request(url)))):
+            patcher = mock.patch.object(geocoding, name, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def _geocoder(self, request, payload=None, feedback=None):
+        self.requests.append(request.url)
+        return self.geocoder_answer
+
+    def _overpass(self, request, payload=None, feedback=None, on_progress=None):
+        self.queries.append(parse_qs(payload.decode("ascii"))["data"][0])
+        return Answer(status=200, body=CAFES)
+
+    def _download(self, service, configured="same", **params):
+        arguments = {"key": "amenity", "value": "cafe", "area": "Berlin", **params}
+        now = service if configured == "same" else configured
+        with (
+            mock.patch.object(download_osm, "configured_geocoder", return_value=service),
+            mock.patch.object(territory, "configured_geocoder", return_value=now),
+            mock.patch.object(download_osm, "endpoints", return_value=(OVERPASS_URL,)),
+            mock.patch.object(download_osm, "load_answer", return_value={"layers": [], "total_features": 1}),
+        ):
+            prepared = self.tool.prepare(arguments)
+            return prepared, self.tool.execute(prepared)
+
+    def test_a_relation_the_geocoder_returns_becomes_the_search_area(self):
+        prepared, payload = self._download(PHOTON_SERVICE)
+        self.assertEqual(self.requests, ["https://photon.test/api?limit=5&q=Berlin"])
+        (query,) = self.queries
+        self.assertIn("area(id:3600062422)->.searchArea;", query)
+        self.assertNotIn('area["name"', query)
+        self.assertEqual(payload["territory"], "Berlin, Germany")
+        self.assertIn("photon.test", self.tool.summarize_call(prepared))
+
+    def test_a_place_without_a_relation_is_searched_in_its_box(self):
+        self.geocoder_answer = Answer(status=200, body=VILLAGE_NOMINATIM.encode())
+        _, payload = self._download(NOMINATIM_SERVICE, area="Divnomorskoye")
+        self.assertEqual(self.requests, ["https://geo.test/nominatim/search?format=jsonv2&limit=5&q=Divnomorskoye"])
+        (query,) = self.queries
+        self.assertIn("[bbox:44.490000,38.110000,44.520000,38.150000]", query)
+        self.assertNotIn("searchArea", query)
+        self.assertEqual(payload["territory"], "Divnomorskoye, Krasnodar Krai")
+
+    def test_without_a_geocoder_the_name_is_matched_as_before(self):
+        prepared, payload = self._download(None)
+        self.assertEqual(self.requests, [])
+        self.assertIn('area["name"="Berlin"];', self.queries[0])
+        self.assertNotIn("territory", payload)
+        self.assertNotIn(territory.URL_KEY, prepared)
+        self.assertNotIn("located", self.tool.summarize_call(prepared))
+
+    def test_a_geocoder_that_fails_or_knows_nothing_falls_back_to_the_name(self):
+        for answer in (
+            Answer(status=503, failed=True, error="Service Unavailable"),
+            Answer(status=200, body=b'{"features": []}'),
+            Answer(status=200, body=b"<html>not json</html>"),
+            Answer(status=200, body=COUNTRY_NODE.encode()),
+        ):
+            with self.subTest(answer=answer):
+                self.queries.clear()
+                self.geocoder_answer = answer
+                service = NOMINATIM_SERVICE if answer.body.startswith(b"[") else PHOTON_SERVICE
+                _, payload = self._download(service)
+                self.assertIn('area["name"="Berlin"];', self.queries[0])
+                self.assertNotIn("territory", payload)
+
+    def test_a_rectangle_never_asks_the_geocoder(self):
+        prepared, _ = self._download(PHOTON_SERVICE, area="", bbox="13.3,52.4,13.5,52.6")
+        self.assertEqual(self.requests, [])
+        self.assertNotIn(territory.URL_KEY, prepared)
+
+    def test_a_geocoder_the_plan_did_not_name_is_not_contacted(self):
+        for planned, now in ((None, PHOTON_SERVICE), (PHOTON_SERVICE, None), (PHOTON_SERVICE, NOMINATIM_SERVICE)):
+            with self.subTest(planned=planned, now=now):
+                self.requests.clear()
+                self.queries.clear()
+                self._download(planned, configured=now)
+                self.assertEqual(self.requests, [])
+                self.assertIn('area["name"="Berlin"];', self.queries[0])
+
+    def test_the_model_cannot_name_the_geocoder(self):
+        smuggled = {territory.PROVIDER_KEY: GEOCODER_PHOTON, territory.URL_KEY: "https://elsewhere.test"}
+        prepared, _ = self._download(None, **smuggled)
+        self.assertNotIn(territory.URL_KEY, prepared)
+        self.assertEqual(self.requests, [])
+
+    def test_the_switched_off_connector_stops_the_geocoder_too(self):
+        with (
+            mock.patch.object(download_osm, "configured_geocoder", return_value=PHOTON_SERVICE),
+            mock.patch.object(territory, "configured_geocoder", return_value=PHOTON_SERVICE),
+        ):
+            prepared = self.tool.prepare({"key": "amenity", "value": "cafe", "area": "Berlin"})
+            with mock.patch.object(overpass, "disabled_connectors", return_value=frozenset({overpass.CONNECTOR})):
+                for call in (self.tool.execute, self.tool.start):
+                    with self.assertRaisesRegex(ValueError, "connector is turned off"):
+                        call(prepared)
+        self.assertEqual((self.requests, self.queries), ([], []))
+
+    def test_only_a_geocoder_switched_on_in_settings_counts(self):
+        with mock.patch.object(territory, "get_provider", return_value="disabled"):
+            self.assertIsNone(territory.configured_geocoder())
+        for url in ("https://nominatim.openstreetmap.org", "http://geo.example", ""):
+            with (
+                self.subTest(url=url),
+                mock.patch.object(territory, "get_provider", return_value=GEOCODER_NOMINATIM),
+                mock.patch.object(territory, "get_url", return_value=url),
+            ):
+                self.assertIsNone(territory.configured_geocoder())
+        with (
+            mock.patch.object(territory, "get_provider", return_value=GEOCODER_PHOTON),
+            mock.patch.object(territory, "get_url", return_value="https://photon.komoot.io"),
+        ):
+            self.assertEqual(territory.configured_geocoder().host, "photon.komoot.io")
+
+
+class NothingFoundTest(unittest.TestCase):
+    def _message(self, where, geocoder=None):
+        job = download_osm._Job("amenity", "cafe", (), "all", "x", where.area, where.bbox, (OVERPASS_URL,), geocoder)
+        return job._nothing_found(where)
+
+    def test_a_name_that_matched_nothing_says_how_names_are_matched_and_offers_the_geocoder(self):
+        message = self._message(territory.Territory(area="Berlin, Germany"))
+        self.assertIn("'Berlin, Germany' does not", message)
+        self.assertIn("Settings → Geocoding", message)
+        self.assertNotIn("Settings → Geocoding", self._message(territory.Territory(area="Berlin"), PHOTON_SERVICE))
+
+    def test_a_geocoded_place_is_named_so_a_wrong_one_shows(self):
+        message = self._message(territory.Territory(area_id=3600062422, found="Berlin, Germany"), PHOTON_SERVICE)
+        self.assertIn("'Berlin, Germany'", message)
+        self.assertIn("add the region or the country", message)
+
+    def test_a_rectangle_is_not_told_about_names(self):
+        message = self._message(territory.Territory(bbox=(13.3, 52.4, 13.5, 52.6)))
+        self.assertNotIn("name:en", message)
+        self.assertIn("widen the bbox", message)
+
+
+class _Request:
+    def __init__(self, url):
+        self.url = url
+
+    def setRawHeader(self, name, value):
+        pass

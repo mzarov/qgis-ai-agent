@@ -4,9 +4,9 @@ from ai_agent.i18n import tr, tr_n
 from ai_agent.qgis_tools.base import EGRESS_METADATA, SAFETY_WRITE, BaseTool
 from ai_agent.qgis_tools.common.background import Background, InTask
 from ai_agent.qgis_tools.osm.args import geometry, wanted_name
-from ai_agent.qgis_tools.osm.fetch import fetch
+from ai_agent.qgis_tools.osm.fetch import fetch_anywhere
 from ai_agent.qgis_tools.osm.load import SUBLAYERS, load_answer
-from ai_agent.qgis_tools.osm.overpass import RECURSE_DOWN, endpoint, require_connector
+from ai_agent.qgis_tools.osm.overpass import RECURSE_DOWN, endpoints, require_connector
 
 MAX_QUERY_CHARS = 4000
 SHOWN_CHARS = 90
@@ -103,17 +103,17 @@ class RunOverpassTool(BaseTool):
     def start(self, params: dict[str, Any]) -> Background:
         require_connector()
         query = _checked_query(params.get("query"))
-        wanted, name, url = geometry(params), wanted_name(params), endpoint()
+        wanted, name, urls = geometry(params), wanted_name(params), endpoints()
         return InTask(
             self.summarize_call(params),
-            lambda feedback: fetch(query, url, feedback),
+            lambda feedback: fetch_anywhere(query, urls, feedback),
             lambda text: load_answer(text, wanted, name, NOTHING_FOUND),
         )
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         require_connector()
         query = _checked_query(params.get("query"))
-        return load_answer(fetch(query), geometry(params), wanted_name(params), NOTHING_FOUND)
+        return load_answer(fetch_anywhere(query, endpoints()), geometry(params), wanted_name(params), NOTHING_FOUND)
 
 
 def _checked_intent(raw: Any) -> str:

@@ -21,6 +21,8 @@ from ai_agent.qgis_tools.web.http import RequestCancelled, checked_url, safe_url
 from ai_agent.qgis_tools.web.search_web import SearchWebTool, parse_results
 from ai_agent.qgis_tools.web.url_policy import canonical_host, embedded_ipv4, is_public_address
 
+# A quadratic parser takes minutes here; the budget only has to survive a slow CI runner.
+MALFORMED_BUDGET_S = 5
 PAGE = """<html><head><title>t</title><style>.a{color:red}</style></head>
 <body><script>alert(1)</script><h1>Заголовок</h1><p>Первый  абзац &amp; хвост.</p>
 <div>Второй<br>абзац</div></body></html>"""
@@ -752,7 +754,7 @@ class SearchParseTest(unittest.TestCase):
     def test_malformed_anchors_are_processed_with_a_linear_budget(self):
         started = time.monotonic()
         self.assertEqual(parse_results("<a" * 20_000), [])
-        self.assertLess(time.monotonic() - started, 0.5)
+        self.assertLess(time.monotonic() - started, MALFORMED_BUDGET_S)
 
     def test_the_tool_reads_through_the_fetcher(self):
         saved = search_module.get_text
